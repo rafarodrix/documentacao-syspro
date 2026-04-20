@@ -808,15 +808,28 @@ export class ProcessIncomingMessageUseCase {
   }
 
   private normalizeReceiptPayload(payload: any): { messageIds: string[]; chatwootStatus: 'delivered' | 'read' } | null {
-    const state = String(payload?.state ?? '').trim();
+    const state = String(
+      payload?.state ??
+      payload?.State ??
+      payload?.status ??
+      payload?.data?.state ??
+      payload?.data?.State ??
+      payload?.data?.status ??
+      ''
+    ).trim();
     const chatwootStatus = this.mapReceiptStateToChatwoot(state);
     if (!chatwootStatus) return null;
 
-    const messageIds = Array.isArray(payload?.data?.MessageIDs)
-      ? payload.data.MessageIDs
-          .map((value: unknown) => String(value ?? '').trim())
-          .filter((value: string) => value.length > 0)
-      : [];
+    const rawMessageIds =
+      payload?.MessageIDs ??
+      payload?.messageIds ??
+      payload?.data?.MessageIDs ??
+      payload?.data?.messageIds ??
+      payload?.key?.id ??
+      payload?.data?.key?.id;
+    const messageIds = (Array.isArray(rawMessageIds) ? rawMessageIds : [rawMessageIds])
+      .map((value: unknown) => String(value ?? '').trim())
+      .filter((value: string) => value.length > 0);
 
     if (!messageIds.length) return null;
     return { messageIds, chatwootStatus };

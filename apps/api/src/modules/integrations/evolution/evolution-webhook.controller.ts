@@ -54,11 +54,19 @@ export class EvolutionWebhookController {
     }
 
     const normalizedEvent = String(payload?.event ?? '').trim().toLowerCase();
+    const eventPayload = payload?.data ?? payload;
+    const remoteJid = this.readRemoteJid(eventPayload);
+    const isGroupMessageRoute =
+      normalizedEvent === 'group' &&
+      remoteJid.endsWith('@g.us') &&
+      this.hasMessagePayload(eventPayload);
     const isInboundMessageEvent =
       normalizedEvent === 'message' ||
-      normalizedEvent === 'messages.upsert';
+      normalizedEvent === 'messages.upsert' ||
+      isGroupMessageRoute;
     const isReceiptEvent =
       normalizedEvent === 'receipt' ||
+      normalizedEvent === 'read_receipt' ||
       normalizedEvent === 'messages.update';
     const isCallEvent =
       normalizedEvent === 'call' ||
@@ -70,13 +78,13 @@ export class EvolutionWebhookController {
       normalizedEvent.startsWith('calls.');
 
     if (isInboundMessageEvent) {
-      await this.processIncomingMessage.execute(payload?.data ?? payload, {
+      await this.processIncomingMessage.execute(eventPayload, {
         instanceId: resolvedInstanceId,
         connection: resolvedContext,
       });
     } else if (isReceiptEvent) {
       await this.processIncomingMessage.handleStatusUpdate(
-        normalizedEvent === 'messages.update' ? (payload?.data ?? payload) : payload,
+        eventPayload,
         {
           instanceId: resolvedInstanceId,
           connection: resolvedContext,
@@ -97,5 +105,31 @@ export class EvolutionWebhookController {
       }));
     }
     return { ok: true };
+  }
+
+  private readRemoteJid(payload: any): string {
+    return String(
+      payload?.key?.remoteJid ??
+      payload?.Info?.Chat ??
+      payload?.info?.Chat ??
+      payload?.remoteJid ??
+      payload?.data?.key?.remoteJid ??
+      payload?.data?.Info?.Chat ??
+      payload?.data?.info?.Chat ??
+      payload?.data?.remoteJid ??
+      ''
+    ).trim();
+  }
+
+  private hasMessagePayload(payload: any): boolean {
+    const message = payload?.message ?? payload?.Message ?? payload?.data?.message ?? payload?.data?.Message;
+    return Boolean(
+      message?.conversation ||
+      message?.extendedTextMessage ||
+      message?.imageMessage ||
+      message?.videoMessage ||
+      message?.documentMessage ||
+      message?.audioMessage
+    );
   }
 }

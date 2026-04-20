@@ -39,6 +39,8 @@ export const evolutionMessageEventSchema = z.object({
     z.literal("Message"),
     z.literal("MESSAGES_UPSERT"),
     z.literal("messages.upsert"),
+    z.literal("GROUP"),
+    z.literal("group"),
   ]),
   data: z
     .object({

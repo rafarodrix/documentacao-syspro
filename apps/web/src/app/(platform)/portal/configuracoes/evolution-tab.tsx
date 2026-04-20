@@ -135,7 +135,7 @@ export default function EvolutionSettingsTab() {
                     help={
                       "URL publica do backend que recebe eventos do Evolution.\n" +
                       "Preencher com: https://SEU_BACKEND/api/webhooks/evolution\n" +
-                      "Eventos atualmente tratados pelo backend: Message e Receipt."
+                      "Eventos atualmente tratados pelo backend: MESSAGE, GROUP e READ_RECEIPT."
                     }
                   />
                   <Input
@@ -222,6 +222,7 @@ export default function EvolutionSettingsTab() {
                   help={
                     "Define quais eventos o Evolution enviara para o webhook.\n" +
                     "Para o backend atual, use ALL ou selecione ao menos MESSAGE e READ_RECEIPT.\n" +
+                    "Se grupos forem assinados separadamente no Evolution Go 0.7.0, inclua GROUP.\n" +
                     "Esses nomes seguem o padrao da documentacao da Evolution Go."
                   }
                 />
@@ -279,7 +280,7 @@ export default function EvolutionSettingsTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>- Webhook inbound processa os eventos `Message` e `Receipt`.</p>
+          <p>- Webhook inbound processa `MESSAGE`, `messages.upsert`, `GROUP` para grupos permitidos, `READ_RECEIPT` e `Receipt`.</p>
           <p>- Outbound prioriza as rotas `/send/text` e `/send/media` da Evolution Go, com fallback para o contrato v2 quando necessario.</p>
           <p>- Salvar esta tela persiste a configuracao administrativa no backend; isso nao garante provisionamento automatico da instancia.</p>
         </CardContent>
@@ -293,7 +294,7 @@ export default function EvolutionSettingsTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `Message` e `Receipt` habilitados.</p>
+          <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `MESSAGE` e `READ_RECEIPT` habilitados; para grupos sem `ALL`, habilite tambem `GROUP`.</p>
           <p>- O backend precisa ter `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` configurados.</p>
           <p>- Os campos `Instance`, `Instance ID` e `Instance Token` desta tela sao a fonte de verdade para o casamento exato do webhook.</p>
           <p>- O Chatwoot precisa apontar webhook para `POST /api/webhooks/chatwoot`; `/webhooks/chatwoot` tambem e aceito como alias.</p>
