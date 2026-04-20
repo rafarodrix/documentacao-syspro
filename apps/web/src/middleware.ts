@@ -19,7 +19,7 @@ globalForRoleCache.__sessionRoleCache = sessionRoleCache;
 
 function isPublicPath(pathname: string): boolean {
   const publicRoutes = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/privacidade", "/termos"];
-  const isReleasesRoute = pathname === "/releases";
+  const isReleasesRoute = pathname === "/releases" || pathname.startsWith("/releases/");
 
   return (
     publicRoutes.includes(pathname) ||
@@ -112,14 +112,6 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = !!sessionToken;
   const isPublicRoute = isPublicPath(pathname);
   const resolvedRole = isAuthenticated ? await resolveRequestRole(request, sessionToken) : null;
-  if (!isAuthenticated && pathname.startsWith("/releases/")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/releases";
-    url.searchParams.set("auth", "required");
-    url.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(url);
-  }
-
   if (!isPublicRoute && !isAuthenticated) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
