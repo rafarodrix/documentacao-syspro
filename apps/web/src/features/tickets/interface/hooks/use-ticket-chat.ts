@@ -17,9 +17,19 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
     const currentUserEmail = session?.user?.email;
 
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: "smooth" });
+        const marker = scrollRef.current;
+        if (!marker) return;
+
+        const viewport = marker.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+        if (!viewport) {
+            marker.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+            return;
         }
+
+        requestAnimationFrame(() => {
+            viewport.scrollLeft = 0;
+            viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+        });
     }, [articles]);
 
     const handleSend = (visibility: "PUBLIC" | "INTERNAL" = "PUBLIC") => {

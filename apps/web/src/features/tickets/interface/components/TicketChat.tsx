@@ -74,7 +74,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
     };
 
     return (
-        <Card className="max-w-full overflow-hidden border-border/60">
+        <Card className="w-full max-w-full overflow-hidden border-border/60">
             <CardContent className="p-0">
                 <Tabs defaultValue="conversation" className="w-full">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 bg-muted/20 px-4 py-3">
@@ -240,8 +240,8 @@ function Timeline({
     scrollRef?: RefObject<HTMLDivElement | null>;
 }) {
     return (
-        <ScrollArea className="h-130 w-full max-w-full overflow-x-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40">
-            <div className="w-full max-w-full space-y-6 overflow-x-hidden p-4">
+        <ScrollArea className="h-[32.5rem] w-full max-w-full overflow-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40 [&_[data-radix-scroll-area-viewport]]:overflow-x-hidden">
+            <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden p-4">
                 {articles.length === 0 && (
                     <div className="rounded-lg border border-dashed bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground">
                         {emptyLabel}
@@ -249,15 +249,15 @@ function Timeline({
                 )}
 
                 {articles.map((article) => {
-                    const messageIsMe = isMe(article.from);
+                    const messageIsMe = article.sender === "Agent" || isMe(article.from);
                     const messageIsSystem = isSystem(article.from) || article.messageType === "SYSTEM_EVENT";
 
                     if (messageIsSystem) {
                         return (
-                            <div key={article.id} className="flex justify-center">
-                                <span className="flex max-w-full items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-xs text-muted-foreground shadow-sm [overflow-wrap:anywhere]">
+                            <div key={article.id} className="flex min-w-0 max-w-full justify-center overflow-hidden">
+                                <span className="flex min-w-0 max-w-full items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-xs text-muted-foreground shadow-sm [overflow-wrap:anywhere]">
                                     <Bot className="h-3 w-3 shrink-0" />
-                                    <span className="min-w-0 break-words">{stripHtml(article.body)}</span>
+                                    <span className="min-w-0 break-words [overflow-wrap:anywhere]">{stripHtml(article.body)}</span>
                                     <span className="shrink-0 opacity-70">* {article.createdAt}</span>
                                 </span>
                             </div>
@@ -265,7 +265,7 @@ function Timeline({
                     }
 
                     return (
-                        <div key={article.id} className={cn("flex w-full max-w-full gap-3 overflow-hidden", messageIsMe ? "flex-row-reverse" : "flex-row")}>
+                        <div key={article.id} className={cn("flex min-w-0 max-w-full gap-3 overflow-hidden", messageIsMe ? "flex-row-reverse" : "flex-row")}>
                             <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
                                 <AvatarFallback
                                     className={cn(
@@ -278,7 +278,7 @@ function Timeline({
                                 </AvatarFallback>
                             </Avatar>
 
-                            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", messageIsMe && "items-end")}>
+                            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col overflow-hidden", messageIsMe && "items-end")}>
                                 <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", messageIsMe && "justify-end")}>
                                     <span className="min-w-0 max-w-55 truncate text-xs font-medium">
                                         {messageIsMe ? "Voce" : article.from.split("<")[0]}
@@ -293,9 +293,9 @@ function Timeline({
 
                                 <div
                                     className={cn(
-                                        "prose prose-sm w-fit max-w-[min(100%,42rem)] rounded-2xl p-3 text-sm shadow-sm [overflow-wrap:anywhere] break-words [&_*]:max-w-full [&_*]:[overflow-wrap:anywhere]",
+                                        "prose prose-sm min-w-0 w-fit !max-w-[min(100%,42rem)] rounded-2xl p-3 text-sm shadow-sm [overflow-wrap:anywhere] break-words [&_*]:max-w-full [&_*]:[overflow-wrap:anywhere]",
                                         "[&_p]:whitespace-normal [&_p]:break-words [&_span]:break-words [&_strong]:break-words",
-                                        "prose-pre:max-w-full prose-pre:overflow-x-auto prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white",
+                                        "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:[white-space:pre-wrap]",
                                         "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
                                         article.isInternal
                                             ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
