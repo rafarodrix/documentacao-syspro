@@ -10,18 +10,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { TicketListItem } from "./types";
+import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge, SlaBadge, QuickButton } from "./badges";
 import { ticketQuickAction } from "@/features/tickets/application/ticket-actions";
 
 interface TicketsTableProps {
   tickets: TicketListItem[];
   isAdmin: boolean;
+  statusGroup: TicketStatusGroup;
 }
 
-export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
+export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const isClosedView = statusGroup === "closed";
+  const emptyStateColSpan = isClosedView ? (isAdmin ? 6 : 5) : (isAdmin ? 9 : 8);
 
   const runQuickAction = (ticketId: string | number, action: "assume" | "priority_high" | "macro_followup") => {
     const actionKey = `${ticketId}:${action}`;
@@ -75,25 +79,27 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                     #{ticket.number} - {ticket.group}
                   </p>
                 </div>
-                <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
+                {!isClosedView && <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />}
               </div>
               {isAdmin && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
               <div className="flex items-center gap-2">
                 <TeamBadge team={ticket.team} />
                 <PriorityBadge priority={ticket.priority} />
-                <SlaBadge ticket={ticket} />
+                {!isClosedView && <SlaBadge ticket={ticket} />}
                 <span className="text-[11px] text-muted-foreground ml-auto">{formatDateSafe(ticket.updatedAt)}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {isAdmin && (
-                  <>
-                    <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
-                  </>
-                )}
-                <Button variant="outline" size="sm" asChild className="ml-auto">
-                  <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>Abrir</Link>
-                </Button>
-              </div>
+              {!isClosedView && (
+                <div className="flex flex-wrap gap-2">
+                  {isAdmin && (
+                    <>
+                      <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
+                    </>
+                  )}
+                  <Button variant="outline" size="sm" asChild className="ml-auto">
+                    <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>Abrir</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -107,16 +113,16 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
               <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assunto</TableHead>
               {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+              {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</TableHead>
+              {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Atualizacao</TableHead>
-              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
+              {!isClosedView && <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {tickets.length === 0 ? (
-              <EmptyState isAdmin={isAdmin} />
+              <EmptyState colSpan={emptyStateColSpan} />
             ) : (
               tickets.map((ticket, index) => (
                 <TableRow
@@ -153,31 +159,37 @@ export function TicketsTable({ tickets, isAdmin }: TicketsTableProps) {
                   <TableCell>
                     <TeamBadge team={ticket.team} />
                   </TableCell>
-                  <TableCell>
-                    <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
-                  </TableCell>
+                  {!isClosedView && (
+                    <TableCell>
+                      <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <PriorityBadge priority={ticket.priority} />
                   </TableCell>
-                  <TableCell>
-                    <SlaBadge ticket={ticket} />
-                  </TableCell>
+                  {!isClosedView && (
+                    <TableCell>
+                      <SlaBadge ticket={ticket} />
+                    </TableCell>
+                  )}
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">{formatDateSafe(ticket.updatedAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1.5">
-                      {isAdmin && (
-                        <>
-                          <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
-                        </>
-                      )}
-                      <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
-                        <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
-                          <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
-                          <ArrowUpRight className="h-3 w-3" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {!isClosedView && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1.5">
+                        {isAdmin && (
+                          <>
+                            <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
+                          </>
+                        )}
+                        <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
+                          <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
+                            <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
+                            <ArrowUpRight className="h-3 w-3" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
@@ -204,10 +216,10 @@ function TeamBadge({ team }: { team?: TicketListItem["team"] }) {
   );
 }
 
-function EmptyState({ isAdmin }: { isAdmin: boolean }) {
+function EmptyState({ colSpan }: { colSpan: number }) {
   return (
     <TableRow>
-      <TableCell colSpan={isAdmin ? 9 : 8} className="h-64 text-center">
+      <TableCell colSpan={colSpan} className="h-64 text-center">
         <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
           <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
             <SearchX className="h-6 w-6 text-muted-foreground/50" />

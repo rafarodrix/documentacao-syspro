@@ -9,7 +9,6 @@ async function fetchReleases(): Promise<Release[]> {
             where: {
                 publishToReleases: true,
                 resolutionSummary: { not: null },
-                releaseType: { not: null },
                 status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
             },
             orderBy: [{ closedAt: "desc" }, { updatedAt: "desc" }],
@@ -40,19 +39,23 @@ async function fetchReleases(): Promise<Release[]> {
 
         return tickets
             .filter((ticket) => typeof ticket.resolutionSummary === "string" && ticket.resolutionSummary.trim().length > 0)
-            .map((ticket) => ({
-                id: ticket.ticketNumber || ticket.id,
-                type: ticket.releaseType === "BUG" ? "Bug" : "Melhoria",
-                isoDate: (ticket.closedAt || ticket.updatedAt).toISOString().slice(0, 10),
-                title: readReleaseMetadataString(ticket.metadata, "releaseTitle") || ticket.subject || "Atualizacao sem titulo",
-                summary:
-                    (typeof ticket.resolutionSummary === "string" ? ticket.resolutionSummary.trim() : "") ||
-                    ticket.subject ||
-                    "Atualizacao interna",
-                link: `/portal/tickets/${ticket.id}`,
-                videoLink: ticket.resolutionVideoUrl || null,
-                tags: ticket.releaseModule ? [ticket.releaseModule] : [],
-            }));
+            .map((ticket) => {
+                const releaseType = normalizeReleaseType(ticket.releaseType) || inferReleaseTypeFromMetadata(ticket.metadata);
+
+                return {
+                    id: ticket.ticketNumber || ticket.id,
+                    type: releaseType === "BUG" ? "Bug" : "Melhoria",
+                    isoDate: (ticket.closedAt || ticket.updatedAt).toISOString().slice(0, 10),
+                    title: readReleaseMetadataString(ticket.metadata, "releaseTitle") || ticket.subject || "Atualizacao sem titulo",
+                    summary:
+                        (typeof ticket.resolutionSummary === "string" ? ticket.resolutionSummary.trim() : "") ||
+                        ticket.subject ||
+                        "Atualizacao interna",
+                    link: `/portal/tickets/${ticket.id}`,
+                    videoLink: ticket.resolutionVideoUrl || null,
+                    tags: ticket.releaseModule ? [ticket.releaseModule] : [],
+                };
+            });
     } catch (error) {
         if (isReleaseQueryDatabaseError(error)) {
             console.warn("[releases] database unavailable during build/runtime; returning empty release list");
@@ -69,6 +72,18 @@ function readReleaseMetadataString(metadata: Prisma.JsonValue | null, key: strin
     return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function normalizeReleaseType(value: string | null): "BUG" | "MELHORIA" | null {
+    const normalized = value?.trim().toUpperCase();
+    if (normalized === "BUG" || normalized === "MELHORIA") return normalized;
+    return null;
+}
+
+function inferReleaseTypeFromMetadata(metadata: Prisma.JsonValue | null): "BUG" | "MELHORIA" {
+    const category = readReleaseMetadataString(metadata, "category")?.toLowerCase() || "";
+    if (category.includes("bug") || category.includes("incident") || category.includes("erro")) return "BUG";
+    return "MELHORIA";
+}
+
 function isReleaseQueryDatabaseError(error: unknown): boolean {
     return (
         error instanceof Prisma.PrismaClientInitializationError ||
@@ -77,7 +92,7 @@ function isReleaseQueryDatabaseError(error: unknown): boolean {
     );
 }
 
-const getReleasesCached = unstable_cache(fetchReleases, ["releases-tickets-v1"], {
+const getReleasesCached = unstable_cache(fetchReleases, ["releases-tickets-v2"], {
     revalidate: 1800,
     tags: ["releases"],
 });

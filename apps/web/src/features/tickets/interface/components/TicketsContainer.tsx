@@ -112,7 +112,7 @@ export function TicketsContainer({
         </div>
       </section>
 
-      <TicketsTable tickets={tickets} isAdmin={isAdmin} />
+      <TicketsTable tickets={tickets} isAdmin={isAdmin} statusGroup={statusGroup} />
 
       <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span>Total filtrado: {pagination.total ?? tickets.length}</span>

@@ -275,6 +275,23 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                 <Separator />
                                 <SlaCompact ticket={ticket} isClosedTicket={isClosedTicket} />
 
+                                {isClosedTicket && isAdmin && (
+                                    <>
+                                        <Separator />
+                                        <section className="space-y-2">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Release</p>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-9 w-full justify-start border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                                                onClick={() => setFinalizeOpen(true)}
+                                            >
+                                                {ticket.publishToReleases ? "Atualizar publicacao" : "Publicar em Releases"}
+                                            </Button>
+                                        </section>
+                                    </>
+                                )}
+
                                 <Separator />
                                 <section className="space-y-3">
                                     <SupportPeopleFields ticket={ticket} currentTeam={currentTeam} />
