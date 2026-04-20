@@ -10,7 +10,7 @@ import type {
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
-import { revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
+import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import {
   createTicketGateway,
   fetchLinkedCompaniesGateway,
@@ -75,6 +75,9 @@ export async function finalizeTicketAction(input: {
 
     revalidateTicketCollections();
     revalidateTicketViews(String(input.ticketId));
+    if (input.publishToReleases) {
+      revalidateReleasesViews();
+    }
     return { success: true, message: "Ticket finalizado com sucesso." };
   } catch (error) {
     console.error("Erro ao finalizar ticket:", error);

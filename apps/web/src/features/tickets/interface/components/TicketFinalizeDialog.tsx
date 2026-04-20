@@ -28,21 +28,39 @@ interface TicketFinalizeDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+function inferReleaseType(ticket: TicketDetailsItem): "BUG" | "MELHORIA" | "" {
+  const category = ticket.operations?.category?.toLowerCase() || "";
+  if (category.includes("bug") || category.includes("incident") || category.includes("erro")) return "BUG";
+  if (
+    category.includes("melhoria") ||
+    category.includes("enhancement") ||
+    category.includes("feature") ||
+    category.includes("performance") ||
+    category.includes("refator")
+  ) {
+    return "MELHORIA";
+  }
+
+  return "";
+}
+
 export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, onOpenChange }: TicketFinalizeDialogProps) {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
+  const inferredReleaseType = inferReleaseType(ticket);
+  const shouldSuggestRelease = Boolean(ticket.publishToReleases || inferredReleaseType || ticket.operations?.currentTeam === "DESENVOLVIMENTO");
 
   const [resolutionSummary, setResolutionSummary] = useState(ticket.resolutionSummary || "");
   const [resolutionVideoUrl, setResolutionVideoUrl] = useState(ticket.resolutionVideoUrl || "");
   const [releaseTitle, setReleaseTitle] = useState(ticket.releaseTitle || ticket.title || "");
   const [releaseType, setReleaseType] = useState<"BUG" | "MELHORIA" | "">(
-    ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : ""
+    ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : inferredReleaseType
   );
-  const [releaseModule, setReleaseModule] = useState(ticket.releaseModule || "");
-  const [publishToReleases, setPublishToReleases] = useState(Boolean(ticket.publishToReleases));
+  const [releaseModule, setReleaseModule] = useState(ticket.releaseModule || ticket.operations?.module || "");
+  const [publishToReleases, setPublishToReleases] = useState(shouldSuggestRelease);
 
   const shouldRequireReleaseFields = publishToReleases;
 
@@ -77,7 +95,11 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
           return;
         }
 
-        toast.success(result.message || "Ticket finalizado com sucesso.");
+        toast.success(
+          publishToReleases
+            ? "Ticket finalizado e publicado em Releases."
+            : result.message || "Ticket finalizado com sucesso.",
+        );
         setOpen(false);
         router.refresh();
       } catch {

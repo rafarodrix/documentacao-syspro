@@ -1,6 +1,7 @@
 ﻿import { revalidatePath, revalidateTag } from "next/cache";
 
 export const CACHE_TAGS = {
+  releases: "releases",
   ticketsList: "tickets-list",
   ticketsDashboard: "tickets-dashboard",
   dashboardMetrics: "dashboard-metrics",
@@ -54,6 +55,11 @@ export function revalidateTicketCollections() {
   revalidateTag(CACHE_TAGS.ticketsList);
   revalidateTag(CACHE_TAGS.ticketsDashboard);
   revalidatePath("/portal/tickets");
+}
+
+export function revalidateReleasesViews() {
+  revalidateTag(CACHE_TAGS.releases);
+  revalidatePath("/releases");
 }
 
 export function revalidateDashboardCollections() {
