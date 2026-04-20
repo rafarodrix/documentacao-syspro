@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,6 @@ import {
     ArrowLeft,
     Building2,
     Calendar,
-    Check,
     ChevronDown,
     ChevronUp,
     Clock3,
@@ -22,22 +21,13 @@ import {
     Zap,
 } from "lucide-react";
 import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { transferTicketAction, updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
-import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -104,6 +94,30 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
             const res = await updateTicketStatusAction(String(ticket.id), status);
             if (res.success) toast.success("Estagio atualizado.");
             else toast.error(res.error || "Erro ao atualizar estagio");
+            router.refresh();
+        });
+    };
+
+    const changeTeam = (team: string) => {
+        if (!ticket || team === currentTeam) return;
+        let note: string | undefined;
+        if (team === "DESENVOLVIMENTO" && currentTeam !== "DESENVOLVIMENTO") {
+            const response = globalThis.prompt("Informe o contexto para o desenvolvimento (minimo 20 caracteres):");
+            if (!response || response.trim().length < 20) {
+                toast.error("Contexto obrigatorio para transferir ao desenvolvimento.");
+                return;
+            }
+            note = response.trim();
+        }
+
+        startTransition(async () => {
+            const res = await transferTicketAction(String(ticket.id), { team, note });
+            if (res.success) {
+                setLocalTeam(team);
+                toast.success("Setor atualizado.");
+            } else {
+                toast.error(res.error || "Erro ao atualizar setor");
+            }
             router.refresh();
         });
     };
@@ -218,17 +232,14 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                     <SidebarField
                                         label="Setor atual"
                                         value={
-                                            isAdmin ? (
-                                                <TransferTicketDialog
-                                                    ticketId={ticket.id}
-                                                    currentTeam={currentTeam}
-                                                    teams={ticketSettings.teams}
-                                                    onTransferred={setLocalTeam}
-                                                    trigger={<InlineValueButton id="transfer-ticket-btn" label={resolveOptionLabel(ticketSettings.teams, currentTeam)} />}
-                                                />
-                                            ) : (
-                                                <span className="text-xs">{resolveOptionLabel(ticketSettings.teams, currentTeam)}</span>
-                                            )
+                                            <NativeSelectPill
+                                                id="transfer-ticket-btn"
+                                                value={currentTeam}
+                                                label={resolveOptionLabel(ticketSettings.teams, currentTeam)}
+                                                disabled={!isAdmin || isPending}
+                                                options={ticketSettings.teams.map((team) => ({ value: team.value, label: team.label }))}
+                                                onChange={changeTeam}
+                                            />
                                         }
                                     />
                                     <SidebarField
@@ -256,7 +267,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                         label="Modulo"
                                         value={
                                             <ClassificationDropdown
-                                                label="Alterar modulo"
                                                 value={currentModule}
                                                 fallback="Nao definido"
                                                 options={ticketSettings.modules}
@@ -269,7 +279,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                         label="Categoria"
                                         value={
                                             <ClassificationDropdown
-                                                label="Alterar categoria"
                                                 value={currentCategory}
                                                 fallback="Nao definida"
                                                 options={ticketSettings.categories}
@@ -468,30 +477,56 @@ function resolveOptionLabel(options: TicketModuleSettingsOption[], value?: strin
     return option?.label || normalized;
 }
 
-const InlineValueButton = forwardRef<HTMLButtonElement, { label: string; id?: string }>(({ label, id }, ref) => {
+function NativeSelectPill({
+    id,
+    value,
+    label,
+    disabled,
+    options,
+    onChange,
+}: {
+    id?: string;
+    value: string;
+    label: string;
+    disabled?: boolean;
+    options: Array<{ value: string; label: string }>;
+    onChange: (value: string) => void;
+}) {
+    if (disabled) {
+        return <span className="text-xs">{label}</span>;
+    }
+
+    const normalizedOptions = options.some((option) => option.value === value)
+        ? options
+        : [{ value, label }, ...options];
+
     return (
-        <button
-            ref={ref}
-            id={id}
-            type="button"
-            className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-muted/20 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-        >
-            <span className="truncate">{label}</span>
-            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-        </button>
+        <span className="relative inline-flex max-w-full items-center">
+            <select
+                id={id}
+                value={value}
+                aria-label={label}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-7 max-w-[190px] appearance-none rounded-full border border-border/70 bg-muted/20 py-0 pl-2.5 pr-7 text-right text-xs font-medium text-foreground outline-none transition-colors hover:border-primary/40 hover:bg-primary/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+            >
+                {normalizedOptions.map((option, index) => (
+                    <option key={`${option.value}-${index}`} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-muted-foreground" />
+        </span>
     );
-});
-InlineValueButton.displayName = "InlineValueButton";
+}
 
 function ClassificationDropdown({
-    label,
     value,
     fallback,
     options,
     disabled,
     onChange,
 }: {
-    label: string;
     value?: string | null;
     fallback: string;
     options: TicketModuleSettingsOption[];
@@ -506,24 +541,13 @@ function ClassificationDropdown({
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <InlineValueButton label={currentLabel} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="text-xs">{label}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {options.map((option) => {
-                    const active = option.value.toLowerCase() === currentValue.toLowerCase();
-                    return (
-                        <DropdownMenuItem key={option.id} className="text-xs" onSelect={() => onChange(option.value)}>
-                            <span className="flex-1">{option.label}</span>
-                            {active && <Check className="h-3.5 w-3.5 text-primary" />}
-                        </DropdownMenuItem>
-                    );
-                })}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <NativeSelectPill
+            value={currentValue}
+            label={currentLabel}
+            options={options.map((option) => ({ value: option.value, label: option.label }))}
+            onChange={onChange}
+            disabled={disabled}
+        />
     );
 }
 
@@ -566,25 +590,19 @@ function PriorityDropdown({
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <InlineValueButton label={currentLabel} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel className="text-xs">Alterar prioridade</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {options.map((option) => {
-                    const optionPriority = parsePriorityOption(option);
-                    const active = mapPriorityToLevel(optionPriority) === priority;
-                    return (
-                        <DropdownMenuItem key={option.id} className="text-xs" onSelect={() => onChange(optionPriority)}>
-                            <span className="flex-1">{option.label}</span>
-                            {active && <Check className="h-3.5 w-3.5 text-primary" />}
-                        </DropdownMenuItem>
-                    );
-                })}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <NativeSelectPill
+            value={String(priority)}
+            label={currentLabel}
+            options={options.map((option) => ({
+                value: String(mapPriorityToLevel(parsePriorityOption(option))),
+                label: option.label,
+            }))}
+            disabled={disabled}
+            onChange={(value) => {
+                const selected = options.find((option) => String(mapPriorityToLevel(parsePriorityOption(option))) === value);
+                onChange(selected ? parsePriorityOption(selected) : value === "3" ? "HIGH" : value === "1" ? "LOW" : "NORMAL");
+            }}
+        />
     );
 }
 
@@ -627,21 +645,13 @@ function StatusDropdown({
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <InlineValueButton label={status || "Desconhecido"} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="text-xs">Alterar status</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {statusOptions.map((option) => (
-                    <DropdownMenuItem key={option.value} className="text-xs" onSelect={() => onChange(option.value)}>
-                        <span className="flex-1">{option.label}</span>
-                        {current === option.value && <Check className="h-3.5 w-3.5 text-primary" />}
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <NativeSelectPill
+            value={current || ""}
+            label={status || "Desconhecido"}
+            options={statusOptions.map((option) => ({ value: option.value, label: option.label }))}
+            disabled={disabled}
+            onChange={(value) => onChange(value as TicketModuleStatus)}
+        />
     );
 }
 
