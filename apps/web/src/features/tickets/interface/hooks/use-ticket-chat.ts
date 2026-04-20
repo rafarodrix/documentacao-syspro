@@ -22,7 +22,7 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
         }
     }, [articles]);
 
-    const handleSend = () => {
+    const handleSend = (visibility: "PUBLIC" | "INTERNAL" = "PUBLIC") => {
         const trimmed = message.trim();
         if (!trimmed && files.length === 0) return;
 
@@ -36,12 +36,12 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
                     }))
                 );
 
-                const result = await replyTicketAction(ticketId, trimmed, attachments);
+                const result = await replyTicketAction(ticketId, trimmed, attachments, visibility);
 
                 if (result.success) {
                     setMessage("");
                     setFiles([]);
-                    toast.success("Resposta enviada!");
+                    toast.success(visibility === "INTERNAL" ? "Nota interna registrada!" : "Resposta enviada!");
                 } else {
                     toast.error(result.error);
                 }

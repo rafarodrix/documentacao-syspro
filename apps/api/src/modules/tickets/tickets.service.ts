@@ -566,7 +566,7 @@ export class TicketsService {
     return serializeTicketDetailsResponse(ticket);
   }
 
-  async reply(id: string, message: string | undefined, rawHeaders?: IncomingHttpHeaders) {
+  async reply(id: string, message: string | undefined, visibility: 'PUBLIC' | 'INTERNAL' = 'INTERNAL', rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
@@ -584,7 +584,7 @@ export class TicketsService {
     await this.prisma.conversationMessage.create({
       data: {
         conversationId: id,
-        direction: TicketMessageDirection.INTERNAL,
+        direction: visibility === 'PUBLIC' ? TicketMessageDirection.OUTBOUND : TicketMessageDirection.INTERNAL,
         type: TicketMessageType.TEXT,
         authorKind: TicketParticipantKind.USER,
         authorUserId: requester.userId,

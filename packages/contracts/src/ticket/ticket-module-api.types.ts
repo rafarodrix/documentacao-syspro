@@ -89,6 +89,7 @@ export const ticketModuleUpdateRequestSchema = z.object({
 
 export const ticketModuleReplyRequestSchema = z.object({
   message: z.string().trim().optional(),
+  visibility: z.enum(["PUBLIC", "INTERNAL"]).optional(),
 });
 
 export const ticketModuleTriageRequestSchema = z.object({

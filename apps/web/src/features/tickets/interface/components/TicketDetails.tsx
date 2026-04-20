@@ -1,42 +1,38 @@
 "use client";
 
-import { ComponentType, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-    ArrowLeft,
     AlertCircle,
-    Building2,
+    ArrowLeft,
     Calendar,
     ChevronDown,
     ChevronUp,
     Clock3,
+    Database,
     ExternalLink,
     Flag,
     Hash,
     Loader2,
-    MessageSquare,
     Sparkles,
     Timer,
     UserRound,
     Video,
     Zap,
 } from "lucide-react";
-import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
-import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
 import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction } from "@/features/tickets/application/ticket-actions";
+import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
+import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem } from "./types";
 
@@ -53,33 +49,54 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const backUrl = "/portal/tickets";
-    const isClosedTicket = ticket?.status === "Resolvido" || ticket?.status === "Fechado" || ticket?.status === "Arquivado";
+    const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
+
+    const assignToMe = () => {
+        if (!ticket) return;
+        startTransition(async () => {
+            const res = await assignTicketToMeAction(String(ticket.id));
+            if (res.success) toast.success("Ticket atribuido a voce");
+            else toast.error(res.error || "Erro ao atribuir");
+            router.refresh();
+        });
+    };
+
+    const unassignFromMe = () => {
+        if (!ticket) return;
+        startTransition(async () => {
+            const res = await unassignTicketToMeAction(String(ticket.id));
+            if (res.success) toast.success("Ticket liberado com sucesso.");
+            else toast.error(res.error || "Erro ao liberar");
+            router.refresh();
+        });
+    };
+
+    const startTriage = () => {
+        if (!ticket) return;
+        startTransition(async () => {
+            const res = await triageTicketAction(String(ticket.id), { priority: "NORMAL" });
+            if (res.success) toast.success("Triagem iniciada");
+            else toast.error(res.error || "Erro na triagem");
+            router.refresh();
+        });
+    };
 
     useTicketHotkeys({
         onAssignToMe: () => {
-            if (isAdmin && !ticket?.ownerId && !isClosedTicket) {
-                startTransition(async () => {
-                    const res = await assignTicketToMeAction(String(ticket?.id));
-                    if (res.success) toast.success("Ticket atribuído a você (Atalho)");
-                    else toast.error(res.error || "Erro ao atribuir");
-                    router.refresh();
-                });
-            }
+            if (isAdmin && ticket && !ticket.ownerId && !isClosedTicket) assignToMe();
         },
         onChangeStatus: () => document.getElementById("transfer-ticket-btn")?.click(),
         onReply: () => document.getElementById("ticket-reply-input")?.focus(),
     });
 
-
-
     if (error || !ticket) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] p-8 text-center animate-in fade-in zoom-in duration-500">
-                <div className="h-16 w-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+            <div className="flex h-[60vh] flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-500">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-500">
                     <AlertCircle className="h-8 w-8" />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground mb-2">Nao foi possivel carregar o chamado</h1>
-                <p className="text-muted-foreground max-w-md mb-6">{error || "O ticket pode nao existir ou voce nao tem permissao."}</p>
+                <h1 className="mb-2 text-2xl font-bold text-foreground">Nao foi possivel carregar o chamado</h1>
+                <p className="mb-6 max-w-md text-muted-foreground">{error || "O ticket pode nao existir ou voce nao tem permissao."}</p>
                 <Button variant="outline" asChild className="gap-2">
                     <Link href={backUrl}>
                         <ArrowLeft className="h-4 w-4" /> Voltar para lista
@@ -89,96 +106,29 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         );
     }
 
+    const currentUserOwnsTicket = ticket.ownerId && String(ticket.ownerId) === String(currentUserId);
+
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1440px] mx-auto">
-            {/* ── Breadcrumb header ─────────────────────────────────────── */}
-            <div className="flex items-center gap-3 mb-4 px-4 md:px-0">
-                <Button variant="ghost" size="icon" asChild className="h-9 w-9 rounded-full hover:bg-muted/80 shrink-0">
+        <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-4 flex items-center gap-3 px-4 md:px-0">
+                <Button variant="ghost" size="icon" asChild className="h-9 w-9 shrink-0 rounded-full hover:bg-muted/80">
                     <Link href={backUrl}>
                         <ArrowLeft className="h-5 w-5 text-muted-foreground" />
                     </Link>
                 </Button>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Link href={backUrl} className="hover:text-foreground transition-colors">Chamados</Link>
+                <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                    <Link href={backUrl} className="transition-colors hover:text-foreground">Chamados</Link>
                     <span>/</span>
-                    <Badge variant="secondary" className="gap-1 font-mono text-xs bg-muted/50 border-border/50">
-                        <Hash className="h-3 w-3" />{ticket.number}
+                    <Badge variant="secondary" className="gap-1 border-border/50 bg-muted/50 font-mono text-xs">
+                        <Hash className="h-3 w-3" />
+                        {ticket.number}
                     </Badge>
-                </div>
-                <div className="ml-auto flex items-center gap-2">
-                    {isAdmin && ticket.status === "Novo" && (
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs" 
-                            onClick={() => {
-                                startTransition(async () => {
-                                    const res = await triageTicketAction(String(ticket.id), { priority: "NORMAL" });
-                                    if (res.success) toast.success("Triagem iniciada");
-                                    else toast.error(res.error || "Erro na triagem");
-                                    router.refresh();
-                                });
-                            }}
-                            disabled={isPending}
-                        >
-                            <Sparkles className="h-3 w-3" /> Triar
-                        </Button>
-                    )}
-                    {isAdmin && !ticket.ownerId && !isClosedTicket && (
-                        <Button 
-                            size="sm" 
-                            className="h-8 gap-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors text-xs shadow-sm" 
-                            onClick={() => {
-                                startTransition(async () => {
-                                    const res = await assignTicketToMeAction(String(ticket.id));
-                                    if (res.success) toast.success("Ticket atribuído a você");
-                                    else toast.error(res.error || "Erro ao atribuir");
-                                    router.refresh();
-                                });
-                            }}
-                            disabled={isPending}
-                        >
-                            <UserRound className="h-3 w-3" /> Assumir
-                        </Button>
-                    )}
-                    {isAdmin && ticket.ownerId && ticket.ownerId === currentUserId && !isClosedTicket && (
-                        <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="h-8 gap-1 border-muted-foreground/30 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors text-xs shadow-sm" 
-                            onClick={() => {
-                                startTransition(async () => {
-                                    const res = await unassignTicketToMeAction(String(ticket.id));
-                                    if (res.success) toast.success("Ticket liberado com sucesso.");
-                                    else toast.error(res.error || "Erro ao liberar");
-                                    router.refresh();
-                                });
-                            }}
-                            disabled={isPending}
-                        >
-                            <UserRound className="h-3 w-3" /> Liberar
-                        </Button>
-                    )}
-                    {isAdmin && !isClosedTicket && (
-                        <span id="transfer-ticket-btn-wrapper">
-                            <TransferTicketDialog
-                               ticketId={ticket.id}
-                               currentTeam={ticket.operations?.currentTeam || undefined}
-                               currentStatus={ticket.status}
-                            />
-                        </span>
-                    )}
-                    {isAdmin && (
-                        <TicketFinalizeDialog ticket={ticket} />
-                    )}
-                    <StatusBadge status={ticket.status} />
                 </div>
             </div>
 
-            {/* ── Title bar ─────────────────────────────────────────────── */}
-            <div className="px-4 md:px-0 mb-6">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground leading-snug break-words">{ticket.title}</h1>
-                <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
+            <div className="mb-6 px-4 md:px-0">
+                <h1 className="max-w-full break-words text-xl font-bold leading-snug tracking-tight text-foreground md:text-2xl">{ticket.title}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                         <Clock3 className="h-3 w-3" /> Criado em {ticket.createdAt}
                     </span>
@@ -190,72 +140,16 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                 </div>
             </div>
 
-            {/* ── Split layout: Chat (8) + Sidebar (4) ─────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 px-4 md:px-0 pb-10">
-
-                {/* ── Main content (Chat area) ─────────────────────────── */}
-                <div className="lg:col-span-8 space-y-6">
-                    {/* SLA visual bar and summary pills */}
-                    {ticket.slaResolutionDueAt && !isClosedTicket && (
-                        <Card className={cn("border overflow-hidden", ticket.slaBreached ? "border-rose-500/50" : ticket.slaWarning ? "border-amber-500/50" : "border-emerald-500/30")}>
-                            <CardContent className="p-4 flex flex-col gap-3 items-center sm:flex-row sm:justify-between bg-gradient-to-r from-transparent to-muted/10">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Timer className={cn("h-4 w-4", ticket.slaBreached ? "text-rose-500" : ticket.slaWarning ? "text-amber-500" : "text-emerald-500")} />
-                                        <span className="text-sm font-semibold">SLA de Resolucao</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Vence em: {new Date(ticket.slaResolutionDueAt).toLocaleString("pt-BR")}
-                                    </p>
-                                </div>
-                                
-                                <div className="w-full relative sm:max-w-xs pt-1">
-                                    <div className="flex justify-between text-[11px] font-bold mb-1.5 uppercase tracking-wide">
-                                        <span className={cn(ticket.slaBreached ? "text-rose-600" : ticket.slaWarning ? "text-amber-600" : "text-emerald-600")}>
-                                            {ticket.slaBreached ? "Tempo Esgotado" : ticket.slaWarning ? `Alerta (~${ticket.minutesToBreach} min)` : "No Prazo"}
-                                        </span>
-                                    </div>
-                                    <Progress 
-                                        value={ticket.slaBreached ? 100 : ticket.slaWarning ? 85 : 30} 
-                                        className={cn("h-2.5", ticket.slaBreached ? "bg-rose-200 *:bg-rose-500" : ticket.slaWarning ? "bg-amber-200 *:bg-amber-500" : "bg-emerald-100 *:bg-emerald-500")}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                        <SummaryPill
-                            label="1a Resposta"
-                            value={ticket.firstResponseAt ? new Date(ticket.firstResponseAt).toLocaleString("pt-BR") : "Pendente"}
-                            icon={Sparkles}
-                            tone={ticket.firstResponseAt ? "ok" : "neutral"}
-                        />
-                        <SummaryPill
-                            label="Resolucao"
-                            value={ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleString("pt-BR") : "Pendente"}
-                            icon={Flag}
-                            tone={ticket.resolvedAt ? "ok" : "neutral"}
-                        />
-                        <SummaryPill
-                            label="Responsavel"
-                            value={ticket.ownerName || (ticket.ownerId ? `Owner #${ticket.ownerId}` : "Sem dono")}
-                            icon={UserRound}
-                            tone={ticket.ownerId ? "ok" : "warning"}
-                        />
-                    </div>
-
-                    {/* Chat timeline */}
+            <div className="grid grid-cols-1 gap-6 px-4 pb-10 md:px-0 lg:grid-cols-12">
+                <div className="min-w-0 space-y-6 lg:col-span-8">
                     <TicketChat ticketId={String(ticket.id)} articles={articles || []} ticketStatus={ticket.status || ""} />
                 </div>
 
-                {/* ── Sidebar ──────────────────────────────────────────── */}
-                <div className="lg:col-span-4 space-y-4">
-
-                    {/* Sidebar toggle (mobile) */}
+                <aside className="min-w-0 space-y-4 lg:col-span-4">
                     <button
-                        className="lg:hidden w-full flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20 text-sm font-medium"
+                        className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3 text-sm font-medium lg:hidden"
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                        type="button"
                     >
                         <span className="flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-primary/70" />
@@ -265,154 +159,213 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                     </button>
 
                     <div className={cn("space-y-4", sidebarCollapsed && "hidden lg:block")}>
-
-                        {/* Metadata card */}
-                        <Card className="border-border/60 bg-card/95 overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+                        <Card className="relative overflow-hidden border-border/60 bg-card/95">
+                            <div className="absolute left-0 top-0 h-0.5 w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
                             <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                                     <Sparkles className="h-3.5 w-3.5 text-primary/70" />
                                     Informacoes
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3 pt-0">
-                                <SidebarField label="Status" value={<StatusBadge status={ticket.status} />} />
-                                <SidebarField label="Prioridade" value={<PriorityBadge priority={ticket.priority} />} />
-                                <SidebarField label="Responsavel" value={
-                                    <span className="text-sm flex items-center gap-1.5">
-                                        <UserRound className="h-3 w-3 text-muted-foreground" />
-                                        {ticket.ownerName || (ticket.ownerId ? `#${ticket.ownerId}` : "Nao atribuido")}
-                                    </span>
-                                } />
-                                {ticket.operations?.currentTeam && (
-                                    <SidebarField label="Setor" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />
+                            <CardContent className="space-y-4 pt-0">
+                                <section className="space-y-3">
+                                    <SidebarField label="Status atual" value={<StatusBadge status={ticket.status} />} />
+                                    <SidebarField label="Prioridade" value={<PriorityBadge priority={ticket.priority} />} />
+                                </section>
+
+                                {isAdmin && (
+                                    <>
+                                        <Separator />
+                                        <section className="space-y-2">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes de fluxo</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {ticket.status === "Novo" && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 gap-1 border-primary/20 bg-primary/5 text-xs text-primary hover:bg-primary/10"
+                                                        onClick={startTriage}
+                                                        disabled={isPending}
+                                                    >
+                                                        {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                                                        Triar
+                                                    </Button>
+                                                )}
+                                                {!ticket.ownerId && !isClosedTicket && (
+                                                    <Button size="sm" className="h-8 gap-1 bg-blue-600 text-xs text-white shadow-sm hover:bg-blue-700" onClick={assignToMe} disabled={isPending}>
+                                                        {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserRound className="h-3 w-3" />}
+                                                        Assumir
+                                                    </Button>
+                                                )}
+                                                {currentUserOwnsTicket && !isClosedTicket && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 gap-1 border-muted-foreground/30 text-xs text-muted-foreground shadow-sm hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                                                        onClick={unassignFromMe}
+                                                        disabled={isPending}
+                                                    >
+                                                        {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserRound className="h-3 w-3" />}
+                                                        Liberar
+                                                    </Button>
+                                                )}
+                                                {!isClosedTicket && (
+                                                    <TransferTicketDialog
+                                                        ticketId={ticket.id}
+                                                        currentTeam={ticket.operations?.currentTeam || undefined}
+                                                        currentStatus={ticket.status}
+                                                    />
+                                                )}
+                                                <TicketFinalizeDialog
+                                                    ticket={ticket}
+                                                    trigger={
+                                                        <Button size="sm" variant="outline" className="h-8 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700">
+                                                            <Flag className="h-3 w-3" /> Finalizar Ticket
+                                                        </Button>
+                                                    }
+                                                />
+                                            </div>
+                                        </section>
+                                    </>
                                 )}
-                                {ticket.operations?.module && (
-                                    <SidebarField label="Modulo" value={<span className="text-xs">{ticket.operations.module}</span>} />
-                                )}
-                                {ticket.operations?.environment && (
-                                    <SidebarField label="Ambiente" value={<span className="text-xs">{ticket.operations.environment}</span>} />
-                                )}
-                                {ticket.operations?.category && (
-                                    <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />
-                                )}
-                                <Separator className="my-2" />
-                                {ticket.operations?.openedByName && (
-                                    <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />
-                                )}
-                                {ticket.operations?.supportOwnerName && (
-                                    <SidebarField label="Resp. suporte" value={<span className="text-xs">{ticket.operations.supportOwnerName}</span>} />
-                                )}
-                                {ticket.operations?.developmentOwnerName && (
-                                    <SidebarField label="Resp. desenvolvimento" value={<span className="text-xs">{ticket.operations.developmentOwnerName}</span>} />
-                                )}
-                                {ticket.resolvedByName && (
-                                    <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />
-                                )}
-                                <SidebarField label="Criado em" value={<span className="text-xs font-mono text-muted-foreground">{ticket.createdAt}</span>} />
-                                {ticket.updatedAt && (
-                                    <SidebarField label="Atualizado" value={<span className="text-xs font-mono text-muted-foreground">{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</span>} />
-                                )}
-                                {ticket.resolvedAt && (
-                                    <SidebarField label="Resolvido em" value={<span className="text-xs font-mono text-emerald-600 dark:text-emerald-400">{new Date(ticket.resolvedAt).toLocaleString("pt-BR")}</span>} />
-                                )}
+
+                                <Separator />
+                                <SlaCompact ticket={ticket} isClosedTicket={isClosedTicket} />
+
+                                <Separator />
+                                <section className="space-y-3">
+                                    <SidebarField label="Responsavel" value={
+                                        <span className="flex items-center gap-1.5 text-sm">
+                                            <UserRound className="h-3 w-3 text-muted-foreground" />
+                                            {ticket.ownerName || (ticket.ownerId ? `#${ticket.ownerId}` : "Nao atribuido")}
+                                        </span>
+                                    } />
+                                    <SidebarField label="1a resposta" value={<DetailDate value={ticket.firstResponseAt} fallback="Pendente" />} />
+                                    <SidebarField label="Resolucao" value={<DetailDate value={ticket.resolvedAt} fallback="Pendente" />} />
+                                </section>
+
+                                <Separator />
+                                <section className="space-y-3">
+                                    {ticket.operations?.currentTeam && <SidebarField label="Setor" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />}
+                                    {ticket.operations?.module && <SidebarField label="Modulo" value={<span className="text-xs">{ticket.operations.module}</span>} />}
+                                    {ticket.operations?.environment && <SidebarField label="Ambiente" value={<span className="text-xs">{ticket.operations.environment}</span>} />}
+                                    {ticket.operations?.category && <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />}
+                                    {ticket.operations?.openedByName && <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
+                                    {ticket.operations?.supportOwnerName && <SidebarField label="Resp. suporte" value={<span className="text-xs">{ticket.operations.supportOwnerName}</span>} />}
+                                    {ticket.operations?.developmentOwnerName && <SidebarField label="Resp. desenvolvimento" value={<span className="text-xs">{ticket.operations.developmentOwnerName}</span>} />}
+                                    {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
+                                    <SidebarField label="Criado em" value={<span className="font-mono text-xs text-muted-foreground">{ticket.createdAt}</span>} />
+                                    {ticket.updatedAt && <SidebarField label="Atualizado" value={<span className="font-mono text-xs text-muted-foreground">{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</span>} />}
+                                </section>
                             </CardContent>
                         </Card>
 
-                        {/* Origin card (if from chatwoot or external) */}
-                        {ticket.origin && ticket.origin.source && (
+                        {(ticket.origin?.source || ticket.operations?.databaseUrl || ticket.operations?.developmentVideoUrl) && (
                             <Card className="border-border/60 bg-card/95">
                                 <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                                         <Zap className="h-3.5 w-3.5 text-amber-500" />
-                                        Origem
+                                        Contexto e origem
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-2 pt-0">
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="text-[10px] uppercase tracking-wide px-2">
-                                            {ticket.origin.source}
-                                        </Badge>
-                                    </div>
-                                    {ticket.origin.contactName && (
-                                        <SidebarField label="Contato" value={<span className="text-xs">{ticket.origin.contactName}</span>} />
+                                <CardContent className="space-y-3 pt-0">
+                                    {ticket.origin?.source && (
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="px-2 text-[10px] uppercase tracking-wide">
+                                                {ticket.origin.source}
+                                            </Badge>
+                                        </div>
                                     )}
-                                    {ticket.origin.contactPhone && (
-                                        <SidebarField label="Telefone" value={<span className="text-xs font-mono">{ticket.origin.contactPhone}</span>} />
-                                    )}
-                                    {ticket.origin.contactWhatsapp && (
-                                        <SidebarField label="WhatsApp" value={<span className="text-xs font-mono">{ticket.origin.contactWhatsapp}</span>} />
-                                    )}
-                                    {ticket.origin.chatwootConversationUrl && (
-                                        <a
-                                            href={ticket.origin.chatwootConversationUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
-                                        >
-                                            <ExternalLink className="h-3 w-3" />
-                                            Ver no Chatwoot
-                                        </a>
-                                    )}
+                                    {ticket.origin?.contactName && <SidebarField label="Contato" value={<span className="text-xs">{ticket.origin.contactName}</span>} />}
+                                    {ticket.origin?.contactPhone && <SidebarField label="Telefone" value={<span className="font-mono text-xs">{ticket.origin.contactPhone}</span>} />}
+                                    {ticket.origin?.contactWhatsapp && <SidebarField label="WhatsApp" value={<span className="font-mono text-xs">{ticket.origin.contactWhatsapp}</span>} />}
+                                    {ticket.origin?.chatwootConversationUrl && <ExternalTicketLink href={ticket.origin.chatwootConversationUrl} label="Ver conversa no Chatwoot" />}
+                                    {ticket.operations?.databaseUrl && <ExternalTicketLink href={ticket.operations.databaseUrl} label="Abrir recurso de base" icon={Database} />}
+                                    {ticket.operations?.developmentVideoUrl && <ExternalTicketLink href={ticket.operations.developmentVideoUrl} label="Abrir video tecnico" icon={Video} />}
                                 </CardContent>
                             </Card>
                         )}
-
                     </div>
-                </div>
+                </aside>
             </div>
         </div>
     );
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+function isTicketClosed(status?: string | null) {
+    const normalized = (status || "").toLowerCase();
+    return ["resolvido", "fechado", "arquivado", "finalizado"].some((item) => normalized.includes(item));
+}
 
-function SidebarField({ label, value }: { label: string; value: React.ReactNode }) {
+function SidebarField({ label, value }: { label: string; value: ReactNode }) {
     return (
-        <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold shrink-0">{label}</span>
-            <div className="text-right">{value}</div>
+        <div className="flex items-center justify-between gap-3">
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+            <div className="min-w-0 text-right break-words">{value}</div>
         </div>
     );
 }
 
-function ExternalTicketLink({ href, label }: { href: string; label: string }) {
+function DetailDate({ value, fallback }: { value?: string | null; fallback: string }) {
+    if (!value) return <span className="text-xs text-muted-foreground">{fallback}</span>;
+    return <span className="font-mono text-xs text-muted-foreground">{new Date(value).toLocaleString("pt-BR")}</span>;
+}
+
+function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isClosedTicket: boolean }) {
+    if (!ticket.slaResolutionDueAt || isClosedTicket) {
+        return (
+            <section className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">SLA</p>
+                <span className="text-xs text-muted-foreground">Sem SLA ativo</span>
+            </section>
+        );
+    }
+
+    const tone = ticket.slaBreached ? "danger" : ticket.slaWarning ? "warning" : "ok";
+    const label = ticket.slaBreached ? "Tempo esgotado" : ticket.slaWarning ? `Alerta (${ticket.minutesToBreach} min)` : "No prazo";
+    const progress = ticket.slaBreached ? 100 : ticket.slaWarning ? 85 : 30;
+
+    return (
+        <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Timer className={cn("h-3.5 w-3.5", tone === "danger" ? "text-rose-500" : tone === "warning" ? "text-amber-500" : "text-emerald-500")} />
+                    SLA
+                </p>
+                <Badge variant="outline" className={cn(
+                    "rounded-full px-2 text-[10px]",
+                    tone === "danger" && "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+                    tone === "warning" && "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    tone === "ok" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                )}>
+                    {label}
+                </Badge>
+            </div>
+            <Progress
+                value={progress}
+                className={cn(
+                    "h-2",
+                    tone === "danger" && "bg-rose-200 *:bg-rose-500",
+                    tone === "warning" && "bg-amber-200 *:bg-amber-500",
+                    tone === "ok" && "bg-emerald-100 *:bg-emerald-500",
+                )}
+            />
+            <SidebarField label="Vence em" value={<span className="font-mono text-xs text-muted-foreground">{new Date(ticket.slaResolutionDueAt).toLocaleString("pt-BR")}</span>} />
+        </section>
+    );
+}
+
+function ExternalTicketLink({ href, label, icon: Icon = ExternalLink }: { href: string; label: string; icon?: ComponentType<{ className?: string }> }) {
     return (
         <a
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            className="inline-flex max-w-full items-center gap-1.5 text-xs text-primary hover:underline"
         >
-            {label}
-            <ExternalLink className="h-3 w-3" />
+            <Icon className="h-3 w-3 shrink-0" />
+            <span className="truncate">{label}</span>
         </a>
-    );
-}
-
-function SummaryPill({ label, value, helper, icon: Icon, tone }: {
-    label: string;
-    value: string;
-    helper?: string;
-    icon: ComponentType<{ className?: string }>;
-    tone: "ok" | "warning" | "danger" | "neutral";
-}) {
-    const toneClass =
-        tone === "ok" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
-        tone === "warning" ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400" :
-        tone === "danger" ? "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400" :
-        "border-border/60 bg-muted/20 text-foreground";
-    return (
-        <Card className={`border ${toneClass}`}>
-            <CardContent className="p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide opacity-80">
-                    <Icon className="h-3 w-3" />
-                    {label}
-                </div>
-                <p className="mt-0.5 text-xs font-medium leading-tight">{value}</p>
-                {helper && <p className="text-[10px] opacity-70 mt-0.5">{helper}</p>}
-            </CardContent>
-        </Card>
     );
 }
 
@@ -428,14 +381,14 @@ function StatusBadge({ status }: { status?: string | null }) {
                     : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
 
     return (
-        <Badge variant="outline" className={`border ${style} font-medium capitalize px-2.5 py-0.5 text-[11px] rounded-full`}>
+        <Badge variant="outline" className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize ${style}`}>
             {status || "Desconhecido"}
         </Badge>
     );
 }
 
 function PriorityBadge({ priority }: { priority: number }) {
-    if (priority === 3) return <Badge variant="destructive" className="text-[10px] px-2 rounded-full">Alta</Badge>;
-    if (priority === 1) return <Badge variant="secondary" className="text-[10px] px-2 rounded-full bg-muted text-muted-foreground">Baixa</Badge>;
-    return <Badge variant="outline" className="text-[10px] px-2 text-muted-foreground rounded-full">Normal</Badge>;
+    if (priority === 3) return <Badge variant="destructive" className="rounded-full px-2 text-[10px]">Alta</Badge>;
+    if (priority === 1) return <Badge variant="secondary" className="rounded-full bg-muted px-2 text-[10px] text-muted-foreground">Baixa</Badge>;
+    return <Badge variant="outline" className="rounded-full px-2 text-[10px] text-muted-foreground">Normal</Badge>;
 }

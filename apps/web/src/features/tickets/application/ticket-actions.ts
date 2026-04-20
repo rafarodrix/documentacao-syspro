@@ -413,6 +413,7 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         createdAt: new Date(message.createdAt).toLocaleString("pt-BR"),
         sender: message.direction === "INBOUND" ? "Customer" : "Agent",
         isInternal: message.direction === "INTERNAL",
+        messageType: message.type,
       })),
     };
   } catch (error) {
@@ -424,7 +425,8 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
 export async function replyTicketAction(
   ticketId: string,
   message: string,
-  attachments?: { filename: string; data: string; "mime-type": string }[]
+  attachments?: { filename: string; data: string; "mime-type": string }[],
+  visibility: "PUBLIC" | "INTERNAL" = "PUBLIC",
 ): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session) return { success: false, error: "Nao autorizado." };
@@ -442,7 +444,7 @@ export async function replyTicketAction(
       : "";
     const outbound = `${body || "Mensagem com anexos"}${attachmentNote}`.trim();
 
-    const result = await replyTicketGateway(ticketId, { message: outbound });
+    const result = await replyTicketGateway(ticketId, { message: outbound, visibility });
 
     if (!result.success) {
       return { success: false, error: result.error || result.message || "Erro ao enviar." };

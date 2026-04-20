@@ -143,6 +143,7 @@ export interface TicketArticleItem {
     createdAt: string;
     sender: string;
     isInternal: boolean;
+    messageType?: string | null;
 }
 
 export type TicketDetailsResponse =

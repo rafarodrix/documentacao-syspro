@@ -80,9 +80,9 @@ export class TicketsController {
   }
 
   @Post(':id/reply')
-  reply(@Req() req: Request, @Param('id') id: string, @Body() body: { message?: string }) {
+  reply(@Req() req: Request, @Param('id') id: string, @Body() body: { message?: string; visibility?: 'PUBLIC' | 'INTERNAL' }) {
     const input = this.parseOrThrow(ticketModuleReplyRequestSchema, body);
-    return this.ticketsService.reply(id, input.message, req.headers);
+    return this.ticketsService.reply(id, input.message, input.visibility, req.headers);
   }
 
   @Patch(':id/status')
