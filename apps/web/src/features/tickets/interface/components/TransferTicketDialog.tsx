@@ -21,6 +21,7 @@ interface TransferTicketPopoverProps {
   currentTeam?: string;
   teams?: TicketModuleSettingsOption[];
   trigger?: ReactNode;
+  onTransferred?: (team: string) => void;
 }
 
 const defaultTeamOptions = [
@@ -28,7 +29,7 @@ const defaultTeamOptions = [
   { value: "DESENVOLVIMENTO", label: "Desenvolvimento" },
 ];
 
-export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger }: TransferTicketPopoverProps) {
+export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger, onTransferred }: TransferTicketPopoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(currentTeam || "SUPORTE");
@@ -48,6 +49,7 @@ export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger }: 
 
         if (result.success) {
           toast.success("Setor atualizado.");
+          onTransferred?.(team);
           setOpen(false);
           setHandoffNote("");
           router.refresh();

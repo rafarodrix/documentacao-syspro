@@ -18,7 +18,6 @@ import {
     Flag,
     Hash,
     Loader2,
-    MoreHorizontal,
     Sparkles,
     Timer,
     UserRound,
@@ -60,6 +59,9 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
     const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
+    const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
+    const [localModule, setLocalModule] = useState(ticket?.operations?.module || "");
+    const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
     const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
     const currentTicketStatus = ticket ? normalizeStatusValue(ticket.status) : null;
@@ -84,6 +86,12 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
             active = false;
         };
     }, []);
+
+    useEffect(() => {
+        setLocalTeam(ticket?.operations?.currentTeam || "");
+        setLocalModule(ticket?.operations?.module || "");
+        setLocalCategory(ticket?.operations?.category || "");
+    }, [ticket?.id, ticket?.operations?.category, ticket?.operations?.currentTeam, ticket?.operations?.module]);
 
     const assignToMe = () => {
         if (!ticket) return;
@@ -134,8 +142,13 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         if (!ticket) return;
         startTransition(async () => {
             const res = await updateTicketClassificationAction(String(ticket.id), payload);
-            if (res.success) toast.success("Classificacao atualizada.");
-            else toast.error(res.error || "Erro ao atualizar classificacao");
+            if (res.success) {
+                if (payload.module !== undefined) setLocalModule(payload.module);
+                if (payload.category !== undefined) setLocalCategory(payload.category);
+                toast.success("Classificacao atualizada.");
+            } else {
+                toast.error(res.error || "Erro ao atualizar classificacao");
+            }
             router.refresh();
         });
     };
@@ -167,9 +180,9 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
     const currentUserOwnsTicket = ticket.ownerId && String(ticket.ownerId) === String(currentUserId);
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
-    const currentTeam = ticket.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
-    const currentModule = ticket.operations?.module || "";
-    const currentCategory = ticket.operations?.category || "";
+    const currentTeam = localTeam || ticket.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
+    const currentModule = localModule || ticket.operations?.module || "";
+    const currentCategory = localCategory || ticket.operations?.category || "";
 
     return (
         <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -242,6 +255,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                                     ticketId={ticket.id}
                                                     currentTeam={currentTeam}
                                                     teams={ticketSettings.teams}
+                                                    onTransferred={setLocalTeam}
                                                     trigger={<InlineValueButton id="transfer-ticket-btn" label={resolveOptionLabel(ticketSettings.teams, currentTeam)} />}
                                                 />
                                             ) : (
@@ -324,21 +338,17 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                                         Liberar
                                                     </Button>
                                                 )}
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuLabel className="text-xs">Mais acoes</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-xs text-emerald-600 focus:text-emerald-700" onSelect={() => setFinalizeOpen(true)}>
-                                                            <Flag className="h-3.5 w-3.5" />
-                                                            Finalizar ticket
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 gap-1 border-emerald-500/25 bg-emerald-500/5 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                                                    onClick={() => setFinalizeOpen(true)}
+                                                    disabled={isPending}
+                                                >
+                                                    <Flag className="h-3 w-3" />
+                                                    Resolver
+                                                </Button>
                                             </div>
                                         </section>
                                     </>
@@ -349,21 +359,13 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
                                 <Separator />
                                 <section className="space-y-3">
-                                    <SidebarField label="Responsavel" value={
-                                        <span className="flex items-center gap-1.5 text-sm">
-                                            <UserRound className="h-3 w-3 text-muted-foreground" />
-                                            {ticket.ownerName || (ticket.ownerId ? `#${ticket.ownerId}` : "Nao atribuido")}
-                                        </span>
-                                    } />
-                                    <SidebarField label="1a resposta" value={<DetailDate value={ticket.firstResponseAt} fallback="Pendente" />} />
+                                    <SupportPeopleFields ticket={ticket} currentTeam={currentTeam} />
                                     <SidebarField label="Resolucao" value={<DetailDate value={ticket.resolvedAt} fallback="Pendente" />} />
                                 </section>
 
                                 <Separator />
                                 <section className="space-y-3">
-                                    {ticket.operations?.openedByName && <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
-                                    {ticket.operations?.supportOwnerName && <SidebarField label="Resp. suporte" value={<span className="text-xs">{ticket.operations.supportOwnerName}</span>} />}
-                                    {ticket.operations?.developmentOwnerName && <SidebarField label="Resp. desenvolvimento" value={<span className="text-xs">{ticket.operations.developmentOwnerName}</span>} />}
+                                    {ticket.operations?.openedByName && !isSameName(ticket.operations.openedByName, ticket.ownerName) && <SidebarField label="Aberto por" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
                                     <SidebarField label="Criado em" value={<span className="font-mono text-xs text-muted-foreground">{ticket.createdAt}</span>} />
                                     {ticket.updatedAt && <SidebarField label="Atualizado" value={<span className="font-mono text-xs text-muted-foreground">{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</span>} />}
@@ -484,6 +486,54 @@ function CustomerContextCard({ ticket }: { ticket: TicketDetailsItem }) {
 function DetailDate({ value, fallback }: { value?: string | null; fallback: string }) {
     if (!value) return <span className="text-xs text-muted-foreground">{fallback}</span>;
     return <span className="font-mono text-xs text-muted-foreground">{new Date(value).toLocaleString("pt-BR")}</span>;
+}
+
+function isSameName(left?: string | null, right?: string | null) {
+    return Boolean(left && right && left.trim().toLowerCase() === right.trim().toLowerCase());
+}
+
+function SupportPeopleFields({ ticket, currentTeam }: { ticket: TicketDetailsItem; currentTeam?: string | null }) {
+    const team = (currentTeam || "").toUpperCase();
+    const supportName = ticket.operations?.supportOwnerName || (team === "SUPORTE" ? ticket.ownerName : null);
+    const developerName = ticket.operations?.developmentOwnerName || (team === "DESENVOLVIMENTO" ? ticket.ownerName : null);
+    const currentOwnerName = ticket.ownerName || (ticket.ownerId ? `#${ticket.ownerId}` : null);
+    const ownerIsAlreadyIdentified =
+        isSameName(currentOwnerName, supportName) ||
+        isSameName(currentOwnerName, developerName);
+
+    return (
+        <>
+            <SidebarField
+                label="Analista suporte"
+                value={
+                    <span className="flex items-center justify-end gap-1.5 text-xs">
+                        {supportName && <UserRound className="h-3 w-3 text-muted-foreground" />}
+                        {supportName || "Nao definido"}
+                    </span>
+                }
+            />
+            <SidebarField
+                label="Desenvolvedor"
+                value={
+                    <span className="flex items-center justify-end gap-1.5 text-xs">
+                        {developerName && <UserRound className="h-3 w-3 text-muted-foreground" />}
+                        {developerName || "Nao definido"}
+                    </span>
+                }
+            />
+            {currentOwnerName && !ownerIsAlreadyIdentified && (
+                <SidebarField
+                    label="Responsavel atual"
+                    value={
+                        <span className="flex items-center justify-end gap-1.5 text-xs">
+                            <UserRound className="h-3 w-3 text-muted-foreground" />
+                            {currentOwnerName}
+                        </span>
+                    }
+                />
+            )}
+        </>
+    );
 }
 
 function resolveOptionLabel(options: TicketModuleSettingsOption[], value?: string | null, fallback = "Nao definido") {
