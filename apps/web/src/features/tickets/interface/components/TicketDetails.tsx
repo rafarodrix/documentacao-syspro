@@ -260,7 +260,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </CardContent>
                         </Card>
 
-                        {(ticket.origin?.source || ticket.operations?.databaseUrl || ticket.operations?.developmentVideoUrl) && (
+                        {(ticket.companyId || ticket.origin?.source || ticket.operations?.databaseUrl || ticket.operations?.developmentVideoUrl) && (
                             <Card className="border-border/60 bg-card/95">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -276,6 +276,15 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             </Badge>
                                         </div>
                                     )}
+                                    {ticket.companyId && (
+                                        <Button asChild variant="outline" size="sm" className="h-8 w-full justify-start gap-1.5 text-xs">
+                                            <Link href={`/portal/cadastros/empresa/${ticket.companyId}/editar`}>
+                                                <ExternalLink className="h-3 w-3" />
+                                                Ver cliente no ERP
+                                            </Link>
+                                        </Button>
+                                    )}
+                                    {ticket.companyName && <SidebarField label="Cliente" value={<span className="text-xs">{ticket.companyName}</span>} />}
                                     {ticket.origin?.contactName && <SidebarField label="Contato" value={<span className="text-xs">{ticket.origin.contactName}</span>} />}
                                     {ticket.origin?.contactPhone && <SidebarField label="Telefone" value={<span className="font-mono text-xs">{ticket.origin.contactPhone}</span>} />}
                                     {ticket.origin?.contactWhatsapp && <SidebarField label="WhatsApp" value={<span className="font-mono text-xs">{ticket.origin.contactWhatsapp}</span>} />}

@@ -90,6 +90,8 @@ export interface TicketDetailsItem {
     status: string;
     number: string;
     priority: number;
+    companyId?: string | null;
+    companyName?: string | null;
     ownerId?: string | number | null;
     ownerName?: string | null;
     updatedAt?: string | null;

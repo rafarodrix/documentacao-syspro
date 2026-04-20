@@ -15,8 +15,10 @@ import {
   Flame,
   Headphones,
   Loader2,
+  Paperclip,
   Send,
   Tags,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -52,7 +54,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
-import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
 import {
   TicketCompanyPicker,
   type TicketCompanyPickerOption,
@@ -93,6 +94,11 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").trim();
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 function getPriorityTone(priority?: string) {
   if (priority === "1 low") return "border-zinc-500/30 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300";
   if (priority === "3 high") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300";
@@ -117,6 +123,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [files, setFiles] = useState<File[]>([]);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerCompany, setCustomerCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,7 +214,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     { label: "Classificacao", done: Boolean(selectedTeam && selectedCategory && selectedModule && selectedEnvironment) },
   ];
   const completedItems = readinessItems.filter((item) => item.done).length;
-  const progressPct = Math.round((completedItems / readinessItems.length) * 100);
   const canSubmit = completedItems === readinessItems.length && !isPending;
 
   useEffect(() => {
@@ -297,10 +303,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     form.setValue("description", descriptionText, { shouldValidate: descriptionText.length > 0 });
   }, [descriptionText, form]);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files) return;
-
-    const newFiles = Array.from(event.target.files);
+  const appendFiles = (newFiles: File[]) => {
+    if (!newFiles.length) return;
     const totalSize = [...files, ...newFiles].reduce((acc, file) => acc + file.size, 0);
 
     if (totalSize > 5 * 1024 * 1024) {
@@ -309,6 +313,12 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     }
 
     setFiles((current) => [...current, ...newFiles]);
+  };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files) return;
+
+    appendFiles(Array.from(event.target.files));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -395,28 +405,32 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
             Registre uma solicitacao com classificacao, contexto tecnico e evidencias.
           </p>
         </div>
-        <div className="rounded-lg border border-border/60 bg-card px-4 py-3 shadow-sm sm:min-w-72">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preenchimento</span>
-            <span className="text-sm font-semibold text-foreground">{progressPct}%</span>
-          </div>
-          <div className="mt-2 h-1.5 rounded-full bg-muted">
-            <div className={cn("h-1.5 rounded-full transition-all", progressPct === 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${progressPct}%` }} />
-          </div>
-        </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
-          <section className="space-y-5">
+        <form
+          onSubmit={form.handleSubmit(handleFormSubmit)}
+          onKeyDown={(event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && canSubmit) {
+              event.preventDefault();
+              void form.handleSubmit(handleFormSubmit)();
+            }
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDraggingFile(true);
+          }}
+          onDragLeave={() => setIsDraggingFile(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDraggingFile(false);
+            appendFiles(Array.from(event.dataTransfer.files));
+          }}
+          className={cn("grid gap-5 rounded-xl transition-colors xl:grid-cols-[minmax(0,1fr)_25rem]", isDraggingFile && "bg-primary/5")}
+        >
+          <section className="min-w-0 space-y-5">
             <Card className="border-border/60 bg-card shadow-sm">
               <CardContent className="space-y-5 p-4 md:p-5">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <SummaryBadge label="Equipe" value={getTeamLabel(ticketSettings, selectedTeam)} tone={selectedTeam === "DESENVOLVIMENTO" ? "dev" : "support"} />
-                  <SummaryBadge label="Categoria" value={selectedCategoryOption?.label || "Nao definida"} />
-                  <SummaryBadge label="Modulo" value={selectedModuleOption?.label || "Nao definido"} />
-                </div>
-
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
                   <FormField
                     control={form.control}
@@ -515,7 +529,17 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 )}
 
                 <div className="space-y-2">
-                  <Label>Descricao detalhada</Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label>Descricao detalhada</Label>
+                    <div className="flex items-center gap-2">
+                      {files.length > 0 ? (
+                        <span className="text-xs text-muted-foreground">{files.length} anexo(s)</span>
+                      ) : null}
+                      <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => fileInputRef.current?.click()} title="Anexar evidencias">
+                        <Paperclip className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                   <div className="overflow-hidden rounded-md border border-border/60 bg-background [&_.ql-container]:border-0 [&_.ql-editor]:min-h-44 [&_.ql-editor]:text-sm [&_.ql-editor.ql-blank::before]:text-muted-foreground/60 [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-border/60 [&_.ql-toolbar]:bg-muted/20">
                     <ReactQuill
                       theme="snow"
@@ -532,6 +556,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                       }}
                     />
                   </div>
+                  <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.json,.log" onChange={handleFileChange} />
                   {form.formState.errors.description ? (
                     <p className="text-[0.8rem] font-medium text-destructive">{form.formState.errors.description.message}</p>
                   ) : (
@@ -540,13 +565,19 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                       Minimo de 20 caracteres. Evite dados sensiveis quando anexar evidencias.
                     </p>
                   )}
+                  <AttachmentChips files={files} onRemove={removeFile} />
                 </div>
 
                 {isSystemUser && (
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <Database className="h-4 w-4 text-muted-foreground" />
-                      <h2 className="text-sm font-semibold text-foreground">Diagnostico tecnico</h2>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Database className="h-4 w-4 text-muted-foreground" />
+                        <h2 className="text-sm font-semibold text-foreground">Diagnostico tecnico</h2>
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => fileInputRef.current?.click()} title="Anexar evidencia tecnica">
+                        <Paperclip className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
@@ -572,14 +603,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     </div>
                   </div>
                 )}
-
-                <TicketAttachmentField
-                  files={files}
-                  inputRef={fileInputRef}
-                  onChange={handleFileChange}
-                  onRemove={removeFile}
-                  compact
-                />
               </CardContent>
             </Card>
           </section>
@@ -719,15 +742,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   );
 }
 
-function SummaryBadge({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "support" | "dev" }) {
-  return (
-    <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 truncate text-sm font-semibold", tone === "support" && "text-sky-600 dark:text-sky-300", tone === "dev" && "text-violet-600 dark:text-violet-300")}>{value}</p>
-    </div>
-  );
-}
-
 function PrioritySelectItem({ priority }: { priority: TicketModuleSettingsPriority }) {
   const Icon = PRIORITY_ICONS[priority.value as keyof typeof PRIORITY_ICONS] || CircleDot;
 
@@ -752,6 +766,25 @@ function TeamPanel({ team, label }: { team: string; label: string }) {
         {label}
       </span>
       <p className="mt-1 text-xs text-muted-foreground">Chamados de cliente entram primeiro no suporte.</p>
+    </div>
+  );
+}
+
+function AttachmentChips({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
+  if (!files.length) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {files.map((file, index) => (
+        <div key={`${file.name}:${file.size}:${index}`} className="flex max-w-full items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs">
+          <Paperclip className="h-3 w-3 shrink-0 text-primary" />
+          <span className="max-w-44 truncate font-medium text-foreground">{file.name}</span>
+          <span className="shrink-0 text-muted-foreground">{formatFileSize(file.size)}</span>
+          <button type="button" className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-primary/15 hover:text-destructive" onClick={() => onRemove(index)}>
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

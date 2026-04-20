@@ -359,6 +359,8 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
         status: mapStatusLabel(ticket.status),
         number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
         priority: mapPriorityToLevel(ticket.priority),
+        companyId: ticket.companyId,
+        companyName: ticket.company?.nomeFantasia || ticket.company?.razaoSocial || null,
         ownerId: ticket.assignedUserId,
         ownerName: ticket.assignedUser?.name || ticket.assignedUser?.email || readStringMetadata(ticket.metadata, "currentOwnerName"),
         updatedAt: ticket.updatedAt,
