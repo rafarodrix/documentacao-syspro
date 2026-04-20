@@ -523,6 +523,28 @@ export async function assignTicketToMeAction(ticketId: string): Promise<TicketMu
   }
 }
 
+export async function unassignTicketToMeAction(ticketId: string): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  try {
+    const { updateTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
+    // Enviando explicitamente uma string vazia para limpar o assignedUserId, que o backend entende como unassign.
+    const result = await updateTicketGateway(ticketId, { assignedUserId: "" });
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao liberar ticket." };
+    }
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em unassignTicketToMeAction:", error);
+    return { success: false, error: "Falha ao liberar chamado." };
+  }
+}
+
 export async function triageTicketAction(ticketId: string, payload: TicketModuleTriageRequest): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {

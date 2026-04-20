@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
-import { finalizeTicketAction, assignTicketToMeAction, triageTicketAction } from "@/features/tickets/application/ticket-actions";
+import { finalizeTicketAction, assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction } from "@/features/tickets/application/ticket-actions";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,9 +43,10 @@ interface TicketDetailsProps {
     articles: TicketArticleItem[];
     isAdmin: boolean;
     error?: string;
+    currentUserId?: string;
 }
 
-export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetailsProps) {
+export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [loadingAction, setLoadingAction] = useState<"finalize" | null>(null);
@@ -187,6 +188,24 @@ export function TicketDetails({ ticket, articles, isAdmin, error }: TicketDetail
                             disabled={isPending}
                         >
                             <UserRound className="h-3 w-3" /> Assumir
+                        </Button>
+                    )}
+                    {isAdmin && ticket.ownerId && ticket.ownerId === currentUserId && !isClosedTicket && (
+                        <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="h-8 gap-1 border-muted-foreground/30 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors text-xs shadow-sm" 
+                            onClick={() => {
+                                startTransition(async () => {
+                                    const res = await unassignTicketToMeAction(String(ticket.id));
+                                    if (res.success) toast.success("Ticket liberado com sucesso.");
+                                    else toast.error(res.error || "Erro ao liberar");
+                                    router.refresh();
+                                });
+                            }}
+                            disabled={isPending}
+                        >
+                            <UserRound className="h-3 w-3" /> Liberar
                         </Button>
                     )}
                     {isAdmin && !isClosedTicket && (

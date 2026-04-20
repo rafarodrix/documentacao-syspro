@@ -6,21 +6,15 @@ import { toast } from "sonner";
 import { Loader2, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { transferTicketAction } from "@/features/tickets/application/ticket-actions";
 import type { TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 
-interface TransferTicketDialogProps {
+interface TransferTicketPopoverProps {
   ticketId: string | number;
   currentTeam?: string;
   currentStatus?: string;
@@ -36,14 +30,13 @@ function normalizeStatusForSelect(status?: string): TicketModuleStatus {
   return "IN_PROGRESS";
 }
 
-export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: TransferTicketDialogProps) {
+export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: TransferTicketPopoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const [team, setTeam] = useState<string>(currentTeam || "SUPORTE");
   const [status, setStatus] = useState<TicketModuleStatus>(normalizeStatusForSelect(currentStatus));
-  const [note, setNote] = useState("");
 
   const handleTransfer = () => {
     startTransition(async () => {
@@ -51,16 +44,14 @@ export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: T
         const result = await transferTicketAction(String(ticketId), {
           team,
           status,
-          note,
         });
 
         if (result.success) {
-          toast.success("Chamado transferido com sucesso");
+          toast.success("Fila atualizada instataneamente.");
           setOpen(false);
-          setNote("");
           router.refresh();
         } else {
-          toast.error(result.error || "Falha ao transferir chamado");
+          toast.error(result.error || "Falha ao mudar fila");
         }
       } catch {
         toast.error("Ocorreu um erro inesperado");
@@ -69,68 +60,56 @@ export function TransferTicketDialog({ ticketId, currentTeam, currentStatus }: T
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs">
           <ArrowRightLeft className="h-3 w-3" /> Fila
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Mudar Fila (Transferir)</DialogTitle>
-          <DialogDescription>
-            Transfira este chamado para outro setor e atualize o status.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="team">Setor / Fila</Label>
-            <Select value={team} onValueChange={setTeam}>
-              <SelectTrigger id="team">
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SUPORTE">Suporte</SelectItem>
-                <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
-              </SelectContent>
-            </Select>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4" align="end" sideOffset={8}>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h4 className="font-medium text-sm leading-none">Trocar Fila</h4>
+            <p className="text-xs text-muted-foreground">Transfira o chamado de setor rapidamente.</p>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="status">Novo Status</Label>
-            <Select value={status} onValueChange={(value) => setStatus(value as TicketModuleStatus)}>
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TRIAGE">Triagem</SelectItem>
-                <SelectItem value="IN_PROGRESS">Em andamento</SelectItem>
-                <SelectItem value="TESTING">Em teste</SelectItem>
-                <SelectItem value="WAITING_CUSTOMER">Pendente cliente</SelectItem>
-                <SelectItem value="RESOLVED">Resolvido</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="note">Nota de transferencia (Opcional)</Label>
-            <Textarea
-              id="note"
-              placeholder="Explique o motivo da transferencia..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="resize-none h-20"
-            />
+          
+          <div className="grid gap-3">
+            <div className="grid gap-1">
+              <label htmlFor="team" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fila de Destino</label>
+              <Select value={team} onValueChange={setTeam}>
+                <SelectTrigger id="team" className="h-8 text-xs">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SUPORTE" className="text-xs">Suporte</SelectItem>
+                  <SelectItem value="DESENVOLVIMENTO" className="text-xs">Desenvolvimento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-1">
+              <label htmlFor="status" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status Atualizado</label>
+              <Select value={status} onValueChange={(value) => setStatus(value as TicketModuleStatus)}>
+                <SelectTrigger id="status" className="h-8 text-xs">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TRIAGE" className="text-xs">Triagem</SelectItem>
+                  <SelectItem value="IN_PROGRESS" className="text-xs">Em andamento</SelectItem>
+                  <SelectItem value="TESTING" className="text-xs">Em teste</SelectItem>
+                  <SelectItem value="WAITING_CUSTOMER" className="text-xs">Pendente cliente</SelectItem>
+                  <SelectItem value="RESOLVED" className="text-xs">Resolvido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button size="sm" onClick={handleTransfer} disabled={isPending} className="w-full mt-2 h-8 text-xs">
+              {isPending && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+              Aplicar Mudanca
+            </Button>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={handleTransfer} disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Transferir
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }
