@@ -65,7 +65,7 @@ export type TicketModuleSettingsResponse = z.infer<typeof ticketModuleSettingsRe
 
 export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
   categories: [
-    { id: "incident", label: "Incidente / Erro", value: "incident", icon: "🔴", defaultTeam: "SUPORTE" },
+    { id: "incident", label: "Erro", value: "incident", icon: "🔴", defaultTeam: "SUPORTE" },
     { id: "question", label: "Duvida", value: "question", icon: "💬", defaultTeam: "SUPORTE" },
     { id: "configuration", label: "Configuracao", value: "configuration", icon: "⚙️", defaultTeam: "SUPORTE" },
     { id: "training", label: "Treinamento", value: "training", icon: "📚", defaultTeam: "SUPORTE" },
@@ -111,12 +111,17 @@ export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
     { id: "development", label: "Desenvolvimento", value: "DESENVOLVIMENTO", color: "bg-violet-100 text-violet-700" },
   ],
   modules: [
-    { id: "fiscal", label: "Fiscal", value: "fiscal" },
-    { id: "vendas", label: "Vendas", value: "vendas" },
-    { id: "financeiro", label: "Financeiro", value: "financeiro" },
+    { id: "cadastro", label: "Cadastro", value: "cadastro" },
     { id: "estoque", label: "Estoque", value: "estoque" },
-    { id: "pdv", label: "PDV", value: "pdv" },
-    { id: "api", label: "API / Integracoes", value: "api" },
+    { id: "compras", label: "Compras", value: "compras" },
+    { id: "financeiro", label: "Financeiro", value: "financeiro" },
+    { id: "movimento", label: "Movimento", value: "movimento" },
+    { id: "fiscal", label: "Fiscal", value: "fiscal" },
+    { id: "contail", label: "Contail", value: "contail" },
+    { id: "Producao", label: "Producao", value: "Producao" },
+    { id: "vendas", label: "Vendas", value: "vendas" },
+    { id: "relatorios", label: "Relatorios", value: "relatorios" },
+    { id: "integracoes", label: "Integracoes", value: "integracoes" },
   ],
   quickReplyTemplates: DEFAULT_TICKET_QUICK_REPLY_TEMPLATES,
   autoAssignToCreator: true,
