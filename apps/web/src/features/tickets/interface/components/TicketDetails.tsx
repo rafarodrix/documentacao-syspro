@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem } from "./types";
@@ -496,27 +497,35 @@ function NativeSelectPill({
         return <span className="text-xs">{label}</span>;
     }
 
+    const emptyValue = "__empty__";
+    const selectedValue = value || emptyValue;
     const normalizedOptions = options.some((option) => option.value === value)
         ? options
-        : [{ value, label }, ...options];
+        : [{ value: selectedValue, label }, ...options];
 
     return (
-        <span className="relative inline-flex max-w-full items-center">
-            <select
+        <Select
+            value={selectedValue}
+            onValueChange={(nextValue) => {
+                if (nextValue === emptyValue || nextValue === value) return;
+                onChange(nextValue);
+            }}
+        >
+            <SelectTrigger
                 id={id}
-                value={value}
                 aria-label={label}
-                onChange={(event) => onChange(event.target.value)}
-                className="h-7 max-w-[190px] appearance-none rounded-full border border-border/70 bg-muted/20 py-0 pl-2.5 pr-7 text-right text-xs font-medium text-foreground outline-none transition-colors hover:border-primary/40 hover:bg-primary/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                className="h-7 w-auto max-w-[190px] rounded-full border-border/70 bg-muted/20 px-2.5 py-0 text-right text-xs font-medium text-foreground shadow-none hover:border-primary/40 hover:bg-primary/10 focus:ring-2 focus:ring-primary/15 [&>svg]:ml-1.5 [&>svg]:h-3 [&>svg]:w-3"
             >
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="z-[80] min-w-[170px] border-border/70 bg-popover text-popover-foreground">
                 {normalizedOptions.map((option, index) => (
-                    <option key={`${option.value}-${index}`} value={option.value}>
+                    <SelectItem key={`${option.value}-${index}`} value={option.value} className="text-xs">
                         {option.label}
-                    </option>
+                    </SelectItem>
                 ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-muted-foreground" />
-        </span>
+            </SelectContent>
+        </Select>
     );
 }
 
