@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ChevronLeft as IconLeft, ChevronRight as IconRight, PlusCircle, Search } from "lucide-react";
 
-import { TicketsStats } from "@/features/tickets/interface/components/TicketsStats";
 import { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
 import { TicketsTable } from "@/features/tickets/interface/components/TicketsTable";
 import { Button } from "@/components/ui/button";
@@ -89,7 +88,7 @@ export function TicketsContainer({
         </div>
       </div>
 
-      <TicketsStats counts={statusCounts} activeStatus={statusGroup} onSelectStatus={setStatusFilter} />
+
 
       <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -109,14 +108,7 @@ export function TicketsContainer({
             queueCounts={queueCounts}
           />
 
-          <div className="flex flex-col gap-3 xl:items-end justify-start">
-            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground xl:justify-end mt-2">
-              <span className="inline-flex items-center gap-1">
-                <Search className="h-3.5 w-3.5" />
-                {pagination.total ?? tickets.length} filtrados
-              </span>
-            </div>
-          </div>
+
         </div>
       </section>
 

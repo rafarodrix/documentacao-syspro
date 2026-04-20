@@ -94,7 +94,7 @@ export function TicketsFilters({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Todos ({queueCounts.all})</SelectItem>
-                                    <SelectItem value="my_queue">Minha fila ({queueCounts.my_queue})</SelectItem>
+                                    <SelectItem value="my_queue">Meus tickets ({queueCounts.my_queue})</SelectItem>
                                     <SelectItem value="unassigned">Sem dono ({queueCounts.unassigned})</SelectItem>
                                     <SelectItem value="critical">Criticos ({queueCounts.critical})</SelectItem>
                                     <SelectItem value="no_response">Sem resposta ({queueCounts.no_response})</SelectItem>
