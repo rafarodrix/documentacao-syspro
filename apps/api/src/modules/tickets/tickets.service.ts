@@ -704,11 +704,13 @@ export class TicketsService {
           if (requester.role === Role.DEVELOPER) {
             currentMetadata.developmentOwnerUserId = requester.userId;
             currentMetadata.developmentOwnerName = resolverName;
-            currentMetadata.currentTeam = 'DESENVOLVIMENTO';
           } else {
             currentMetadata.supportOwnerUserId = requester.userId;
             currentMetadata.supportOwnerName = resolverName;
-            currentMetadata.currentTeam = 'SUPORTE';
+          }
+
+          if (typeof currentMetadata.currentTeam !== 'string' || !currentMetadata.currentTeam.trim()) {
+            currentMetadata.currentTeam = requester.role === Role.DEVELOPER ? 'DESENVOLVIMENTO' : 'SUPORTE';
           }
         }
       }
