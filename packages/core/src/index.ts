@@ -35,3 +35,11 @@ export {
 export type { QueueKey, TicketStatusGroup } from "./config/tickets-workflow";
 export { computeTicketSla } from "./services/ticket-sla.service";
 export type { TicketSlaMeta } from "./services/ticket-sla.service";
+export {
+  buildReleaseFromTicket,
+  inferReleaseTypeFromCategory,
+  inferReleaseTypeFromMetadata,
+  normalizeReleaseType,
+  readReleaseMetadataString,
+} from "./services/release-projection.service";
+export type { ReleaseKind, ReleaseProjectionSource } from "./services/release-projection.service";

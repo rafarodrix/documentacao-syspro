@@ -13,6 +13,7 @@
     "./config/ticket-state-matrix": "./src/config/ticket-state-matrix.ts",
     "./config/ticket-provider-state-matrix": "./src/config/ticket-provider-state-matrix.ts",
     "./config/tickets-workflow": "./src/config/tickets-workflow.ts",
+    "./services/release-projection": "./src/services/release-projection.service.ts",
     "./services/ticket-sla": "./src/services/ticket-sla.service.ts",
     "./services/ticket-provider-sla": "./src/services/ticket-provider-sla.service.ts"
   }

@@ -10,9 +10,7 @@ import type {
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
-import { prisma } from "@/lib/prisma";
 import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
-import { ConversationStatus, Prisma } from "@prisma/client";
 import {
   createTicketGateway,
   fetchLinkedCompaniesGateway,
@@ -75,16 +73,6 @@ export async function finalizeTicketAction(input: {
       return { success: false, error: result.error || result.message || "Falha ao finalizar ticket." };
     }
 
-    await syncReleaseProjection({
-      ticketId: String(input.ticketId),
-      resolutionSummary,
-      resolutionVideoUrl: video,
-      releaseType: input.releaseType,
-      releaseTitle: input.releaseTitle?.trim() || undefined,
-      releaseModule: input.releaseModule?.trim() || undefined,
-      publishToReleases: Boolean(input.publishToReleases),
-    });
-
     revalidateTicketCollections();
     revalidateTicketViews(String(input.ticketId));
     revalidateReleasesViews();
@@ -93,58 +81,6 @@ export async function finalizeTicketAction(input: {
     console.error("Erro ao finalizar ticket:", error);
     return { success: false, error: "Falha ao finalizar ticket." };
   }
-}
-
-async function syncReleaseProjection(input: {
-  ticketId: string;
-  resolutionSummary: string;
-  resolutionVideoUrl?: string;
-  releaseType?: "BUG" | "MELHORIA";
-  releaseTitle?: string;
-  releaseModule?: string;
-  publishToReleases: boolean;
-}) {
-  const existing = await prisma.conversation.findUnique({
-    where: { id: input.ticketId },
-    select: {
-      closedAt: true,
-      metadata: true,
-      releaseModule: true,
-      subject: true,
-    },
-  });
-
-  if (!existing) return;
-
-  const metadata = toMutableMetadata(existing.metadata);
-  const releaseTitle = input.releaseTitle || readStringMetadata(metadata, "releaseTitle") || existing.subject || "Atualizacao sem titulo";
-  const releaseModule = input.releaseModule || existing.releaseModule || readStringMetadata(metadata, "module");
-
-  if (input.publishToReleases) {
-    metadata.releaseTitle = releaseTitle;
-  } else {
-    delete metadata.releaseTitle;
-  }
-
-  await prisma.conversation.update({
-    where: { id: input.ticketId },
-    data: {
-      status: ConversationStatus.RESOLVED,
-      closedAt: existing.closedAt ?? new Date(),
-      resolutionSummary: input.resolutionSummary,
-      resolutionVideoUrl: input.resolutionVideoUrl || null,
-      releaseType: input.publishToReleases ? input.releaseType || "MELHORIA" : null,
-      releaseModule: input.publishToReleases ? releaseModule || null : null,
-      publishToReleases: input.publishToReleases,
-      metadata: metadata as Prisma.InputJsonValue,
-    },
-  });
-}
-
-function toMutableMetadata(metadata: Prisma.JsonValue | null): Record<string, unknown> {
-  return metadata && typeof metadata === "object" && !Array.isArray(metadata)
-    ? { ...(metadata as Record<string, unknown>) }
-    : {};
 }
 
 function mapPriorityToLevel(priority: TicketModulePriority | string | null | undefined): number {

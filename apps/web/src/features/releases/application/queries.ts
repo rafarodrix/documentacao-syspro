@@ -1,99 +1,14 @@
-import { Release } from "@dosc-syspro/core";
-import { prisma } from "@/lib/prisma";
-import { ConversationStatus as TicketStatus, Prisma } from "@prisma/client";
+import type { Release } from "@dosc-syspro/core";
+import { callBackendApi } from "@/lib/backend-api-client";
 
-async function fetchReleases(): Promise<Release[]> {
-    try {
-        const tickets = (await prisma.conversation.findMany({
-            where: {
-                resolutionSummary: { not: null },
-                status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
-            },
-            orderBy: [{ closedAt: "desc" }, { updatedAt: "desc" }],
-            select: {
-                id: true,
-                ticketNumber: true,
-                subject: true,
-                resolutionSummary: true,
-                resolutionVideoUrl: true,
-                releaseType: true,
-                releaseModule: true,
-                metadata: true,
-                closedAt: true,
-                updatedAt: true,
-            },
-        })) as Array<{
-            id: string;
-            ticketNumber: string | null;
-            subject: string | null;
-            resolutionSummary: string | null;
-            resolutionVideoUrl: string | null;
-            releaseType: string | null;
-            releaseModule: string | null;
-            metadata: Prisma.JsonValue | null;
-            closedAt: Date | null;
-            updatedAt: Date;
-        }>;
-
-        return tickets
-            .filter((ticket) => typeof ticket.resolutionSummary === "string" && ticket.resolutionSummary.trim().length > 0)
-            .map((ticket) => {
-                const releaseType = normalizeReleaseType(ticket.releaseType) || inferReleaseTypeFromMetadata(ticket.metadata);
-
-                return {
-                    id: ticket.ticketNumber || ticket.id,
-                    type: releaseType === "BUG" ? "Bug" : "Melhoria",
-                    isoDate: (ticket.closedAt || ticket.updatedAt).toISOString().slice(0, 10),
-                    title: readReleaseMetadataString(ticket.metadata, "releaseTitle") || ticket.subject || "Atualizacao sem titulo",
-                    summary:
-                        (typeof ticket.resolutionSummary === "string" ? ticket.resolutionSummary.trim() : "") ||
-                        ticket.subject ||
-                        "Atualizacao interna",
-                    link: `/portal/tickets/${ticket.id}`,
-                    videoLink: ticket.resolutionVideoUrl || null,
-                    tags: [ticket.releaseModule || readReleaseMetadataString(ticket.metadata, "module")].filter(
-                        (tag): tag is string => Boolean(tag),
-                    ),
-                };
-            });
-    } catch (error) {
-        if (isReleaseQueryDatabaseError(error)) {
-            console.warn("[releases] database unavailable during build/runtime; returning empty release list");
-            return [];
-        }
-
-        throw error;
-    }
-}
-
-function readReleaseMetadataString(metadata: Prisma.JsonValue | null, key: string): string | null {
-    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-    const value = (metadata as Record<string, unknown>)[key];
-    return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function normalizeReleaseType(value: string | null): "BUG" | "MELHORIA" | null {
-    const normalized = value?.trim().toUpperCase();
-    if (normalized === "BUG" || normalized === "MELHORIA") return normalized;
-    return null;
-}
-
-function inferReleaseTypeFromMetadata(metadata: Prisma.JsonValue | null): "BUG" | "MELHORIA" {
-    const category = readReleaseMetadataString(metadata, "category")?.toLowerCase() || "";
-    if (category.includes("bug") || category.includes("incident") || category.includes("erro")) return "BUG";
-    return "MELHORIA";
-}
-
-function isReleaseQueryDatabaseError(error: unknown): boolean {
-    return (
-        error instanceof Prisma.PrismaClientInitializationError ||
-        error instanceof Prisma.PrismaClientKnownRequestError ||
-        error instanceof Prisma.PrismaClientUnknownRequestError
-    );
-}
+type ReleasesResponse = {
+    success: boolean;
+    data?: Release[];
+};
 
 export async function getReleases(): Promise<Release[]> {
-    return fetchReleases();
+    const response = await callBackendApi<ReleasesResponse>("releases", "");
+    return response.success ? response.data ?? [] : [];
 }
 
 

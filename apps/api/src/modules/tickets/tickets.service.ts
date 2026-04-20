@@ -23,6 +23,11 @@ import {
   Role,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
+import {
+  inferReleaseTypeFromCategory,
+  normalizeReleaseType,
+  readReleaseMetadataString,
+} from '@dosc-syspro/core';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   serializeLinkedCompaniesResponse,
@@ -659,11 +664,11 @@ export class TicketsService {
     const shouldPublishToReleases = publishToReleases === true;
     const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
     const effectiveReleaseType =
-      releaseType || this.normalizeReleaseType(exists.releaseType) || this.inferReleaseTypeFromCategory(input.category ?? existingMetadata.category);
+      normalizeReleaseType(releaseType) || normalizeReleaseType(exists.releaseType) || inferReleaseTypeFromCategory(input.category ?? existingMetadata.category);
     const effectiveReleaseTitle =
-      releaseTitle || this.readMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim();
+      releaseTitle || readReleaseMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim();
     const effectiveReleaseModule =
-      releaseModule || exists.releaseModule?.trim() || this.readMetadataString(existingMetadata, 'module');
+      releaseModule || exists.releaseModule?.trim() || readReleaseMetadataString(existingMetadata, 'module');
     const requestedTeam =
       input.team !== undefined
         ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
@@ -678,7 +683,7 @@ export class TicketsService {
       throw new BadRequestException('Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres).');
     }
 
-    if (releaseType && !this.normalizeReleaseType(releaseType)) {
+    if (releaseType && !normalizeReleaseType(releaseType)) {
       throw new BadRequestException('Tipo de release invalido. Use BUG ou MELHORIA.');
     }
 
@@ -770,7 +775,14 @@ export class TicketsService {
       if (input.releaseType !== undefined || shouldPublishToReleases) data.releaseType = effectiveReleaseType;
       if (input.releaseTitle !== undefined || shouldPublishToReleases) currentMetadata.releaseTitle = effectiveReleaseTitle || null;
       if (input.releaseModule !== undefined || shouldPublishToReleases) data.releaseModule = effectiveReleaseModule || null;
-      if (input.publishToReleases !== undefined) data.publishToReleases = Boolean(publishToReleases);
+      if (input.publishToReleases !== undefined) {
+        data.publishToReleases = Boolean(publishToReleases);
+        if (publishToReleases === false) {
+          data.releaseType = null;
+          data.releaseModule = null;
+          delete currentMetadata.releaseTitle;
+        }
+      }
       data.metadata = currentMetadata as Prisma.InputJsonValue;
 
       await tx.conversation.update({
@@ -989,26 +1001,6 @@ export class TicketsService {
     }
 
     return settings.defaultTeam === 'DESENVOLVIMENTO' && allowDevelopment ? 'DESENVOLVIMENTO' : 'SUPORTE';
-  }
-
-  private readMetadataString(metadata: Record<string, unknown>, key: string): string | null {
-    const value = metadata[key];
-    return typeof value === 'string' && value.trim() ? value.trim() : null;
-  }
-
-  private normalizeReleaseType(value: unknown): 'BUG' | 'MELHORIA' | null {
-    const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
-    if (normalized === 'BUG' || normalized === 'MELHORIA') return normalized;
-    return null;
-  }
-
-  private inferReleaseTypeFromCategory(category: unknown): 'BUG' | 'MELHORIA' {
-    const normalized = typeof category === 'string' ? category.trim().toLowerCase() : '';
-    if (normalized.includes('bug') || normalized.includes('incident') || normalized.includes('erro')) {
-      return 'BUG';
-    }
-
-    return 'MELHORIA';
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {
