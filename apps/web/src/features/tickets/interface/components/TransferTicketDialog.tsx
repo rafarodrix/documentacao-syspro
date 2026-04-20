@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRightLeft, Check, Loader2 } from "lucide-react";
+import type { TicketModuleSettingsOption } from "@dosc-syspro/contracts/ticket";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -17,14 +19,16 @@ import { cn } from "@/lib/utils";
 interface TransferTicketPopoverProps {
   ticketId: string | number;
   currentTeam?: string;
+  teams?: TicketModuleSettingsOption[];
+  trigger?: ReactNode;
 }
 
-const teamOptions = [
+const defaultTeamOptions = [
   { value: "SUPORTE", label: "Suporte" },
   { value: "DESENVOLVIMENTO", label: "Desenvolvimento" },
 ];
 
-export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPopoverProps) {
+export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger }: TransferTicketPopoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(currentTeam || "SUPORTE");
@@ -32,6 +36,7 @@ export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPo
   const [isPending, startTransition] = useTransition();
   const selectedTeamIsDevelopment = selectedTeam === "DESENVOLVIMENTO";
   const canTransferToDevelopment = !selectedTeamIsDevelopment || handoffNote.trim().length >= 20;
+  const teamOptions = teams?.length ? teams : defaultTeamOptions;
 
   const handleTransfer = (team: string, note?: string) => {
     startTransition(async () => {
@@ -56,11 +61,19 @@ export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPo
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setSelectedTeam(currentTeam || "SUPORTE");
+      }}
+    >
       <PopoverTrigger asChild>
-        <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-colors text-xs">
-          <ArrowRightLeft className="h-3 w-3" /> Setor
-        </Button>
+        {trigger || (
+          <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 text-xs text-primary transition-colors hover:bg-primary/10">
+            <ArrowRightLeft className="h-3 w-3" /> Setor
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2" align="end" sideOffset={8}>
         <div className="space-y-2">
@@ -70,8 +83,8 @@ export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPo
           </div>
           <div className="space-y-1">
             {teamOptions.map((team) => {
-              const active = (currentTeam || "SUPORTE") === team.value;
-              const selected = selectedTeam === team.value;
+              const active = (currentTeam || "SUPORTE").toLowerCase() === team.value.toLowerCase();
+              const selected = selectedTeam.toLowerCase() === team.value.toLowerCase();
               return (
                 <button
                   key={team.value}
@@ -92,7 +105,7 @@ export function TransferTicketDialog({ ticketId, currentTeam }: TransferTicketPo
               );
             })}
           </div>
-          {selectedTeamIsDevelopment && (currentTeam || "SUPORTE") !== "DESENVOLVIMENTO" && (
+          {selectedTeamIsDevelopment && (currentTeam || "SUPORTE").toLowerCase() !== "desenvolvimento" && (
             <div className="space-y-2 rounded-md border border-border/60 bg-muted/10 p-2">
               <label htmlFor="ticket-handoff-note" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Contexto para o dev

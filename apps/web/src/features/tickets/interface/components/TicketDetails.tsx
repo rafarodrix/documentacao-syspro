@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { forwardRef, useEffect, useState, useTransition } from "react";
 import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,8 +24,8 @@ import {
     UserRound,
     Zap,
 } from "lucide-react";
-import type { TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
+import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction, updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
@@ -59,9 +59,31 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
+    const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
     const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
     const currentTicketStatus = ticket ? normalizeStatusValue(ticket.status) : null;
+
+    useEffect(() => {
+        let active = true;
+
+        async function loadSettings() {
+            try {
+                const response = await fetch("/api/platform/settings/tickets", { cache: "no-store" });
+                const payload = await response.json();
+                if (active && payload?.success && payload?.data) {
+                    setTicketSettings(payload.data);
+                }
+            } catch {
+                if (active) setTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS);
+            }
+        }
+
+        loadSettings();
+        return () => {
+            active = false;
+        };
+    }, []);
 
     const assignToMe = () => {
         if (!ticket) return;
@@ -108,6 +130,16 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         });
     };
 
+    const changeClassification = (payload: { module?: string; category?: string }) => {
+        if (!ticket) return;
+        startTransition(async () => {
+            const res = await updateTicketClassificationAction(String(ticket.id), payload);
+            if (res.success) toast.success("Classificacao atualizada.");
+            else toast.error(res.error || "Erro ao atualizar classificacao");
+            router.refresh();
+        });
+    };
+
     useTicketHotkeys({
         onAssignToMe: () => {
             if (isAdmin && ticket && !ticket.ownerId && !isClosedTicket) assignToMe();
@@ -135,6 +167,9 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
     const currentUserOwnsTicket = ticket.ownerId && String(ticket.ownerId) === String(currentUserId);
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
+    const currentTeam = ticket.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
+    const currentModule = ticket.operations?.module || "";
+    const currentCategory = ticket.operations?.category || "";
 
     return (
         <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -200,6 +235,21 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             <CardContent className="space-y-4 pt-0">
                                 <section className="space-y-3">
                                     <SidebarField
+                                        label="Setor atual"
+                                        value={
+                                            isAdmin ? (
+                                                <TransferTicketDialog
+                                                    ticketId={ticket.id}
+                                                    currentTeam={currentTeam}
+                                                    teams={ticketSettings.teams}
+                                                    trigger={<InlineValueButton id="transfer-ticket-btn" label={resolveOptionLabel(ticketSettings.teams, currentTeam)} />}
+                                                />
+                                            ) : (
+                                                <span className="text-xs">{resolveOptionLabel(ticketSettings.teams, currentTeam)}</span>
+                                            )
+                                        }
+                                    />
+                                    <SidebarField
                                         label="Estagio atual"
                                         value={
                                             <StatusDropdown
@@ -210,13 +260,39 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                         }
                                     />
                                     <SidebarField label="Prioridade" value={<PriorityBadge priority={ticket.priority} />} />
+                                    <SidebarField
+                                        label="Modulo"
+                                        value={
+                                            <ClassificationDropdown
+                                                label="Alterar modulo"
+                                                value={currentModule}
+                                                fallback="Nao definido"
+                                                options={ticketSettings.modules}
+                                                disabled={!isAdmin || isPending}
+                                                onChange={(module) => changeClassification({ module })}
+                                            />
+                                        }
+                                    />
+                                    <SidebarField
+                                        label="Categoria"
+                                        value={
+                                            <ClassificationDropdown
+                                                label="Alterar categoria"
+                                                value={currentCategory}
+                                                fallback="Nao definida"
+                                                options={ticketSettings.categories}
+                                                disabled={!isAdmin || isPending}
+                                                onChange={(category) => changeClassification({ category })}
+                                            />
+                                        }
+                                    />
                                 </section>
 
-                                {isAdmin && (
+                                {isAdmin && !isClosedTicket && (
                                     <>
                                         <Separator />
                                         <section className="space-y-2">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{isClosedTicket ? "Correcoes de fluxo" : "Acoes de fluxo"}</p>
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes de fluxo</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {currentTicketStatus === "NEW" && (
                                                     <Button
@@ -248,27 +324,21 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                                         Liberar
                                                     </Button>
                                                 )}
-                                                <TransferTicketDialog
-                                                    ticketId={ticket.id}
-                                                    currentTeam={ticket.operations?.currentTeam || undefined}
-                                                />
-                                                {!isClosedTicket && (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="w-48">
-                                                            <DropdownMenuLabel className="text-xs">Mais acoes</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-xs text-emerald-600 focus:text-emerald-700" onSelect={() => setFinalizeOpen(true)}>
-                                                                <Flag className="h-3.5 w-3.5" />
-                                                                Finalizar ticket
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                )}
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuLabel className="text-xs">Mais acoes</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem className="text-xs text-emerald-600 focus:text-emerald-700" onSelect={() => setFinalizeOpen(true)}>
+                                                            <Flag className="h-3.5 w-3.5" />
+                                                            Finalizar ticket
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </section>
                                     </>
@@ -291,9 +361,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
                                 <Separator />
                                 <section className="space-y-3">
-                                    {ticket.operations?.currentTeam && <SidebarField label="Setor atual" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />}
-                                    {ticket.operations?.module && <SidebarField label="Modulo" value={<span className="text-xs">{ticket.operations.module}</span>} />}
-                                    {ticket.operations?.category && <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />}
                                     {ticket.operations?.openedByName && <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
                                     {ticket.operations?.supportOwnerName && <SidebarField label="Resp. suporte" value={<span className="text-xs">{ticket.operations.supportOwnerName}</span>} />}
                                     {ticket.operations?.developmentOwnerName && <SidebarField label="Resp. desenvolvimento" value={<span className="text-xs">{ticket.operations.developmentOwnerName}</span>} />}
@@ -338,7 +405,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
 function isTicketClosed(status?: string | null) {
     const normalized = (status || "").toLowerCase();
-    return ["resolvido", "fechado", "arquivado", "finalizado"].some((item) => normalized.includes(item));
+    return ["resolvido", "resolved", "fechado", "arquivado", "archived", "finalizado"].some((item) => normalized.includes(item));
 }
 
 function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: TicketDetailsItem): TicketArticleItem[] {
@@ -417,6 +484,72 @@ function CustomerContextCard({ ticket }: { ticket: TicketDetailsItem }) {
 function DetailDate({ value, fallback }: { value?: string | null; fallback: string }) {
     if (!value) return <span className="text-xs text-muted-foreground">{fallback}</span>;
     return <span className="font-mono text-xs text-muted-foreground">{new Date(value).toLocaleString("pt-BR")}</span>;
+}
+
+function resolveOptionLabel(options: TicketModuleSettingsOption[], value?: string | null, fallback = "Nao definido") {
+    const normalized = (value || "").trim();
+    if (!normalized) return fallback;
+    const option = options.find((item) => item.value.toLowerCase() === normalized.toLowerCase() || item.label.toLowerCase() === normalized.toLowerCase());
+    return option?.label || normalized;
+}
+
+const InlineValueButton = forwardRef<HTMLButtonElement, { label: string; id?: string }>(({ label, id }, ref) => {
+    return (
+        <button
+            ref={ref}
+            id={id}
+            type="button"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-muted/20 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+        >
+            <span className="truncate">{label}</span>
+            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
+    );
+});
+InlineValueButton.displayName = "InlineValueButton";
+
+function ClassificationDropdown({
+    label,
+    value,
+    fallback,
+    options,
+    disabled,
+    onChange,
+}: {
+    label: string;
+    value?: string | null;
+    fallback: string;
+    options: TicketModuleSettingsOption[];
+    disabled?: boolean;
+    onChange: (value: string) => void;
+}) {
+    const currentLabel = resolveOptionLabel(options, value, fallback);
+    const currentValue = (value || "").trim();
+
+    if (disabled) {
+        return <span className="text-xs">{currentLabel}</span>;
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <InlineValueButton label={currentLabel} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-xs">{label}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {options.map((option) => {
+                    const active = option.value.toLowerCase() === currentValue.toLowerCase();
+                    return (
+                        <DropdownMenuItem key={option.id} className="text-xs" onSelect={() => onChange(option.value)}>
+                            <span className="flex-1">{option.label}</span>
+                            {active && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 const statusOptions: Array<{ value: TicketModuleStatus; label: string }> = [

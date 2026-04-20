@@ -600,6 +600,39 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
   }
 }
 
+export async function updateTicketClassificationAction(
+  ticketId: string,
+  payload: { module?: string; category?: string },
+): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  const updatePayload = {
+    ...(payload.module !== undefined ? { module: payload.module.trim() } : {}),
+    ...(payload.category !== undefined ? { category: payload.category.trim() } : {}),
+  };
+
+  if (!Object.keys(updatePayload).length) {
+    return { success: false, error: "Nenhuma classificacao informada." };
+  }
+
+  try {
+    const result = await updateTicketGateway(ticketId, updatePayload);
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao atualizar classificacao." };
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em updateTicketClassificationAction:", error);
+    return { success: false, error: "Falha ao atualizar classificacao." };
+  }
+}
+
 export async function getUserLinkedCompaniesAction() {
   const session = await getProtectedSession();
   if (!session) return { success: false, data: [] };
