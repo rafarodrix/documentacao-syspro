@@ -79,6 +79,10 @@ export function useTicketFilters(initialSearch: string) {
         } else {
           params.set("status", nextStatus);
         }
+        if (nextStatus === "closed") {
+          params.delete("queue");
+          params.delete("closedWindow");
+        }
         params.set("page", "1");
       });
     },
@@ -88,7 +92,7 @@ export function useTicketFilters(initialSearch: string) {
   const setClosedWindowFilter = useCallback(
     (nextWindow: ClosedTicketsWindow) => {
       updateParams((params) => {
-        if (nextWindow === "30d") {
+        if (nextWindow === "all") {
           params.delete("closedWindow");
         } else {
           params.set("closedWindow", nextWindow);

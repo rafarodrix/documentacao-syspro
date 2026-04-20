@@ -466,7 +466,12 @@ export class TicketsService {
       where.assignedUserId = input.assignedUserId;
     }
 
-    if (input.queue && input.queue !== 'all') {
+    const isClosedStatusView =
+      input.status === TicketStatus.RESOLVED ||
+      input.status === TicketStatus.ARCHIVED ||
+      input.statusGroup === 'closed';
+
+    if (input.queue && input.queue !== 'all' && !isClosedStatusView) {
       if (input.queue === 'my_queue') where.assignedUserId = requester.userId;
       if (input.queue === 'unassigned') where.assignedUserId = null;
       if (input.queue === 'critical') where.priority = TicketPriority.CRITICAL;
@@ -482,7 +487,7 @@ export class TicketsService {
       ...teamScopeWhere,
       status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
     };
-    if (input.closedWindow && input.closedWindow !== 'all') {
+    if (input.statusGroup === 'closed' && input.closedWindow && input.closedWindow !== 'all') {
       const days = Number.parseInt(input.closedWindow.replace('d', ''), 10);
       if (Number.isFinite(days) && days > 0) {
         closedStatusWhere.closedAt = { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) };

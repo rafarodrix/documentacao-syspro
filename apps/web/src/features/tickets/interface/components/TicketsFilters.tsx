@@ -24,12 +24,12 @@ interface TicketsFiltersProps {
 }
 
 const CLOSED_WINDOW_LABELS: Record<ClosedTicketsWindow, string> = {
+    all: "Todos",
     "30d": "Ultimos 30 dias",
     "60d": "Ultimos 60 dias",
     "90d": "Ultimos 90 dias",
     "180d": "Ultimos 6 meses",
     "365d": "Ultimo ano",
-    all: "Todos",
 };
 
 export function TicketsFilters({
@@ -88,18 +88,20 @@ export function TicketsFilters({
                                 </SelectContent>
                             </Select>
 
-                            <Select value={queue} onValueChange={(val) => setQueueFilter(val as QueueKey)}>
-                                <SelectTrigger className="h-10 w-[160px] bg-background">
-                                    <SelectValue placeholder="Fila" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos ({queueCounts.all})</SelectItem>
-                                    <SelectItem value="my_queue">Meus tickets ({queueCounts.my_queue})</SelectItem>
-                                    <SelectItem value="unassigned">Sem dono ({queueCounts.unassigned})</SelectItem>
-                                    <SelectItem value="critical">Criticos ({queueCounts.critical})</SelectItem>
-                                    <SelectItem value="no_response">Sem resposta ({queueCounts.no_response})</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            {statusFilter !== "closed" && (
+                                <Select value={queue} onValueChange={(val) => setQueueFilter(val as QueueKey)}>
+                                    <SelectTrigger className="h-10 w-[160px] bg-background">
+                                        <SelectValue placeholder="Fila" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos ({queueCounts.all})</SelectItem>
+                                        <SelectItem value="my_queue">Meus tickets ({queueCounts.my_queue})</SelectItem>
+                                        <SelectItem value="unassigned">Sem dono ({queueCounts.unassigned})</SelectItem>
+                                        <SelectItem value="critical">Criticos ({queueCounts.critical})</SelectItem>
+                                        <SelectItem value="no_response">Sem resposta ({queueCounts.no_response})</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
                         </div>
                     )}
                 </div>

@@ -271,20 +271,16 @@ function Timeline({
                     }
 
                     return (
-                        <div key={article.id} className={cn("flex min-w-0 max-w-full gap-3 overflow-hidden", messageIsMe ? "flex-row-reverse" : "flex-row")}>
-                            <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
-                                <AvatarFallback
-                                    className={cn(
-                                        messageIsMe
-                                            ? "bg-primary/20 text-primary"
-                                            : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200",
-                                    )}
-                                >
-                                    {messageIsMe ? <User className="h-4 w-4" /> : <Headset className="h-4 w-4" />}
-                                </AvatarFallback>
-                            </Avatar>
+                        <div key={article.id} className={cn("grid min-w-0 max-w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3", messageIsMe && "grid-cols-[minmax(0,1fr)_2.25rem]")}>
+                            {!messageIsMe && (
+                                <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
+                                    <AvatarFallback className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
+                                        <Headset className="h-4 w-4" />
+                                    </AvatarFallback>
+                                </Avatar>
+                            )}
 
-                            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col overflow-hidden", messageIsMe && "items-end")}>
+                            <div className={cn("flex min-w-0 max-w-full flex-col", messageIsMe && "items-end")}>
                                 <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", messageIsMe && "justify-end")}>
                                     <span className="min-w-0 max-w-55 truncate text-xs font-medium">
                                         {messageIsMe ? "Voce" : article.from.split("<")[0]}
@@ -312,6 +308,14 @@ function Timeline({
                                     dangerouslySetInnerHTML={{ __html: article.body }}
                                 />
                             </div>
+
+                            {messageIsMe && (
+                                <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
+                                    <AvatarFallback className="bg-primary/20 text-primary">
+                                        <User className="h-4 w-4" />
+                                    </AvatarFallback>
+                                </Avatar>
+                            )}
                         </div>
                     );
                 })}
