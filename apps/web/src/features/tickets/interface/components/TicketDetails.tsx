@@ -14,7 +14,6 @@ import {
     ChevronUp,
     Clock3,
     ExternalLink,
-    Hash,
     Sparkles,
     Timer,
     UserRound,
@@ -172,16 +171,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                         <ArrowLeft className="h-5 w-5 text-muted-foreground" />
                     </Link>
                 </Button>
-                <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-                    <Link href="/portal" className="transition-colors hover:text-foreground">Portal</Link>
-                    <span>/</span>
-                    <Link href={backUrl} className="transition-colors hover:text-foreground">Chamados</Link>
-                    <span>/</span>
-                    <Badge variant="secondary" className="gap-1 border-border/50 bg-muted/50 font-mono text-xs">
-                        <Hash className="h-3 w-3" />
-                        {ticket.number}
-                    </Badge>
-                </div>
+                <span className="font-mono text-xs text-muted-foreground">{ticket.number}</span>
             </div>
 
             <div className="mb-6 px-4 md:px-0">

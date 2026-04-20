@@ -6,9 +6,13 @@ async function fetchReleases(): Promise<Release[]> {
     try {
         const tickets = (await prisma.conversation.findMany({
             where: {
-                publishToReleases: true,
                 resolutionSummary: { not: null },
                 status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
+                OR: [
+                    { publishToReleases: true },
+                    { releaseType: { not: null } },
+                    { releaseModule: { not: null } },
+                ],
             },
             orderBy: [{ closedAt: "desc" }, { updatedAt: "desc" }],
             select: {
