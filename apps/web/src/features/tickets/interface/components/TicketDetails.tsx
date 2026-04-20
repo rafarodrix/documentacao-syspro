@@ -227,64 +227,49 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </CardHeader>
                             <CardContent className="space-y-4 pt-0">
                                 <section className="space-y-3">
-                                    <SidebarField
-                                        label="Setor atual"
-                                        value={
-                                            <NativeSelectPill
-                                                id="transfer-ticket-btn"
-                                                value={currentTeam}
-                                                label={resolveOptionLabel(ticketSettings.teams, currentTeam)}
-                                                disabled={!isAdmin || isPending}
-                                                options={ticketSettings.teams.map((team) => ({ value: team.value, label: team.label }))}
-                                                onChange={changeTeam}
-                                            />
-                                        }
-                                    />
-                                    <SidebarField
-                                        label="Categoria"
-                                        value={
-                                            <ClassificationDropdown
-                                                value={currentCategory}
-                                                fallback="Nao definida"
-                                                options={categoryOptions}
-                                                disabled={!isAdmin || isPending}
-                                                onChange={(category) => changeClassification({ category })}
-                                            />
-                                        }
-                                    />
-                                    <SidebarField
-                                        label="Estagio atual"
-                                        value={
-                                            <StatusDropdown
-                                                status={ticket.status}
-                                                disabled={!isAdmin || isPending}
-                                                onChange={changeStatus}
-                                            />
-                                        }
-                                    />
-                                    <SidebarField
-                                        label="Prioridade"
-                                        value={
-                                            <PriorityDropdown
-                                                priority={currentPriority}
-                                                options={ticketSettings.priorities}
-                                                disabled={!isAdmin || isPending}
-                                                onChange={(priority) => changeClassification({ priority })}
-                                            />
-                                        }
-                                    />
-                                    <SidebarField
-                                        label="Modulo"
-                                        value={
-                                            <ClassificationDropdown
-                                                value={currentModule}
-                                                fallback="Nao definido"
-                                                options={ticketSettings.modules}
-                                                disabled={!isAdmin || isPending}
-                                                onChange={(module) => changeClassification({ module })}
-                                            />
-                                        }
-                                    />
+                                    <EditableSidebarField label="Setor atual">
+                                        <NativeSelectPill
+                                            id="transfer-ticket-btn"
+                                            value={currentTeam}
+                                            label={resolveOptionLabel(ticketSettings.teams, currentTeam)}
+                                            disabled={!isAdmin || isPending}
+                                            options={ticketSettings.teams.map((team) => ({ value: team.value, label: team.label }))}
+                                            onChange={changeTeam}
+                                        />
+                                    </EditableSidebarField>
+                                    <EditableSidebarField label="Categoria">
+                                        <ClassificationDropdown
+                                            value={currentCategory}
+                                            fallback="Nao definida"
+                                            options={categoryOptions}
+                                            disabled={!isAdmin || isPending}
+                                            onChange={(category) => changeClassification({ category })}
+                                        />
+                                    </EditableSidebarField>
+                                    <EditableSidebarField label="Estagio atual">
+                                        <StatusDropdown
+                                            status={ticket.status}
+                                            disabled={!isAdmin || isPending}
+                                            onChange={changeStatus}
+                                        />
+                                    </EditableSidebarField>
+                                    <EditableSidebarField label="Prioridade">
+                                        <PriorityDropdown
+                                            priority={currentPriority}
+                                            options={ticketSettings.priorities}
+                                            disabled={!isAdmin || isPending}
+                                            onChange={(priority) => changeClassification({ priority })}
+                                        />
+                                    </EditableSidebarField>
+                                    <EditableSidebarField label="Modulo">
+                                        <ClassificationDropdown
+                                            value={currentModule}
+                                            fallback="Nao definido"
+                                            options={ticketSettings.modules}
+                                            disabled={!isAdmin || isPending}
+                                            onChange={(module) => changeClassification({ module })}
+                                        />
+                                    </EditableSidebarField>
                                 </section>
 
                                 <Separator />
@@ -383,6 +368,15 @@ function SidebarField({ label, value }: { label: string; value: ReactNode }) {
         <div className="flex items-center justify-between gap-3">
             <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
             <div className="min-w-0 text-right wrap-break-word">{value}</div>
+        </div>
+    );
+}
+
+function EditableSidebarField({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
+            <div className="min-w-0">{children}</div>
         </div>
     );
 }
@@ -536,13 +530,13 @@ function NativeSelectPill({
             <SelectTrigger
                 id={id}
                 aria-label={label}
-                className="h-7 w-auto max-w-47.5 rounded-full border-border/70 bg-muted/20 px-2.5 py-0 text-right text-xs font-medium text-foreground shadow-none hover:border-primary/40 hover:bg-primary/10 focus:ring-2 focus:ring-primary/15 [&>svg]:ml-1.5 [&>svg]:h-3 [&>svg]:w-3"
+                className="h-10 w-full rounded-md border-border/70 bg-background px-3 text-left text-sm font-medium text-foreground shadow-none transition-colors hover:border-primary/40 hover:bg-muted/30 focus:ring-2 focus:ring-primary/15"
             >
                 <SelectValue />
             </SelectTrigger>
-            <SelectContent align="end" className="z-80 min-w-42.5 border-border/70 bg-popover text-popover-foreground">
+            <SelectContent align="start" className="z-80 min-w-[var(--radix-select-trigger-width)] border-border/70 bg-popover text-popover-foreground">
                 {normalizedOptions.map((option, index) => (
-                    <SelectItem key={`${option.value}-${index}`} value={option.value} className="text-xs">
+                    <SelectItem key={`${option.value}-${index}`} value={option.value} className="text-sm">
                         {option.label}
                     </SelectItem>
                 ))}
