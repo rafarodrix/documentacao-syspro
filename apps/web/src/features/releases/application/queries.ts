@@ -1,5 +1,4 @@
 import { Release } from "@dosc-syspro/core";
-import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ConversationStatus as TicketStatus, Prisma } from "@prisma/client";
 
@@ -94,13 +93,8 @@ function isReleaseQueryDatabaseError(error: unknown): boolean {
     );
 }
 
-const getReleasesCached = unstable_cache(fetchReleases, ["releases-tickets-v2"], {
-    revalidate: 1800,
-    tags: ["releases"],
-});
-
 export async function getReleases(): Promise<Release[]> {
-    return getReleasesCached();
+    return fetchReleases();
 }
 
 

@@ -173,6 +173,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                     </Link>
                 </Button>
                 <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                    <Link href="/portal" className="transition-colors hover:text-foreground">Portal</Link>
+                    <span>/</span>
                     <Link href={backUrl} className="transition-colors hover:text-foreground">Chamados</Link>
                     <span>/</span>
                     <Badge variant="secondary" className="gap-1 border-border/50 bg-muted/50 font-mono text-xs">

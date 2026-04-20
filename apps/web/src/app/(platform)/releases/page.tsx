@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: "Acompanhe a evolucao do sistema, novas funcionalidades e correcoes.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ReleasesIndexPage({
   searchParams,
 }: {

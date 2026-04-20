@@ -4,25 +4,7 @@ import { getReleases } from "@/features/releases/application/queries";
 import { ReleasesClientPage } from "@/components/releases/ClientPage";
 import { releaseMonthNames } from "@/features/releases/domain";
 
-// MantÃ©m a geraÃ§Ã£o estÃ¡tica para performance mÃ¡xima em docs
-export async function generateStaticParams() {
-  const allReleases = await getReleases();
-
-  const uniqueMonths = new Set(
-    allReleases.map((release) => {
-      if (!release.isoDate) return null;
-      const [year, month] = release.isoDate.split("-");
-      return `${year}/${month}`;
-    })
-  );
-
-  return Array.from(uniqueMonths)
-    .filter(Boolean)
-    .map((dateStr) => {
-      const [year, month] = (dateStr as string).split("/");
-      return { year, month };
-    });
-}
+export const dynamic = "force-dynamic";
 
 // 1. GeraÃ§Ã£o de Metadata DinÃ¢mica para SEO e TÃ­tulo da Aba
 export async function generateMetadata({
