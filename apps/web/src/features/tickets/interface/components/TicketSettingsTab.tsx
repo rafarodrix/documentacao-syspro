@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import type { ReactNode } from "react";
-import { useFieldArray, useForm, type FieldPath, type UseFormReturn } from "react-hook-form";
+import { useFieldArray, useForm, type FieldPath, type Resolver, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
@@ -38,6 +38,8 @@ function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+const ticketSettingsResolver = zodResolver(ticketModuleSettingsSchema) as Resolver<TicketModuleSettings>;
+
 function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSettings {
   return {
     ...settings,
@@ -59,7 +61,7 @@ export function TicketSettingsTab() {
   const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<TicketModuleSettings>({
-    resolver: zodResolver(ticketModuleSettingsSchema),
+    resolver: ticketSettingsResolver,
     defaultValues: DEFAULT_TICKET_MODULE_SETTINGS,
   });
 
