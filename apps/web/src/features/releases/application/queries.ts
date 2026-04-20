@@ -8,11 +8,6 @@ async function fetchReleases(): Promise<Release[]> {
             where: {
                 resolutionSummary: { not: null },
                 status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
-                OR: [
-                    { publishToReleases: true },
-                    { releaseType: { not: null } },
-                    { releaseModule: { not: null } },
-                ],
             },
             orderBy: [{ closedAt: "desc" }, { updatedAt: "desc" }],
             select: {
