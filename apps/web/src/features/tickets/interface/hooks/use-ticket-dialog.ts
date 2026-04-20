@@ -38,11 +38,9 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
     const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
     const [selectedModule, setSelectedModule] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
-    const [selectedEnvironment, setSelectedEnvironment] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
     const [selectedTeam, setSelectedTeam] = useState<string>(
         options.isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
     );
-    const [databaseUrl, setDatabaseUrl] = useState("");
     const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -112,7 +110,6 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 setTicketSettings(json.data);
                 setSelectedCategory(json.data.categories[0]?.value || "incident");
                 setSelectedModule(json.data.modules[0]?.value || "");
-                setSelectedEnvironment(json.data.defaultEnvironment);
                 setSelectedTeam(options.isSystemUser ? json.data.defaultTeam : "SUPORTE");
             })
             .catch((error) => {
@@ -211,9 +208,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 }
                 if (selectedCategory) formData.append("category", selectedCategory);
                 if (selectedModule) formData.append("module", selectedModule);
-                if (selectedEnvironment) formData.append("environment", selectedEnvironment);
                 if (selectedTeam) formData.append("team", selectedTeam);
-                if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
                 if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
                 const source = searchParams?.get("source") || "";
                 const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
@@ -247,7 +242,6 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                     setCustomerEmail("");
                     setCustomerCompany(null);
                     setSearchQuery("");
-                    setDatabaseUrl("");
                     setDevelopmentVideoUrl("");
                     if (clientCompanies.length > 0) {
                         setSelectedCompanyId(clientCompanies.length === 1 ? clientCompanies[0].id : "");
@@ -289,12 +283,8 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setSelectedCategory,
         selectedModule,
         setSelectedModule,
-        selectedEnvironment,
-        setSelectedEnvironment,
         selectedTeam,
         setSelectedTeam,
-        databaseUrl,
-        setDatabaseUrl,
         developmentVideoUrl,
         setDevelopmentVideoUrl,
     };

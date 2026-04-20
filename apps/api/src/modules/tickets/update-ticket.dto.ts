@@ -27,8 +27,6 @@ export class UpdateTicketDto implements TicketModuleUpdateRequest {
 
   module?: string;
 
-  environment?: string;
-
   team?: string;
 
   note?: string;

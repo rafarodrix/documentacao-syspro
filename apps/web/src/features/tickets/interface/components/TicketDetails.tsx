@@ -14,7 +14,6 @@ import {
     ChevronDown,
     ChevronUp,
     Clock3,
-    Database,
     ExternalLink,
     Flag,
     Hash,
@@ -292,7 +291,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                 <section className="space-y-3">
                                     {ticket.operations?.currentTeam && <SidebarField label="Setor" value={<span className="text-xs">{ticket.operations.currentTeam}</span>} />}
                                     {ticket.operations?.module && <SidebarField label="Modulo" value={<span className="text-xs">{ticket.operations.module}</span>} />}
-                                    {ticket.operations?.environment && <SidebarField label="Ambiente" value={<span className="text-xs">{ticket.operations.environment}</span>} />}
                                     {ticket.operations?.category && <SidebarField label="Categoria" value={<span className="text-xs">{ticket.operations.category}</span>} />}
                                     {ticket.operations?.openedByName && <SidebarField label="Operador" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
                                     {ticket.operations?.supportOwnerName && <SidebarField label="Resp. suporte" value={<span className="text-xs">{ticket.operations.supportOwnerName}</span>} />}
@@ -304,7 +302,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </CardContent>
                         </Card>
 
-                        {(ticket.origin?.source || ticket.operations?.databaseUrl || ticket.operations?.developmentVideoUrl) && (
+                        {(ticket.origin?.source || ticket.operations?.developmentVideoUrl) && (
                             <Card className="border-border/60 bg-card/95">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -324,7 +322,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                     {ticket.origin?.contactPhone && <SidebarField label="Telefone" value={<span className="font-mono text-xs">{ticket.origin.contactPhone}</span>} />}
                                     {ticket.origin?.contactWhatsapp && <SidebarField label="WhatsApp" value={<span className="font-mono text-xs">{ticket.origin.contactWhatsapp}</span>} />}
                                     {ticket.origin?.chatwootConversationUrl && <ExternalTicketLink href={ticket.origin.chatwootConversationUrl} label="Ver conversa no Chatwoot" />}
-                                    {ticket.operations?.databaseUrl && <ExternalTicketLink href={ticket.operations.databaseUrl} label="Abrir recurso de base" icon={Database} />}
                                     {ticket.operations?.developmentVideoUrl && <ExternalTicketLink href={ticket.operations.developmentVideoUrl} label="Abrir video tecnico" icon={Video} />}
                                 </CardContent>
                             </Card>

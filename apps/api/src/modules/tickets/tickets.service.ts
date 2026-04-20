@@ -126,9 +126,7 @@ export class TicketsService {
 
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
-    const normalizedEnvironment = data.environment?.trim() || settings.defaultEnvironment || null;
     const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory, isSystemAdmin);
-    const databaseUrl = data.databaseUrl?.trim() || null;
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
@@ -141,7 +139,6 @@ export class TicketsService {
       ...(data.metadata && typeof data.metadata === 'object' ? data.metadata : {}),
       category: normalizedCategory,
       module: normalizedModule,
-      environment: normalizedEnvironment,
       currentTeam: normalizedTeam,
       currentOwnerUserId: assignedUserId,
       currentOwnerName: assignedUserId ? openedByName : null,
@@ -153,7 +150,6 @@ export class TicketsService {
       slaPolicyName: slaPolicy.name,
       slaFirstResponseMinutes: slaPolicy.firstResponseMinutes,
       slaResolutionMinutes: slaPolicy.resolutionMinutes,
-      databaseUrl,
       developmentVideoUrl,
       supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
       supportOwnerName: normalizedTeam === 'SUPORTE' && assignedUserId ? openedByName : null,
@@ -173,18 +169,6 @@ export class TicketsService {
         sentAt: now,
       }
     ];
-
-    if (databaseUrl) {
-      messagesToCreate.push({
-        direction: TicketMessageDirection.INTERNAL,
-        type: TicketMessageType.SYSTEM_EVENT,
-        authorKind: TicketParticipantKind.USER,
-        authorUser: { connect: { id: requester.userId } },
-        body: `**Recurso de Diagnóstico (Base de Dados):**\n${databaseUrl}`,
-        status: TicketMessageStatus.SENT,
-        sentAt: new Date(now.getTime() + 1000), // slightly after
-      });
-    }
 
     if (developmentVideoUrl) {
       messagesToCreate.push({
@@ -671,8 +655,6 @@ export class TicketsService {
       }
       if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
       if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
-      if (input.environment !== undefined) currentMetadata.environment = input.environment?.trim() || null;
-
       if (input.status !== undefined) {
         data.status = input.status;
         data.closedAt =

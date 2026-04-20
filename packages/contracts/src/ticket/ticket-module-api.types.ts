@@ -66,9 +66,7 @@ export const ticketModuleCreateRequestSchema = z.object({
   customerEmail: optionalTrimmedEmailSchema,
   category: optionalTrimmedStringSchema,
   module: optionalTrimmedStringSchema,
-  environment: optionalTrimmedStringSchema,
   team: optionalTrimmedStringSchema,
-  databaseUrl: optionalTrimmedStringSchema,
   developmentVideoUrl: optionalTrimmedStringSchema,
 });
 
@@ -84,7 +82,6 @@ export const ticketModuleUpdateRequestSchema = z.object({
   publishToReleases: z.boolean().optional(),
   category: z.string().trim().optional(),
   module: z.string().trim().optional(),
-  environment: z.string().trim().optional(),
   team: z.string().trim().optional(),
   note: z.string().trim().optional(),
 });

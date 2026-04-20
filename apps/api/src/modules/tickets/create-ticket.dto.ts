@@ -38,11 +38,7 @@ export class CreateTicketDto implements TicketModuleCreateRequest {
 
   module?: string;
 
-  environment?: string;
-
   team?: string;
-
-  databaseUrl?: string;
 
   developmentVideoUrl?: string;
 }

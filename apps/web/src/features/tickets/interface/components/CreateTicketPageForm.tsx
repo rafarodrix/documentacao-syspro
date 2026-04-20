@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   CircleDot,
   Code2,
-  Database,
   Flame,
   Headphones,
   Loader2,
@@ -136,9 +135,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
-  const [selectedEnvironment, setSelectedEnvironment] = useState(DEFAULT_TICKET_MODULE_SETTINGS.defaultEnvironment);
   const [selectedTeam, setSelectedTeam] = useState<TicketTeam>(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
-  const [databaseUrl, setDatabaseUrl] = useState("");
   const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
 
   const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
@@ -158,7 +155,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
   const selectedCategoryOption = ticketSettings.categories.find((item) => item.value === selectedCategory);
   const selectedModuleOption = ticketSettings.modules.find((item) => item.value === selectedModule);
-  const selectedEnvironmentOption = ticketSettings.environments.find((item) => item.value === selectedEnvironment);
 
   const filteredCategories = useMemo(
     () => ticketSettings.categories.filter((category) => !selectedTeam || category.defaultTeam === selectedTeam),
@@ -211,7 +207,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     { label: "Identificacao", done: companyRequirementMet },
     { label: "Assunto", done: watchedSubject.trim().length >= 5 },
     { label: "Descricao", done: descriptionText.length >= 20 },
-    { label: "Classificacao", done: Boolean(selectedTeam && selectedCategory && selectedModule && selectedEnvironment) },
+    { label: "Classificacao", done: Boolean(selectedTeam && selectedCategory && selectedModule) },
   ];
   const completedItems = readinessItems.filter((item) => item.done).length;
   const canSubmit = completedItems === readinessItems.length && !isPending;
@@ -232,7 +228,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         setSelectedTeam(nextTeam);
         setSelectedCategory(nextCategory);
         setSelectedModule(nextSettings.modules[0]?.value || "");
-        setSelectedEnvironment(nextSettings.defaultEnvironment);
         form.setValue("priority", nextSettings.defaultPriority, { shouldValidate: false });
       })
       .catch(() => undefined);
@@ -371,9 +366,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
 
         if (selectedCategory) formData.append("category", selectedCategory);
         if (selectedModule) formData.append("module", selectedModule);
-        if (selectedEnvironment) formData.append("environment", selectedEnvironment);
         if (selectedTeam) formData.append("team", selectedTeam);
-        if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
         if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
         files.forEach((file) => formData.append("attachments", file));
 
@@ -572,24 +565,14 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <Database className="h-4 w-4 text-muted-foreground" />
-                        <h2 className="text-sm font-semibold text-foreground">Diagnostico tecnico</h2>
+                        <Code2 className="h-4 w-4 text-muted-foreground" />
+                        <h2 className="text-sm font-semibold text-foreground">Contexto tecnico</h2>
                       </div>
                       <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => fileInputRef.current?.click()} title="Anexar evidencia tecnica">
                         <Paperclip className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="databaseUrl">Link da base de dados</Label>
-                        <Input
-                          id="databaseUrl"
-                          value={databaseUrl}
-                          onChange={(event) => setDatabaseUrl(event.target.value)}
-                          placeholder="https://... ou caminho interno"
-                          className="h-10 border-border/60 bg-background"
-                        />
-                      </div>
+                    <div className="grid gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="developmentVideoUrl">Video explicativo</Label>
                         <Input
@@ -672,21 +655,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Ambiente</Label>
-                  <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
-                    <SelectTrigger className="h-10 border-border/60 bg-background">
-                      <SelectValue placeholder="Selecione o ambiente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ticketSettings.environments.map((environment) => (
-                        <SelectItem key={environment.id} value={environment.value}>
-                          {environment.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </CardContent>
             </Card>
 
@@ -717,7 +685,6 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground">
                   <div className="grid grid-cols-2 gap-2">
                     <SummaryLine label="Equipe" value={getTeamLabel(ticketSettings, selectedTeam)} />
-                    <SummaryLine label="Ambiente" value={selectedEnvironmentOption?.label || selectedEnvironment} />
                     <SummaryLine label="Categoria" value={selectedCategoryOption?.label || selectedCategory} />
                     <SummaryLine label="Modulo" value={selectedModuleOption?.label || selectedModule} />
                   </div>

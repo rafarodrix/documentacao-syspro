@@ -278,9 +278,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
     const companyIdInput = String(formData.get("companyId") || "").trim();
     const categoryInput = String(formData.get("category") || "").trim();
     const moduleInput = String(formData.get("module") || "").trim();
-    const environmentInput = String(formData.get("environment") || "").trim();
     const teamInput = String(formData.get("team") || "").trim().toUpperCase();
-    const databaseUrlInput = String(formData.get("databaseUrl") || "").trim();
     const developmentVideoUrlInput = String(formData.get("developmentVideoUrl") || "").trim();
     const source = String(formData.get("source") || "").trim().toLowerCase();
     const chatwootConversationId = String(formData.get("chatwootConversationId") || "").trim();
@@ -308,9 +306,7 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
       customerEmail: customerEmailInput || undefined,
       category: categoryInput || undefined,
       module: moduleInput || undefined,
-      environment: environmentInput || undefined,
       team: teamInput || undefined,
-      databaseUrl: databaseUrlInput || undefined,
       developmentVideoUrl: developmentVideoUrlInput || undefined,
       ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),
       ...(customerPhoneInput ? { contactPhoneSnapshot: customerPhoneInput } : {}),
@@ -404,8 +400,6 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
           currentTeam: readNullableMetadata(ticket.metadata, "currentTeam"),
           category: readNullableMetadata(ticket.metadata, "category"),
           module: readNullableMetadata(ticket.metadata, "module"),
-          environment: readNullableMetadata(ticket.metadata, "environment"),
-          databaseUrl: readNullableMetadata(ticket.metadata, "databaseUrl"),
           developmentVideoUrl: readNullableMetadata(ticket.metadata, "developmentVideoUrl"),
           supportOwnerName: readNullableMetadata(ticket.metadata, "supportOwnerName"),
           developmentOwnerName: readNullableMetadata(ticket.metadata, "developmentOwnerName"),

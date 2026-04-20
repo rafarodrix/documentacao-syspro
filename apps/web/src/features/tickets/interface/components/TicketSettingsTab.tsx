@@ -68,15 +68,12 @@ export function TicketSettingsTab() {
   const categoriesArray = useFieldArray({ control: form.control, name: "categories" });
   const teamsArray = useFieldArray({ control: form.control, name: "teams" });
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
-  const environmentsArray = useFieldArray({ control: form.control, name: "environments" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
 
   const priorities = form.watch("priorities");
-  const environments = form.watch("environments");
   const defaultTeam = form.watch("defaultTeam");
   const defaultPriority = form.watch("defaultPriority");
-  const defaultEnvironment = form.watch("defaultEnvironment");
   const autoResponseEnabled = form.watch("autoResponseEnabled");
 
   useEffect(() => {
@@ -242,7 +239,7 @@ export function TicketSettingsTab() {
                       Estrutura operacional
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid gap-6 lg:grid-cols-3">
+                  <CardContent className="grid gap-6 lg:grid-cols-2">
                     <CatalogList
                       title="Equipes"
                       onAdd={() => teamsArray.append({ id: createOptionId("team"), label: "", value: "" })}
@@ -277,22 +274,6 @@ export function TicketSettingsTab() {
                       ))}
                     </CatalogList>
 
-                    <CatalogList
-                      title="Ambientes"
-                      onAdd={() => environmentsArray.append({ id: createOptionId("env"), label: "", value: "" })}
-                    >
-                      {environmentsArray.fields.map((fieldItem, index) => (
-                        <CompactOptionRow
-                          key={fieldItem.id}
-                          labelName={`environments.${index}.label`}
-                          valueName={`environments.${index}.value`}
-                          labelPlaceholder="Ambiente"
-                          valuePlaceholder="slug"
-                          onRemove={() => environmentsArray.remove(index)}
-                          form={form}
-                        />
-                      ))}
-                    </CatalogList>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -436,21 +417,6 @@ export function TicketSettingsTab() {
                   </FormItem>
                 )} />
 
-                <FormField control={form.control} name="defaultEnvironment" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ambiente padrao</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {environments.map((environment) => (
-                          <SelectItem key={environment.id} value={environment.value}>{environment.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
                 <Separator />
 
                 <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
@@ -499,7 +465,6 @@ export function TicketSettingsTab() {
               <CardContent className="space-y-3 text-xs">
                 <SummaryRow label="Fila padrao" value={defaultTeam === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte"} />
                 <SummaryRow label="Prioridade" value={priorities.find((priority) => priority.value === defaultPriority)?.label || defaultPriority} />
-                <SummaryRow label="Ambiente" value={environments.find((environment) => environment.value === defaultEnvironment)?.label || defaultEnvironment} />
                 <Separator />
                 <div className="grid grid-cols-2 gap-2">
                   <Metric label="Categorias" value={categoriesArray.fields.length} />

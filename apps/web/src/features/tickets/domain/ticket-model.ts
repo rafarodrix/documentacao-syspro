@@ -131,8 +131,6 @@ export interface TicketDetailsItem {
         currentTeam?: string | null;
         category?: string | null;
         module?: string | null;
-        environment?: string | null;
-        databaseUrl?: string | null;
         developmentVideoUrl?: string | null;
         supportOwnerName?: string | null;
         developmentOwnerName?: string | null;

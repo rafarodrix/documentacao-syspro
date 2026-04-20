@@ -43,14 +43,12 @@ export const ticketModuleSettingsSchema = z.object({
   priorities: z.array(ticketModuleSettingsPrioritySchema).min(1),
   teams: z.array(ticketModuleSettingsOptionSchema).min(1),
   modules: z.array(ticketModuleSettingsOptionSchema).min(1),
-  environments: z.array(ticketModuleSettingsOptionSchema).min(1),
   quickReplyTemplates: z.array(ticketModuleSettingsOptionSchema).default(DEFAULT_TICKET_QUICK_REPLY_TEMPLATES),
   autoAssignToCreator: z.boolean(),
   autoResponseEnabled: z.boolean(),
   autoResponseMessage: z.string(),
   defaultPriority: z.string().trim().min(1),
   defaultTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]),
-  defaultEnvironment: z.string().trim().min(1),
 });
 
 export const ticketModuleSettingsResponseSchema = z.object({
@@ -120,16 +118,10 @@ export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
     { id: "pdv", label: "PDV", value: "pdv" },
     { id: "api", label: "API / Integracoes", value: "api" },
   ],
-  environments: [
-    { id: "production", label: "Producao", value: "production" },
-    { id: "staging", label: "Homologacao", value: "staging" },
-    { id: "training", label: "Treinamento", value: "training" },
-  ],
   quickReplyTemplates: DEFAULT_TICKET_QUICK_REPLY_TEMPLATES,
   autoAssignToCreator: true,
   autoResponseEnabled: false,
   autoResponseMessage: "Ola! Recebemos sua solicitacao e nossa equipe ja esta ciente. Retornaremos em breve com uma analise detalhada.",
   defaultPriority: "2 normal",
   defaultTeam: "SUPORTE",
-  defaultEnvironment: "production",
 };

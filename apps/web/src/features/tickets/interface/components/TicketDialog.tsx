@@ -87,12 +87,8 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setSelectedCategory,
     selectedModule,
     setSelectedModule,
-    selectedEnvironment,
-    setSelectedEnvironment,
     selectedTeam,
     setSelectedTeam,
-    databaseUrl,
-    setDatabaseUrl,
     developmentVideoUrl,
     setDevelopmentVideoUrl,
   } = useTicketDialog(() => setOpen(false), { isSystemUser });
@@ -478,36 +474,12 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     </FormItem>
                   </div>
 
-                  <FormItem>
-                      <Label className="text-xs">Ambiente/Produção</Label>
-                      <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
-                        <FormControl>
-                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.environments.map((environment) => (
-                            <SelectItem key={environment.id} value={environment.value} className="text-sm">{environment.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
 
                   {isSystemUser && (
                     <div className="space-y-4 pt-6 mt-2 border-t border-dashed border-border/60">
                       <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                         <Loader2 className="w-3 h-3" /> Integrações e Debug
                       </div>
-                      <FormItem>
-                        <Label className="text-xs">URL da Base de Dados</Label>
-                        <Input
-                          value={databaseUrl}
-                          onChange={(event) => setDatabaseUrl(event.target.value)}
-                          placeholder="https://console.pve... ou IP SSH"
-                          className="bg-white dark:bg-muted/30 border-border/60 text-xs"
-                        />
-                      </FormItem>
                       <FormItem>
                         <Label className="text-xs">Gravação de Erro (Loom/Youtube)</Label>
                         <Input
