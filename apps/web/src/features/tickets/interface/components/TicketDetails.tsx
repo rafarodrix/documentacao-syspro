@@ -21,7 +21,7 @@ import {
     Zap,
 } from "lucide-react";
 import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { transferTicketAction, updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
@@ -101,20 +101,16 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
     const changeTeam = (team: string) => {
         if (!ticket || team === currentTeam) return;
-        let note: string | undefined;
-        if (team === "DESENVOLVIMENTO" && currentTeam !== "DESENVOLVIMENTO") {
-            const response = globalThis.prompt("Informe o contexto para o desenvolvimento (minimo 20 caracteres):");
-            if (!response || response.trim().length < 20) {
-                toast.error("Contexto obrigatorio para transferir ao desenvolvimento.");
-                return;
-            }
-            note = response.trim();
-        }
+        const nextCategory = resolveCategoryForTeam(ticketSettings.categories, team, currentCategory);
 
         startTransition(async () => {
-            const res = await transferTicketAction(String(ticket.id), { team, note });
+            const res = await updateTicketClassificationAction(String(ticket.id), {
+                team,
+                ...(nextCategory !== currentCategory ? { category: nextCategory } : {}),
+            });
             if (res.success) {
                 setLocalTeam(team);
+                if (nextCategory !== currentCategory) setLocalCategory(nextCategory);
                 toast.success("Setor atualizado.");
             } else {
                 toast.error(res.error || "Erro ao atualizar setor");
@@ -166,6 +162,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const currentModule = localModule || ticket.operations?.module || "";
     const currentCategory = localCategory || ticket.operations?.category || "";
     const currentPriority = localPriority ?? ticket.priority;
+    const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
 
     return (
         <div className="mx-auto max-w-[1440px] animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -244,6 +241,18 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                         }
                                     />
                                     <SidebarField
+                                        label="Categoria"
+                                        value={
+                                            <ClassificationDropdown
+                                                value={currentCategory}
+                                                fallback="Nao definida"
+                                                options={categoryOptions}
+                                                disabled={!isAdmin || isPending}
+                                                onChange={(category) => changeClassification({ category })}
+                                            />
+                                        }
+                                    />
+                                    <SidebarField
                                         label="Estagio atual"
                                         value={
                                             <StatusDropdown
@@ -273,18 +282,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                                 options={ticketSettings.modules}
                                                 disabled={!isAdmin || isPending}
                                                 onChange={(module) => changeClassification({ module })}
-                                            />
-                                        }
-                                    />
-                                    <SidebarField
-                                        label="Categoria"
-                                        value={
-                                            <ClassificationDropdown
-                                                value={currentCategory}
-                                                fallback="Nao definida"
-                                                options={ticketSettings.categories}
-                                                disabled={!isAdmin || isPending}
-                                                onChange={(category) => changeClassification({ category })}
                                             />
                                         }
                                     />
@@ -476,6 +473,31 @@ function resolveOptionLabel(options: TicketModuleSettingsOption[], value?: strin
     if (!normalized) return fallback;
     const option = options.find((item) => item.value.toLowerCase() === normalized.toLowerCase() || item.label.toLowerCase() === normalized.toLowerCase());
     return option?.label || normalized;
+}
+
+function getCategoriesForTeam(categories: TicketModuleSettingsOption[], team?: string | null, currentCategory?: string | null) {
+    const normalizedTeam = (team || "").trim().toUpperCase();
+    const filtered = categories.filter((category) => !category.defaultTeam || category.defaultTeam === normalizedTeam);
+    const options = filtered.length ? filtered : categories;
+    const current = (currentCategory || "").trim();
+
+    if (!current || options.some((category) => category.value.toLowerCase() === current.toLowerCase())) {
+        return options;
+    }
+
+    const currentOption = categories.find((category) => category.value.toLowerCase() === current.toLowerCase());
+    return currentOption ? [currentOption, ...options] : options;
+}
+
+function resolveCategoryForTeam(categories: TicketModuleSettingsOption[], team: string, currentCategory?: string | null) {
+    const normalizedTeam = team.trim().toUpperCase();
+    const teamOptions = categories.filter((category) => !category.defaultTeam || category.defaultTeam === normalizedTeam);
+    const options = teamOptions.length ? teamOptions : categories;
+    const current = (currentCategory || "").trim();
+    const currentIsValid = Boolean(current) && options.some((category) => category.value.toLowerCase() === current.toLowerCase());
+
+    if (currentIsValid) return current;
+    return options[0]?.value || current;
 }
 
 function NativeSelectPill({

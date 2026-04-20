@@ -602,17 +602,21 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
 
 export async function updateTicketClassificationAction(
   ticketId: string,
-  payload: { module?: string; category?: string; priority?: TicketModulePriority },
+  payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority; note?: string },
 ): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
     return { success: false, error: "Nao autorizado." };
   }
 
+  const team = payload.team?.trim().toUpperCase();
+  const note = payload.note?.trim();
   const updatePayload = {
+    ...(team ? { team } : {}),
     ...(payload.module !== undefined ? { module: payload.module.trim() } : {}),
     ...(payload.category !== undefined ? { category: payload.category.trim() } : {}),
     ...(payload.priority !== undefined ? { priority: payload.priority } : {}),
+    ...(note ? { note } : team === "DESENVOLVIMENTO" ? { note: "Classificacao atualizada para Desenvolvimento pelo painel do ticket." } : {}),
   };
 
   if (!Object.keys(updatePayload).length) {
