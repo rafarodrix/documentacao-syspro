@@ -25,10 +25,12 @@ import {
 } from "lucide-react";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TransferTicketDialog } from "@/features/tickets/interface/components/TransferTicketDialog";
-import { finalizeTicketAction, assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction } from "@/features/tickets/application/ticket-actions";
+import { assignTicketToMeAction, triageTicketAction, unassignTicketToMeAction } from "@/features/tickets/application/ticket-actions";
+import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,18 +51,8 @@ interface TicketDetailsProps {
 export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [loadingAction, setLoadingAction] = useState<"finalize" | null>(null);
-    const [resolutionSummary, setResolutionSummary] = useState(ticket?.resolutionSummary || "");
-    const [resolutionVideoUrl, setResolutionVideoUrl] = useState(ticket?.resolutionVideoUrl || "");
-    const [releaseTitle, setReleaseTitle] = useState(ticket?.releaseTitle || ticket?.title || "");
-    const [releaseType, setReleaseType] = useState<"BUG" | "MELHORIA" | "">(
-        ticket?.releaseType === "BUG" || ticket?.releaseType === "MELHORIA" ? ticket.releaseType : ""
-    );
-    const [releaseModule, setReleaseModule] = useState(ticket?.releaseModule || "");
-    const [publishToReleases, setPublishToReleases] = useState(Boolean(ticket?.publishToReleases));
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const backUrl = "/portal/tickets";
-    const shouldRequireReleaseFields = publishToReleases;
     const isClosedTicket = ticket?.status === "Resolvido" || ticket?.status === "Fechado" || ticket?.status === "Arquivado";
 
     useTicketHotkeys({
@@ -78,48 +70,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         onReply: () => document.getElementById("ticket-reply-input")?.focus(),
     });
 
-    const runFinalizeAction = () => {
-        if (!ticket) return;
-        if (!resolutionSummary.trim()) {
-            toast.error("Resolucao obrigatoria para finalizar o ticket.");
-            return;
-        }
-        if (shouldRequireReleaseFields && !releaseType) {
-            toast.error("Selecione o tipo da release para publicar no changelog.");
-            return;
-        }
-        if (shouldRequireReleaseFields && !releaseTitle.trim()) {
-            toast.error("Informe o titulo que vai aparecer no modulo de releases.");
-            return;
-        }
 
-        setLoadingAction("finalize");
-        startTransition(async () => {
-            try {
-                const result = await finalizeTicketAction({
-                    ticketId: String(ticket.id),
-                    resolutionSummary,
-                    resolutionVideoUrl,
-                    releaseType: shouldRequireReleaseFields && releaseType ? releaseType : undefined,
-                    releaseTitle: shouldRequireReleaseFields ? releaseTitle : undefined,
-                    releaseModule,
-                    publishToReleases,
-                });
-
-                if (!result.success) {
-                    toast.error(result.error);
-                    return;
-                }
-
-                toast.success(result.message || "Ticket finalizado com sucesso.");
-                router.refresh();
-            } catch {
-                toast.error("Erro ao finalizar ticket.");
-            } finally {
-                setLoadingAction(null);
-            }
-        });
-    };
 
     if (error || !ticket) {
         return (
@@ -217,6 +168,9 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             />
                         </span>
                     )}
+                    {isAdmin && (
+                        <TicketFinalizeDialog ticket={ticket} />
+                    )}
                     <StatusBadge status={ticket.status} />
                 </div>
             </div>
@@ -241,15 +195,36 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
                 {/* ── Main content (Chat area) ─────────────────────────── */}
                 <div className="lg:col-span-8 space-y-6">
-                    {/* SLA summary pills */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <SummaryPill
-                            label="SLA"
-                            value={ticket.slaBreached ? "Estourado" : ticket.slaWarning ? "Alerta" : "No prazo"}
-                            icon={Timer}
-                            tone={ticket.slaBreached ? "danger" : ticket.slaWarning ? "warning" : "ok"}
-                            helper={ticket.slaWarning && typeof ticket.minutesToBreach === "number" ? `~${ticket.minutesToBreach} min` : undefined}
-                        />
+                    {/* SLA visual bar and summary pills */}
+                    {ticket.slaResolutionDueAt && !isClosedTicket && (
+                        <Card className={cn("border overflow-hidden", ticket.slaBreached ? "border-rose-500/50" : ticket.slaWarning ? "border-amber-500/50" : "border-emerald-500/30")}>
+                            <CardContent className="p-4 flex flex-col gap-3 items-center sm:flex-row sm:justify-between bg-gradient-to-r from-transparent to-muted/10">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Timer className={cn("h-4 w-4", ticket.slaBreached ? "text-rose-500" : ticket.slaWarning ? "text-amber-500" : "text-emerald-500")} />
+                                        <span className="text-sm font-semibold">SLA de Resolucao</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Vence em: {new Date(ticket.slaResolutionDueAt).toLocaleString("pt-BR")}
+                                    </p>
+                                </div>
+                                
+                                <div className="w-full relative sm:max-w-xs pt-1">
+                                    <div className="flex justify-between text-[11px] font-bold mb-1.5 uppercase tracking-wide">
+                                        <span className={cn(ticket.slaBreached ? "text-rose-600" : ticket.slaWarning ? "text-amber-600" : "text-emerald-600")}>
+                                            {ticket.slaBreached ? "Tempo Esgotado" : ticket.slaWarning ? `Alerta (~${ticket.minutesToBreach} min)` : "No Prazo"}
+                                        </span>
+                                    </div>
+                                    <Progress 
+                                        value={ticket.slaBreached ? 100 : ticket.slaWarning ? 85 : 30} 
+                                        className={cn("h-2.5", ticket.slaBreached ? "bg-rose-200 *:bg-rose-500" : ticket.slaWarning ? "bg-amber-200 *:bg-amber-500" : "bg-emerald-100 *:bg-emerald-500")}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                         <SummaryPill
                             label="1a Resposta"
                             value={ticket.firstResponseAt ? new Date(ticket.firstResponseAt).toLocaleString("pt-BR") : "Pendente"}
@@ -383,99 +358,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                             </Card>
                         )}
 
-                        {/* Finalization card (admin only) */}
-                        {isAdmin && (
-                            <Card className="border-border/60 bg-card/95">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                        <Flag className="h-3.5 w-3.5 text-primary/70" />
-                                        Fechamento e Release
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3 pt-0">
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resolucao</Label>
-                                        <Textarea
-                                            rows={4}
-                                            placeholder="Descreva a solucao aplicada..."
-                                            className="text-xs resize-y"
-                                            value={resolutionSummary}
-                                            onChange={(e) => setResolutionSummary(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da release</Label>
-                                        <Input
-                                            placeholder="Titulo publico da melhoria/correcao"
-                                            className="text-xs h-9"
-                                            value={releaseTitle}
-                                            onChange={(e) => setReleaseTitle(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo da release</Label>
-                                        <Select value={releaseType} onValueChange={(val) => setReleaseType(val as "BUG" | "MELHORIA" | "")}>
-                                            <SelectTrigger className="text-xs h-9">
-                                                <SelectValue placeholder="Selecione..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="MELHORIA">Melhoria</SelectItem>
-                                                <SelectItem value="BUG">Bug</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modulo</Label>
-                                        <Input
-                                            placeholder="Ex.: Fiscal, Vendas..."
-                                            className="text-xs h-9"
-                                            value={releaseModule}
-                                            onChange={(e) => setReleaseModule(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Video</Label>
-                                        <div className="relative">
-                                            <Video className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                                            <Input
-                                                placeholder="https://www.youtube.com/..."
-                                                className="text-xs h-9 pl-7"
-                                                value={resolutionVideoUrl}
-                                                onChange={(e) => setResolutionVideoUrl(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer hover:text-primary transition-colors">
-                                        <input
-                                            type="checkbox"
-                                            checked={publishToReleases}
-                                            onChange={(e) => setPublishToReleases(e.target.checked)}
-                                            className="rounded border-border"
-                                        />
-                                        Publicar no modulo de releases
-                                    </label>
-
-                                    <Button
-                                        size="sm"
-                                        className="w-full gap-2"
-                                        onClick={runFinalizeAction}
-                                        disabled={isPending && loadingAction === "finalize"}
-                                    >
-                                        {isPending && loadingAction === "finalize" ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                        ) : (
-                                            <Flag className="h-3.5 w-3.5" />
-                                        )}
-                                        {ticket.resolvedAt ? "Atualizar fechamento" : "Finalizar ticket"}
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
                 </div>
             </div>

@@ -81,6 +81,11 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                             <span className="text-xs font-medium truncate max-w-55">
                                                 {messageIsMe ? "Você" : article.from.split("<")[0]}
                                             </span>
+                                            {article.isInternal && (
+                                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest bg-amber-100 px-1.5 rounded dark:text-amber-400 dark:bg-amber-900/50">
+                                                    Nota Interna
+                                                </span>
+                                            )}
                                             <span className="text-[10px] text-muted-foreground">{article.createdAt}</span>
                                         </div>
 
@@ -88,9 +93,11 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                             className={cn(
                                                 "rounded-2xl p-3 text-sm shadow-sm wrap-break-word prose prose-sm max-w-none",
                                                 "prose-pre:bg-black prose-pre:text-white prose-pre:p-3 prose-pre:rounded-lg prose-pre:border",
-                                                messageIsMe
-                                                    ? "bg-primary text-primary-foreground rounded-tr-sm **:text-primary-foreground"
-                                                    : "bg-secondary text-foreground border border-border rounded-tl-sm dark:prose-invert"
+                                                article.isInternal 
+                                                    ? "bg-amber-50 text-amber-950 border border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-900/50 rounded-tl-sm dark:prose-invert"
+                                                    : messageIsMe
+                                                        ? "bg-primary text-primary-foreground rounded-tr-sm **:text-primary-foreground"
+                                                        : "bg-secondary text-foreground border border-border rounded-tl-sm dark:prose-invert"
                                             )}
                                             dangerouslySetInnerHTML={{ __html: article.body }}
                                         />
