@@ -43,10 +43,6 @@ function inferReleaseType(ticket: TicketDetailsItem): "BUG" | "MELHORIA" | "" {
   return "";
 }
 
-function resolveReleaseCategory(ticket: TicketDetailsItem) {
-  return ticket.operations?.category || (inferReleaseType(ticket) === "BUG" ? "Bug" : "Melhoria");
-}
-
 export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, onOpenChange }: TicketFinalizeDialogProps) {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -56,7 +52,6 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   const inferredReleaseType = inferReleaseType(ticket);
   const effectiveReleaseType = inferredReleaseType || "MELHORIA";
   const shouldSuggestRelease = Boolean(ticket.publishToReleases || inferredReleaseType || ticket.operations?.currentTeam === "DESENVOLVIMENTO");
-  const releaseCategory = resolveReleaseCategory(ticket);
   const releaseModule = ticket.releaseModule || ticket.operations?.module || "";
 
   const [resolutionSummary, setResolutionSummary] = useState(ticket.resolutionSummary || "");
@@ -133,6 +128,19 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Titulo da release{publishToReleases ? " *" : ""}
+            </Label>
+            <Input
+              placeholder="Titulo publico (ex: Novo relatorio visual)"
+              className="h-9 text-xs"
+              value={releaseTitle}
+              onChange={(e) => setReleaseTitle(e.target.value)}
+              disabled={isPending}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resolucao Aplicada *</Label>
             <Textarea
@@ -145,61 +153,30 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:text-primary transition-colors border p-3 rounded-md bg-muted/20">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Video Explicativo</Label>
+            <div className="relative">
+              <Video className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="https://www.youtube.com/..."
+                className="h-9 pl-7 text-xs"
+                value={resolutionVideoUrl}
+                onChange={(e) => setResolutionVideoUrl(e.target.value)}
+                disabled={isPending}
+              />
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border bg-muted/20 p-3 text-sm text-foreground transition-colors hover:text-primary">
             <input
               type="checkbox"
               checked={publishToReleases}
               onChange={(e) => setPublishToReleases(e.target.checked)}
-              className="rounded border-border accent-primary h-4 w-4"
+              className="h-4 w-4 rounded border-border accent-primary"
               disabled={isPending}
             />
             Publicar no painel de Releases ao cliente
           </label>
-
-          {publishToReleases && (
-            <div className="grid gap-3 p-3 border border-border/80 rounded-md bg-secondary/10 animate-in fade-in slide-in-from-top-2">
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da release *</Label>
-                <Input
-                  placeholder="Titulo publico (ex: Novo relatorio visual)"
-                  className="text-xs h-9"
-                  value={releaseTitle}
-                  onChange={(e) => setReleaseTitle(e.target.value)}
-                  disabled={isPending}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1 w-full">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
-                  <div className="flex h-9 items-center rounded-md border border-border/70 bg-muted/20 px-3 text-xs font-medium text-foreground">
-                    {releaseCategory}
-                  </div>
-                </div>
-
-                <div className="space-y-1 w-full">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modulo</Label>
-                  <div className="flex h-9 items-center rounded-md border border-border/70 bg-muted/20 px-3 text-xs font-medium text-foreground">
-                    {releaseModule || "Nao definido"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Video Explicativo</Label>
-                <div className="relative">
-                  <Video className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                  <Input
-                    placeholder="https://www.youtube.com/..."
-                    className="text-xs h-9 pl-7"
-                    value={resolutionVideoUrl}
-                    onChange={(e) => setResolutionVideoUrl(e.target.value)}
-                    disabled={isPending}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter>
