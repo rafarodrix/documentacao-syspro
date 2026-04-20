@@ -75,9 +75,7 @@ export async function finalizeTicketAction(input: {
 
     revalidateTicketCollections();
     revalidateTicketViews(String(input.ticketId));
-    if (input.publishToReleases) {
-      revalidateReleasesViews();
-    }
+    revalidateReleasesViews();
     return { success: true, message: "Ticket finalizado com sucesso." };
   } catch (error) {
     console.error("Erro ao finalizar ticket:", error);

@@ -51,7 +51,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   const setOpen = onOpenChange ?? setInternalOpen;
   const inferredReleaseType = inferReleaseType(ticket);
   const effectiveReleaseType = inferredReleaseType || "MELHORIA";
-  const shouldSuggestRelease = Boolean(ticket.publishToReleases || inferredReleaseType || ticket.operations?.currentTeam === "DESENVOLVIMENTO");
+  const shouldSuggestRelease = Boolean(ticket.publishToReleases || ticket.resolvedAt || inferredReleaseType || ticket.operations?.currentTeam === "DESENVOLVIMENTO");
   const releaseModule = ticket.releaseModule || ticket.operations?.module || "";
 
   const [resolutionSummary, setResolutionSummary] = useState(ticket.resolutionSummary || "");

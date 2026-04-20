@@ -632,24 +632,45 @@ export class TicketsService {
 
     const exists = await this.prisma.conversation.findUnique({
       where: { id },
-      select: { id: true, status: true, companyId: true, metadata: true },
+      select: {
+        id: true,
+        status: true,
+        companyId: true,
+        subject: true,
+        resolutionSummary: true,
+        releaseType: true,
+        releaseModule: true,
+        metadata: true,
+      },
     });
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(exists.companyId, accessScope);
 
+    const existingMetadata =
+      exists.metadata && typeof exists.metadata === 'object' && !Array.isArray(exists.metadata)
+        ? { ...(exists.metadata as Record<string, unknown>) }
+        : {};
     const resolutionSummary = input.resolutionSummary?.trim();
     const resolutionVideoUrl = input.resolutionVideoUrl?.trim();
     const releaseType = input.releaseType?.trim().toUpperCase();
     const releaseTitle = input.releaseTitle?.trim();
     const releaseModule = input.releaseModule?.trim();
     const publishToReleases = input.publishToReleases;
+    const shouldPublishToReleases = publishToReleases === true;
+    const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
+    const effectiveReleaseType =
+      releaseType || this.normalizeReleaseType(exists.releaseType) || this.inferReleaseTypeFromCategory(input.category ?? existingMetadata.category);
+    const effectiveReleaseTitle =
+      releaseTitle || this.readMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim();
+    const effectiveReleaseModule =
+      releaseModule || exists.releaseModule?.trim() || this.readMetadataString(existingMetadata, 'module');
     const requestedTeam =
       input.team !== undefined
         ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
         : undefined;
     const handoffNote = input.note?.trim();
 
-    if (publishToReleases && !resolutionSummary) {
+    if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
     }
 
@@ -657,11 +678,7 @@ export class TicketsService {
       throw new BadRequestException('Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres).');
     }
 
-    if (publishToReleases && !releaseType) {
-      throw new BadRequestException('Tipo de release obrigatorio para publicar em releases.');
-    }
-
-    if (releaseType && !['BUG', 'MELHORIA'].includes(releaseType)) {
+    if (releaseType && !this.normalizeReleaseType(releaseType)) {
       throw new BadRequestException('Tipo de release invalido. Use BUG ou MELHORIA.');
     }
 
@@ -675,10 +692,7 @@ export class TicketsService {
 
     await this.prisma.$transaction(async (tx) => {
       const data: Record<string, unknown> = {};
-      const currentMetadata =
-        exists.metadata && typeof exists.metadata === 'object' && !Array.isArray(exists.metadata)
-          ? { ...(exists.metadata as Record<string, unknown>) }
-          : {};
+      const currentMetadata = { ...existingMetadata };
 
       if (input.team !== undefined) {
         currentMetadata.currentTeam = requestedTeam;
@@ -751,11 +765,11 @@ export class TicketsService {
           }
         }
       }
-      if (input.resolutionSummary !== undefined) data.resolutionSummary = resolutionSummary || null;
+      if (input.resolutionSummary !== undefined || shouldPublishToReleases) data.resolutionSummary = effectiveResolutionSummary || null;
       if (input.resolutionVideoUrl !== undefined) data.resolutionVideoUrl = resolutionVideoUrl || null;
-      if (input.releaseType !== undefined) data.releaseType = releaseType || null;
-      if (input.releaseTitle !== undefined) currentMetadata.releaseTitle = releaseTitle || null;
-      if (input.releaseModule !== undefined) data.releaseModule = releaseModule || null;
+      if (input.releaseType !== undefined || shouldPublishToReleases) data.releaseType = effectiveReleaseType;
+      if (input.releaseTitle !== undefined || shouldPublishToReleases) currentMetadata.releaseTitle = effectiveReleaseTitle || null;
+      if (input.releaseModule !== undefined || shouldPublishToReleases) data.releaseModule = effectiveReleaseModule || null;
       if (input.publishToReleases !== undefined) data.publishToReleases = Boolean(publishToReleases);
       data.metadata = currentMetadata as Prisma.InputJsonValue;
 
@@ -975,6 +989,26 @@ export class TicketsService {
     }
 
     return settings.defaultTeam === 'DESENVOLVIMENTO' && allowDevelopment ? 'DESENVOLVIMENTO' : 'SUPORTE';
+  }
+
+  private readMetadataString(metadata: Record<string, unknown>, key: string): string | null {
+    const value = metadata[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private normalizeReleaseType(value: unknown): 'BUG' | 'MELHORIA' | null {
+    const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+    if (normalized === 'BUG' || normalized === 'MELHORIA') return normalized;
+    return null;
+  }
+
+  private inferReleaseTypeFromCategory(category: unknown): 'BUG' | 'MELHORIA' {
+    const normalized = typeof category === 'string' ? category.trim().toLowerCase() : '';
+    if (normalized.includes('bug') || normalized.includes('incident') || normalized.includes('erro')) {
+      return 'BUG';
+    }
+
+    return 'MELHORIA';
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {

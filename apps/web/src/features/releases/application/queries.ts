@@ -53,7 +53,9 @@ async function fetchReleases(): Promise<Release[]> {
                         "Atualizacao interna",
                     link: `/portal/tickets/${ticket.id}`,
                     videoLink: ticket.resolutionVideoUrl || null,
-                    tags: ticket.releaseModule ? [ticket.releaseModule] : [],
+                    tags: [ticket.releaseModule || readReleaseMetadataString(ticket.metadata, "module")].filter(
+                        (tag): tag is string => Boolean(tag),
+                    ),
                 };
             });
     } catch (error) {
