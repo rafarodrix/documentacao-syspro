@@ -495,16 +495,27 @@ export class ContactsService {
   }
 
   async syncChatwootContactsForCompany(companyId: string) {
-    const contacts = await (this.prisma.companyContact as any).findMany({
-      where: {
-        whatsapp: { not: null },
-        companyLinks: { some: { companyId } },
-      },
-      include: this.contactInclude(),
-    });
+    const [company, contacts] = await Promise.all([
+      this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          cnpj: true,
+        },
+      }),
+      (this.prisma.companyContact as any).findMany({
+        where: {
+          whatsapp: { not: null },
+          companyLinks: { some: { companyId } },
+        },
+        include: this.contactInclude(),
+      }),
+    ]);
 
     for (const contact of contacts) {
-      await this.syncChatwootContactPresentation(this.serializeContact(contact));
+      await this.syncChatwootContactPresentation(this.serializeContact(contact), company);
     }
 
     return contacts.length;
@@ -517,7 +528,8 @@ export class ContactsService {
     whatsapp: string | null;
     companyId?: string | null;
     company?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null;
-  }) {
+    companies?: Array<{ id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null }> | null;
+  }, companyOverride?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null) {
     try {
       if (!updatedContact.whatsapp) return;
 
@@ -537,30 +549,66 @@ export class ContactsService {
         },
       });
 
-      if (!links.length) return;
+      if (!links.length) {
+        this.logger.warn(
+          `Contato ${updatedContact.whatsapp} nao sincronizado no Chatwoot: nenhum conversationLink encontrado. A sincronizacao ocorre apos existir uma conversa vinculada no Chatwoot.`,
+        );
+        return;
+      }
 
       for (const link of links) {
         if (!link.chatwootContactId) continue;
         const context = await this.integrationContext.resolveByConnectionKey(link.connectionKey);
-        if (!context) continue;
+        if (!context) {
+          this.logger.warn(
+            `Contato ${updatedContact.whatsapp} nao sincronizado no Chatwoot: contexto ${link.connectionKey} nao encontrado.`,
+          );
+          continue;
+        }
 
-        const company = link.company ?? updatedContact.company ?? null;
-        const companyName = company?.nomeFantasia || company?.razaoSocial || '';
-        const fullName = companyName ? `${updatedContact.name} - ${companyName}` : updatedContact.name;
+        const companies = this.resolveChatwootContactCompanies(updatedContact, companyOverride, link.company);
+        const primaryCompany = companies[0] ?? null;
+        const primaryCompanyName = this.formatCompanyDisplayName(primaryCompany);
+        const companyNames = companies.map((company) => this.formatCompanyDisplayName(company)).filter(Boolean);
+        const fullName = primaryCompanyName ? `${updatedContact.name} - ${primaryCompanyName}` : updatedContact.name;
+        const customAttributes = {
+          syspro_contact_id: updatedContact.id ?? null,
+          syspro_contact_name: updatedContact.name,
+          syspro_company_id: primaryCompany?.id ?? updatedContact.companyId ?? null,
+          syspro_company_name: primaryCompanyName || null,
+          syspro_company_legal_name: primaryCompany?.razaoSocial ?? null,
+          syspro_company_trade_name: primaryCompany?.nomeFantasia ?? null,
+          syspro_company_cnpj: primaryCompany?.cnpj ?? null,
+          syspro_primary_company_id: primaryCompany?.id ?? updatedContact.companyId ?? null,
+          syspro_primary_company_name: primaryCompanyName || null,
+          syspro_company_count: companies.length,
+          syspro_company_ids: companies.map((company) => company.id).filter(Boolean).join(','),
+          syspro_company_names: companyNames.join(' | ') || null,
+          syspro_companies: companies.map((company) => ({
+            id: company.id ?? null,
+            name: this.formatCompanyDisplayName(company) || null,
+            legalName: company.razaoSocial ?? null,
+            tradeName: company.nomeFantasia ?? null,
+            cnpj: company.cnpj ?? null,
+          })),
+        };
 
         await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, {
           name: fullName,
+          phone_number: this.formatChatwootPhoneNumber(updatedContact.whatsapp),
           ...(updatedContact.email ? { email: updatedContact.email } : {}),
-          custom_attributes: {
-            syspro_contact_id: updatedContact.id ?? null,
-            syspro_contact_name: updatedContact.name,
-            syspro_company_id: company?.id ?? updatedContact.companyId ?? null,
-            syspro_company_name: companyName || null,
-            syspro_company_legal_name: company?.razaoSocial ?? null,
-            syspro_company_trade_name: company?.nomeFantasia ?? null,
-            syspro_company_cnpj: company?.cnpj ?? null,
-          },
+          custom_attributes: customAttributes,
         });
+
+        this.logger.log(JSON.stringify({
+          flow: 'portal_to_chatwoot',
+          stage: 'contact_presentation_synced',
+          whatsapp: updatedContact.whatsapp,
+          chatwootContactId: link.chatwootContactId,
+          connectionKey: link.connectionKey,
+          name: fullName,
+          customAttributes,
+        }));
       }
 
       this.logger.log(`Contato ${updatedContact.whatsapp} sincronizado no Chatwoot com dados do portal.`);
@@ -589,6 +637,39 @@ export class ContactsService {
   private normalizePhone(value?: string | null): string | null {
     const digits = String(value ?? '').replace(/\D/g, '');
     return digits || null;
+  }
+
+  private formatChatwootPhoneNumber(value?: string | null): string | undefined {
+    const digits = this.normalizePhone(value);
+    return digits ? `+${digits}` : undefined;
+  }
+
+  private resolveChatwootContactCompanies(
+    updatedContact: {
+      company?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null;
+      companies?: Array<{ id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null }> | null;
+    },
+    companyOverride?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null,
+    linkCompany?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null,
+  ) {
+    const companies = [
+      companyOverride,
+      ...(updatedContact.companies ?? []),
+      updatedContact.company,
+      linkCompany,
+    ].filter(Boolean) as Array<{ id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null }>;
+
+    const seen = new Set<string>();
+    return companies.filter((company) => {
+      const key = String(company.id ?? company.cnpj ?? this.formatCompanyDisplayName(company) ?? '').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private formatCompanyDisplayName(company?: { nomeFantasia?: string | null; razaoSocial?: string | null } | null) {
+    return String(company?.nomeFantasia || company?.razaoSocial || '').trim();
   }
 
   private normalizeCpf(value?: string | null): string | null {

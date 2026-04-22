@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               g.onload = function() {
                 if (!window.chatwootSDK) return;
                 window.chatwootSDK.run({
-                  websiteToken: 'fqphdTUjMeAz1pua9hFwswNe',
+                  websiteToken: 'FDDWn82o1Q7Yfs2czgx9dfWJ',
                   baseUrl: BASE_URL
                 });
               };

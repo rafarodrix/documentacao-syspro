@@ -243,24 +243,35 @@ export class ChatwootWebhookController {
     resolvedContext: ResolvedIntegrationContext | null,
   ) {
     if (!resolvedContext?.chatwoot.url || !resolvedContext.chatwoot.apiToken || !resolvedContext.chatwoot.accountId) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'behavior_rules_skipped_missing_context',
+        event: payload?.event ?? null,
+      }));
       return;
     }
 
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const messageType = this.normalizeMessageType(payload?.message_type ?? message?.message_type);
-    const isPrivate = Boolean(payload?.private ?? message?.private);
+    const context = this.resolveMessageContext(payload);
 
     if (
       settings.autoAssignOnFirstAgentReply &&
-      !isPrivate &&
-      (messageType === 'outgoing' || messageType === 'template')
+      !context.isPrivate &&
+      (context.messageType === 'outgoing' || context.messageType === 'template')
     ) {
       await this.autoAssignConversationToReplyingAgent(payload, resolvedContext);
+    } else if (settings.autoAssignOnFirstAgentReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_auto_assign_skipped',
+        messageType: context.messageType,
+        isPrivate: context.isPrivate,
+        messageId: context.messageId ?? null,
+      }));
     }
 
     if (
       settings.reopenConversationOnCustomerReply &&
-      messageType === 'incoming'
+      context.messageType === 'incoming'
     ) {
       await this.reopenConversationForCustomerReply(payload, resolvedContext);
     }
@@ -270,6 +281,13 @@ export class ChatwootWebhookController {
     const conversationId = this.extractConversationId(payload);
     const assigneeId = this.extractSenderAgentId(payload);
     if (!conversationId || !assigneeId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_auto_assign_missing_fields',
+        conversationId: conversationId ?? null,
+        assigneeId: assigneeId ?? null,
+        messageId: this.resolveMessageContext(payload).messageId ?? null,
+      }));
       return;
     }
     if (!/^\d+$/.test(assigneeId)) {
@@ -284,6 +302,12 @@ export class ChatwootWebhookController {
 
     const currentAssigneeId = await this.resolveCurrentConversationAssigneeId(payload, resolvedContext, conversationId);
     if (currentAssigneeId) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_auto_assign_skipped_already_assigned',
+        conversationId,
+        currentAssigneeId,
+      }));
       return;
     }
 
@@ -480,23 +504,32 @@ export class ChatwootWebhookController {
   }
 
   private extractConversationId(payload: any): string | undefined {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const { message, conversationMessage } = this.resolveMessageContext(payload);
     return this.toOptionalString(
       payload?.conversation?.id ??
       payload?.conversation_id ??
       message?.conversation_id ??
-      message?.conversation?.id
+      message?.conversation?.id ??
+      conversationMessage?.conversation_id ??
+      conversationMessage?.conversation?.id
     );
   }
 
   private extractSenderAgentId(payload: any): string | undefined {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const sender = payload?.sender ?? message?.sender ?? payload?.user ?? message?.user;
+    const { message, conversationMessage } = this.resolveMessageContext(payload);
+    const sender =
+      payload?.sender ??
+      message?.sender ??
+      conversationMessage?.sender ??
+      payload?.user ??
+      message?.user ??
+      conversationMessage?.user;
     const senderType = String(
       sender?.type ??
       sender?.sender_type ??
       payload?.sender_type ??
       message?.sender_type ??
+      conversationMessage?.sender_type ??
       ''
     ).trim().toLowerCase();
 
@@ -508,18 +541,60 @@ export class ChatwootWebhookController {
       sender?.id ??
       payload?.sender_id ??
       message?.sender_id ??
+      conversationMessage?.sender_id ??
       payload?.user_id ??
-      message?.user_id
+      message?.user_id ??
+      conversationMessage?.user_id
     );
   }
 
   private extractAssigneeId(value: any): string | null {
     return this.toOptionalString(
       value?.assignee_id ??
+      value?.current_assignee_id ??
       value?.assignee?.id ??
+      value?.current_assignee?.id ??
       value?.meta?.assignee?.id ??
-      value?.meta?.assignee_id
+      value?.meta?.assignee_id ??
+      value?.payload?.assignee_id ??
+      value?.payload?.assignee?.id
     ) ?? null;
+  }
+
+  private resolveMessageContext(payload: any): {
+    message: any | null;
+    conversationMessage: any | null;
+    messageId?: string;
+    messageType: 'incoming' | 'outgoing' | 'template' | 'unknown';
+    isPrivate: boolean;
+  } {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const messageId = this.toOptionalString(payload?.id ?? message?.id);
+    const conversationMessage = this.findConversationMessage(payload, messageId);
+    const messageType = this.normalizeMessageType(
+      payload?.message_type ??
+      message?.message_type ??
+      conversationMessage?.message_type
+    );
+    const isPrivate = this.readBoolean(
+      payload?.private ??
+      message?.private ??
+      conversationMessage?.private
+    );
+
+    return {
+      message,
+      conversationMessage,
+      messageId,
+      messageType,
+      isPrivate,
+    };
+  }
+
+  private readBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return normalized === 'true' || normalized === '1';
   }
 
   private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
