@@ -6,21 +6,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
 import type { Role as PrismaRole } from "@prisma/client";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
 import { toast } from "sonner";
 import {
   AlertCircle,
-  ArrowLeft,
   Building2,
   Link2,
-  Loader2,
-  Save,
-  Sparkles,
 } from "lucide-react";
 
 const ROLE = {
@@ -254,8 +250,8 @@ export function CreateUserPageForm({
 
   const title =
     mode === "edit"
-      ? "Editar Usuario"
-      : "Novo Usuario";
+      ? "Editar usuario"
+      : "Novo usuario";
 
   const roleItems: Array<{ value: PrismaRole; label: string }> = [
     { value: ROLE.CLIENTE_USER, label: "Usuario" },
@@ -266,24 +262,35 @@ export function CreateUserPageForm({
   ].filter((item) => availableRoles.includes(item.value));
 
   return (
-    <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4 bg-gradient-to-r from-muted/30 via-background to-muted/20">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary/70" />
-            {title}
-          </h2>
-          <p className="text-sm text-muted-foreground">O usuario herda sua identidade do contato vinculado.</p>
-        </div>
-        <Button variant="outline" className="gap-2" onClick={() => router.push(backHref)}>
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-      </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-[calc(100vh-220px)]">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <RegistryFormScaffold
+          title={title}
+          description="O usuario herda identidade, empresas e escopo operacional do contato vinculado."
+          onBack={() => router.push(backHref)}
+          progressValue={selectedContactId ? 100 : 50}
+          progressText={selectedContactId ? "Contato vinculado" : "Contato pendente"}
+          submitLabel={mode === "edit" ? "Salvar alteracoes" : "Salvar usuario"}
+          isSubmitting={isSubmitting}
+          canSubmit={isDirty && !clientContactInvalid}
+          footerLeft={
+            <>
+              {hasErrors ? (
+                <Badge variant="destructive" className="gap-1 text-[11px] font-medium">
+                  <AlertCircle className="h-3 w-3" />
+                  Campos invalidos
+                </Badge>
+              ) : null}
+              {clientContactInvalid ? (
+                <Badge variant="outline" className="gap-1 border-amber-500/40 text-[11px] font-medium text-amber-700">
+                  <AlertCircle className="h-3 w-3" />
+                  Contato sem empresa vinculada
+                </Badge>
+              ) : null}
+            </>
+          }
+        >
+          <div className="space-y-6">
             <Card className="border-border/60 bg-card/95">
               <CardHeader>
                 <CardTitle className="text-base">Contato e credenciais</CardTitle>
@@ -436,34 +443,8 @@ export function CreateUserPageForm({
               </CardContent>
             </Card>
           </div>
-
-          <div className="border-t border-border/50 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {hasErrors && (
-                <Badge variant="destructive" className="text-[11px] gap-1 font-medium">
-                  <AlertCircle className="h-3 w-3" />
-                  Campos invalidos
-                </Badge>
-              )}
-              {clientContactInvalid && (
-                <Badge variant="outline" className="text-[11px] gap-1 font-medium border-amber-500/40 text-amber-700">
-                  <AlertCircle className="h-3 w-3" />
-                  Contato sem empresa vinculada
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="ghost" onClick={() => router.push(backHref)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="gap-2" disabled={isSubmitting || !isDirty}>
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {mode === "edit" ? "Salvar Alteracoes" : "Salvar Cadastro"}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </Form>
-    </div>
+        </RegistryFormScaffold>
+      </form>
+    </Form>
   );
 }

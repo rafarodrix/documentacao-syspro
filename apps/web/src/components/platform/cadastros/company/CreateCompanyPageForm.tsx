@@ -336,7 +336,7 @@ export function CreateCompanyPageForm({
         <div>
           <h2 className="text-2xl font-semibold tracking-tight inline-flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary/70" />
-            {mode === "edit" ? "Editar Empresa" : "Nova Empresa"}
+            {mode === "edit" ? "Editar empresa" : "Nova empresa"}
           </h2>
           <p className="text-sm text-muted-foreground">
             {current.title} — {current.description}
@@ -497,7 +497,7 @@ export function CreateCompanyPageForm({
                 </Button>
                 <Button type="submit" className="gap-2" disabled={isSubmitting || !canSubmit}>
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {mode === "edit" ? "Salvar Alteracoes" : "Salvar Empresa"}
+                  {mode === "edit" ? "Salvar alteracoes" : "Salvar empresa"}
                 </Button>
               </div>
             </div>

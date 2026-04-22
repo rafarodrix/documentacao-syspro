@@ -3,16 +3,13 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Briefcase,
   Building2,
   CheckCircle2,
   CircleDot,
-  Loader2,
   Mail,
   Fingerprint,
   Phone,
-  Save,
   Search,
   Smartphone,
   UserRound,
@@ -23,11 +20,11 @@ import {
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
 import { cn } from "@/lib/utils";
 
 type CompanyOption = {
@@ -240,34 +237,41 @@ export function CreateContactPageForm({
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-3 space-y-5 pb-8 duration-500">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2 h-8 gap-2 text-muted-foreground" onClick={() => router.push(backHref)}>
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-            {isEdit ? "Editar contato" : "Novo contato"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            {isEdit
-              ? "Atualize identidade, canais e vinculos empresariais do contato."
-              : "Cadastre a pessoa e vincule empresas para atendimento e relacionamento."}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/60 bg-card px-4 py-3 shadow-sm sm:min-w-72">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preenchimento</span>
-            <span className="text-sm font-semibold text-foreground">{progressPct}%</span>
+    <form onSubmit={handleSubmit}>
+      <RegistryFormScaffold
+        title={isEdit ? "Editar contato" : "Novo contato"}
+        description={
+          isEdit
+            ? "Atualize identidade, canais e vinculos empresariais do contato."
+            : "Cadastre a pessoa e vincule empresas para atendimento e relacionamento."
+        }
+        onBack={() => router.push(backHref)}
+        progressLabel="Preenchimento"
+        progressValue={progressPct}
+        submitLabel={isEdit ? "Salvar alteracoes" : "Salvar contato"}
+        isSubmitting={isSubmitting}
+        canSubmit={canSubmit}
+        footerLeft={
+          <div className="flex flex-wrap gap-2">
+            {readinessItems.map((item) => (
+              <Badge
+                key={item.label}
+                variant="outline"
+                className={cn(
+                  "gap-1 text-[11px] font-medium",
+                  item.done
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : "border-border/60 text-muted-foreground",
+                )}
+              >
+                {item.done ? <CheckCircle2 className="h-3 w-3" /> : <CircleDot className="h-3 w-3" />}
+                {item.label}
+              </Badge>
+            ))}
           </div>
-          <div className="mt-2 h-1.5 rounded-full bg-muted">
-            <div className={cn("h-1.5 rounded-full transition-all", progressPct === 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${progressPct}%` }} />
-          </div>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        }
+      >
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <section className="space-y-5">
           <div className="grid gap-3 md:grid-cols-3">
             <SummaryCard title="Identidade" value={form.name.trim() ? "Ok" : "Pendente"} icon={UserRound} tone={form.name.trim() ? "success" : "neutral"} />
@@ -474,21 +478,15 @@ export function CreateContactPageForm({
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">
-                <Button type="button" variant="outline" className="h-10 gap-2" onClick={() => router.push(backHref)}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Cancelar
-                </Button>
-                <Button type="submit" className="h-10 gap-2" disabled={!canSubmit}>
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {isSubmitting ? "Salvando" : isEdit ? "Salvar alteracoes" : "Salvar contato"}
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Use o botao fixo no rodape para salvar. O vinculo com empresa libera o contato para usuario e atendimento.
+              </p>
             </CardContent>
           </Card>
         </aside>
-      </form>
-    </div>
+        </div>
+      </RegistryFormScaffold>
+    </form>
   );
 }
 
