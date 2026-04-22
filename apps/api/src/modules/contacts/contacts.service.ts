@@ -127,7 +127,7 @@ export class ContactsService {
   }
 
   async createContact(input: CreateContactInput, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.assertCanManageContacts(rawHeaders);
+    const requester = await this.assertCanCreateContacts(rawHeaders);
     const name = String(input.name ?? '').trim();
     if (!name) {
       throw new BadRequestException('Nome do contato obrigatorio');
@@ -216,7 +216,7 @@ export class ContactsService {
   }
 
   async updateContact(contactId: string, input: UpdateContactInput, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.assertCanManageContacts(rawHeaders);
+    const requester = await this.assertCanEditContacts(rawHeaders);
     const existing = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
@@ -272,7 +272,7 @@ export class ContactsService {
   }
 
   async linkContactToCompany(contactId: string, companyId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.assertCanManageContacts(rawHeaders);
+    const requester = await this.assertCanEditContacts(rawHeaders);
     const contact = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
@@ -286,7 +286,7 @@ export class ContactsService {
   }
 
   async deleteContact(contactId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.assertCanManageContacts(rawHeaders);
+    const requester = await this.assertCanDeleteContacts(rawHeaders);
     const existing = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
@@ -300,7 +300,7 @@ export class ContactsService {
   }
 
   async syncFromIntegration(instanceName?: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.assertCanManageContacts(rawHeaders);
+    const requester = await this.assertCanSyncContacts(rawHeaders);
     if (!this.authorizationService.isSystemRole(requester.role)) {
       throw new ForbiddenException('Sincronizacao de contatos permitida apenas para equipe interna.');
     }
@@ -599,9 +599,9 @@ export class ContactsService {
   private async assertCanViewContacts(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const canView =
-      await this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }) ||
-      await this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }) ||
-      await this.authorizationService.userHasPermission(requester, 'users:view_all');
+      await this.authorizationService.userHasPermission(requester, 'contacts:view', { acceptCompanyScope: true }) ||
+      await this.authorizationService.userHasPermission(requester, 'contacts:view_team', { acceptCompanyScope: true }) ||
+      await this.authorizationService.userHasPermission(requester, 'contacts:view_all');
 
     if (!canView) {
       throw new ForbiddenException('Sem permissao para consultar contatos.');
@@ -610,14 +610,51 @@ export class ContactsService {
     return requester;
   }
 
-  private async assertCanManageContacts(rawHeaders?: IncomingHttpHeaders) {
+  private async assertCanCreateContacts(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const canManage =
-      await this.authorizationService.userHasPermission(requester, 'users:create', { acceptCompanyScope: true }) ||
-      await this.authorizationService.userHasPermission(requester, 'users:edit', { acceptCompanyScope: true });
+    const canCreate = await this.authorizationService.userHasPermission(requester, 'contacts:create', {
+      acceptCompanyScope: true,
+    });
 
-    if (!canManage) {
-      throw new ForbiddenException('Sem permissao para gerenciar contatos.');
+    if (!canCreate) {
+      throw new ForbiddenException('Sem permissao para cadastrar contatos.');
+    }
+
+    return requester;
+  }
+
+  private async assertCanEditContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canEdit = await this.authorizationService.userHasPermission(requester, 'contacts:edit', {
+      acceptCompanyScope: true,
+    });
+
+    if (!canEdit) {
+      throw new ForbiddenException('Sem permissao para alterar contatos.');
+    }
+
+    return requester;
+  }
+
+  private async assertCanDeleteContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canDelete = await this.authorizationService.userHasPermission(requester, 'contacts:delete', {
+      acceptCompanyScope: true,
+    });
+
+    if (!canDelete) {
+      throw new ForbiddenException('Sem permissao para excluir contatos.');
+    }
+
+    return requester;
+  }
+
+  private async assertCanSyncContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canSync = await this.authorizationService.userHasPermission(requester, 'contacts:sync');
+
+    if (!canSync) {
+      throw new ForbiddenException('Sem permissao para sincronizar contatos.');
     }
 
     return requester;
@@ -626,8 +663,8 @@ export class ContactsService {
   private async resolveContactCompanyScope(requester: { userId: string; role: Role; email: string }) {
     return this.authorizationService.resolveCompanyAccessScope(
       requester,
-      'users:view_team',
-      'users:view_all',
+      'contacts:view_team',
+      'contacts:view_all',
     );
   }
 

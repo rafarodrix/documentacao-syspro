@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { getCompanyOptionsAction } from "@/features/company/application/queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/CreateContactPageForm";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
@@ -7,12 +7,11 @@ import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/Ca
 export default async function NovoContatoPage() {
   await requireSession();
 
-  if (!(await currentUserHasPermission("users:create", { acceptCompanyScope: true }))) {
+  if (!(await currentUserHasPermission("contacts:create", { acceptCompanyScope: true }))) {
     return <CadastrosAccessDenied />;
   }
 
-  const result = await getClientUsersAdminViewData();
-  if ("error" in result) return <div>Erro: {result.error}</div>;
+  const companies = await getCompanyOptionsAction();
 
-  return <CreateContactPageForm companies={result.companies} backHref="/portal/contatos" />;
+  return <CreateContactPageForm companies={companies} backHref="/portal/contatos" />;
 }

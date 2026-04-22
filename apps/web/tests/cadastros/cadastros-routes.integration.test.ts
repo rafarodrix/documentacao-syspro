@@ -17,7 +17,7 @@ describe("authorization integration: /portal/cadastros route matrix", () => {
     expect(hasAllowedRole("CLIENTE_USER", CADASTROS_ROUTE_RULES.empresa.allowed)).toBe(false);
   });
 
-  it("permite somente roles esperadas em /portal/cadastros/sistema", () => {
+  it("mantem /portal/cadastros/sistema como rota de compatibilidade interna", () => {
     for (const role of ALL_ROLES) {
       const allowed = hasAllowedRole(role, CADASTROS_ROUTE_RULES.sistema.allowed);
       if (role === "ADMIN" || role === "DEVELOPER" || role === "SUPORTE") {

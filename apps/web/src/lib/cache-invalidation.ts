@@ -22,7 +22,6 @@ export function revalidateCadastrosViews() {
     "/portal/cadastros",
     "/portal/cadastros/empresa",
     "/portal/cadastros/usuarios",
-    "/portal/cadastros/sistema",
   ]);
 }
 

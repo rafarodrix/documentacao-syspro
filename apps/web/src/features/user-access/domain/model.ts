@@ -22,11 +22,6 @@ export interface ClientUserEditViewData {
   initialData: UserAccessEditInitialData;
 }
 
-export interface SystemUserEditViewData {
-  userId: string;
-  initialData: UserAccessEditInitialData;
-}
-
 export type UserAccessMembershipSummary = {
   companyId: string;
   role: Role;
@@ -63,17 +58,6 @@ export type UserAccessListItem = {
   contact: UserAccessContactSummary | null;
   companyName: string;
   companyId: string | null;
-};
-
-export type SystemUserListItem = {
-  id: string;
-  name: string | null;
-  email: string;
-  image: string | null;
-  role: Role;
-  isActive: boolean;
-  memberships: UserAccessMembershipSummary[];
-  contact: UserAccessContactSummary | null;
 };
 
 export type UserAccessValidationErrors = Partial<Record<keyof CreateUserInput, string[]>>;

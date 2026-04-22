@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { getCompanyOptionsAction } from "@/features/company/application/queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/CreateContactPageForm";
 import { headers } from "next/headers";
@@ -47,18 +47,17 @@ async function getContactById(id: string): Promise<ContactDetail | null> {
 export default async function EditarContatoPage({ params }: PageProps) {
   await requireSession();
 
-  if (!(await currentUserHasPermission("users:edit", { acceptCompanyScope: true }))) {
+  if (!(await currentUserHasPermission("contacts:edit", { acceptCompanyScope: true }))) {
     return <CadastrosAccessDenied />;
   }
 
   const { id } = await params;
   const [contact, result] = await Promise.all([
     getContactById(id),
-    getClientUsersAdminViewData(),
+    getCompanyOptionsAction(),
   ]);
 
   if (!contact) notFound();
-  if ("error" in result) return <div>Erro: {result.error}</div>;
 
   const companyIds =
     contact.companyIds ??
@@ -69,7 +68,7 @@ export default async function EditarContatoPage({ params }: PageProps) {
       mode="edit"
       contactId={contact.id}
       backHref="/portal/contatos"
-      companies={result.companies}
+      companies={result}
       initialData={{
         name: contact.name ?? "",
         email: contact.email ?? "",

@@ -46,7 +46,6 @@ export const SIDEBAR_ROLE_RULES = {
   cadastroEmpresa: CADASTRO_MANAGER_ROLES,
   cadastroUsuarios: CADASTRO_MANAGER_ROLES,
   cadastroContatos: CADASTRO_MANAGER_ROLES,
-  cadastroSistema: SYSTEM_ROLES,
   docsTechnical: SYSTEM_ROLES,
   contratos: ["ADMIN"],
 } as const;

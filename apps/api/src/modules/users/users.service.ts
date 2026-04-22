@@ -7,12 +7,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Role, Prisma } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import type { IncomingHttpHeaders } from 'node:http';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { UserContactAccessService } from './user-contact-access.service';
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -50,6 +51,7 @@ export class UsersService {
     private readonly chatwootClient: ChatwootClient,
     private readonly integrationContext: IntegrationContextService,
     private readonly authorizationService: AuthorizationService,
+    private readonly userContactAccessService: UserContactAccessService,
   ) {}
 
   async findAll(filters?: { search?: string; role?: string }, rawHeaders?: IncomingHttpHeaders) {
@@ -175,7 +177,7 @@ export class UsersService {
         },
       });
 
-      await this.syncAccessFromContact(tx, createdUserId, userRole, normalizedContactId);
+      await this.userContactAccessService.syncAccessFromContact(tx, createdUserId, userRole, normalizedContactId);
 
       return (tx.user as any).findUnique({
         where: { id: createdUserId },
@@ -246,7 +248,7 @@ export class UsersService {
         throw new BadRequestException('Usuario precisa permanecer vinculado a um contato.');
       }
 
-      await this.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
+      await this.userContactAccessService.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
 
       return updatedUser;
     });
@@ -599,173 +601,6 @@ export class UsersService {
     return agents.some((item: any) => String(item?.id ?? '').trim() === platformUserId);
   }
 
-  async getClientAdminView(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.authorizationService.getRequester(rawHeaders);
-    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
-    const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
-      acceptCompanyScope: true,
-    });
-
-    if (!isSystemRole && (requester.role !== Role.CLIENTE_ADMIN || !canViewTeam)) {
-      throw new ForbiddenException('Acesso negado.');
-    }
-
-    if (isSystemRole) {
-      const [companies, users] = await Promise.all([
-        this.prisma.company.findMany({
-          where: { deletedAt: null },
-          orderBy: { razaoSocial: 'asc' },
-          select: { id: true, razaoSocial: true, nomeFantasia: true },
-        }),
-        this.prisma.user.findMany({
-          where: { deletedAt: null, role: { in: CLIENT_ROLES } },
-          orderBy: { name: 'asc' },
-          include: this.userInclude(),
-        }),
-      ]);
-
-      return { companies, users, isGlobalView: true };
-    }
-
-    const companyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
-    if (!companyIds.length) {
-      return { companies: [], users: [], isGlobalView: false };
-    }
-
-    const [companies, users] = await Promise.all([
-      this.prisma.company.findMany({
-        where: { id: { in: companyIds }, deletedAt: null },
-        orderBy: { razaoSocial: 'asc' },
-        select: { id: true, razaoSocial: true, nomeFantasia: true },
-      }),
-      this.prisma.user.findMany({
-        where: {
-          deletedAt: null,
-          role: { in: CLIENT_ROLES },
-          memberships: { some: { companyId: { in: companyIds } } },
-        },
-      include: this.userInclude(companyIds),
-        orderBy: { name: 'asc' },
-      }),
-    ]);
-
-    return { companies, users, isGlobalView: false };
-  }
-
-  async getSystemAdminView(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.authorizationService.getRequester(rawHeaders);
-    if (!(await this.authorizationService.userHasPermission(requester, 'users:view_all'))) {
-      return { users: [], isGlobalView: false };
-    }
-
-    const users = await this.prisma.user.findMany({
-      where: { deletedAt: null, role: { in: SYSTEM_ROLES } },
-      orderBy: { name: 'asc' },
-      include: this.userInclude(),
-    });
-
-    return { users, isGlobalView: true };
-  }
-
-  async getClientUserEditView(userId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.authorizationService.getRequester(rawHeaders);
-    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
-    const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
-      acceptCompanyScope: true,
-    });
-
-    if (!isSystemRole && (requester.role !== Role.CLIENTE_ADMIN || !canViewTeam)) {
-      throw new ForbiddenException('Acesso negado.');
-    }
-
-    const managedCompanyIds = requester.role === Role.CLIENTE_ADMIN
-      ? await this.authorizationService.getManagedCompanyIds(requester.userId)
-      : null;
-
-    const safeCompanyFilter = managedCompanyIds?.length ? managedCompanyIds : ['__none__'];
-
-    const user = await (this.prisma.user as any).findFirst({
-      where: {
-        id: userId,
-        deletedAt: null,
-        role: { in: CLIENT_ROLES },
-        ...(requester.role === Role.CLIENTE_ADMIN
-          ? { memberships: { some: { companyId: { in: safeCompanyFilter } } } }
-          : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        contactId: true,
-      },
-    });
-
-    if (!user) throw new NotFoundException('Usuario nao encontrado.');
-
-    const companies = await this.prisma.company.findMany({
-      where: {
-        deletedAt: null,
-        ...(requester.role === Role.CLIENTE_ADMIN ? { id: { in: safeCompanyFilter } } : {}),
-      },
-      orderBy: { razaoSocial: 'asc' },
-      select: {
-        id: true,
-        razaoSocial: true,
-        nomeFantasia: true,
-      },
-    });
-
-    return {
-      userId: user.id,
-      companies,
-      isAdmin: requester.role !== Role.CLIENTE_ADMIN,
-      initialData: {
-        name: user.name ?? '',
-        email: user.email,
-        role: user.role,
-        contactId: user.contactId ?? '',
-        password: '',
-      },
-    };
-  }
-
-  async getSystemUserEditView(userId: string, rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.authorizationService.getRequester(rawHeaders);
-    if (!(await this.authorizationService.userHasPermission(requester, 'system_team:manage'))) {
-      throw new ForbiddenException('Acesso negado.');
-    }
-
-    const user = await (this.prisma.user as any).findFirst({
-      where: {
-        id: userId,
-        deletedAt: null,
-        role: { in: SYSTEM_ROLES },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        contactId: true,
-      },
-    });
-
-    if (!user) throw new NotFoundException('Usuario nao encontrado.');
-
-    return {
-      userId: user.id,
-      initialData: {
-        name: user.name ?? '',
-        email: user.email,
-        role: user.role,
-        contactId: user.contactId ?? '',
-        password: '',
-      },
-    };
-  }
-
   private userInclude(companyScope?: string[]) {
     return {
       memberships: {
@@ -816,125 +651,20 @@ export class UsersService {
     return normalized || undefined;
   }
 
-  private async syncAccessFromContact(
-    tx: Prisma.TransactionClient,
-    userId: string,
-    role: Role,
-    contactId: string,
-  ) {
-    if (this.authorizationService.isSystemRole(role)) {
-      await tx.membership.deleteMany({
-        where: { userId },
-      });
-      await tx.userContactLink.deleteMany({
-        where: { userId },
-      });
-      return;
-    }
-
-    const contact = await (tx.companyContact as any).findFirst({
-      where: { id: contactId },
-      select: {
-        id: true,
-        companyLinks: {
-          select: {
-            companyId: true,
-          },
-          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-        },
-      },
-    });
-
-    if (!contact) {
-      throw new NotFoundException('Contato informado nao encontrado.');
-    }
-
-    const companyIds = this.extractContactCompanyIds(contact);
-
-    if (!companyIds.length) {
-      throw new BadRequestException('Contato do usuario precisa estar vinculado a uma empresa.');
-    }
-
-    const membershipRole = role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER;
-
-    await tx.membership.deleteMany({
-      where: { userId, companyId: { notIn: companyIds } },
-    });
-
-    for (const companyId of companyIds) {
-      await tx.membership.upsert({
-        where: { userId_companyId: { userId, companyId } },
-        create: {
-          userId,
-          companyId,
-          role: membershipRole,
-        },
-        update: {
-          role: membershipRole,
-        },
-      });
-    }
-
-    await tx.userContactLink.deleteMany({
-      where: { userId, companyId: { notIn: companyIds } },
-    });
-
-    for (const [index, companyId] of companyIds.entries()) {
-      await tx.userContactLink.upsert({
-        where: { userId_companyId: { userId, companyId } },
-        create: {
-          userId,
-          companyId,
-          contactId,
-          isPrimary: index === 0,
-        },
-        update: {
-          contactId,
-          isPrimary: index === 0,
-        },
-      });
-    }
-  }
-
   private async assertContactWithinCompanies(
     contactId: string,
     allowedCompanyIds: string[],
     requireCompany: boolean,
   ) {
-    const contact = await (this.prisma.companyContact as any).findUnique({
-      where: { id: contactId },
-      select: {
-        id: true,
-        companyLinks: {
-          select: {
-            companyId: true,
-          },
-        },
-      },
-    });
-
-    if (!contact) {
-      throw new NotFoundException('Contato informado nao encontrado.');
-    }
-
-    const companyIds = this.extractContactCompanyIds(contact);
-
-    if (requireCompany && !companyIds.length) {
-      throw new BadRequestException('Contato precisa estar vinculado a uma empresa.');
-    }
+    const companyIds = await this.userContactAccessService.getContactCompanyIds(
+      this.prisma as any,
+      contactId,
+      requireCompany,
+    );
 
     if (companyIds.some((companyId) => !allowedCompanyIds.includes(companyId))) {
       throw new ForbiddenException('Contato informado nao pertence a uma empresa permitida para este gestor.');
     }
-  }
-
-  private extractContactCompanyIds(contact: any): string[] {
-    const fromLinks = Array.isArray(contact?.companyLinks)
-      ? contact.companyLinks.map((link: any) => link.companyId).filter(Boolean)
-      : [];
-
-    if (fromLinks.length) return Array.from(new Set(fromLinks));
-    return [];
   }
 
   private getManageableRolesForRequester(role: Role): Role[] {

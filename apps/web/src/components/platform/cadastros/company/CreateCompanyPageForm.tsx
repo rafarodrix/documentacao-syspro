@@ -16,10 +16,8 @@ import {
 } from "@dosc-syspro/contracts/company";
 import type {
   CompanyActionResponse,
-  CompanyContactInput,
   CompanyRegistryLookupResponse,
   CompanyOption,
-  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 import { CompanyStatus, IndicadorIE } from "@prisma/client";
 import { createCompanyAction, updateCompanyAction } from "@/features/company/application/actions";
@@ -130,8 +128,6 @@ interface CreateCompanyPageFormProps {
   mode?: "create" | "edit";
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
-  initialTicketEmails?: CompanyTicketEmailInput[];
-  initialContacts?: CompanyContactInput[];
   canEditCnpj?: boolean;
 }
 
@@ -142,8 +138,6 @@ export function CreateCompanyPageForm({
   mode = "create",
   companyId,
   initialData,
-  initialTicketEmails = [],
-  initialContacts = [],
   canEditCnpj = true,
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
@@ -151,44 +145,6 @@ export function CreateCompanyPageForm({
   const [isImportingCnpj, setIsImportingCnpj] = useState(false);
   const [lastImportedCnpj, setLastImportedCnpj] = useState<string | null>(null);
   const [justImported, setJustImported] = useState(false);
-
-  // ── Ticket emails state
-  const normalizeTicketEmails = (items: CompanyTicketEmailInput[]) =>
-    items
-      .map((item) => ({
-        email: item.email.trim().toLowerCase(),
-        label: item.label?.trim() || undefined,
-        isActive: item.isActive ?? true,
-      }))
-      .filter((item) => item.email.length > 0)
-      .sort((a, b) => a.email.localeCompare(b.email));
-
-  const initialNormalizedTicketEmails = useMemo(
-    () => normalizeTicketEmails(Array.isArray(initialTicketEmails) ? initialTicketEmails : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  const [ticketEmails, setTicketEmails] = useState<CompanyTicketEmailInput[]>(initialNormalizedTicketEmails);
-
-  // ── Contacts state
-  const initialNormalizedContacts = useMemo(
-    () =>
-      (Array.isArray(initialContacts) ? initialContacts : [])
-        .map((item) => ({
-          name: item.name?.trim() ?? "",
-          email: item.email?.trim().toLowerCase() || "",
-          phone: item.phone?.trim() || "",
-          whatsapp: item.whatsapp?.trim() || "",
-          notes: item.notes?.trim() || "",
-          isPrimary: item.isPrimary ?? false,
-          source: item.source,
-          status: item.status,
-        }))
-        .filter((item) => item.name.length > 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  const [contacts, setContacts] = useState<CompanyContactInput[]>(initialNormalizedContacts);
 
   // ── Form
   const form = useForm<CreateCompanyInput>({
@@ -249,10 +205,7 @@ export function CreateCompanyPageForm({
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
 
-  const ticketEmailsDirty =
-    JSON.stringify(normalizeTicketEmails(ticketEmails)) !== JSON.stringify(initialNormalizedTicketEmails);
-  const contactsDirty = JSON.stringify(contacts) !== JSON.stringify(initialNormalizedContacts);
-  const canSubmit = isDirty || ticketEmailsDirty || contactsDirty;
+  const canSubmit = isDirty;
   const currentCnpj = form.watch("cnpj");
 
   // ── CNPJ import
@@ -345,21 +298,10 @@ export function CreateCompanyPageForm({
 
   // ── Submit
   const onSubmit: SubmitHandler<CreateCompanyInput> = async (data) => {
-    const normalizedTicketEmails = normalizeTicketEmails(ticketEmails);
-    const normalizedContacts: CompanyContactInput[] = contacts.map((contact, index) => ({
-      name: contact.name.trim(),
-      email: contact.email?.trim() || undefined,
-      phone: contact.phone?.trim() || undefined,
-      whatsapp: contact.whatsapp?.trim() || undefined,
-      notes: contact.notes?.trim() || undefined,
-      isPrimary: index === 0 ? true : contact.isPrimary,
-      source: contact.source,
-      status: contact.status,
-    }));
     const result =
       mode === "edit" && companyId
-        ? await updateCompanyAction(companyId, data, normalizedTicketEmails, normalizedContacts)
-        : await createCompanyAction(data, normalizedTicketEmails, normalizedContacts);
+        ? await updateCompanyAction(companyId, data)
+        : await createCompanyAction(data);
     if (!result.success) {
       toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar empresa." : "Erro ao cadastrar empresa."));
       return;

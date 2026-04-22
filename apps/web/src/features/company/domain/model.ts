@@ -1,11 +1,4 @@
-import type {
-  CompanyContactSource,
-  CompanyContactStatus,
-  CompanySegment,
-  CompanyStatus,
-  IndicadorIE,
-  TaxRegime,
-} from "@prisma/client";
+import type { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
 import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 
 export type CompanyValidationErrors = Partial<Record<keyof CreateCompanyInput, string[]>>;
@@ -21,23 +14,6 @@ export type CompanyActionFailure<T = void> = {
 } & (T extends void ? {} : { data?: T });
 
 export type CompanyActionResponse<T = void> = CompanyActionSuccess<T> | CompanyActionFailure<T>;
-
-export type CompanyTicketEmailInput = {
-  email: string;
-  label?: string;
-  isActive?: boolean;
-};
-
-export type CompanyContactInput = {
-  name: string;
-  email?: string;
-  phone?: string;
-  whatsapp?: string;
-  notes?: string;
-  isPrimary?: boolean;
-  source?: CompanyContactSource;
-  status?: CompanyContactStatus;
-};
 
 export type CompanyRemoteConnectionInput = {
   type: "DDNS_NOIP" | "RADMIN_VPN";
@@ -195,7 +171,5 @@ export interface CompanyEditViewData {
   companies: CompanyOption[];
   canEditCnpj: boolean;
   initialData: CompanyEditInitialData;
-  initialTicketEmails: CompanyTicketEmailInput[];
-  initialContacts: CompanyContactInput[];
 }
 

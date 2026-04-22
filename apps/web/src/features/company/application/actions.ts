@@ -7,9 +7,7 @@ import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api"
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
-  CompanyContactInput,
   CompanyRegistryLookupResponse,
-  CompanyTicketEmailInput,
 } from "@/features/company/domain/model";
 
 async function apiRequest(path: string, init?: RequestInit) {
@@ -59,13 +57,11 @@ export async function lookupCompanyProfileByCnpjAction(
 
 export async function createCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
-  ticketEmails?: CompanyTicketEmailInput[],
-  contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   try {
     const response = await apiRequest("/companies", {
       method: "POST",
-      body: JSON.stringify({ data, ticketEmails, contacts }),
+      body: JSON.stringify({ data }),
     });
 
     const result = await parseActionResponse(response, "Erro ao cadastrar empresa.");
@@ -82,13 +78,11 @@ export async function createCompanyAction(
 export async function updateCompanyAction(
   id: string,
   data: CreateCompanyInput | CreateCompanyOutput,
-  ticketEmails?: CompanyTicketEmailInput[],
-  contacts?: CompanyContactInput[],
 ): Promise<ActionResponse> {
   try {
     const response = await apiRequest(`/companies/${encodeURIComponent(id)}`, {
       method: "PUT",
-      body: JSON.stringify({ data, ticketEmails, contacts }),
+      body: JSON.stringify({ data }),
     });
 
     const result = await parseActionResponse(response, "Erro ao atualizar empresa.");

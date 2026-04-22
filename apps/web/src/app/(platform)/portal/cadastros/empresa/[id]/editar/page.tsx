@@ -25,8 +25,6 @@ export default async function CadastrosEmpresaEditarPage({ params }: PageProps) 
       backHref="/portal/cadastros/empresa"
       companies={view.companies}
       initialData={view.initialData}
-      initialTicketEmails={view.initialTicketEmails}
-      initialContacts={view.initialContacts}
     />
   );
 }

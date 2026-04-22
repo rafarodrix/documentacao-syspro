@@ -6,13 +6,14 @@ import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/Ca
 export default async function ContatosRootPage() {
   await requireSession();
 
-  const canView = await currentUserHasAnyPermission(["users:view", "users:view_all", "users:view_team"], {
+  const canView = await currentUserHasAnyPermission(["contacts:view", "contacts:view_all", "contacts:view_team"], {
     acceptCompanyScope: true,
   });
   if (!canView) return <CadastrosAccessDenied />;
 
-  const canCreate = await currentUserHasPermission("users:create", { acceptCompanyScope: true });
-  const canEdit = await currentUserHasPermission("users:edit", { acceptCompanyScope: true });
+  const canCreate = await currentUserHasPermission("contacts:create", { acceptCompanyScope: true });
+  const canEdit = await currentUserHasPermission("contacts:edit", { acceptCompanyScope: true });
+  const canDelete = await currentUserHasPermission("contacts:delete", { acceptCompanyScope: true });
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -25,7 +26,7 @@ export default async function ContatosRootPage() {
       <ContactsTab
         canCreate={canCreate}
         canEdit={canEdit}
-        canDelete={false}
+        canDelete={canDelete}
       />
     </div>
   );

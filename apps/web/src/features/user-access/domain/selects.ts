@@ -1,4 +1,4 @@
-import type { UserAccessListItem, SystemUserListItem } from "@/features/user-access/domain/model";
+import type { UserAccessListItem } from "@/features/user-access/domain/model";
 
 export const userListSelect = {
   id: true,
@@ -127,19 +127,5 @@ export function mapClientUserListItem(user: UserListSelectResult): UserAccessLis
       user.memberships[0]?.company?.razaoSocial ||
       "Sem Vinculo",
     companyId: user.contact?.companyId ?? primaryContactLink?.companyId ?? user.memberships[0]?.companyId ?? null,
-  };
-}
-
-export function mapSystemUserListItem(user: UserListSelectResult): SystemUserListItem {
-  const mapped = mapClientUserListItem(user);
-  return {
-    id: mapped.id,
-    name: mapped.name,
-    email: mapped.email,
-    image: mapped.image,
-    role: mapped.role,
-    isActive: mapped.isActive,
-    memberships: mapped.memberships,
-    contact: mapped.contact,
   };
 }

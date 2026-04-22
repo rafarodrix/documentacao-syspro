@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
+import { getUsersAdminViewData } from "@/features/user-access/application/queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateUserPageForm } from "@/features/user-access/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
@@ -20,14 +20,15 @@ export default async function CadastrosUsuariosNovoPage() {
   const allowedRoles = getAllowedRolesForRequester(session.role as Role);
   if (!allowedRoles.length) return <CadastrosAccessDenied />;
 
-  const result = await getClientUsersAdminViewData();
+  const result = await getUsersAdminViewData();
   if ("error" in result) return <div>Erro: {result.error}</div>;
+  const isGlobalView = await currentUserHasPermission("users:view_all");
 
   return (
     <CreateUserPageForm
       companies={result.companies}
       context="UNIFIED"
-      isAdmin={result.isGlobalView}
+      isAdmin={isGlobalView || result.isGlobalView}
       allowedRoles={allowedRoles}
       backHref="/portal/cadastros/usuarios"
     />

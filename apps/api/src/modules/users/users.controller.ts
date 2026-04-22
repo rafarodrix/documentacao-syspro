@@ -12,26 +12,6 @@ export class UsersController {
     return this.usersService.findAll({ search, role }, req.headers);
   }
 
-  @Get('view/client-admin')
-  getClientAdminView(@Req() req: Request) {
-    return this.usersService.getClientAdminView(req.headers);
-  }
-
-  @Get('view/system-admin')
-  getSystemAdminView(@Req() req: Request) {
-    return this.usersService.getSystemAdminView(req.headers);
-  }
-
-  @Get('view/client/:id/edit')
-  getClientUserEditView(@Req() req: Request, @Param('id') id: string) {
-    return this.usersService.getClientUserEditView(id, req.headers);
-  }
-
-  @Get('view/system/:id/edit')
-  getSystemUserEditView(@Req() req: Request, @Param('id') id: string) {
-    return this.usersService.getSystemUserEditView(id, req.headers);
-  }
-
   @Post()
   create(
     @Req() req: Request,
