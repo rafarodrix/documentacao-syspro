@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { CompanySegment, CompanyStatus } from "@prisma/client"
+import { CompanyStatus } from "@prisma/client"
 import { toast } from "sonner"
 import {
   Table,
@@ -13,10 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +29,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/domain/model"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord"
+import {
+  RegistryEmptyState,
+  RegistryFeedback,
+  RegistryFilterGroup,
+  RegistryFooter,
+  RegistryMetricCard,
+  RegistryMetrics,
+  RegistryTableCard,
+  RegistryToolbar,
+} from "@/components/platform/shared/RegistryListScaffold"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
 
@@ -327,111 +335,68 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
       />
 
       <div className="space-y-4">
-        {feedback && (
-          <div
-            className={cn(
-              "rounded-lg border px-3 py-2 text-sm",
-              feedback.type === "success"
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
-            )}
-          >
-            {feedback.message}
-          </div>
-        )}
-        <div className="flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
-          <div className="relative w-full sm:w-80 group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Razao social, fantasia ou CNPJ..."
-              className="pl-9 h-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+        {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
 
-          <div className="w-full sm:w-auto space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
-            <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="inline-flex min-w-max items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
-              <button
-                onClick={() => setFilterStatus("ALL")}
-                className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                  filterStatus === "ALL" ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Todas <span className="ml-1.5 text-[10px] text-muted-foreground">{items.length}</span>
-              </button>
-              {(Object.keys(STATUS_CONFIG) as CompanyStatus[]).map((status) => {
-                const cfg = STATUS_CONFIG[status]
-                const count = statusCounts[status] ?? 0
-                if (count === 0) return null
-                return (
-                  <button
-                    key={status}
-                    onClick={() => setFilterStatus(status)}
-                    className={cn(
-                      "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                      filterStatus === status ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {cfg.label} <span className="ml-1.5 text-[10px] text-muted-foreground">{count}</span>
-                  </button>
-                )
-              })}
-              </div>
-            </div>
+        <RegistryMetrics>
+          <RegistryMetricCard title="Total" value={items.length} description="Empresas cadastradas" icon={Building2} tone="info" />
+          <RegistryMetricCard title="Ativas" value={statusCounts.ACTIVE ?? 0} description="Disponiveis para operacao" icon={Users} tone="success" />
+          <RegistryMetricCard title="Bloqueadas" value={blockedCount} description="Com restricao contratual" icon={CircleAlert} tone={blockedCount > 0 ? "warning" : "neutral"} />
+        </RegistryMetrics>
 
-            <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="inline-flex min-w-max items-center gap-1.5 p-1 rounded-lg border border-border/50 bg-muted/20">
-              <button
-                onClick={() => setFilterBlocked("ALL")}
-                className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                  filterBlocked === "ALL" ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Todos
-              </button>
-              <button
-                onClick={() => setFilterBlocked("BLOCKED")}
-                className={cn(
-                  "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                  filterBlocked === "BLOCKED" ? "bg-background shadow-sm text-foreground border border-border/50" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Bloqueadas <span className="ml-1.5 text-[10px] text-muted-foreground">{blockedCount}</span>
-              </button>
-              </div>
-            </div>
-
-            {canCreate && (
-              <Link href="/portal/cadastros/empresa/novo" className="block w-full sm:w-auto">
-                <Button
-                  type="button"
-                  className="inline-flex w-full sm:w-auto items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
-                >
+        <RegistryToolbar
+          searchValue={searchTerm}
+          searchPlaceholder="Razao social, fantasia ou CNPJ..."
+          onSearchChange={setSearchTerm}
+          onClearSearch={() => setSearchTerm("")}
+          resultLabel={`${filteredData.length} filtradas`}
+          filters={
+            <>
+              <RegistryFilterGroup
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={[
+                  { value: "ALL", label: "Todas", count: items.length },
+                  ...(Object.keys(STATUS_CONFIG) as CompanyStatus[])
+                    .filter((status) => (statusCounts[status] ?? 0) > 0)
+                    .map((status) => ({
+                      value: status,
+                      label: STATUS_CONFIG[status].label,
+                      count: statusCounts[status] ?? 0,
+                    })),
+                ]}
+              />
+              <RegistryFilterGroup
+                value={filterBlocked}
+                onChange={setFilterBlocked}
+                options={[
+                  { value: "ALL", label: "Todos" },
+                  { value: "BLOCKED", label: "Bloqueadas", count: blockedCount },
+                ]}
+              />
+            </>
+          }
+          actions={
+            canCreate ? (
+              <Button asChild size="sm" className="h-9 gap-2">
+                <Link href="/portal/cadastros/empresa/novo">
                   <Plus className="h-4 w-4" />
-                  Nova Empresa
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
+                  Nova empresa
+                </Link>
+              </Button>
+            ) : null
+          }
+        />
 
-        <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
-          <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <RegistryTableCard>
           <div className="md:hidden divide-y">
             {filteredData.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <p className="font-medium text-foreground">Nenhuma empresa encontrada</p>
-                <p className="text-xs mt-1">Ajuste os filtros ou cadastre uma nova empresa.</p>
-              </div>
+              <RegistryEmptyState
+                icon={Building2}
+                title="Nenhuma empresa encontrada"
+                description="Ajuste os filtros ou cadastre uma nova empresa."
+                searchTerm={searchTerm}
+                onClear={() => setSearchTerm("")}
+              />
             ) : (
               filteredData.map((company) => {
                 const memberCount = company._count?.memberships ?? company.usersCount ?? 0
@@ -501,15 +466,14 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
               {filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground animate-in fade-in zoom-in-95 duration-500">
-                      <div className="rounded-full bg-muted/30 p-4">
-                        <Building2 className="h-8 w-8 opacity-40" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-medium text-foreground">Nenhuma empresa encontrada</p>
-                        <p className="text-xs">Ajuste os filtros ou cadastre uma nova empresa.</p>
-                      </div>
-                    </div>
+                    <RegistryEmptyState
+                      icon={Building2}
+                      title="Nenhuma empresa encontrada"
+                      description="Ajuste os filtros ou cadastre uma nova empresa."
+                      searchTerm={searchTerm}
+                      onClear={() => setSearchTerm("")}
+                      compact
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -614,7 +578,16 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             </TableBody>
           </Table>
           </div>
-        </Card>
+        </RegistryTableCard>
+
+        <RegistryFooter
+          filtered={filteredData.length}
+          total={items.length}
+          singular="empresa"
+          plural="empresas"
+          searchTerm={searchTerm}
+          onClearSearch={() => setSearchTerm("")}
+        />
       </div>
     </>
   )

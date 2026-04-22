@@ -16,18 +16,15 @@ import {
   Phone,
   Plus,
   RefreshCw,
-  Search,
   Trash2,
   Unlink,
   UserRound,
   Users,
-  X,
   type LucideIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +33,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -47,6 +43,15 @@ import {
 } from "@/components/ui/table";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/ConfirmActionDialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord";
+import {
+  RegistryEmptyState,
+  RegistryFilterGroup,
+  RegistryFooter,
+  RegistryMetricCard,
+  RegistryMetrics,
+  RegistryTableCard,
+  RegistryToolbar,
+} from "@/components/platform/shared/RegistryListScaffold";
 import { cn } from "@/lib/utils";
 
 type ContactItem = {
@@ -295,57 +300,31 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       />
 
       <div className="space-y-5">
-        <div className="grid gap-3 md:grid-cols-3">
-          <MetricCard title="Total" value={counts.all} description="Contatos cadastrados" icon={Users} tone="info" />
-          <MetricCard title="Vinculados" value={counts.linked} description="Com ao menos uma empresa" icon={Building2} tone="success" />
-          <MetricCard title="Sem empresa" value={counts.unlinked} description="Pendentes de vinculo" icon={UserRound} tone="neutral" />
-        </div>
+        <RegistryMetrics>
+          <RegistryMetricCard title="Total" value={counts.all} description="Contatos cadastrados" icon={Users} tone="info" />
+          <RegistryMetricCard title="Vinculados" value={counts.linked} description="Com ao menos uma empresa" icon={Building2} tone="success" />
+          <RegistryMetricCard title="Sem empresa" value={counts.unlinked} description="Pendentes de vinculo" icon={UserRound} tone="neutral" />
+        </RegistryMetrics>
 
-        <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex min-w-max gap-2">
-                  {(Object.keys(SCOPE_LABELS) as ScopeFilter[]).map((key) => (
-                    <Button
-                      key={key}
-                      type="button"
-                      variant={scope === key ? "default" : "outline"}
-                      size="sm"
-                      className="h-9"
-                      onClick={() => setScope(key)}
-                    >
-                      {SCOPE_LABELS[key]} ({counts[key]})
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="group relative w-full lg:w-96">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                <Input
-                  placeholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
-                  className="h-9 rounded-md border-border/60 bg-background pl-10 pr-9 text-sm"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                />
-                {searchTerm ? (
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setSearchTerm("")}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center xl:justify-end">
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground sm:mr-1">
-                <Search className="h-3.5 w-3.5" />
-                {filteredData.length} filtrados
-              </span>
+        <RegistryToolbar
+          searchValue={searchTerm}
+          searchPlaceholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
+          onSearchChange={setSearchTerm}
+          onClearSearch={() => setSearchTerm("")}
+          resultLabel={`${filteredData.length} filtrados`}
+          filters={
+            <RegistryFilterGroup
+              value={scope}
+              onChange={setScope}
+              options={(Object.keys(SCOPE_LABELS) as ScopeFilter[]).map((key) => ({
+                value: key,
+                label: SCOPE_LABELS[key],
+                count: counts[key],
+              }))}
+            />
+          }
+          actions={
+            <>
               <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => void loadContacts()} disabled={loadingList}>
                 {loadingList ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Atualizar
@@ -362,16 +341,22 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
                   </Link>
                 </Button>
               ) : null}
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
 
-        <Card className="overflow-hidden border-border/60 bg-card shadow-sm">
+        <RegistryTableCard>
           <div className="divide-y divide-border/60 md:hidden">
             {loadingList ? (
               <LoadingBlock label="Carregando contatos..." />
             ) : filteredData.length === 0 ? (
-              <EmptyBlock />
+              <RegistryEmptyState
+                icon={Users}
+                title="Nenhum contato encontrado"
+                description="Ajuste os filtros ou cadastre um novo contato."
+                searchTerm={searchTerm}
+                onClear={() => setSearchTerm("")}
+              />
             ) : (
               filteredData.map((contact) => (
                 <MobileContactCard
@@ -409,7 +394,14 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
                 ) : filteredData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-64 text-center">
-                      <EmptyBlock compact />
+                      <RegistryEmptyState
+                        icon={Users}
+                        title="Nenhum contato encontrado"
+                        description="Ajuste os filtros ou cadastre um novo contato."
+                        searchTerm={searchTerm}
+                        onClear={() => setSearchTerm("")}
+                        compact
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -430,51 +422,23 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
               </TableBody>
             </Table>
           </div>
-        </Card>
+        </RegistryTableCard>
 
-        <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>Total filtrado: {filteredData.length}</span>
-          <span>
+        <RegistryFooter
+          filtered={filteredData.length}
+          total={contacts.length}
+          singular="contato"
+          plural="contatos"
+          searchTerm={searchTerm}
+          onClearSearch={() => setSearchTerm("")}
+          right={(
+            <span>
             Email: {counts.withEmail} | Telefone: {counts.withPhone}
-          </span>
-        </div>
+            </span>
+          )}
+        />
       </div>
     </>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-  tone,
-}: {
-  title: string;
-  value: number;
-  description: string;
-  icon: LucideIcon;
-  tone: "info" | "success" | "neutral";
-}) {
-  const toneClass = {
-    info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-    neutral: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
-  }[tone];
-
-  return (
-    <Card className="border-border/60 bg-card shadow-sm">
-      <CardContent className="flex items-start justify-between gap-3 p-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-          <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-        </div>
-        <div className={cn("flex h-9 w-9 items-center justify-center rounded-md", toneClass)}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -729,20 +693,6 @@ function LoadingBlock({ label, compact = false }: { label: string; compact?: boo
     <div className={cn("flex flex-col items-center justify-center gap-3 text-muted-foreground", compact ? "" : "p-12")}>
       <Loader2 className="h-6 w-6 animate-spin opacity-40" />
       <p className="text-sm">{label}</p>
-    </div>
-  );
-}
-
-function EmptyBlock({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={cn("flex flex-col items-center justify-center gap-3 text-center text-muted-foreground", compact ? "" : "p-8")}>
-      <div className="rounded-full bg-muted/40 p-4">
-        <Users className="h-8 w-8 opacity-40" />
-      </div>
-      <div>
-        <p className="font-medium text-foreground">Nenhum contato encontrado</p>
-        <p className="mt-1 text-xs">Ajuste os filtros ou cadastre um novo contato.</p>
-      </div>
     </div>
   );
 }

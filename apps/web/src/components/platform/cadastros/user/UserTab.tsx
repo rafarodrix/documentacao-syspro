@@ -8,19 +8,15 @@ import { toast } from "sonner";
 import type { UserAccessListItem } from "@/features/user-access/domain/model";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
 import {
-  Search,
   MoreHorizontal,
   Shield,
   Building,
   UserX,
   UserCheck,
   Loader2,
-  X,
   Users,
   UserPlus,
   Pencil,
@@ -29,6 +25,16 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord";
+import {
+  RegistryEmptyState,
+  RegistryFeedback,
+  RegistryFilterGroup,
+  RegistryFooter,
+  RegistryMetricCard,
+  RegistryMetrics,
+  RegistryTableCard,
+  RegistryToolbar,
+} from "@/components/platform/shared/RegistryListScaffold";
 
 type UserWithRelations = UserAccessListItem;
 
@@ -83,34 +89,6 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isActive ? "bg-emerald-500 animate-pulse" : "bg-zinc-400")} />
       {isActive ? "Ativo" : "Inativo"}
     </span>
-  );
-}
-
-function EmptyState({
-  isSearching,
-  searchTerm,
-  onClear,
-}: {
-  isSearching: boolean;
-  searchTerm: string;
-  onClear: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 animate-in fade-in zoom-in-95 duration-300">
-      <div className="h-14 w-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-4 ring-1 ring-border/40">
-        <Users className="h-7 w-7 text-muted-foreground/40" />
-      </div>
-      <p className="text-sm font-semibold text-foreground">{isSearching ? `Sem resultados para "${searchTerm}"` : "Nenhum usuario cadastrado"}</p>
-      <p className="text-xs text-muted-foreground mt-1 max-w-65 text-center">
-        {isSearching ? "Tente outros termos ou limpe o filtro." : "Convide novos membros para colaborar no sistema."}
-      </p>
-      {isSearching && (
-        <Button variant="outline" size="sm" className="mt-4 gap-1.5 text-xs" onClick={onClear}>
-          <X className="w-3.5 h-3.5" />
-          Limpar busca
-        </Button>
-      )}
-    </div>
   );
 }
 
@@ -236,6 +214,22 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
     );
   }, [companyFilter, roleFilter, users, searchTerm]);
 
+  const counts = useMemo(() => {
+    const client = users.filter((user) => user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER).length;
+    const system = users.filter((user) => user.role === Role.ADMIN || user.role === Role.DEVELOPER || user.role === Role.SUPORTE).length;
+    const withCompany = users.filter((user) => Boolean(user.companyId)).length;
+
+    return {
+      all: users.length,
+      active: users.filter((user) => user.isActive).length,
+      withoutContact: users.filter((user) => !user.contact).length,
+      client,
+      system,
+      withCompany,
+      withoutCompany: users.length - withCompany,
+    };
+  }, [users]);
+
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
     try {
@@ -286,79 +280,64 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
       />
 
       <div className="space-y-4">
-        {feedback && (
-          <div
-            className={cn(
-              "rounded-lg border px-3 py-2 text-sm",
-              feedback.type === "success"
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
-            )}
-          >
-            {feedback.message}
-          </div>
-        )}
+        {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
 
-        <div className="flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <div className="relative w-full sm:w-80 group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input
-                placeholder="Nome, e-mail, contato ou empresa..."
-                className="pl-9 h-9 bg-background border-border/60 focus-visible:ring-primary/20"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+        <RegistryMetrics>
+          <RegistryMetricCard title="Total" value={counts.all} description="Acessos cadastrados" icon={Users} tone="info" />
+          <RegistryMetricCard title="Ativos" value={counts.active} description="Podem acessar o portal" icon={UserCheck} tone="success" />
+          <RegistryMetricCard title="Sem contato" value={counts.withoutContact} description="Precisam de vinculo" icon={Link2} tone={counts.withoutContact > 0 ? "warning" : "neutral"} />
+        </RegistryMetrics>
+
+        <RegistryToolbar
+          searchValue={searchTerm}
+          searchPlaceholder="Nome, e-mail, contato ou empresa..."
+          onSearchChange={setSearchTerm}
+          onClearSearch={() => setSearchTerm("")}
+          resultLabel={`${filteredData.length} filtrados`}
+          filters={
+            <>
+              <RegistryFilterGroup
+                value={roleFilter}
+                onChange={setRoleFilter}
+                options={[
+                  { value: "all", label: "Todos os perfis", count: counts.all },
+                  { value: "client", label: "Plataforma", count: counts.client },
+                  { value: "system", label: "Equipe interna", count: counts.system },
+                ]}
               />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-            <select
-              value={roleFilter}
-              onChange={(event) => setRoleFilter(event.target.value as "all" | "client" | "system")}
-              className="h-9 w-full rounded-md border border-border/60 bg-background px-3 text-sm sm:w-48"
-            >
-              <option value="all">Todos os perfis</option>
-              <option value="client">Usuarios da plataforma</option>
-              <option value="system">Equipe interna</option>
-            </select>
-            <select
-              value={companyFilter}
-              onChange={(event) => setCompanyFilter(event.target.value as "all" | "with_company" | "without_company")}
-              className="h-9 w-full rounded-md border border-border/60 bg-background px-3 text-sm sm:w-56"
-            >
-              <option value="all">Todas as empresas</option>
-              <option value="with_company">Com empresa vinculada</option>
-              <option value="without_company">Sem empresa vinculada</option>
-            </select>
-          </div>
-
-          {canManage && (
-            <Link href="/portal/cadastros/usuarios/novo" className="w-full sm:w-auto">
-              <Button
-                type="button"
-                className="inline-flex w-full sm:w-auto items-center justify-center whitespace-nowrap rounded-md py-2 text-sm font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground px-4 shadow-sm hover:bg-primary/90 gap-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                Novo usuario
+              <RegistryFilterGroup
+                value={companyFilter}
+                onChange={setCompanyFilter}
+                options={[
+                  { value: "all", label: "Todas as empresas", count: counts.all },
+                  { value: "with_company", label: "Com empresa", count: counts.withCompany },
+                  { value: "without_company", label: "Sem empresa", count: counts.withoutCompany },
+                ]}
+              />
+            </>
+          }
+          actions={
+            canManage ? (
+              <Button asChild size="sm" className="h-9 gap-2">
+                <Link href="/portal/cadastros/usuarios/novo">
+                  <UserPlus className="h-4 w-4" />
+                  Novo usuario
+                </Link>
               </Button>
-            </Link>
-          )}
-        </div>
+            ) : null
+          }
+        />
 
-        <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <RegistryTableCard>
           <div className="md:hidden divide-y">
             {filteredData.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <p className="font-medium text-foreground">Nenhum usuario encontrado</p>
-                <p className="text-xs mt-1">Ajuste os filtros para continuar.</p>
-              </div>
+              <RegistryEmptyState
+                icon={Users}
+                title="Nenhum usuario cadastrado"
+                description="Ajuste os filtros ou cadastre um novo usuario."
+                searchTerm={searchTerm}
+                onClear={() => setSearchTerm("")}
+              />
             ) : (
               filteredData.map((user) => (
                 <ClickableCard
@@ -413,7 +392,14 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
               {filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5}>
-                    <EmptyState isSearching={!!searchTerm} searchTerm={searchTerm} onClear={() => setSearchTerm("")} />
+                    <RegistryEmptyState
+                      icon={Users}
+                      title="Nenhum usuario cadastrado"
+                      description="Ajuste os filtros ou cadastre um novo usuario."
+                      searchTerm={searchTerm}
+                      onClear={() => setSearchTerm("")}
+                      compact
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -499,25 +485,16 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
             </TableBody>
           </Table>
           </div>
-        </Card>
+        </RegistryTableCard>
 
-        {filteredData.length > 0 && (
-          <div className="flex items-center justify-between px-1">
-            <p className="text-xs text-muted-foreground">
-              Exibindo <span className="font-medium text-foreground tabular-nums">{filteredData.length}</span> de{" "}
-              <span className="font-medium text-foreground tabular-nums">{users.length}</span> {users.length === 1 ? "usuario" : "usuarios"}
-            </p>
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-              >
-                <X className="w-3 h-3" />
-                Limpar busca
-              </button>
-            )}
-          </div>
-        )}
+        <RegistryFooter
+          filtered={filteredData.length}
+          total={users.length}
+          singular="usuario"
+          plural="usuarios"
+          searchTerm={searchTerm}
+          onClearSearch={() => setSearchTerm("")}
+        />
       </div>
     </>
   );
