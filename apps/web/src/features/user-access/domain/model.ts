@@ -44,6 +44,9 @@ export type UserAccessContactSummary = {
   name: string;
   whatsapp: string | null;
   email: string | null;
+  cpf?: string | null;
+  jobTitle?: string | null;
+  phone?: string | null;
   companyId: string | null;
   company: {
     id: string;

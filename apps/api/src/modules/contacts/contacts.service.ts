@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { CompanyContactSource, CompanyContactStatus } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { CompanyContactSource, CompanyContactStatus, Role } from '@prisma/client';
+import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
+import { AuthorizationService } from '../authorization/authorization.service';
 
 type ContactQueryInput = {
   q?: string;
@@ -43,13 +45,20 @@ export class ContactsService {
     private readonly evolutionClient: EvolutionClient,
     private readonly chatwootClient: ChatwootClient,
     private readonly integrationContext: IntegrationContextService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
-  async getContacts(input: ContactQueryInput) {
+  async getContacts(input: ContactQueryInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+    if (!scope.isGlobal && !scope.companyIds.length) return [];
+
     const q = input.q?.trim();
     const where: any = {};
 
-    if (input.unlinked === 'true') {
+    if (!scope.isGlobal) {
+      where.companyLinks = { some: { companyId: { in: scope.companyIds } } };
+    } else if (input.unlinked === 'true') {
       where.companyLinks = { none: {} };
     } else if (input.unlinked === 'false') {
       where.companyLinks = { some: {} };
@@ -81,7 +90,11 @@ export class ContactsService {
     return contacts.map((contact: any) => this.serializeContact(contact));
   }
 
-  async getUnlinkedContacts() {
+  async getUnlinkedContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+    if (!scope.isGlobal) return [];
+
     const contacts = await (this.prisma.companyContact as any).findMany({
       where: {
         companyLinks: { none: {} },
@@ -95,16 +108,19 @@ export class ContactsService {
     return contacts.map((contact: any) => this.serializeContact(contact));
   }
 
-  async getContactById(contactId: string) {
+  async getContactById(contactId: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
     const contact = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
     });
     if (!contact) throw new NotFoundException('Contato nao encontrado');
+    await this.assertContactVisibleToRequester(requester, contact);
     return this.serializeContact(contact);
   }
 
-  async createContact(input: CreateContactInput) {
+  async createContact(input: CreateContactInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanManageContacts(rawHeaders);
     const name = String(input.name ?? '').trim();
     if (!name) {
       throw new BadRequestException('Nome do contato obrigatorio');
@@ -113,6 +129,7 @@ export class ContactsService {
     const whatsapp = this.normalizePhone(input.whatsapp);
     const phone = this.normalizePhone(input.phone);
     const companyIds = this.normalizeCompanyIds(input.companyIds, input.companyId);
+    await this.assertCompanyIdsAllowedForRequester(requester, companyIds);
     const existing = whatsapp
       ? await (this.prisma.companyContact as any).findFirst({
           where: { whatsapp },
@@ -121,6 +138,8 @@ export class ContactsService {
       : null;
 
     if (existing) {
+      await this.assertContactManageableByRequester(requester, existing);
+
       const updated = await this.prisma.$transaction(
         async (tx) => {
           const updatedContact = await (tx.companyContact as any).update({
@@ -180,16 +199,19 @@ export class ContactsService {
     return serialized;
   }
 
-  async updateContact(contactId: string, input: UpdateContactInput) {
+  async updateContact(contactId: string, input: UpdateContactInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanManageContacts(rawHeaders);
     const existing = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
     });
     if (!existing) throw new NotFoundException('Contato nao encontrado');
+    await this.assertContactManageableByRequester(requester, existing);
 
     const nextCompanyIds = input.companyId !== undefined || input.companyIds !== undefined
       ? this.normalizeCompanyIds(input.companyIds, input.companyId)
       : this.extractCompanyIds(existing);
+    await this.assertCompanyIdsAllowedForRequester(requester, nextCompanyIds);
 
     const data: any = {};
     if (input.name !== undefined) data.name = String(input.name).trim() || existing.name;
@@ -225,24 +247,40 @@ export class ContactsService {
     return serialized;
   }
 
-  async linkContactToCompany(contactId: string, companyId: string) {
+  async linkContactToCompany(contactId: string, companyId: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanManageContacts(rawHeaders);
     const contact = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
       include: this.contactInclude(),
     });
     if (!contact) throw new NotFoundException('Contato nao encontrado');
+    await this.assertContactManageableByRequester(requester, contact);
+    await this.assertCompanyIdsAllowedForRequester(requester, [companyId]);
 
     const nextCompanyIds = Array.from(new Set([companyId, ...this.extractCompanyIds(contact)]));
-    return this.updateContact(contactId, { companyIds: nextCompanyIds });
+    return this.updateContact(contactId, { companyIds: nextCompanyIds }, rawHeaders);
   }
 
-  async deleteContact(contactId: string) {
+  async deleteContact(contactId: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanManageContacts(rawHeaders);
+    const existing = await (this.prisma.companyContact as any).findUnique({
+      where: { id: contactId },
+      include: this.contactInclude(),
+    });
+    if (!existing) throw new NotFoundException('Contato nao encontrado');
+    await this.assertContactManageableByRequester(requester, existing);
+
     return this.prisma.companyContact.delete({
       where: { id: contactId },
     });
   }
 
-  async syncFromIntegration(instanceName?: string) {
+  async syncFromIntegration(instanceName?: string, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanManageContacts(rawHeaders);
+    if (!this.authorizationService.isSystemRole(requester.role)) {
+      throw new ForbiddenException('Sincronizacao de contatos permitida apenas para equipe interna.');
+    }
+
     const context = await this.resolveEvolutionContext(instanceName);
     if (!context) {
       return {
@@ -527,6 +565,91 @@ export class ContactsService {
   private normalizePhone(value?: string | null): string | null {
     const digits = String(value ?? '').replace(/\D/g, '');
     return digits || null;
+  }
+
+  private async assertCanViewContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canView =
+      await this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }) ||
+      await this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }) ||
+      await this.authorizationService.userHasPermission(requester, 'users:view_all');
+
+    if (!canView) {
+      throw new ForbiddenException('Sem permissao para consultar contatos.');
+    }
+
+    return requester;
+  }
+
+  private async assertCanManageContacts(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canManage =
+      await this.authorizationService.userHasPermission(requester, 'users:create', { acceptCompanyScope: true }) ||
+      await this.authorizationService.userHasPermission(requester, 'users:edit', { acceptCompanyScope: true });
+
+    if (!canManage) {
+      throw new ForbiddenException('Sem permissao para gerenciar contatos.');
+    }
+
+    return requester;
+  }
+
+  private async resolveContactCompanyScope(requester: { userId: string; role: Role; email: string }) {
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'users:view_team',
+      'users:view_all',
+    );
+  }
+
+  private async assertCompanyIdsAllowedForRequester(
+    requester: { userId: string; role: Role; email: string },
+    companyIds: string[],
+  ) {
+    if (this.authorizationService.isSystemRole(requester.role)) return;
+    if (requester.role !== Role.CLIENTE_ADMIN) {
+      throw new ForbiddenException('Sem permissao para vincular contatos a empresas.');
+    }
+
+    if (!companyIds.length) {
+      throw new BadRequestException('Contato precisa estar vinculado a uma empresa permitida.');
+    }
+
+    const allowedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
+    if (companyIds.some((companyId) => !allowedCompanyIds.includes(companyId))) {
+      throw new ForbiddenException('Contato informado nao pertence a uma empresa permitida.');
+    }
+  }
+
+  private async assertContactVisibleToRequester(
+    requester: { userId: string; role: Role; email: string },
+    contact: any,
+  ) {
+    if (this.authorizationService.isSystemRole(requester.role)) return;
+
+    const scope = await this.resolveContactCompanyScope(requester);
+    const contactCompanyIds = this.extractCompanyIds(contact);
+    if (contactCompanyIds.some((companyId) => scope.companyIds.includes(companyId))) return;
+
+    throw new NotFoundException('Contato nao encontrado');
+  }
+
+  private async assertContactManageableByRequester(
+    requester: { userId: string; role: Role; email: string },
+    contact: any,
+  ) {
+    if (this.authorizationService.isSystemRole(requester.role)) return;
+
+    const scope = await this.resolveContactCompanyScope(requester);
+    const contactCompanyIds = this.extractCompanyIds(contact);
+    if (
+      contactCompanyIds.length &&
+      contactCompanyIds.every((companyId) => scope.companyIds.includes(companyId))
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException('Contato informado nao pertence integralmente ao seu escopo.');
   }
 
   private shouldSyncEvolutionName(existing: {

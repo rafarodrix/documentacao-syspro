@@ -42,7 +42,14 @@ function getInitials(name: string | null): string {
 }
 
 function RoleBadge({ role }: { role: Role }) {
-  const isPrivileged = role === Role.ADMIN || role === Role.DEVELOPER;
+  const isPrivileged = role === Role.ADMIN || role === Role.DEVELOPER || role === Role.SUPORTE;
+  const labels: Record<Role, string> = {
+    [Role.ADMIN]: "Admin",
+    [Role.DEVELOPER]: "Desenvolvedor",
+    [Role.SUPORTE]: "Suporte",
+    [Role.CLIENTE_ADMIN]: "Gestor",
+    [Role.CLIENTE_USER]: "Usuario",
+  };
 
   return (
     <span
@@ -55,7 +62,7 @@ function RoleBadge({ role }: { role: Role }) {
       )}
     >
       {isPrivileged && <Shield className="w-2.5 h-2.5" />}
-      {role.replace("CLIENTE_", "")}
+      {labels[role] ?? role}
     </span>
   );
 }
@@ -185,6 +192,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
   const [users, setUsers] = useState<UserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState<"all" | "with_company" | "without_company">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "client" | "system">("all");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<UserWithRelations | null>(null);
@@ -202,6 +210,9 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
         (companyFilter === "all" ||
           (companyFilter === "with_company" && Boolean(user.companyId)) ||
           (companyFilter === "without_company" && !user.companyId)) &&
+        (roleFilter === "all" ||
+          (roleFilter === "client" && (user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER)) ||
+          (roleFilter === "system" && (user.role === Role.ADMIN || user.role === Role.DEVELOPER || user.role === Role.SUPORTE))) &&
         (
           !term ||
           user.name?.toLowerCase().includes(term) ||
@@ -210,7 +221,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
           (user.cpf && user.cpf.includes(cpfRaw))
         ),
     );
-  }, [companyFilter, users, searchTerm]);
+  }, [companyFilter, roleFilter, users, searchTerm]);
 
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
@@ -289,6 +300,15 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                 </button>
               )}
             </div>
+            <select
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value as "all" | "client" | "system")}
+              className="h-9 w-full rounded-md border border-border/60 bg-background px-3 text-sm sm:w-48"
+            >
+              <option value="all">Todos os perfis</option>
+              <option value="client">Usuarios da plataforma</option>
+              <option value="system">Equipe interna</option>
+            </select>
             <select
               value={companyFilter}
               onChange={(event) => setCompanyFilter(event.target.value as "all" | "with_company" | "without_company")}

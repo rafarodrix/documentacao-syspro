@@ -1,13 +1,13 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getClientUsersAdminViewData } from "@/features/user-access/application/queries";
-import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
+import { getUsersAdminViewData } from "@/features/user-access/application/queries";
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { UserTab } from "@/features/user-access/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
 export default async function CadastrosUsuariosPage() {
   await requireSession();
-  const result = await getClientUsersAdminViewData();
+  const result = await getUsersAdminViewData();
 
   if ("error" in result) return <div>Erro: {result.error}</div>;
   if (
@@ -21,17 +21,18 @@ export default async function CadastrosUsuariosPage() {
   const canManage = await currentUserHasAnyPermission(["users:create", "users:edit", "users:status"], {
     acceptCompanyScope: true,
   });
+  const isGlobalView = await currentUserHasPermission("users:view_all");
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <CadastrosPageHeader
-        title="Cadastro de Usuario"
-        description="Cadastre e gerencie usuarios vinculados as empresas."
-        isGlobalView={result.isGlobalView}
+        title="Usuarios"
+        description="Cadastre e gerencie usuarios da plataforma e da equipe interna em uma unica tela."
+        isGlobalView={isGlobalView || result.isGlobalView}
       />
       <UserTab
         data={result.users}
-        isAdmin={result.isGlobalView}
+        isAdmin={isGlobalView || result.isGlobalView}
         canManage={canManage}
       />
     </div>

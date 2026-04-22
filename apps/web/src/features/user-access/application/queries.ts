@@ -58,6 +58,39 @@ export async function getClientUsersAdminViewData(): Promise<
   }
 }
 
+export async function getUsersAdminViewData(): Promise<
+  | { companies: ClientUserEditViewData["companies"]; users: UserAccessListItem[]; isGlobalView: boolean }
+  | ActionError
+> {
+  try {
+    const [usersResponse, companiesResponse] = await Promise.all([
+      apiRequest("/users"),
+      apiRequest("/companies/options"),
+    ]);
+
+    if (!usersResponse.ok) {
+      return { error: "Erro ao buscar usuarios." };
+    }
+
+    const usersPayload = (await usersResponse.json()) as UserListSelectResult[];
+    const companiesPayload = companiesResponse.ok
+      ? ((await companiesResponse.json()) as ClientUserEditViewData["companies"])
+      : [];
+
+    const isGlobalView = usersPayload.some((user) =>
+      user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE",
+    );
+
+    return {
+      companies: companiesPayload,
+      users: usersPayload.map(mapClientUserListItem),
+      isGlobalView,
+    };
+  } catch {
+    return { error: "Erro ao buscar usuarios." };
+  }
+}
+
 export async function getSystemUsersAdminViewData(): Promise<
   | { users: SystemUserListItem[]; isGlobalView: boolean }
   | ActionError
@@ -90,4 +123,36 @@ export async function getSystemUserEditViewData(userId: string): Promise<SystemU
   if (!response.ok) notFound();
 
   return (await response.json()) as SystemUserEditViewData;
+}
+
+export async function getUserEditViewData(userId: string): Promise<ClientUserEditViewData & { context: "CLIENT" | "SYSTEM" }> {
+  const [userResponse, companiesResponse] = await Promise.all([
+    apiRequest(`/users/${encodeURIComponent(userId)}`),
+    apiRequest("/companies/options"),
+  ]);
+
+  if (!userResponse.ok) notFound();
+
+  const user = (await userResponse.json()) as UserListSelectResult;
+  const companies = companiesResponse.ok
+    ? ((await companiesResponse.json()) as ClientUserEditViewData["companies"])
+    : [];
+  const isSystemUser = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
+
+  return {
+    context: isSystemUser ? "SYSTEM" : "CLIENT",
+    userId: user.id,
+    companies,
+    isAdmin: isSystemUser,
+    initialData: {
+      name: user.name ?? "",
+      email: user.email,
+      role: user.role,
+      contactId: user.contact?.id ?? "",
+      jobTitle: user.jobTitle ?? user.contact?.jobTitle ?? "",
+      phone: user.phone ?? user.contact?.phone ?? "",
+      cpf: user.cpf ?? user.contact?.cpf ?? "",
+      password: "",
+    },
+  };
 }

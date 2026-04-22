@@ -16,6 +16,13 @@ import { AuthorizationService } from '../authorization/authorization.service';
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
+const ROLE_LABELS: Record<Role, string> = {
+  [Role.ADMIN]: 'Admin',
+  [Role.DEVELOPER]: 'Desenvolvedor',
+  [Role.SUPORTE]: 'Suporte',
+  [Role.CLIENTE_ADMIN]: 'Gestor da Unidade',
+  [Role.CLIENTE_USER]: 'Usuario',
+};
 
 type CreateUserInput = {
   email: string;
@@ -115,13 +122,13 @@ export class UsersService {
 
   async create(data: CreateUserInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
     const canCreateUsers = await this.authorizationService.userHasPermission(requester, 'users:create', {
       acceptCompanyScope: true,
     });
     const isClientManager = requester.role === Role.CLIENTE_ADMIN;
 
-    if (!canCreateUsers || (!isSystemRole && !isClientManager)) {
+    if (!canCreateUsers || (!isGlobalUserManager && !isClientManager)) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -135,9 +142,12 @@ export class UsersService {
       throw new BadRequestException('Contato obrigatorio para criar usuario.');
     }
 
+    const userRole = data.role || Role.CLIENTE_USER;
+    this.assertRequesterCanManageRole(requester.role, userRole);
+
     if (isClientManager) {
       const managedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
-      if (data.role && !CLIENT_ROLES.includes(data.role)) {
+      if (!CLIENT_ROLES.includes(userRole)) {
         throw new ForbiddenException('Gestor pode cadastrar apenas usuarios da unidade.');
       }
       await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
@@ -162,8 +172,6 @@ export class UsersService {
     const createdUserId = authResult.user.id;
 
     const createdUser = await this.prisma.$transaction(async (tx) => {
-      const userRole = data.role || Role.CLIENTE_USER;
-
       await (tx.user as any).update({
         where: { id: createdUserId },
         data: {
@@ -195,16 +203,20 @@ export class UsersService {
 
   async update(id: string, data: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const isSystemRole = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
     const canEditUsers = await this.authorizationService.userHasPermission(requester, 'users:edit', {
       acceptCompanyScope: true,
     });
     const isClientManager = requester.role === Role.CLIENTE_ADMIN;
 
-    if (!canEditUsers || (!isSystemRole && !isClientManager)) throw new ForbiddenException('Acesso negado.');
+    if (!canEditUsers || (!isGlobalUserManager && !isClientManager)) throw new ForbiddenException('Acesso negado.');
 
     const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
+    this.assertRequesterCanManageRole(requester.role, user.role);
+    if (data.role) {
+      this.assertRequesterCanManageRole(requester.role, data.role);
+    }
 
     let managedCompanyIds: string[] = [];
     if (isClientManager) {
@@ -276,6 +288,13 @@ export class UsersService {
       if (requester.role !== Role.CLIENTE_ADMIN) throw new ForbiddenException('Acesso negado.');
       await this.assertClientManagerCanManageTarget(requester.userId, id);
     }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id },
+      select: { role: true },
+    });
+    if (!targetUser) throw new NotFoundException('Usuario nao encontrado');
+    this.assertRequesterCanManageRole(requester.role, targetUser.role);
 
     const removedUser = await this.prisma.user.update({
       where: { id },
@@ -799,6 +818,9 @@ export class UsersService {
           name: true,
           whatsapp: true,
           email: true,
+          cpf: true,
+          jobTitle: true,
+          phone: true,
           companyLinks: {
             select: {
               companyId: true,
@@ -987,6 +1009,23 @@ export class UsersService {
 
     if (fromLinks.length) return Array.from(new Set(fromLinks));
     return [];
+  }
+
+  private getManageableRolesForRequester(role: Role): Role[] {
+    if (role === Role.ADMIN) return [...SYSTEM_ROLES, ...CLIENT_ROLES];
+    if (role === Role.DEVELOPER) return [Role.DEVELOPER];
+    if (role === Role.SUPORTE) return [Role.SUPORTE];
+    if (role === Role.CLIENTE_ADMIN) return [...CLIENT_ROLES];
+    return [];
+  }
+
+  private assertRequesterCanManageRole(requesterRole: Role, targetRole: Role) {
+    const allowedRoles = this.getManageableRolesForRequester(requesterRole);
+    if (!allowedRoles.includes(targetRole)) {
+      throw new ForbiddenException(
+        `${ROLE_LABELS[requesterRole]} nao pode gerenciar usuario com perfil ${ROLE_LABELS[targetRole]}.`,
+      );
+    }
   }
 
   private async assertClientManagerCanManageTarget(managerUserId: string, targetUserId: string) {

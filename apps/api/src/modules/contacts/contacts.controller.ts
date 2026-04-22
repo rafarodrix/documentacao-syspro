@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Delete, Body, Param, Patch, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Patch, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { ContactsService } from './contacts.service';
 
 @Controller('contacts')
@@ -7,6 +8,7 @@ export class ContactsController {
 
   @Post()
   create(
+    @Req() req: Request,
     @Body() body: {
       name: string;
       email?: string | null;
@@ -17,11 +19,12 @@ export class ContactsController {
       companyIds?: string[] | null;
     },
   ) {
-    return this.contactsService.createContact(body);
+    return this.contactsService.createContact(body, req.headers);
   }
 
   @Get()
   list(
+    @Req() req: Request,
     @Query('q') query?: string,
     @Query('unlinked') unlinked?: string,
     @Query('companyId') companyId?: string,
@@ -32,21 +35,22 @@ export class ContactsController {
       unlinked,
       companyId,
       limit,
-    });
+    }, req.headers);
   }
 
   @Get('unlinked')
-  getUnlinked() {
-    return this.contactsService.getUnlinkedContacts();
+  getUnlinked(@Req() req: Request) {
+    return this.contactsService.getUnlinkedContacts(req.headers);
   }
 
   @Get(':id')
-  getById(@Param('id') contactId: string) {
-    return this.contactsService.getContactById(contactId);
+  getById(@Req() req: Request, @Param('id') contactId: string) {
+    return this.contactsService.getContactById(contactId, req.headers);
   }
 
   @Patch(':id')
   updateContact(
+    @Req() req: Request,
     @Param('id') contactId: string,
     @Body() body: {
       name?: string;
@@ -58,24 +62,25 @@ export class ContactsController {
       companyIds?: string[] | null;
     },
   ) {
-    return this.contactsService.updateContact(contactId, body);
+    return this.contactsService.updateContact(contactId, body, req.headers);
   }
 
   @Post(':id/link')
   linkContact(
+    @Req() req: Request,
     @Param('id') contactId: string,
     @Body('companyId') companyId: string,
   ) {
-    return this.contactsService.linkContactToCompany(contactId, companyId);
+    return this.contactsService.linkContactToCompany(contactId, companyId, req.headers);
   }
 
   @Delete(':id')
-  deleteContact(@Param('id') contactId: string) {
-    return this.contactsService.deleteContact(contactId);
+  deleteContact(@Req() req: Request, @Param('id') contactId: string) {
+    return this.contactsService.deleteContact(contactId, req.headers);
   }
 
   @Post('sync')
-  sync(@Body('instanceName') instanceName?: string) {
-    return this.contactsService.syncFromIntegration(instanceName);
+  sync(@Req() req: Request, @Body('instanceName') instanceName?: string) {
+    return this.contactsService.syncFromIntegration(instanceName, req.headers);
   }
 }

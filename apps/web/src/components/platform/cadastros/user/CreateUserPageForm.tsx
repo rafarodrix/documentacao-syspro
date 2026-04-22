@@ -5,6 +5,7 @@ import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
+import type { Role as PrismaRole } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -57,12 +58,13 @@ type CompanyOption = {
 
 export interface CreateUserPageFormProps {
   companies: CompanyOption[];
-  context: "CLIENT" | "SYSTEM";
+  context: "CLIENT" | "SYSTEM" | "UNIFIED";
   isAdmin: boolean;
   backHref: string;
   mode?: "create" | "edit";
   userId?: string;
   initialData?: Partial<CreateUserInput>;
+  allowedRoles?: PrismaRole[];
 }
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -75,9 +77,16 @@ export function CreateUserPageForm({
   mode = "create",
   userId,
   initialData,
+  allowedRoles,
 }: CreateUserPageFormProps) {
   const router = useRouter();
-  const defaultRole = context === "SYSTEM" ? ROLE.SUPORTE : ROLE.CLIENTE_USER;
+  const fallbackAllowedRoles = useMemo(() => {
+    if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as PrismaRole[];
+    if (context === "CLIENT") return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN] as PrismaRole[];
+    return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN, ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as PrismaRole[];
+  }, [context, isAdmin]);
+  const availableRoles = allowedRoles?.length ? allowedRoles : fallbackAllowedRoles;
+  const defaultRole = availableRoles[0] ?? ROLE.CLIENTE_USER;
   const allowedCompanyIds = useMemo(() => companies.map((company) => company.id), [companies]);
 
   const [contactSearch, setContactSearch] = useState("");
@@ -104,6 +113,11 @@ export function CreateUserPageForm({
     control: form.control,
     name: "contactId",
   });
+  const selectedRole = useWatch({
+    control: form.control,
+    name: "role",
+  });
+  const selectedRoleIsClient = selectedRole === ROLE.CLIENTE_ADMIN || selectedRole === ROLE.CLIENTE_USER;
 
   useEffect(() => {
     const query = contactSearch.trim();
@@ -128,7 +142,7 @@ export function CreateUserPageForm({
 
         const payload = (await response.json()) as ContactOption[];
         const normalized = Array.isArray(payload) ? payload : [];
-        const filtered = context === "CLIENT"
+        const filtered = selectedRoleIsClient
           ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
           : normalized;
 
@@ -147,7 +161,7 @@ export function CreateUserPageForm({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [allowedCompanyIds, contactSearch, context, form]);
+  }, [allowedCompanyIds, contactSearch, selectedRoleIsClient, form]);
 
   useEffect(() => {
     const currentContactId = form.getValues("contactId");
@@ -194,7 +208,7 @@ export function CreateUserPageForm({
     .filter(Boolean)
     .join(", ");
   const selectedContactCompanyIds = selectedContact?.companyIds ?? (selectedContact?.companyId ? [selectedContact.companyId] : []);
-  const clientContactInvalid = context === "CLIENT" && Boolean(selectedContactId) && selectedContactCompanyIds.length === 0;
+  const clientContactInvalid = selectedRoleIsClient && Boolean(selectedContactId) && selectedContactCompanyIds.length === 0;
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
     if (!data.contactId?.trim()) {
@@ -202,7 +216,7 @@ export function CreateUserPageForm({
       return;
     }
 
-    if (context === "CLIENT" && selectedContactCompanyIds.length === 0) {
+    if (selectedRoleIsClient && selectedContactCompanyIds.length === 0) {
       toast.error("O contato do usuario precisa estar vinculado a uma empresa.");
       return;
     }
@@ -243,12 +257,16 @@ export function CreateUserPageForm({
 
   const title =
     mode === "edit"
-      ? context === "SYSTEM"
-        ? "Editar Analista de Sistemas"
-        : "Editar Usuario"
-      : context === "SYSTEM"
-        ? "Novo Analista de Sistemas"
-        : "Novo Usuario";
+      ? "Editar Usuario"
+      : "Novo Usuario";
+
+  const roleItems: Array<{ value: PrismaRole; label: string }> = [
+    { value: ROLE.CLIENTE_USER, label: "Usuario" },
+    { value: ROLE.CLIENTE_ADMIN, label: "Gestor da Unidade" },
+    { value: ROLE.SUPORTE, label: "Suporte" },
+    { value: ROLE.DEVELOPER, label: "Desenvolvedor" },
+    { value: ROLE.ADMIN, label: "Admin" },
+  ].filter((item) => availableRoles.includes(item.value));
 
   return (
     <div className="relative w-full min-h-[calc(100vh-140px)] rounded-2xl border border-border/50 bg-card/95 overflow-hidden shadow-xl">
@@ -359,19 +377,11 @@ export function CreateUserPageForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {context === "CLIENT" && (
-                              <>
-                                <SelectItem value={ROLE.CLIENTE_USER}>Usuario</SelectItem>
-                                <SelectItem value={ROLE.CLIENTE_ADMIN}>Gestor da Unidade</SelectItem>
-                              </>
-                            )}
-                            {context === "SYSTEM" && (
-                              <>
-                                <SelectItem value={ROLE.SUPORTE}>Suporte</SelectItem>
-                                <SelectItem value={ROLE.DEVELOPER}>Desenvolvedor</SelectItem>
-                                {isAdmin && <SelectItem value={ROLE.ADMIN}>Admin</SelectItem>}
-                              </>
-                            )}
+                            {roleItems.map((item) => (
+                              <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />

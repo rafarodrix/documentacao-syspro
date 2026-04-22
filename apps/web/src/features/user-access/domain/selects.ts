@@ -31,12 +31,20 @@ export const userListSelect = {
       name: true,
       whatsapp: true,
       email: true,
-      companyId: true,
-      company: {
+      cpf: true,
+      jobTitle: true,
+      phone: true,
+      companyLinks: {
         select: {
-          id: true,
-          razaoSocial: true,
-          nomeFantasia: true,
+          companyId: true,
+          isPrimary: true,
+          company: {
+            select: {
+              id: true,
+              razaoSocial: true,
+              nomeFantasia: true,
+            },
+          },
         },
       },
     },
@@ -64,9 +72,9 @@ export type UserListSelectResult = {
   image: string | null;
   role: import("@prisma/client").Role;
   isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
+  jobTitle?: string | null;
+  cpf?: string | null;
+  phone?: string | null;
   deletedAt: Date | null;
   createdAt: Date;
   memberships: {
@@ -83,28 +91,70 @@ export type UserListSelectResult = {
     name: string;
     whatsapp: string | null;
     email: string | null;
-    companyId: string | null;
-    company: {
+    cpf?: string | null;
+    jobTitle?: string | null;
+    phone?: string | null;
+    companyId?: string | null;
+    company?: {
       id: string;
       razaoSocial: string;
       nomeFantasia: string | null;
     } | null;
+    companyLinks?: Array<{
+      companyId: string;
+      isPrimary: boolean;
+      company: {
+        id: string;
+        razaoSocial: string;
+        nomeFantasia: string | null;
+      };
+    }>;
   } | null;
 };
 
 export function mapClientUserListItem(user: UserListSelectResult): UserAccessListItem {
+  const primaryContactLink = user.contact?.companyLinks?.[0] ?? null;
+
   return {
     ...user,
+    jobTitle: user.jobTitle ?? user.contact?.jobTitle ?? null,
+    cpf: user.cpf ?? user.contact?.cpf ?? null,
+    phone: user.phone ?? user.contact?.phone ?? null,
+    contact: user.contact
+      ? {
+          id: user.contact.id,
+          name: user.contact.name,
+          whatsapp: user.contact.whatsapp,
+          email: user.contact.email,
+          companyId: user.contact.companyId ?? primaryContactLink?.companyId ?? null,
+          company: user.contact.company ?? primaryContactLink?.company ?? null,
+        }
+      : null,
     companyName:
       user.contact?.company?.nomeFantasia ||
       user.contact?.company?.razaoSocial ||
+      primaryContactLink?.company?.nomeFantasia ||
+      primaryContactLink?.company?.razaoSocial ||
       user.memberships[0]?.company?.nomeFantasia ||
       user.memberships[0]?.company?.razaoSocial ||
       "Sem Vinculo",
-    companyId: user.contact?.companyId ?? user.memberships[0]?.companyId ?? null,
+    companyId: user.contact?.companyId ?? primaryContactLink?.companyId ?? user.memberships[0]?.companyId ?? null,
   };
 }
 
 export function mapSystemUserListItem(user: UserListSelectResult): SystemUserListItem {
-  return { ...user };
+  const mapped = mapClientUserListItem(user);
+  return {
+    id: mapped.id,
+    name: mapped.name,
+    email: mapped.email,
+    image: mapped.image,
+    role: mapped.role,
+    isActive: mapped.isActive,
+    jobTitle: mapped.jobTitle,
+    cpf: mapped.cpf,
+    phone: mapped.phone,
+    memberships: mapped.memberships,
+    contact: mapped.contact,
+  };
 }
