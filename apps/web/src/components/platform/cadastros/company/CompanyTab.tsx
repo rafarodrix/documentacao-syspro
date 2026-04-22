@@ -30,6 +30,7 @@ import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/domain/model"
+import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
 
@@ -126,7 +127,7 @@ function CompanyActionsMenu({
             "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
           )}
           disabled={isLoading}
-          onClick={(event) => event.stopPropagation()}
+          onClick={stopRecordClick}
         >
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">Acoes da empresa</span>
@@ -435,19 +436,12 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
               filteredData.map((company) => {
                 const memberCount = company._count?.memberships ?? company.usersCount ?? 0
                 return (
-                  <div
+                  <ClickableCard
                     key={company.id}
-                    className={cn("p-4 space-y-3 transition-colors", canEdit && "cursor-pointer hover:bg-muted/20")}
-                    onClick={() => openEdit(company)}
-                    role={canEdit ? "button" : undefined}
-                    tabIndex={canEdit ? 0 : undefined}
-                    onKeyDown={(event) => {
-                      if (!canEdit) return
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault()
-                        openEdit(company)
-                      }
-                    }}
+                    enabled={canEdit}
+                    onOpen={() => openEdit(company)}
+                    className="p-4 space-y-3"
+                    title="Clique para editar"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -484,7 +478,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                         Bloqueada por contrato
                       </span>
                     )}
-                  </div>
+                  </ClickableCard>
                 )
               })
             )}
@@ -523,20 +517,13 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                   const memberCount = company._count?.memberships ?? company.usersCount ?? 0
 
                   return (
-                    <TableRow
+                    <ClickableTableRow
                       key={company.id}
-                      className={cn("group/row hover:bg-muted/40 transition-all duration-300 border-border/40", canEdit && "cursor-pointer")}
+                      enabled={canEdit}
+                      onOpen={() => openEdit(company)}
+                      className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
                       style={{ animationDelay: `${index * 40}ms` }}
-                      onClick={() => openEdit(company)}
-                      role={canEdit ? "button" : undefined}
-                      tabIndex={canEdit ? 0 : undefined}
-                      onKeyDown={(event) => {
-                        if (!canEdit) return
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault()
-                          openEdit(company)
-                        }
-                      }}
+                      title="Clique para editar"
                     >
                       <TableCell className="py-4 px-6">
                         <div className="flex items-center gap-3">
@@ -583,7 +570,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                                         type="button"
                                         className="inline-flex items-center justify-center rounded text-muted-foreground/80 hover:text-foreground"
                                         aria-label="Ver motivo completo do bloqueio"
-                                        onClick={(event) => event.stopPropagation()}
+                                        onClick={stopRecordClick}
                                       >
                                         <CircleAlert className="h-3.5 w-3.5" />
                                       </button>
@@ -620,7 +607,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                           onDelete={() => setConfirmDialog({ type: "delete", company })}
                         />
                       </TableCell>
-                    </TableRow>
+                    </ClickableTableRow>
                   )
                 })
               )}

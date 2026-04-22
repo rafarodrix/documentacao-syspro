@@ -44,6 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/ConfirmActionDialog";
+import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord";
 import { cn } from "@/lib/utils";
 
 type ContactItem = {
@@ -489,20 +490,12 @@ function ContactRow({
   const phone = getPrimaryPhone(contact);
 
   return (
-    <TableRow
-      className={cn("group/row border-border/50 transition-colors hover:bg-muted/30", canEdit && "cursor-pointer")}
+    <ClickableTableRow
+      enabled={canEdit}
+      onOpen={onEdit}
+      className="group/row border-border/50 transition-colors hover:bg-muted/30"
       style={{ animationDelay: `${animationDelay}ms` }}
-      onClick={onEdit}
-      role={canEdit ? "button" : undefined}
-      tabIndex={canEdit ? 0 : undefined}
-      onKeyDown={(event) => {
-        if (!canEdit) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onEdit();
-        }
-      }}
-      title={canEdit ? "Clique para editar" : undefined}
+      title="Clique para editar"
     >
       <TableCell className="py-3">
         <div className="flex items-center gap-3">
@@ -538,7 +531,7 @@ function ContactRow({
           onDelete={onDelete}
         />
       </TableCell>
-    </TableRow>
+    </ClickableTableRow>
   );
 }
 
@@ -564,18 +557,11 @@ function MobileContactCard({
   const phone = getPrimaryPhone(contact);
 
   return (
-    <div
-      className={cn("space-y-3 p-4 transition-colors", canEdit && "cursor-pointer hover:bg-muted/20")}
-      onClick={onEdit}
-      role={canEdit ? "button" : undefined}
-      tabIndex={canEdit ? 0 : undefined}
-      onKeyDown={(event) => {
-        if (!canEdit) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onEdit();
-        }
-      }}
+    <ClickableCard
+      enabled={canEdit}
+      onOpen={onEdit}
+      className="space-y-3 p-4"
+      title="Clique para editar"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -606,7 +592,7 @@ function MobileContactCard({
           {companyNames}
         </p>
       ) : null}
-    </div>
+    </ClickableCard>
   );
 }
 
@@ -639,8 +625,8 @@ function ContactActionsMenu({
           size="icon"
           className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
           disabled={isLoading}
-          onClick={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => event.stopPropagation()}
+          onClick={stopRecordClick}
+          onDoubleClick={stopRecordClick}
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
           <span className="sr-only">Acoes do contato</span>

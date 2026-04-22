@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog";
+import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord";
 
 type UserWithRelations = UserAccessListItem;
 
@@ -144,7 +145,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
             "border border-transparent hover:border-border/50 hover:bg-muted",
             "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
           )}
-          onClick={(event) => event.stopPropagation()}
+          onClick={stopRecordClick}
         >
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">Acoes do usuario</span>
@@ -351,19 +352,12 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
               </div>
             ) : (
               filteredData.map((user) => (
-                <div
+                <ClickableCard
                   key={user.id}
-                  className={cn("p-4 space-y-3 transition-colors", canManage && "cursor-pointer hover:bg-muted/20")}
-                  onClick={() => openEdit(user)}
-                  role={canManage ? "button" : undefined}
-                  tabIndex={canManage ? 0 : undefined}
-                  onKeyDown={(event) => {
-                    if (!canManage) return;
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      openEdit(user);
-                    }
-                  }}
+                  enabled={canManage}
+                  onOpen={() => openEdit(user)}
+                  className="p-4 space-y-3"
+                  title="Clique para editar"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
@@ -389,7 +383,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                     <StatusBadge isActive={user.isActive} />
                   </div>
                   <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
-                </div>
+                </ClickableCard>
               ))
             )}
           </div>
@@ -415,20 +409,13 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                 </TableRow>
               ) : (
                 filteredData.map((user, index) => (
-                  <TableRow
+                  <ClickableTableRow
                     key={user.id}
-                    className={cn("group/row hover:bg-muted/40 transition-all duration-300 border-border/40", canManage && "cursor-pointer")}
+                    enabled={canManage}
+                    onOpen={() => openEdit(user)}
+                    className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
                     style={{ animationDelay: `${index * 40}ms` }}
-                    onClick={() => openEdit(user)}
-                    role={canManage ? "button" : undefined}
-                    tabIndex={canManage ? 0 : undefined}
-                    onKeyDown={(event) => {
-                      if (!canManage) return;
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openEdit(user);
-                      }
-                    }}
+                    title="Clique para editar"
                   >
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
@@ -497,7 +484,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                         onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
                       />
                     </TableCell>
-                  </TableRow>
+                  </ClickableTableRow>
                 ))
               )}
             </TableBody>
