@@ -45,6 +45,7 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 export class SettingsController {
   private static readonly EVOLUTION_CONFIG_KEY = 'evolution_config';
   private static readonly EVOLUTION_QRCODE_KEY_PREFIX = 'evolution_qrcode:';
+  private static readonly EVOLUTION_STATUS_KEY_PREFIX = 'evolution_status:';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -351,6 +352,47 @@ export class SettingsController {
       success: true,
       settings: parsed,
       updatedAt: setting.updatedAt,
+    };
+  }
+
+  @Get('evolution/status')
+  async getEvolutionInstanceStatus(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+
+    const [context, settings] = await Promise.all([
+      this.integrationContext.getDefaultContext(),
+      this.readStoredEvolutionSettings(),
+    ]);
+    const instanceId = String(context?.evolution.instanceId || settings.instanceId || '').trim();
+    const instance = String(context?.evolution.instance || settings.instance || '').trim();
+
+    if (!instanceId) {
+      return {
+        success: true,
+        data: {
+          configured: false,
+          instance,
+          instanceId: null,
+          status: 'NOT_CONFIGURED',
+          event: null,
+          receivedAt: null,
+          details: {},
+        },
+      };
+    }
+
+    const stored = await this.readStoredEvolutionStatus(instanceId);
+    return {
+      success: true,
+      data: {
+        configured: Boolean(context?.evolution.apiUrl && context?.evolution.apiKey && instanceId),
+        instance,
+        instanceId,
+        status: stored?.status ?? 'UNKNOWN',
+        event: stored?.event ?? null,
+        receivedAt: stored?.receivedAt ?? null,
+        details: stored?.details ?? {},
+      },
     };
   }
 
@@ -845,7 +887,7 @@ export class SettingsController {
     const in30Days = new Date(now);
     in30Days.setDate(now.getDate() + 30);
 
-    const [contracts, sefazRecords] = await Promise.all([
+    const [contracts, sefazRecords, evolutionStatusRows] = await Promise.all([
       includeContracts
         ? this.prisma.contract.findMany({
             where: {
@@ -862,6 +904,13 @@ export class SettingsController {
         orderBy: { checkedAt: 'desc' },
         distinct: ['service'],
         take: 2,
+      }),
+      this.prisma.systemSetting.findMany({
+        where: {
+          key: { startsWith: SettingsController.EVOLUTION_STATUS_KEY_PREFIX },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
       }),
     ]);
 
@@ -896,7 +945,43 @@ export class SettingsController {
       });
     }
 
+    for (const row of evolutionStatusRows) {
+      const status = this.parseEvolutionStatusNotification(row.value, row.updatedAt);
+      if (!status || (status.status !== 'LOGGED_OUT' && status.status !== 'QR_TIMEOUT')) continue;
+
+      items.push({
+        id: `evolution-${row.key}`,
+        level: status.status === 'LOGGED_OUT' ? 'critical' : 'warning',
+        title: status.status === 'LOGGED_OUT' ? 'Evolution desconectada' : 'QR Code da Evolution expirado',
+        description: `${status.instanceLabel} - ultimo evento: ${status.eventLabel}.`,
+        href: '/portal/configuracoes?tab=integrations',
+        createdAt: status.receivedAt,
+      });
+    }
+
     return items;
+  }
+
+  private parseEvolutionStatusNotification(value: string, updatedAt: Date): {
+    status: string;
+    eventLabel: string;
+    instanceLabel: string;
+    receivedAt: string;
+  } | null {
+    try {
+      const parsed = JSON.parse(value);
+      const status = String(parsed?.status ?? '').trim().toUpperCase();
+      if (!status) return null;
+
+      return {
+        status,
+        eventLabel: String(parsed?.event ?? status).trim() || status,
+        instanceLabel: String(parsed?.instanceId ?? 'Instancia Evolution').trim() || 'Instancia Evolution',
+        receivedAt: String(parsed?.receivedAt ?? '').trim() || updatedAt.toISOString(),
+      };
+    } catch {
+      return null;
+    }
   }
 
   private sortNotifications(items: PlatformNotificationItem[]) {
@@ -973,6 +1058,17 @@ export class SettingsController {
       const body = await connectRes.text().catch(() => 'unknown_error');
       return { ok: false, endpoint, error: `${endpoint}=status ${connectRes.status} ${body}` };
     }
+
+    await this.upsertStoredEvolutionStatus({
+      instanceId,
+      event: 'connect_requested',
+      status: 'CONNECT_REQUESTED',
+      details: {
+        webhookUrl,
+        subscribe,
+        hasPhone: Boolean(input.phone?.trim()),
+      },
+    });
 
     const connectPayload: any = await connectRes.json().catch(() => ({}));
     const responseQrCode = this.normalizeEvolutionQrCodeResponse(connectPayload);
@@ -1059,6 +1155,52 @@ export class SettingsController {
 
   private sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async upsertStoredEvolutionStatus(input: {
+    instanceId: string;
+    event: string;
+    status: string;
+    details?: Record<string, unknown>;
+  }) {
+    const payload = {
+      instanceId: input.instanceId,
+      event: input.event,
+      status: input.status,
+      details: input.details ?? {},
+      receivedAt: new Date().toISOString(),
+    };
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: `${SettingsController.EVOLUTION_STATUS_KEY_PREFIX}${input.instanceId}` },
+      update: { value: JSON.stringify(payload) },
+      create: {
+        key: `${SettingsController.EVOLUTION_STATUS_KEY_PREFIX}${input.instanceId}`,
+        value: JSON.stringify(payload),
+        description: 'Ultimo status operacional recebido da Evolution Go',
+      },
+    });
+  }
+
+  private async readStoredEvolutionStatus(instanceId: string) {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: `${SettingsController.EVOLUTION_STATUS_KEY_PREFIX}${instanceId}` },
+      select: { value: true, updatedAt: true },
+    });
+
+    if (!row?.value) return null;
+
+    try {
+      const parsed = JSON.parse(row.value);
+      return {
+        status: this.readOptionalString(parsed?.status) ?? 'UNKNOWN',
+        event: this.readOptionalString(parsed?.event),
+        receivedAt: this.readOptionalString(parsed?.receivedAt) ?? row.updatedAt.toISOString(),
+        details: parsed?.details && typeof parsed.details === 'object' ? parsed.details : {},
+      };
+    } catch {
+      return null;
+    }
   }
 
   private readOptionalString(value: unknown): string | null {

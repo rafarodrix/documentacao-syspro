@@ -16,6 +16,16 @@ export type EvolutionQrCodeResult = {
   receivedAt?: string | null;
 };
 
+export type EvolutionInstanceStatus = {
+  configured: boolean;
+  instance: string;
+  instanceId: string | null;
+  status: string;
+  event: string | null;
+  receivedAt: string | null;
+  details: Record<string, unknown>;
+};
+
 type EvolutionQrCodeActionResult =
   | { success: true; data: EvolutionQrCodeResult; message: string }
   | { success: false; error: string; message: string };
@@ -89,6 +99,38 @@ export async function updateEvolutionSettingsAction(input: EvolutionSettingsInpu
   } catch (error) {
     console.error("updateEvolutionSettingsAction error:", error);
     return { success: false, error: "BACKEND_ERROR", settings: validation.data };
+  }
+}
+
+export async function getEvolutionInstanceStatusAction(): Promise<
+  | { success: true; data: EvolutionInstanceStatus }
+  | { success: false; error: string; message: string }
+> {
+  const session = await getProtectedSession();
+  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+    return { success: false, error: "UNAUTHORIZED", message: "Sessao sem permissao para consultar a Evolution." };
+  }
+
+  try {
+    const res = await fetch(`${getBackendApiBaseUrl()}/settings/evolution/status`, {
+      method: "GET",
+      headers: withInternalApiHeaders(),
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.success) {
+      return {
+        success: false,
+        error: data?.error || "BACKEND_ERROR",
+        message: data?.message || "Falha ao consultar status da Evolution.",
+      };
+    }
+
+    return { success: true, data: data.data as EvolutionInstanceStatus };
+  } catch (error) {
+    console.error("getEvolutionInstanceStatusAction error:", error);
+    return { success: false, error: "BACKEND_ERROR", message: "Falha ao consultar status da Evolution." };
   }
 }
 

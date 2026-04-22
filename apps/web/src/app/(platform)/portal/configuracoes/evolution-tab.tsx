@@ -9,6 +9,7 @@ import {
   type EvolutionSettings,
 } from "@dosc-syspro/contracts/evolution";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Loader2, Save, RefreshCw, CircleHelp, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import {
+  type EvolutionInstanceStatus,
   type EvolutionQrCodeResult,
+  getEvolutionInstanceStatusAction,
   getEvolutionSettingsAction,
   requestEvolutionQrCodeAction,
   updateEvolutionSettingsAction,
@@ -51,12 +54,16 @@ export default function EvolutionSettingsTab() {
   const [isGeneratingQrCode, setIsGeneratingQrCode] = useState(false);
   const [settings, setSettings] = useState<EvolutionSettings>(DEFAULT_EVOLUTION_SETTINGS);
   const [qrCodeResult, setQrCodeResult] = useState<EvolutionQrCodeResult | null>(null);
+  const [instanceStatus, setInstanceStatus] = useState<EvolutionInstanceStatus | null>(null);
 
   const subscribeOptions = useMemo(() => EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS, []);
 
   async function loadSettings() {
     setIsLoading(true);
-    const result = await getEvolutionSettingsAction();
+    const [result, statusResult] = await Promise.all([
+      getEvolutionSettingsAction(),
+      getEvolutionInstanceStatusAction(),
+    ]);
     if (!result.success) {
       toast.error("Falha ao carregar configuracoes do Evolution.");
       setSettings(DEFAULT_EVOLUTION_SETTINGS);
@@ -65,6 +72,9 @@ export default function EvolutionSettingsTab() {
     }
 
     setSettings(result.settings);
+    if (statusResult.success) {
+      setInstanceStatus(statusResult.data);
+    }
     setIsLoading(false);
   }
 
@@ -141,6 +151,10 @@ export default function EvolutionSettingsTab() {
     } else {
       toast.info(result.message ?? "Conexao aplicada. Aguarde o evento QRCode chegar no webhook.");
     }
+    const statusResult = await getEvolutionInstanceStatusAction();
+    if (statusResult.success) {
+      setInstanceStatus(statusResult.data);
+    }
     setIsGeneratingQrCode(false);
   }
 
@@ -154,6 +168,37 @@ export default function EvolutionSettingsTab() {
           Configuracao administrativa da integracao Evolution Go para webhook e eventos assinados.
         </p>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Status da Instancia</CardTitle>
+            <CardDescription>
+              Ultimo evento operacional recebido da Evolution Go pelo webhook.
+            </CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadSettings} disabled={isLoading || isSaving || isGeneratingQrCode}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Atualizar
+          </Button>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border bg-muted/20 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Status</p>
+            <Badge variant="outline" className={`mt-2 ${statusBadgeClass(instanceStatus?.status)}`}>
+              {formatEvolutionStatus(instanceStatus?.status)}
+            </Badge>
+          </div>
+          <InfoTile label="Instancia" value={instanceStatus?.instance || settings.instance || "N/A"} />
+          <InfoTile label="Instance ID" value={instanceStatus?.instanceId || settings.instanceId || "N/A"} />
+          <InfoTile label="Ultimo evento" value={instanceStatus?.event || "N/A"} />
+          <InfoTile
+            label="Recebido em"
+            value={instanceStatus?.receivedAt ? new Date(instanceStatus.receivedAt).toLocaleString("pt-BR") : "N/A"}
+          />
+          <InfoTile label="Configuracao" value={instanceStatus?.configured ? "Contexto ativo" : "Pendente"} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -408,4 +453,50 @@ function normalizeQrCodeImage(value?: string | null) {
     return `data:image/png;base64,${raw.replace(/\s+/g, "")}`;
   }
   return null;
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-muted/20 p-4">
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-2 break-all text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function formatEvolutionStatus(value?: string | null) {
+  switch (String(value ?? "").toUpperCase()) {
+    case "CONNECTED":
+      return "Conectado";
+    case "PAIRED":
+      return "Pareado";
+    case "QR_CODE":
+      return "QR Code";
+    case "QR_TIMEOUT":
+      return "QR expirado";
+    case "LOGGED_OUT":
+      return "Deslogado";
+    case "CONNECT_REQUESTED":
+      return "Conectando";
+    case "NOT_CONFIGURED":
+      return "Nao configurado";
+    default:
+      return "Desconhecido";
+  }
+}
+
+function statusBadgeClass(value?: string | null) {
+  switch (String(value ?? "").toUpperCase()) {
+    case "CONNECTED":
+    case "PAIRED":
+      return "border-emerald-500/40 text-emerald-600";
+    case "QR_CODE":
+    case "CONNECT_REQUESTED":
+      return "border-sky-500/40 text-sky-600";
+    case "QR_TIMEOUT":
+    case "LOGGED_OUT":
+      return "border-destructive/40 text-destructive";
+    default:
+      return "border-amber-500/40 text-amber-600";
+  }
 }

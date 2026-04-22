@@ -332,6 +332,25 @@ export class ChatwootClient {
     );
   }
 
+  async createPrivateNote(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    content: string
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
+      'POST',
+      {
+        content,
+        message_type: 'outgoing',
+        private: true,
+        content_type: 'text',
+        content_attributes: {},
+      }
+    );
+  }
+
   async listAgents(config: ChatwootConnectionConfig): Promise<any[]> {
     const response = await this.request(
       config,
