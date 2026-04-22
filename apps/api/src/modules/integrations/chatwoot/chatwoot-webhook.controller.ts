@@ -187,27 +187,7 @@ export class ChatwootWebhookController {
         }
         break;
       case 'contact_updated':
-        this.logger.log(`Sincronizacao pendente: Contato atualizado no Chatwoot (ID: ${payload?.id})`);
-        if (payload?.id && payload?.name) {
-          const link = await this.prisma.conversationLink.findFirst({
-            where: {
-              chatwootContactId: payload.id.toString(),
-              ...(resolvedContext ? { connectionKey: resolvedContext.connectionKey } : {}),
-            }
-          });
-          if (link) {
-            const existingContact = await this.prisma.companyContact.findFirst({
-              where: { whatsapp: link.whatsappNumber }
-            });
-            if (existingContact) {
-              await this.prisma.companyContact.update({
-                where: { id: existingContact.id },
-                data: { name: payload.name }
-              });
-              this.logger.log(`Contato ${link.whatsappNumber} atualizado no banco via Chatwoot: ${payload.name}`);
-            }
-          }
-        }
+        await this.handleContactUpdated(payload, resolvedContext?.connectionKey);
         break;
       case 'contact_created':
         if (payload?.phone_number && payload?.name) {
@@ -480,6 +460,154 @@ export class ChatwootWebhookController {
       connectionKey: connectionKey ?? null,
       deletedLinks: deleted.count,
     }));
+  }
+
+  private async handleContactUpdated(payload: any, connectionKey?: string | null) {
+    const contactId = this.toOptionalString(payload?.id ?? payload?.contact?.id);
+    const phone = this.extractContactPhone(payload);
+    const sourceIds = this.extractContactSourceIds(payload);
+    const contactName = this.toOptionalString(
+      payload?.custom_attributes?.syspro_contact_name ??
+      payload?.contact?.custom_attributes?.syspro_contact_name ??
+      payload?.name ??
+      payload?.contact?.name
+    );
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_portal',
+      stage: 'contact_update_received',
+      chatwootContactId: contactId ?? null,
+      whatsappNumber: phone ?? null,
+      sourceIds,
+      hasName: Boolean(contactName),
+      connectionKey: connectionKey ?? null,
+    }));
+
+    if (!contactName) {
+      return;
+    }
+
+    const link = await this.findConversationLinkForContactUpdate({
+      chatwootContactId: contactId,
+      whatsappNumber: phone,
+      sourceIds,
+      connectionKey,
+    });
+
+    if (!link) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'contact_update_link_not_found',
+        chatwootContactId: contactId ?? null,
+        whatsappNumber: phone ?? null,
+        sourceIds,
+        connectionKey: connectionKey ?? null,
+      }));
+      return;
+    }
+
+    const existingContact = await this.prisma.companyContact.findFirst({
+      where: { whatsapp: link.whatsappNumber },
+    });
+
+    if (!existingContact) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'contact_update_portal_contact_not_found',
+        chatwootContactId: contactId ?? null,
+        whatsappNumber: link.whatsappNumber,
+        connectionKey: link.connectionKey,
+      }));
+      return;
+    }
+
+    if (existingContact.name === contactName) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'contact_update_skipped_same_name',
+        whatsappNumber: link.whatsappNumber,
+        contactName,
+      }));
+      return;
+    }
+
+    await this.prisma.companyContact.update({
+      where: { id: existingContact.id },
+      data: { name: contactName },
+    });
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_portal',
+      stage: 'contact_updated',
+      whatsappNumber: link.whatsappNumber,
+      chatwootContactId: contactId ?? null,
+      storedChatwootContactId: link.chatwootContactId,
+      contactName,
+      connectionKey: link.connectionKey,
+    }));
+  }
+
+  private async findConversationLinkForContactUpdate(input: {
+    chatwootContactId?: string;
+    whatsappNumber?: string;
+    sourceIds: string[];
+    connectionKey?: string | null;
+  }) {
+    const or: any[] = [];
+
+    if (input.chatwootContactId) {
+      or.push({ chatwootContactId: input.chatwootContactId });
+    }
+
+    for (const sourceId of input.sourceIds) {
+      or.push({ chatwootContactId: sourceId });
+    }
+
+    if (input.whatsappNumber) {
+      or.push({ whatsappNumber: input.whatsappNumber });
+    }
+
+    if (!or.length) return null;
+
+    return this.prisma.conversationLink.findFirst({
+      where: {
+        ...(input.connectionKey ? { connectionKey: input.connectionKey } : {}),
+        OR: or,
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  private extractContactPhone(payload: any): string | undefined {
+    const value = this.toOptionalString(
+      payload?.phone_number ??
+      payload?.phoneNumber ??
+      payload?.contact?.phone_number ??
+      payload?.contact?.phoneNumber ??
+      payload?.additional_attributes?.phone_number ??
+      payload?.contact?.additional_attributes?.phone_number
+    );
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits || undefined;
+  }
+
+  private extractContactSourceIds(payload: any): string[] {
+    const sourceIds = [
+      payload?.source_id,
+      payload?.sourceId,
+      payload?.contact?.source_id,
+      payload?.contact?.sourceId,
+      ...(Array.isArray(payload?.contact_inboxes)
+        ? payload.contact_inboxes.map((item: any) => item?.source_id ?? item?.sourceId)
+        : []),
+      ...(Array.isArray(payload?.contact?.contact_inboxes)
+        ? payload.contact.contact_inboxes.map((item: any) => item?.source_id ?? item?.sourceId)
+        : []),
+    ]
+      .map((value) => this.toOptionalString(value))
+      .filter((value): value is string => Boolean(value));
+
+    return Array.from(new Set(sourceIds));
   }
 
   private normalizeConversationStatus(value: unknown): string | null {

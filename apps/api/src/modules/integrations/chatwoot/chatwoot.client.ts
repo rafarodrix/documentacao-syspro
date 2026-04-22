@@ -290,9 +290,11 @@ export class ChatwootClient {
       }
     }
 
-    const numericContactId = this.toNumericIdentifier(contactIdentifier);
+    const numericContactId =
+      this.toNumericIdentifier(contactIdentifier) ??
+      await this.resolveContactIdForAccountUpdate(config, contactIdentifier, data.phone_number);
     if (!numericContactId) {
-      throw new Error(`Chatwoot contact identifier nao numerico sem rota publica disponivel: ${contactIdentifier}`);
+      throw new Error(`Chatwoot contact identifier nao numerico sem rota publica disponivel e sem contato encontrado por telefone/source_id: ${contactIdentifier}`);
     }
 
     try {
@@ -305,6 +307,55 @@ export class ChatwootClient {
     } catch (error: any) {
       throw error;
     }
+  }
+
+  private async resolveContactIdForAccountUpdate(
+    config: ChatwootConnectionConfig,
+    contactIdentifier: string,
+    phoneNumber?: string,
+  ): Promise<string | undefined> {
+    const queries = [
+      phoneNumber,
+      this.normalizePhoneQuery(phoneNumber),
+      contactIdentifier,
+    ]
+      .map((value) => String(value ?? '').trim())
+      .filter(Boolean);
+
+    for (const query of Array.from(new Set(queries))) {
+      const response: any = await this.request(
+        config,
+        `/api/v1/accounts/${config.accountId}/contacts/search?q=${encodeURIComponent(query)}`,
+        'GET',
+        undefined,
+        1,
+      );
+      const contacts = Array.isArray(response?.payload)
+        ? response.payload
+        : Array.isArray(response)
+          ? response
+          : [];
+      const normalizedPhone = this.normalizePhoneQuery(phoneNumber);
+      const match = contacts.find((contact: any) => {
+        const contactId = contact?.id?.toString?.();
+        if (!contactId) return false;
+        return (
+          contact?.source_id?.toString?.() === contactIdentifier ||
+          contact?.identifier?.toString?.() === contactIdentifier ||
+          contact?.contact_inboxes?.some?.((item: any) => item?.source_id?.toString?.() === contactIdentifier) ||
+          (normalizedPhone && this.normalizePhoneQuery(contact?.phone_number) === normalizedPhone)
+        );
+      });
+
+      const id = match?.id?.toString?.();
+      if (id) return id;
+    }
+
+    return undefined;
+  }
+
+  private normalizePhoneQuery(value?: string | null): string {
+    return String(value ?? '').replace(/\D/g, '');
   }
 
   async updateMessageStatus(
