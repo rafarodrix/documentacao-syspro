@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_EVOLUTION_SETTINGS,
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Loader2, Save, RefreshCw, CircleHelp, QrCode, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import {
+  type EvolutionQrCodeResult,
   getEvolutionSettingsAction,
   requestEvolutionQrCodeAction,
   updateEvolutionSettingsAction,
@@ -48,14 +50,7 @@ export default function EvolutionSettingsTab() {
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingQrCode, setIsGeneratingQrCode] = useState(false);
   const [settings, setSettings] = useState<EvolutionSettings>(DEFAULT_EVOLUTION_SETTINGS);
-  const [qrCodeResult, setQrCodeResult] = useState<{
-    instance: string;
-    endpoint: string;
-    qrCode?: string | null;
-    pairingCode?: string | null;
-    code?: string | null;
-    count?: number | null;
-  } | null>(null);
+  const [qrCodeResult, setQrCodeResult] = useState<EvolutionQrCodeResult | null>(null);
 
   const subscribeOptions = useMemo(() => EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS, []);
 
@@ -334,9 +329,12 @@ export default function EvolutionSettingsTab() {
           <CardContent className="grid gap-5 md:grid-cols-[220px_1fr]">
             <div className="flex min-h-55 items-center justify-center rounded-lg border bg-background p-4">
               {qrCodeImageSrc ? (
-                <img
+                <Image
                   src={qrCodeImageSrc}
                   alt={`QR Code da instancia ${qrCodeResult.instance}`}
+                  width={192}
+                  height={192}
+                  unoptimized
                   className="h-48 w-48 rounded-sm object-contain"
                 />
               ) : (
