@@ -1,7 +1,7 @@
-import { proxyBackendApiRequest } from "@/lib/backend-api-proxy";
+import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
 export function POST(request: Request) {
-  return proxyBackendApiRequest(request, "/remote/agents/discover");
+  return proxyToBackend(request, { path: "/remote/agents/discover", internal: true });
 }

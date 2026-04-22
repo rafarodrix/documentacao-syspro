@@ -1,7 +1,7 @@
-import { proxyBackendApiRequest } from "@/lib/backend-api-proxy";
+import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
 export function POST(request: Request) {
-  return proxyBackendApiRequest(request, "/remote/rustdesk/ack");
+  return proxyToBackend(request, { path: "/remote/rustdesk/ack", internal: true });
 }
