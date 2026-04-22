@@ -22,14 +22,16 @@ export const metadata: Metadata = {
 
 export default async function LandingPage() {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-
-  const currentVersion = `v${year}.${month}`;
-  const releaseLink = `/releases/${year}/${month}`;
 
   const allReleases: Release[] = await getReleases();
   const monthlySummaries = groupReleasesByMonth(allReleases).slice(0, 3);
+  const latestRelease = monthlySummaries[0];
+  const currentVersion = latestRelease
+    ? `v${latestRelease.year}.${latestRelease.month}`
+    : `v${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const releaseLink = latestRelease
+    ? `/releases/${latestRelease.year}/${latestRelease.month}`
+    : "/releases";
 
   return (
     <main className="min-h-screen bg-background text-foreground">

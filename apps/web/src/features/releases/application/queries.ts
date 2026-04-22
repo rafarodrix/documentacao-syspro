@@ -7,8 +7,13 @@ type ReleasesResponse = {
 };
 
 export async function getReleases(): Promise<Release[]> {
+  try {
     const response = await callBackendApi<ReleasesResponse>("releases", "");
     return response.success ? response.data ?? [] : [];
+  } catch (error) {
+    console.warn("getReleases failed:", error);
+    return [];
+  }
 }
 
 

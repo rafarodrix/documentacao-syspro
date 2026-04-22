@@ -26,6 +26,16 @@ export function remoteErrorResponse(input: RemoteErrorResponseInput) {
   );
 }
 
+function isDatabaseConnectionError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.name === "PrismaClientInitializationError" ||
+    error.message.includes("Authentication failed against database server") ||
+    error.message.includes("ECIRCUITBREAKER") ||
+    error.message.includes("Error querying the database")
+  );
+}
+
 export function toRemoteDomainErrorResponse(
   error: unknown,
   options?: {
@@ -34,6 +44,15 @@ export function toRemoteDomainErrorResponse(
     defaultMessage?: string;
   },
 ) {
+  if (isDatabaseConnectionError(error)) {
+    return remoteErrorResponse({
+      code: "DATABASE_UNAVAILABLE",
+      message: "Banco de dados indisponivel ou credenciais invalidas em producao.",
+      httpStatus: 503,
+      headers: options?.headers,
+    });
+  }
+
   const mapped = mapRemoteDomainError(error, {
     validationMessage: options?.validationMessage,
     defaultMessage: options?.defaultMessage,
