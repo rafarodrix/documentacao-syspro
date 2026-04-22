@@ -492,8 +492,17 @@ function ContactRow({
     <TableRow
       className={cn("group/row border-border/50 transition-colors hover:bg-muted/30", canEdit && "cursor-pointer")}
       style={{ animationDelay: `${animationDelay}ms` }}
-      onDoubleClick={onEdit}
-      title={canEdit ? "Clique duas vezes para editar" : undefined}
+      onClick={onEdit}
+      role={canEdit ? "button" : undefined}
+      tabIndex={canEdit ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (!canEdit) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onEdit();
+        }
+      }}
+      title={canEdit ? "Clique para editar" : undefined}
     >
       <TableCell className="py-3">
         <div className="flex items-center gap-3">
@@ -555,7 +564,19 @@ function MobileContactCard({
   const phone = getPrimaryPhone(contact);
 
   return (
-    <div className={cn("space-y-3 p-4", canEdit && "cursor-pointer")} onDoubleClick={onEdit}>
+    <div
+      className={cn("space-y-3 p-4 transition-colors", canEdit && "cursor-pointer hover:bg-muted/20")}
+      onClick={onEdit}
+      role={canEdit ? "button" : undefined}
+      tabIndex={canEdit ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (!canEdit) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onEdit();
+        }
+      }}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{contact.name || "Sem nome"}</p>
@@ -618,6 +639,7 @@ function ContactActionsMenu({
           size="icon"
           className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground"
           disabled={isLoading}
+          onClick={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}

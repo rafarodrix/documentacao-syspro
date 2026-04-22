@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
 import type { UserAccessListItem } from "@/features/user-access/domain/model";
@@ -143,6 +144,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
             "border border-transparent hover:border-border/50 hover:bg-muted",
             "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
           )}
+          onClick={(event) => event.stopPropagation()}
         >
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">Acoes do usuario</span>
@@ -189,6 +191,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
 }
 
 export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
+  const router = useRouter();
   const [users, setUsers] = useState<UserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState<"all" | "with_company" | "without_company">("all");
@@ -249,6 +252,11 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
       setLoadingId(null);
     }
   }, []);
+
+  const openEdit = useCallback((user: UserWithRelations) => {
+    if (!canManage) return;
+    router.push(`/portal/cadastros/usuarios/${user.id}/editar`);
+  }, [canManage, router]);
 
   return (
     <>
@@ -343,7 +351,20 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
               </div>
             ) : (
               filteredData.map((user) => (
-                <div key={user.id} className="p-4 space-y-3">
+                <div
+                  key={user.id}
+                  className={cn("p-4 space-y-3 transition-colors", canManage && "cursor-pointer hover:bg-muted/20")}
+                  onClick={() => openEdit(user)}
+                  role={canManage ? "button" : undefined}
+                  tabIndex={canManage ? 0 : undefined}
+                  onKeyDown={(event) => {
+                    if (!canManage) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openEdit(user);
+                    }
+                  }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0">
@@ -396,8 +417,18 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                 filteredData.map((user, index) => (
                   <TableRow
                     key={user.id}
-                    className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                    className={cn("group/row hover:bg-muted/40 transition-all duration-300 border-border/40", canManage && "cursor-pointer")}
                     style={{ animationDelay: `${index * 40}ms` }}
+                    onClick={() => openEdit(user)}
+                    role={canManage ? "button" : undefined}
+                    tabIndex={canManage ? 0 : undefined}
+                    onKeyDown={(event) => {
+                      if (!canManage) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openEdit(user);
+                      }
+                    }}
                   >
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center gap-3">
