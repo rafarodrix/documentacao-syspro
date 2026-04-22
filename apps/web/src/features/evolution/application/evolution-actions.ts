@@ -79,3 +79,45 @@ export async function updateEvolutionSettingsAction(input: EvolutionSettingsInpu
     return { success: false, error: "BACKEND_ERROR", settings: validation.data };
   }
 }
+
+export async function requestEvolutionQrCodeAction() {
+  const session = await getProtectedSession();
+  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  try {
+    const res = await fetch(`${getBackendApiBaseUrl()}/settings/evolution/qrcode`, {
+      method: "POST",
+      headers: withInternalApiHeaders({
+        "Content-Type": "application/json",
+      }),
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.success) {
+      return {
+        success: false,
+        error: data?.error || "BACKEND_ERROR",
+        message: data?.message || "Falha ao gerar QR Code na Evolution.",
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data as {
+        instance: string;
+        endpoint: string;
+        qrCode?: string | null;
+        pairingCode?: string | null;
+        code?: string | null;
+        count?: number | null;
+      },
+      message: data?.message || "QR Code gerado.",
+    };
+  } catch (error) {
+    console.error("requestEvolutionQrCodeAction error:", error);
+    return { success: false, error: "BACKEND_ERROR", message: "Falha ao gerar QR Code na Evolution." };
+  }
+}

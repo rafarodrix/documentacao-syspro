@@ -353,6 +353,58 @@ export class SettingsController {
     };
   }
 
+  @Post('evolution/qrcode')
+  async getEvolutionQrCode() {
+    const [context, settings] = await Promise.all([
+      this.integrationContext.getDefaultContext(),
+      this.readStoredEvolutionSettings(),
+    ]);
+
+    if (!context?.evolution?.apiUrl || !context?.evolution?.apiKey) {
+      return {
+        success: false,
+        error: 'EVOLUTION_CONTEXT_NOT_CONFIGURED',
+        message: 'Evolution API URL ou API key nao configurada no contexto efetivo.',
+      };
+    }
+
+    const instance = String(context.evolution.instance || settings.instance || '').trim();
+    if (!instance) {
+      return {
+        success: false,
+        error: 'EVOLUTION_INSTANCE_NOT_CONFIGURED',
+        message: 'Instancia Evolution nao configurada.',
+      };
+    }
+
+    const result = await this.fetchEvolutionQrCode({
+      apiUrl: context.evolution.apiUrl,
+      apiKey: context.evolution.apiKey,
+      instance,
+      instanceId: context.evolution.instanceId || settings.instanceId || '',
+      phone: settings.phone,
+      webhookUrl: settings.webhookUrl,
+      subscribe: settings.subscribe,
+      immediate: settings.immediate,
+    });
+
+    return {
+      success: result.ok,
+      data: result.ok
+        ? {
+            instance,
+            endpoint: result.endpoint,
+            qrCode: result.qrCode,
+            pairingCode: result.pairingCode,
+            code: result.code,
+            count: result.count,
+          }
+        : undefined,
+      error: result.ok ? undefined : 'EVOLUTION_QRCODE_FAILED',
+      message: result.ok ? 'QR Code gerado pela Evolution.' : result.error,
+    };
+  }
+
   @Get('evolution/diagnostics')
   async getEvolutionDiagnostics(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'settings:view');
@@ -864,6 +916,132 @@ export class SettingsController {
     } catch {
       return value;
     }
+  }
+
+  private async fetchEvolutionQrCode(input: {
+    apiUrl: string;
+    apiKey: string;
+    instance: string;
+    instanceId?: string;
+    phone?: string;
+    webhookUrl?: string;
+    subscribe?: string[];
+    immediate?: boolean;
+  }): Promise<{
+    ok: boolean;
+    endpoint?: string;
+    qrCode?: string | null;
+    pairingCode?: string | null;
+    code?: string | null;
+    count?: number | null;
+    error?: string;
+  }> {
+    const base = input.apiUrl.replace(/\/+$/, '');
+    const sharedHeaders: Record<string, string> = {
+      apikey: input.apiKey,
+      Authorization: `Bearer ${input.apiKey}`,
+      'Content-Type': 'application/json',
+      ...(input.instanceId?.trim() ? { instanceId: input.instanceId.trim() } : {}),
+    };
+    const failures: string[] = [];
+
+    if (input.instanceId?.trim() && input.webhookUrl?.trim()) {
+      const connectEndpoint = '/instance/connect';
+      const connectRes = await fetch(`${base}${connectEndpoint}`, {
+        method: 'POST',
+        headers: {
+          ...sharedHeaders,
+          instanceId: input.instanceId.trim(),
+        },
+        body: JSON.stringify({
+          webhookUrl: input.webhookUrl.trim(),
+          subscribe: input.subscribe?.length ? input.subscribe : ['ALL'],
+          immediate: input.immediate !== false,
+          ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
+        }),
+      }).catch((error: any) => ({ ok: false, status: 0, text: async () => error?.message ?? 'network_error' }) as Response);
+
+      if (!connectRes.ok) {
+        const body = await connectRes.text().catch(() => 'unknown_error');
+        failures.push(`${connectEndpoint}=status ${connectRes.status} ${body}`);
+      }
+    }
+
+    const encodedInstance = encodeURIComponent(input.instance);
+    const phoneQuery = input.phone?.trim() ? `?number=${encodeURIComponent(input.phone.trim())}` : '';
+    const attempts = [
+      `/instance/connect/${encodedInstance}${phoneQuery}`,
+      `/instance/${encodedInstance}/qrcode`,
+      `/instance/qr`,
+    ];
+
+    for (const endpoint of attempts) {
+      const response = await fetch(`${base}${endpoint}`, {
+        method: 'GET',
+        headers: sharedHeaders,
+      }).catch((error: any) => ({ ok: false, status: 0, text: async () => error?.message ?? 'network_error' }) as Response);
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => 'unknown_error');
+        failures.push(`${endpoint}=status ${response.status} ${body}`);
+        continue;
+      }
+
+      const payload: any = await response.json().catch(() => ({}));
+      const normalized = this.normalizeEvolutionQrCodeResponse(payload);
+      if (normalized.qrCode || normalized.code || normalized.pairingCode) {
+        return {
+          ok: true,
+          endpoint,
+          ...normalized,
+        };
+      }
+
+      failures.push(`${endpoint}=resposta sem QR Code ou codigo de pareamento`);
+    }
+
+    return {
+      ok: false,
+      error: failures.join('; ') || 'Nao foi possivel gerar QR Code na Evolution.',
+    };
+  }
+
+  private normalizeEvolutionQrCodeResponse(payload: any): {
+    qrCode?: string | null;
+    pairingCode?: string | null;
+    code?: string | null;
+    count?: number | null;
+  } {
+    const source = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
+    const qrCode =
+      this.readOptionalString(source?.base64) ??
+      this.readOptionalString(source?.qrCode) ??
+      this.readOptionalString(source?.qrcode) ??
+      this.readOptionalString(source?.Qrcode) ??
+      this.readOptionalString(source?.QRCode) ??
+      this.readOptionalString(payload?.qrCode) ??
+      this.readOptionalString(payload?.qrcode);
+    const code =
+      this.readOptionalString(source?.code) ??
+      this.readOptionalString(source?.Code) ??
+      this.readOptionalString(payload?.code);
+    const pairingCode =
+      this.readOptionalString(source?.pairingCode) ??
+      this.readOptionalString(source?.PairingCode) ??
+      this.readOptionalString(payload?.pairingCode);
+    const count = Number(source?.count ?? source?.Count ?? payload?.count);
+
+    return {
+      qrCode,
+      code,
+      pairingCode,
+      count: Number.isFinite(count) ? count : null,
+    };
+  }
+
+  private readOptionalString(value: unknown): string | null {
+    const normalized = String(value ?? '').trim();
+    return normalized || null;
   }
 
   private async readStoredEvolutionSettings() {

@@ -13,10 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Save, RefreshCw, CircleHelp } from "lucide-react";
+import { Loader2, Save, RefreshCw, CircleHelp, QrCode, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import {
   getEvolutionSettingsAction,
+  requestEvolutionQrCodeAction,
   updateEvolutionSettingsAction,
 } from "@/features/evolution/application/evolution-actions";
 
@@ -45,7 +46,16 @@ function LabelWithHelp({ htmlFor, label, help }: { htmlFor?: string; label: stri
 export default function EvolutionSettingsTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingQrCode, setIsGeneratingQrCode] = useState(false);
   const [settings, setSettings] = useState<EvolutionSettings>(DEFAULT_EVOLUTION_SETTINGS);
+  const [qrCodeResult, setQrCodeResult] = useState<{
+    instance: string;
+    endpoint: string;
+    qrCode?: string | null;
+    pairingCode?: string | null;
+    code?: string | null;
+    count?: number | null;
+  } | null>(null);
 
   const subscribeOptions = useMemo(() => EVOLUTION_WEBHOOK_SUBSCRIBE_OPTIONS, []);
 
@@ -102,6 +112,40 @@ export default function EvolutionSettingsTab() {
     toast.success(result.message ?? "Configuracoes salvas.");
     setIsSaving(false);
   }
+
+  async function generateQrCode() {
+    setIsGeneratingQrCode(true);
+    setQrCodeResult(null);
+
+    const validation = evolutionSettingsSchema.safeParse(settings);
+    if (!validation.success) {
+      toast.error("Dados invalidos. Revise os campos antes de gerar o QR Code.");
+      setIsGeneratingQrCode(false);
+      return;
+    }
+
+    const saveResult = await updateEvolutionSettingsAction(validation.data);
+    if (!saveResult.success) {
+      toast.error("Falha ao salvar configuracoes antes de gerar o QR Code.");
+      setIsGeneratingQrCode(false);
+      return;
+    }
+
+    setSettings(saveResult.settings);
+
+    const result = await requestEvolutionQrCodeAction();
+    if (!result.success) {
+      toast.error(result.message ?? "Falha ao gerar QR Code na Evolution.");
+      setIsGeneratingQrCode(false);
+      return;
+    }
+
+    setQrCodeResult(result.data);
+    toast.success(result.message ?? "QR Code gerado.");
+    setIsGeneratingQrCode(false);
+  }
+
+  const qrCodeImageSrc = useMemo(() => normalizeQrCodeImage(qrCodeResult?.qrCode), [qrCodeResult?.qrCode]);
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
@@ -269,8 +313,65 @@ export default function EvolutionSettingsTab() {
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar configuracoes
           </Button>
+          <Button variant="secondary" onClick={generateQrCode} disabled={isLoading || isSaving || isGeneratingQrCode}>
+            {isGeneratingQrCode ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+            Gerar QR Code
+          </Button>
         </CardFooter>
       </Card>
+
+      {qrCodeResult ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              Conexao WhatsApp
+            </CardTitle>
+            <CardDescription>
+              Instancia {qrCodeResult.instance} via {qrCodeResult.endpoint}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 md:grid-cols-[220px_1fr]">
+            <div className="flex min-h-55 items-center justify-center rounded-lg border bg-background p-4">
+              {qrCodeImageSrc ? (
+                <img
+                  src={qrCodeImageSrc}
+                  alt={`QR Code da instancia ${qrCodeResult.instance}`}
+                  className="h-48 w-48 rounded-sm object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
+                  <QrCode className="h-10 w-10" />
+                  QR Code em imagem nao retornado.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 text-sm">
+              {qrCodeResult.pairingCode ? (
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
+                    <KeyRound className="h-4 w-4" />
+                    Codigo de pareamento
+                  </div>
+                  <p className="font-mono text-2xl tracking-widest text-foreground">{qrCodeResult.pairingCode}</p>
+                </div>
+              ) : null}
+
+              {qrCodeResult.code ? (
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <p className="mb-2 font-medium text-foreground">Codigo bruto da Evolution</p>
+                  <p className="break-all font-mono text-xs text-muted-foreground">{qrCodeResult.code}</p>
+                </div>
+              ) : null}
+
+              <div className="rounded-lg border bg-muted/20 p-4 text-muted-foreground">
+                <p>Tentativas: {qrCodeResult.count ?? "N/A"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -303,4 +404,14 @@ export default function EvolutionSettingsTab() {
       </Card>
     </div>
   );
+}
+
+function normalizeQrCodeImage(value?: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  if (/^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,/i.test(raw)) return raw;
+  if (/^[a-zA-Z0-9+/=\s]+$/.test(raw) && raw.length > 80) {
+    return `data:image/png;base64,${raw.replace(/\s+/g, "")}`;
+  }
+  return null;
 }
