@@ -15,6 +15,12 @@ import {
   type TicketModuleSettingsResponse,
 } from "@dosc-syspro/contracts/ticket";
 import {
+  chatwootBehaviorSettingsResponseSchema,
+  chatwootBehaviorSettingsSchema,
+  type ChatwootBehaviorSettings,
+  type ChatwootBehaviorSettingsResponse,
+} from "@dosc-syspro/contracts/chatwoot";
+import {
   settingsAuthorizationContextResponseSchema,
   settingsContractsAdminViewResponseSchema,
   settingsRemoteAdminViewResponseSchema,
@@ -42,6 +48,7 @@ export type IntegrationDiagnosticsResponse = {
     activeConnections: number;
     runtime: Record<string, boolean>;
     diagnostics: unknown;
+    behavior?: ChatwootBehaviorSettings;
   };
   storage?: {
     provider: string;
@@ -166,4 +173,23 @@ export async function updateTicketModuleSettingsGateway(
 
 export async function fetchIntegrationDiagnosticsGateway(): Promise<IntegrationDiagnosticsResponse> {
   return callBackendApi<IntegrationDiagnosticsResponse>("settings", "/integrations/diagnostics");
+}
+
+export async function fetchChatwootBehaviorSettingsGateway(): Promise<ChatwootBehaviorSettingsResponse> {
+  return chatwootBehaviorSettingsResponseSchema.parse(
+    await callBackendApi<ChatwootBehaviorSettingsResponse>("settings", "/chatwoot/behavior"),
+  );
+}
+
+export async function updateChatwootBehaviorSettingsGateway(
+  input: ChatwootBehaviorSettings,
+): Promise<ChatwootBehaviorSettingsResponse> {
+  const payload = chatwootBehaviorSettingsSchema.parse(input);
+  return chatwootBehaviorSettingsResponseSchema.parse(
+    await callBackendApi<ChatwootBehaviorSettingsResponse>("settings", "/chatwoot/behavior", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
 }

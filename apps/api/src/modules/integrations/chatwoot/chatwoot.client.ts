@@ -351,6 +351,35 @@ export class ChatwootClient {
     );
   }
 
+  async assignConversation(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    input: { assigneeId?: string; teamId?: string }
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/assignments`,
+      'POST',
+      {
+        ...(input.assigneeId ? { assignee_id: Number(input.assigneeId) } : {}),
+        ...(input.teamId ? { team_id: Number(input.teamId) } : {}),
+      }
+    );
+  }
+
+  async toggleConversationStatus(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    status: 'open' | 'resolved' | 'pending' | 'snoozed'
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/toggle_status`,
+      'POST',
+      { status }
+    );
+  }
+
   async listAgents(config: ChatwootConnectionConfig): Promise<any[]> {
     const response = await this.request(
       config,

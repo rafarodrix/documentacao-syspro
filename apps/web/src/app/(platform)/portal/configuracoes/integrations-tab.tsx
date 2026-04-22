@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, RefreshCw, Server, TriangleAlert } from "lucide-react";
+import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
+import {
+  DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+  chatwootBehaviorSettingsSchema,
+  type ChatwootBehaviorSettings,
+} from "@dosc-syspro/contracts/chatwoot";
+import { toast } from "sonner";
 
 import EvolutionSettingsTab from "./evolution-tab";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type IntegrationDiagnostics = {
@@ -17,6 +25,7 @@ type IntegrationDiagnostics = {
     activeConnections: number;
     runtime: Record<string, boolean>;
     diagnostics: unknown;
+    behavior?: ChatwootBehaviorSettings;
   };
   storage?: {
     provider: string;
@@ -77,6 +86,13 @@ export function IntegrationsSettingsTab() {
 
 function ChatwootDiagnosticsTab() {
   const { diagnostics, isLoading, reload } = useIntegrationDiagnostics();
+  const {
+    behavior,
+    isLoading: isBehaviorLoading,
+    isSaving,
+    setBehavior,
+    save,
+  } = useChatwootBehaviorSettings();
   const chatwoot = diagnostics?.chatwoot;
   const runtime = chatwoot?.runtime ?? {};
 
@@ -117,10 +133,94 @@ function ChatwootDiagnosticsTab() {
             <pre className="max-h-72 overflow-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
             </pre>
+
+            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-base font-semibold">Automacoes do Webhook</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Regras aplicadas quando o Chatwoot envia eventos para o backend.
+                  </p>
+                </div>
+                <Button size="sm" onClick={save} disabled={isBehaviorLoading || isSaving}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar
+                </Button>
+              </div>
+
+              {isBehaviorLoading ? (
+                <LoadingState label="Carregando automacoes do Chatwoot..." />
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <BehaviorToggle
+                    id="autoAssignOnFirstAgentReply"
+                    label="Autoatribuir ao primeiro agente que responder"
+                    description="Quando uma mensagem de saida de agente chegar sem responsavel na conversa, o backend atribui a conversa a esse agente."
+                    checked={behavior.autoAssignOnFirstAgentReply}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, autoAssignOnFirstAgentReply: checked }))
+                    }
+                  />
+                  <BehaviorToggle
+                    id="reopenConversationOnCustomerReply"
+                    label="Reabrir quando o cliente responder"
+                    description="Se o cliente mandar nova mensagem em conversa pendente/resolvida/adiada, o backend tenta mover a conversa para open."
+                    checked={behavior.reopenConversationOnCustomerReply}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
+                    }
+                  />
+                  <BehaviorToggle
+                    id="releaseConversationLinkOnResolved"
+                    label="Liberar vinculo ao resolver"
+                    description="Ao receber status resolved/archived, remove o vinculo local para uma proxima mensagem poder abrir nova conversa."
+                    checked={behavior.releaseConversationLinkOnResolved}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, releaseConversationLinkOnResolved: checked }))
+                    }
+                  />
+                  <BehaviorToggle
+                    id="ticketCreationAppEnabled"
+                    label="Preparar app de criacao de tickets"
+                    description="Mantem a opcao registrada para habilitar o app/atalho do Chatwoot que abre criacao de ticket no portal."
+                    checked={behavior.ticketCreationAppEnabled}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, ticketCreationAppEnabled: checked }))
+                    }
+                  />
+                </div>
+              )}
+            </div>
           </>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function BehaviorToggle({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  id: keyof ChatwootBehaviorSettings;
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex min-h-28 items-start gap-3 rounded-lg border bg-background p-4">
+      <Checkbox id={id} checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} />
+      <span className="space-y-1">
+        <Label htmlFor={id} className="cursor-pointer text-sm font-medium">
+          {label}
+        </Label>
+        <span className="block text-sm text-muted-foreground">{description}</span>
+      </span>
+    </div>
   );
 }
 
@@ -202,6 +302,74 @@ function useIntegrationDiagnostics() {
     isLoading,
     reload: () => requestIntegrationDiagnostics(setDiagnostics, setIsLoading),
   };
+}
+
+function useChatwootBehaviorSettings() {
+  const [behavior, setBehavior] = useState<ChatwootBehaviorSettings>(DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/platform/settings/chatwoot-behavior", { method: "GET", cache: "no-store" });
+        const json = await response.json().catch(() => ({}));
+        const parsed = chatwootBehaviorSettingsSchema.safeParse(json?.data);
+        if (active) {
+          setBehavior(parsed.success ? parsed.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS);
+        }
+      } catch {
+        if (active) {
+          setBehavior(DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS);
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function save() {
+    setIsSaving(true);
+    const parsed = chatwootBehaviorSettingsSchema.safeParse(behavior);
+    if (!parsed.success) {
+      toast.error("Configuracoes invalidas do Chatwoot.");
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/platform/settings/chatwoot-behavior", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || !json?.success) {
+        toast.error(json?.error || "Falha ao salvar automacoes do Chatwoot.");
+        return;
+      }
+
+      const saved = chatwootBehaviorSettingsSchema.safeParse(json.data);
+      if (saved.success) {
+        setBehavior(saved.data);
+      }
+      toast.success(json?.message || "Automacoes do Chatwoot salvas.");
+    } catch {
+      toast.error("Falha ao salvar automacoes do Chatwoot.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return { behavior, isLoading, isSaving, setBehavior, save };
 }
 
 async function requestIntegrationDiagnostics(

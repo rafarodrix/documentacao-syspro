@@ -11,6 +11,11 @@ import {
   evolutionSettingsSchema,
   type EvolutionSettingsInput,
 } from '@dosc-syspro/contracts/evolution';
+import {
+  DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+  chatwootBehaviorSettingsSchema,
+  type ChatwootBehaviorSettingsInput,
+} from '@dosc-syspro/contracts/chatwoot';
 import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig, readR2RuntimeConfig } from '@dosc-syspro/config';
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
@@ -46,6 +51,7 @@ export class SettingsController {
   private static readonly EVOLUTION_CONFIG_KEY = 'evolution_config';
   private static readonly EVOLUTION_QRCODE_KEY_PREFIX = 'evolution_qrcode:';
   private static readonly EVOLUTION_STATUS_KEY_PREFIX = 'evolution_status:';
+  private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -552,13 +558,45 @@ export class SettingsController {
     };
   }
 
+  @Get('chatwoot/behavior')
+  async getChatwootBehaviorSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    return {
+      success: true,
+      data: await this.readStoredChatwootBehaviorSettings(),
+    };
+  }
+
+  @Put('chatwoot/behavior')
+  async setChatwootBehaviorSettings(@Req() req: Request, @Body() input: ChatwootBehaviorSettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = chatwootBehaviorSettingsSchema.parse(input);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY,
+        value: JSON.stringify(parsed),
+        description: 'Configuracoes operacionais do webhook Chatwoot',
+      },
+    });
+
+    return {
+      success: true,
+      data: parsed,
+      message: 'Configuracoes do Chatwoot salvas.',
+    };
+  }
+
   @Get('integrations/diagnostics')
   async getIntegrationDiagnostics(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'settings:view');
 
-    const [defaultContext, activeContexts] = await Promise.all([
+    const [defaultContext, activeContexts, chatwootBehavior] = await Promise.all([
       this.integrationContext.getDefaultContext(),
       this.integrationContext.listActiveContexts(),
+      this.readStoredChatwootBehaviorSettings(),
     ]);
 
     const chatwootRuntime = readChatwootRuntimeConfig();
@@ -598,6 +636,7 @@ export class SettingsController {
           hasWebhookSecret: Boolean(chatwootRuntime.webhookSecret),
         },
         diagnostics: chatwootDiagnostics,
+        behavior: chatwootBehavior,
       },
       storage: {
         provider: 'Cloudflare R2',
@@ -1206,6 +1245,25 @@ export class SettingsController {
   private readOptionalString(value: unknown): string | null {
     const normalized = String(value ?? '').trim();
     return normalized || null;
+  }
+
+  private async readStoredChatwootBehaviorSettings() {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+      select: { value: true },
+    });
+
+    if (!setting?.value) {
+      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value);
+      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
+      return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    } catch {
+      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    }
   }
 
   private async readStoredEvolutionSettings() {

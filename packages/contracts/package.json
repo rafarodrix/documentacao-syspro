@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./agent": "./src/agent/index.ts",
+    "./chatwoot": "./src/chatwoot/index.ts",
     "./dashboard": "./src/dashboard/index.ts",
     "./evolution": "./src/evolution/index.ts",
     "./evolution-settings": "./src/evolution/evolution-settings.types.ts",

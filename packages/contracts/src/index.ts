@@ -25,6 +25,7 @@ export * from "./documento/index";
 export * from "./user/index";
 export * from "./ticket/index";
 export * from "./agent/index";
+export * from "./chatwoot/index";
 export * from "./evolution/index";
 export * from "./remote/index";
 

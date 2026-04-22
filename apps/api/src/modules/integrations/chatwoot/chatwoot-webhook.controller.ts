@@ -12,16 +12,24 @@ import {
 import { createHmac, timingSafeEqual } from 'crypto';
 import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { IntegrationContextService } from '../../settings/integration-context.service';
+import { IntegrationContextService, type ResolvedIntegrationContext } from '../../settings/integration-context.service';
+import { ChatwootClient } from './chatwoot.client';
+import {
+  DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+  chatwootBehaviorSettingsSchema,
+  type ChatwootBehaviorSettings,
+} from '@dosc-syspro/contracts/chatwoot';
 
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {
   private readonly logger = new Logger(ChatwootWebhookController.name);
+  private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
 
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
     private readonly prisma: PrismaService,
     private readonly integrationContext: IntegrationContextService,
+    private readonly chatwootClient: ChatwootClient,
   ) {}
 
   @Post()
@@ -121,6 +129,8 @@ export class ChatwootWebhookController {
       }));
     }
 
+    const behaviorSettings = await this.readStoredChatwootBehaviorSettings();
+
     switch (payload?.event) {
       case 'message_created':
         try {
@@ -150,6 +160,7 @@ export class ChatwootWebhookController {
               (Array.isArray(conversationMessage?.attachments) && conversationMessage.attachments.length > 0)
             ),
           }));
+          await this.applyMessageBehaviorRules(payload, behaviorSettings, resolvedContext);
           await this.processOutgoingMessage.execute(payload, { connection: resolvedContext ?? undefined });
           this.logger.log(JSON.stringify({
             flow: 'chatwoot_to_evolution',
@@ -211,7 +222,7 @@ export class ChatwootWebhookController {
         }
         break;
       case 'conversation_status_changed':
-        await this.handleConversationStatusChanged(payload, resolvedContext?.connectionKey);
+        await this.handleConversationStatusChanged(payload, resolvedContext?.connectionKey, behaviorSettings);
         break;
       case 'conversation_updated':
         this.logger.debug('Evento conversation_updated recebido; nenhuma acao remota no WhatsApp configurada.');
@@ -224,6 +235,150 @@ export class ChatwootWebhookController {
     }
 
     return { ok: true };
+  }
+
+  private async applyMessageBehaviorRules(
+    payload: any,
+    settings: ChatwootBehaviorSettings,
+    resolvedContext: ResolvedIntegrationContext | null,
+  ) {
+    if (!resolvedContext?.chatwoot.url || !resolvedContext.chatwoot.apiToken || !resolvedContext.chatwoot.accountId) {
+      return;
+    }
+
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const messageType = this.normalizeMessageType(payload?.message_type ?? message?.message_type);
+    const isPrivate = Boolean(payload?.private ?? message?.private);
+
+    if (
+      settings.autoAssignOnFirstAgentReply &&
+      !isPrivate &&
+      (messageType === 'outgoing' || messageType === 'template')
+    ) {
+      await this.autoAssignConversationToReplyingAgent(payload, resolvedContext);
+    }
+
+    if (
+      settings.reopenConversationOnCustomerReply &&
+      messageType === 'incoming'
+    ) {
+      await this.reopenConversationForCustomerReply(payload, resolvedContext);
+    }
+  }
+
+  private async autoAssignConversationToReplyingAgent(payload: any, resolvedContext: ResolvedIntegrationContext) {
+    const conversationId = this.extractConversationId(payload);
+    const assigneeId = this.extractSenderAgentId(payload);
+    if (!conversationId || !assigneeId) {
+      return;
+    }
+    if (!/^\d+$/.test(assigneeId)) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_auto_assign_invalid_assignee',
+        conversationId,
+        assigneeId,
+      }));
+      return;
+    }
+
+    const currentAssigneeId = await this.resolveCurrentConversationAssigneeId(payload, resolvedContext, conversationId);
+    if (currentAssigneeId) {
+      return;
+    }
+
+    try {
+      await this.chatwootClient.assignConversation(resolvedContext.chatwoot, conversationId, { assigneeId });
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_auto_assigned',
+        conversationId,
+        assigneeId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_auto_assign_failed',
+        conversationId,
+        assigneeId,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+  }
+
+  private async reopenConversationForCustomerReply(payload: any, resolvedContext: ResolvedIntegrationContext) {
+    const conversationId = this.extractConversationId(payload);
+    if (!conversationId) {
+      return;
+    }
+
+    let status = this.normalizeConversationStatus(
+      payload?.conversation?.status ??
+      payload?.status ??
+      payload?.meta?.status
+    );
+    if (!status) {
+      try {
+        const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
+        status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
+      } catch (error: any) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'conversation_status_lookup_failed',
+          conversationId,
+          error: error?.message ?? 'unknown_error',
+        }));
+        return;
+      }
+    }
+
+    if (status === 'open') {
+      return;
+    }
+
+    try {
+      await this.chatwootClient.toggleConversationStatus(resolvedContext.chatwoot, conversationId, 'open');
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopened_on_customer_reply',
+        conversationId,
+        previousStatus: status ?? null,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_failed',
+        conversationId,
+        previousStatus: status ?? null,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+  }
+
+  private async resolveCurrentConversationAssigneeId(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext,
+    conversationId: string,
+  ): Promise<string | null> {
+    const fromPayload = this.extractAssigneeId(payload?.conversation ?? payload);
+    if (fromPayload) {
+      return fromPayload;
+    }
+
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
+      return this.extractAssigneeId(conversation);
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_assignee_lookup_failed',
+        conversationId,
+        error: error?.message ?? 'unknown_error',
+      }));
+      return 'lookup_failed';
+    }
   }
 
   private serializeErrorStack(error: unknown): string | null {
@@ -258,7 +413,11 @@ export class ChatwootWebhookController {
     return Math.abs(nowSeconds - value) <= maxSkewSeconds;
   }
 
-  private async handleConversationStatusChanged(payload: any, connectionKey?: string | null) {
+  private async handleConversationStatusChanged(
+    payload: any,
+    connectionKey?: string | null,
+    settings: ChatwootBehaviorSettings = DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+  ) {
     const conversationId = this.toOptionalString(
       payload?.conversation?.id ??
       payload?.conversation_id ??
@@ -278,7 +437,7 @@ export class ChatwootWebhookController {
       connectionKey: connectionKey ?? null,
     }));
 
-    if (!conversationId || (status !== 'resolved' && status !== 'archived')) {
+    if (!settings.releaseConversationLinkOnResolved || !conversationId || (status !== 'resolved' && status !== 'archived')) {
       return;
     }
 
@@ -306,6 +465,80 @@ export class ChatwootWebhookController {
     if (normalized === 'resolved' || normalized === 'archived') return normalized;
     if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
     return normalized;
+  }
+
+  private normalizeMessageType(value: unknown): 'incoming' | 'outgoing' | 'template' | 'unknown' {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'incoming' || normalized === 'outgoing' || normalized === 'template') {
+      return normalized;
+    }
+
+    if (normalized === '0') return 'incoming';
+    if (normalized === '1') return 'outgoing';
+    if (normalized === '2') return 'template';
+    return 'unknown';
+  }
+
+  private extractConversationId(payload: any): string | undefined {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    return this.toOptionalString(
+      payload?.conversation?.id ??
+      payload?.conversation_id ??
+      message?.conversation_id ??
+      message?.conversation?.id
+    );
+  }
+
+  private extractSenderAgentId(payload: any): string | undefined {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const sender = payload?.sender ?? message?.sender ?? payload?.user ?? message?.user;
+    const senderType = String(
+      sender?.type ??
+      sender?.sender_type ??
+      payload?.sender_type ??
+      message?.sender_type ??
+      ''
+    ).trim().toLowerCase();
+
+    if (senderType && !['user', 'agent'].includes(senderType)) {
+      return undefined;
+    }
+
+    return this.toOptionalString(
+      sender?.id ??
+      payload?.sender_id ??
+      message?.sender_id ??
+      payload?.user_id ??
+      message?.user_id
+    );
+  }
+
+  private extractAssigneeId(value: any): string | null {
+    return this.toOptionalString(
+      value?.assignee_id ??
+      value?.assignee?.id ??
+      value?.meta?.assignee?.id ??
+      value?.meta?.assignee_id
+    ) ?? null;
+  }
+
+  private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: ChatwootWebhookController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+      select: { value: true },
+    });
+
+    if (!setting?.value) {
+      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value);
+      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
+      return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    } catch {
+      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    }
   }
 
   private toOptionalString(value: unknown): string | undefined {
