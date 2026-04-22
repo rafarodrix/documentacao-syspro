@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Save, RefreshCw, CircleHelp, QrCode, KeyRound } from "lucide-react";
+import { Loader2, Save, RefreshCw, CircleHelp, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import {
   type EvolutionQrCodeResult,
@@ -136,7 +136,11 @@ export default function EvolutionSettingsTab() {
     }
 
     setQrCodeResult(result.data);
-    toast.success(result.message ?? "QR Code gerado.");
+    if (result.data.qrCode || result.data.code) {
+      toast.success(result.message ?? "QR Code recebido.");
+    } else {
+      toast.info(result.message ?? "Conexao aplicada. Aguarde o evento QRCode chegar no webhook.");
+    }
     setIsGeneratingQrCode(false);
   }
 
@@ -174,7 +178,7 @@ export default function EvolutionSettingsTab() {
                     help={
                       "URL publica do backend que recebe eventos do Evolution.\n" +
                       "Preencher com: https://SEU_BACKEND/api/webhooks/evolution\n" +
-                      "Eventos atualmente tratados pelo backend: MESSAGE, GROUP e READ_RECEIPT."
+                      "Eventos atualmente tratados pelo backend: Message, Receipt, Call, QRCode e Group quando vier com payload de mensagem."
                     }
                   />
                   <Input
@@ -260,9 +264,9 @@ export default function EvolutionSettingsTab() {
                   label="Eventos Assinados (subscribe)"
                   help={
                     "Define quais eventos o Evolution enviara para o webhook.\n" +
-                    "Para o backend atual, use ALL ou selecione ao menos MESSAGE e READ_RECEIPT.\n" +
-                    "Se grupos forem assinados separadamente no Evolution Go 0.7.0, inclua GROUP.\n" +
-                    "Esses nomes seguem o padrao da documentacao da Evolution Go."
+                    "Para o backend atual, use ALL ou selecione ao menos MESSAGE, READ_RECEIPT, CONNECTION e QRCODE.\n" +
+                    "Se grupos forem assinados separadamente, inclua GROUP.\n" +
+                    "Ao gerar QR Code, o backend sempre envia QRCODE e CONNECTION para o POST /instance/connect."
                   }
                 />
                 <div className="grid gap-3 md:grid-cols-2">
@@ -324,6 +328,7 @@ export default function EvolutionSettingsTab() {
             </CardTitle>
             <CardDescription>
               Instancia {qrCodeResult.instance} via {qrCodeResult.endpoint}
+              {qrCodeResult.receivedAt ? ` - QR recebido em ${new Date(qrCodeResult.receivedAt).toLocaleString("pt-BR")}` : ""}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-[220px_1fr]">
@@ -340,22 +345,12 @@ export default function EvolutionSettingsTab() {
               ) : (
                 <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
                   <QrCode className="h-10 w-10" />
-                  QR Code em imagem nao retornado.
+                  Conexao aplicada. Aguardando evento QRCode chegar no webhook.
                 </div>
               )}
             </div>
 
             <div className="space-y-3 text-sm">
-              {qrCodeResult.pairingCode ? (
-                <div className="rounded-lg border bg-muted/20 p-4">
-                  <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
-                    <KeyRound className="h-4 w-4" />
-                    Codigo de pareamento
-                  </div>
-                  <p className="font-mono text-2xl tracking-widest text-foreground">{qrCodeResult.pairingCode}</p>
-                </div>
-              ) : null}
-
               {qrCodeResult.code ? (
                 <div className="rounded-lg border bg-muted/20 p-4">
                   <p className="mb-2 font-medium text-foreground">Codigo bruto da Evolution</p>
@@ -364,7 +359,7 @@ export default function EvolutionSettingsTab() {
               ) : null}
 
               <div className="rounded-lg border bg-muted/20 p-4 text-muted-foreground">
-                <p>Tentativas: {qrCodeResult.count ?? "N/A"}</p>
+                <p>Fluxo oficial Evolution Go: o portal chama `POST /instance/connect` e a Evolution envia o QR por evento `QRCode` para o webhook configurado.</p>
               </div>
             </div>
           </CardContent>
@@ -380,8 +375,8 @@ export default function EvolutionSettingsTab() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>- Webhook inbound processa `MESSAGE`, `messages.upsert`, `GROUP` para grupos permitidos, `READ_RECEIPT` e `Receipt`.</p>
-          <p>- Outbound prioriza as rotas `/send/text` e `/send/media` da Evolution Go, com fallback para o contrato v2 quando necessario.</p>
-          <p>- Salvar esta tela persiste a configuracao administrativa no backend; isso nao garante provisionamento automatico da instancia.</p>
+          <p>- O QR Code segue o fluxo oficial da Evolution Go: `POST /instance/connect` e evento `QRCode` recebido no webhook.</p>
+          <p>- Outbound prioriza as rotas `/send/text` e `/send/media` da Evolution Go.</p>
         </CardContent>
       </Card>
 
@@ -393,8 +388,9 @@ export default function EvolutionSettingsTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `MESSAGE` e `READ_RECEIPT` habilitados; para grupos sem `ALL`, habilite tambem `GROUP`.</p>
+          <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `MESSAGE`, `READ_RECEIPT`, `CONNECTION` e `QRCODE` habilitados; para grupos sem `ALL`, habilite tambem `GROUP`.</p>
           <p>- O backend precisa ter `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` configurados.</p>
+          <p>- `Instance ID` e obrigatorio para aplicar `POST /instance/connect` na Evolution Go.</p>
           <p>- Os campos `Instance`, `Instance ID` e `Instance Token` desta tela sao a fonte de verdade para o casamento exato do webhook.</p>
           <p>- O Chatwoot precisa apontar webhook para `POST /api/webhooks/chatwoot`; `/webhooks/chatwoot` tambem e aceito como alias.</p>
           <p>- O fluxo principal atual depende de `message_created` no Chatwoot para enviar respostas ao WhatsApp.</p>

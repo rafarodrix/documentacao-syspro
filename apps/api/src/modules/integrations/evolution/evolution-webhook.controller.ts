@@ -1,14 +1,17 @@
 import { Controller, Post, Body, UnauthorizedException, HttpCode, HttpStatus, Logger } from '@nestjs/common';
 import { ProcessIncomingMessageUseCase } from '../messaging/application/process-incoming-message.usecase';
 import { IntegrationContextService } from '../../settings/integration-context.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Controller('webhooks/evolution')
 export class EvolutionWebhookController {
   private readonly logger = new Logger(EvolutionWebhookController.name);
+  private static readonly EVOLUTION_QRCODE_KEY_PREFIX = 'evolution_qrcode:';
 
   constructor(
     private readonly processIncomingMessage: ProcessIncomingMessageUseCase,
     private readonly integrationContext: IntegrationContextService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
@@ -55,6 +58,15 @@ export class EvolutionWebhookController {
 
     const normalizedEvent = String(payload?.event ?? '').trim().toLowerCase();
     const eventPayload = payload?.data ?? payload;
+    if (normalizedEvent === 'qrcode') {
+      await this.storeQrCodeEvent({
+        eventPayload,
+        instanceId: resolvedInstanceId || payloadInstanceId,
+        connectionKey: resolvedContext.connectionKey,
+      });
+      return { ok: true };
+    }
+
     const remoteJid = this.readRemoteJid(eventPayload);
     const isGroupMessageRoute =
       normalizedEvent === 'group' &&
@@ -131,5 +143,68 @@ export class EvolutionWebhookController {
       message?.documentMessage ||
       message?.audioMessage
     );
+  }
+
+  private async storeQrCodeEvent(input: {
+    eventPayload: any;
+    instanceId: string;
+    connectionKey: string;
+  }) {
+    const instanceId = String(input.instanceId ?? '').trim();
+    if (!instanceId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'qrcode_event_missing_instance_id',
+        connectionKey: input.connectionKey,
+      }));
+      return;
+    }
+
+    const qrCode =
+      this.readOptionalString(input.eventPayload?.qrcode) ??
+      this.readOptionalString(input.eventPayload?.qrCode) ??
+      this.readOptionalString(input.eventPayload?.QRCode) ??
+      this.readOptionalString(input.eventPayload?.base64);
+    const code =
+      this.readOptionalString(input.eventPayload?.code) ??
+      this.readOptionalString(input.eventPayload?.Code);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: `${EvolutionWebhookController.EVOLUTION_QRCODE_KEY_PREFIX}${instanceId}` },
+      update: {
+        value: JSON.stringify({
+          instanceId,
+          connectionKey: input.connectionKey,
+          qrCode,
+          code,
+          receivedAt: new Date().toISOString(),
+        }),
+      },
+      create: {
+        key: `${EvolutionWebhookController.EVOLUTION_QRCODE_KEY_PREFIX}${instanceId}`,
+        value: JSON.stringify({
+          instanceId,
+          connectionKey: input.connectionKey,
+          qrCode,
+          code,
+          receivedAt: new Date().toISOString(),
+        }),
+        description: 'Ultimo QR Code recebido da Evolution Go',
+      },
+    });
+
+    this.logger.log(JSON.stringify({
+      flow: 'evolution_to_chatwoot',
+      stage: 'qrcode_event_stored',
+      instanceId,
+      connectionKey: input.connectionKey,
+      hasQrCode: Boolean(qrCode),
+      hasCode: Boolean(code),
+    }));
+  }
+
+  private readOptionalString(value: unknown): string | null {
+    const normalized = String(value ?? '').trim();
+    return normalized || null;
   }
 }

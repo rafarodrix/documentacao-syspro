@@ -12,9 +12,8 @@ export type EvolutionQrCodeResult = {
   instance: string;
   endpoint: string;
   qrCode?: string | null;
-  pairingCode?: string | null;
   code?: string | null;
-  count?: number | null;
+  receivedAt?: string | null;
 };
 
 type EvolutionQrCodeActionResult =

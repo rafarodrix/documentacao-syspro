@@ -44,6 +44,7 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 @Controller('settings')
 export class SettingsController {
   private static readonly EVOLUTION_CONFIG_KEY = 'evolution_config';
+  private static readonly EVOLUTION_QRCODE_KEY_PREFIX = 'evolution_qrcode:';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -377,7 +378,7 @@ export class SettingsController {
       };
     }
 
-    const result = await this.fetchEvolutionQrCode({
+    const result = await this.connectEvolutionInstance({
       apiUrl: context.evolution.apiUrl,
       apiKey: context.evolution.apiKey,
       instance,
@@ -395,13 +396,16 @@ export class SettingsController {
             instance,
             endpoint: result.endpoint,
             qrCode: result.qrCode,
-            pairingCode: result.pairingCode,
             code: result.code,
-            count: result.count,
+            receivedAt: result.receivedAt,
           }
         : undefined,
       error: result.ok ? undefined : 'EVOLUTION_QRCODE_FAILED',
-      message: result.ok ? 'QR Code gerado pela Evolution.' : result.error,
+      message: result.ok
+        ? result.qrCode
+          ? 'QR Code recebido pelo webhook da Evolution.'
+          : 'Conexao aplicada na Evolution; aguardando evento QRCode no webhook.'
+        : result.error,
     };
   }
 
@@ -918,7 +922,7 @@ export class SettingsController {
     }
   }
 
-  private async fetchEvolutionQrCode(input: {
+  private async connectEvolutionInstance(input: {
     apiUrl: string;
     apiKey: string;
     instance: string;
@@ -931,112 +935,130 @@ export class SettingsController {
     ok: boolean;
     endpoint?: string;
     qrCode?: string | null;
-    pairingCode?: string | null;
     code?: string | null;
-    count?: number | null;
+    receivedAt?: string | null;
     error?: string;
   }> {
     const base = input.apiUrl.replace(/\/+$/, '');
-    const sharedHeaders: Record<string, string> = {
-      apikey: input.apiKey,
-      Authorization: `Bearer ${input.apiKey}`,
-      'Content-Type': 'application/json',
-      ...(input.instanceId?.trim() ? { instanceId: input.instanceId.trim() } : {}),
-    };
-    const failures: string[] = [];
+    const instanceId = input.instanceId?.trim();
+    const webhookUrl = input.webhookUrl?.trim();
+    const endpoint = '/instance/connect';
+    const requestedAt = new Date();
 
-    if (input.instanceId?.trim() && input.webhookUrl?.trim()) {
-      const connectEndpoint = '/instance/connect';
-      const connectRes = await fetch(`${base}${connectEndpoint}`, {
-        method: 'POST',
-        headers: {
-          ...sharedHeaders,
-          instanceId: input.instanceId.trim(),
-        },
-        body: JSON.stringify({
-          webhookUrl: input.webhookUrl.trim(),
-          subscribe: input.subscribe?.length ? input.subscribe : ['ALL'],
-          immediate: input.immediate !== false,
-          ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
-        }),
-      }).catch((error: any) => ({ ok: false, status: 0, text: async () => error?.message ?? 'network_error' }) as Response);
-
-      if (!connectRes.ok) {
-        const body = await connectRes.text().catch(() => 'unknown_error');
-        failures.push(`${connectEndpoint}=status ${connectRes.status} ${body}`);
-      }
+    if (!instanceId) {
+      return { ok: false, endpoint, error: 'Instance ID obrigatorio para POST /instance/connect na Evolution Go.' };
     }
 
-    const encodedInstance = encodeURIComponent(input.instance);
-    const phoneQuery = input.phone?.trim() ? `?number=${encodeURIComponent(input.phone.trim())}` : '';
-    const attempts = [
-      `/instance/connect/${encodedInstance}${phoneQuery}`,
-      `/instance/${encodedInstance}/qrcode`,
-      `/instance/qr`,
-    ];
-
-    for (const endpoint of attempts) {
-      const response = await fetch(`${base}${endpoint}`, {
-        method: 'GET',
-        headers: sharedHeaders,
-      }).catch((error: any) => ({ ok: false, status: 0, text: async () => error?.message ?? 'network_error' }) as Response);
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => 'unknown_error');
-        failures.push(`${endpoint}=status ${response.status} ${body}`);
-        continue;
-      }
-
-      const payload: any = await response.json().catch(() => ({}));
-      const normalized = this.normalizeEvolutionQrCodeResponse(payload);
-      if (normalized.qrCode || normalized.code || normalized.pairingCode) {
-        return {
-          ok: true,
-          endpoint,
-          ...normalized,
-        };
-      }
-
-      failures.push(`${endpoint}=resposta sem QR Code ou codigo de pareamento`);
+    if (!webhookUrl) {
+      return { ok: false, endpoint, error: 'Webhook URL obrigatoria para conectar a instancia Evolution Go.' };
     }
 
-    return {
-      ok: false,
-      error: failures.join('; ') || 'Nao foi possivel gerar QR Code na Evolution.',
-    };
+    const subscribe = this.withRequiredEvolutionSubscribe(input.subscribe);
+    const connectRes = await fetch(`${base}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        apikey: input.apiKey,
+        'Content-Type': 'application/json',
+        instanceId,
+      },
+      body: JSON.stringify({
+        webhookUrl,
+        subscribe,
+        immediate: input.immediate !== false,
+        ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
+      }),
+    }).catch((error: any) => ({ ok: false, status: 0, json: async () => ({}), text: async () => error?.message ?? 'network_error' }) as Response);
+
+    if (!connectRes.ok) {
+      const body = await connectRes.text().catch(() => 'unknown_error');
+      return { ok: false, endpoint, error: `${endpoint}=status ${connectRes.status} ${body}` };
+    }
+
+    const connectPayload: any = await connectRes.json().catch(() => ({}));
+    const responseQrCode = this.normalizeEvolutionQrCodeResponse(connectPayload);
+    if (responseQrCode.qrCode || responseQrCode.code) {
+      return { ok: true, endpoint, ...responseQrCode };
+    }
+
+    const storedQrCode = await this.waitForStoredEvolutionQrCode(instanceId, requestedAt);
+    return { ok: true, endpoint, ...storedQrCode };
   }
 
   private normalizeEvolutionQrCodeResponse(payload: any): {
     qrCode?: string | null;
-    pairingCode?: string | null;
     code?: string | null;
-    count?: number | null;
+    receivedAt?: string | null;
   } {
     const source = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
     const qrCode =
-      this.readOptionalString(source?.base64) ??
       this.readOptionalString(source?.qrCode) ??
       this.readOptionalString(source?.qrcode) ??
       this.readOptionalString(source?.Qrcode) ??
       this.readOptionalString(source?.QRCode) ??
+      this.readOptionalString(source?.base64) ??
       this.readOptionalString(payload?.qrCode) ??
       this.readOptionalString(payload?.qrcode);
     const code =
       this.readOptionalString(source?.code) ??
       this.readOptionalString(source?.Code) ??
       this.readOptionalString(payload?.code);
-    const pairingCode =
-      this.readOptionalString(source?.pairingCode) ??
-      this.readOptionalString(source?.PairingCode) ??
-      this.readOptionalString(payload?.pairingCode);
-    const count = Number(source?.count ?? source?.Count ?? payload?.count);
+    const receivedAt =
+      this.readOptionalString(source?.receivedAt) ??
+      this.readOptionalString(payload?.receivedAt);
 
     return {
       qrCode,
       code,
-      pairingCode,
-      count: Number.isFinite(count) ? count : null,
+      receivedAt,
     };
+  }
+
+  private withRequiredEvolutionSubscribe(values?: string[]) {
+    const current = new Set((values?.length ? values : ['MESSAGE']).map((value) => String(value).trim()).filter(Boolean));
+    if (current.has('ALL')) return ['ALL'];
+    current.add('MESSAGE');
+    current.add('QRCODE');
+    current.add('CONNECTION');
+    return Array.from(current);
+  }
+
+  private async waitForStoredEvolutionQrCode(instanceId: string, minReceivedAt: Date) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const stored = await this.readStoredEvolutionQrCode(instanceId, minReceivedAt);
+      if (stored?.qrCode || stored?.code) return stored;
+      await this.sleep(750);
+    }
+
+    return { qrCode: null, code: null, receivedAt: null };
+  }
+
+  private async readStoredEvolutionQrCode(instanceId: string, minReceivedAt: Date) {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: `${SettingsController.EVOLUTION_QRCODE_KEY_PREFIX}${instanceId}` },
+      select: { value: true, updatedAt: true },
+    });
+
+    if (!row?.value) return null;
+
+    try {
+      const parsed = JSON.parse(row.value);
+      const receivedAt = this.readOptionalString(parsed?.receivedAt) ?? row.updatedAt.toISOString();
+      if (new Date(receivedAt).getTime() < minReceivedAt.getTime()) {
+        return null;
+      }
+
+      return {
+        qrCode: this.readOptionalString(parsed?.qrCode),
+        code: this.readOptionalString(parsed?.code),
+        receivedAt,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private readOptionalString(value: unknown): string | null {
