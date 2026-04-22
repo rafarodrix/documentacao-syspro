@@ -4,11 +4,13 @@ import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Briefcase,
   Building2,
   CheckCircle2,
   CircleDot,
   Loader2,
   Mail,
+  Fingerprint,
   Phone,
   Save,
   Search,
@@ -38,6 +40,8 @@ type ContactInitialData = {
   name: string;
   email: string;
   phone: string;
+  cpf: string;
+  jobTitle: string;
   whatsapp: string;
   notes: string;
   companyIds: string[];
@@ -85,6 +89,16 @@ function formatPhone(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+function formatCpf(value: string) {
+  const digits = normalizeDigits(value).slice(0, 11);
+
+  if (!digits) return "";
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
 function isValidWhatsapp(value: string) {
   const digits = normalizeDigits(value);
   return digits.length === 12 || digits.length === 13;
@@ -93,6 +107,10 @@ function isValidWhatsapp(value: string) {
 function isValidPhone(value: string) {
   const digits = normalizeDigits(value);
   return digits.length === 10 || digits.length === 11;
+}
+
+function isValidCpf(value: string) {
+  return normalizeDigits(value).length === 11;
 }
 
 function getCompanyLabel(company: CompanyOption) {
@@ -114,6 +132,8 @@ export function CreateContactPageForm({
     name: initialData?.name ?? "",
     email: initialData?.email ?? "",
     phone: initialData?.phone ?? "",
+    cpf: initialData?.cpf ? formatCpf(initialData.cpf) : "",
+    jobTitle: initialData?.jobTitle ?? "",
     whatsapp: initialData?.whatsapp ?? "",
     notes: initialData?.notes ?? "",
     companyIds: initialData?.companyIds ?? ([] as string[]),
@@ -177,12 +197,19 @@ export function CreateContactPageForm({
       return;
     }
 
+    if (form.cpf.trim() && !isValidCpf(form.cpf)) {
+      toast.error("Informe o CPF com 11 digitos.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
         name: form.name.trim(),
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
+        cpf: normalizeDigits(form.cpf) || null,
+        jobTitle: form.jobTitle.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         notes: form.notes.trim() || null,
         companyIds: form.companyIds,
@@ -268,6 +295,28 @@ export function CreateContactPageForm({
                     value={form.email}
                     onChange={(event) => updateField("email", event.target.value)}
                     placeholder="contato@empresa.com"
+                    className="h-10 border-border/60 bg-background"
+                  />
+                </Field>
+
+                <Field label="Cargo" htmlFor="contact-job-title">
+                  <Input
+                    id="contact-job-title"
+                    value={form.jobTitle}
+                    onChange={(event) => updateField("jobTitle", event.target.value)}
+                    placeholder="Cargo ou funcao"
+                    className="h-10 border-border/60 bg-background"
+                  />
+                </Field>
+
+                <Field label="CPF" htmlFor="contact-cpf">
+                  <Input
+                    id="contact-cpf"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={form.cpf}
+                    onChange={(event) => updateField("cpf", formatCpf(event.target.value))}
+                    placeholder="000.000.000-00"
                     className="h-10 border-border/60 bg-background"
                   />
                 </Field>
@@ -417,6 +466,8 @@ export function CreateContactPageForm({
               <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs">
                 <div className="space-y-3">
                   <SummaryLine icon={UserRound} label="Nome" value={form.name || "Nao informado"} />
+                  <SummaryLine icon={Briefcase} label="Cargo" value={form.jobTitle || "Nao informado"} />
+                  <SummaryLine icon={Fingerprint} label="CPF" value={form.cpf || "Nao informado"} />
                   <SummaryLine icon={Mail} label="Email" value={form.email || "Nao informado"} />
                   <SummaryLine icon={Phone} label="Telefone" value={form.phone || "Nao informado"} />
                   <SummaryLine icon={Smartphone} label="WhatsApp" value={form.whatsapp || "Nao informado"} />

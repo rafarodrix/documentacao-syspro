@@ -7,9 +7,6 @@ export const userListSelect = {
   image: true,
   role: true,
   isActive: true,
-  jobTitle: true,
-  cpf: true,
-  phone: true,
   deletedAt: true,
   createdAt: true,
   memberships: {
@@ -31,8 +28,6 @@ export const userListSelect = {
       name: true,
       whatsapp: true,
       email: true,
-      cpf: true,
-      jobTitle: true,
       phone: true,
       companyLinks: {
         select: {
@@ -72,9 +67,6 @@ export type UserListSelectResult = {
   image: string | null;
   role: import("@prisma/client").Role;
   isActive: boolean;
-  jobTitle?: string | null;
-  cpf?: string | null;
-  phone?: string | null;
   deletedAt: Date | null;
   createdAt: Date;
   memberships: {
@@ -91,8 +83,6 @@ export type UserListSelectResult = {
     name: string;
     whatsapp: string | null;
     email: string | null;
-    cpf?: string | null;
-    jobTitle?: string | null;
     phone?: string | null;
     companyId?: string | null;
     company?: {
@@ -117,15 +107,13 @@ export function mapClientUserListItem(user: UserListSelectResult): UserAccessLis
 
   return {
     ...user,
-    jobTitle: user.jobTitle ?? user.contact?.jobTitle ?? null,
-    cpf: user.cpf ?? user.contact?.cpf ?? null,
-    phone: user.phone ?? user.contact?.phone ?? null,
     contact: user.contact
       ? {
           id: user.contact.id,
           name: user.contact.name,
           whatsapp: user.contact.whatsapp,
           email: user.contact.email,
+          phone: user.contact.phone ?? null,
           companyId: user.contact.companyId ?? primaryContactLink?.companyId ?? null,
           company: user.contact.company ?? primaryContactLink?.company ?? null,
         }
@@ -151,9 +139,6 @@ export function mapSystemUserListItem(user: UserListSelectResult): SystemUserLis
     image: mapped.image,
     role: mapped.role,
     isActive: mapped.isActive,
-    jobTitle: mapped.jobTitle,
-    cpf: mapped.cpf,
-    phone: mapped.phone,
     memberships: mapped.memberships,
     contact: mapped.contact,
   };

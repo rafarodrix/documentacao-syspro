@@ -75,7 +75,7 @@ export const ticketProviderUserSchema = z.object({
   id: z.number(),
   firstname: z.string().nullable().optional(),
   lastname: z.string().nullable().optional(),
-  email: z.string().email().nullable().optional(),
+  email: z.email().nullable().optional(),
   phone: z.string().nullable().optional(),
   mobile: z.string().nullable().optional(),
   active: z.boolean().nullable().optional(),

@@ -207,23 +207,32 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
 
   const filteredData = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    const cpfRaw = searchTerm.replace(/\D/g, "");
 
     return users.filter(
-      (user) =>
-        (companyFilter === "all" ||
-          (companyFilter === "with_company" && Boolean(user.companyId)) ||
-          (companyFilter === "without_company" && !user.companyId)) &&
-        (roleFilter === "all" ||
-          (roleFilter === "client" && (user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER)) ||
-          (roleFilter === "system" && (user.role === Role.ADMIN || user.role === Role.DEVELOPER || user.role === Role.SUPORTE))) &&
-        (
-          !term ||
-          user.name?.toLowerCase().includes(term) ||
-          user.contact?.name?.toLowerCase().includes(term) ||
-          user.email.toLowerCase().includes(term) ||
-          (user.cpf && user.cpf.includes(cpfRaw))
-        ),
+      (user) => {
+        const companyText = user.memberships
+          ?.map((membership) => `${membership.company?.nomeFantasia || ""} ${membership.company?.razaoSocial || ""}`)
+          .join(" ")
+          .toLowerCase();
+
+        return (
+          (companyFilter === "all" ||
+            (companyFilter === "with_company" && Boolean(user.companyId)) ||
+            (companyFilter === "without_company" && !user.companyId)) &&
+          (roleFilter === "all" ||
+            (roleFilter === "client" && (user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER)) ||
+            (roleFilter === "system" && (user.role === Role.ADMIN || user.role === Role.DEVELOPER || user.role === Role.SUPORTE))) &&
+          (
+            !term ||
+            user.name?.toLowerCase().includes(term) ||
+            user.contact?.name?.toLowerCase().includes(term) ||
+            user.contact?.email?.toLowerCase().includes(term) ||
+            user.contact?.whatsapp?.toLowerCase().includes(term) ||
+            user.email.toLowerCase().includes(term) ||
+            companyText?.includes(term)
+          )
+        );
+      },
     );
   }, [companyFilter, roleFilter, users, searchTerm]);
 
@@ -295,7 +304,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
             <div className="relative w-full sm:w-80 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Nome, e-mail ou CPF..."
+                placeholder="Nome, e-mail, contato ou empresa..."
                 className="pl-9 h-9 bg-background border-border/60 focus-visible:ring-primary/20"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -441,7 +450,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                               <span className="truncate max-w-40">{user.contact.name}</span>
                             </div>
                             <div className="text-[11px] text-muted-foreground/70">
-                              {user.contact.whatsapp || user.contact.email || "Sem telefone/email"}
+                              {user.contact.whatsapp || user.contact.phone || user.contact.email || "Sem telefone/email"}
                             </div>
                           </>
                         ) : (

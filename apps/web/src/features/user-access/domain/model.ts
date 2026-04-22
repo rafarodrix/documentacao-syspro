@@ -12,9 +12,6 @@ export interface UserAccessEditInitialData {
   email: string;
   role: Role;
   contactId?: string;
-  jobTitle: string;
-  phone: string;
-  cpf: string;
   password: string;
 }
 
@@ -44,8 +41,6 @@ export type UserAccessContactSummary = {
   name: string;
   whatsapp: string | null;
   email: string | null;
-  cpf?: string | null;
-  jobTitle?: string | null;
   phone?: string | null;
   companyId: string | null;
   company: {
@@ -62,9 +57,6 @@ export type UserAccessListItem = {
   image: string | null;
   role: Role;
   isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
   deletedAt?: Date | null;
   createdAt?: Date;
   memberships: UserAccessMembershipSummary[];
@@ -80,9 +72,6 @@ export type SystemUserListItem = {
   image: string | null;
   role: Role;
   isActive: boolean;
-  jobTitle: string | null;
-  cpf: string | null;
-  phone: string | null;
   memberships: UserAccessMembershipSummary[];
   contact: UserAccessContactSummary | null;
 };

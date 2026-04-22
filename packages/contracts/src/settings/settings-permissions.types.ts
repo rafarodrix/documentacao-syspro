@@ -87,7 +87,7 @@ export const settingsAccessAssignmentSchema = z.object({
   id: z.string().min(1),
   userId: z.string().min(1),
   userName: z.string().min(1),
-  userEmail: z.string().email(),
+  userEmail: z.email(),
   profileId: z.string().min(1),
   profileKey: settingsProfileKeySchema,
   profileLabel: z.string().min(1),
@@ -104,7 +104,7 @@ export const settingsAccessAssignmentSchema = z.object({
 export const settingsAccessUserOptionSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  email: z.string().email(),
+  email: z.email(),
   role: z.string().min(1),
 });
 

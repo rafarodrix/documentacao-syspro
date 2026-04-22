@@ -101,9 +101,6 @@ export function CreateUserPageForm({
       password: "",
       role: initialData?.role ?? defaultRole,
       contactId: initialData?.contactId ?? "",
-      jobTitle: initialData?.jobTitle ?? "",
-      phone: initialData?.phone ?? "",
-      cpf: initialData?.cpf ?? "",
     },
     mode: "onTouched",
   });
@@ -420,66 +417,22 @@ export function CreateUserPageForm({
                   />
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome exibido</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
-                        <p className="text-[11px] text-muted-foreground">
-                          Esse nome identifica o acesso no portal e nao sobrescreve o cadastro do contato.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="jobTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cargo</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Cargo ou funcao" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(DD) 99999-9999" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="cpf"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CPF</FormLabel>
-                        <FormControl>
-                          <Input placeholder="00000000000" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome exibido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
+                      </FormControl>
+                      <p className="text-[11px] text-muted-foreground">
+                        Esse nome identifica o acesso no portal. Telefone, CPF e cargo ficam no cadastro do contato.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
           </div>

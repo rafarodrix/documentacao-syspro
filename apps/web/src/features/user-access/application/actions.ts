@@ -123,9 +123,6 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
         name: validation.data.name,
         role: validation.data.role as Role,
         contactId: validation.data.contactId || null,
-        cpf: validation.data.cpf ?? null,
-        jobTitle: validation.data.jobTitle || null,
-        phone: validation.data.phone || null,
       }),
     });
 

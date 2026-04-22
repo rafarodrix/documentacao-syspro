@@ -13,6 +13,8 @@ export class ContactsController {
       name: string;
       email?: string | null;
       phone?: string | null;
+      cpf?: string | null;
+      jobTitle?: string | null;
       whatsapp?: string | null;
       notes?: string | null;
       companyId?: string | null;
@@ -56,6 +58,8 @@ export class ContactsController {
       name?: string;
       email?: string | null;
       phone?: string | null;
+      cpf?: string | null;
+      jobTitle?: string | null;
       whatsapp?: string | null;
       notes?: string | null;
       companyId?: string | null;

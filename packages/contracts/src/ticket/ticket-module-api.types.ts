@@ -32,7 +32,7 @@ const optionalTrimmedStringSchema = z.preprocess(
 
 const optionalTrimmedEmailSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z.string().trim().email().optional(),
+  z.email().trim().optional(),
 );
 
 export const ticketModuleStatusCountsSchema = z.object({
@@ -114,13 +114,13 @@ export const ticketModuleListQuerySchema = z.object({
 export const ticketModuleUserSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
-  email: z.string().email(),
+  email: z.email(),
 });
 
 export const ticketModuleContactSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
-  email: z.string().email().nullable().optional(),
+  email: z.email().nullable().optional(),
   whatsapp: z.string().nullable().optional(),
 });
 

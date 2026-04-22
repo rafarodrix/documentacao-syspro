@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Building2,
+  Briefcase,
   CheckCircle2,
   Edit3,
+  Fingerprint,
   Loader2,
   Mail,
   MoreHorizontal,
@@ -52,6 +54,8 @@ type ContactItem = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  cpf?: string | null;
+  jobTitle?: string | null;
   whatsapp?: string | null;
   notes?: string | null;
   companyId?: string | null;
@@ -112,6 +116,12 @@ function getPrimaryPhone(contact: ContactItem) {
   return contact.whatsapp || contact.phone || null;
 }
 
+function formatCpf(value?: string | null) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (digits.length !== 11) return value || null;
+  return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+
 export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps) {
   const router = useRouter();
   const [contacts, setContacts] = useState<ContactItem[]>([]);
@@ -162,6 +172,8 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
           contact.email,
           contact.whatsapp,
           contact.phone,
+          contact.cpf,
+          contact.jobTitle,
           contact.notes,
           getCompanyNames(contact),
         ]
@@ -312,7 +324,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
               <div className="group relative w-full lg:w-96">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
-                  placeholder="Buscar por nome, email, telefone ou empresa..."
+                  placeholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
                   className="h-9 rounded-md border-border/60 bg-background pl-10 pr-9 text-sm"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
@@ -504,7 +516,21 @@ function ContactRow({
           </div>
           <div className="min-w-0">
             <p className="max-w-72 truncate text-sm font-semibold text-foreground">{contact.name || "Sem nome"}</p>
-            {contact.notes ? <p className="max-w-72 truncate text-[11px] text-muted-foreground">{contact.notes}</p> : null}
+            <div className="mt-0.5 flex max-w-72 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+              {contact.jobTitle ? (
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <Briefcase className="h-3 w-3 shrink-0 opacity-60" />
+                  <span className="truncate">{contact.jobTitle}</span>
+                </span>
+              ) : null}
+              {contact.cpf ? (
+                <span className="inline-flex items-center gap-1 font-mono">
+                  <Fingerprint className="h-3 w-3 shrink-0 opacity-60" />
+                  {formatCpf(contact.cpf)}
+                </span>
+              ) : null}
+              {!contact.jobTitle && !contact.cpf && contact.notes ? <span className="truncate">{contact.notes}</span> : null}
+            </div>
           </div>
         </div>
       </TableCell>
@@ -566,6 +592,7 @@ function MobileContactCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{contact.name || "Sem nome"}</p>
+          {contact.jobTitle ? <p className="mt-1 truncate text-xs text-muted-foreground">{contact.jobTitle}</p> : null}
           <p className="mt-1 truncate text-xs text-muted-foreground">{phone || "Sem telefone"}</p>
         </div>
         <ContactActionsMenu
@@ -583,6 +610,11 @@ function MobileContactCard({
         {contact.email ? (
           <span className="max-w-full truncate rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground">
             {contact.email}
+          </span>
+        ) : null}
+        {contact.cpf ? (
+          <span className="max-w-full truncate rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground">
+            CPF {formatCpf(contact.cpf)}
           </span>
         ) : null}
       </div>

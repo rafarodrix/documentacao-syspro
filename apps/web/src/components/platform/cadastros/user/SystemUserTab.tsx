@@ -21,8 +21,6 @@ import {
   UserCheck,
   Loader2,
   Mail,
-  Briefcase,
-  Fingerprint,
   X,
   ShieldCheck,
   UserPlus,
@@ -55,11 +53,6 @@ const ROLE_CONFIG: Record<string, { label: string; icon: ElementType; className:
     className: "bg-purple-600 text-white border-transparent shadow-sm shadow-purple-500/20",
   },
 };
-
-function formatCPF(cpf: string | null): string {
-  if (!cpf) return "-";
-  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-}
 
 function getInitials(name: string | null): string {
   if (!name) return "??";
@@ -211,15 +204,13 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
 
   const filteredData = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    const cpfRaw = searchTerm.replace(/\D/g, "");
 
     return users.filter(
       (user) =>
         !term ||
         user.name?.toLowerCase().includes(term) ||
         user.email.toLowerCase().includes(term) ||
-        user.jobTitle?.toLowerCase().includes(term) ||
-        (user.cpf && user.cpf.includes(cpfRaw)),
+        user.contact?.name?.toLowerCase().includes(term),
     );
   }, [users, searchTerm]);
 
@@ -285,7 +276,7 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
           <div className="relative w-full sm:w-80 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Nome, e-mail, cargo ou CPF..."
+              placeholder="Nome, e-mail ou contato..."
               className="pl-9 h-9 bg-background border-border/60 focus-visible:ring-primary/20"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -348,7 +339,7 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
                     <RoleBadge role={user.role} />
                     <StatusBadge isActive={user.isActive} />
                   </div>
-                  <p className="text-xs text-muted-foreground">CPF: {formatCPF(user.cpf)}</p>
+                  <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
                 </div>
               ))
             )}
@@ -359,7 +350,7 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
             <TableHeader className="bg-muted/20">
               <TableRow className="hover:bg-transparent border-b border-border/60">
                 <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Membro da equipe</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cargo / Identificacao</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato vinculado</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acesso</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
                 <TableHead className="text-right px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acoes</TableHead>
@@ -400,13 +391,11 @@ export function SystemUserTab({ data, canManage }: SystemUserTabProps) {
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Briefcase className="w-3 h-3 shrink-0 opacity-60" />
-                          <span className="truncate max-w-35">{user.jobTitle || <span className="italic opacity-50">Nao informado</span>}</span>
+                          <span className="truncate max-w-35">{user.contact?.name || <span className="italic opacity-50">Nao informado</span>}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/70 font-mono">
-                          <Fingerprint className="w-3 h-3 shrink-0 opacity-50" />
-                          <span className="rounded-md border border-border/40 bg-muted/30 px-1.5 py-0.5">{formatCPF(user.cpf)}</span>
-                        </div>
+                        {user.contact?.email || user.contact?.whatsapp ? (
+                          <span className="truncate text-[11px] text-muted-foreground/70">{user.contact.whatsapp || user.contact.email}</span>
+                        ) : null}
                       </div>
                     </TableCell>
 

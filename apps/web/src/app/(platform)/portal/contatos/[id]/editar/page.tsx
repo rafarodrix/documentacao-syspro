@@ -16,6 +16,8 @@ type ContactDetail = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  cpf?: string | null;
+  jobTitle?: string | null;
   whatsapp?: string | null;
   notes?: string | null;
   companyIds?: string[];
@@ -72,6 +74,8 @@ export default async function EditarContatoPage({ params }: PageProps) {
         name: contact.name ?? "",
         email: contact.email ?? "",
         phone: contact.phone ?? "",
+        cpf: contact.cpf ?? "",
+        jobTitle: contact.jobTitle ?? "",
         whatsapp: contact.whatsapp ?? "",
         notes: contact.notes ?? "",
         companyIds,

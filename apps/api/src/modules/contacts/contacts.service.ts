@@ -18,6 +18,8 @@ type CreateContactInput = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  cpf?: string | null;
+  jobTitle?: string | null;
   whatsapp?: string | null;
   notes?: string | null;
   companyId?: string | null;
@@ -28,6 +30,8 @@ type UpdateContactInput = {
   name?: string;
   email?: string | null;
   phone?: string | null;
+  cpf?: string | null;
+  jobTitle?: string | null;
   whatsapp?: string | null;
   notes?: string | null;
   companyId?: string | null;
@@ -54,6 +58,7 @@ export class ContactsService {
     if (!scope.isGlobal && !scope.companyIds.length) return [];
 
     const q = input.q?.trim();
+    const qDigits = q?.replace(/\D/g, '') ?? '';
     const where: any = {};
 
     if (!scope.isGlobal) {
@@ -71,6 +76,8 @@ export class ContactsService {
         { name: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { phone: { contains: q, mode: 'insensitive' } },
+        ...(qDigits ? [{ cpf: { contains: qDigits, mode: 'insensitive' } }] : []),
+        { jobTitle: { contains: q, mode: 'insensitive' } },
         { whatsapp: { contains: q, mode: 'insensitive' } },
         { companyLinks: { some: { company: { razaoSocial: { contains: q, mode: 'insensitive' } } } } },
         { companyLinks: { some: { company: { nomeFantasia: { contains: q, mode: 'insensitive' } } } } },
@@ -128,6 +135,11 @@ export class ContactsService {
 
     const whatsapp = this.normalizePhone(input.whatsapp);
     const phone = this.normalizePhone(input.phone);
+    const cpf = this.normalizeCpf(input.cpf);
+    if (cpf && cpf.length !== 11) {
+      throw new BadRequestException('CPF deve conter 11 digitos.');
+    }
+    const jobTitle = input.jobTitle?.trim() || null;
     const companyIds = this.normalizeCompanyIds(input.companyIds, input.companyId);
     await this.assertCompanyIdsAllowedForRequester(requester, companyIds);
     const existing = whatsapp
@@ -148,6 +160,8 @@ export class ContactsService {
               name,
               email: input.email?.trim() || null,
               phone,
+              cpf,
+              jobTitle,
               whatsapp,
               notes: input.notes?.trim() || null,
               source: existing.source,
@@ -177,6 +191,8 @@ export class ContactsService {
             name,
             email: input.email?.trim() || null,
             phone,
+            cpf,
+            jobTitle,
             whatsapp,
             notes: input.notes?.trim() || null,
             source: CompanyContactSource.MANUAL,
@@ -218,6 +234,14 @@ export class ContactsService {
     if (input.email !== undefined) data.email = input.email?.trim() || null;
     if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
     if (input.phone !== undefined) data.phone = this.normalizePhone(input.phone);
+    if (input.cpf !== undefined) {
+      const cpf = this.normalizeCpf(input.cpf);
+      if (cpf && cpf.length !== 11) {
+        throw new BadRequestException('CPF deve conter 11 digitos.');
+      }
+      data.cpf = cpf;
+    }
+    if (input.jobTitle !== undefined) data.jobTitle = input.jobTitle?.trim() || null;
     if (input.whatsapp !== undefined) data.whatsapp = this.normalizePhone(input.whatsapp);
     if (input.companyId !== undefined || input.companyIds !== undefined) {
       data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
@@ -563,6 +587,11 @@ export class ContactsService {
   }
 
   private normalizePhone(value?: string | null): string | null {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits || null;
+  }
+
+  private normalizeCpf(value?: string | null): string | null {
     const digits = String(value ?? '').replace(/\D/g, '');
     return digits || null;
   }

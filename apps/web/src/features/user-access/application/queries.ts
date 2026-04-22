@@ -149,9 +149,6 @@ export async function getUserEditViewData(userId: string): Promise<ClientUserEdi
       email: user.email,
       role: user.role,
       contactId: user.contact?.id ?? "",
-      jobTitle: user.jobTitle ?? user.contact?.jobTitle ?? "",
-      phone: user.phone ?? user.contact?.phone ?? "",
-      cpf: user.cpf ?? user.contact?.cpf ?? "",
       password: "",
     },
   };
