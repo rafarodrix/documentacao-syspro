@@ -33,9 +33,9 @@ export class RemotePublicService {
       requestIp: this.getRequestIp(request),
       userAgent: this.getHeader(request, 'user-agent'),
       logger: {
-        info: (event, meta) => this.logger.log({ event, ...meta }),
-        warn: (event, meta) => this.logger.warn({ event, ...meta }),
-        error: (event, meta) => this.logger.error({ event, ...meta }),
+        info: (event, meta) => this.logger.log({ event, ...(meta ?? {}) }),
+        warn: (event, meta) => this.logger.warn({ event, ...(meta ?? {}) }),
+        error: (event, meta) => this.logger.error({ event, ...(meta ?? {}) }),
       },
     });
 

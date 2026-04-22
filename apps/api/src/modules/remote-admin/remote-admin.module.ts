@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { RemoteAdminController } from './remote-admin.controller';
+import { RemotePortalController } from './remote-portal.controller';
 import { RemotePublicController } from './remote-public.controller';
 import { RemoteAdminService } from './remote-admin.service';
 import { RemotePublicService } from './remote-public.service';
 
 @Module({
-  controllers: [RemoteAdminController, RemotePublicController],
+  controllers: [RemoteAdminController, RemotePortalController, RemotePublicController],
   providers: [RemoteAdminService, RemotePublicService],
   exports: [RemoteAdminService],
 })
