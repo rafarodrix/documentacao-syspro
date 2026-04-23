@@ -42,6 +42,14 @@ type UpdateContactInput = {
 
 const CONTACTS_TRANSACTION_TIMEOUT_MS = 15000;
 
+type ChatwootCompanySummary = {
+  id?: string | null;
+  nomeFantasia?: string | null;
+  razaoSocial?: string | null;
+  cnpj?: string | null;
+  addresses?: Array<{ cidade?: string | null; pais?: string | null }> | null;
+};
+
 @Injectable()
 export class ContactsService {
   private readonly logger = new Logger(ContactsService.name);
@@ -472,6 +480,13 @@ export class ContactsService {
               razaoSocial: true,
               nomeFantasia: true,
               cnpj: true,
+              addresses: {
+                select: {
+                  cidade: true,
+                  pais: true,
+                },
+                take: 1,
+              },
             },
           },
         },
@@ -601,6 +616,13 @@ export class ContactsService {
           razaoSocial: true,
           nomeFantasia: true,
           cnpj: true,
+          addresses: {
+            select: {
+              cidade: true,
+              pais: true,
+            },
+            take: 1,
+          },
         },
       }),
       (this.prisma.companyContact as any).findMany({
@@ -625,9 +647,9 @@ export class ContactsService {
     email?: string | null;
     whatsapp: string | null;
     companyId?: string | null;
-    company?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null;
-    companies?: Array<{ id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null }> | null;
-  }, companyOverride?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null) {
+    company?: ChatwootCompanySummary | null;
+    companies?: ChatwootCompanySummary[] | null;
+  }, companyOverride?: ChatwootCompanySummary | null) {
     try {
       if (!updatedContact.whatsapp) return;
 
@@ -642,6 +664,13 @@ export class ContactsService {
               razaoSocial: true,
               nomeFantasia: true,
               cnpj: true,
+              addresses: {
+                select: {
+                  cidade: true,
+                  pais: true,
+                },
+                take: 1,
+              },
             },
           },
         },
@@ -667,6 +696,7 @@ export class ContactsService {
         const companies = this.resolveChatwootContactCompanies(updatedContact, companyOverride, link.company);
         const primaryCompany = companies[0] ?? null;
         const primaryCompanyName = this.formatCompanyDisplayName(primaryCompany);
+        const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
         const companyNames = companies.map((company) => this.formatCompanyDisplayName(company)).filter(Boolean);
         const fullName = primaryCompanyName ? `${updatedContact.name} - ${primaryCompanyName}` : updatedContact.name;
         const customAttributes = {
@@ -695,6 +725,11 @@ export class ContactsService {
           name: fullName,
           phone_number: this.formatChatwootPhoneNumber(updatedContact.whatsapp),
           ...(updatedContact.email ? { email: updatedContact.email } : {}),
+          additional_attributes: {
+            company_name: primaryCompanyName || null,
+            city: primaryCompanyAddress?.cidade || null,
+            country: primaryCompanyAddress?.pais || null,
+          },
           custom_attributes: customAttributes,
         });
 
@@ -705,6 +740,11 @@ export class ContactsService {
           chatwootContactId: link.chatwootContactId,
           connectionKey: link.connectionKey,
           name: fullName,
+          additionalAttributes: {
+            company_name: primaryCompanyName || null,
+            city: primaryCompanyAddress?.cidade || null,
+            country: primaryCompanyAddress?.pais || null,
+          },
           customAttributes,
         }));
       }
@@ -744,18 +784,18 @@ export class ContactsService {
 
   private resolveChatwootContactCompanies(
     updatedContact: {
-      company?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null;
-      companies?: Array<{ id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null }> | null;
+      company?: ChatwootCompanySummary | null;
+      companies?: ChatwootCompanySummary[] | null;
     },
-    companyOverride?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null,
-    linkCompany?: { id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null } | null,
+    companyOverride?: ChatwootCompanySummary | null,
+    linkCompany?: ChatwootCompanySummary | null,
   ) {
     const companies = [
       companyOverride,
       ...(updatedContact.companies ?? []),
       updatedContact.company,
       linkCompany,
-    ].filter(Boolean) as Array<{ id?: string | null; nomeFantasia?: string | null; razaoSocial?: string | null; cnpj?: string | null }>;
+    ].filter(Boolean) as ChatwootCompanySummary[];
 
     const seen = new Set<string>();
     return companies.filter((company) => {

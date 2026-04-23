@@ -274,7 +274,13 @@ export class ChatwootClient {
   async updateContact(
     config: ChatwootConnectionConfig,
     contactIdentifier: string,
-    data: { name?: string; phone_number?: string; email?: string; custom_attributes?: Record<string, unknown> }
+    data: {
+      name?: string;
+      phone_number?: string;
+      email?: string;
+      additional_attributes?: Record<string, unknown>;
+      custom_attributes?: Record<string, unknown>;
+    }
   ) {
     const inboxIdentifier = await this.resolveInboxIdentifier(config);
     if (inboxIdentifier) {
