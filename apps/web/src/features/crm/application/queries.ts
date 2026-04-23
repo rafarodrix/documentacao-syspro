@@ -2,20 +2,7 @@ import "server-only";
 
 import type { CrmLead } from "@dosc-syspro/contracts/crm";
 import type { LeadContactOption, LeadDashboardData } from "@/features/crm/domain/model";
-import { fetchCrmLeadsGateway } from "@/features/crm/infrastructure/crm.gateway";
-import { callBackendApi } from "@/lib/backend-api-client";
-
-type RawContact = {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  whatsapp?: string | null;
-  companies?: Array<{
-    nomeFantasia?: string | null;
-    razaoSocial: string;
-  }>;
-};
+import { fetchCrmLeadsGateway, fetchCrmSupportDataGateway } from "@/features/crm/infrastructure/crm.gateway";
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   try {
@@ -31,16 +18,9 @@ export async function getCrmLeadsData(): Promise<LeadDashboardData> {
 
 export async function getCrmLeadCreateData(): Promise<{ contacts: LeadContactOption[] }> {
   try {
-    const contacts = await callBackendApi<RawContact[]>("contacts", "?limit=100");
+    const response = await fetchCrmSupportDataGateway();
     return {
-      contacts: contacts.map((contact) => ({
-        id: contact.id,
-        name: contact.name,
-        email: contact.email ?? null,
-        phone: contact.whatsapp ?? contact.phone ?? null,
-        whatsapp: contact.whatsapp ?? null,
-        companies: (contact.companies ?? []).map((company) => company.nomeFantasia || company.razaoSocial),
-      })),
+      contacts: response.success && response.data ? response.data.contacts : [],
     };
   } catch (error) {
     console.error("Erro ao carregar contatos para o CRM:", error);

@@ -1,10 +1,12 @@
 import {
   crmLeadListResponseSchema,
   crmLeadResponseSchema,
+  crmSupportDataResponseSchema,
   crmLeadCreateSchema,
   type CrmLeadCreateInput,
   type CrmLeadListResponse,
   type CrmLeadResponse,
+  type CrmSupportDataResponse,
 } from "@dosc-syspro/contracts/crm";
 import { callBackendApi } from "@/lib/backend-api-client";
 
@@ -22,4 +24,8 @@ export async function createCrmLeadGateway(input: CrmLeadCreateInput): Promise<C
       body: JSON.stringify(payload),
     }),
   );
+}
+
+export async function fetchCrmSupportDataGateway(): Promise<CrmSupportDataResponse> {
+  return crmSupportDataResponseSchema.parse(await callBackendApi("crm", "/leads/support-data"));
 }

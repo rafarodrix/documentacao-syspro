@@ -1,13 +1,6 @@
-import type { CrmLead, CrmLeadSource, CrmLeadStage } from "@dosc-syspro/contracts/crm";
+import type { CrmLead, CrmLeadContactOption, CrmLeadSource, CrmLeadStage } from "@dosc-syspro/contracts/crm";
 
-export type LeadContactOption = {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  whatsapp?: string | null;
-  companies: string[];
-};
+export type LeadContactOption = CrmLeadContactOption;
 
 export type LeadDashboardData = {
   leads: CrmLead[];

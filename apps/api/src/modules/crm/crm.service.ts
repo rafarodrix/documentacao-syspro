@@ -96,6 +96,52 @@ export class CrmService {
     };
   }
 
+  async getSupportData(rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+
+    const contacts = await (this.prisma as any).companyContact.findMany({
+      where: {
+        status: { not: 'ARCHIVED' },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        whatsapp: true,
+        companyLinks: {
+          select: {
+            company: {
+              select: {
+                razaoSocial: true,
+                nomeFantasia: true,
+              },
+            },
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
+      },
+      orderBy: [{ name: 'asc' }],
+      take: 100,
+    });
+
+    return {
+      success: true,
+      data: {
+        contacts: contacts.map((contact: any) => ({
+          id: contact.id,
+          name: contact.name,
+          email: contact.email ?? null,
+          phone: contact.phone ?? null,
+          whatsapp: contact.whatsapp ?? null,
+          companies: (contact.companyLinks ?? [])
+            .map((link: any) => link.company?.nomeFantasia || link.company?.razaoSocial)
+            .filter(Boolean),
+        })),
+      },
+    };
+  }
+
   async createLead(input: Record<string, unknown>, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.assertSystemAccess(rawHeaders);
     const payload = this.normalizeCreatePayload(crmLeadCreateSchema.parse(input));

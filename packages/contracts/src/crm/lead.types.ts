@@ -111,6 +111,26 @@ export const crmLeadResponseSchema = z.object({
   message: z.string().optional(),
 });
 
+export const crmLeadContactOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  whatsapp: z.string().nullable().optional(),
+  companies: z.array(z.string()),
+});
+
+export const crmSupportDataSchema = z.object({
+  contacts: z.array(crmLeadContactOptionSchema),
+});
+
+export const crmSupportDataResponseSchema = z.object({
+  success: z.boolean(),
+  data: crmSupportDataSchema.optional(),
+  error: z.string().optional(),
+  message: z.string().optional(),
+});
+
 export type CrmLeadStage = z.output<typeof crmLeadStageSchema>;
 export type CrmLeadSource = z.output<typeof crmLeadSourceSchema>;
 export type CrmLead = z.output<typeof crmLeadSchema>;
@@ -119,3 +139,6 @@ export type CrmLeadUpdateInput = z.output<typeof crmLeadUpdateSchema>;
 export type CrmLeadListFilters = z.output<typeof crmLeadListFiltersSchema>;
 export type CrmLeadListResponse = z.output<typeof crmLeadListResponseSchema>;
 export type CrmLeadResponse = z.output<typeof crmLeadResponseSchema>;
+export type CrmLeadContactOption = z.output<typeof crmLeadContactOptionSchema>;
+export type CrmSupportData = z.output<typeof crmSupportDataSchema>;
+export type CrmSupportDataResponse = z.output<typeof crmSupportDataResponseSchema>;

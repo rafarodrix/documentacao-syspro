@@ -18,6 +18,11 @@ export class CrmController {
     return this.crmService.listLeads({ q, stage, source, ownerUserId, contactId }, req.headers);
   }
 
+  @Get('/support-data')
+  getSupportData(@Req() req: Request) {
+    return this.crmService.getSupportData(req.headers);
+  }
+
   @Get(':id')
   getById(@Req() req: Request, @Param('id') id: string) {
     return this.crmService.getLeadById(id, req.headers);
