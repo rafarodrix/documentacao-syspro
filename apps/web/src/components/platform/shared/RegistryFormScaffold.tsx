@@ -20,6 +20,7 @@ type RegistryFormScaffoldProps<TId extends string = string> = {
   description: string;
   onBack: () => void;
   children: ReactNode;
+  formId?: string;
   sections?: RegistryFormSection<TId>[];
   currentSection?: TId;
   sectionStates?: Partial<Record<TId, "error" | "ready" | "idle">>;
@@ -42,6 +43,7 @@ export function RegistryFormScaffold<TId extends string = string>({
   description,
   onBack,
   children,
+  formId,
   sections,
   currentSection,
   sectionStates,
@@ -164,7 +166,7 @@ export function RegistryFormScaffold<TId extends string = string>({
               <Button type="button" variant="ghost" onClick={onBack}>
                 {cancelLabel}
               </Button>
-              <Button type="submit" className="gap-2" disabled={isSubmitting || !canSubmit}>
+              <Button type="submit" form={formId} className="gap-2" disabled={isSubmitting || !canSubmit}>
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {isSubmitting ? submittingLabel : submitLabel}
               </Button>

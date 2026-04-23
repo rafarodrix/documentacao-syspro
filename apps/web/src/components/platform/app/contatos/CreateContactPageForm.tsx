@@ -114,6 +114,10 @@ function isValidCpf(value: string) {
   return normalizeDigits(value).length === 11;
 }
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 function getCompanyLabel(company: CompanyOption) {
   return company.nomeFantasia || company.razaoSocial;
 }
@@ -158,6 +162,7 @@ export function CreateContactPageForm({
   }, [companies, companyQuery]);
 
   const activeChannelCount = [form.email, form.phone, form.whatsapp].filter((value) => value.trim()).length;
+  const formId = isEdit && contactId ? `contact-form-${contactId}` : "contact-form-create";
   const readinessItems = [
     { label: "Nome", done: Boolean(form.name.trim()) },
     { label: "Canal", done: activeChannelCount > 0 },
@@ -185,6 +190,11 @@ export function CreateContactPageForm({
 
     if (!form.name.trim()) {
       toast.error("Informe o nome do contato.");
+      return;
+    }
+
+    if (form.email.trim() && !isValidEmail(form.email)) {
+      toast.error("Informe um e-mail valido.");
       return;
     }
 
@@ -241,8 +251,9 @@ export function CreateContactPageForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form id={formId} onSubmit={handleSubmit} noValidate>
       <RegistryFormScaffold
+        formId={formId}
         title={isEdit ? "Editar contato" : "Novo contato"}
         description={
           isEdit
