@@ -461,10 +461,10 @@ export function TicketSettingsTab() {
 
                 <div className="space-y-4 rounded-lg border border-border/60 bg-muted/10 p-3">
                   <div className="space-y-1">
-                    <FormLabel className="text-sm">Grupos de notificacao no WhatsApp</FormLabel>
-                    <FormDescription className="text-xs">
+                    <h3 className="text-sm font-medium">Grupos de notificacao no WhatsApp</h3>
+                    <p className="text-xs text-muted-foreground">
                       Quando um ticket for aberto, o portal envia um resumo para todos os grupos ativos da equipe responsavel.
-                    </FormDescription>
+                    </p>
                   </div>
 
                   <NotificationGroupsSection
