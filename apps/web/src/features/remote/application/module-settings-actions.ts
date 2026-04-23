@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { remoteModuleSettingsSchema } from "@/features/remote/application/module-settings";
+import { remoteModuleSettingsSchema } from "@dosc-syspro/contracts/remote";
 import type { RemoteModuleSettings, RemoteModuleSettingsActionResponse } from "@/features/remote/domain/model";
 import {
   fetchRemoteModuleSettingsGateway,

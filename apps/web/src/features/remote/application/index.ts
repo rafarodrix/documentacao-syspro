@@ -1,7 +1,6 @@
 export * from './address-book-credentials';
 export * from './agent-payload';
 export * from './agent-token';
-export * from './module-settings';
 export * from './module-settings-actions';
 export * from './queries';
 export * from './remote-access';

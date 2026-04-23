@@ -9,6 +9,7 @@
     "./formatters": "./src/formatters.ts",
     "./date": "./src/date.ts",
     "./logger": "./src/logger.ts",
+    "./remote-operational-status": "./src/remote-operational-status.ts",
     "./request-auth": "./src/request-auth.ts",
     "./action-rate-limit": "./src/action-rate-limit.ts",
     "./action-error-handler": "./src/action-error-handler.ts"

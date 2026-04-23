@@ -1,9 +1,9 @@
 import { prisma } from "@dosc-syspro/database";
 import {
-  getDefaultRemoteModuleSettings,
+  DEFAULT_REMOTE_MODULE_SETTINGS,
   REMOTE_MODULE_SETTINGS_KEY,
   remoteModuleSettingsSchema,
-} from "./module-settings";
+} from "@dosc-syspro/contracts/remote";
 import type { RemoteModuleSettings } from "./model";
 
 export async function getRemoteModuleSettingsSnapshot(): Promise<RemoteModuleSettings> {
@@ -14,17 +14,17 @@ export async function getRemoteModuleSettingsSnapshot(): Promise<RemoteModuleSet
     });
 
     if (!setting?.value) {
-      return getDefaultRemoteModuleSettings();
+      return { ...DEFAULT_REMOTE_MODULE_SETTINGS };
     }
 
     const parsed = JSON.parse(setting.value);
     const validation = remoteModuleSettingsSchema.safeParse(parsed);
     if (!validation.success) {
-      return getDefaultRemoteModuleSettings();
+      return { ...DEFAULT_REMOTE_MODULE_SETTINGS };
     }
 
     return validation.data;
   } catch {
-    return getDefaultRemoteModuleSettings();
+    return { ...DEFAULT_REMOTE_MODULE_SETTINGS };
   }
 }

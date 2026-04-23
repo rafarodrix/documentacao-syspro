@@ -13,6 +13,8 @@ export {
 export { formatRecency } from "./date";
 export { createLogger, createRequestLogger, getCorrelationIdFromRequest } from "./logger";
 export type { LogFields, LogLevel, RequestLoggerLike, RequestLoggerOptions } from "./logger";
+export { resolveRemoteOperationalStatus } from "./remote-operational-status";
+export type { RemoteOperationalStatusInput } from "./remote-operational-status";
 export {
   computeHmacSha256Hex,
   extractSecretToken,

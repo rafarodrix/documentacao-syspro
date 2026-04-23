@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   remoteModuleSettingsSchema,
-} from "@/features/remote/application/module-settings";
+} from "@dosc-syspro/contracts/remote";
 import {
   getRemoteModuleSettingsAction,
   updateRemoteModuleSettingsAction,
