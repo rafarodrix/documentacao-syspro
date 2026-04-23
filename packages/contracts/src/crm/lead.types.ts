@@ -1,0 +1,121 @@
+import { z } from "zod";
+
+export const CRM_LEAD_STAGE_VALUES = [
+  "LEAD",
+  "MQL",
+  "SQL",
+  "PROPOSAL",
+  "NEGOTIATION",
+  "WON",
+  "LOST",
+] as const;
+
+export const CRM_LEAD_SOURCE_VALUES = [
+  "MANUAL",
+  "WHATSAPP",
+  "REFERRAL",
+  "FORM",
+  "EVENT",
+  "OUTBOUND",
+  "CAMPAIGN",
+  "OTHER",
+] as const;
+
+export const crmLeadStageSchema = z.enum(CRM_LEAD_STAGE_VALUES);
+export const crmLeadSourceSchema = z.enum(CRM_LEAD_SOURCE_VALUES);
+
+const nullableTrimmedString = (max: number) =>
+  z.union([z.string().trim().max(max), z.literal(""), z.null(), z.undefined()]);
+
+const crmLeadMutableFieldsSchema = z.object({
+  title: z.string().trim().min(3).max(160),
+  stage: crmLeadStageSchema,
+  source: crmLeadSourceSchema,
+  ownerUserId: nullableTrimmedString(80),
+  contactId: nullableTrimmedString(80),
+  contactName: nullableTrimmedString(160),
+  contactEmail: z.union([z.string().trim().email(), z.literal(""), z.null(), z.undefined()]),
+  contactPhone: nullableTrimmedString(40),
+  companyName: z.string().trim().min(2).max(160),
+  tradeName: nullableTrimmedString(160),
+  document: nullableTrimmedString(32),
+  industry: nullableTrimmedString(120),
+  companySize: nullableTrimmedString(120),
+  city: nullableTrimmedString(120),
+  state: nullableTrimmedString(8),
+  estimatedValue: z.union([z.coerce.number().nonnegative(), z.null(), z.undefined()]),
+  expectedCloseAt: nullableTrimmedString(40),
+  nextStep: nullableTrimmedString(240),
+  qualificationNotes: nullableTrimmedString(4000),
+  lostReason: nullableTrimmedString(240),
+});
+
+export const crmLeadSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  stage: crmLeadStageSchema,
+  source: crmLeadSourceSchema,
+  ownerUserId: z.string().nullable().optional(),
+  ownerName: z.string().nullable().optional(),
+  contactId: z.string().nullable().optional(),
+  contactName: z.string().nullable().optional(),
+  contactEmail: z.string().nullable().optional(),
+  contactPhone: z.string().nullable().optional(),
+  companyName: z.string(),
+  tradeName: z.string().nullable().optional(),
+  document: z.string().nullable().optional(),
+  industry: z.string().nullable().optional(),
+  companySize: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  estimatedValue: z.number().nullable().optional(),
+  expectedCloseAt: z.string().nullable().optional(),
+  nextStep: z.string().nullable().optional(),
+  qualificationNotes: z.string().nullable().optional(),
+  lostReason: z.string().nullable().optional(),
+  convertedCompanyId: z.string().nullable().optional(),
+  convertedCompanyName: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const crmLeadCreateSchema = crmLeadMutableFieldsSchema.extend({
+  stage: crmLeadStageSchema.default("LEAD"),
+  source: crmLeadSourceSchema.default("MANUAL"),
+});
+
+export const crmLeadUpdateSchema = crmLeadMutableFieldsSchema.partial().refine(
+  (input) => Object.keys(input).length > 0,
+  { message: "Informe ao menos um campo para atualizar." },
+);
+
+export const crmLeadListFiltersSchema = z.object({
+  q: z.string().trim().optional(),
+  stage: crmLeadStageSchema.optional(),
+  source: crmLeadSourceSchema.optional(),
+  ownerUserId: z.string().trim().optional(),
+  contactId: z.string().trim().optional(),
+});
+
+export const crmLeadListResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(crmLeadSchema),
+  error: z.string().optional(),
+  message: z.string().optional(),
+});
+
+export const crmLeadResponseSchema = z.object({
+  success: z.boolean(),
+  data: crmLeadSchema.optional(),
+  error: z.string().optional(),
+  message: z.string().optional(),
+});
+
+export type CrmLeadStage = z.output<typeof crmLeadStageSchema>;
+export type CrmLeadSource = z.output<typeof crmLeadSourceSchema>;
+export type CrmLead = z.output<typeof crmLeadSchema>;
+export type CrmLeadCreateInput = z.output<typeof crmLeadCreateSchema>;
+export type CrmLeadUpdateInput = z.output<typeof crmLeadUpdateSchema>;
+export type CrmLeadListFilters = z.output<typeof crmLeadListFiltersSchema>;
+export type CrmLeadListResponse = z.output<typeof crmLeadListResponseSchema>;
+export type CrmLeadResponse = z.output<typeof crmLeadResponseSchema>;

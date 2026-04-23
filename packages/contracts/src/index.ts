@@ -28,6 +28,7 @@ export * from "./agent/index";
 export * from "./chatwoot/index";
 export * from "./evolution/index";
 export * from "./remote/index";
+export * from "./crm/index";
 
 // Isolated shared contract kept as a direct leaf export.
 export {

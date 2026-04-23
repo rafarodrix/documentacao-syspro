@@ -153,6 +153,7 @@ function ChatwootDiagnosticsTab() {
               {isBehaviorLoading ? (
                 <LoadingState label="Carregando automacoes do Chatwoot..." />
               ) : (
+                <>
                 <div className="grid gap-3 md:grid-cols-2">
                   <BehaviorToggle
                     id="prependAgentNameOnOutbound"
@@ -301,6 +302,7 @@ function ChatwootDiagnosticsTab() {
                     </div>
                   )}
                 </div>
+                </>
               )}
             </div>
           </>

@@ -234,6 +234,27 @@ enum IntegrationConnectionStatus {
   INACTIVE
 }
 
+enum CrmLeadStage {
+  LEAD
+  MQL
+  SQL
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum CrmLeadSource {
+  MANUAL
+  WHATSAPP
+  REFERRAL
+  FORM
+  EVENT
+  OUTBOUND
+  CAMPAIGN
+  OTHER
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -306,6 +327,7 @@ model Company {
   conversationLinks            ConversationLink[]
   messageLinks                 MessageLink[]
   userAccessProfiles           UserAccessProfile[]
+  convertedCrmLeads            CrmLead[]                     @relation("CrmLeadConvertedCompany")
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -340,6 +362,7 @@ model CompanyContact {
   userLinks                    UserContactLink[]
   users                        User[]
   companyLinks                 CompanyContactCompanyLink[]
+  crmLeads                     CrmLead[]
 
   @@index([status])
   @@index([whatsapp])
@@ -443,6 +466,7 @@ model User {
   revokedRemoteAddressBookCredentials RemoteAddressBookCredential[] @relation("RemoteAddressBookCredentialRevokedBy")
   accessProfileAssignments            UserAccessProfile[]           @relation("UserAccessProfileUser")
   assignedAccessProfiles              UserAccessProfile[]           @relation("UserAccessProfileAssignedBy")
+  crmOwnedLeads                       CrmLead[]                     @relation("CrmLeadOwner")
 
   // INDICES PARA PERFORMANCE
   @@index([name])
@@ -1073,6 +1097,52 @@ model ChatwootCsatRating {
   @@index([connectionKey, respondedAt])
   @@index([agentId, respondedAt])
   @@map("chatwoot_csat_rating")
+}
+
+model CrmLead {
+  id String @id @default(cuid())
+
+  title  String
+  stage  CrmLeadStage  @default(LEAD)
+  source CrmLeadSource @default(MANUAL)
+
+  ownerUserId String?
+  ownerUser   User? @relation("CrmLeadOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  contactId String?
+  contact   CompanyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  convertedCompanyId String?
+  convertedCompany   Company? @relation("CrmLeadConvertedCompany", fields: [convertedCompanyId], references: [id], onDelete: SetNull)
+
+  companyName  String
+  tradeName    String?
+  document     String?
+  industry     String?
+  companySize  String?
+  city         String?
+  state        String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+
+  estimatedValue      Decimal? @db.Decimal(12, 2)
+  expectedCloseAt     DateTime?
+  nextStep            String?
+  qualificationNotes  String?  @db.Text
+  lostReason          String?
+  metadata            Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage, createdAt])
+  @@index([source, createdAt])
+  @@index([ownerUserId, stage])
+  @@index([contactId])
+  @@index([convertedCompanyId])
+  @@index([companyName])
+  @@map("crm_lead")
 }
 
 // cst

@@ -17,6 +17,7 @@ import { TaxModule } from './modules/tax/tax.module';
 import { RemoteAdminModule } from './modules/remote-admin/remote-admin.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReleasesModule } from './modules/releases/releases.module';
+import { CrmModule } from './modules/crm/crm.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ReleasesModule } from './modules/releases/releases.module';
     RemoteAdminModule,
     DashboardModule,
     ReleasesModule,
+    CrmModule,
   ],
   controllers: [AppController],
   providers: [AppService],

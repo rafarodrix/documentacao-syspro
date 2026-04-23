@@ -12,6 +12,7 @@
       "@dosc-syspro/contracts/address": ["../../packages/contracts/src/shared/address.types.ts"],
       "@dosc-syspro/contracts/company": ["../../packages/contracts/src/company/index.ts"],
       "@dosc-syspro/contracts/chatwoot": ["../../packages/contracts/src/chatwoot/index.ts"],
+      "@dosc-syspro/contracts/crm": ["../../packages/contracts/src/crm/index.ts"],
       "@dosc-syspro/contracts/dashboard": ["../../packages/contracts/src/dashboard/index.ts"],
       "@dosc-syspro/contracts/documento": ["../../packages/contracts/src/documento/documento.types.ts"],
       "@dosc-syspro/contracts/documento-config": ["../../packages/contracts/src/documento/documento-config.types.ts"],
