@@ -1,6 +1,5 @@
-import { prisma } from "@dosc-syspro/database";
+import { buildScopedWhere, prisma } from "@dosc-syspro/database";
 import type { RemoteTenantScope } from "./model";
-import { buildScopedWhere } from "./queries";
 
 export interface EfficiencyMetrics {
   averageTimeToRemoteSeconds: number | null;

@@ -1,4 +1,5 @@
-import { prisma, buildAddressBookToken, buildScopedWhere, resolveRustDeskAlias } from "@dosc-syspro/database";
+import { prisma, buildAddressBookToken, buildScopedWhere } from "@dosc-syspro/database";
+import { resolveRustDeskAlias } from "./rustdesk-helpers";
 
 import type {
   ListAddressBookCredentialsOutput,
@@ -203,4 +204,3 @@ export function createRemoteAddressBookPort(): RemoteAddressBookPort {
     },
   };
 }
-

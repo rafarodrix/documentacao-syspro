@@ -1,5 +1,3 @@
-export * from './address-book-credentials';
-export * from './agent-payload';
 export * from './agent-token';
 export * from './module-settings-actions';
 export * from './queries';

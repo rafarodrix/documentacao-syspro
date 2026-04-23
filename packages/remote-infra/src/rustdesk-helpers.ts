@@ -1,11 +1,20 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { RemoteModuleSettings } from "./model";
 
-export function normalizeRustdeskId(value?: string | null) {
+export type RustDeskConfigSettings = {
+  rustDeskServerHost: string;
+  rustDeskServerConfig: string;
+  rustDeskPublicKey: string;
+  rustDeskVersion: string;
+  defaultPassword: string;
+};
+
+export function normalizeRustdeskId(value?: string | null): string | null {
   const trimmed = value?.trim();
   if (!trimmed) return null;
   const normalized = trimmed.replace(/\s+/g, "");
-  return /^\d{7,12}$/.test(normalized) ? normalized : null;
+  if (!/^[0-9]{7,12}$/.test(normalized)) return null;
+  if (/^0+$/.test(normalized)) return null;
+  return normalized;
 }
 
 export function normalizeRustdeskIdStrict(value?: string | null) {
@@ -37,18 +46,26 @@ export function resolveRustDeskAlias(input: {
   return input.hostName;
 }
 
-export function buildRustDeskConfigProfile(settings: RemoteModuleSettings) {
+export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
   const serverHost = settings.rustDeskServerHost.trim();
+  const publicKey = settings.rustDeskPublicKey.trim();
+  const upgradeDownloadUrl = process.env.REMOTE_RUSTDESK_UPGRADE_URL?.trim() || null;
+  const upgradeChecksumSha256 = process.env.REMOTE_RUSTDESK_UPGRADE_SHA256?.trim().toLowerCase() || null;
+  const upgradePackageType = process.env.REMOTE_RUSTDESK_UPGRADE_PACKAGE_TYPE?.trim().toLowerCase() || "binary";
+  const upgradeSilentArgs = process.env.REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS?.trim() || "/S";
+
   return {
     serverHost,
     apiHost: serverHost,
-    publicKey: settings.rustDeskPublicKey.trim(),
-    publicKeyHash: settings.rustDeskPublicKey.trim()
-      ? hashRustDeskPublicKey(settings.rustDeskPublicKey)
-      : null,
+    publicKey,
+    publicKeyHash: publicKey ? hashRustDeskPublicKey(publicKey) : null,
     serverConfig: settings.rustDeskServerConfig.trim(),
     targetVersion: settings.rustDeskVersion.trim(),
     defaultPassword: settings.defaultPassword,
+    upgradeDownloadUrl,
+    upgradeChecksumSha256,
+    upgradePackageType,
+    upgradeSilentArgs,
   };
 }
 

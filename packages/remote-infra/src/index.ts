@@ -2,6 +2,16 @@ export { createRemoteSessionPort } from "./remote-session.port";
 export { createRemoteHostAdminPort } from "./remote-host-admin.port";
 export { createRemoteAddressBookPort } from "./remote-address-book.port";
 export {
+  buildAgentToken,
+  buildRustDeskConfigProfile,
+  hashAgentToken,
+  hashRustDeskPublicKey,
+  normalizeComparableValue,
+  normalizeRustdeskId,
+  normalizeRustdeskIdStrict,
+  resolveRustDeskAlias,
+} from "./rustdesk-helpers";
+export {
   createRemoteAckPort,
   createRemoteBootstrapPort,
   createRemoteDiscoverPort,

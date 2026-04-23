@@ -1,4 +1,3 @@
-import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import {
   normalizeCompareValue,
@@ -15,6 +14,14 @@ import type {
   RemoteSyncPort,
 } from "@dosc-syspro/remote-domain";
 import { createRemoteSessionPort as createSharedRemoteSessionPort } from "./remote-session.port";
+import {
+  buildAgentToken,
+  buildRustDeskConfigProfile,
+  hashAgentToken,
+  hashRustDeskPublicKey,
+  normalizeRustdeskId,
+  resolveRustDeskAlias,
+} from "./rustdesk-helpers";
 // Componentes de configuracao compartilhados (copiados do app-web)
 const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
 
@@ -34,35 +41,7 @@ type RemoteLogger = {
   error(event: string, fields?: Record<string, unknown>): void;
 };
 
-function normalizeRustdeskId(value?: string | null): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  const normalized = trimmed.replace(/\s+/g, "");
-  if (!/^[0-9]{7,12}$/.test(normalized)) return null;
-  if (/^0+$/.test(normalized)) return null;
-  return normalized;
-}
-
-function resolveRustDeskAlias(input: { hostName: string; machineName?: string | null; companyName?: string | null }) {
-  const machineName = input.machineName?.trim();
-  if (machineName) return machineName;
-  if (input.companyName?.trim()) return `${input.companyName.trim()} | ${input.hostName}`;
-  return input.hostName;
-}
-
 const resolveAlias = resolveRustDeskAlias;
-
-function buildAgentToken() {
-  return `ragent_${randomBytes(24).toString("hex")}`;
-}
-
-function hashAgentToken(token: string) {
-  return createHash("sha256").update(token, "utf8").digest("hex");
-}
-
-function hashRustDeskPublicKey(publicKey: string) {
-  return createHash("sha256").update(publicKey.trim(), "utf8").digest("hex");
-}
 
 const isAgentTokenExpired = isRemoteAgentTokenExpired;
 const getAgentTokenExpiresAt = getRemoteAgentTokenExpiresAt;
@@ -102,35 +81,6 @@ async function getRemoteModuleSettingsSnapshot() {
   } catch {
     return DEFAULT_REMOTE_MODULE_SETTINGS;
   }
-}
-
-function buildRustDeskConfigProfile(settings: {
-  rustDeskServerHost: string;
-  rustDeskServerConfig: string;
-  rustDeskPublicKey: string;
-  rustDeskVersion: string;
-  defaultPassword: string;
-}) {
-  const serverHost = settings.rustDeskServerHost.trim();
-  const publicKey = settings.rustDeskPublicKey.trim();
-  const upgradeDownloadUrl = process.env.REMOTE_RUSTDESK_UPGRADE_URL?.trim() || null;
-  const upgradeChecksumSha256 = process.env.REMOTE_RUSTDESK_UPGRADE_SHA256?.trim().toLowerCase() || null;
-  const upgradePackageType = process.env.REMOTE_RUSTDESK_UPGRADE_PACKAGE_TYPE?.trim().toLowerCase() || "binary";
-  const upgradeSilentArgs = process.env.REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS?.trim() || "/S";
-
-  return {
-    serverHost,
-    apiHost: serverHost,
-    publicKey,
-    publicKeyHash: publicKey ? hashRustDeskPublicKey(publicKey) : null,
-    serverConfig: settings.rustDeskServerConfig.trim(),
-    targetVersion: settings.rustDeskVersion.trim(),
-    defaultPassword: settings.defaultPassword,
-    upgradeDownloadUrl,
-    upgradeChecksumSha256,
-    upgradePackageType,
-    upgradeSilentArgs,
-  };
 }
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -687,6 +637,5 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin.port";
 export { createRemoteAddressBookPort } from "./remote-address-book.port";
-
 
 

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { prisma, buildScopedWhere, normalizeCompareValue, normalizeRustdeskIdStrict, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
+import { prisma, buildScopedWhere, normalizeCompareValue, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
+import { normalizeRustdeskIdStrict } from "./rustdesk-helpers";
 import type {
   CreateHostInput,
   CreateHostOutput,

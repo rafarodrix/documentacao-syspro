@@ -10,10 +10,6 @@ import {
   fetchRemotePlatformOverviewGateway,
 } from "@/features/remote/infrastructure/remote-admin.gateway";
 
-export function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
-
 export async function getRemotePlatformOverview(_tenantScope: RemoteTenantScope): Promise<RemotePlatformOverview> {
   return fetchRemotePlatformOverviewGateway();
 }

@@ -58,23 +58,6 @@ export function normalizeCompareValue(value?: string | null) {
     .trim();
 }
 
-export function normalizeRustdeskIdStrict(value?: string | null) {
-  const digitsOnly = (value ?? "").replace(/\D/g, "").trim();
-  if (!digitsOnly) return null;
-  return /^\d{7,12}$/.test(digitsOnly) ? digitsOnly : null;
-}
-
-export function resolveRustDeskAlias(input: {
-  hostName: string;
-  machineName?: string | null;
-  companyName?: string | null;
-}) {
-  const machineName = input.machineName?.trim();
-  if (machineName) return machineName;
-  if (input.companyName?.trim()) return `${input.companyName.trim()} | ${input.hostName}`;
-  return input.hostName;
-}
-
 export function normalizeSysproUpdates(value: unknown): NormalizedSysproUpdate[] {
   if (!Array.isArray(value)) return [];
   const unique = new Map<string, NormalizedSysproUpdate>();

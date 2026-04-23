@@ -1,7 +1,7 @@
-import { prisma } from "@dosc-syspro/database";
+import { buildScopedWhere, prisma } from "@dosc-syspro/database";
+import { hashRustDeskPublicKey } from "@dosc-syspro/remote-infra/rustdesk-helpers";
 import type { RemoteTenantScope } from "./model";
 import { getRemoteModuleSettingsSnapshot } from "./module-settings-server";
-import { hashRustDeskPublicKey } from "./rustdesk-sync";
 import { resolveRemoteOperationalStatus } from "./operational-status";
 import type {
   RemoteConfiguredHostItem,
@@ -18,10 +18,6 @@ type RemoteConnectionItem = {
   type: "DDNS_NOIP" | "RADMIN_VPN";
   details: string;
 };
-
-export function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
 
 function mapHostDescription(input: {
   description: string | null;

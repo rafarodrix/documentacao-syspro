@@ -1,9 +1,5 @@
-import { prisma } from "@dosc-syspro/database";
+import { buildScopedWhere, prisma } from "@dosc-syspro/database";
 import type { RemoteTenantScope, RemoteSessionStatus, RemotePlatformOverview } from "./model";
-
-function buildScopedWhere(companyIds: string[], isGlobalView: boolean) {
-  return isGlobalView ? {} : { companyId: { in: companyIds.length ? companyIds : ["__none__"] } };
-}
 
 export async function getRemoteSessions(
   tenantScope: RemoteTenantScope,
