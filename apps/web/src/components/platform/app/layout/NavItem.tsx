@@ -11,6 +11,7 @@ export type NavItemType = {
   icon: LucideIcon
   roles?: string[]
   badge?: string
+  newTab?: boolean
 }
 
 interface NavItemProps {
@@ -22,7 +23,13 @@ interface NavItemProps {
 
 export function NavItem({ item, isActive, onClick, collapsed = false }: NavItemProps) {
   return (
-    <Link href={item.href} onClick={onClick} className="block min-w-0">
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className="block min-w-0"
+      target={item.newTab ? "_blank" : undefined}
+      rel={item.newTab ? "noreferrer" : undefined}
+    >
       <span
         title={collapsed ? item.title : undefined}
         className={cn(

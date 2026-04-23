@@ -190,7 +190,7 @@ export function TicketSettingsTab() {
               void form.handleSubmit(onSubmit)();
             }
           }}
-          className="grid gap-5 pb-10 xl:grid-cols-[minmax(0,1fr)_25rem]"
+          className="space-y-5 pb-10"
         >
           <section className="min-w-0 space-y-5">
             <div className="space-y-1">
@@ -198,11 +198,47 @@ export function TicketSettingsTab() {
               <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
             </div>
 
+            <Card className="border-border/60 bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Resumo operacional</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <Metric label="Fila padrao" value={defaultTeam === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte"} />
+                  <Metric label="Prioridade" value={priorities.find((priority) => priority.value === defaultPriority)?.label || defaultPriority} />
+                  <Metric
+                    label="Grupos suporte"
+                    value={String(form.watch("supportNotificationGroups")?.filter((group) => group.active).length || 0)}
+                  />
+                  <Metric
+                    label="Grupos dev"
+                    value={String(form.watch("developmentNotificationGroups")?.filter((group) => group.active).length || 0)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  <Metric label="Categorias" value={categoriesArray.fields.length} />
+                  <Metric label="Equipes" value={teamsArray.fields.length} />
+                  <Metric label="Modulos" value={modulesArray.fields.length} />
+                  <Metric label="Templates" value={templatesArray.fields.length} />
+                </div>
+                {form.formState.isDirty && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    Existem alteracoes pendentes.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Tabs defaultValue="catalog" className="w-full">
-              <TabsList className="h-9">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-5">
                 <TabsTrigger value="catalog" className="gap-1.5 text-xs">
                   <FolderKanban className="h-3.5 w-3.5" />
-                  Catalogo
+                  Categorias
+                </TabsTrigger>
+                <TabsTrigger value="structure" className="gap-1.5 text-xs">
+                  <Layers3 className="h-3.5 w-3.5" />
+                  Estrutura
                 </TabsTrigger>
                 <TabsTrigger value="sla" className="gap-1.5 text-xs">
                   <Clock className="h-3.5 w-3.5" />
@@ -211,6 +247,10 @@ export function TicketSettingsTab() {
                 <TabsTrigger value="templates" className="gap-1.5 text-xs">
                   <MessageSquareText className="h-3.5 w-3.5" />
                   Templates
+                </TabsTrigger>
+                <TabsTrigger value="automation" className="gap-1.5 text-xs">
+                  <Settings2 className="h-3.5 w-3.5" />
+                  Automacao
                 </TabsTrigger>
               </TabsList>
 
@@ -271,6 +311,9 @@ export function TicketSettingsTab() {
                   </CardContent>
                 </Card>
 
+              </TabsContent>
+
+              <TabsContent value="structure" className="mt-5 space-y-5">
                 <Card className="border-border/60">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm">
@@ -278,7 +321,7 @@ export function TicketSettingsTab() {
                       Estrutura operacional
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid gap-6 lg:grid-cols-2">
+                  <CardContent className="grid gap-6 xl:grid-cols-2">
                     <CatalogList
                       title="Equipes"
                       onAdd={() => teamsArray.append({ id: createOptionId("team"), label: "", value: "" })}
@@ -416,148 +459,147 @@ export function TicketSettingsTab() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="automation" className="mt-5 space-y-5">
+                <Tabs defaultValue="rules" className="w-full">
+                  <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
+                    <TabsTrigger value="rules" className="gap-1.5 text-xs">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      Regras
+                    </TabsTrigger>
+                    <TabsTrigger value="notifications" className="gap-1.5 text-xs">
+                      <MessageSquareText className="h-3.5 w-3.5" />
+                      Notificacoes WhatsApp
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="rules" className="mt-5 space-y-5">
+                    <Card className="border-border/60 bg-card/95">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Settings2 className="h-4 w-4 text-primary/70" />
+                          Regras gerais
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-4 xl:grid-cols-2">
+                        <FormField control={form.control} name="defaultTeam" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Fila padrao</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                <SelectItem value="SUPORTE">Suporte</SelectItem>
+                                <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="defaultPriority" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Prioridade inbound</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                {priorities.map((priority) => (
+                                  <SelectItem key={priority.id} value={priority.value}>{priority.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-border/60 bg-card/95">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Automacoes</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
+                          <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Auto-atribuir internos</FormLabel>
+                              <FormDescription className="text-xs">Operador vira responsavel ao abrir chamado pelo portal.</FormDescription>
+                            </div>
+                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="autoResponseEnabled" render={({ field }) => (
+                          <FormItem className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Auto resposta</FormLabel>
+                                <FormDescription className="text-xs">Mensagem enviada na abertura pelo cliente.</FormDescription>
+                              </div>
+                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            </div>
+                          </FormItem>
+                        )} />
+
+                        {autoResponseEnabled && (
+                          <FormField control={form.control} name="autoResponseMessage" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mensagem automatica</FormLabel>
+                              <FormControl><Textarea rows={4} {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="notifications" className="mt-5">
+                    <Card className="border-border/60 bg-card/95">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Notificacoes de abertura</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-medium">Grupos de notificacao no WhatsApp</h3>
+                          <p className="text-xs text-muted-foreground">
+                            O envio usa o identificador real do grupo no WhatsApp. Preencha o ID/JID do grupo, por exemplo <span className="font-mono">1203630...@g.us</span>.
+                          </p>
+                        </div>
+
+                        <NotificationGroupsSection
+                          title="Grupos do Suporte"
+                          description="Recebem tickets abertos com fila em Suporte."
+                          fields={supportNotificationGroupsArray.fields}
+                          baseName="supportNotificationGroups"
+                          form={form}
+                          onAdd={() => supportNotificationGroupsArray.append(createNotificationGroup())}
+                          onRemove={(index) => supportNotificationGroupsArray.remove(index)}
+                        />
+
+                        <NotificationGroupsSection
+                          title="Grupos do Desenvolvimento"
+                          description="Recebem tickets abertos com fila em Desenvolvimento."
+                          fields={developmentNotificationGroupsArray.fields}
+                          baseName="developmentNotificationGroups"
+                          form={form}
+                          onAdd={() => developmentNotificationGroupsArray.append(createNotificationGroup())}
+                          onRemove={(index) => developmentNotificationGroupsArray.remove(index)}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
             </Tabs>
-          </section>
-
-          <aside className="min-w-0 space-y-5">
-            <Card className="border-border/60 bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Settings2 className="h-4 w-4 text-primary/70" />
-                  Painel de comando
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField control={form.control} name="defaultTeam" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fila padrao</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="SUPORTE">Suporte</SelectItem>
-                        <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="defaultPriority" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prioridade inbound</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {priorities.map((priority) => (
-                          <SelectItem key={priority.id} value={priority.value}>{priority.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <Separator />
-
-                <div className="space-y-4 rounded-lg border border-border/60 bg-muted/10 p-3">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium">Grupos de notificacao no WhatsApp</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Quando um ticket for aberto, o portal envia um resumo para todos os grupos ativos da equipe responsavel.
-                    </p>
-                  </div>
-
-                  <NotificationGroupsSection
-                    title="Grupos do Suporte"
-                    description="Recebem tickets abertos com fila em Suporte."
-                    fields={supportNotificationGroupsArray.fields}
-                    baseName="supportNotificationGroups"
-                    form={form}
-                    onAdd={() => supportNotificationGroupsArray.append(createNotificationGroup())}
-                    onRemove={(index) => supportNotificationGroupsArray.remove(index)}
-                  />
-
-                  <NotificationGroupsSection
-                    title="Grupos do Desenvolvimento"
-                    description="Recebem tickets abertos com fila em Desenvolvimento."
-                    fields={developmentNotificationGroupsArray.fields}
-                    baseName="developmentNotificationGroups"
-                    form={form}
-                    onAdd={() => developmentNotificationGroupsArray.append(createNotificationGroup())}
-                    onRemove={(index) => developmentNotificationGroupsArray.remove(index)}
-                  />
-                </div>
-
-                <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
-                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Auto-atribuir internos</FormLabel>
-                      <FormDescription className="text-xs">Operador vira responsavel ao abrir chamado pelo portal.</FormDescription>
-                    </div>
-                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="autoResponseEnabled" render={({ field }) => (
-                  <FormItem className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <FormLabel>Auto resposta</FormLabel>
-                        <FormDescription className="text-xs">Mensagem enviada na abertura pelo cliente.</FormDescription>
-                      </div>
-                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    </div>
-                  </FormItem>
-                )} />
-
-                {autoResponseEnabled && (
-                  <FormField control={form.control} name="autoResponseMessage" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mensagem automatica</FormLabel>
-                      <FormControl><Textarea rows={4} {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                )}
-
-                <Button type="submit" disabled={isPending} className="h-10 w-full gap-2">
+            <div className="sticky bottom-4 z-10 flex justify-end">
+              <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur">
+                <Button type="submit" disabled={isPending} className="h-10 gap-2">
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {isPending ? "Salvando" : "Salvar configuracoes"}
                 </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Resumo operacional</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <SummaryRow label="Fila padrao" value={defaultTeam === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte"} />
-                <SummaryRow label="Prioridade" value={priorities.find((priority) => priority.value === defaultPriority)?.label || defaultPriority} />
-                <SummaryRow
-                  label="Grupos suporte"
-                  value={String(form.watch("supportNotificationGroups")?.filter((group) => group.active).length || 0)}
-                />
-                <SummaryRow
-                  label="Grupos dev"
-                  value={String(form.watch("developmentNotificationGroups")?.filter((group) => group.active).length || 0)}
-                />
-                <Separator />
-                <div className="grid grid-cols-2 gap-2">
-                  <Metric label="Categorias" value={categoriesArray.fields.length} />
-                  <Metric label="Equipes" value={teamsArray.fields.length} />
-                  <Metric label="Modulos" value={modulesArray.fields.length} />
-                  <Metric label="Templates" value={templatesArray.fields.length} />
-                </div>
-                {form.formState.isDirty && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
-                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Existem alteracoes pendentes.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </aside>
+              </div>
+            </div>
+          </section>
         </form>
       </Form>
     </div>
@@ -619,9 +661,15 @@ function NotificationGroupsSection({
         ) : null}
 
         {fields.map((fieldItem, index) => (
-          <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-background p-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_6rem_2.5rem]">
-            <Input placeholder="Nome do grupo" {...form.register(`${baseName}.${index}.label`)} />
-            <Input placeholder="1203630...@g.us ou apenas os digitos" {...form.register(`${baseName}.${index}.jid`)} />
+          <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-background p-3 xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_6rem_2.5rem]">
+            <div className="space-y-1">
+              <p className="text-[11px] font-medium text-muted-foreground">Nome interno</p>
+              <Input placeholder="Nome do grupo" {...form.register(`${baseName}.${index}.label`)} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[11px] font-medium text-muted-foreground">ID/JID do grupo</p>
+              <Input placeholder="1203630...@g.us" {...form.register(`${baseName}.${index}.jid`)} />
+            </div>
             <FormField
               control={form.control}
               name={`${baseName}.${index}.active`}
@@ -768,7 +816,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
