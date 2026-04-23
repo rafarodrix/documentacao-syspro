@@ -408,6 +408,25 @@ export class ChatwootClient {
     );
   }
 
+  async createOutgoingMessage(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    content: string
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
+      'POST',
+      {
+        content,
+        message_type: 'outgoing',
+        private: false,
+        content_type: 'text',
+        content_attributes: {},
+      }
+    );
+  }
+
   async assignConversation(
     config: ChatwootConnectionConfig,
     conversationId: string,

@@ -14,8 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 type IntegrationDiagnostics = {
   success: boolean;
@@ -153,6 +155,15 @@ function ChatwootDiagnosticsTab() {
               ) : (
                 <div className="grid gap-3 md:grid-cols-2">
                   <BehaviorToggle
+                    id="prependAgentNameOnOutbound"
+                    label="Enviar nome do atendente no WhatsApp"
+                    description="Prefixa a resposta enviada ao cliente com 'Nome do atendente: ...' usando o agente que respondeu no Chatwoot."
+                    checked={behavior.prependAgentNameOnOutbound}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, prependAgentNameOnOutbound: checked }))
+                    }
+                  />
+                  <BehaviorToggle
                     id="autoAssignOnFirstAgentReply"
                     label="Autoatribuir ao primeiro agente que responder"
                     description="Quando uma mensagem de saida de agente chegar sem responsavel na conversa, o backend atribui a conversa a esse agente."
@@ -188,6 +199,107 @@ function ChatwootDiagnosticsTab() {
                       setBehavior((prev) => ({ ...prev, ticketCreationAppEnabled: checked }))
                     }
                   />
+                </div>
+
+                <div className="grid gap-4 rounded-lg border bg-background p-4">
+                  <div>
+                    <h4 className="text-sm font-semibold">CSAT no WhatsApp</h4>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Envia avaliacao automatica quando a conversa for resolvida no Chatwoot e trata a resposta do cliente no webhook.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <BehaviorToggle
+                      id="csatEnabled"
+                      label="Habilitar CSAT automatico"
+                      description="Ao receber status resolved/archived, o backend envia a pesquisa na propria conversa do WhatsApp."
+                      checked={behavior.csatEnabled}
+                      onCheckedChange={(checked) =>
+                        setBehavior((prev) => ({ ...prev, csatEnabled: checked }))
+                      }
+                    />
+                    <BehaviorToggle
+                      id="csatReopenOnLowScore"
+                      label="Reabrir conversa em nota baixa"
+                      description="Quando o cliente responder com nota igual ou abaixo do limite, o backend reabre a conversa automaticamente."
+                      checked={behavior.csatReopenOnLowScore}
+                      onCheckedChange={(checked) =>
+                        setBehavior((prev) => ({ ...prev, csatReopenOnLowScore: checked }))
+                      }
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="csatLowScoreThreshold">Limite de nota baixa</Label>
+                      <Input
+                        id="csatLowScoreThreshold"
+                        type="number"
+                        min={1}
+                        max={5}
+                        value={behavior.csatLowScoreThreshold}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({
+                            ...prev,
+                            csatLowScoreThreshold: Number(event.target.value || prev.csatLowScoreThreshold),
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">Notas ate esse valor podem reabrir a conversa quando a automacao estiver ativa.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="csatPendingTimeoutHours">Timeout do CSAT (horas)</Label>
+                      <Input
+                        id="csatPendingTimeoutHours"
+                        type="number"
+                        min={1}
+                        max={168}
+                        value={behavior.csatPendingTimeoutHours}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({
+                            ...prev,
+                            csatPendingTimeoutHours: Number(event.target.value || prev.csatPendingTimeoutHours),
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">Registrado no estado do Chatwoot para uso do fluxo operacional e timeout assistido.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="csatRequestMessage">Mensagem de solicitacao</Label>
+                      <Textarea
+                        id="csatRequestMessage"
+                        className="min-h-40"
+                        value={behavior.csatRequestMessage}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({ ...prev, csatRequestMessage: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="csatThankYouMessage">Mensagem pos-avaliacao</Label>
+                      <Textarea
+                        id="csatThankYouMessage"
+                        className="min-h-40"
+                        value={behavior.csatThankYouMessage}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({ ...prev, csatThankYouMessage: event.target.value }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {behavior.ticketCreationAppEnabled && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                      A opcao do atalho/app de abertura de ticket no Chatwoot foi mantida. O portal continua aceitando os parametros
+                      `source=chatwoot`, `chatwootConversationId`, `chatwootContactId`, `chatwootAccountId` e `chatwootConversationUrl`
+                      para abrir a criacao de ticket vinculada ao atendimento.
+                    </div>
+                  )}
                 </div>
               )}
             </div>

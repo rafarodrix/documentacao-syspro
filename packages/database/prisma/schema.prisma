@@ -1056,6 +1056,25 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 }
 
+model ChatwootCsatRating {
+  id                    String   @id @default(cuid())
+  chatwootConversationId String  @unique
+  connectionKey         String   @default("env:default")
+  contact               String?
+  agentId               String?
+  agentName             String?
+  score                 Int
+  status                String   @default("RECORDED")
+  requestedAt           DateTime?
+  respondedAt           DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([connectionKey, respondedAt])
+  @@index([agentId, respondedAt])
+  @@map("chatwoot_csat_rating")
+}
+
 // cst
 model TaxCST {
   id          String @id @default(cuid())

@@ -17,7 +17,10 @@ export class ProcessOutgoingMessageUseCase {
     private readonly integrationContext: IntegrationContextService,
   ) {}
 
-  async execute(payload: any, context?: { connection?: ResolvedIntegrationContext }) {
+  async execute(
+    payload: any,
+    context?: { connection?: ResolvedIntegrationContext; prependAgentNameOnOutbound?: boolean },
+  ) {
     const messagePayload = this.extractMessagePayload(payload);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
@@ -51,7 +54,11 @@ export class ProcessOutgoingMessageUseCase {
       return;
     }
 
-    const content = messagePayload.content;
+    const content = this.buildOutboundContent(
+      messagePayload.content,
+      messagePayload.senderName,
+      context?.prependAgentNameOnOutbound === true,
+    );
     const messageId = messagePayload.messageId;
     const chatwootConversationId = messagePayload.chatwootConversationId;
     const attachments = messagePayload.attachments;
@@ -364,6 +371,7 @@ export class ProcessOutgoingMessageUseCase {
     messageType?: unknown;
     isPrivateNote: boolean;
     content?: string;
+    senderName?: string;
     chatwootConversationId?: string;
     attachments: any[];
   } {
@@ -382,6 +390,7 @@ export class ProcessOutgoingMessageUseCase {
       messageType: payload?.message_type ?? message?.message_type,
       isPrivateNote: Boolean(payload?.private ?? message?.private),
       content,
+      senderName: this.extractSenderName(payload, message, conversationMessage),
       chatwootConversationId: this.toOptionalString(
         payload?.conversation?.id ??
         payload?.conversation_id ??
@@ -713,6 +722,57 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     return this.normalizeMessageText(value);
+  }
+
+  private buildOutboundContent(
+    content: string | undefined,
+    senderName: string | undefined,
+    prependAgentNameOnOutbound: boolean,
+  ): string | undefined {
+    const normalizedContent = this.normalizeMessageText(content);
+    if (!normalizedContent) return normalizedContent;
+    if (!prependAgentNameOnOutbound) return normalizedContent;
+
+    const normalizedSenderName = this.normalizeAgentName(senderName);
+    if (!normalizedSenderName) return normalizedContent;
+
+    const prefix = `Nome do atendente: ${normalizedSenderName}`;
+    if (normalizedContent.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return normalizedContent;
+    }
+
+    return `${prefix}\n\n${normalizedContent}`;
+  }
+
+  private extractSenderName(payload: any, message: any, conversationMessage: any): string | undefined {
+    const sender =
+      payload?.sender ??
+      message?.sender ??
+      conversationMessage?.sender ??
+      payload?.user ??
+      message?.user ??
+      conversationMessage?.user;
+
+    const candidates = [
+      sender?.name,
+      sender?.available_name,
+      sender?.display_name,
+      sender?.email,
+      payload?.conversation?.meta?.assignee?.name,
+      payload?.conversation?.meta?.assignee?.available_name,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = this.normalizeAgentName(candidate);
+      if (normalized) return normalized;
+    }
+
+    return undefined;
+  }
+
+  private normalizeAgentName(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized || undefined;
   }
 
 }
