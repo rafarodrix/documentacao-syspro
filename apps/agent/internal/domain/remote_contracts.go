@@ -117,6 +117,13 @@ type RemoteBootstrapResponse struct {
 	ServerConfig        string `json:"serverConfig"`
 	TargetVersion       string `json:"targetVersion"`
 	DefaultPassword     string `json:"defaultPassword"`
+	Compliance          struct {
+		AliasMatch      bool `json:"aliasMatch"`
+		VersionMatch    bool `json:"versionMatch"`
+		ServerHostMatch bool `json:"serverHostMatch"`
+		APIHostMatch    bool `json:"apiHostMatch"`
+		PublicKeyMatch  bool `json:"publicKeyMatch"`
+	} `json:"compliance"`
 }
 
 type RemoteSyncRequest struct {
@@ -155,12 +162,42 @@ type RemoteSyncCommand struct {
 }
 
 type RemoteSyncResponse struct {
-	ContractVersion string              `json:"contractVersion"`
-	HostID          string              `json:"hostId"`
-	Alias           string              `json:"alias"`
-	RustDeskID      string              `json:"rustdeskId"`
-	MachineName     string              `json:"machineName"`
-	CommandQueue    []RemoteSyncCommand `json:"commandQueue"`
+	ContractVersion      string `json:"contractVersion"`
+	HostID               string `json:"hostId"`
+	Alias                string `json:"alias"`
+	RustDeskID           string `json:"rustdeskId"`
+	MachineName          string `json:"machineName"`
+	CurrentAgentVersion  string `json:"currentAgentVersion"`
+	LastHeartbeatAt      string `json:"lastHeartbeatSuccessAt"`
+	AgentTokenIssuedAt   string `json:"agentTokenIssuedAt"`
+	AgentTokenLastUsedAt string `json:"agentTokenLastUsedAt"`
+	AgentTokenExpiresAt  string `json:"agentTokenExpiresAt"`
+	ExpectedConfig       struct {
+		ServerHost    string `json:"serverHost"`
+		APIHost       string `json:"apiHost"`
+		PublicKey     string `json:"publicKey"`
+		PublicKeyHash string `json:"publicKeyHash"`
+		ServerConfig  string `json:"serverConfig"`
+		TargetVersion string `json:"targetVersion"`
+	} `json:"expectedConfig"`
+	ReportedConfig struct {
+		Alias         string `json:"alias"`
+		Version       string `json:"version"`
+		ServerHost    string `json:"serverHost"`
+		APIHost       string `json:"apiHost"`
+		PublicKeyHash string `json:"publicKeyHash"`
+		LastSyncAt    string `json:"lastSyncAt"`
+	} `json:"reportedConfig"`
+	Compliance struct {
+		AliasMatch      bool `json:"aliasMatch"`
+		VersionMatch    bool `json:"versionMatch"`
+		ServerHostMatch bool `json:"serverHostMatch"`
+		APIHostMatch    bool `json:"apiHostMatch"`
+		PublicKeyMatch  bool `json:"publicKeyMatch"`
+	} `json:"compliance"`
+	Warnings     []string            `json:"warnings"`
+	Actions      []string            `json:"actions"`
+	CommandQueue []RemoteSyncCommand `json:"commandQueue"`
 }
 
 type RemoteAckRequest struct {

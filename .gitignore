@@ -28,6 +28,7 @@ build_output.log
 *.tsbuildinfo
 next-env.d.ts
 .turbo/
+.gocache/
 apps/agent/.gocache/
 
 # -----------------------------------------------------------------------------

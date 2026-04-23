@@ -20,9 +20,12 @@ func Load() (Config, error) {
 			StateDir: getStateDir(),
 		},
 		Remote: RemoteConfig{
-			Enabled:        getEnvBool("REMOTE_ENABLED", true),
-			DiscoveryToken: getEnv("REMOTE_DISCOVERY_TOKEN", ""),
-			InstallToken:   getEnv("REMOTE_INSTALL_TOKEN", ""),
+			Enabled:                 getEnvBool("REMOTE_ENABLED", true),
+			DiscoveryToken:          getEnv("REMOTE_DISCOVERY_TOKEN", ""),
+			InstallToken:            getEnv("REMOTE_INSTALL_TOKEN", ""),
+			RustDeskInstallerURL:    getEnv("REMOTE_RUSTDESK_INSTALLER_URL", ""),
+			RustDeskInstallerSHA256: getEnv("REMOTE_RUSTDESK_INSTALLER_SHA256", ""),
+			RustDeskInstallArgs:     getEnv("REMOTE_RUSTDESK_INSTALL_ARGS", "/S"),
 		},
 		Agent: AgentConfig{
 			Version:     getEnv("AGENT_VERSION", "go-agent-v1"),

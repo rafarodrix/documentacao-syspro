@@ -54,6 +54,12 @@ func Bootstrap(ctx context.Context) (*Container, error) {
 			remotemodule.WithInstallToken(cfg.Remote.InstallToken),
 			remotemodule.WithAgentVersion(cfg.Agent.Version),
 			remotemodule.WithEnvironment(cfg.Agent.Environment),
+			remotemodule.WithStateDir(cfg.Paths.StateDir),
+			remotemodule.WithRustDeskInstaller(
+				cfg.Remote.RustDeskInstallerURL,
+				cfg.Remote.RustDeskInstallerSHA256,
+				cfg.Remote.RustDeskInstallArgs,
+			),
 		),
 		tunnelmodule.New(),
 		backupmodule.New(),
