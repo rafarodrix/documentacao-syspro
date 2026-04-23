@@ -698,7 +698,7 @@ export class ContactsService {
         const primaryCompanyName = this.formatCompanyDisplayName(primaryCompany);
         const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
         const companyNames = companies.map((company) => this.formatCompanyDisplayName(company)).filter(Boolean);
-        const fullName = primaryCompanyName ? `${updatedContact.name} - ${primaryCompanyName}` : updatedContact.name;
+        const chatwootLastName = primaryCompanyName ? `| ${primaryCompanyName}` : null;
         const customAttributes = {
           syspro_contact_id: updatedContact.id ?? null,
           syspro_contact_name: updatedContact.name,
@@ -722,10 +722,11 @@ export class ContactsService {
         };
 
         await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, {
-          name: fullName,
+          name: updatedContact.name,
           phone_number: this.formatChatwootPhoneNumber(updatedContact.whatsapp),
           ...(updatedContact.email ? { email: updatedContact.email } : {}),
           additional_attributes: {
+            last_name: chatwootLastName,
             company_name: primaryCompanyName || null,
             city: primaryCompanyAddress?.cidade || null,
             country: primaryCompanyAddress?.pais || null,
@@ -739,8 +740,9 @@ export class ContactsService {
           whatsapp: updatedContact.whatsapp,
           chatwootContactId: link.chatwootContactId,
           connectionKey: link.connectionKey,
-          name: fullName,
+          name: updatedContact.name,
           additionalAttributes: {
+            last_name: chatwootLastName,
             company_name: primaryCompanyName || null,
             city: primaryCompanyAddress?.cidade || null,
             country: primaryCompanyAddress?.pais || null,
