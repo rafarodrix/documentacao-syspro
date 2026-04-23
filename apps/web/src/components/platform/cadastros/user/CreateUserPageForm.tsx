@@ -258,7 +258,11 @@ export function CreateUserPageForm({
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        toast.error(errData?.message || (mode === "edit" ? "Erro ao atualizar usuario." : "Erro ao cadastrar usuario."));
+        toast.error(
+          errData?.error ||
+          errData?.message ||
+          (mode === "edit" ? "Erro ao atualizar usuario." : "Erro ao cadastrar usuario.")
+        );
         return;
       }
 

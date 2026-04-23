@@ -126,9 +126,17 @@ export class UsersService {
       throw new ForbiddenException('Acesso negado.');
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { email: data.email } });
+    const normalizedEmail = this.normalizeEmail(data.email);
+    if (!normalizedEmail) {
+      throw new BadRequestException('E-mail obrigatorio para criar usuario.');
+    }
+
+    const existingUser = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
-      throw new ConflictException('Este email ja esta em uso.');
+      if (existingUser.deletedAt || !existingUser.isActive) {
+        throw new ConflictException('Ja existe um usuario inativo ou excluido com este e-mail. Reative o cadastro existente ou use outro e-mail.');
+      }
+      throw new ConflictException('Este e-mail ja esta cadastrado como usuario.');
     }
 
     const normalizedContactId = this.normalizeContactId(data.contactId);
@@ -152,14 +160,14 @@ export class UsersService {
       authResult = await this.authService.auth.api.createUser({
         headers: new Headers(),
         body: {
-          email: data.email,
+          email: normalizedEmail,
           name: data.name || 'Sem nome',
           password: data.password || Math.random().toString(36).slice(-10),
           role: this.authorizationService.isSystemRole(data.role || Role.CLIENTE_USER) ? 'admin' : 'user',
         },
       });
     } catch (error: any) {
-      throw new ConflictException(error?.message || 'Falha ao criar usuario na autenticacao segura.');
+      throw new ConflictException(this.resolveUserCreateConflictMessage(error));
     }
 
     if (!authResult?.user) throw new Error('Falha critica ao obter o ID do novo usuario.');
@@ -187,6 +195,29 @@ export class UsersService {
 
     await this.syncPortalUserToChatwootSafe(createdUserId);
     return createdUser;
+  }
+
+  private normalizeEmail(value?: string | null) {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return normalized || null;
+  }
+
+  private resolveUserCreateConflictMessage(error: unknown) {
+    const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+    const message = rawMessage.trim();
+    const lower = message.toLowerCase();
+
+    if (
+      lower.includes('already exists') ||
+      lower.includes('already been used') ||
+      lower.includes('email already') ||
+      lower.includes('user already exists') ||
+      lower.includes('duplicate')
+    ) {
+      return 'Este e-mail ja existe na autenticacao do sistema. Verifique usuarios inativos, excluidos ou cadastros antigos.';
+    }
+
+    return message || 'Falha ao criar usuario na autenticacao segura.';
   }
 
   async update(id: string, data: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
