@@ -292,7 +292,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       const response = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`Falha ao excluir contato (${response.status})`);
 
-      toast.success("Contato excluido com sucesso.");
+      toast.success("Contato removido da lista com sucesso.");
       await refreshContactsView();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao excluir contato";
@@ -331,15 +331,15 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       <ConfirmActionDialog
         open={!!confirmDialog}
         onOpenChange={(open) => (!open ? setConfirmDialog(null) : undefined)}
-        title={confirmDialog?.type === "delete" ? "Confirmar exclusao do contato" : "Confirmar desvinculacao"}
+        title={confirmDialog?.type === "delete" ? "Confirmar arquivamento do contato" : "Confirmar desvinculacao"}
         description={
           confirmDialog
             ? confirmDialog.type === "delete"
-              ? `Deseja excluir o contato "${confirmDialog.contact.name}"? Essa acao e irreversivel.`
+              ? `Deseja arquivar o contato "${confirmDialog.contact.name}"? Ele sai das listas, mas o historico permanece preservado. Contatos invalidos de ligacao serao removidos definitivamente.`
               : `Deseja desvincular todas as empresas do contato "${confirmDialog.contact.name}"?`
             : ""
         }
-        confirmLabel={confirmDialog?.type === "delete" ? "Excluir contato" : "Confirmar"}
+        confirmLabel={confirmDialog?.type === "delete" ? "Arquivar contato" : "Confirmar"}
         isLoading={!!confirmDialog?.contact && loadingId === confirmDialog.contact.id}
         variant={confirmDialog?.type === "delete" ? "danger" : "default"}
         onConfirm={async () => {
@@ -698,14 +698,28 @@ function ContactActionsMenu({
         <DropdownMenuSeparator />
 
         {canEdit ? (
-          <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-md" onClick={onEdit}>
+          <DropdownMenuItem
+            className="cursor-pointer gap-2.5 rounded-md"
+            onClick={stopRecordClick}
+            onSelect={(event) => {
+              event.stopPropagation();
+              onEdit();
+            }}
+          >
             <Edit3 className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-sm">Editar contato</span>
           </DropdownMenuItem>
         ) : null}
 
         {canEdit && linkedCount > 0 ? (
-          <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-md" onClick={onUnlink}>
+          <DropdownMenuItem
+            className="cursor-pointer gap-2.5 rounded-md"
+            onClick={stopRecordClick}
+            onSelect={(event) => {
+              event.stopPropagation();
+              onUnlink();
+            }}
+          >
             <Unlink className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-sm">Desvincular empresas</span>
           </DropdownMenuItem>
@@ -714,9 +728,16 @@ function ContactActionsMenu({
         {canDelete ? (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer gap-2.5 rounded-md text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/20" onClick={onDelete}>
+            <DropdownMenuItem
+              className="cursor-pointer gap-2.5 rounded-md text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/20"
+              onClick={stopRecordClick}
+              onSelect={(event) => {
+                event.stopPropagation();
+                onDelete();
+              }}
+            >
               <Trash2 className="h-3.5 w-3.5" />
-              <span className="text-sm font-medium">Excluir contato</span>
+              <span className="text-sm font-medium">Arquivar contato</span>
             </DropdownMenuItem>
           </>
         ) : null}

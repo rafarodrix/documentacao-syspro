@@ -375,10 +375,54 @@ export class ContactsService {
     const requester = await this.assertCanDeleteContacts(rawHeaders);
     const existing = await (this.prisma.companyContact as any).findUnique({
       where: { id: contactId },
-      include: this.contactInclude(),
+      include: {
+        ...this.contactInclude(),
+        _count: {
+          select: {
+            conversations: true,
+            authoredConversationMessages: true,
+            userLinks: true,
+            users: true,
+          },
+        },
+      },
     });
     if (!existing) throw new NotFoundException('Contato nao encontrado');
     await this.assertContactManageableByRequester(requester, existing);
+
+    if (this.shouldPermanentlyDeleteInvalidContact(existing)) {
+      await this.prisma.$transaction(async (tx) => {
+        if (existing.whatsapp) {
+          const links = await (tx as any).conversationLink.findMany({
+            where: { whatsappNumber: existing.whatsapp },
+            select: { chatwootConversationId: true },
+          });
+          const chatwootConversationIds = links
+            .map((link: any) => link.chatwootConversationId)
+            .filter(Boolean);
+
+          if (chatwootConversationIds.length) {
+            await (tx as any).messageLink.deleteMany({
+              where: { chatwootConversationId: { in: chatwootConversationIds } },
+            });
+          }
+
+          await (tx as any).conversationLink.deleteMany({
+            where: { whatsappNumber: existing.whatsapp },
+          });
+        }
+
+        await (tx.companyContact as any).delete({
+          where: { id: contactId },
+        });
+      });
+
+      return {
+        ...this.serializeContact(existing),
+        deleted: true,
+        deleteMode: 'permanent_invalid_contact',
+      };
+    }
 
     const archived = await (this.prisma.companyContact as any).update({
       where: { id: contactId },
@@ -807,6 +851,39 @@ export class ContactsService {
   private normalizePhone(value?: string | null): string | null {
     const digits = String(value ?? '').replace(/\D/g, '');
     return digits || null;
+  }
+
+  private shouldPermanentlyDeleteInvalidContact(contact: any): boolean {
+    const source = String(contact?.source ?? '').toUpperCase();
+    if (source !== CompanyContactSource.WHATSAPP) return false;
+
+    const hasCompanyLinks = Array.isArray(contact?.companyLinks) && contact.companyLinks.length > 0;
+    if (hasCompanyLinks) return false;
+
+    const count = contact?._count ?? {};
+    const hasPortalHistory =
+      Number(count.conversations ?? 0) > 0 ||
+      Number(count.authoredConversationMessages ?? 0) > 0 ||
+      Number(count.userLinks ?? 0) > 0 ||
+      Number(count.users ?? 0) > 0;
+    if (hasPortalHistory) return false;
+
+    return this.isInvalidIntegrationPhone(contact?.whatsapp ?? contact?.phone);
+  }
+
+  private isInvalidIntegrationPhone(value?: string | null): boolean {
+    const digits = this.normalizePhone(value);
+    if (!digits) return true;
+
+    if (digits.startsWith('55')) {
+      return digits.length !== 12 && digits.length !== 13;
+    }
+
+    if (digits.startsWith('1')) {
+      return digits.length !== 11;
+    }
+
+    return digits.length < 10 || digits.length > 15;
   }
 
   private formatChatwootPhoneNumber(value?: string | null): string | undefined {
