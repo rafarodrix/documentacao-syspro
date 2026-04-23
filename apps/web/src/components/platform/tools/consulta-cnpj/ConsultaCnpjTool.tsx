@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
-  CalendarDays,
   FileSearch,
   MapPin,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -154,14 +151,10 @@ export function ConsultaCnpjTool() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Consulta integrada ao cadastro de empresas
-          </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Consulta CNPJ</h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Usa a mesma API desacoplada do cadastro de empresas, pronta para ser reutilizada em CRM, ferramentas e outros fluxos.
+              Consulte os dados cadastrais de uma empresa por CNPJ.
             </p>
           </div>
         </div>
@@ -254,7 +247,7 @@ export function ConsultaCnpjTool() {
                   </div>
                   <div>
                     <CardTitle className="text-lg">Contato e composicao</CardTitle>
-                    <CardDescription>Informacoes uteis para reaproveitar em cadastro ou CRM.</CardDescription>
+                    <CardDescription>Dados complementares retornados na consulta do CNPJ.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -266,24 +259,6 @@ export function ConsultaCnpjTool() {
                 <DetailRow label="CNAEs secundarios" value={String(profile.secondaryCnaes?.length ?? 0)} />
                 <Separator />
                 <DetailRow label="Quadro societario" value={String(profile.partners?.length ?? 0)} />
-                <Separator />
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                    Proximo passo
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Se a empresa for cliente, siga para o cadastro. Se ainda estiver em prospeccao, esse mesmo endpoint pode ser consumido no CRM para preencher dados do lead.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button asChild size="sm" className="gap-2">
-                      <Link href="/portal/cadastros/empresa/novo">
-                        <Building2 className="h-4 w-4" />
-                        Abrir cadastro da empresa
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
