@@ -1,13 +1,6 @@
-export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
+import type { RemoteModuleSettings } from "./remote-module-settings.types";
 
-export type RemoteModuleSettings = {
-  rustDeskServerHost: string;
-  rustDeskServerConfig: string;
-  rustDeskPublicKey: string;
-  rustDeskVersion: string;
-  heartbeatIntervalMinutes: number;
-  defaultPassword: string;
-};
+export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
 export type RemoteModuleSettingsActionSuccess<T = void> = T extends void
   ? {
