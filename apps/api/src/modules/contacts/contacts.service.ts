@@ -74,7 +74,9 @@ export class ContactsService {
 
     const q = input.q?.trim();
     const qDigits = q?.replace(/\D/g, '') ?? '';
-    const where: any = {};
+    const where: any = {
+      status: { not: CompanyContactStatus.ARCHIVED },
+    };
 
     if (!scope.isGlobal) {
       where.companyLinks = { some: { companyId: { in: scope.companyIds } } };
@@ -125,6 +127,7 @@ export class ContactsService {
 
     const contacts = await (this.prisma.companyContact as any).findMany({
       where: {
+        status: { not: CompanyContactStatus.ARCHIVED },
         companyLinks: { none: {} },
       },
       include: this.contactInclude(),
@@ -150,19 +153,27 @@ export class ContactsService {
       };
     }
 
-    const baseWhere: any = scope.isGlobal
-      ? {}
-      : { companyLinks: { some: { companyId: { in: scope.companyIds } } } };
+    const baseWhere: any = {
+      status: { not: CompanyContactStatus.ARCHIVED },
+      ...(scope.isGlobal
+        ? {}
+        : { companyLinks: { some: { companyId: { in: scope.companyIds } } } }),
+    };
 
     const [all, linked, unlinked, withEmail, withPhone] = await Promise.all([
       (this.prisma.companyContact as any).count({ where: baseWhere }),
       (this.prisma.companyContact as any).count({
         where: scope.isGlobal
-          ? { companyLinks: { some: {} } }
+          ? { status: { not: CompanyContactStatus.ARCHIVED }, companyLinks: { some: {} } }
           : baseWhere,
       }),
       scope.isGlobal
-        ? (this.prisma.companyContact as any).count({ where: { companyLinks: { none: {} } } })
+        ? (this.prisma.companyContact as any).count({
+            where: {
+              status: { not: CompanyContactStatus.ARCHIVED },
+              companyLinks: { none: {} },
+            },
+          })
         : Promise.resolve(0),
       (this.prisma.companyContact as any).count({
         where: {
@@ -369,9 +380,15 @@ export class ContactsService {
     if (!existing) throw new NotFoundException('Contato nao encontrado');
     await this.assertContactManageableByRequester(requester, existing);
 
-    return this.prisma.companyContact.delete({
+    const archived = await (this.prisma.companyContact as any).update({
       where: { id: contactId },
+      data: { status: CompanyContactStatus.ARCHIVED },
+      include: this.contactInclude(),
     });
+
+    const serialized = this.serializeContact(archived);
+    await this.syncChatwootContactPresentation(serialized);
+    return serialized;
   }
 
   async syncFromIntegration(instanceName?: string, rawHeaders?: IncomingHttpHeaders) {
@@ -610,6 +627,7 @@ export class ContactsService {
       }),
       (this.prisma.companyContact as any).findMany({
         where: {
+          status: { not: CompanyContactStatus.ARCHIVED },
           whatsapp: { not: null },
           companyLinks: { some: { companyId } },
         },
@@ -632,6 +650,8 @@ export class ContactsService {
     companyId?: string | null;
     company?: ChatwootCompanySummary | null;
     companies?: ChatwootCompanySummary[] | null;
+    status?: CompanyContactStatus | string | null;
+    updatedAt?: Date | string | null;
   }, companyOverride?: ChatwootCompanySummary | null) {
     try {
       if (!updatedContact.whatsapp) return;
@@ -682,9 +702,16 @@ export class ContactsService {
         const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
         const companyNames = companies.map((company) => this.formatCompanyDisplayName(company)).filter(Boolean);
         const chatwootLastName = primaryCompanyName ? `| ${primaryCompanyName}` : null;
+        const contactStatus = updatedContact.status ?? null;
+        const isArchived = contactStatus === CompanyContactStatus.ARCHIVED;
         const customAttributes = {
           syspro_contact_id: updatedContact.id ?? null,
           syspro_contact_name: updatedContact.name,
+          syspro_contact_status: contactStatus,
+          syspro_contact_active: !isArchived,
+          syspro_contact_archived_at: isArchived
+            ? this.formatDateAttribute(updatedContact.updatedAt)
+            : null,
           syspro_company_id: primaryCompany?.id ?? updatedContact.companyId ?? null,
           syspro_company_name: primaryCompanyName || null,
           syspro_company_legal_name: primaryCompany?.razaoSocial ?? null,
@@ -706,6 +733,8 @@ export class ContactsService {
         const conversationCustomAttributes = {
           syspro_contact_id: customAttributes.syspro_contact_id,
           syspro_contact_name: customAttributes.syspro_contact_name,
+          syspro_contact_status: customAttributes.syspro_contact_status,
+          syspro_contact_active: customAttributes.syspro_contact_active,
           syspro_company_id: customAttributes.syspro_company_id,
           syspro_company_name: customAttributes.syspro_company_name,
           syspro_company_cnpj: customAttributes.syspro_company_cnpj,
@@ -783,6 +812,12 @@ export class ContactsService {
   private formatChatwootPhoneNumber(value?: string | null): string | undefined {
     const digits = this.normalizePhone(value);
     return digits ? `+${digits}` : undefined;
+  }
+
+  private formatDateAttribute(value?: Date | string | null): string | null {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 
   private resolveChatwootContactCompanies(

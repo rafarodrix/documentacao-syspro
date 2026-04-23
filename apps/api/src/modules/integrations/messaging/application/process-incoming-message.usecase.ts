@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { CompanyContactStatus } from '@prisma/client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
@@ -1286,6 +1287,11 @@ export class ProcessIncomingMessageUseCase {
         throw new Error(`Vinculo de conversa invalido para ${phone}`);
       }
 
+      await this.reactivateArchivedContactIfNeeded(phone, connection, {
+        contactIdentifier,
+        conversationId,
+      });
+
       this.logger.log(JSON.stringify({
         flow: 'evolution_to_chatwoot',
         stage: 'link_resolved',
@@ -1298,5 +1304,80 @@ export class ProcessIncomingMessageUseCase {
 
       return { contactIdentifier, conversationId };
     });
+  }
+
+  private async reactivateArchivedContactIfNeeded(
+    phone: string,
+    connection: ResolvedIntegrationContext,
+    chatwootLink: { contactIdentifier?: string | null; conversationId?: string | null },
+  ) {
+    const contact = await this.prisma.companyContact.findFirst({
+      where: {
+        whatsapp: phone,
+        status: CompanyContactStatus.ARCHIVED,
+      },
+      include: {
+        companyLinks: {
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!contact) return;
+
+    const nextStatus = contact.companyLinks.length
+      ? CompanyContactStatus.LINKED
+      : CompanyContactStatus.PENDING_LINK;
+    await this.prisma.companyContact.update({
+      where: { id: contact.id },
+      data: { status: nextStatus },
+    });
+
+    try {
+      if (chatwootLink.contactIdentifier) {
+        await this.chatwootClient.updateContact(connection.chatwoot, chatwootLink.contactIdentifier, {
+          phone_number: phone.startsWith('+') ? phone : `+${phone}`,
+          custom_attributes: {
+            syspro_contact_id: contact.id,
+            syspro_contact_name: contact.name,
+            syspro_contact_status: nextStatus,
+            syspro_contact_active: true,
+            syspro_contact_archived_at: null,
+          },
+        });
+      }
+
+      if (chatwootLink.conversationId) {
+        await this.chatwootClient.updateConversationCustomAttributes(
+          connection.chatwoot,
+          chatwootLink.conversationId,
+          {
+            syspro_contact_id: contact.id,
+            syspro_contact_name: contact.name,
+            syspro_contact_status: nextStatus,
+            syspro_contact_active: true,
+          },
+        );
+      }
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'archived_contact_reactivated_chatwoot_sync_failed',
+        whatsappNumber: phone,
+        contactId: contact.id,
+        connectionKey: connection.connectionKey,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+
+    this.logger.log(JSON.stringify({
+      flow: 'evolution_to_chatwoot',
+      stage: 'archived_contact_reactivated',
+      whatsappNumber: phone,
+      contactId: contact.id,
+      status: nextStatus,
+      connectionKey: connection.connectionKey,
+    }));
   }
 }
