@@ -57,8 +57,6 @@ export interface AppSidebarProps {
 
 const NAV_MAIN: NavItemType[] = [
   { title: "Dashboard", href: "/portal", icon: LayoutDashboard },
-  { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
-  { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
@@ -68,8 +66,9 @@ const NAV_CADASTROS: NavItemType[] = [
 ]
 
 const NAV_SUPPORT: NavItemType[] = [
+  { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
+  { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES] },
-  { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
   { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
@@ -80,6 +79,7 @@ const NAV_COMMERCIAL: NavItemType[] = [
 const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/docs", icon: BookOpen },
   { title: "Releases", href: "/releases", icon: Rocket },
+  { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
 ]
 
 function filterByRole(items: NavItemType[], role: UserRole): NavItemType[] {
@@ -121,7 +121,7 @@ function SidebarBrand({
   collapsed?: boolean
 }) {
   return (
-    <div className={cn("flex h-16 items-center border-b border-border/40 shrink-0", collapsed ? "px-3 justify-center" : "px-5")}>
+    <div className={cn("flex h-14 items-center border-b border-border/40 shrink-0", collapsed ? "px-3 justify-center" : "px-4")}>
       <Link
         href="/portal"
         className={cn("flex items-center font-semibold group w-full", collapsed ? "justify-center" : "gap-3")}
@@ -174,7 +174,7 @@ function SidebarFooter({
   }
 
   return (
-    <div className={cn("border-t border-border/40 shrink-0", collapsed ? "p-2" : "p-3")}>
+    <div className={cn("border-t border-border/40 shrink-0", collapsed ? "p-2" : "p-2.5")}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -182,7 +182,7 @@ function SidebarFooter({
               "flex items-center w-full rounded-lg",
               "hover:bg-muted transition-colors outline-none group text-left",
               "border border-transparent hover:border-border/40",
-              collapsed ? "justify-center px-1.5 py-2" : "gap-3 px-2 py-2",
+              collapsed ? "justify-center px-1.5 py-2" : "gap-3 px-2 py-1.5",
             )}
           >
             <Avatar className="h-8 w-8 border border-border/50 shrink-0">
@@ -283,7 +283,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
     >
       <SidebarBrand isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />
 
-      <div className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2 py-5 space-y-5">
+      <div className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2 py-4 pb-6 space-y-4">
         {filterByRole(NAV_MAIN, user.role).map((item) => (
           <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
         ))}
