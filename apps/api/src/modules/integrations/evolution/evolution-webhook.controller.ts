@@ -89,9 +89,13 @@ export class EvolutionWebhookController {
       normalizedEvent === 'group' &&
       remoteJid.endsWith('@g.us') &&
       this.hasMessagePayload(eventPayload);
+    const isContactMessageRoute =
+      normalizedEvent === 'contact' &&
+      this.hasMessagePayload(eventPayload);
     const isInboundMessageEvent =
       normalizedEvent === 'message' ||
       normalizedEvent === 'messages.upsert' ||
+      isContactMessageRoute ||
       isGroupMessageRoute;
     const isReceiptEvent =
       normalizedEvent === 'receipt' ||
@@ -103,6 +107,7 @@ export class EvolutionWebhookController {
       normalizedEvent === 'calloffer' ||
       normalizedEvent === 'callrelaylatency' ||
       normalizedEvent === 'callterminate' ||
+      (normalizedEvent === 'contact' && this.hasCallPayload(eventPayload)) ||
       normalizedEvent.startsWith('call.') ||
       normalizedEvent.startsWith('calls.');
 
@@ -131,6 +136,10 @@ export class EvolutionWebhookController {
         stage: 'ignored_event',
         event: normalizedEvent || null,
         instanceId: resolvedInstanceId || null,
+        remoteJid: remoteJid || null,
+        hasMessagePayload: this.hasMessagePayload(eventPayload),
+        hasCallPayload: this.hasCallPayload(eventPayload),
+        payloadKeys: this.listPayloadKeys(eventPayload),
       }));
     }
     return { ok: true };
@@ -164,6 +173,56 @@ export class EvolutionWebhookController {
       message?.documentMessage ||
       message?.audioMessage
     );
+  }
+
+  private hasCallPayload(payload: any): boolean {
+    const status = this.readOptionalString(
+      payload?.status ??
+      payload?.Status ??
+      payload?.type ??
+      payload?.Type ??
+      payload?.callStatus ??
+      payload?.CallStatus ??
+      payload?.call?.status ??
+      payload?.call?.Status ??
+      payload?.data?.status ??
+      payload?.data?.Status ??
+      payload?.data?.type ??
+      payload?.data?.Type,
+    )?.toLowerCase();
+
+    return Boolean(
+      payload?.call ||
+      payload?.calls ||
+      payload?.callId ||
+      payload?.CallID ||
+      payload?.CallId ||
+      payload?.call_id ||
+      payload?.callCreator ||
+      payload?.CallCreator ||
+      payload?.call?.id ||
+      payload?.call?.callCreator ||
+      payload?.data?.call ||
+      payload?.data?.calls ||
+      payload?.data?.callId ||
+      payload?.data?.CallID ||
+      payload?.data?.CallId ||
+      payload?.data?.call_id ||
+      payload?.data?.callCreator ||
+      payload?.data?.CallCreator ||
+      status?.includes('call') ||
+      status?.includes('offer') ||
+      status?.includes('ring') ||
+      status?.includes('miss') ||
+      status?.includes('reject') ||
+      status?.includes('terminate') ||
+      status?.includes('accept')
+    );
+  }
+
+  private listPayloadKeys(payload: any): string[] {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return [];
+    return Object.keys(payload).slice(0, 20);
   }
 
   private async storeQrCodeEvent(input: {

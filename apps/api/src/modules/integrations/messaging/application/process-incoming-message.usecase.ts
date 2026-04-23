@@ -610,6 +610,7 @@ export class ProcessIncomingMessageUseCase {
     ];
     const remoteJid =
       this.readFirstSupportedPhoneSource(...remoteJidCandidates) ??
+      this.findSupportedPhoneSourceInPayload(payload) ??
       this.readFirstString(...remoteJidCandidates);
     const phone = this.extractPhoneFromJidOrNumber(remoteJid);
     const status = this.readFirstString(
@@ -708,11 +709,12 @@ export class ProcessIncomingMessageUseCase {
     };
   }
 
-  private buildCallLogMessage(call: { status?: string; callType: 'audio' | 'video' }): string {
+  private buildCallLogMessage(call: { phone?: string | null; status?: string; callType: 'audio' | 'video' }): string {
     const status = this.normalizeCallStatus(call.status);
     const typeLabel = call.callType === 'video' ? 'video' : 'audio';
     return [
-      `Ligacao de ${typeLabel} recebida via WhatsApp.`,
+      `Chamada de ${typeLabel} recebida pelo WhatsApp.`,
+      call.phone ? `Telefone: +${call.phone.replace(/^\+/, '')}.` : undefined,
       status ? `Status: ${status}.` : undefined,
       'Registro automatico gerado pelo webhook da Evolution.',
     ].filter(Boolean).join('\n');
@@ -783,6 +785,69 @@ export class ProcessIncomingMessageUseCase {
       if (this.extractPhoneFromJidOrNumber(normalized)) return normalized;
     }
     return undefined;
+  }
+
+  private findSupportedPhoneSourceInPayload(payload: unknown): string | undefined {
+    const visited = new Set<unknown>();
+    const phoneKeyNames = new Set([
+      'chat',
+      'chatid',
+      'callcreator',
+      'from',
+      'jid',
+      'participant',
+      'phonenumber',
+      'phone',
+      'remotejid',
+      'sender',
+      'to',
+      'user',
+      'userjid',
+      'whatsapp',
+      'whatsappnumber',
+    ]);
+
+    const visit = (value: unknown, keyName = '', depth = 0): string | undefined => {
+      if (value === null || value === undefined || depth > 8) return undefined;
+
+      if (typeof value === 'string' || typeof value === 'number') {
+        const normalized = String(value).trim();
+        if (!normalized) return undefined;
+
+        const lower = normalized.toLowerCase();
+        if (lower.includes('@s.whatsapp.net') || lower.includes('@c.us')) {
+          return this.extractPhoneFromJidOrNumber(normalized) ? normalized : undefined;
+        }
+
+        const normalizedKey = keyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (phoneKeyNames.has(normalizedKey) && this.extractPhoneFromJidOrNumber(normalized)) {
+          return normalized;
+        }
+
+        return undefined;
+      }
+
+      if (typeof value !== 'object') return undefined;
+      if (visited.has(value)) return undefined;
+      visited.add(value);
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const match = visit(item, keyName, depth + 1);
+          if (match) return match;
+        }
+        return undefined;
+      }
+
+      for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
+        const match = visit(childValue, childKey, depth + 1);
+        if (match) return match;
+      }
+
+      return undefined;
+    };
+
+    return visit(payload);
   }
 
   private readFirstString(...values: unknown[]): string | undefined {
