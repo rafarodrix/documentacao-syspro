@@ -165,7 +165,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           toast.error(result.error);
         }
       } catch {
-        toast.error("Erro ao carregar configuracoes do modulo remoto.");
+        toast.error("Erro ao carregar configuracoes do Agente Trilink.");
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -374,7 +374,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
       <div className="flex h-56 items-center justify-center rounded-xl border border-dashed bg-muted/10">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm">Carregando configuracoes do modulo remoto...</p>
+          <p className="text-sm">Carregando configuracoes do Agente Trilink...</p>
         </div>
       </div>
     );
@@ -431,7 +431,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div>
               <CardTitle className="text-lg">Politicas do agente</CardTitle>
               <CardDescription>
-                Defaults operacionais aplicados na Vinculacao de Maquina e no heartbeat recorrente.
+                Defaults operacionais aplicados no bootstrap, sync recorrente e convergencia do agente.
               </CardDescription>
             </div>
           </div>
@@ -545,7 +545,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div>
             <p className="font-medium">Segredo de descoberta</p>
             <p className="mt-1 text-xs text-amber-700/90 dark:text-amber-200/80">
-              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas infraestrutura RustDesk e defaults operacionais do agente.
+              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas a governanca global do RustDesk dentro do Agente Trilink.
             </p>
           </div>
         </div>
