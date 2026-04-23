@@ -347,27 +347,93 @@ function isTicketClosed(status?: string | null) {
 function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: TicketDetailsItem): TicketArticleItem[] {
     const resources = [
         { id: "database", label: "Base de dados", url: ticket.operations?.databaseUrl },
-        { id: "video", label: "Video tecnico", url: ticket.operations?.developmentVideoUrl },
+        { id: "video", label: "Video explicativo", url: ticket.operations?.developmentVideoUrl },
     ].filter((resource): resource is { id: string; label: string; url: string } => Boolean(resource.url));
 
     if (!resources.length) return articles;
 
-    const synthetic = resources
-        .filter((resource) => !articles.some((article) => article.body.includes(resource.url)))
-        .map((resource): TicketArticleItem => {
-            const safeUrl = escapeHtml(resource.url);
-            return {
-                id: `technical-resource-${resource.id}`,
-                from: "Sistema",
-                body: `<p><strong>Recurso tecnico: ${resource.label}</strong></p><p><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a></p>`,
-                createdAt: ticket.updatedAt ? new Date(ticket.updatedAt).toLocaleString("pt-BR") : ticket.createdAt,
-                sender: "Agent",
-                isInternal: true,
-                messageType: "TEXT",
-            };
-        });
+    const cleanedArticles = articles.filter((article) => !isTechnicalResourceArticle(article));
+    const openingArticleIndex = findOpeningArticleIndex(cleanedArticles);
 
-    return synthetic.length ? [...articles, ...synthetic] : articles;
+    if (openingArticleIndex === -1) return cleanedArticles;
+
+    const openingArticle = cleanedArticles[openingArticleIndex];
+    const missingResources = resources.filter((resource) => !openingArticle.body.includes(resource.url));
+
+    if (!missingResources.length) return cleanedArticles;
+
+    const resourceItemsMarkup = missingResources
+        .map((resource) => {
+            const safeLabel = escapeHtml(resource.label);
+            const safeUrl = escapeHtml(resource.url);
+            return [
+                "<div class=\"not-prose rounded-xl border border-border/60 bg-background/60 px-3 py-2\">",
+                `<p class="m-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">${safeLabel}</p>`,
+                `<a class="mt-1 block break-all text-sm font-medium text-primary underline underline-offset-4" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`,
+                "</div>",
+            ].join("");
+        })
+        .join("");
+
+    const resourceMarkup = [
+        "<div class=\"not-prose mt-4 rounded-2xl border border-border/60 bg-muted/40 p-3\">",
+        "<p class=\"m-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground\">Recursos para abertura do ticket</p>",
+        "<div class=\"mt-3 space-y-2\">",
+        resourceItemsMarkup,
+        "</div>",
+        "</div>",
+    ].join("");
+
+    const nextArticles = [...cleanedArticles];
+    nextArticles[openingArticleIndex] = {
+        ...openingArticle,
+        body: `${openingArticle.body}${resourceMarkup}`,
+    };
+
+    return nextArticles;
+}
+
+function findOpeningArticleIndex(articles: TicketArticleItem[]) {
+    let bestIndex = -1;
+    let bestTimestamp = Number.POSITIVE_INFINITY;
+
+    articles.forEach((article, index) => {
+        if (article.messageType === "SYSTEM_EVENT" || isTechnicalResourceArticle(article) || !stripHtml(article.body).trim()) {
+            return;
+        }
+
+        const timestamp = parsePtBrDateTime(article.createdAt);
+        if (timestamp < bestTimestamp) {
+            bestTimestamp = timestamp;
+            bestIndex = index;
+        }
+    });
+
+    return bestIndex;
+}
+
+function parsePtBrDateTime(value: string) {
+    const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (!match) return Number.POSITIVE_INFINITY;
+
+    const [, day, month, year, hour = "00", minute = "00", second = "00"] = match;
+    return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+    ).getTime();
+}
+
+function isTechnicalResourceArticle(article: TicketArticleItem) {
+    const body = article.body.toLowerCase();
+    return body.includes("recurso tecnico") || body.includes("recurso de diagn");
+}
+
+function stripHtml(value: string) {
+    return value.replace(/<[^>]*>?/gm, "");
 }
 
 function escapeHtml(value: string) {
