@@ -288,7 +288,7 @@ export class SettingsController {
         return { success: true, data: DEFAULT_TICKET_MODULE_SETTINGS };
       }
 
-      const parsed = JSON.parse(setting.value);
+      const parsed = this.normalizeLegacyTicketSettings(JSON.parse(setting.value));
       const validation = ticketModuleSettingsSchema.safeParse(parsed);
 
       return {
@@ -316,6 +316,41 @@ export class SettingsController {
     });
 
     return { success: true, message: 'Configuracoes do modulo de tickets salvas.', data: parsed };
+  }
+
+  private normalizeLegacyTicketSettings(raw: unknown): unknown {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return raw;
+    }
+
+    const parsed = { ...(raw as Record<string, unknown>) };
+    const supportLegacyJid = typeof parsed.supportNotificationGroupJid === 'string' ? parsed.supportNotificationGroupJid.trim() : '';
+    const developmentLegacyJid =
+      typeof parsed.developmentNotificationGroupJid === 'string' ? parsed.developmentNotificationGroupJid.trim() : '';
+
+    if (!Array.isArray(parsed.supportNotificationGroups) && supportLegacyJid) {
+      parsed.supportNotificationGroups = [
+        {
+          id: 'support-legacy',
+          label: 'Grupo legado de suporte',
+          jid: supportLegacyJid,
+          active: true,
+        },
+      ];
+    }
+
+    if (!Array.isArray(parsed.developmentNotificationGroups) && developmentLegacyJid) {
+      parsed.developmentNotificationGroups = [
+        {
+          id: 'development-legacy',
+          label: 'Grupo legado de desenvolvimento',
+          jid: developmentLegacyJid,
+          active: true,
+        },
+      ];
+    }
+
+    return parsed;
   }
 
   @Put('remote/module-settings')

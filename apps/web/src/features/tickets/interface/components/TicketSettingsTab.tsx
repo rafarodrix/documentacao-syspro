@@ -20,6 +20,7 @@ import {
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   ticketModuleSettingsSchema,
+  type TicketNotificationGroup,
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
 
@@ -38,12 +39,37 @@ function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function createNotificationGroup(label = ""): TicketNotificationGroup {
+  return {
+    id: createOptionId("group"),
+    label,
+    jid: "",
+    active: true,
+  };
+}
+
 const ticketSettingsResolver = zodResolver(ticketModuleSettingsSchema) as Resolver<TicketModuleSettings>;
 
 function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSettings {
+  const legacySupportGroupJid = (settings as TicketModuleSettings & { supportNotificationGroupJid?: string }).supportNotificationGroupJid;
+  const legacyDevelopmentGroupJid =
+    (settings as TicketModuleSettings & { developmentNotificationGroupJid?: string }).developmentNotificationGroupJid;
+
   return {
     ...settings,
     quickReplyTemplates: settings.quickReplyTemplates ?? DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates,
+    supportNotificationGroups:
+      settings.supportNotificationGroups?.length
+        ? settings.supportNotificationGroups
+        : legacySupportGroupJid?.trim()
+          ? [{ ...createNotificationGroup("Grupo legado de suporte"), jid: legacySupportGroupJid.trim() }]
+          : [],
+    developmentNotificationGroups:
+      settings.developmentNotificationGroups?.length
+        ? settings.developmentNotificationGroups
+        : legacyDevelopmentGroupJid?.trim()
+          ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
+          : [],
     priorities: settings.priorities.map((priority) => {
       const resolutionMinutes = priority.resolutionMinutes ?? priority.slaHours * 60;
       return {
@@ -70,6 +96,8 @@ export function TicketSettingsTab() {
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
+  const supportNotificationGroupsArray = useFieldArray({ control: form.control, name: "supportNotificationGroups" });
+  const developmentNotificationGroupsArray = useFieldArray({ control: form.control, name: "developmentNotificationGroups" });
 
   const priorities = form.watch("priorities");
   const defaultTeam = form.watch("defaultTeam");
@@ -419,6 +447,35 @@ export function TicketSettingsTab() {
 
                 <Separator />
 
+                <div className="space-y-4 rounded-lg border border-border/60 bg-muted/10 p-3">
+                  <div className="space-y-1">
+                    <FormLabel className="text-sm">Grupos de notificacao no WhatsApp</FormLabel>
+                    <FormDescription className="text-xs">
+                      Quando um ticket for aberto, o portal envia um resumo para todos os grupos ativos da equipe responsavel.
+                    </FormDescription>
+                  </div>
+
+                  <NotificationGroupsSection
+                    title="Grupos do Suporte"
+                    description="Recebem tickets abertos com fila em Suporte."
+                    fields={supportNotificationGroupsArray.fields}
+                    baseName="supportNotificationGroups"
+                    form={form}
+                    onAdd={() => supportNotificationGroupsArray.append(createNotificationGroup())}
+                    onRemove={(index) => supportNotificationGroupsArray.remove(index)}
+                  />
+
+                  <NotificationGroupsSection
+                    title="Grupos do Desenvolvimento"
+                    description="Recebem tickets abertos com fila em Desenvolvimento."
+                    fields={developmentNotificationGroupsArray.fields}
+                    baseName="developmentNotificationGroups"
+                    form={form}
+                    onAdd={() => developmentNotificationGroupsArray.append(createNotificationGroup())}
+                    onRemove={(index) => developmentNotificationGroupsArray.remove(index)}
+                  />
+                </div>
+
                 <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
                   <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
                     <div className="space-y-0.5">
@@ -465,6 +522,14 @@ export function TicketSettingsTab() {
               <CardContent className="space-y-3 text-xs">
                 <SummaryRow label="Fila padrao" value={defaultTeam === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte"} />
                 <SummaryRow label="Prioridade" value={priorities.find((priority) => priority.value === defaultPriority)?.label || defaultPriority} />
+                <SummaryRow
+                  label="Grupos suporte"
+                  value={String(form.watch("supportNotificationGroups")?.filter((group) => group.active).length || 0)}
+                />
+                <SummaryRow
+                  label="Grupos dev"
+                  value={String(form.watch("developmentNotificationGroups")?.filter((group) => group.active).length || 0)}
+                />
                 <Separator />
                 <div className="grid grid-cols-2 gap-2">
                   <Metric label="Categorias" value={categoriesArray.fields.length} />
@@ -497,6 +562,67 @@ function CatalogList({ title, onAdd, children }: { title: string; onAdd: () => v
         </Button>
       </div>
       <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function NotificationGroupsSection({
+  title,
+  description,
+  fields,
+  baseName,
+  form,
+  onAdd,
+  onRemove,
+}: {
+  title: string;
+  description: string;
+  fields: Array<{ id: string }>;
+  baseName: "supportNotificationGroups" | "developmentNotificationGroups";
+  form: UseFormReturn<TicketModuleSettings>;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onAdd}>
+          <Plus className="h-3.5 w-3.5" />
+          Grupo
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        {fields.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-xs text-muted-foreground">
+            Nenhum grupo configurado.
+          </div>
+        ) : null}
+
+        {fields.map((fieldItem, index) => (
+          <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-background p-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_6rem_2.5rem]">
+            <Input placeholder="Nome do grupo" {...form.register(`${baseName}.${index}.label`)} />
+            <Input placeholder="1203630...@g.us ou apenas os digitos" {...form.register(`${baseName}.${index}.jid`)} />
+            <FormField
+              control={form.control}
+              name={`${baseName}.${index}.active`}
+              render={({ field }) => (
+                <FormItem className="flex h-10 items-center justify-between rounded-md border border-border/60 px-3">
+                  <FormLabel className="text-xs">Ativo</FormLabel>
+                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                </FormItem>
+              )}
+            />
+            <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => onRemove(index)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

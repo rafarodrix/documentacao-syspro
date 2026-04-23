@@ -20,6 +20,13 @@ export const ticketModuleSettingsPrioritySchema = z.object({
   slaHours: z.number().int().positive(),
 });
 
+export const ticketNotificationGroupSchema = z.object({
+  id: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  jid: z.string().trim().min(1),
+  active: z.boolean().default(true),
+});
+
 export const DEFAULT_TICKET_QUICK_REPLY_TEMPLATES = [
   {
     id: "request-access",
@@ -49,6 +56,8 @@ export const ticketModuleSettingsSchema = z.object({
   autoResponseMessage: z.string(),
   defaultPriority: z.string().trim().min(1),
   defaultTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]),
+  supportNotificationGroups: z.array(ticketNotificationGroupSchema).default([]),
+  developmentNotificationGroups: z.array(ticketNotificationGroupSchema).default([]),
 });
 
 export const ticketModuleSettingsResponseSchema = z.object({
@@ -60,6 +69,7 @@ export const ticketModuleSettingsResponseSchema = z.object({
 
 export type TicketModuleSettingsOption = z.infer<typeof ticketModuleSettingsOptionSchema>;
 export type TicketModuleSettingsPriority = z.infer<typeof ticketModuleSettingsPrioritySchema>;
+export type TicketNotificationGroup = z.infer<typeof ticketNotificationGroupSchema>;
 export type TicketModuleSettings = z.infer<typeof ticketModuleSettingsSchema>;
 export type TicketModuleSettingsResponse = z.infer<typeof ticketModuleSettingsResponseSchema>;
 
@@ -129,4 +139,6 @@ export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
   autoResponseMessage: "Ola! Recebemos sua solicitacao e nossa equipe ja esta ciente. Retornaremos em breve com uma analise detalhada.",
   defaultPriority: "2 normal",
   defaultTeam: "SUPORTE",
+  supportNotificationGroups: [],
+  developmentNotificationGroups: [],
 };

@@ -9,7 +9,7 @@ import { TicketsModule } from '../tickets/tickets.module';
 import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
 
 @Module({
-  imports: [PrismaModule, TicketsModule, forwardRef(() => ChatwootModule)],
+  imports: [PrismaModule, forwardRef(() => TicketsModule), forwardRef(() => ChatwootModule)],
   controllers: [SettingsController],
   providers: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService],
   exports: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService],

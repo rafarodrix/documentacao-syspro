@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type {
   TicketModuleSettings,
   TicketModuleCreateRequest,
@@ -29,6 +29,7 @@ import {
   readReleaseMetadataString,
 } from '@dosc-syspro/core';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import {
   serializeLinkedCompaniesResponse,
   serializeMutationResponse,
@@ -36,6 +37,7 @@ import {
   serializeTicketListResponse,
 } from './ticket-contract.mapper';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { IntegrationContextService } from '../settings/integration-context.service';
 
 function escapeHtml(value: string) {
   return value
@@ -48,9 +50,13 @@ function escapeHtml(value: string) {
 
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
+    private readonly evolutionClient: EvolutionClient,
+    private readonly integrationContext: IntegrationContextService,
   ) {}
 
   async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
@@ -212,7 +218,7 @@ export class TicketsService {
       });
     }
 
-    await this.prisma.conversation.create({
+    const createdTicket = await this.prisma.conversation.create({
       data: {
         channel: data.channel ?? TicketChannel.PORTAL,
         entryPoint: this.toConversationEntryPoint(data.entryPoint),
@@ -234,6 +240,21 @@ export class TicketsService {
           create: messagesToCreate,
         },
       },
+      select: {
+        id: true,
+        ticketNumber: true,
+      },
+    });
+
+    await this.sendTicketCreatedGroupNotification({
+      ticketId: createdTicket.id,
+      ticketNumber: createdTicket.ticketNumber || ticketNumber,
+      title: data.title,
+      team: normalizedTeam,
+      companyId: resolvedCompanyId ?? null,
+      databaseUrl,
+      developmentVideoUrl,
+      rawHeaders,
     });
 
     return serializeMutationResponse('Ticket criado com sucesso.');
@@ -971,12 +992,192 @@ export class TicketsService {
         return DEFAULT_TICKET_MODULE_SETTINGS;
       }
 
-      const parsed = JSON.parse(setting.value);
+      const parsed = this.normalizeLegacyTicketModuleSettings(JSON.parse(setting.value));
       const validation = ticketModuleSettingsSchema.safeParse(parsed);
       return validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
     } catch {
       return DEFAULT_TICKET_MODULE_SETTINGS;
     }
+  }
+
+  private async sendTicketCreatedGroupNotification(input: {
+    ticketId: string;
+    ticketNumber: string;
+    title: string;
+    team: 'SUPORTE' | 'DESENVOLVIMENTO';
+    companyId: string | null;
+    databaseUrl: string | null;
+    developmentVideoUrl: string | null;
+    rawHeaders?: IncomingHttpHeaders;
+  }) {
+    const settings = await this.getTicketModuleSettings();
+    const configuredGroups =
+      input.team === 'DESENVOLVIMENTO'
+        ? settings.developmentNotificationGroups
+        : settings.supportNotificationGroups;
+    const targetGroups = configuredGroups
+      .filter((group) => group.active)
+      .map((group) => ({
+        ...group,
+        jid: this.normalizeGroupRecipient(group.jid),
+      }))
+      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+
+    if (!targetGroups.length) {
+      this.logger.debug(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'ticket_group_notification_skipped_no_group',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        team: input.team,
+      }));
+      return;
+    }
+
+    const connection = await this.integrationContext.getDefaultContext();
+    if (!connection) {
+      this.logger.warn(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'ticket_group_notification_skipped_no_connection',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        team: input.team,
+        groupCount: targetGroups.length,
+      }));
+      return;
+    }
+
+    const company = input.companyId
+      ? await this.prisma.company.findUnique({
+          where: { id: input.companyId },
+          select: {
+            nomeFantasia: true,
+            razaoSocial: true,
+            cnpj: true,
+          },
+        })
+      : null;
+
+    const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
+    const companyCnpj = this.formatCnpj(company?.cnpj);
+    const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
+    const message = [
+      `Novo ticket aberto - ${input.team}`,
+      `Ticket: ${input.ticketNumber}`,
+      `Titulo: ${input.title}`,
+      `Empresa: ${companyName}`,
+      companyCnpj ? `CNPJ: ${companyCnpj}` : undefined,
+      input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
+      input.databaseUrl ? `Base: ${input.databaseUrl}` : undefined,
+      ticketUrl ? `Portal: ${ticketUrl}` : undefined,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    for (const group of targetGroups) {
+      try {
+        await this.evolutionClient.sendTextMessage(connection.evolution, group.jid, message);
+        this.logger.log(JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'ticket_group_notification_sent',
+          ticketId: input.ticketId,
+          ticketNumber: input.ticketNumber,
+          team: input.team,
+          groupJid: group.jid,
+          groupLabel: group.label,
+        }));
+      } catch (error: any) {
+        this.logger.warn(JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'ticket_group_notification_failed',
+          ticketId: input.ticketId,
+          ticketNumber: input.ticketNumber,
+          team: input.team,
+          groupJid: group.jid,
+          groupLabel: group.label,
+          error: error?.message ?? 'unknown_error',
+        }));
+      }
+    }
+  }
+
+  private normalizeLegacyTicketModuleSettings(raw: unknown): unknown {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return raw;
+    }
+
+    const parsed = { ...(raw as Record<string, unknown>) };
+    const supportLegacyJid = typeof parsed.supportNotificationGroupJid === 'string' ? parsed.supportNotificationGroupJid.trim() : '';
+    const developmentLegacyJid =
+      typeof parsed.developmentNotificationGroupJid === 'string' ? parsed.developmentNotificationGroupJid.trim() : '';
+
+    if (!Array.isArray(parsed.supportNotificationGroups) && supportLegacyJid) {
+      parsed.supportNotificationGroups = [
+        {
+          id: 'support-legacy',
+          label: 'Grupo legado de suporte',
+          jid: supportLegacyJid,
+          active: true,
+        },
+      ];
+    }
+
+    if (!Array.isArray(parsed.developmentNotificationGroups) && developmentLegacyJid) {
+      parsed.developmentNotificationGroups = [
+        {
+          id: 'development-legacy',
+          label: 'Grupo legado de desenvolvimento',
+          jid: developmentLegacyJid,
+          active: true,
+        },
+      ];
+    }
+
+    return parsed;
+  }
+
+  private normalizeGroupRecipient(value?: string | null): string | null {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+    if (normalized.endsWith('@g.us')) return normalized;
+
+    const digits = normalized.replace(/\D/g, '');
+    return digits ? `${digits}@g.us` : null;
+  }
+
+  private formatCnpj(value?: string | null): string | null {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    if (digits.length !== 14) return null;
+    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+  }
+
+  private buildPortalTicketUrl(ticketId: string, rawHeaders?: IncomingHttpHeaders): string | null {
+    const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
+    if (explicitOrigin) {
+      try {
+        return `${new URL(explicitOrigin).origin}/portal/tickets/${ticketId}`;
+      } catch {
+        return null;
+      }
+    }
+
+    const host = this.readHeader(rawHeaders, 'x-forwarded-host') || this.readHeader(rawHeaders, 'host');
+    if (!host) return null;
+
+    const protocol = this.readHeader(rawHeaders, 'x-forwarded-proto') || 'https';
+    try {
+      return `${new URL(`${protocol}://${host}`).origin}/portal/tickets/${ticketId}`;
+    } catch {
+      return null;
+    }
+  }
+
+  private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {
+    const header = rawHeaders?.[key];
+    if (Array.isArray(header)) {
+      return header[0]?.trim() || null;
+    }
+    return typeof header === 'string' && header.trim() ? header.trim() : null;
   }
 
   private resolveTicketTeam(
