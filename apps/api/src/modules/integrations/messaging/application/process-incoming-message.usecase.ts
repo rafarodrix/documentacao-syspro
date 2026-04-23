@@ -710,13 +710,10 @@ export class ProcessIncomingMessageUseCase {
   }
 
   private buildCallLogMessage(call: { phone?: string | null; status?: string; callType: 'audio' | 'video' }): string {
-    const status = this.normalizeCallStatus(call.status);
     const typeLabel = call.callType === 'video' ? 'video' : 'audio';
     return [
       `Chamada de ${typeLabel} recebida pelo WhatsApp.`,
       call.phone ? `Telefone: +${call.phone.replace(/^\+/, '')}.` : undefined,
-      status ? `Status: ${status}.` : undefined,
-      'Registro automatico gerado pelo webhook da Evolution.',
     ].filter(Boolean).join('\n');
   }
 
