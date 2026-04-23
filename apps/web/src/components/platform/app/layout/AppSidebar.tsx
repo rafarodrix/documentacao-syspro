@@ -74,7 +74,7 @@ const NAV_SUPPORT: NavItemType[] = [
 ]
 
 const NAV_COMMERCIAL: NavItemType[] = [
-  { title: "CRM / Leads", href: "/portal/comercial/leads", icon: Target, roles: [...SYSTEM_ROLES] },
+  { title: "CRM", href: "/portal/comercial/leads", icon: Target, roles: [...SYSTEM_ROLES] },
   { title: "Contratos", href: "/portal/contratos", icon: BriefcaseBusiness, roles: [...SYSTEM_ROLES] },
 ]
 

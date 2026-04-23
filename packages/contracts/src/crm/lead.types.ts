@@ -27,23 +27,32 @@ export const crmLeadSourceSchema = z.enum(CRM_LEAD_SOURCE_VALUES);
 const nullableTrimmedString = (max: number) =>
   z.union([z.string().trim().max(max), z.literal(""), z.null(), z.undefined()]);
 
+export const crmLeadManualContactSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  role: nullableTrimmedString(120),
+  email: z.union([z.string().trim().email(), z.literal(""), z.null(), z.undefined()]),
+  phone: nullableTrimmedString(40),
+  whatsapp: nullableTrimmedString(40),
+  isPrimary: z.boolean().optional().default(false),
+});
+
 const crmLeadMutableFieldsSchema = z.object({
   title: z.string().trim().min(3).max(160),
   stage: crmLeadStageSchema,
   source: crmLeadSourceSchema,
   ownerUserId: nullableTrimmedString(80),
-  contactId: nullableTrimmedString(80),
-  contactName: nullableTrimmedString(160),
-  contactEmail: z.union([z.string().trim().email(), z.literal(""), z.null(), z.undefined()]),
-  contactPhone: nullableTrimmedString(40),
   companyName: z.string().trim().min(2).max(160),
   tradeName: nullableTrimmedString(160),
   document: nullableTrimmedString(32),
+  contacts: z.array(crmLeadManualContactSchema).optional().default([]),
   industry: nullableTrimmedString(120),
   companySize: nullableTrimmedString(120),
   city: nullableTrimmedString(120),
   state: nullableTrimmedString(8),
   estimatedValue: z.union([z.coerce.number().nonnegative(), z.null(), z.undefined()]),
+  licenseValue: z.union([z.coerce.number().nonnegative(), z.null(), z.undefined()]),
+  monthlyFee: z.union([z.coerce.number().nonnegative(), z.null(), z.undefined()]),
+  minimumWagePercentage: z.union([z.coerce.number().nonnegative(), z.null(), z.undefined()]),
   expectedCloseAt: nullableTrimmedString(40),
   nextStep: nullableTrimmedString(240),
   qualificationNotes: nullableTrimmedString(4000),
@@ -57,18 +66,19 @@ export const crmLeadSchema = z.object({
   source: crmLeadSourceSchema,
   ownerUserId: z.string().nullable().optional(),
   ownerName: z.string().nullable().optional(),
-  contactId: z.string().nullable().optional(),
-  contactName: z.string().nullable().optional(),
-  contactEmail: z.string().nullable().optional(),
-  contactPhone: z.string().nullable().optional(),
   companyName: z.string(),
   tradeName: z.string().nullable().optional(),
   document: z.string().nullable().optional(),
+  contacts: z.array(crmLeadManualContactSchema).optional().default([]),
+  primaryContactName: z.string().nullable().optional(),
   industry: z.string().nullable().optional(),
   companySize: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
   estimatedValue: z.number().nullable().optional(),
+  licenseValue: z.number().nullable().optional(),
+  monthlyFee: z.number().nullable().optional(),
+  minimumWagePercentage: z.number().nullable().optional(),
   expectedCloseAt: z.string().nullable().optional(),
   nextStep: z.string().nullable().optional(),
   qualificationNotes: z.string().nullable().optional(),
@@ -94,7 +104,6 @@ export const crmLeadListFiltersSchema = z.object({
   stage: crmLeadStageSchema.optional(),
   source: crmLeadSourceSchema.optional(),
   ownerUserId: z.string().trim().optional(),
-  contactId: z.string().trim().optional(),
 });
 
 export const crmLeadListResponseSchema = z.object({
@@ -139,6 +148,7 @@ export type CrmLeadUpdateInput = z.output<typeof crmLeadUpdateSchema>;
 export type CrmLeadListFilters = z.output<typeof crmLeadListFiltersSchema>;
 export type CrmLeadListResponse = z.output<typeof crmLeadListResponseSchema>;
 export type CrmLeadResponse = z.output<typeof crmLeadResponseSchema>;
+export type CrmLeadManualContact = z.output<typeof crmLeadManualContactSchema>;
 export type CrmLeadContactOption = z.output<typeof crmLeadContactOptionSchema>;
 export type CrmSupportData = z.output<typeof crmSupportDataSchema>;
 export type CrmSupportDataResponse = z.output<typeof crmSupportDataResponseSchema>;

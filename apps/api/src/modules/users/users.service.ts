@@ -134,8 +134,14 @@ export class UsersService {
     const existingUser = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       if (existingUser.deletedAt || !existingUser.isActive) {
+        this.logger.warn(
+          `[users.create.conflict] email=${normalizedEmail} source=local_user_inactive_or_deleted userId=${existingUser.id}`
+        );
         throw new ConflictException('Ja existe um usuario inativo ou excluido com este e-mail. Reative o cadastro existente ou use outro e-mail.');
       }
+      this.logger.warn(
+        `[users.create.conflict] email=${normalizedEmail} source=local_user_active userId=${existingUser.id}`
+      );
       throw new ConflictException('Este e-mail ja esta cadastrado como usuario.');
     }
 
@@ -167,6 +173,9 @@ export class UsersService {
         },
       });
     } catch (error: any) {
+      this.logger.warn(
+        `[users.create.conflict] email=${normalizedEmail} source=auth_provider message=${error instanceof Error ? error.message : String(error ?? 'unknown')}`
+      );
       throw new ConflictException(this.resolveUserCreateConflictMessage(error));
     }
 

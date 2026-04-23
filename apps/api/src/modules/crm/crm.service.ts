@@ -8,6 +8,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 import {
   crmLeadCreateSchema,
   crmLeadListFiltersSchema,
+  type CrmLeadManualContact,
   crmLeadUpdateSchema,
   type CrmLeadCreateInput,
   type CrmLeadUpdateInput,
@@ -20,18 +21,18 @@ type NormalizedLeadPayload = {
   stage: CrmLeadCreateInput['stage'];
   source: CrmLeadCreateInput['source'];
   ownerUserId: string | null;
-  contactId: string | null;
-  contactName: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
   companyName: string;
   tradeName: string | null;
   document: string | null;
+  contacts: CrmLeadManualContact[];
   industry: string | null;
   companySize: string | null;
   city: string | null;
   state: string | null;
   estimatedValue: number | null;
+  licenseValue: number | null;
+  monthlyFee: number | null;
+  minimumWagePercentage: number | null;
   expectedCloseAt: Date | null;
   nextStep: string | null;
   qualificationNotes: string | null;
@@ -55,8 +56,6 @@ export class CrmService {
         { title: { contains: filters.q, mode: 'insensitive' } },
         { companyName: { contains: filters.q, mode: 'insensitive' } },
         { tradeName: { contains: filters.q, mode: 'insensitive' } },
-        { contactName: { contains: filters.q, mode: 'insensitive' } },
-        { contactEmail: { contains: filters.q, mode: 'insensitive' } },
         { city: { contains: filters.q, mode: 'insensitive' } },
       ];
     }
@@ -64,7 +63,6 @@ export class CrmService {
     if (filters.stage) where.stage = filters.stage;
     if (filters.source) where.source = filters.source;
     if (filters.ownerUserId) where.ownerUserId = filters.ownerUserId;
-    if (filters.contactId) where.contactId = filters.contactId;
 
     const leads = await (this.prisma as any).crmLead.findMany({
       where,
@@ -145,7 +143,6 @@ export class CrmService {
   async createLead(input: Record<string, unknown>, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.assertSystemAccess(rawHeaders);
     const payload = this.normalizeCreatePayload(crmLeadCreateSchema.parse(input));
-    await this.assertContactExists(payload.contactId);
     await this.assertOwnerExists(payload.ownerUserId);
 
     const lead = await (this.prisma as any).crmLead.create({
@@ -180,7 +177,6 @@ export class CrmService {
       throw new BadRequestException('Nenhum campo valido informado para atualizar.');
     }
 
-    await this.assertContactExists(payload.contactId);
     await this.assertOwnerExists(payload.ownerUserId);
 
     const lead = await (this.prisma as any).crmLead.update({
@@ -205,15 +201,6 @@ export class CrmService {
           email: true,
         },
       },
-      contact: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          whatsapp: true,
-        },
-      },
       convertedCompany: {
         select: {
           id: true,
@@ -225,6 +212,12 @@ export class CrmService {
   }
 
   private serializeLead(lead: any) {
+    const contacts = this.normalizeContactsArray(lead.contacts);
+    const primaryContact =
+      contacts.find((contact) => contact.isPrimary) ??
+      contacts[0] ??
+      null;
+
     return {
       id: lead.id,
       title: lead.title,
@@ -232,18 +225,20 @@ export class CrmService {
       source: lead.source,
       ownerUserId: lead.ownerUserId ?? null,
       ownerName: lead.ownerUser?.name || lead.ownerUser?.email || null,
-      contactId: lead.contactId ?? null,
-      contactName: lead.contact?.name || lead.contactName || null,
-      contactEmail: lead.contact?.email || lead.contactEmail || null,
-      contactPhone: lead.contact?.whatsapp || lead.contact?.phone || lead.contactPhone || null,
       companyName: lead.companyName,
       tradeName: lead.tradeName ?? null,
       document: lead.document ?? null,
+      contacts,
+      primaryContactName: primaryContact?.name ?? lead.contactName ?? null,
       industry: lead.industry ?? null,
       companySize: lead.companySize ?? null,
       city: lead.city ?? null,
       state: lead.state ?? null,
       estimatedValue: lead.estimatedValue == null ? null : Number(lead.estimatedValue),
+      licenseValue: lead.licenseValue == null ? null : Number(lead.licenseValue),
+      monthlyFee: lead.monthlyFee == null ? null : Number(lead.monthlyFee),
+      minimumWagePercentage:
+        lead.minimumWagePercentage == null ? null : Number(lead.minimumWagePercentage),
       expectedCloseAt: lead.expectedCloseAt ? new Date(lead.expectedCloseAt).toISOString() : null,
       nextStep: lead.nextStep ?? null,
       qualificationNotes: lead.qualificationNotes ?? null,
@@ -264,18 +259,18 @@ export class CrmService {
       stage: input.stage,
       source: input.source,
       ownerUserId: this.normalizeString(input.ownerUserId),
-      contactId: this.normalizeString(input.contactId),
-      contactName: this.normalizeString(input.contactName),
-      contactEmail: this.normalizeString(input.contactEmail),
-      contactPhone: this.normalizeString(input.contactPhone),
       companyName: input.companyName.trim(),
       tradeName: this.normalizeString(input.tradeName),
       document: this.normalizeDocument(input.document),
+      contacts: this.normalizeContacts(input.contacts),
       industry: this.normalizeString(input.industry),
       companySize: this.normalizeString(input.companySize),
       city: this.normalizeString(input.city),
       state: this.normalizeState(input.state),
       estimatedValue: input.estimatedValue ?? null,
+      licenseValue: input.licenseValue ?? null,
+      monthlyFee: input.monthlyFee ?? null,
+      minimumWagePercentage: input.minimumWagePercentage ?? null,
       expectedCloseAt: this.normalizeDate(input.expectedCloseAt),
       nextStep: this.normalizeString(input.nextStep),
       qualificationNotes: this.normalizeString(input.qualificationNotes),
@@ -290,18 +285,20 @@ export class CrmService {
     if (input.stage !== undefined) payload.stage = input.stage;
     if (input.source !== undefined) payload.source = input.source;
     if (input.ownerUserId !== undefined) payload.ownerUserId = this.normalizeString(input.ownerUserId);
-    if (input.contactId !== undefined) payload.contactId = this.normalizeString(input.contactId);
-    if (input.contactName !== undefined) payload.contactName = this.normalizeString(input.contactName);
-    if (input.contactEmail !== undefined) payload.contactEmail = this.normalizeString(input.contactEmail);
-    if (input.contactPhone !== undefined) payload.contactPhone = this.normalizeString(input.contactPhone);
     if (input.companyName !== undefined) payload.companyName = input.companyName.trim();
     if (input.tradeName !== undefined) payload.tradeName = this.normalizeString(input.tradeName);
     if (input.document !== undefined) payload.document = this.normalizeDocument(input.document);
+    if (input.contacts !== undefined) payload.contacts = this.normalizeContacts(input.contacts);
     if (input.industry !== undefined) payload.industry = this.normalizeString(input.industry);
     if (input.companySize !== undefined) payload.companySize = this.normalizeString(input.companySize);
     if (input.city !== undefined) payload.city = this.normalizeString(input.city);
     if (input.state !== undefined) payload.state = this.normalizeState(input.state);
     if (input.estimatedValue !== undefined) payload.estimatedValue = input.estimatedValue ?? null;
+    if (input.licenseValue !== undefined) payload.licenseValue = input.licenseValue ?? null;
+    if (input.monthlyFee !== undefined) payload.monthlyFee = input.monthlyFee ?? null;
+    if (input.minimumWagePercentage !== undefined) {
+      payload.minimumWagePercentage = input.minimumWagePercentage ?? null;
+    }
     if (input.expectedCloseAt !== undefined) payload.expectedCloseAt = this.normalizeDate(input.expectedCloseAt);
     if (input.nextStep !== undefined) payload.nextStep = this.normalizeString(input.nextStep);
     if (input.qualificationNotes !== undefined) {
@@ -327,6 +324,39 @@ export class CrmService {
     return normalized ? normalized.slice(0, 8) : null;
   }
 
+  private normalizeContacts(value?: CrmLeadManualContact[] | null) {
+    return (value ?? [])
+      .map((contact) => ({
+        name: String(contact.name ?? '').trim(),
+        role: this.normalizeString(contact.role),
+        email: this.normalizeString(contact.email),
+        phone: this.normalizeString(contact.phone),
+        whatsapp: this.normalizeString(contact.whatsapp),
+        isPrimary: Boolean(contact.isPrimary),
+      }))
+      .filter((contact) => contact.name);
+  }
+
+  private normalizeContactsArray(value: unknown): CrmLeadManualContact[] {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((contact) => {
+        if (!contact || typeof contact !== 'object') return null;
+        const record = contact as Record<string, unknown>;
+        const name = String(record.name ?? '').trim();
+        if (!name) return null;
+        return {
+          name,
+          role: this.normalizeString(record.role as string | null | undefined),
+          email: this.normalizeString(record.email as string | null | undefined),
+          phone: this.normalizeString(record.phone as string | null | undefined),
+          whatsapp: this.normalizeString(record.whatsapp as string | null | undefined),
+          isPrimary: Boolean(record.isPrimary),
+        };
+      })
+      .filter(Boolean) as CrmLeadManualContact[];
+  }
+
   private normalizeDate(value?: string | null) {
     const normalized = String(value ?? '').trim();
     if (!normalized) return null;
@@ -337,19 +367,6 @@ export class CrmService {
     }
 
     return date;
-  }
-
-  private async assertContactExists(contactId?: string | null) {
-    if (!contactId) return;
-
-    const contact = await (this.prisma as any).companyContact.findUnique({
-      where: { id: contactId },
-      select: { id: true },
-    });
-
-    if (!contact) {
-      throw new BadRequestException('Contato vinculado nao encontrado.');
-    }
   }
 
   private async assertOwnerExists(ownerUserId?: string | null) {

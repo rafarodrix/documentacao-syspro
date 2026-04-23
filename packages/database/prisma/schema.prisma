@@ -1125,8 +1125,12 @@ model CrmLead {
   contactName  String?
   contactEmail String?
   contactPhone String?
+  contacts     Json?
 
   estimatedValue      Decimal? @db.Decimal(12, 2)
+  licenseValue        Decimal? @db.Decimal(12, 2)
+  monthlyFee          Decimal? @db.Decimal(12, 2)
+  minimumWagePercentage Decimal? @db.Decimal(8, 4)
   expectedCloseAt     DateTime?
   nextStep            String?
   qualificationNotes  String?  @db.Text

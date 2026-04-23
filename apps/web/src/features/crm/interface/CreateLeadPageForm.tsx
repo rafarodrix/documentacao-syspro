@@ -4,25 +4,15 @@ import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Building2,
-  Check,
-  ChevronsUpDown,
-  CircleDashed,
-  FileSearch,
-  Search,
-  Target,
-} from "lucide-react";
+import { Building2, CircleDollarSign, FileSearch, Target, UsersRound } from "lucide-react";
 import { toast } from "sonner";
-import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES } from "@dosc-syspro/contracts/crm";
-import type { LeadContactOption } from "@/features/crm/domain/model";
+import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLeadManualContact } from "@dosc-syspro/contracts/crm";
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/model";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +31,9 @@ type LeadFormState = {
   city: string;
   state: string;
   estimatedValue: string;
+  licenseValue: string;
+  monthlyFee: string;
+  minimumWagePercentage: string;
   expectedCloseAt: string;
   nextStep: string;
   qualificationNotes: string;
@@ -59,19 +52,23 @@ const DEFAULT_FORM_STATE: LeadFormState = {
   city: "",
   state: "",
   estimatedValue: "",
+  licenseValue: "",
+  monthlyFee: "",
+  minimumWagePercentage: "",
   expectedCloseAt: "",
   nextStep: "",
   qualificationNotes: "",
   lostReason: "",
 };
 
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
+const EMPTY_CONTACT: CrmLeadManualContact = {
+  name: "",
+  role: "",
+  email: "",
+  phone: "",
+  whatsapp: "",
+  isPrimary: true,
+};
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -95,35 +92,84 @@ function isValidCnpj(value: string) {
   return digits === `${base}${firstDigit}${secondDigit}`;
 }
 
-export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[] }) {
+function parseNullableNumber(value: string) {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasCompanyContext(form: LeadFormState) {
+  return Boolean(form.document.trim() || form.tradeName.trim() || form.city.trim() || form.state.trim());
+}
+
+function hasCommercialQualification(form: LeadFormState) {
+  return Boolean(
+    form.licenseValue.trim() ||
+    form.monthlyFee.trim() ||
+    form.minimumWagePercentage.trim() ||
+    form.nextStep.trim() ||
+    form.qualificationNotes.trim(),
+  );
+}
+
+export function CreateLeadPageForm() {
   const router = useRouter();
-  const [selectedContactId, setSelectedContactId] = useState("");
-  const [contactSearch, setContactSearch] = useState("");
   const [activeTab, setActiveTab] = useState("essentials");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [form, setForm] = useState<LeadFormState>(DEFAULT_FORM_STATE);
+  const [contacts, setContacts] = useState<CrmLeadManualContact[]>([{ ...EMPTY_CONTACT }]);
 
-  const filteredContacts = useMemo(() => {
-    const term = normalizeSearch(contactSearch);
-    const source = term
-      ? contacts.filter((contact) =>
-          normalizeSearch(
-            `${contact.name} ${contact.email || ""} ${contact.phone || ""} ${contact.companies.join(" ")}`,
-          ).includes(term),
-        )
-      : contacts;
-
-    return source.slice(0, 50);
-  }, [contacts, contactSearch]);
-
-  const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || null;
   const essentialReady = Boolean(form.title.trim() && form.companyName.trim());
-  const companyReady = Boolean(form.document.trim() || form.tradeName.trim() || form.city.trim() || form.state.trim());
-  const qualificationReady = Boolean(form.nextStep.trim() || form.estimatedValue.trim() || form.qualificationNotes.trim());
+  const companyReady = hasCompanyContext(form);
+  const contactsReady = contacts.some((contact) => contact.name.trim());
+  const qualificationReady = hasCommercialQualification(form);
+
+  const normalizedContacts = useMemo(
+    () =>
+      contacts
+        .map((contact, index) => ({
+          name: contact.name.trim(),
+          role: contact.role?.trim() || "",
+          email: contact.email?.trim() || "",
+          phone: contact.phone?.trim() || "",
+          whatsapp: contact.whatsapp?.trim() || "",
+          isPrimary: index === 0 ? true : Boolean(contact.isPrimary),
+        }))
+        .filter((contact) => contact.name),
+    [contacts],
+  );
 
   function updateField<K extends keyof LeadFormState>(field: K, value: LeadFormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateContact(index: number, field: keyof CrmLeadManualContact, value: string | boolean) {
+    setContacts((current) =>
+      current.map((contact, currentIndex) => {
+        if (currentIndex !== index) return contact;
+        return {
+          ...contact,
+          [field]: value,
+        };
+      }),
+    );
+  }
+
+  function addContact() {
+    setContacts((current) => [...current, { ...EMPTY_CONTACT, isPrimary: false }]);
+  }
+
+  function removeContact(index: number) {
+    setContacts((current) => {
+      const next = current.filter((_, currentIndex) => currentIndex !== index);
+      if (!next.length) return [{ ...EMPTY_CONTACT }];
+      return next.map((contact, currentIndex) => ({
+        ...contact,
+        isPrimary: currentIndex === 0 ? true : contact.isPrimary,
+      }));
+    });
   }
 
   async function handleLookupCnpj() {
@@ -179,6 +225,12 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
       return;
     }
 
+    if (!normalizedContacts.length) {
+      toast.error("Informe ao menos um contato manual do lead.");
+      setActiveTab("contacts");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -189,18 +241,18 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
           title: form.title.trim(),
           stage: form.stage,
           source: form.source,
-          contactId: selectedContactId || null,
-          contactName: selectedContact?.name || null,
-          contactEmail: selectedContact?.email || null,
-          contactPhone: selectedContact?.whatsapp || selectedContact?.phone || null,
           companyName: form.companyName.trim(),
           tradeName: form.tradeName.trim() || null,
           document: onlyDigits(form.document) || null,
+          contacts: normalizedContacts,
           industry: form.industry.trim() || null,
           companySize: form.companySize.trim() || null,
           city: form.city.trim() || null,
           state: form.state.trim() || null,
-          estimatedValue: form.estimatedValue.trim() ? Number(form.estimatedValue.replace(",", ".")) : null,
+          estimatedValue: parseNullableNumber(form.estimatedValue),
+          licenseValue: parseNullableNumber(form.licenseValue),
+          monthlyFee: parseNullableNumber(form.monthlyFee),
+          minimumWagePercentage: parseNullableNumber(form.minimumWagePercentage),
           expectedCloseAt: form.expectedCloseAt || null,
           nextStep: form.nextStep.trim() || null,
           qualificationNotes: form.qualificationNotes.trim() || null,
@@ -234,7 +286,7 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Novo lead</h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Cadastre a oportunidade em etapas. Primeiro o essencial, depois dados da empresa e qualificacao comercial.
+            Organize o cadastro em quatro frentes: essenciais, empresa, contatos e qualificacao comercial.
           </p>
         </div>
         <div className="flex gap-3">
@@ -247,39 +299,26 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <FlowCard
-          title="Essencial"
-          description="Identificacao da oportunidade"
-          ready={essentialReady}
-          icon={Target}
-        />
-        <FlowCard
-          title="Empresa"
-          description="CNPJ e contexto do prospect"
-          ready={companyReady}
-          icon={Building2}
-        />
-        <FlowCard
-          title="Qualificacao"
-          description="Proximo passo e potencial"
-          ready={qualificationReady}
-          icon={CircleDashed}
-        />
+      <div className="grid gap-4 md:grid-cols-4">
+        <FlowCard title="Essenciais" description="Entrada no funil" ready={essentialReady} icon={Target} />
+        <FlowCard title="Empresa" description="Dados do prospect" ready={companyReady} icon={Building2} />
+        <FlowCard title="Contatos" description="Socios e decisores" ready={contactsReady} icon={UsersRound} />
+        <FlowCard title="Qualificacao" description="Licenca e mensalidade" ready={qualificationReady} icon={CircleDollarSign} />
       </div>
 
       <Card className="border-border/60">
         <CardHeader className="gap-4">
           <div>
-            <CardTitle>Fluxo de cadastro</CardTitle>
+            <CardTitle>Cadastro do lead</CardTitle>
             <CardDescription>
-              O formulario foi separado para reduzir ruido. A mesma consulta de CNPJ do cadastro de empresas pode preencher os dados do prospect.
+              O lead agora possui contatos manuais proprios e qualificacao comercial adaptada ao modelo de software.
             </CardDescription>
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid h-auto w-full grid-cols-3">
-              <TabsTrigger value="essentials">Essencial</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-4">
+              <TabsTrigger value="essentials">Essenciais</TabsTrigger>
               <TabsTrigger value="company">Empresa</TabsTrigger>
+              <TabsTrigger value="contacts">Contatos</TabsTrigger>
               <TabsTrigger value="qualification">Qualificacao</TabsTrigger>
             </TabsList>
 
@@ -291,7 +330,6 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                     value={form.title}
                     onChange={(event) => updateField("title", event.target.value)}
                     placeholder="Ex.: Rede avaliando migracao do ERP"
-                    required
                   />
                 </Field>
 
@@ -301,7 +339,6 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                     value={form.companyName}
                     onChange={(event) => updateField("companyName", event.target.value)}
                     placeholder="Nome da empresa prospect"
-                    required
                   />
                 </Field>
 
@@ -333,16 +370,6 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                       </option>
                     ))}
                   </select>
-                </Field>
-
-                <Field label="Contato vinculado" htmlFor="lead-contact-picker">
-                  <ContactPicker
-                    contacts={filteredContacts}
-                    selectedContact={selectedContact}
-                    search={contactSearch}
-                    onSearchChange={setContactSearch}
-                    onSelect={(contact) => setSelectedContactId(contact?.id || "")}
-                  />
                 </Field>
 
                 <Field label="Proximo passo" htmlFor="lead-next-step">
@@ -384,14 +411,16 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                       placeholder="Opcional"
                     />
                   </Field>
+
                   <Field label="Segmento" htmlFor="lead-industry">
                     <Input
                       id="lead-industry"
                       value={form.industry}
                       onChange={(event) => updateField("industry", event.target.value)}
-                      placeholder="Autopecas, farmacia, comercial..."
+                      placeholder="ERP, varejo, farmacia, distribuicao..."
                     />
                   </Field>
+
                   <Field label="Cidade" htmlFor="lead-city">
                     <Input
                       id="lead-city"
@@ -400,6 +429,7 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                       placeholder="Cidade do prospect"
                     />
                   </Field>
+
                   <Field label="UF" htmlFor="lead-state">
                     <Input
                       id="lead-state"
@@ -409,6 +439,7 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                       maxLength={8}
                     />
                   </Field>
+
                   <Field label="Porte" htmlFor="lead-company-size">
                     <Input
                       id="lead-company-size"
@@ -421,10 +452,85 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
               </CardContent>
             </TabsContent>
 
+            <TabsContent value="contacts" className="mt-5">
+              <CardContent className="space-y-4 px-0 pb-0">
+                {contacts.map((contact, index) => (
+                  <div key={index} className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">
+                          {index === 0 ? "Contato principal" : `Contato ${index + 1}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Registre socios, decisores ou usuarios-chave da empresa.
+                        </p>
+                      </div>
+                      {contacts.length > 1 ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeContact(index)}>
+                          Remover
+                        </Button>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <Field label="Nome" htmlFor={`lead-contact-name-${index}`} required={index === 0}>
+                        <Input
+                          id={`lead-contact-name-${index}`}
+                          value={contact.name}
+                          onChange={(event) => updateContact(index, "name", event.target.value)}
+                          placeholder="Nome do contato"
+                        />
+                      </Field>
+
+                      <Field label="Cargo / papel" htmlFor={`lead-contact-role-${index}`}>
+                        <Input
+                          id={`lead-contact-role-${index}`}
+                          value={contact.role || ""}
+                          onChange={(event) => updateContact(index, "role", event.target.value)}
+                          placeholder="Socio, financeiro, gerente, TI..."
+                        />
+                      </Field>
+
+                      <Field label="Email" htmlFor={`lead-contact-email-${index}`}>
+                        <Input
+                          id={`lead-contact-email-${index}`}
+                          value={contact.email || ""}
+                          onChange={(event) => updateContact(index, "email", event.target.value)}
+                          placeholder="contato@empresa.com"
+                        />
+                      </Field>
+
+                      <Field label="Telefone" htmlFor={`lead-contact-phone-${index}`}>
+                        <Input
+                          id={`lead-contact-phone-${index}`}
+                          value={contact.phone || ""}
+                          onChange={(event) => updateContact(index, "phone", event.target.value)}
+                          placeholder="(00) 0000-0000"
+                        />
+                      </Field>
+
+                      <Field label="WhatsApp" htmlFor={`lead-contact-whatsapp-${index}`}>
+                        <Input
+                          id={`lead-contact-whatsapp-${index}`}
+                          value={contact.whatsapp || ""}
+                          onChange={(event) => updateContact(index, "whatsapp", event.target.value)}
+                          placeholder="+55 (00) 00000-0000"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                ))}
+
+                <Button type="button" variant="outline" onClick={addContact}>
+                  Adicionar contato
+                </Button>
+              </CardContent>
+            </TabsContent>
+
             <TabsContent value="qualification" className="mt-5">
               <CardContent className="space-y-5 px-0 pb-0">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Valor estimado" htmlFor="lead-estimated-value">
+                  <Field label="Valor total estimado" htmlFor="lead-estimated-value">
                     <Input
                       id="lead-estimated-value"
                       value={form.estimatedValue}
@@ -433,6 +539,42 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                       min="0"
                       step="0.01"
                       placeholder="0,00"
+                    />
+                  </Field>
+
+                  <Field label="Valor da licenca" htmlFor="lead-license-value">
+                    <Input
+                      id="lead-license-value"
+                      value={form.licenseValue}
+                      onChange={(event) => updateField("licenseValue", event.target.value)}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                    />
+                  </Field>
+
+                  <Field label="Mensalidade" htmlFor="lead-monthly-fee">
+                    <Input
+                      id="lead-monthly-fee"
+                      value={form.monthlyFee}
+                      onChange={(event) => updateField("monthlyFee", event.target.value)}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                    />
+                  </Field>
+
+                  <Field label="% do salario minimo" htmlFor="lead-minimum-wage-percentage">
+                    <Input
+                      id="lead-minimum-wage-percentage"
+                      value={form.minimumWagePercentage}
+                      onChange={(event) => updateField("minimumWagePercentage", event.target.value)}
+                      type="number"
+                      min="0"
+                      step="0.0001"
+                      placeholder="Ex.: 12.5"
                     />
                   </Field>
 
@@ -452,7 +594,7 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                     value={form.qualificationNotes}
                     onChange={(event) => updateField("qualificationNotes", event.target.value)}
                     rows={6}
-                    placeholder="Contexto, dores, prazo, concorrente ou observacoes da oportunidade."
+                    placeholder="Necessidade, quantidade de usuarios, dores, prazo, implantacao, concorrente e regra comercial."
                   />
                 </Field>
 
@@ -519,113 +661,5 @@ function FlowCard({
         </Badge>
       </CardContent>
     </Card>
-  );
-}
-
-function ContactPicker({
-  contacts,
-  selectedContact,
-  search,
-  onSearchChange,
-  onSelect,
-}: {
-  contacts: LeadContactOption[];
-  selectedContact: LeadContactOption | null;
-  search: string;
-  onSearchChange: (value: string) => void;
-  onSelect: (contact: LeadContactOption | null) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id="lead-contact-picker"
-          type="button"
-          variant="outline"
-          className="h-auto min-h-11 w-full justify-between px-3 py-2"
-        >
-          <div className="min-w-0 text-left">
-            <span className="block truncate text-sm font-medium text-foreground">
-              {selectedContact ? selectedContact.name : "Selecionar contato existente"}
-            </span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {selectedContact
-                ? `${selectedContact.email || selectedContact.phone || "Sem canal"}`
-                : "Busca por nome, email, telefone ou empresa"}
-            </span>
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[28rem] p-0" align="start">
-        <div className="border-b p-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              className="h-9 border-none bg-muted/20 pl-9 shadow-none"
-              placeholder="Buscar contato..."
-            />
-          </div>
-        </div>
-        <div className="max-h-80 overflow-y-auto py-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              onSelect(null);
-              setOpen(false);
-              onSearchChange("");
-            }}
-            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted/50"
-          >
-            <div>
-              <span className="block text-sm font-medium text-foreground">Sem vinculo</span>
-              <span className="block text-[11px] text-muted-foreground">
-                Registrar lead sem contato associado
-              </span>
-            </div>
-            {!selectedContact ? <Check className="h-4 w-4 text-primary" /> : null}
-          </button>
-
-          {contacts.map((contact) => {
-            const isSelected = selectedContact?.id === contact.id;
-            return (
-              <button
-                key={contact.id}
-                type="button"
-                onClick={() => {
-                  onSelect(contact);
-                  setOpen(false);
-                  onSearchChange("");
-                }}
-                className={cn(
-                  "flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted/50",
-                  isSelected ? "bg-primary/5" : "",
-                )}
-              >
-                <div className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-foreground">{contact.name}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">
-                    {[contact.email, contact.whatsapp || contact.phone, contact.companies[0]]
-                      .filter(Boolean)
-                      .join(" - ")}
-                  </span>
-                </div>
-                {isSelected ? <Check className="h-4 w-4 text-primary" /> : null}
-              </button>
-            );
-          })}
-
-          {contacts.length === 0 ? (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              Nenhum contato encontrado.
-            </div>
-          ) : null}
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }

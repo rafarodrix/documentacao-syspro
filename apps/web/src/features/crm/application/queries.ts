@@ -1,8 +1,8 @@
 import "server-only";
 
 import type { CrmLead } from "@dosc-syspro/contracts/crm";
-import type { LeadContactOption, LeadDashboardData } from "@/features/crm/domain/model";
-import { fetchCrmLeadsGateway, fetchCrmSupportDataGateway } from "@/features/crm/infrastructure/crm.gateway";
+import type { LeadDashboardData } from "@/features/crm/domain/model";
+import { fetchCrmLeadsGateway } from "@/features/crm/infrastructure/crm.gateway";
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   try {
@@ -13,18 +13,6 @@ export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   } catch (error) {
     console.error("Erro ao carregar leads do CRM:", error);
     return { leads: [] };
-  }
-}
-
-export async function getCrmLeadCreateData(): Promise<{ contacts: LeadContactOption[] }> {
-  try {
-    const response = await fetchCrmSupportDataGateway();
-    return {
-      contacts: response.success && response.data ? response.data.contacts : [],
-    };
-  } catch (error) {
-    console.error("Erro ao carregar contatos para o CRM:", error);
-    return { contacts: [] };
   }
 }
 
