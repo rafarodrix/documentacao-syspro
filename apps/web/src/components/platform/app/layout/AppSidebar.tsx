@@ -162,11 +162,13 @@ function SidebarFooter({
   isSystemUser,
   onClose,
   collapsed,
+  mobile,
 }: {
   user: SidebarUser
   isSystemUser: boolean
   onClose?: () => void
   collapsed?: boolean
+  mobile?: boolean
 }) {
   const router = useRouter()
 
@@ -177,92 +179,125 @@ function SidebarFooter({
 
   return (
     <div className={cn("border-t border-border/40 shrink-0", collapsed ? "p-2" : "p-2.5")}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className={cn(
-              "flex items-center w-full rounded-lg",
-              "hover:bg-muted transition-colors outline-none group text-left",
-              "border border-transparent hover:border-border/40",
-              collapsed ? "justify-center px-1.5 py-2" : "gap-3 px-2 py-1.5",
-            )}
-          >
-            <Avatar className="h-8 w-8 border border-border/50 shrink-0">
-              <AvatarImage src={user.image ?? ""} alt={user.name} />
-              <AvatarFallback
-                className={cn(
-                  "text-xs font-bold",
-                  isSystemUser
-                    ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300"
-                    : "bg-primary/10 text-primary",
-                )}
-              >
-                {getInitials(user.name)}
-              </AvatarFallback>
-            </Avatar>
-
-            {!collapsed && (
-              <div className="flex flex-col items-start flex-1 min-w-0">
-                <span
+      {mobile ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                "flex items-center w-full rounded-lg",
+                "hover:bg-muted transition-colors outline-none group text-left",
+                "border border-transparent hover:border-border/40",
+                collapsed ? "justify-center px-1.5 py-2" : "gap-3 px-2 py-1.5",
+              )}
+            >
+              <Avatar className="h-8 w-8 border border-border/50 shrink-0">
+                <AvatarImage src={user.image ?? ""} alt={user.name} />
+                <AvatarFallback
                   className={cn(
-                    "text-[13px] font-medium text-foreground truncate w-full transition-colors leading-tight",
-                    isSystemUser ? "group-hover:text-violet-600" : "group-hover:text-primary",
+                    "text-xs font-bold",
+                    isSystemUser
+                      ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300"
+                      : "bg-primary/10 text-primary",
                   )}
                 >
-                  {user.name}
-                </span>
-                <span className="text-[11px] text-muted-foreground/70 truncate w-full leading-tight">{user.email}</span>
+                  {getInitials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+
+              {!collapsed && (
+                <div className="flex flex-col items-start flex-1 min-w-0">
+                  <span
+                    className={cn(
+                      "text-[13px] font-medium text-foreground truncate w-full transition-colors leading-tight",
+                      isSystemUser ? "group-hover:text-violet-600" : "group-hover:text-primary",
+                    )}
+                  >
+                    {user.name}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/70 truncate w-full leading-tight">{user.email}</span>
+                </div>
+              )}
+
+              {!collapsed && (
+                <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="start" className="w-56 mb-2" side="top">
+            <DropdownMenuLabel className="font-normal py-2">
+              <div className="flex flex-col gap-0.5">
+                <p className="text-sm font-semibold leading-none truncate">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
               </div>
-            )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
 
-            {!collapsed && (
-              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground shrink-0 transition-colors" />
-            )}
-          </button>
-        </DropdownMenuTrigger>
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-sm"
+              onClick={() => {
+                router.push(isSystemUser ? "/portal/configuracoes" : "/portal/perfil")
+                onClose?.()
+              }}
+            >
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              {isSystemUser ? "Configuracoes" : "Meus Dados"}
+            </DropdownMenuItem>
 
-        <DropdownMenuContent align="start" className="w-56 mb-2" side="top">
-          <DropdownMenuLabel className="font-normal py-2">
-            <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-semibold leading-none truncate">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-sm"
+              onClick={() => {
+                router.push("/docs/suporte")
+                onClose?.()
+              }}
+            >
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              Suporte
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-sm text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Sair do Sistema
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <div
+          className={cn(
+            "flex items-center rounded-lg border border-border/40 bg-muted/20",
+            collapsed ? "justify-center px-1.5 py-2" : "gap-3 px-2 py-2",
+          )}
+        >
+          <Avatar className="h-8 w-8 border border-border/50 shrink-0">
+            <AvatarImage src={user.image ?? ""} alt={user.name} />
+            <AvatarFallback
+              className={cn(
+                "text-xs font-bold",
+                isSystemUser
+                  ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300"
+                  : "bg-primary/10 text-primary",
+              )}
+            >
+              {getInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+
+          {!collapsed && (
+            <div className="flex min-w-0 flex-1 flex-col items-start">
+              <span className="w-full truncate text-[13px] font-medium leading-tight text-foreground">{user.name}</span>
+              <span className="w-full truncate text-[11px] leading-tight text-muted-foreground/70">{user.email}</span>
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/60">
+                {getRoleLabel(user.role)}
+              </span>
             </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-
-          <DropdownMenuItem
-            className="cursor-pointer gap-2 text-sm"
-            onClick={() => {
-              router.push(isSystemUser ? "/portal/configuracoes" : "/portal/perfil")
-              onClose?.()
-            }}
-          >
-            <Settings className="h-4 w-4 text-muted-foreground" />
-            {isSystemUser ? "Configuracoes" : "Meus Dados"}
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            className="cursor-pointer gap-2 text-sm"
-            onClick={() => {
-              router.push("/docs/suporte")
-              onClose?.()
-            }}
-          >
-            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-            Suporte
-          </DropdownMenuItem>
-
-          <DropdownMenuSeparator />
-
-          <DropdownMenuItem
-            className="cursor-pointer gap-2 text-sm text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
-            Sair do Sistema
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -329,7 +364,13 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
         </NavGroup>
       </div>
 
-      <SidebarFooter user={user} isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />
+      <SidebarFooter
+        user={user}
+        isSystemUser={isSystemUser}
+        onClose={onClose}
+        collapsed={isSidebarCollapsed}
+        mobile={mobile}
+      />
     </div>
   )
 }
