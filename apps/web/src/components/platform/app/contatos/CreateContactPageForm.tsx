@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   Briefcase,
   Building2,
+  Check,
   CheckCircle2,
+  ChevronsUpDown,
   CircleDot,
   Mail,
   Fingerprint,
@@ -20,9 +22,11 @@ import {
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
 import { cn } from "@/lib/utils";
@@ -376,22 +380,13 @@ export function CreateContactPageForm({
               </div>
 
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={companyQuery}
-                  onChange={(event) => setCompanyQuery(event.target.value)}
-                  placeholder="Buscar empresa por nome fantasia ou razao social..."
-                  className="h-10 border-border/60 bg-background pl-10"
+                <CompanyMultiPicker
+                  selectedIds={form.companyIds}
+                  options={filteredCompanies}
+                  query={companyQuery}
+                  onQueryChange={setCompanyQuery}
+                  onToggle={toggleCompany}
                 />
-                {companyQuery ? (
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setCompanyQuery("")}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -409,33 +404,6 @@ export function CreateContactPageForm({
                       <X className="h-3 w-3 shrink-0 text-muted-foreground" />
                     </button>
                   ))
-                )}
-              </div>
-
-              <div className="max-h-72 overflow-y-auto rounded-md border border-border/60 bg-background p-2">
-                {filteredCompanies.length === 0 ? (
-                  <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">Nenhuma empresa encontrada.</div>
-                ) : (
-                  filteredCompanies.map((company) => {
-                    const selected = form.companyIds.includes(company.id);
-                    return (
-                      <button
-                        key={company.id}
-                        type="button"
-                        onClick={() => toggleCompany(company.id)}
-                        className={cn(
-                          "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                          selected ? "bg-primary/10 text-primary" : "hover:bg-muted/60",
-                        )}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate font-medium">{getCompanyLabel(company)}</span>
-                          {company.nomeFantasia ? <span className="block truncate text-[11px] text-muted-foreground">{company.razaoSocial}</span> : null}
-                        </span>
-                        <span className="shrink-0 text-[11px] font-medium">{selected ? "Selecionada" : "Selecionar"}</span>
-                      </button>
-                    );
-                  })
                 )}
               </div>
             </CardContent>
@@ -544,6 +512,109 @@ function SummaryCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function CompanyMultiPicker({
+  selectedIds,
+  options,
+  query,
+  onQueryChange,
+  onToggle,
+}: {
+  selectedIds: string[];
+  options: CompanyOption[];
+  query: string;
+  onQueryChange: (value: string) => void;
+  onToggle: (companyId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) onQueryChange("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-auto min-h-11 w-full justify-between border-border/60 bg-background px-3 py-2 shadow-xs"
+        >
+          <div className="min-w-0 text-left">
+            <span className="block truncate text-sm font-medium text-foreground">
+              {selectedIds.length > 0 ? `${selectedIds.length} empresa(s) vinculada(s)` : "Selecionar empresas"}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              Busque e vincule sem precisar rolar a pagina inteira
+            </span>
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[28rem] p-0"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <div className="border-b p-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder="Buscar empresa por nome fantasia ou razao social..."
+              className="h-9 border-none bg-muted/20 pl-9 shadow-none focus-visible:ring-1 focus-visible:ring-offset-0"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="max-h-80 overflow-y-auto py-1.5">
+          {options.length === 0 ? (
+            <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+              Nenhuma empresa encontrada.
+            </div>
+          ) : (
+            options.map((company) => {
+              const selected = selectedIds.includes(company.id);
+              return (
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => onToggle(company.id)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors",
+                    selected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50",
+                  )}
+                >
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-foreground">{getCompanyLabel(company)}</span>
+                    {company.nomeFantasia ? (
+                      <span className="block truncate text-[11px] text-muted-foreground">{company.razaoSocial}</span>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0">
+                    {selected ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <Check className="h-3.5 w-3.5" />
+                        Vinculada
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-medium text-muted-foreground">Vincular</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
