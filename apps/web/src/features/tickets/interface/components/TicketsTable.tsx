@@ -13,6 +13,7 @@ import type { TicketListItem } from "./types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge, SlaBadge, QuickButton } from "./badges";
 import { ticketQuickAction } from "@/features/tickets/application/ticket-actions";
+import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 interface TicketsTableProps {
   tickets: TicketListItem[];
@@ -140,7 +141,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                     <div className="flex flex-col gap-0.5">
                       <span className="max-w-96 truncate text-sm font-medium text-foreground">{ticket.title}</span>
                       <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        {[ticket.module || ticket.group, ticket.category].filter(Boolean).join(" / ")}
+                        {[humanizeModuleHierarchyValue(ticket.module) || ticket.group, ticket.category].filter(Boolean).join(" / ")}
                       </span>
                     </div>
                   </TableCell>

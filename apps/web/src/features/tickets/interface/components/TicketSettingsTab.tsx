@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { saveTicketSettingsAction } from "@/features/tickets/application/ticket-actions";
+import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -70,6 +71,11 @@ function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSe
         : legacyDevelopmentGroupJid?.trim()
           ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
           : [],
+    modules: settings.modules.map((moduleOption) => ({
+      ...moduleOption,
+      label: normalizeModuleHierarchyLabel(moduleOption.label) || moduleOption.label,
+      value: moduleOption.value?.trim() || buildModuleHierarchyValue(moduleOption.label),
+    })),
     priorities: settings.priorities.map((priority) => {
       const resolutionMinutes = priority.resolutionMinutes ?? priority.slaHours * 60;
       return {
@@ -288,14 +294,15 @@ export function TicketSettingsTab() {
                     <CatalogList
                       title="Modulos"
                       onAdd={() => modulesArray.append({ id: createOptionId("mod"), label: "", value: "" })}
+                      description="Use a hierarquia com > para refletir modulo, submenu e tela. Ex: Financeiro > Contas > Contas Bancarias."
                     >
                       {modulesArray.fields.map((fieldItem, index) => (
-                        <CompactOptionRow
+                        <ModuleOptionRow
                           key={fieldItem.id}
                           labelName={`modules.${index}.label`}
                           valueName={`modules.${index}.value`}
-                          labelPlaceholder="Modulo"
-                          valuePlaceholder="slug"
+                          labelPlaceholder="Financeiro > Contas > Contas Bancarias"
+                          valuePlaceholder="financeiro/contas/contas-bancarias"
                           onRemove={() => modulesArray.remove(index)}
                           form={form}
                         />
@@ -552,11 +559,14 @@ export function TicketSettingsTab() {
   );
 }
 
-function CatalogList({ title, onAdd, children }: { title: string; onAdd: () => void; children: ReactNode }) {
+function CatalogList({ title, description, onAdd, children }: { title: string; description?: string; onAdd: () => void; children: ReactNode }) {
   return (
     <div className="min-w-0 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        </div>
         <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={onAdd}>
           <Plus className="h-4 w-4" />
         </Button>
@@ -649,6 +659,79 @@ function CompactOptionRow({
       <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={onRemove}>
         <Trash2 className="h-4 w-4" />
       </Button>
+    </div>
+  );
+}
+
+function ModuleOptionRow({
+  form,
+  labelName,
+  valueName,
+  labelPlaceholder,
+  valuePlaceholder,
+  onRemove,
+}: {
+  form: UseFormReturn<TicketModuleSettings>;
+  labelName: FieldPath<TicketModuleSettings>;
+  valueName: FieldPath<TicketModuleSettings>;
+  labelPlaceholder: string;
+  valuePlaceholder: string;
+  onRemove: () => void;
+}) {
+  const labelValue = String(form.watch(labelName) ?? "");
+  const depth = getModuleHierarchyDepth(labelValue);
+
+  return (
+    <div className="space-y-2 rounded-lg border border-border/60 bg-muted/10 p-2.5">
+      <div className="flex min-w-0 items-center gap-2">
+        <FormField
+          control={form.control}
+          name={labelName}
+          render={({ field }) => (
+            <FormItem className="min-w-0 flex-1">
+              <FormControl>
+                <Input
+                  placeholder={labelPlaceholder}
+                  className="h-8 min-w-0"
+                  value={field.value ?? ""}
+                  onChange={(event) => {
+                    const nextLabel = event.target.value;
+                    const previousAutoValue = buildModuleHierarchyValue(String(field.value ?? ""));
+                    const currentValue = String(form.getValues(valueName) ?? "");
+
+                    field.onChange(nextLabel);
+
+                    if (!currentValue || currentValue === previousAutoValue) {
+                      form.setValue(valueName, buildModuleHierarchyValue(nextLabel) as never, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
+                  }}
+                  onBlur={(event) => {
+                    const normalizedLabel = normalizeModuleHierarchyLabel(event.target.value);
+                    field.onBlur();
+                    if (normalizedLabel !== event.target.value) {
+                      field.onChange(normalizedLabel);
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={onRemove}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_9rem]">
+        <Input placeholder={valuePlaceholder} className="h-8 text-xs" {...form.register(valueName)} />
+        <div className="flex items-center rounded-md border border-border/60 px-2.5 text-[11px] text-muted-foreground">
+          Nivel {depth + 1}
+        </div>
+      </div>
     </div>
   );
 }

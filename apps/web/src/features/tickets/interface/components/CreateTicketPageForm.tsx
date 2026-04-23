@@ -57,6 +57,7 @@ import {
   TicketCompanyPicker,
   type TicketCompanyPickerOption,
 } from "@/features/tickets/interface/components/TicketCompanyPicker";
+import { formatModuleOptionLabel, getModuleHierarchyDepth } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 import "react-quill-new/dist/quill.snow.css";
 
@@ -660,7 +661,9 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     <SelectContent>
                       {ticketSettings.modules.map((moduleOption) => (
                         <SelectItem key={moduleOption.id} value={moduleOption.value}>
-                          {moduleOption.label}
+                          <span className="flex items-center" style={{ paddingLeft: `${getModuleHierarchyDepth(moduleOption.label) * 12}px` }}>
+                            {formatModuleOptionLabel(moduleOption)}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

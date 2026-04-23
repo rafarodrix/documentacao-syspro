@@ -8,7 +8,7 @@ import { PrismaModule } from '../../../prisma/prisma.module';
 import { ChatwootModule } from '../chatwoot/chatwoot.module';
 
 @Module({
-  imports: [forwardRef(() => MessagingModule), SettingsModule, PrismaModule, forwardRef(() => ChatwootModule)],
+  imports: [forwardRef(() => MessagingModule), forwardRef(() => SettingsModule), PrismaModule, forwardRef(() => ChatwootModule)],
   controllers: [EvolutionWebhookController, EvolutionMessagesController],
   providers: [EvolutionClient],
   exports: [EvolutionClient],

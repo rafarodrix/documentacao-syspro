@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatModuleOptionLabel, getModuleHierarchyDepth, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem } from "./types";
@@ -475,7 +476,7 @@ function resolveOptionLabel(options: TicketModuleSettingsOption[], value?: strin
     const normalized = (value || "").trim();
     if (!normalized) return fallback;
     const option = options.find((item) => item.value.toLowerCase() === normalized.toLowerCase() || item.label.toLowerCase() === normalized.toLowerCase());
-    return option?.label || normalized;
+    return option ? formatModuleOptionLabel(option) : humanizeModuleHierarchyValue(normalized) || normalized;
 }
 
 function getCategoriesForTeam(categories: TicketModuleSettingsOption[], team?: string | null, currentCategory?: string | null) {
@@ -546,7 +547,9 @@ function NativeSelectPill({
             <SelectContent align="start" className="z-80 min-w-[var(--radix-select-trigger-width)] border-border/70 bg-popover text-popover-foreground">
                 {normalizedOptions.map((option, index) => (
                     <SelectItem key={`${option.value}-${index}`} value={option.value} className="text-sm">
-                        {option.label}
+                        <span className="flex items-center" style={{ paddingLeft: `${getModuleHierarchyDepth(option.label) * 12}px` }}>
+                            {option.label}
+                        </span>
                     </SelectItem>
                 ))}
             </SelectContent>

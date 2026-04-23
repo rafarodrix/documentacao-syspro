@@ -476,7 +476,7 @@ export class TicketsService {
     } else if (input.statusGroup && input.statusGroup !== 'all') {
       const statusesByGroup: Record<'open' | 'pending' | 'closed', TicketStatus[]> = {
         open: [TicketStatus.NEW, TicketStatus.UNASSIGNED],
-        pending: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL],
+        pending: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER],
         closed: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED],
       };
       where.status = { in: statusesByGroup[input.statusGroup] };
@@ -508,7 +508,7 @@ export class TicketsService {
     }
 
     const openStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.NEW, TicketStatus.UNASSIGNED] } };
-    const pendingStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL] } };
+    const pendingStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER] } };
     const closedStatusWhere: Prisma.ConversationWhereInput = {
       ...teamScopeWhere,
       status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
