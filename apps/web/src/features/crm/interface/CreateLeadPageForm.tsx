@@ -2,17 +2,20 @@
 
 import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES } from "@dosc-syspro/contracts/crm";
 import type { LeadContactOption } from "@/features/crm/domain/model";
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/model";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -100,76 +103,68 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex max-w-5xl flex-col gap-6 p-6 pb-20">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Novo lead</h1>
-        <p className="text-sm text-muted-foreground">
-          Cadastre a oportunidade comercial sem transformar a empresa em cliente antes da hora.
-        </p>
+    <form onSubmit={handleSubmit} className="mx-auto flex max-w-4xl flex-col gap-6 p-6 pb-20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Novo lead</h1>
+          <p className="text-sm text-muted-foreground">
+            Registre a oportunidade comercial primeiro. Os detalhes complementares entram conforme a negociacao avanca.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" asChild>
+            <Link href="/portal/comercial/leads">Cancelar</Link>
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Salvando..." : "Salvar lead"}
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <section className="space-y-6">
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle>Identificacao comercial</CardTitle>
-              <CardDescription>Campos essenciais para o primeiro registro do lead.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <Field label="Titulo" htmlFor="lead-title" required>
-                <Input id="lead-title" name="title" placeholder="Ex.: Rede avaliando migracao do ERP" required />
-              </Field>
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle>Essenciais</CardTitle>
+          <CardDescription>O minimo necessario para colocar o lead no funil.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <Field label="Titulo" htmlFor="lead-title" required>
+            <Input id="lead-title" name="title" placeholder="Ex.: Rede avaliando migracao do ERP" required />
+          </Field>
 
-              <Field label="Empresa potencial" htmlFor="lead-company-name" required>
-                <Input id="lead-company-name" name="companyName" placeholder="Nome da empresa prospect" required />
-              </Field>
+          <Field label="Empresa potencial" htmlFor="lead-company-name" required>
+            <Input id="lead-company-name" name="companyName" placeholder="Nome da empresa prospect" required />
+          </Field>
 
-              <Field label="Nome fantasia" htmlFor="lead-trade-name">
-                <Input id="lead-trade-name" name="tradeName" placeholder="Opcional" />
-              </Field>
+          <Field label="Etapa" htmlFor="lead-stage">
+            <select
+              id="lead-stage"
+              name="stage"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {CRM_LEAD_STAGE_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {CRM_STAGE_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-              <Field label="CNPJ / documento" htmlFor="lead-document">
-                <Input id="lead-document" name="document" placeholder="Somente se ja informado" />
-              </Field>
+          <Field label="Origem" htmlFor="lead-source">
+            <select
+              id="lead-source"
+              name="source"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {CRM_LEAD_SOURCE_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {CRM_SOURCE_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-              <Field label="Etapa" htmlFor="lead-stage">
-                <select
-                  id="lead-stage"
-                  name="stage"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  {CRM_LEAD_STAGE_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {CRM_STAGE_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Origem" htmlFor="lead-source">
-                <select
-                  id="lead-source"
-                  name="source"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  {CRM_LEAD_SOURCE_VALUES.map((value) => (
-                    <option key={value} value={value}>
-                      {CRM_SOURCE_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle>Contato e contexto</CardTitle>
-              <CardDescription>
-                Vinculo opcional com um contato existente, mantendo snapshot comercial no lead.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Field label="Contato vinculado" htmlFor="lead-contact-picker">
+            <>
               <input type="hidden" name="contactId" value={selectedContactId} />
               <input type="hidden" name="contactName" value={selectedContact?.name || ""} />
               <input type="hidden" name="contactEmail" value={selectedContact?.email || ""} />
@@ -178,84 +173,84 @@ export function CreateLeadPageForm({ contacts }: { contacts: LeadContactOption[]
                 name="contactPhone"
                 value={selectedContact?.whatsapp || selectedContact?.phone || ""}
               />
+              <ContactPicker
+                contacts={filteredContacts}
+                selectedContact={selectedContact}
+                search={contactSearch}
+                onSearchChange={setContactSearch}
+                onSelect={(contact) => setSelectedContactId(contact?.id || "")}
+              />
+            </>
+          </Field>
 
-              <div className="space-y-2">
-                <Label>Contato vinculado</Label>
-                <ContactPicker
-                  contacts={filteredContacts}
-                  selectedContact={selectedContact}
-                  search={contactSearch}
-                  onSearchChange={setContactSearch}
-                  onSelect={(contact) => setSelectedContactId(contact?.id || "")}
-                />
-              </div>
+          <Field label="Proximo passo" htmlFor="lead-next-step">
+            <Input id="lead-next-step" name="nextStep" placeholder="Ex.: agendar apresentacao comercial" />
+          </Field>
+        </CardContent>
+      </Card>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Cidade" htmlFor="lead-city">
-                  <Input id="lead-city" name="city" placeholder="Cidade do prospect" />
-                </Field>
-                <Field label="UF" htmlFor="lead-state">
-                  <Input id="lead-state" name="state" placeholder="MG" maxLength={8} />
-                </Field>
-                <Field label="Segmento" htmlFor="lead-industry">
-                  <Input id="lead-industry" name="industry" placeholder="Autopecas, farmacia, comercial..." />
-                </Field>
-                <Field label="Porte" htmlFor="lead-company-size">
-                  <Input id="lead-company-size" name="companySize" placeholder="Ex.: 3 lojas / 25 usuarios" />
-                </Field>
-                <Field label="Valor estimado" htmlFor="lead-estimated-value">
-                  <Input
-                    id="lead-estimated-value"
-                    name="estimatedValue"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0,00"
-                  />
-                </Field>
-                <Field label="Fechamento previsto" htmlFor="lead-expected-close-at">
-                  <Input id="lead-expected-close-at" name="expectedCloseAt" type="date" />
-                </Field>
-              </div>
+      <Card className="border-border/60">
+        <CardContent className="p-0">
+          <Accordion type="single" collapsible className="px-6">
+            <AccordionItem value="commercial-context" className="border-none">
+              <AccordionTrigger className="py-5 text-base font-semibold hover:no-underline">
+                Detalhes complementares
+              </AccordionTrigger>
+              <AccordionContent className="pb-6">
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Nome fantasia" htmlFor="lead-trade-name">
+                      <Input id="lead-trade-name" name="tradeName" placeholder="Opcional" />
+                    </Field>
+                    <Field label="CNPJ / documento" htmlFor="lead-document">
+                      <Input id="lead-document" name="document" placeholder="Somente se ja informado" />
+                    </Field>
+                  </div>
 
-              <Field label="Proximo passo" htmlFor="lead-next-step">
-                <Input id="lead-next-step" name="nextStep" placeholder="Ex.: agendar apresentacao comercial" />
-              </Field>
+                  <Separator />
 
-              <Field label="Notas de qualificacao" htmlFor="lead-qualification-notes">
-                <Textarea
-                  id="lead-qualification-notes"
-                  name="qualificationNotes"
-                  rows={6}
-                  placeholder="Cenario atual, dores, prazo e contexto comercial."
-                />
-              </Field>
-            </CardContent>
-          </Card>
-        </section>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Cidade" htmlFor="lead-city">
+                      <Input id="lead-city" name="city" placeholder="Cidade do prospect" />
+                    </Field>
+                    <Field label="UF" htmlFor="lead-state">
+                      <Input id="lead-state" name="state" placeholder="MG" maxLength={8} />
+                    </Field>
+                    <Field label="Segmento" htmlFor="lead-industry">
+                      <Input id="lead-industry" name="industry" placeholder="Autopecas, farmacia, comercial..." />
+                    </Field>
+                    <Field label="Porte" htmlFor="lead-company-size">
+                      <Input id="lead-company-size" name="companySize" placeholder="Ex.: 3 lojas / 25 usuarios" />
+                    </Field>
+                    <Field label="Valor estimado" htmlFor="lead-estimated-value">
+                      <Input
+                        id="lead-estimated-value"
+                        name="estimatedValue"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0,00"
+                      />
+                    </Field>
+                    <Field label="Fechamento previsto" htmlFor="lead-expected-close-at">
+                      <Input id="lead-expected-close-at" name="expectedCloseAt" type="date" />
+                    </Field>
+                  </div>
 
-        <aside className="space-y-6">
-          <Card className="border-border/60">
-            <CardHeader>
-              <CardTitle>Resumo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Lead permanece separado de empresa cliente.</p>
-              <p>O contato pode ser reaproveitado sem antecipar o cadastro formal da empresa.</p>
-              <p>Depois do ganho, esse lead pode virar empresa, contrato e onboarding.</p>
-            </CardContent>
-          </Card>
-
-          <div className="flex gap-3">
-            <Button type="submit" disabled={isSubmitting} className="flex-1">
-              {isSubmitting ? "Salvando..." : "Salvar lead"}
-            </Button>
-            <Button type="button" variant="outline" asChild>
-              <a href="/portal/comercial/leads">Cancelar</a>
-            </Button>
-          </div>
-        </aside>
-      </div>
+                  <Field label="Notas de qualificacao" htmlFor="lead-qualification-notes">
+                    <Textarea
+                      id="lead-qualification-notes"
+                      name="qualificationNotes"
+                      rows={6}
+                      placeholder="Contexto, dores, prazo, concorrente ou observacoes da oportunidade."
+                    />
+                  </Field>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
     </form>
   );
 }
@@ -300,7 +295,12 @@ function ContactPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" className="h-auto min-h-11 w-full justify-between px-3 py-2">
+        <Button
+          id="lead-contact-picker"
+          type="button"
+          variant="outline"
+          className="h-auto min-h-11 w-full justify-between px-3 py-2"
+        >
           <div className="min-w-0 text-left">
             <span className="block truncate text-sm font-medium text-foreground">
               {selectedContact ? selectedContact.name : "Selecionar contato existente"}
