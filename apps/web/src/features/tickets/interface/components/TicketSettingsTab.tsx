@@ -693,7 +693,7 @@ function ModuleOptionRow({
                 <Input
                   placeholder={labelPlaceholder}
                   className="h-8 min-w-0"
-                  value={field.value ?? ""}
+                  value={String(field.value ?? "")}
                   onChange={(event) => {
                     const nextLabel = event.target.value;
                     const previousAutoValue = buildModuleHierarchyValue(String(field.value ?? ""));
