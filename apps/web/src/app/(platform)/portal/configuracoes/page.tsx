@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { requireSession } from "@/lib/auth-helpers";
 import {
     getSettingsAdminViewData,
-    getSettingsContractsAdminViewData,
     getSettingsRemoteAdminViewData,
 } from "@/features/settings/application/queries";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
@@ -11,7 +10,7 @@ import { TicketSettingsTab } from "@/features/tickets/interface/components/Ticke
 import { IntegrationsSettingsTab } from "./integrations-tab";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, ShieldCheck, Sliders, Landmark, FileText, Activity, Files, Wallet, Boxes, Monitor, MessageSquare, Plug } from "lucide-react";
+import { Settings, ShieldCheck, Sliders, Landmark, Activity, Files, Wallet, Boxes, Monitor, MessageSquare, Plug } from "lucide-react";
 
 import { AccessControlTab, GeneralSettingsForm, SefazRoutesTab } from "@/features/settings/interface";
 import {
@@ -25,13 +24,11 @@ import {
     TaxNcmContainer,
     TaxSyncStatusBar,
 } from "@/features/tax/interface";
-import { BulkReadjustDialog, ContractSheet, ContractStats, ContractsTable } from "@/features/contracts/interface";
-
 interface SettingsPageProps {
     searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const TAB_VALUES = new Set(["general", "remote", "integrations", "access", "tax", "contracts", "sefaz", "tickets"]);
+const TAB_VALUES = new Set(["general", "remote", "integrations", "access", "tax", "sefaz", "tickets"]);
 type SettingsViewData = Awaited<ReturnType<typeof getSettingsAdminViewData>>;
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -40,8 +37,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const params = searchParams ? await searchParams : undefined;
     const rawTab = typeof params?.tab === "string" ? params.tab : "general";
     const defaultTab = TAB_VALUES.has(rawTab) ? rawTab : "general";
-    const mode = typeof params?.mode === "string" ? params.mode : "";
-    const isContractsCreateMode = mode === "create";
 
     let settingsView: SettingsViewData;
     try {
@@ -50,20 +45,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         redirect("/portal");
     }
 
-    const [contractsViewResult, remoteAdminViewResult] = await Promise.allSettled([
-        getSettingsContractsAdminViewData(),
+    const [remoteAdminViewResult] = await Promise.allSettled([
         getSettingsRemoteAdminViewData(),
     ]);
-
-    const contractsView =
-        contractsViewResult.status === "fulfilled"
-            ? contractsViewResult.value
-            : { contracts: [], companies: [] };
     const remoteAdminView =
         remoteAdminViewResult.status === "fulfilled" ? remoteAdminViewResult.value : { companyOptions: [] };
-
-    const contracts = contractsView.contracts;
-    const companies = contractsView.companies;
     const sefazRoutes = settingsView.sefazRoutes;
 
     return (
@@ -84,11 +70,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                         <TabsTrigger value="general" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Settings className="h-4 w-4" />
                             <span className="font-medium">Geral & Financeiro</span>
-                        </TabsTrigger>
-
-                        <TabsTrigger value="contracts" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
-                            <FileText className="h-4 w-4" />
-                            <span className="font-medium">Contratos</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="remote" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
@@ -128,32 +109,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     <div className="max-w-4xl">
                         <GeneralSettingsForm />
                     </div>
-                </TabsContent>
-
-                <TabsContent value="contracts" className="space-y-6 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h3 className="text-lg font-medium">Contratos</h3>
-                            <p className="text-sm text-muted-foreground">Inativar o ultimo contrato ativo bloqueia empresa e usuarios cliente vinculados.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {!isContractsCreateMode && (
-                                <>
-                                    <BulkReadjustDialog />
-                                    <ContractSheet companies={companies} mode="button" />
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {isContractsCreateMode ? (
-                        <ContractSheet companies={companies} mode="full" />
-                    ) : (
-                        <>
-                            <ContractStats contracts={contracts} />
-                            <ContractsTable contracts={contracts} />
-                        </>
-                    )}
                 </TabsContent>
 
                 <TabsContent value="remote" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">

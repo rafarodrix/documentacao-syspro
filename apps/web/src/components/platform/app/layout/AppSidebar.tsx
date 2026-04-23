@@ -33,10 +33,10 @@ import {
   FileText,
   ShieldCheck,
   HelpCircle,
-  BookLock,
   Monitor,
   Smartphone,
   MessagesSquare,
+  BriefcaseBusiness,
 } from "lucide-react"
 
 export type UserRole = Role
@@ -62,21 +62,24 @@ const NAV_MAIN: NavItemType[] = [
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
-  { title: "Cadastro Empresa", href: "/portal/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
+  { title: "Empresa", href: "/portal/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
   { title: "Usuarios", href: "/portal/cadastros/usuarios", icon: Users, roles: [...SIDEBAR_ROLE_RULES.cadastroUsuarios] },
   { title: "Contatos", href: "/portal/contatos", icon: Smartphone, roles: [...SIDEBAR_ROLE_RULES.cadastroContatos] },
 ]
 
-const NAV_SYSTEM: NavItemType[] = [
+const NAV_SUPPORT: NavItemType[] = [
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES] },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
   { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
+const NAV_COMMERCIAL: NavItemType[] = [
+  { title: "Contratos", href: "/portal/contratos", icon: BriefcaseBusiness, roles: [...SYSTEM_ROLES] },
+]
+
 const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/docs", icon: BookOpen },
   { title: "Releases", href: "/releases", icon: Rocket },
-  { title: "Manuais Tecnicos", href: "/docs/manuais-tecnicos", icon: BookLock, roles: [...SIDEBAR_ROLE_RULES.docsTechnical] },
 ]
 
 function filterByRole(items: NavItemType[], role: UserRole): NavItemType[] {
@@ -281,11 +284,9 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
       <SidebarBrand isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />
 
       <div className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2 py-5 space-y-5">
-        <NavGroup title="Principal" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_MAIN, user.role).map((item) => (
-            <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
-          ))}
-        </NavGroup>
+        {filterByRole(NAV_MAIN, user.role).map((item) => (
+          <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+        ))}
 
         <Separator className="bg-border/30 mx-1" />
 
@@ -303,8 +304,16 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
 
         <Separator className="bg-border/30 mx-1" />
 
-        <NavGroup title="Sistemas" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_SYSTEM, user.role).map((item) => (
+        <NavGroup title="Suporte" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_SUPPORT, user.role).map((item) => (
+            <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+          ))}
+        </NavGroup>
+
+        <Separator className="bg-border/30 mx-1" />
+
+        <NavGroup title="Comercial" collapsed={isSidebarCollapsed}>
+          {filterByRole(NAV_COMMERCIAL, user.role).map((item) => (
             <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
           ))}
         </NavGroup>
