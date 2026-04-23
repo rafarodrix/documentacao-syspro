@@ -180,18 +180,30 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       const data = (await response.json()) as ContactListResponse | ContactItem[];
       const items = Array.isArray(data) ? data : data.items ?? [];
       const nextPagination = Array.isArray(data) ? null : data.pagination;
+      const normalizedPagination: RegistryPaginationState = nextPagination
+        ? {
+            page: nextPagination.page,
+            pageSize: nextPagination.pageSize,
+            total: nextPagination.total,
+            totalPages: nextPagination.totalPages ?? Math.max(1, Math.ceil(nextPagination.total / nextPagination.pageSize)),
+            hasPreviousPage: nextPagination.hasPreviousPage ?? nextPagination.page > 1,
+            hasNextPage:
+              nextPagination.hasNextPage ??
+              nextPagination.page < Math.max(1, Math.ceil(nextPagination.total / nextPagination.pageSize)),
+          }
+        : {
+            page,
+            pageSize: CONTACTS_PAGE_SIZE,
+            total: items.length,
+            totalPages: 1,
+            hasPreviousPage: false,
+            hasNextPage: false,
+          };
 
       setContacts(items);
-      setPagination(nextPagination ?? {
-        page,
-        pageSize: CONTACTS_PAGE_SIZE,
-        total: items.length,
-        totalPages: 1,
-        hasPreviousPage: false,
-        hasNextPage: false,
-      });
-      if (items.length === 0 && nextPagination?.page > 1 && nextPagination.total > 0) {
-        setPage(nextPagination.totalPages ?? 1);
+      setPagination(normalizedPagination);
+      if (items.length === 0 && normalizedPagination.page > 1 && normalizedPagination.total > 0) {
+        setPage(normalizedPagination.totalPages ?? 1);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao carregar contatos";
