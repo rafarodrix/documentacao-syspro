@@ -33,9 +33,9 @@ import {
   RegistryEmptyState,
   RegistryFeedback,
   RegistryFilterGroup,
-  RegistryFooter,
   RegistryMetricCard,
   RegistryMetrics,
+  RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/RegistryListScaffold"
@@ -59,6 +59,7 @@ const normalizeSearch = (value: string) =>
     .toLowerCase()
     .trim()
 const COMPANY_NAME_COLLATOR = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true })
+const COMPANIES_PAGE_SIZE = 50
 
 const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: string }> = {
   ACTIVE: {
@@ -195,6 +196,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
   const [filterBlocked, setFilterBlocked] = useState<"ALL" | "BLOCKED">("ALL")
+  const [page, setPage] = useState(1)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<
@@ -236,6 +238,21 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
       return COMPANY_NAME_COLLATOR.compare(aName, bName)
     })
   }, [items, searchTerm, filterStatus, filterBlocked])
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / COMPANIES_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * COMPANIES_PAGE_SIZE
+    return filteredData.slice(start, start + COMPANIES_PAGE_SIZE)
+  }, [currentPage, filteredData])
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, filterStatus, filterBlocked])
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
 
   const blockedCount = useMemo(
     () => items.filter((company) => company.isBlockedByContract).length,
@@ -389,7 +406,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
 
         <RegistryTableCard>
           <div className="md:hidden divide-y">
-            {filteredData.length === 0 ? (
+            {paginatedData.length === 0 ? (
               <RegistryEmptyState
                 icon={Building2}
                 title="Nenhuma empresa encontrada"
@@ -398,7 +415,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                 onClear={() => setSearchTerm("")}
               />
             ) : (
-              filteredData.map((company) => {
+              paginatedData.map((company) => {
                 const memberCount = company._count?.memberships ?? company.usersCount ?? 0
                 return (
                   <ClickableCard
@@ -463,7 +480,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             </TableHeader>
 
             <TableBody>
-              {filteredData.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-64 text-center">
                     <RegistryEmptyState
@@ -477,7 +494,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((company, index) => {
+                paginatedData.map((company, index) => {
                   const memberCount = company._count?.memberships ?? company.usersCount ?? 0
 
                   return (
@@ -580,14 +597,23 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
           </div>
         </RegistryTableCard>
 
-        <RegistryFooter
-          filtered={filteredData.length}
-          total={items.length}
-          singular="empresa"
-          plural="empresas"
-          searchTerm={searchTerm}
-          onClearSearch={() => setSearchTerm("")}
-        />
+        <div className="flex flex-col gap-2">
+          <RegistryPagination
+            pagination={{
+              page: currentPage,
+              pageSize: COMPANIES_PAGE_SIZE,
+              total: filteredData.length,
+              totalPages,
+              hasPreviousPage: currentPage > 1,
+              hasNextPage: currentPage < totalPages,
+            }}
+            itemLabel={{ singular: "empresa", plural: "empresas" }}
+            onPageChange={setPage}
+          />
+          <div className="px-1 text-xs text-muted-foreground">
+            Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
+          </div>
+        </div>
       </div>
     </>
   )

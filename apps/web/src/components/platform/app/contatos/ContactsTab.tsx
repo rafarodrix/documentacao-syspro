@@ -177,18 +177,21 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       const response = await fetch(`/api/contacts?${params.toString()}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Falha ao carregar contatos (${response.status})`);
 
-      const data = (await response.json()) as ContactListResponse;
-      setContacts(data.items ?? []);
-      setPagination(data.pagination ?? {
+      const data = (await response.json()) as ContactListResponse | ContactItem[];
+      const items = Array.isArray(data) ? data : data.items ?? [];
+      const nextPagination = Array.isArray(data) ? null : data.pagination;
+
+      setContacts(items);
+      setPagination(nextPagination ?? {
         page,
         pageSize: CONTACTS_PAGE_SIZE,
-        total: data.items?.length ?? 0,
+        total: items.length,
         totalPages: 1,
         hasPreviousPage: false,
         hasNextPage: false,
       });
-      if ((data.items?.length ?? 0) === 0 && data.pagination?.page > 1 && data.pagination.total > 0) {
-        setPage(data.pagination.totalPages ?? 1);
+      if (items.length === 0 && nextPagination?.page > 1 && nextPagination.total > 0) {
+        setPage(nextPagination.totalPages ?? 1);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao carregar contatos";

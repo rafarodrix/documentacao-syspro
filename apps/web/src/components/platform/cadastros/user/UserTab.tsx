@@ -29,14 +29,15 @@ import {
   RegistryEmptyState,
   RegistryFeedback,
   RegistryFilterGroup,
-  RegistryFooter,
   RegistryMetricCard,
   RegistryMetrics,
+  RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/RegistryListScaffold";
 
 type UserWithRelations = UserAccessListItem;
+const USERS_PAGE_SIZE = 50;
 
 interface UserTabProps {
   data: UserWithRelations[];
@@ -175,6 +176,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState<"all" | "with_company" | "without_company">("all");
   const [roleFilter, setRoleFilter] = useState<"all" | "client" | "system">("all");
+  const [page, setPage] = useState(1);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState<UserWithRelations | null>(null);
@@ -213,6 +215,21 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
       },
     );
   }, [companyFilter, roleFilter, users, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / USERS_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * USERS_PAGE_SIZE;
+    return filteredData.slice(start, start + USERS_PAGE_SIZE);
+  }, [currentPage, filteredData]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, companyFilter, roleFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const counts = useMemo(() => {
     const client = users.filter((user) => user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER).length;
@@ -291,7 +308,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
         <RegistryToolbar
           searchValue={searchTerm}
           searchPlaceholder="Nome, e-mail, contato ou empresa..."
-          onSearchChange={setSearchTerm}
+          onSearchChange={(value) => setSearchTerm(value)}
           onClearSearch={() => setSearchTerm("")}
           resultLabel={`${filteredData.length} filtrados`}
           filters={
@@ -330,7 +347,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
 
         <RegistryTableCard>
           <div className="md:hidden divide-y">
-            {filteredData.length === 0 ? (
+            {paginatedData.length === 0 ? (
               <RegistryEmptyState
                 icon={Users}
                 title="Nenhum usuario cadastrado"
@@ -339,7 +356,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                 onClear={() => setSearchTerm("")}
               />
             ) : (
-              filteredData.map((user) => (
+              paginatedData.map((user) => (
                 <ClickableCard
                   key={user.id}
                   enabled={canManage}
@@ -389,7 +406,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
             </TableHeader>
 
             <TableBody>
-              {filteredData.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5}>
                     <RegistryEmptyState
@@ -403,7 +420,7 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((user, index) => (
+                paginatedData.map((user, index) => (
                   <ClickableTableRow
                     key={user.id}
                     enabled={canManage}
@@ -487,14 +504,23 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
           </div>
         </RegistryTableCard>
 
-        <RegistryFooter
-          filtered={filteredData.length}
-          total={users.length}
-          singular="usuario"
-          plural="usuarios"
-          searchTerm={searchTerm}
-          onClearSearch={() => setSearchTerm("")}
-        />
+        <div className="flex flex-col gap-2">
+          <RegistryPagination
+            pagination={{
+              page: currentPage,
+              pageSize: USERS_PAGE_SIZE,
+              total: filteredData.length,
+              totalPages,
+              hasPreviousPage: currentPage > 1,
+              hasNextPage: currentPage < totalPages,
+            }}
+            itemLabel={{ singular: "usuario", plural: "usuarios" }}
+            onPageChange={setPage}
+          />
+          <div className="px-1 text-xs text-muted-foreground">
+            Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
+          </div>
+        </div>
       </div>
     </>
   );
