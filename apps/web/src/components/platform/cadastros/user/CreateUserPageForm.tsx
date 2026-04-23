@@ -9,14 +9,23 @@ import type { Role as PrismaRole } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   AlertCircle,
   Building2,
+  Check,
+  ChevronsUpDown,
   Link2,
+  Loader2,
+  Mail,
+  Phone,
+  Search,
+  UserRound,
 } from "lucide-react";
 
 const ROLE = {
@@ -98,10 +107,10 @@ export function CreateUserPageForm({
       role: initialData?.role ?? defaultRole,
       contactId: initialData?.contactId ?? "",
     },
-    mode: "onTouched",
+    mode: "onChange",
   });
 
-  const { errors, isSubmitting, isDirty } = form.formState;
+  const { errors, isSubmitting } = form.formState;
   const selectedContactId = useWatch({
     control: form.control,
     name: "contactId",
@@ -109,6 +118,14 @@ export function CreateUserPageForm({
   const selectedRole = useWatch({
     control: form.control,
     name: "role",
+  });
+  const watchedName = useWatch({
+    control: form.control,
+    name: "name",
+  });
+  const watchedEmail = useWatch({
+    control: form.control,
+    name: "email",
   });
   const selectedRoleIsClient = selectedRole === ROLE.CLIENTE_ADMIN || selectedRole === ROLE.CLIENTE_USER;
 
@@ -202,6 +219,13 @@ export function CreateUserPageForm({
     .join(", ");
   const selectedContactCompanyIds = selectedContact?.companyIds ?? (selectedContact?.companyId ? [selectedContact.companyId] : []);
   const clientContactInvalid = selectedRoleIsClient && Boolean(selectedContactId) && selectedContactCompanyIds.length === 0;
+  const canSubmitForm = Boolean(
+    String(watchedName ?? "").trim().length >= 3 &&
+    String(watchedEmail ?? "").trim().length > 0 &&
+    selectedRole &&
+    selectedContactId &&
+    !clientContactInvalid,
+  );
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
     if (!data.contactId?.trim()) {
@@ -272,7 +296,7 @@ export function CreateUserPageForm({
           progressText={selectedContactId ? "Contato vinculado" : "Contato pendente"}
           submitLabel={mode === "edit" ? "Salvar alteracoes" : "Salvar usuario"}
           isSubmitting={isSubmitting}
-          canSubmit={isDirty && !clientContactInvalid}
+          canSubmit={canSubmitForm}
           footerLeft={
             <>
               {hasErrors ? (
@@ -307,42 +331,24 @@ export function CreateUserPageForm({
                     </div>
                   </div>
 
-                  <Input
-                    placeholder="Buscar contato por nome, email ou whatsapp..."
-                    value={contactSearch}
-                    onChange={(event) => setContactSearch(event.target.value)}
-                  />
-
                   <FormField
                     control={form.control}
                     name="contactId"
                     render={({ field }) => {
-                      const selectValue = toInputValue(field.value) || "__none__";
                       return (
                         <FormItem>
                           <FormLabel>Contato</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(value === "__none__" ? "" : value)}
-                            value={selectValue}
-                            disabled={loadingContacts}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={loadingContacts ? "Carregando contatos..." : "Selecione um contato"}
-                                />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="__none__">Selecione um contato</SelectItem>
-                              {contactOptions.map((contact) => (
-                                <SelectItem key={contact.id} value={contact.id}>
-                                  {contact.name}
-                                  {contact.whatsapp ? ` - ${contact.whatsapp}` : contact.email ? ` - ${contact.email}` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <ContactPicker
+                              value={toInputValue(field.value)}
+                              options={contactOptions}
+                              loading={loadingContacts}
+                              searchValue={contactSearch}
+                              onSearchChange={setContactSearch}
+                              onChange={field.onChange}
+                              placeholder="Selecione um contato"
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       );
@@ -374,20 +380,17 @@ export function CreateUserPageForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nivel de acesso</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {roleItems.map((item) => (
-                              <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                          onChange={(event) => field.onChange(event.target.value)}
+                          value={field.value}
+                        >
+                          {roleItems.map((item) => (
+                            <option key={item.value} value={item.value}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -446,5 +449,140 @@ export function CreateUserPageForm({
         </RegistryFormScaffold>
       </form>
     </Form>
+  );
+}
+
+function ContactPicker({
+  value,
+  options,
+  loading,
+  searchValue,
+  onSearchChange,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  options: ContactOption[];
+  loading: boolean;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((contact) => contact.id === value) ?? null;
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) onSearchChange("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "h-auto min-h-11 w-full justify-between px-3 py-2 shadow-xs",
+            !selected && "text-muted-foreground",
+          )}
+        >
+          <div className="min-w-0 text-left">
+            {selected ? (
+              <>
+                <span className="block truncate text-sm font-medium text-foreground">{selected.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {selected.whatsapp || selected.email || "Sem telefone ou e-mail"}
+                </span>
+              </>
+            ) : (
+              <span className="block truncate text-sm">{placeholder}</span>
+            )}
+          </div>
+          {loading && !open ? (
+            <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-60" />
+          ) : (
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          )}
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[24rem] p-0"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <div className="border-b p-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Buscar por nome, e-mail ou WhatsApp..."
+              className="h-9 border-none bg-muted/20 pl-9 pr-9 shadow-none focus-visible:ring-1 focus-visible:ring-offset-0"
+              autoFocus
+            />
+            {loading ? (
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-primary" />
+            ) : null}
+          </div>
+        </div>
+
+        <div className="max-h-80 overflow-y-auto py-1.5">
+          {options.map((contact) => {
+            const isSelected = contact.id === value;
+            const companyNames = (contact.companies ?? (contact.company ? [contact.company] : []))
+              .map((company) => company.nomeFantasia || company.razaoSocial)
+              .filter(Boolean)
+              .join(", ");
+
+            return (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => {
+                  onChange(contact.id);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-start gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/50",
+                  isSelected && "bg-primary/5 hover:bg-primary/10",
+                )}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground">
+                  <UserRound className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{contact.name}</span>
+                  <div className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1 truncate">
+                      <Phone className="h-3 w-3 shrink-0" />
+                      {contact.whatsapp || "WhatsApp nao informado"}
+                    </span>
+                    <span className="flex items-center gap-1 truncate">
+                      <Mail className="h-3 w-3 shrink-0" />
+                      {contact.email || "E-mail nao informado"}
+                    </span>
+                    <span className="flex items-center gap-1 truncate">
+                      <Building2 className="h-3 w-3 shrink-0" />
+                      {companyNames || "Sem empresa vinculada"}
+                    </span>
+                  </div>
+                </div>
+                {isSelected ? <Check className="mt-1 h-4 w-4 shrink-0 text-primary" /> : null}
+              </button>
+            );
+          })}
+
+          {!options.length && !loading ? (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              Nenhum contato encontrado para o termo informado.
+            </div>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
