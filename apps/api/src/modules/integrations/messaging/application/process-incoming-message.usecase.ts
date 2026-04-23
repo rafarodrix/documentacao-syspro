@@ -467,6 +467,7 @@ export class ProcessIncomingMessageUseCase {
           event: context?.event ?? null,
           instanceId: context?.instanceId ?? null,
           callId: callInfo.callId ?? null,
+          remoteJid: callInfo.remoteJid ?? null,
         }));
         continue;
       }
@@ -563,11 +564,24 @@ export class ProcessIncomingMessageUseCase {
     remoteJid?: string;
   } {
     const normalizedEvent = String(event ?? '').trim().toLowerCase();
-    const remoteJid = this.readFirstString(
+    const remoteJidCandidates = [
+      payload?.key?.remoteJid,
+      payload?.data?.key?.remoteJid,
+      payload?.call?.key?.remoteJid,
+      payload?.Info?.Chat,
+      payload?.info?.Chat,
+      payload?.data?.Info?.Chat,
+      payload?.data?.info?.Chat,
       payload?.remoteJid,
       payload?.RemoteJid,
+      payload?.data?.remoteJid,
+      payload?.data?.RemoteJid,
       payload?.chatId,
       payload?.Chat,
+      payload?.call?.chatId,
+      payload?.call?.Chat,
+      payload?.data?.chatId,
+      payload?.data?.Chat,
       payload?.from,
       payload?.From,
       payload?.callCreator,
@@ -576,11 +590,8 @@ export class ProcessIncomingMessageUseCase {
       payload?.Sender,
       payload?.jid,
       payload?.JID,
-      payload?.key?.remoteJid,
-      payload?.Info?.Chat,
       payload?.Info?.Sender,
       payload?.Info?.CallCreator,
-      payload?.info?.Chat,
       payload?.info?.Sender,
       payload?.info?.CallCreator,
       payload?.call?.from,
@@ -593,13 +604,12 @@ export class ProcessIncomingMessageUseCase {
       payload?.data?.From,
       payload?.data?.callCreator,
       payload?.data?.CallCreator,
-      payload?.data?.chatId,
-      payload?.data?.Chat,
-      payload?.data?.remoteJid,
-      payload?.data?.RemoteJid,
       payload?.data?.Sender,
       payload?.data?.JID,
-    );
+    ];
+    const remoteJid =
+      this.readFirstSupportedPhoneSource(...remoteJidCandidates) ??
+      this.readFirstString(...remoteJidCandidates);
     const phone = this.extractPhoneFromJidOrNumber(remoteJid);
     const status = this.readFirstString(
       payload?.status,
@@ -678,6 +688,8 @@ export class ProcessIncomingMessageUseCase {
         payload?.IsFromMe ??
         payload?.isFromMe ??
         payload?.key?.fromMe ??
+        payload?.data?.key?.fromMe ??
+        payload?.call?.key?.fromMe ??
         payload?.call?.fromMe ??
         payload?.call?.IsFromMe ??
         payload?.data?.fromMe ??
@@ -721,9 +733,55 @@ export class ProcessIncomingMessageUseCase {
   private extractPhoneFromJidOrNumber(value?: string): string | null {
     const normalized = String(value ?? '').trim();
     if (!normalized) return null;
-    const jidUser = (normalized.split('@')[0] ?? normalized).split(':')[0] ?? normalized;
-    const digits = jidUser.replace(/\D/g, '');
-    return digits.length >= 10 ? digits : null;
+    const lower = normalized.toLowerCase();
+
+    if (
+      lower === 'status@broadcast' ||
+      lower.endsWith('@broadcast') ||
+      lower.endsWith('@g.us') ||
+      lower.endsWith('@lid')
+    ) {
+      return null;
+    }
+
+    const supportedJidMatch = lower.match(/^([^@]+)@(s\.whatsapp\.net|c\.us)$/);
+    if (supportedJidMatch) {
+      const jidUser = supportedJidMatch[1].split(':')[0] ?? supportedJidMatch[1];
+      return this.normalizeSupportedPhoneDigits(jidUser.replace(/\D/g, ''));
+    }
+
+    if (lower.includes('@')) {
+      return null;
+    }
+
+    return this.normalizeSupportedPhoneDigits(normalized.replace(/\D/g, ''));
+  }
+
+  private normalizeSupportedPhoneDigits(digits: string): string | null {
+    if (!digits) return null;
+
+    if (digits.startsWith('55')) {
+      return digits.length === 12 || digits.length === 13 ? digits : null;
+    }
+
+    if (digits.length === 10 || digits.length === 11) {
+      return `55${digits}`;
+    }
+
+    if (digits.startsWith('1')) {
+      return digits.length === 11 ? digits : null;
+    }
+
+    return digits.length >= 8 && digits.length <= 15 ? digits : null;
+  }
+
+  private readFirstSupportedPhoneSource(...values: unknown[]): string | undefined {
+    for (const value of values) {
+      const normalized = String(value ?? '').trim();
+      if (!normalized) continue;
+      if (this.extractPhoneFromJidOrNumber(normalized)) return normalized;
+    }
+    return undefined;
   }
 
   private readFirstString(...values: unknown[]): string | undefined {
@@ -1049,28 +1107,6 @@ export class ProcessIncomingMessageUseCase {
             },
           },
         });
-
-        if (sysproContact && !sysproContact.companyLinks.length && connection.companyId) {
-          sysproContact = await this.prisma.companyContact.update({
-            where: { id: sysproContact.id },
-            data: {
-              status: 'LINKED',
-              companyLinks: {
-                create: {
-                  companyId: connection.companyId,
-                  isPrimary: true,
-                },
-              },
-            },
-            include: {
-              companyLinks: {
-                where: { isPrimary: true },
-                take: 1,
-                include: { company: true },
-              },
-            },
-          });
-        }
 
         if (!sysproContact) {
           sysproContact = await this.prisma.companyContact.create({

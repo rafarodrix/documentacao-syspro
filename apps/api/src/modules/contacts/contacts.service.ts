@@ -410,7 +410,7 @@ export class ContactsService {
     }
     let syncedCount = 0;
     let createdCount = 0;
-    let updatedCount = 0;
+    let skippedExistingCount = 0;
 
     for (const contact of contacts) {
       if (!contact.whatsapp) continue;
@@ -421,25 +421,7 @@ export class ContactsService {
       });
 
       if (existing) {
-        const nextName = contact.name || existing.name;
-        const shouldUpdateName = this.shouldSyncEvolutionName(existing);
-        const shouldUpdate =
-          (shouldUpdateName && existing.name !== nextName) ||
-          (existing.status === CompanyContactStatus.ARCHIVED);
-
-        if (shouldUpdate) {
-          await (this.prisma.companyContact as any).update({
-            where: { id: existing.id },
-            data: {
-              name: shouldUpdateName ? nextName : existing.name,
-              source: existing.source === CompanyContactSource.MANUAL ? existing.source : CompanyContactSource.IMPORT,
-              status: this.extractCompanyIds(existing).length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
-              whatsapp: contact.whatsapp,
-            },
-          });
-          updatedCount += 1;
-        }
-
+        skippedExistingCount += 1;
         syncedCount += 1;
         continue;
       }
@@ -457,16 +439,17 @@ export class ContactsService {
     }
 
     this.logger.log(
-      `Sincronizacao Evolution concluida para ${context.evolution.instance}: ${syncedCount} contatos processados (${createdCount} novos, ${updatedCount} atualizados).`
+      `Sincronizacao Evolution concluida para ${context.evolution.instance}: ${syncedCount} contatos processados (${createdCount} novos, ${skippedExistingCount} existentes preservados).`
     );
 
     return {
       success: true,
       syncedCount,
       createdCount,
-      updatedCount,
+      updatedCount: 0,
+      skippedExistingCount,
       mode: 'evolution_pull',
-      message: `Sincronizacao concluida. ${createdCount} contatos novos e ${updatedCount} atualizados.`,
+      message: `Sincronizacao concluida. ${createdCount} contatos novos e ${skippedExistingCount} existentes preservados.`,
     };
   }
 
@@ -720,6 +703,15 @@ export class ContactsService {
             cnpj: company.cnpj ?? null,
           })),
         };
+        const conversationCustomAttributes = {
+          syspro_contact_id: customAttributes.syspro_contact_id,
+          syspro_contact_name: customAttributes.syspro_contact_name,
+          syspro_company_id: customAttributes.syspro_company_id,
+          syspro_company_name: customAttributes.syspro_company_name,
+          syspro_company_cnpj: customAttributes.syspro_company_cnpj,
+          syspro_company_count: customAttributes.syspro_company_count,
+          syspro_company_names: customAttributes.syspro_company_names,
+        };
 
         await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, {
           name: updatedContact.name,
@@ -733,6 +725,14 @@ export class ContactsService {
           },
           custom_attributes: customAttributes,
         });
+
+        if (link.chatwootConversationId) {
+          await this.chatwootClient.updateConversationCustomAttributes(
+            context.chatwoot,
+            link.chatwootConversationId,
+            conversationCustomAttributes,
+          );
+        }
 
         this.logger.log(JSON.stringify({
           flow: 'portal_to_chatwoot',
@@ -748,6 +748,7 @@ export class ContactsService {
             country: primaryCompanyAddress?.pais || null,
           },
           customAttributes,
+          conversationCustomAttributes,
         }));
       }
 
@@ -939,30 +940,4 @@ export class ContactsService {
     throw new ForbiddenException('Contato informado nao pertence integralmente ao seu escopo.');
   }
 
-  private shouldSyncEvolutionName(existing: {
-    source: CompanyContactSource;
-    companyId?: string | null;
-    companyLinks?: Array<{ companyId: string }>;
-    notes?: string | null;
-    email?: string | null;
-    phone?: string | null;
-  }): boolean {
-    if (existing.source === CompanyContactSource.MANUAL) {
-      return false;
-    }
-
-    if (existing.source === CompanyContactSource.IMPORT) {
-      return true;
-    }
-
-    const hasLocalEnrichment = Boolean(
-      existing.companyId ||
-      existing.companyLinks?.length ||
-      existing.notes?.trim() ||
-      existing.email?.trim() ||
-      existing.phone?.trim()
-    );
-
-    return !hasLocalEnrichment;
-  }
 }

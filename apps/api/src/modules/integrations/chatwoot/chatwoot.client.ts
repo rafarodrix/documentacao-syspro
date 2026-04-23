@@ -437,6 +437,19 @@ export class ChatwootClient {
     );
   }
 
+  async updateConversationCustomAttributes(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    customAttributes: Record<string, unknown>
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/custom_attributes`,
+      'POST',
+      { custom_attributes: customAttributes }
+    );
+  }
+
   async listAgents(config: ChatwootConnectionConfig): Promise<any[]> {
     const response = await this.request(
       config,
