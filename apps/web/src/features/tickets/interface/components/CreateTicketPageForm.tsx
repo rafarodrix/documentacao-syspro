@@ -57,7 +57,7 @@ import {
   TicketCompanyPicker,
   type TicketCompanyPickerOption,
 } from "@/features/tickets/interface/components/TicketCompanyPicker";
-import { formatModuleOptionLabel, getModuleHierarchyDepth } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
 
 import "react-quill-new/dist/quill.snow.css";
 
@@ -652,23 +652,11 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Modulo</Label>
-                  <Select value={selectedModule} onValueChange={setSelectedModule}>
-                    <SelectTrigger className="h-10 border-border/60 bg-background">
-                      <SelectValue placeholder="Selecione o modulo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ticketSettings.modules.map((moduleOption) => (
-                        <SelectItem key={moduleOption.id} value={moduleOption.value}>
-                          <span className="flex items-center" style={{ paddingLeft: `${getModuleHierarchyDepth(moduleOption.label) * 12}px` }}>
-                            {formatModuleOptionLabel(moduleOption)}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <TicketModuleCascadeSelect
+                  options={ticketSettings.modules}
+                  value={selectedModule}
+                  onChange={setSelectedModule}
+                />
 
               </CardContent>
             </Card>

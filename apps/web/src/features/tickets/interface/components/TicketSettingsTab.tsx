@@ -33,7 +33,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { saveTicketSettingsAction } from "@/features/tickets/application/ticket-actions";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 function createOptionId(prefix: string) {
@@ -137,14 +136,20 @@ export function TicketSettingsTab() {
   function onSubmit(data: TicketModuleSettings) {
     startTransition(async () => {
       try {
-        const result = await saveTicketSettingsAction(normalizeTicketSettings(data));
+        const payload = normalizeTicketSettings(data);
+        const response = await fetch("/api/platform/settings/tickets", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = (await response.json()) as { success?: boolean; message?: string; error?: string };
         if (!result.success) {
           toast.error(result.error || "Erro ao salvar configuracoes.");
           return;
         }
 
         toast.success(result.message || "Configuracoes do modulo de tickets salvas.");
-        form.reset(normalizeTicketSettings(data));
+        form.reset(payload);
       } catch (error) {
         console.error("Erro ao salvar configuracoes:", error);
         toast.error("Processo falhou.");

@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/TicketCompanyPicker";
-import { formatModuleOptionLabel, getModuleHierarchyDepth } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
 import { cn } from "@/lib/utils";
 
 interface TicketDialogProps {
@@ -462,22 +462,16 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     
                     <FormItem>
                       <Label className="text-xs">Módulo (Local Erro)</Label>
-                      <Select value={selectedModule} onValueChange={setSelectedModule}>
-                        <FormControl>
-                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ticketSettings.modules.map((m) => (
-                            <SelectItem key={m.id} value={m.value} className="text-sm">
-                              <span className="flex items-center" style={{ paddingLeft: `${getModuleHierarchyDepth(m.label) * 12}px` }}>
-                                {formatModuleOptionLabel(m)}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <TicketModuleCascadeSelect
+                        options={ticketSettings.modules}
+                        value={selectedModule}
+                        onChange={setSelectedModule}
+                        labels={{
+                          module: "Modulo",
+                          submodule: "Submodulo",
+                          screen: "Tela",
+                        }}
+                      />
                     </FormItem>
                   </div>
 

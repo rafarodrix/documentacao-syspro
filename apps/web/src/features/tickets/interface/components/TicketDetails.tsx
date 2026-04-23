@@ -23,13 +23,14 @@ import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketM
 import { updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
+import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatModuleOptionLabel, getModuleHierarchyDepth, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem } from "./types";
@@ -255,12 +256,17 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                         />
                                     </EditableSidebarField>
                                     <EditableSidebarField label="Modulo">
-                                        <ClassificationDropdown
-                                            value={currentModule}
-                                            fallback="Nao definido"
+                                        <TicketModuleCascadeSelect
                                             options={ticketSettings.modules}
-                                            disabled={!isAdmin || isPending}
+                                            value={currentModule}
                                             onChange={(module) => changeClassification({ module })}
+                                            disabled={!isAdmin || isPending}
+                                            compact
+                                            labels={{
+                                                module: "Modulo",
+                                                submodule: "Submodulo",
+                                                screen: "Tela",
+                                            }}
                                         />
                                     </EditableSidebarField>
                                 </section>
@@ -547,9 +553,7 @@ function NativeSelectPill({
             <SelectContent align="start" className="z-80 min-w-[var(--radix-select-trigger-width)] border-border/70 bg-popover text-popover-foreground">
                 {normalizedOptions.map((option, index) => (
                     <SelectItem key={`${option.value}-${index}`} value={option.value} className="text-sm">
-                        <span className="flex items-center" style={{ paddingLeft: `${getModuleHierarchyDepth(option.label) * 12}px` }}>
-                            {option.label}
-                        </span>
+                        {option.label}
                     </SelectItem>
                 ))}
             </SelectContent>
