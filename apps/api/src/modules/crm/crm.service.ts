@@ -15,6 +15,29 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 
+type NormalizedLeadPayload = {
+  title: string;
+  stage: CrmLeadCreateInput['stage'];
+  source: CrmLeadCreateInput['source'];
+  ownerUserId: string | null;
+  contactId: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  companyName: string;
+  tradeName: string | null;
+  document: string | null;
+  industry: string | null;
+  companySize: string | null;
+  city: string | null;
+  state: string | null;
+  estimatedValue: number | null;
+  expectedCloseAt: Date | null;
+  nextStep: string | null;
+  qualificationNotes: string | null;
+  lostReason: string | null;
+};
+
 @Injectable()
 export class CrmService {
   constructor(
@@ -189,7 +212,7 @@ export class CrmService {
     };
   }
 
-  private normalizeCreatePayload(input: CrmLeadCreateInput) {
+  private normalizeCreatePayload(input: CrmLeadCreateInput): NormalizedLeadPayload {
     return {
       title: input.title.trim(),
       stage: input.stage,
@@ -214,8 +237,8 @@ export class CrmService {
     };
   }
 
-  private normalizeUpdatePayload(input: CrmLeadUpdateInput) {
-    const payload: Record<string, unknown> = {};
+  private normalizeUpdatePayload(input: CrmLeadUpdateInput): Partial<NormalizedLeadPayload> {
+    const payload: Partial<NormalizedLeadPayload> = {};
 
     if (input.title !== undefined) payload.title = input.title.trim();
     if (input.stage !== undefined) payload.stage = input.stage;
