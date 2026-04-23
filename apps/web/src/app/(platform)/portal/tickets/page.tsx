@@ -49,7 +49,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
 
   const { data, success, pagination, staleWarning, queueCounts, statusCounts } = await getTicketsAction({
     page,
-    pageSize: 20,
+    pageSize: 50,
     queue,
     team: team === "all" ? undefined : team,
     search,
@@ -74,7 +74,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
 
   const safePagination = pagination ?? {
     page,
-    pageSize: 20,
+    pageSize: 50,
     hasPreviousPage: false,
     hasNextPage: false,
     total: data.length,

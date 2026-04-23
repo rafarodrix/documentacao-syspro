@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft as IconLeft, ChevronRight as IconRight, PlusCircle, Search } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 
 import { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
 import { TicketsTable } from "@/features/tickets/interface/components/TicketsTable";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./types";
@@ -114,23 +115,16 @@ export function TicketsContainer({
 
       <TicketsTable tickets={tickets} isAdmin={isAdmin} statusGroup={statusGroup} />
 
-      <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <span>Total filtrado: {pagination.total ?? tickets.length}</span>
-        <span>Itens nesta pagina: {tickets.length}</span>
-      </div>
-
-      {(pagination.hasPreviousPage || pagination.hasNextPage) && (
-        <div className="flex flex-wrap items-center justify-start gap-2 pt-2 sm:justify-end">
-          <span className="w-full text-sm text-muted-foreground sm:mr-2 sm:w-auto">
-            Pagina {pagination.page}
-            {pagination.total !== null ? ` de ${Math.max(1, Math.ceil(pagination.total / pagination.pageSize))}` : ""}
-          </span>
-          <Button variant="outline" size="icon" onClick={() => goToPage(pagination.page - 1)} disabled={!pagination.hasPreviousPage} className="h-8 w-8">
-            <IconLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => goToPage(pagination.page + 1)} disabled={!pagination.hasNextPage} className="h-8 w-8">
-            <IconRight className="h-4 w-4" />
-          </Button>
+      {pagination.total !== null ? (
+        <RegistryPagination
+          pagination={{ ...pagination, total: pagination.total }}
+          itemLabel={{ singular: "ticket", plural: "tickets" }}
+          onPageChange={goToPage}
+        />
+      ) : (
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>Total filtrado indisponivel</span>
+          <span>Itens nesta pagina: {tickets.length}</span>
         </div>
       )}
     </div>

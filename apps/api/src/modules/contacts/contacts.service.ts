@@ -12,6 +12,8 @@ type ContactQueryInput = {
   unlinked?: string;
   companyId?: string;
   limit?: string;
+  page?: string;
+  pageSize?: string;
 };
 
 type CreateContactInput = {
@@ -55,7 +57,12 @@ export class ContactsService {
   async getContacts(input: ContactQueryInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.assertCanViewContacts(rawHeaders);
     const scope = await this.resolveContactCompanyScope(requester);
-    if (!scope.isGlobal && !scope.companyIds.length) return [];
+    const wantsPagination = input.page !== undefined || input.pageSize !== undefined;
+    if (!scope.isGlobal && !scope.companyIds.length) {
+      return wantsPagination
+        ? this.serializeContactListResponse([], 1, this.parsePageSize(input.pageSize ?? input.limit), 0)
+        : [];
+    }
 
     const q = input.q?.trim();
     const qDigits = q?.replace(/\D/g, '') ?? '';
@@ -84,17 +91,23 @@ export class ContactsService {
       ];
     }
 
-    const limitParsed = Number.parseInt(input.limit || '50', 10);
-    const take = Math.min(200, Math.max(1, Number.isNaN(limitParsed) ? 50 : limitParsed));
+    const page = this.parsePage(input.page);
+    const take = wantsPagination ? this.parsePageSize(input.pageSize ?? input.limit) : this.parseLegacyLimit(input.limit);
+    const skip = wantsPagination ? (page - 1) * take : 0;
 
-    const contacts = await (this.prisma.companyContact as any).findMany({
-      where,
-      include: this.contactInclude(),
-      orderBy: [{ updatedAt: 'desc' }],
-      take,
-    });
+    const [contacts, total] = await Promise.all([
+      (this.prisma.companyContact as any).findMany({
+        where,
+        include: this.contactInclude(),
+        orderBy: [{ updatedAt: 'desc' }],
+        skip,
+        take,
+      }),
+      wantsPagination ? (this.prisma.companyContact as any).count({ where }) : Promise.resolve(0),
+    ]);
 
-    return contacts.map((contact: any) => this.serializeContact(contact));
+    const items = contacts.map((contact: any) => this.serializeContact(contact));
+    return wantsPagination ? this.serializeContactListResponse(items, page, take, total) : items;
   }
 
   async getUnlinkedContacts(rawHeaders?: IncomingHttpHeaders) {
@@ -113,6 +126,60 @@ export class ContactsService {
     });
 
     return contacts.map((contact: any) => this.serializeContact(contact));
+  }
+
+  async getContactStats(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+
+    if (!scope.isGlobal && !scope.companyIds.length) {
+      return {
+        all: 0,
+        linked: 0,
+        unlinked: 0,
+        withEmail: 0,
+        withPhone: 0,
+      };
+    }
+
+    const baseWhere: any = scope.isGlobal
+      ? {}
+      : { companyLinks: { some: { companyId: { in: scope.companyIds } } } };
+
+    const [all, linked, unlinked, withEmail, withPhone] = await Promise.all([
+      (this.prisma.companyContact as any).count({ where: baseWhere }),
+      (this.prisma.companyContact as any).count({
+        where: scope.isGlobal
+          ? { companyLinks: { some: {} } }
+          : baseWhere,
+      }),
+      scope.isGlobal
+        ? (this.prisma.companyContact as any).count({ where: { companyLinks: { none: {} } } })
+        : Promise.resolve(0),
+      (this.prisma.companyContact as any).count({
+        where: {
+          ...baseWhere,
+          email: { not: null },
+        },
+      }),
+      (this.prisma.companyContact as any).count({
+        where: {
+          ...baseWhere,
+          OR: [
+            { whatsapp: { not: null } },
+            { phone: { not: null } },
+          ],
+        },
+      }),
+    ]);
+
+    return {
+      all,
+      linked,
+      unlinked,
+      withEmail,
+      withPhone,
+    };
   }
 
   async getContactById(contactId: string, rawHeaders?: IncomingHttpHeaders) {
@@ -427,6 +494,37 @@ export class ContactsService {
       companyIds: companies.map((company: any) => company.id),
       companies,
     };
+  }
+
+  private serializeContactListResponse(items: any[], page: number, pageSize: number, total: number) {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    return {
+      items,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
+      },
+    };
+  }
+
+  private parsePage(value?: string): number {
+    const parsed = Number.parseInt(value || '1', 10);
+    return Math.max(1, Number.isNaN(parsed) ? 1 : parsed);
+  }
+
+  private parsePageSize(value?: string): number {
+    const parsed = Number.parseInt(value || '50', 10);
+    return Math.min(100, Math.max(1, Number.isNaN(parsed) ? 50 : parsed));
+  }
+
+  private parseLegacyLimit(value?: string): number {
+    const parsed = Number.parseInt(value || '50', 10);
+    return Math.min(200, Math.max(1, Number.isNaN(parsed) ? 50 : parsed));
   }
 
   private extractCompanyIds(contact: any): string[] {

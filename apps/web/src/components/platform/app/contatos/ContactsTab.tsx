@@ -46,11 +46,12 @@ import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
-  RegistryFooter,
   RegistryMetricCard,
   RegistryMetrics,
+  RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
+  type RegistryPaginationState,
 } from "@/components/platform/shared/RegistryListScaffold";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,19 @@ type ContactItem = {
 
 type ScopeFilter = "all" | "linked" | "unlinked";
 
+type ContactStats = {
+  all: number;
+  linked: number;
+  unlinked: number;
+  withEmail: number;
+  withPhone: number;
+};
+
+type ContactListResponse = {
+  items: ContactItem[];
+  pagination: RegistryPaginationState;
+};
+
 interface ContactsTabProps {
   canCreate: boolean;
   canEdit: boolean;
@@ -93,13 +107,7 @@ const SCOPE_LABELS: Record<ScopeFilter, string> = {
   unlinked: "Sem empresa",
 };
 
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
+const CONTACTS_PAGE_SIZE = 50;
 
 function getCompanyNames(contact: ContactItem) {
   if (contact.companies?.length) {
@@ -130,12 +138,30 @@ function formatCpf(value?: string | null) {
 export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps) {
   const router = useRouter();
   const [contacts, setContacts] = useState<ContactItem[]>([]);
+  const [contactStats, setContactStats] = useState<ContactStats | null>(null);
+  const [pagination, setPagination] = useState<RegistryPaginationState>({
+    page: 1,
+    pageSize: CONTACTS_PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
+  const [page, setPage] = useState(1);
   const [loadingList, setLoadingList] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [scope, setScope] = useState<ScopeFilter>("all");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ type: "delete" | "unlink"; contact: ContactItem } | null>(null);
+
+  const loadContactStats = async () => {
+    const response = await fetch("/api/contacts/stats", { cache: "no-store" });
+    if (!response.ok) throw new Error(`Falha ao carregar contadores (${response.status})`);
+
+    const data = (await response.json()) as ContactStats;
+    setContactStats(data);
+  };
 
   const loadContacts = async () => {
     setLoadingList(true);
@@ -144,13 +170,26 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       const params = new URLSearchParams();
       if (scope === "unlinked") params.set("unlinked", "true");
       if (scope === "linked") params.set("unlinked", "false");
-      params.set("limit", "200");
+      if (searchTerm.trim()) params.set("q", searchTerm.trim());
+      params.set("page", String(page));
+      params.set("pageSize", String(CONTACTS_PAGE_SIZE));
 
       const response = await fetch(`/api/contacts?${params.toString()}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Falha ao carregar contatos (${response.status})`);
 
-      const data = (await response.json()) as ContactItem[];
-      setContacts(data);
+      const data = (await response.json()) as ContactListResponse;
+      setContacts(data.items ?? []);
+      setPagination(data.pagination ?? {
+        page,
+        pageSize: CONTACTS_PAGE_SIZE,
+        total: data.items?.length ?? 0,
+        totalPages: 1,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      });
+      if ((data.items?.length ?? 0) === 0 && data.pagination?.page > 1 && data.pagination.total > 0) {
+        setPage(data.pagination.totalPages ?? 1);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao carregar contatos";
       toast.error(message);
@@ -160,49 +199,50 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
     }
   };
 
+  const refreshContactsView = async () => {
+    try {
+      await Promise.all([loadContacts(), loadContactStats()]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao atualizar contatos";
+      toast.error(message);
+    }
+  };
+
   useEffect(() => {
-    void loadContacts();
+    void refreshContactsView();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope]);
+  }, [scope, page, searchTerm]);
 
   const filteredData = useMemo(() => {
-    const term = normalizeSearch(searchTerm);
-
     return contacts
-      .filter((contact) => {
-        if (!term) return true;
-
-        const searchable = [
-          contact.name,
-          contact.email,
-          contact.whatsapp,
-          contact.phone,
-          contact.cpf,
-          contact.jobTitle,
-          contact.notes,
-          getCompanyNames(contact),
-        ]
-          .filter(Boolean)
-          .join(" ");
-
-        return normalizeSearch(searchable).includes(term);
-      })
       .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base", numeric: true }));
-  }, [contacts, searchTerm]);
+  }, [contacts]);
 
   const counts = useMemo(() => {
     const linked = contacts.filter((contact) => getLinkedCount(contact) > 0).length;
     const withEmail = contacts.filter((contact) => Boolean(contact.email)).length;
     const withPhone = contacts.filter((contact) => Boolean(getPrimaryPhone(contact))).length;
 
-    return {
+    const localCounts = {
       all: contacts.length,
       linked,
       unlinked: contacts.length - linked,
       withEmail,
       withPhone,
     };
-  }, [contacts]);
+
+    return contactStats ?? localCounts;
+  }, [contactStats, contacts]);
+
+  const handleScopeChange = (nextScope: ScopeFilter) => {
+    setPage(1);
+    setScope(nextScope);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setPage(1);
+    setSearchTerm(value);
+  };
 
   const openEdit = (contact: ContactItem) => {
     if (!canEdit) return;
@@ -220,9 +260,8 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       });
       if (!response.ok) throw new Error(`Falha ao desvincular (${response.status})`);
 
-      const updated = (await response.json()) as ContactItem;
-      setContacts((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       toast.success("Empresas desvinculadas com sucesso.");
+      await refreshContactsView();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao desvincular";
       toast.error(message);
@@ -238,8 +277,8 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       const response = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" });
       if (!response.ok) throw new Error(`Falha ao excluir contato (${response.status})`);
 
-      setContacts((current) => current.filter((item) => item.id !== contact.id));
       toast.success("Contato excluido com sucesso.");
+      await refreshContactsView();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao excluir contato";
       toast.error(message);
@@ -263,7 +302,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
       }
 
       toast.success(payload?.message || "Sincronizacao concluida.");
-      await loadContacts();
+      await refreshContactsView();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao sincronizar contatos";
       toast.error(message);
@@ -309,13 +348,13 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
         <RegistryToolbar
           searchValue={searchTerm}
           searchPlaceholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
-          onSearchChange={setSearchTerm}
-          onClearSearch={() => setSearchTerm("")}
-          resultLabel={`${filteredData.length} filtrados`}
+          onSearchChange={handleSearchChange}
+          onClearSearch={() => handleSearchChange("")}
+          resultLabel={`${pagination.total} filtrados`}
           filters={
             <RegistryFilterGroup
               value={scope}
-              onChange={setScope}
+              onChange={handleScopeChange}
               options={(Object.keys(SCOPE_LABELS) as ScopeFilter[]).map((key) => ({
                 value: key,
                 label: SCOPE_LABELS[key],
@@ -325,7 +364,13 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
           }
           actions={
             <>
-              <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => void loadContacts()} disabled={loadingList}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2"
+                onClick={() => void refreshContactsView()}
+                disabled={loadingList}
+              >
                 {loadingList ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Atualizar
               </Button>
@@ -355,7 +400,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
                 title="Nenhum contato encontrado"
                 description="Ajuste os filtros ou cadastre um novo contato."
                 searchTerm={searchTerm}
-                onClear={() => setSearchTerm("")}
+                onClear={() => handleSearchChange("")}
               />
             ) : (
               filteredData.map((contact) => (
@@ -399,7 +444,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
                         title="Nenhum contato encontrado"
                         description="Ajuste os filtros ou cadastre um novo contato."
                         searchTerm={searchTerm}
-                        onClear={() => setSearchTerm("")}
+                        onClear={() => handleSearchChange("")}
                         compact
                       />
                     </TableCell>
@@ -424,19 +469,22 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
           </div>
         </RegistryTableCard>
 
-        <RegistryFooter
-          filtered={filteredData.length}
-          total={contacts.length}
-          singular="contato"
-          plural="contatos"
-          searchTerm={searchTerm}
-          onClearSearch={() => setSearchTerm("")}
-          right={(
+        <div className="flex flex-col gap-2">
+          <RegistryPagination
+            pagination={pagination}
+            itemLabel={{ singular: "contato", plural: "contatos" }}
+            isLoading={loadingList}
+            onPageChange={setPage}
+          />
+          <div className="flex flex-col gap-1 px-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
-            Email: {counts.withEmail} | Telefone: {counts.withPhone}
+              Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{filteredData.length}</span>
             </span>
-          )}
-        />
+            <span>
+              Email: {counts.withEmail} | Telefone: {counts.withPhone}
+            </span>
+          </div>
+        </div>
       </div>
     </>
   );

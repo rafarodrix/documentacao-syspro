@@ -31,18 +31,27 @@ export class ContactsController {
     @Query('unlinked') unlinked?: string,
     @Query('companyId') companyId?: string,
     @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
     return this.contactsService.getContacts({
       q: query,
       unlinked,
       companyId,
       limit,
+      page,
+      pageSize,
     }, req.headers);
   }
 
   @Get('unlinked')
   getUnlinked(@Req() req: Request) {
     return this.contactsService.getUnlinkedContacts(req.headers);
+  }
+
+  @Get('stats')
+  getStats(@Req() req: Request) {
+    return this.contactsService.getContactStats(req.headers);
   }
 
   @Get(':id')

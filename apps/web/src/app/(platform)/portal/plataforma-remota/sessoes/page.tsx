@@ -46,7 +46,7 @@ export default async function RemoteSessionsPage({ searchParams }: RemoteSession
     hostId: hostParam?.trim() || undefined,
     ticket: ticketParam?.trim() || undefined,
     page,
-    pageSize: 20,
+    pageSize: 50,
   });
 
   return (

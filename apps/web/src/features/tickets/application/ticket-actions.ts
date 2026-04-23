@@ -202,7 +202,7 @@ function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
 
 export async function getTicketsAction(params: TicketQueryParams = {}): Promise<TicketsDataResponse> {
   const page = Math.max(1, params.page ?? 1);
-  const pageSize = Math.min(50, Math.max(10, params.pageSize ?? 20));
+  const pageSize = Math.min(100, Math.max(10, params.pageSize ?? 50));
 
   const query = new URLSearchParams();
   query.set("page", String(page));

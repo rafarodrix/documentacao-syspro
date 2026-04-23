@@ -416,7 +416,7 @@ export class TicketsService {
     const accessScope = await this.getTicketAccessScope(requester);
 
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '20', 10) || 20));
+    const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '50', 10) || 50));
 
     const baseWhere: Prisma.ConversationWhereInput = {};
 

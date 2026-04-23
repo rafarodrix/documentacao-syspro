@@ -28,7 +28,7 @@ export async function getRemoteSessions(
 }> {
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
   const normalizedTicket = options?.ticket?.trim() ?? "";
-  const pageSize = Math.min(Math.max(options?.pageSize ?? 20, 1), 100);
+  const pageSize = Math.min(Math.max(options?.pageSize ?? 50, 1), 100);
   const page = Math.max(options?.page ?? 1, 1);
   const hostScopeWhere = tenantScope.isGlobalView
     ? {}

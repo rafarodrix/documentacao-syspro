@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Activity, Clock, History, Monitor, Ticket, User, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Activity, Clock, History, Monitor, Ticket, User, Filter } from "lucide-react";
+import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
 import { cn } from "@/lib/utils";
 import type { RemoteSessionSummary, RemoteSessionStatus } from "@/features/remote/domain/model";
 import { formatDateOnly, formatDateTime } from "./host-details/utils";
@@ -268,33 +269,12 @@ export function RemoteSessionsPanel({ sessions, pagination, hostOptions, filters
         </Card>
       </section>
 
-      <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <span>
-          Pagina {pagination.page} de {pagination.totalPages}
-        </span>
-        <span>Total filtrado: {pagination.total}</span>
-      </div>
-
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => goToPage(pagination.page - 1)}
-          disabled={!pagination.hasPreviousPage || isPending}
-          className="h-8 w-8"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => goToPage(pagination.page + 1)}
-          disabled={!pagination.hasNextPage || isPending}
-          className="h-8 w-8"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <RegistryPagination
+        pagination={pagination}
+        itemLabel={{ singular: "sessao", plural: "sessoes" }}
+        isLoading={isPending}
+        onPageChange={goToPage}
+      />
     </div>
   );
 }
