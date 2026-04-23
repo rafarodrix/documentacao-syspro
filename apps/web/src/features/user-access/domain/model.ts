@@ -1,5 +1,5 @@
 import type { Role } from "@prisma/client";
-import type { CreateUserInput } from "@dosc-syspro/contracts";
+import type { CreateUserInput, UpdateUserInput } from "@dosc-syspro/contracts/user";
 
 export interface UserAccessCompanyOption {
   id: string;
@@ -60,7 +60,7 @@ export type UserAccessListItem = {
   companyId: string | null;
 };
 
-export type UserAccessValidationErrors = Partial<Record<keyof CreateUserInput, string[]>>;
+export type UserAccessValidationErrors = Partial<Record<keyof (CreateUserInput & UpdateUserInput), string[]>>;
 
 export type UserAccessActionSuccess<T = void> = T extends void
   ? { success: true; message?: string }

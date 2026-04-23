@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
+import { createUserSchema, updateUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Role } from "@prisma/client";
 import { z } from "zod";
@@ -25,7 +25,9 @@ type ApiErrorResponse = {
 };
 
 function toValidationErrors(
-  fieldErrors: z.inferFlattenedErrors<typeof createUserSchema>["fieldErrors"],
+  fieldErrors:
+    | z.inferFlattenedErrors<typeof createUserSchema>["fieldErrors"]
+    | z.inferFlattenedErrors<typeof updateUserSchema>["fieldErrors"],
 ): UserAccessValidationErrors {
   return fieldErrors as UserAccessValidationErrors;
 }
@@ -146,7 +148,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
   const isClientManager = session.role === Role.CLIENTE_ADMIN;
   if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
 
-  const updateValidation = createUserSchema.partial().safeParse(data);
+  const updateValidation = updateUserSchema.safeParse(data);
   if (!updateValidation.success) {
     return {
       success: false,

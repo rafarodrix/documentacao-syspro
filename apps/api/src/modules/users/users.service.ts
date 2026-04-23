@@ -14,6 +14,13 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { UserContactAccessService } from './user-contact-access.service';
+import {
+  createUserSchema,
+  updateUserSchema,
+  type CreateUserInput,
+  type UpdateUserInput,
+  type UserEmailAvailabilityResult,
+} from '@dosc-syspro/contracts/user';
 
 const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
@@ -23,22 +30,6 @@ const ROLE_LABELS: Record<Role, string> = {
   [Role.SUPORTE]: 'Suporte',
   [Role.CLIENTE_ADMIN]: 'Gestor da Unidade',
   [Role.CLIENTE_USER]: 'Usuario',
-};
-
-type CreateUserInput = {
-  email: string;
-  name: string;
-  password?: string;
-  role?: Role;
-  contactId?: string;
-};
-
-type UpdateUserInput = {
-  name?: string;
-  email?: string;
-  role?: Role;
-  contactId?: string | null;
-  isActive?: boolean;
 };
 
 @Injectable()
@@ -114,7 +105,60 @@ export class UsersService {
     return user;
   }
 
-  async create(data: CreateUserInput, rawHeaders?: IncomingHttpHeaders) {
+  async checkEmailAvailability(email: string, rawHeaders?: IncomingHttpHeaders): Promise<UserEmailAvailabilityResult> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const canCreateUsers = await this.authorizationService.userHasPermission(requester, 'users:create', {
+      acceptCompanyScope: true,
+    });
+    const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const isClientManager = requester.role === Role.CLIENTE_ADMIN;
+
+    if (!canCreateUsers || (!isGlobalUserManager && !isClientManager)) {
+      throw new ForbiddenException('Acesso negado.');
+    }
+
+    const normalizedEmail = this.normalizeEmail(email);
+    if (!normalizedEmail) {
+      return {
+        available: false,
+        code: 'INVALID_EMAIL',
+        message: 'Informe um e-mail valido.',
+      };
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: {
+        id: true,
+        isActive: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!existingUser) {
+      return {
+        available: true,
+        code: 'AVAILABLE',
+        message: 'E-mail disponivel para cadastro.',
+      };
+    }
+
+    if (existingUser.deletedAt || !existingUser.isActive) {
+      return {
+        available: false,
+        code: 'LOCAL_INACTIVE_EXISTS',
+        message: 'Ja existe um usuario inativo ou excluido com este e-mail.',
+      };
+    }
+
+    return {
+      available: false,
+      code: 'LOCAL_ACTIVE_EXISTS',
+      message: 'Este e-mail ja esta cadastrado como usuario.',
+    };
+  }
+
+  async create(input: CreateUserInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
     const canCreateUsers = await this.authorizationService.userHasPermission(requester, 'users:create', {
@@ -125,6 +169,13 @@ export class UsersService {
     if (!canCreateUsers || (!isGlobalUserManager && !isClientManager)) {
       throw new ForbiddenException('Acesso negado.');
     }
+
+    const parsed = createUserSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten().fieldErrors);
+    }
+
+    const data = parsed.data;
 
     const normalizedEmail = this.normalizeEmail(data.email);
     if (!normalizedEmail) {
@@ -229,7 +280,7 @@ export class UsersService {
     return message || 'Falha ao criar usuario na autenticacao segura.';
   }
 
-  async update(id: string, data: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
+  async update(id: string, input: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
     const canEditUsers = await this.authorizationService.userHasPermission(requester, 'users:edit', {
@@ -238,6 +289,13 @@ export class UsersService {
     const isClientManager = requester.role === Role.CLIENTE_ADMIN;
 
     if (!canEditUsers || (!isGlobalUserManager && !isClientManager)) throw new ForbiddenException('Acesso negado.');
+
+    const parsed = updateUserSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten().fieldErrors);
+    }
+
+    const data = parsed.data;
 
     const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');

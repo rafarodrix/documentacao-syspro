@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts";
+import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
 import type { Role as PrismaRole } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -73,6 +73,13 @@ export interface CreateUserPageFormProps {
 }
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
+const isValidEmailFormat = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+type EmailAvailabilityState =
+  | { status: "idle" }
+  | { status: "checking" }
+  | { status: "available"; message: string }
+  | { status: "unavailable"; message: string };
 
 export function CreateUserPageForm({
   companies,
@@ -97,6 +104,7 @@ export function CreateUserPageForm({
   const [contactSearch, setContactSearch] = useState("");
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [emailAvailability, setEmailAvailability] = useState<EmailAvailabilityState>({ status: "idle" });
 
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -128,6 +136,7 @@ export function CreateUserPageForm({
     name: "email",
   });
   const selectedRoleIsClient = selectedRole === ROLE.CLIENTE_ADMIN || selectedRole === ROLE.CLIENTE_USER;
+  const normalizedWatchedEmail = String(watchedEmail ?? "").trim().toLowerCase();
 
   useEffect(() => {
     const query = contactSearch.trim();
@@ -208,6 +217,56 @@ export function CreateUserPageForm({
     };
   }, [contactOptions, form]);
 
+  useEffect(() => {
+    if (mode === "edit") return;
+    if (!normalizedWatchedEmail || !isValidEmailFormat(normalizedWatchedEmail)) {
+      setEmailAvailability({ status: "idle" });
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        setEmailAvailability({ status: "checking" });
+        const params = new URLSearchParams({ email: normalizedWatchedEmail });
+        const response = await fetch(`/api/users/check-email?${params.toString()}`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        if (!response.ok) {
+          setEmailAvailability({ status: "idle" });
+          return;
+        }
+
+        if (payload?.available) {
+          setEmailAvailability({
+            status: "available",
+            message: payload?.message || "E-mail disponivel para cadastro.",
+          });
+          return;
+        }
+
+        setEmailAvailability({
+          status: "unavailable",
+          message: payload?.message || "Este e-mail nao esta disponivel.",
+        });
+      } catch {
+        if (!cancelled) {
+          setEmailAvailability({ status: "idle" });
+        }
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mode, normalizedWatchedEmail]);
+
   const selectedContact = useMemo(() => {
     if (!selectedContactId) return null;
     return contactOptions.find((contact) => contact.id === selectedContactId) ?? null;
@@ -224,10 +283,16 @@ export function CreateUserPageForm({
     String(watchedEmail ?? "").trim().length > 0 &&
     selectedRole &&
     selectedContactId &&
-    !clientContactInvalid,
+    !clientContactInvalid &&
+    (mode === "edit" || emailAvailability.status !== "unavailable"),
   );
 
   const onSubmit: SubmitHandler<CreateUserInput> = async (data) => {
+    if (mode !== "edit" && emailAvailability.status === "unavailable") {
+      toast.error(emailAvailability.message);
+      return;
+    }
+
     if (!data.contactId?.trim()) {
       toast.error("Selecione um contato para este usuario.");
       return;
@@ -313,6 +378,12 @@ export function CreateUserPageForm({
                 <Badge variant="outline" className="gap-1 border-amber-500/40 text-[11px] font-medium text-amber-700">
                   <AlertCircle className="h-3 w-3" />
                   Contato sem empresa vinculada
+                </Badge>
+              ) : null}
+              {mode !== "edit" && emailAvailability.status === "unavailable" ? (
+                <Badge variant="outline" className="gap-1 border-destructive/40 text-[11px] font-medium text-destructive">
+                  <AlertCircle className="h-3 w-3" />
+                  {emailAvailability.message}
                 </Badge>
               ) : null}
             </>
@@ -406,9 +477,15 @@ export function CreateUserPageForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>E-mail de acesso</FormLabel>
-                        <FormControl>
+                      <FormControl>
                           <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
+                      </FormControl>
+                        {mode !== "edit" && emailAvailability.status === "checking" ? (
+                          <p className="text-[11px] text-muted-foreground">Verificando disponibilidade do e-mail...</p>
+                        ) : null}
+                        {mode !== "edit" && emailAvailability.status === "available" ? (
+                          <p className="text-[11px] text-emerald-600">E-mail disponivel para cadastro.</p>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}

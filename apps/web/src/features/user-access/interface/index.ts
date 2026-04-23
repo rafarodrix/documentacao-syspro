@@ -1,2 +1,2 @@
-export { CreateUserPageForm } from "@/components/platform/cadastros/user/CreateUserPageForm";
+export { CreateUserPageForm, type CreateUserPageFormProps } from "./CreateUserPageForm";
 export { UserTab } from "@/components/platform/cadastros/user/UserTab";

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { Role } from '@prisma/client';
 import type { Request } from 'express';
+import type { CreateUserInput, UpdateUserInput } from '@dosc-syspro/contracts/user';
 
 @Controller('users')
 export class UsersController {
@@ -12,10 +12,15 @@ export class UsersController {
     return this.usersService.findAll({ search, role }, req.headers);
   }
 
+  @Get('check-email')
+  checkEmail(@Req() req: Request, @Query('email') email?: string) {
+    return this.usersService.checkEmailAvailability(email ?? '', req.headers);
+  }
+
   @Post()
   create(
     @Req() req: Request,
-    @Body() body: { email: string; name: string; password?: string; role?: Role; contactId?: string },
+    @Body() body: CreateUserInput,
   ) {
     return this.usersService.create(body, req.headers);
   }
@@ -34,7 +39,7 @@ export class UsersController {
   update(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() body: { name?: string; email?: string; role?: Role; contactId?: string | null; isActive?: boolean },
+    @Body() body: UpdateUserInput,
   ) {
     return this.usersService.update(id, body, req.headers);
   }
