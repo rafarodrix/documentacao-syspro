@@ -21,6 +21,7 @@ import type {
 } from "@/features/company/domain/model";
 import { CompanyStatus, IndicadorIE } from "@prisma/client";
 import { createCompanyAction, updateCompanyAction } from "@/features/company/application/actions";
+import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
 import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -220,21 +221,8 @@ export function CreateCompanyPageForm({
     setJustImported(false);
     const tid = toast.loading("Consultando CNPJ...");
     try {
-      const response = await fetch(`/api/companies/lookup-cnpj?cnpj=${encodeURIComponent(normalizedCnpj)}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-      let result: CompanyActionResponse<CompanyRegistryLookupResponse>;
-      try {
-        result = (await response.json()) as CompanyActionResponse<CompanyRegistryLookupResponse>;
-      } catch {
-        result = {
-          success: false,
-          message: response.ok
-            ? "Erro ao interpretar a resposta."
-            : `Falha HTTP ${response.status} ao consultar CNPJ.`,
-        };
-      }
+      const result: CompanyActionResponse<CompanyRegistryLookupResponse> =
+        await lookupCompanyProfileByCnpjClient(normalizedCnpj);
 
       if (!result.success || !result.data?.profile) {
         toast.dismiss(tid);
