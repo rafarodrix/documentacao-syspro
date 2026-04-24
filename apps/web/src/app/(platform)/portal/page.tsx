@@ -56,7 +56,9 @@ export default async function DashboardPage() {
 
   if (data.mode === "admin") {
     const adminData = data;
-    const showUsersMetric = adminData.canViewUsers;
+    const showUsersMetric = adminData.canViewUsers ?? true;
+    const recentContacts = adminData.recentContacts ?? [];
+    const recentUsers = adminData.recentUsers ?? [];
     const sefazStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
       ONLINE: {
         label: "Operacional",
@@ -175,7 +177,7 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="px-4 pb-4">
               <div className="text-3xl font-bold tracking-tight tabular-nums">
-                {(showUsersMetric ? adminData.usersCount : adminData.contactsCount).toLocaleString("pt-BR")}
+                {(showUsersMetric ? adminData.usersCount : (adminData.contactsCount ?? 0)).toLocaleString("pt-BR")}
               </div>
               <div className="mt-1">
                 <span className="text-xs text-muted-foreground">
@@ -185,7 +187,7 @@ export default async function DashboardPage() {
                     </>
                   ) : (
                     <>
-                      <span className="font-medium text-emerald-500">{adminData.contactsCount}</span> vinculados ao escopo
+                      <span className="font-medium text-emerald-500">{adminData.contactsCount ?? 0}</span> vinculados ao escopo
                     </>
                   )}
                 </span>
@@ -223,7 +225,7 @@ export default async function DashboardPage() {
             createHref="/portal/contatos/novo"
             createLabel="Cadastrar contato"
             icon="contact"
-            items={adminData.recentContacts.map((contact) => ({
+            items={recentContacts.map((contact) => ({
               id: contact.id,
               title: contact.name,
               subtitle: contact.email || contact.whatsapp || "Sem canal principal",
@@ -242,7 +244,7 @@ export default async function DashboardPage() {
               createHref="/portal/cadastros/usuarios/novo"
               createLabel="Novo usuario"
               icon="user"
-              items={adminData.recentUsers.map((user) => ({
+              items={recentUsers.map((user) => ({
                 id: user.id,
                 title: user.name,
                 subtitle: user.email,
