@@ -2,7 +2,8 @@ import { CompanySegment } from "@prisma/client";
 import type { UserRole } from "@/lib/auth-helpers";
 import { canAccessByCompanySegment } from "@/features/company/application/company-segment-access";
 
-export const DOCS_TECHNICAL_PATH_PREFIX = "/docs/manuais-tecnicos";
+export const DOCS_TECHNICAL_PATH_PREFIX = "/portal/docs/manuais-tecnicos";
+const DOCS_PATH_PREFIX_PATTERN = /^\/(?:portal\/)?docs\/?/;
 export const DOCS_ADMIN_ONLY_SLUGS = new Set<string>([
   "suporte/documentacao-docs-interna",
 ]);
@@ -28,7 +29,7 @@ export function isAdminOnlyDocSlug(slug?: string[]): boolean {
 }
 
 export function isAdminOnlyDocUrl(url: string): boolean {
-  const relativeSlug = url.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
+  const relativeSlug = url.replace(DOCS_PATH_PREFIX_PATTERN, "").split("/").filter(Boolean);
   return isAdminOnlyDocSlug(relativeSlug);
 }
 
@@ -56,7 +57,7 @@ export async function canUserAccessDocUrl({
   }
 
   if (role === "CLIENTE_ADMIN" || role === "CLIENTE_USER") {
-    const relativeSlug = url.replace(/^\/docs\/?/, "").split("/").filter(Boolean);
+    const relativeSlug = url.replace(DOCS_PATH_PREFIX_PATTERN, "").split("/").filter(Boolean);
     const requiredSegments = getRequiredSegmentsForDocSlug(relativeSlug);
     if (requiredSegments.length === 0) return true;
     return canAccessByCompanySegment(userId, requiredSegments);

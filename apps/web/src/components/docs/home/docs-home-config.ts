@@ -1,4 +1,4 @@
-import {
+﻿import {
   BookOpen,
   HelpCircle,
   Users,
@@ -28,14 +28,14 @@ export type QuickLink = {
 export const BASE_QUICK_LINKS: QuickLink[] = [
   {
     href: '/docs/manual',
-    title: 'Documentação',
-    description: 'Guias e módulos para o dia a dia.',
+    title: 'DocumentaÃ§Ã£o',
+    description: 'Guias e mÃ³dulos para o dia a dia.',
     icon: BookOpen,
     tone: 'docs',
   },
   {
     href: '/docs/duvidas',
-    title: 'Dúvidas frequentes',
+    title: 'DÃºvidas frequentes',
     description: 'Respostas para incidentes comuns.',
     icon: HelpCircle,
     tone: 'faq',
@@ -43,14 +43,14 @@ export const BASE_QUICK_LINKS: QuickLink[] = [
   {
     href: '/docs/treinamento',
     title: 'Treinamentos',
-    description: 'Trilhas de capacitação da equipe.',
+    description: 'Trilhas de capacitaÃ§Ã£o da equipe.',
     icon: Users,
     tone: 'training',
   },
   {
     href: '/docs/suporte',
     title: 'Suporte',
-    description: 'Processos, integrações e operação.',
+    description: 'Processos, integraÃ§Ãµes e operaÃ§Ã£o.',
     icon: Wrench,
     tone: 'support',
   },
@@ -58,8 +58,8 @@ export const BASE_QUICK_LINKS: QuickLink[] = [
 
 export const TECHNICAL_QUICK_LINK: QuickLink = {
   href: '/docs/manuais-tecnicos',
-  title: 'Manuais técnicos',
-  description: 'Arquitetura, backlog e padrões.',
+  title: 'Manuais tÃ©cnicos',
+  description: 'Arquitetura, backlog e padrÃµes.',
   icon: Wrench,
   tone: 'technical',
 };
@@ -70,34 +70,34 @@ export const TECHNICAL_QUICK_LINK: QuickLink = {
 
 export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
   ADMIN: [
-    { href: '/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'Governança técnica e padrões.' },
-    { href: '/docs/suporte', title: 'Operação de suporte', description: 'Fluxos de atendimento e escalonamento.' },
-    { href: '/docs/manual', title: 'Visão funcional do produto', description: 'Conteúdo orientado ao cliente final.' },
+    { href: '/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'GovernanÃ§a tÃ©cnica e padrÃµes.' },
+    { href: '/docs/suporte', title: 'OperaÃ§Ã£o de suporte', description: 'Fluxos de atendimento e escalonamento.' },
+    { href: '/docs/manual', title: 'VisÃ£o funcional do produto', description: 'ConteÃºdo orientado ao cliente final.' },
   ],
   DEVELOPER: [
-    { href: '/docs/manuais-tecnicos', title: 'Manuais técnicos', description: 'Infra, stack e decisões de arquitetura.' },
-    { href: '/docs/suporte', title: 'Processos de suporte', description: 'Contexto de operação e troubleshooting.' },
-    { href: '/docs/duvidas', title: 'Erros recorrentes', description: 'Base para correções rápidas.' },
+    { href: '/docs/manuais-tecnicos', title: 'Manuais tÃ©cnicos', description: 'Infra, stack e decisÃµes de arquitetura.' },
+    { href: '/docs/suporte', title: 'Processos de suporte', description: 'Contexto de operaÃ§Ã£o e troubleshooting.' },
+    { href: '/docs/duvidas', title: 'Erros recorrentes', description: 'Base para correÃ§Ãµes rÃ¡pidas.' },
   ],
   SUPORTE: [
     { href: '/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks e processos operacionais.' },
-    { href: '/docs/duvidas', title: 'Dúvidas e erros comuns', description: 'Resolução rápida de incidentes.' },
-    { href: '/docs/treinamento', title: 'Treinamentos', description: 'Capacitação contínua do time.' },
+    { href: '/docs/duvidas', title: 'DÃºvidas e erros comuns', description: 'ResoluÃ§Ã£o rÃ¡pida de incidentes.' },
+    { href: '/docs/treinamento', title: 'Treinamentos', description: 'CapacitaÃ§Ã£o contÃ­nua do time.' },
   ],
   CLIENTE_ADMIN: [
-    { href: '/docs/manual', title: 'Operação do sistema', description: 'Rotinas principais do dia a dia.' },
+    { href: '/docs/manual', title: 'OperaÃ§Ã£o do sistema', description: 'Rotinas principais do dia a dia.' },
     { href: '/docs/treinamento', title: 'Treinar equipe', description: 'Materiais para onboarding interno.' },
-    { href: '/docs/duvidas', title: 'Resolver problemas comuns', description: 'Perguntas e respostas rápidas.' },
+    { href: '/docs/duvidas', title: 'Resolver problemas comuns', description: 'Perguntas e respostas rÃ¡pidas.' },
   ],
   CLIENTE_USER: [
-    { href: '/docs/manual', title: 'Primeiros passos', description: 'Fluxo básico para começar a operar.' },
+    { href: '/docs/manual', title: 'Primeiros passos', description: 'Fluxo bÃ¡sico para comeÃ§ar a operar.' },
     { href: '/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios.' },
-    { href: '/docs/treinamento', title: 'Aprender mais rápido', description: 'Guias práticos por módulo.' },
+    { href: '/docs/treinamento', title: 'Aprender mais rÃ¡pido', description: 'Guias prÃ¡ticos por mÃ³dulo.' },
   ],
 };
 
 // ---------------------------------------------------------------------------
-// Estilos por tone (Cores semânticas Tailwind para suportar Dark/Light mode)
+// Estilos por tone (Cores semÃ¢nticas Tailwind para suportar Dark/Light mode)
 // ---------------------------------------------------------------------------
 
 export const TONE_STYLES: Record<QuickLinkTone, {
@@ -106,7 +106,7 @@ export const TONE_STYLES: Record<QuickLinkTone, {
   glowClass: string;
 }> = {
   docs: {
-    shineColor: ['#3b82f633', '#60a5fa33'], // Tons de primary genéricos para o shine
+    shineColor: ['#3b82f633', '#60a5fa33'], // Tons de primary genÃ©ricos para o shine
     pillClass: 'border-primary/20 bg-primary/10 text-primary',
     glowClass: 'from-primary/10',
   },

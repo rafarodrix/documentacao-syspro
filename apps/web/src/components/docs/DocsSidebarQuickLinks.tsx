@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { BookOpenText, ChevronDown, CircleHelp, LifeBuoy, ReceiptText } from 'lucide-react';
@@ -18,12 +18,12 @@ const BASE_LINKS: QuickLink[] = [
   { href: '/docs', label: 'Central da Doc', icon: BookOpenText },
   { href: '/docs/manual/cadastro', label: 'Cadastro', icon: BookOpenText },
   { href: '/docs/manual/financeiro', label: 'Financeiro', icon: ReceiptText },
-  { href: '/docs/duvidas/rejeicoes/nfe-nfce', label: 'Rejeições NFe', icon: CircleHelp },
+  { href: '/docs/duvidas/rejeicoes/nfe-nfce', label: 'RejeiÃ§Ãµes NFe', icon: CircleHelp },
   { href: '/docs/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
 const SYSTEM_LINKS: QuickLink[] = [
-  { href: '/docs/manuais-tecnicos', label: 'Manuais Técnicos', icon: BookOpenText },
+  { href: '/docs/manuais-tecnicos', label: 'Manuais TÃ©cnicos', icon: BookOpenText },
 ];
 
 export function DocsSidebarQuickLinks({ role }: { role: Role }) {
@@ -32,7 +32,7 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
 
   const [open, setOpen] = useState(true);
 
-  // Inicializa a preferência de open/close do localStorage
+  // Inicializa a preferÃªncia de open/close do localStorage
   useEffect(() => {
     const isCompact = window.matchMedia('(max-height: 860px)').matches;
     const saved = readStorage<string>(DOCS_STORAGE_KEYS.quickLinksOpen, '');
@@ -40,7 +40,7 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
     if (saved === '0') { setOpen(false); return; }
     if (saved === '1') { setOpen(true); return; }
 
-    // Sem preferência salva: usar viewport como fallback
+    // Sem preferÃªncia salva: usar viewport como fallback
     setOpen(!isCompact);
   }, []);
 
@@ -83,3 +83,4 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
     </div>
   );
 }
+

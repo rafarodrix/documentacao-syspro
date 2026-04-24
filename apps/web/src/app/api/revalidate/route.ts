@@ -45,10 +45,10 @@ export async function POST(request: Request) {
     if (scope === "releases" || scope === "all") {
       revalidateTag("releases");
       revalidatePath("/");
-      revalidatePath("/releases");
-      revalidatePath("/releases", "layout");
+      revalidatePath("/portal/releases");
+      revalidatePath("/portal/releases", "layout");
       revalidatedTags.push("releases");
-      revalidatedPaths.push("/", "/releases");
+      revalidatedPaths.push("/", "/portal/releases");
     }
 
     if (scope === "tickets" || scope === "all") {

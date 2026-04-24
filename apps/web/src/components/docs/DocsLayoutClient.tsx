@@ -27,7 +27,7 @@ export function DocsLayoutClient({
 }) {
   const pathname = usePathname();
   const isAdmin = role === 'ADMIN';
-  const isDocsHome = pathname === '/docs';
+  const isDocsHome = pathname === '/portal/docs';
 
   // `null` enquanto hidratando → evita flash de layout errado no SSR
   const [adminLayoutMode, setAdminLayoutMode] = useState<'docs' | 'notebook' | null>(null);

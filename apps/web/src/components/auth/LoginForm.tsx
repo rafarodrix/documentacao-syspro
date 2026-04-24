@@ -204,7 +204,7 @@ export function LoginForm() {
             </Link>
             {" "}ou fale com o{" "}
             <Link
-              href="/docs/suporte"
+              href="/portal/docs/suporte"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
               suporte tÃ©cnico
@@ -216,6 +216,7 @@ export function LoginForm() {
     </AuthLayoutWrapper>
   )
 }
+
 
 
 

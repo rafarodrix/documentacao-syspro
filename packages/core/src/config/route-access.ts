@@ -34,9 +34,9 @@ export const CADASTROS_ROUTE_RULES = {
 
 export const DOCS_ROUTE_RULES = {
   technical: {
-    pathPrefix: "/docs/manuais-tecnicos",
+    pathPrefix: "/portal/docs/manuais-tecnicos",
     allowed: SYSTEM_ROLES,
-    redirectIfBlocked: "/docs",
+    redirectIfBlocked: "/portal/docs",
   },
 } as const;
 

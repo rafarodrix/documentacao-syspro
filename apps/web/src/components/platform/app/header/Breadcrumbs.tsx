@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { usePathname } from "next/navigation";
-import { ChevronRight, LayoutDashboard, Ticket, FileText, User } from "lucide-react";
+import { ChevronRight, LayoutDashboard, Ticket, FileText, User, BookOpen, Rocket } from "lucide-react";
 import React from "react";
 
 // Mapa de Ã­cones e nomes amigÃ¡veis por rota
@@ -9,6 +9,8 @@ const routeConfig: Record<string, { label: string, icon: React.ElementType }> = 
     'client': { label: 'VisÃ£o Geral', icon: LayoutDashboard },
     'chamados': { label: 'Meus Tickets', icon: Ticket },
     'tickets': { label: 'Meus Tickets', icon: Ticket },
+    'docs': { label: 'Documentação', icon: BookOpen },
+    'releases': { label: 'Releases', icon: Rocket },
     'faturas': { label: 'Financeiro', icon: FileText },
     'perfil': { label: 'Meu Perfil', icon: User },
 };

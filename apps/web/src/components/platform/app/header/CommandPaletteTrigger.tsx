@@ -92,14 +92,14 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
       },
       {
         label: "Documentacao",
-        href: "/docs",
+        href: "/portal/docs",
         keywords: "documentacao ajuda base conhecimento docs",
         icon: BookOpen,
         enabled: navigationAccess?.docs !== false,
       },
       {
         label: "Releases",
-        href: "/releases",
+        href: "/portal/releases",
         keywords: "releases novidades changelog versoes",
         icon: FileText,
         enabled: navigationAccess?.releases !== false,

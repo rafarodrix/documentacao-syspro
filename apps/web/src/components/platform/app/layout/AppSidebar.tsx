@@ -96,8 +96,8 @@ const NAV_COMMERCIAL: NavItemType[] = [
 ]
 
 const NAV_DOCS: NavItemType[] = [
-  { title: "Documentacao", href: "/docs", icon: BookOpen },
-  { title: "Releases", href: "/releases", icon: Rocket },
+  { title: "Documentacao", href: "/portal/docs", icon: BookOpen },
+  { title: "Releases", href: "/portal/releases", icon: Rocket },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
 ]
 
@@ -270,7 +270,7 @@ function SidebarFooter({
             <DropdownMenuItem
               className="cursor-pointer gap-2 text-sm"
               onClick={() => {
-                router.push("/docs/suporte")
+                router.push("/portal/docs/suporte")
                 onClose?.()
               }}
             >
@@ -347,8 +347,8 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/contratos": navigationAccess?.contracts,
   })
   const docsItems = filterByAccess(filterByRole(NAV_DOCS, user.role), {
-    "/docs": navigationAccess?.docs,
-    "/releases": navigationAccess?.releases,
+    "/portal/docs": navigationAccess?.docs,
+    "/portal/releases": navigationAccess?.releases,
     "/portal/tools": navigationAccess?.tools,
   })
 

@@ -59,8 +59,8 @@ export function revalidateTicketCollections() {
 export function revalidateReleasesViews() {
   revalidateTag(CACHE_TAGS.releases);
   revalidatePath("/");
-  revalidatePath("/releases");
-  revalidatePath("/releases", "layout");
+  revalidatePath("/portal/releases");
+  revalidatePath("/portal/releases", "layout");
 }
 
 export function revalidateDashboardCollections() {

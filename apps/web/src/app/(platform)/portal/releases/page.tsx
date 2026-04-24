@@ -87,7 +87,7 @@ export default async function ReleasesIndexPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {months.map(({ month, bugs, melhorias }) => {
                   const monthIndex = Number(month) - 1;
-                  const href = `/releases/${year}/${month}`;
+                  const href = `/portal/releases/${year}/${month}`;
                   const isLatest = isFirstCard;
                   isFirstCard = false;
 

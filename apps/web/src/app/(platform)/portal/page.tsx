@@ -1,4 +1,4 @@
-import { requireSession } from "@/lib/auth-helpers";
+﻿import { requireSession } from "@/lib/auth-helpers";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
                   id: contact.id,
                   title: contact.name,
                   subtitle: contact.email || contact.whatsapp || "Sem canal principal",
-                  meta: contact.companyNames?.length ? contact.companyNames.join(" â€¢ ") : "Sem empresa vinculada",
+                  meta: contact.companyNames?.length ? contact.companyNames.join(" Ã¢â‚¬Â¢ ") : "Sem empresa vinculada",
                   createdAt: contact.createdAt,
                   tags: contact.companyNames?.slice(0, 2),
                 }))}
@@ -301,7 +301,7 @@ export default async function DashboardPage() {
                     id: user.id,
                     title: user.name,
                     subtitle: user.email,
-                    meta: user.companyNames?.length ? user.companyNames.join(" â€¢ ") : user.role,
+                    meta: user.companyNames?.length ? user.companyNames.join(" Ã¢â‚¬Â¢ ") : user.role,
                     createdAt: user.createdAt,
                     tags: [user.role],
                   }))}
@@ -336,7 +336,7 @@ export default async function DashboardPage() {
               <DashboardMetricCard
                 title="Risco operacional"
                 value={(adminData.crm?.overdueLeads ?? 0) + (adminData.crm?.noNextStepLeads ?? 0)}
-                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados • ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
+                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados â€¢ ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
                 icon={TrendingDown}
                 tone="red"
               />
@@ -395,7 +395,7 @@ export default async function DashboardPage() {
   }
 
   const hasMultipleCompanies = data.companyCount > 1;
-  const previewCompanies = data.companyNames.slice(0, 2).join(" â€¢ ");
+  const previewCompanies = data.companyNames.slice(0, 2).join(" Ã¢â‚¬Â¢ ");
   const extraCompaniesCount = Math.max(data.companyCount - 2, 0);
 
   return (
@@ -427,7 +427,7 @@ export default async function DashboardPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
-              <Link href="/docs">
+              <Link href="/portal/docs">
                 <BookOpen className="h-4 w-4" />
                 Documentacao
               </Link>
@@ -536,3 +536,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

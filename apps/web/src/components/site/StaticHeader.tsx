@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import Image from "next/image";
 import {
   BookOpen,
@@ -117,7 +117,7 @@ export function StaticSiteHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <NavLink href="/releases">Releases</NavLink>
+          <NavLink href="/portal/releases">Releases</NavLink>
           <div className="mx-2 h-4 w-px bg-border/50" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -167,12 +167,12 @@ export function StaticSiteHeader() {
                 <Link href="/" className="text-lg font-bold">Trilink Software</Link>
 
                 <div className="flex flex-col gap-2">
-                  <MobileNavLink href="/docs">Central</MobileNavLink>
-                  <MobileNavLink href="/docs/manual">Manual de uso</MobileNavLink>
-                  <MobileNavLink href="/docs/duvidas">Duvidas frequentes</MobileNavLink>
-                  <MobileNavLink href="/docs/treinamento">Treinamentos</MobileNavLink>
-                  <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
-                  <MobileNavLink href="/releases">Releases</MobileNavLink>
+                  <MobileNavLink href="/portal/docs">Central</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/manual">Manual de uso</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/duvidas">Duvidas frequentes</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/treinamento">Treinamentos</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/suporte">Suporte</MobileNavLink>
+                  <MobileNavLink href="/portal/releases">Releases</MobileNavLink>
                   <MobileNavLink href="https://trilink.com.br" external>
                     Institucional
                   </MobileNavLink>
@@ -218,3 +218,4 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
+

@@ -24,7 +24,6 @@ import { DocsSurface } from '@/components/docs/DocsSurface';
 import { DocsReadingProgress } from '@/components/docs/DocsReadingProgress';
 import SuporteSection from '@/components/docs/SuporteSection';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
-// Utilitários movidos para lib/docs-utils — sem lógica inline no page
 import {
   estimateReadingTimeMinutes,
   formatSlugLabel,
@@ -32,14 +31,16 @@ import {
 } from '@/lib/docs-utils';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
 
-export default async function Page(props: {
+const DOCS_BASE_PATH = "/portal/docs";
+
+export default async function PortalDocsPage(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
   const session = await requireSession();
   const slug = params.slug ?? [];
   const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
-  const docUrl = `/docs${slug.length ? `/${slug.join('/')}` : ''}`;
+  const docUrl = `${DOCS_BASE_PATH}${slug.length ? `/${slug.join('/')}` : ''}`;
 
   const canAccessCurrentDoc = await canUserAccessDocUrl({
     url: docUrl,
@@ -48,19 +49,15 @@ export default async function Page(props: {
     canViewTechnical: canViewTechnicalDocs,
   });
   if (!canAccessCurrentDoc) {
-    redirect("/docs");
+    redirect(DOCS_BASE_PATH);
   }
 
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  // -------------------------------------------------------------------------
-  // Home page — lista páginas visíveis para o usuário
-  // -------------------------------------------------------------------------
   if (slug.length === 0) {
-    const allPages = source.getPages().filter((item) => item.url !== '/docs');
+    const allPages = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
 
-    // Promise.all paralelo: antes eram dois Promise.all sequenciais
     const visibility = await Promise.all(
       allPages.map((item) =>
         canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId, canViewTechnical: canViewTechnicalDocs }),
@@ -91,9 +88,6 @@ export default async function Page(props: {
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Página de conteúdo
-  // -------------------------------------------------------------------------
   const MDXContent = page.data.body;
   const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;
   const owner = typeof page.data.owner === 'string' ? page.data.owner : undefined;
@@ -104,34 +98,28 @@ export default async function Page(props: {
   const sinceVersion = typeof page.data.sinceVersion === 'string' ? page.data.sinceVersion : undefined;
   const docSlug = docUrl;
 
-  // Datas formatadas via lib/docs-utils (sem lógica inline)
   const formattedLastUpdated = formatDateLong(lastUpdated);
   const lastUpdateDate = lastUpdated ? new Date(lastUpdated) : null;
-
-  // Estimativa de tempo de leitura via lib/docs-utils
   const structuredData = (page.data as { structuredData?: { contents?: Array<{ content?: string }> } }).structuredData;
   const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
 
-  // Breadcrumb
   const breadcrumbItems = slug.reduce<Array<{ href: string; label: string }>>(
     (acc, segment) => {
-      const parentPath = acc.length === 1 ? '' : acc[acc.length - 1].href.replace(/^\/docs/, '');
+      const parentPath = acc.length === 1 ? '' : acc[acc.length - 1].href.replace(/^\/portal\/docs/, '');
       const nextPath = `${parentPath}/${segment}`.replace(/^\/+/, '');
       const targetSlug = nextPath.split('/').filter(Boolean);
       const targetPage = source.getPage(targetSlug);
       acc.push({
-        href: `/docs/${nextPath}`,
+        href: `${DOCS_BASE_PATH}/${nextPath}`,
         label: targetPage ? String(targetPage.data.title) : formatSlugLabel(segment),
       });
       return acc;
     },
-    [{ href: '/docs', label: 'Documentacao' }],
+    [{ href: DOCS_BASE_PATH, label: 'Documentacao' }],
   );
 
-  // Navegação anterior/próxima
-  // Promise.all paralelo com a visibilidade do pool de navegação
-  const navigationPool = source.getPages().filter((item) => item.url !== '/docs');
+  const navigationPool = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
   const navigationVisibility = await Promise.all(
     navigationPool.map((item) =>
       canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId, canViewTechnical: canViewTechnicalDocs }),

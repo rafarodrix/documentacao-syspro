@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import Image from "next/image";
 import {
   BookOpen,
@@ -147,7 +147,7 @@ export async function SiteHeader() {
           </DropdownMenu>
 
           {user ? <NavLink href={dashboardUrl}>Aplicacao</NavLink> : null}
-          <NavLink href="/releases">Releases</NavLink>
+          <NavLink href="/portal/releases">Releases</NavLink>
           <div className="mx-2 h-4 w-px bg-border/50" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -255,15 +255,15 @@ export async function SiteHeader() {
                   ) : null}
 
                   <div className="my-2 h-px bg-border/50" />
-                  <MobileNavLink href="/docs">Central</MobileNavLink>
-                  <MobileNavLink href="/docs/manual">Manual de uso</MobileNavLink>
-                  <MobileNavLink href="/docs/duvidas">Duvidas frequentes</MobileNavLink>
-                  <MobileNavLink href="/docs/treinamento">Treinamentos</MobileNavLink>
-                  <MobileNavLink href="/docs/suporte">Suporte</MobileNavLink>
+                  <MobileNavLink href="/portal/docs">Central</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/manual">Manual de uso</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/duvidas">Duvidas frequentes</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/treinamento">Treinamentos</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/suporte">Suporte</MobileNavLink>
                   {canViewTechnical ? (
-                    <MobileNavLink href="/docs/manuais-tecnicos">Manuais tecnicos</MobileNavLink>
+                    <MobileNavLink href="/portal/docs/manuais-tecnicos">Manuais tecnicos</MobileNavLink>
                   ) : null}
-                  <MobileNavLink href="/releases">Releases</MobileNavLink>
+                  <MobileNavLink href="/portal/releases">Releases</MobileNavLink>
                   <MobileNavLink href="https://trilink.com.br" external>
                     Institucional
                   </MobileNavLink>
@@ -318,4 +318,5 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
+
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo, type CSSProperties } from 'react';
 import Link from 'next/link';
@@ -60,7 +60,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
     const tasks = ROLE_START_TASKS[role] ?? ROLE_START_TASKS.CLIENTE_USER;
     return canViewTechnical
       ? tasks
-      : tasks.filter((t) => !t.href.startsWith('/docs/manuais-tecnicos'));
+      : tasks.filter((t) => !t.href.startsWith('/portal/docs/manuais-tecnicos'));
   }, [role, canViewTechnical]);
 
   return (
@@ -95,9 +95,9 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </div>
       </section>
 
-      {/* Acesso rápido */}
+      {/* Acesso rÃ¡pido */}
       <section id="acesso-rapido" className="scroll-mt-24 animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(1)}>
-        <DocsSectionHeader icon={LayoutDashboard} label="Acesso rápido" />
+        <DocsSectionHeader icon={LayoutDashboard} label="Acesso rÃ¡pido" />
         <div className="grid gap-3 sm:grid-cols-2">
           {quickLinks.map((item, index) => (
             <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 2)} />
@@ -122,7 +122,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
                   {derived.continueReading.title}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Último acesso em {formatDateTime(derived.continueReading.visitedAt)}
+                  Ãšltimo acesso em {formatDateTime(derived.continueReading.visitedAt)}
                 </p>
               </div>
             </div>
@@ -137,24 +137,24 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         <div className="rounded-2xl border border-border/60 bg-card/40 p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between px-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Painel de inteligência
+              Painel de inteligÃªncia
             </p>
             <Badge
               variant="outline"
               className="border-primary/15 bg-primary/5 text-[11px] text-primary"
             >
-              Atualização contínua
+              AtualizaÃ§Ã£o contÃ­nua
             </Badge>
           </div>
 
-          {/* Grid Flexível Responsiva */}
+          {/* Grid FlexÃ­vel Responsiva */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             
-            {/* Últimas atualizações */}
+            {/* Ãšltimas atualizaÃ§Ãµes */}
             <div className="w-full shrink-0">
-              <InsightCard icon={Clock} label="Últimas atualizações">
+              <InsightCard icon={Clock} label="Ãšltimas atualizaÃ§Ãµes">
                 {derived.latestUpdates.length === 0 ? (
-                  <DocsEmptyState message="Explore os manuais básicos para começar." />
+                  <DocsEmptyState message="Explore os manuais bÃ¡sicos para comeÃ§ar." />
                 ) : (
                   <div className="space-y-1">
                     {derived.latestUpdates.map((item) => (
@@ -176,11 +176,11 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
               </InsightCard>
             </div>
 
-            {/* Mais acessados por você */}
+            {/* Mais acessados por vocÃª */}
             <div className="w-full shrink-0">
-              <InsightCard icon={Flame} label="Mais acessados por você">
+              <InsightCard icon={Flame} label="Mais acessados por vocÃª">
                 {derived.mostAccessed.length === 0 ? (
-                  <DocsEmptyState message="Seu histórico aparecerá aqui em breve." />
+                  <DocsEmptyState message="Seu histÃ³rico aparecerÃ¡ aqui em breve." />
                 ) : (
                   <div className="space-y-1">
                     {derived.mostAccessed.map((item) => (
@@ -204,7 +204,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
                 loading={status.loadingInsights}
               >
                 {derived.rolePopular.length === 0 ? (
-                  <DocsEmptyState message="Nenhum ranking disponível no momento." />
+                  <DocsEmptyState message="Nenhum ranking disponÃ­vel no momento." />
                 ) : (
                   <div className="space-y-1">
                     {derived.rolePopular.map((item) => (
@@ -228,7 +228,7 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
                 loading={status.loadingInsights}
               >
                 {derived.globalPopular.length === 0 ? (
-                  <DocsEmptyState message="Nenhum ranking disponível no momento." />
+                  <DocsEmptyState message="Nenhum ranking disponÃ­vel no momento." />
                 ) : (
                   <div className="space-y-1">
                     {derived.globalPopular.map((item) => (

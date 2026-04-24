@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -276,7 +276,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     name="subject"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold">Qual o problema ou solicitação?</FormLabel>
+                        <FormLabel className="text-base font-semibold">Qual o problema ou solicitaÃ§Ã£o?</FormLabel>
                         <FormControl>
                           <Input placeholder="Ex: Erro ao emitir Nota Fiscal na empresa matriz..." className="h-12 bg-white dark:bg-muted/30 focus:bg-background text-base shadow-sm" {...field} />
                         </FormControl>
@@ -291,11 +291,11 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     render={({ field }) => (
                       <FormItem className="flex-1 flex flex-col">
                         <FormLabel className="flex justify-between w-full">
-                            Detalhamento Técnico
+                            Detalhamento TÃ©cnico
                             <span className="text-xs font-normal text-muted-foreground flex gap-1 items-center"><Info className="w-3 h-3"/> Passo a Passo</span>
                         </FormLabel>
                         <FormControl>
-                          <Textarea placeholder="1. Onde você estava?&#10;2. Em que tela clicou?&#10;3. O que esperava que acontecesse?&#10;4. Qual erro ocorreu no sistema?..." className="min-h-[280px] lg:h-full resize-none bg-white dark:bg-muted/30 focus:bg-background shadow-inner text-sm leading-relaxed" {...field} />
+                          <Textarea placeholder="1. Onde vocÃª estava?&#10;2. Em que tela clicou?&#10;3. O que esperava que acontecesse?&#10;4. Qual erro ocorreu no sistema?..." className="min-h-[280px] lg:h-full resize-none bg-white dark:bg-muted/30 focus:bg-background shadow-inner text-sm leading-relaxed" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -314,7 +314,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   {source === "chatwoot" && (
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm mt-4">
                       <p className="font-medium text-foreground">Recebido via Omnichannel</p>
-                      <p className="mt-1 text-muted-foreground">O chamado será vinculado automaticamente à conversa do Chatwoot atual.</p>
+                      <p className="mt-1 text-muted-foreground">O chamado serÃ¡ vinculado automaticamente Ã  conversa do Chatwoot atual.</p>
                     </div>
                   )}
 
@@ -332,7 +332,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider bg-muted p-2 rounded-md w-fit border border-border/40">
                         <AlertCircle className="h-3.5 w-3.5" />
-                        <span>Atribuição e SLA</span>
+                        <span>AtribuiÃ§Ã£o e SLA</span>
                       </div>
                       <div className="hidden lg:block text-xs text-muted-foreground opacity-70">Passo 2 de 2</div>
                   </div>
@@ -461,7 +461,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     </FormItem>
                     
                     <FormItem>
-                      <Label className="text-xs">Módulo (Local Erro)</Label>
+                      <Label className="text-xs">MÃ³dulo (Local Erro)</Label>
                       <TicketModuleCascadeSelect
                         options={ticketSettings.modules}
                         value={selectedModule}
@@ -479,7 +479,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   {isSystemUser && (
                     <div className="space-y-4 pt-6 mt-2 border-t border-dashed border-border/60">
                       <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-                        <Loader2 className="w-3 h-3" /> Integrações e Debug
+                        <Loader2 className="w-3 h-3" /> IntegraÃ§Ãµes e Debug
                       </div>
                       <FormItem>
                         <Label className="text-xs">URL da Base de Dados</Label>
@@ -491,7 +491,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                         />
                       </FormItem>
                       <FormItem>
-                        <Label className="text-xs">Gravação de Erro (Loom/Youtube)</Label>
+                        <Label className="text-xs">GravaÃ§Ã£o de Erro (Loom/Youtube)</Label>
                         <Input
                           value={developmentVideoUrl}
                           onChange={(event) => setDevelopmentVideoUrl(event.target.value)}
@@ -511,7 +511,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
         <DialogFooter className="p-6 border-t border-border/40 bg-muted/10 shrink-0">
           <div className="flex flex-col sm:flex-row w-full items-center justify-between gap-4">
             <Button variant="link" className="text-xs text-muted-foreground h-auto p-0 hidden sm:flex gap-1" asChild>
-              <a href="/docs/manual" target="_blank">
+              <a href="/portal/docs/manual" target="_blank">
                 <HelpCircle className="h-3 w-3" /> Precisa de ajuda?
               </a>
             </Button>
@@ -537,3 +537,4 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     </Dialog>
   );
 }
+

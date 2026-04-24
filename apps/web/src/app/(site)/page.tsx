@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+﻿import { Metadata } from "next";
 
 // 1. Importacao dos componentes modulares.
 import { HeroSection } from "@/components/site/HeroSection";
@@ -30,8 +30,8 @@ export default async function LandingPage() {
     ? `v${latestRelease.year}.${latestRelease.month}`
     : `v${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}`;
   const releaseLink = latestRelease
-    ? `/releases/${latestRelease.year}/${latestRelease.month}`
-    : "/releases";
+    ? `/portal/releases/${latestRelease.year}/${latestRelease.month}`
+    : "/portal/releases";
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -42,4 +42,5 @@ export default async function LandingPage() {
     </main>
   );
 }
+
 

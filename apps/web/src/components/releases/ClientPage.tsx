@@ -51,7 +51,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
       <section className="overflow-hidden rounded-3xl border border-border/60 bg-linear-to-br from-background via-background to-primary/5">
         <div className="animate-in slide-in-from-top-4 flex flex-col gap-4 p-6 duration-500 sm:p-8 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <Link href="/releases">
+            <Link href="/portal/releases">
               <Button variant="ghost" className="mb-2 gap-2 pl-0 text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" /> Voltar para o indice
               </Button>
