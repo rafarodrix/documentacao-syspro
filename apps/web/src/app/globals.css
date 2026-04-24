@@ -302,7 +302,7 @@
   .portal-docs-shell {
     --portal-docs-sidebar-width: 17.75rem;
     --portal-docs-sidebar-gap: 0.85rem;
-    --portal-docs-sidebar-top: calc(var(--portal-docs-top-offset, 0px) + var(--portal-docs-sidebar-gap));
+    --fd-sidebar-width: var(--portal-docs-sidebar-width);
     background:
       radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 24%),
       linear-gradient(180deg, hsl(var(--background) / 0.96) 0%, hsl(var(--card) / 0.94) 100%);
@@ -315,16 +315,13 @@
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
-    position: sticky;
-    top: var(--portal-docs-top-offset, 0px);
+    --fd-sidebar-width: var(--portal-docs-sidebar-width);
+    --fd-nav-height: var(--portal-docs-top-offset);
+    --fd-sidebar-margin: var(--portal-docs-sidebar-gap);
     left: auto;
-    margin: var(--portal-docs-sidebar-gap) 0 var(--portal-docs-sidebar-gap) var(--portal-docs-sidebar-gap);
-    width: min(100%, var(--portal-docs-sidebar-width));
-    height: calc(100dvh - var(--portal-docs-top-offset, 0px) - (var(--portal-docs-sidebar-gap) * 2));
-    max-height: calc(100dvh - var(--portal-docs-top-offset, 0px) - (var(--portal-docs-sidebar-gap) * 2));
     border-radius: 1.9rem;
     overflow: hidden;
-    z-index: 14;
+    z-index: 24;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
