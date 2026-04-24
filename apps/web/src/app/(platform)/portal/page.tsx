@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
+import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
