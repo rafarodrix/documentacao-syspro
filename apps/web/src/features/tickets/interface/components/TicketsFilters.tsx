@@ -86,7 +86,7 @@ export function TicketsFilters({
                     {isAdmin && (
                         <div className="flex items-center gap-2 shrink-0">
                             <Select value={team} onValueChange={(val) => setTeamFilter(val as TicketTeamFilter)}>
-                                <SelectTrigger className="h-10 w-[140px] bg-background">
+                                <SelectTrigger className="h-10 w-35 bg-background">
                                     <SelectValue placeholder="Equipe" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -98,7 +98,7 @@ export function TicketsFilters({
 
                             {statusFilter !== "closed" && (
                                 <Select value={queue} onValueChange={(val) => setQueueFilter(val as QueueKey)}>
-                                    <SelectTrigger className="h-10 w-[160px] bg-background">
+                                    <SelectTrigger className="h-10 w-40 bg-background">
                                         <SelectValue placeholder="Fila" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -112,7 +112,7 @@ export function TicketsFilters({
                             )}
 
                             <Select value={category || "all"} onValueChange={setCategoryFilter}>
-                                <SelectTrigger className="h-10 w-[180px] bg-background">
+                                <SelectTrigger className="h-10 w-45 bg-background">
                                     <SelectValue placeholder="Categoria" />
                                 </SelectTrigger>
                                 <SelectContent>

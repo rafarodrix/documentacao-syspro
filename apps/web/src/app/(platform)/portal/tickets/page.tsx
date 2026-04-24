@@ -33,6 +33,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const categoryParam = typeof params?.category === "string" ? params.category : "";
   const sortByParam = typeof params?.sortBy === "string" ? params.sortBy : "updatedAt";
   const sortOrderParam = typeof params?.sortOrder === "string" ? params.sortOrder : "desc";
+  const statusGroup: TicketStatusGroup = isTicketStatusGroup(statusParam) ? statusParam : "open";
   const closedWindowParam =
     typeof params?.closedWindow === "string"
       ? params.closedWindow
@@ -43,7 +44,6 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
     ? (queueParam as QueueKey)
     : "all";
-  const statusGroup: TicketStatusGroup = isTicketStatusGroup(statusParam) ? statusParam : "open";
   const closedWindow: ClosedTicketsWindow = CLOSED_WINDOW_OPTIONS.includes(closedWindowParam as ClosedTicketsWindow)
     ? (closedWindowParam as ClosedTicketsWindow)
     : "all";
