@@ -34,6 +34,10 @@ type ActionsClient interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 }
 
+type TargetOpener interface {
+	Open(ctx context.Context, target string) error
+}
+
 type TrayStateUpdater interface {
 	UpdateSummary(summary uistate.Summary)
 	ShowNotifications(notifications []uistate.Notification)
@@ -46,8 +50,9 @@ type Service struct {
 	trayActions   TrayActions
 	summary       SummaryClient
 	notifications NotificationsClient
-	actions   ActionsClient
-	trayState TrayStateUpdater
+	actions       ActionsClient
+	opener        TargetOpener
+	trayState     TrayStateUpdater
 }
 
 func NewService(
@@ -57,6 +62,7 @@ func NewService(
 	summary SummaryClient,
 	notifications NotificationsClient,
 	actions ActionsClient,
+	opener TargetOpener,
 	trayState TrayStateUpdater,
 ) *Service {
 	return &Service{
@@ -66,6 +72,7 @@ func NewService(
 		summary:       summary,
 		notifications: notifications,
 		actions:       actions,
+		opener:        opener,
 		trayState:     trayState,
 	}
 }
@@ -145,6 +152,12 @@ func (s *Service) OpenSupportConversation(ctx context.Context) error {
 	}
 
 	s.trayState.SupportActionReady(supportResult)
+	if supportResult.Target != "" {
+		if err := s.opener.Open(ctx, supportResult.Target); err != nil {
+			s.logger.Info("agent ui support target open failed", "error", err, "target", supportResult.Target)
+			return err
+		}
+	}
 	s.logger.Info("agent ui support action completed", "accepted", supportResult.Accepted, "message", supportResult.Message, "target", supportResult.Target)
 	return nil
 }
@@ -164,6 +177,9 @@ func (s *Service) handleTrayActions(ctx context.Context) error {
 				if err := s.OpenSupportConversation(ctx); err != nil {
 					s.logger.Info("agent ui tray support action failed", "error", err)
 				}
+			case tray.ActionExit:
+				s.logger.Info("agent ui received tray exit action")
+				return nil
 			default:
 				s.logger.Info("agent ui received unknown tray action", "action", action)
 			}
