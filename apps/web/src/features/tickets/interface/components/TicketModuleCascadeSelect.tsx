@@ -10,10 +10,12 @@ type TicketModuleCascadeSelectProps = {
   value?: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  mode?: "cascade" | "single";
   labels?: {
     module?: string;
     submodule?: string;
     screen?: string;
+    single?: string;
   };
   compact?: boolean;
 };
@@ -23,11 +25,29 @@ export function TicketModuleCascadeSelect({
   value,
   onChange,
   disabled,
+  mode = "cascade",
   labels,
   compact = false,
 }: TicketModuleCascadeSelectProps) {
   const state = getTicketModuleCascadeState(options, value);
   const triggerClassName = compact ? "h-9" : "h-10";
+
+  if (mode === "single") {
+    return (
+      <CascadeSelectField
+        label={labels?.single ?? "Modulo"}
+        value={value || ""}
+        options={state.entries.map((entry) => ({
+          value: entry.option.value,
+          label: entry.label,
+        }))}
+        placeholder="Selecione o modulo"
+        onChange={onChange}
+        disabled={disabled || state.entries.length === 0}
+        triggerClassName={triggerClassName}
+      />
+    );
+  }
 
   const handleModuleChange = (module: string) => {
     onChange(resolveTicketModuleValueFromCascade(options, { module }));
@@ -93,12 +113,16 @@ function CascadeSelectField({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: string[] | Array<{ value: string; label: string }>;
   placeholder: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   triggerClassName: string;
 }) {
+  const normalizedOptions = options.map((option) =>
+    typeof option === "string" ? { value: option, label: option } : option,
+  );
+
   return (
     <div className="space-y-2">
       <Label className="text-xs">{label}</Label>
@@ -107,9 +131,9 @@ function CascadeSelectField({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
+          {normalizedOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
             </SelectItem>
           ))}
         </SelectContent>

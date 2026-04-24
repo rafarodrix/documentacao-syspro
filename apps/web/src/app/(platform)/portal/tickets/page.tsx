@@ -4,8 +4,15 @@ import { TicketsContainer } from "@/features/tickets/interface";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketTeamFilter } from "@/features/tickets/domain/ticket-model";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { Role } from "@prisma/client";
 const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
 const TEAM_FILTER_OPTIONS: TicketTeamFilter[] = ["all", "SUPORTE", "DESENVOLVIMENTO"];
+
+function resolveDefaultTeamFilter(role: Role): TicketTeamFilter {
+  if (role === Role.DEVELOPER) return "DESENVOLVIMENTO";
+  if (role === Role.SUPORTE) return "SUPORTE";
+  return "all";
+}
 
 interface TicketsPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -20,7 +27,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const queueParam = typeof params?.queue === "string" ? params.queue : "all";
   const search = typeof params?.search === "string" ? params.search : "";
   const statusParam = typeof params?.status === "string" ? params.status : "open";
-  const teamParam = typeof params?.team === "string" ? params.team : "all";
+  const teamParam = typeof params?.team === "string" ? params.team : undefined;
   const closedWindowParam = typeof params?.closedWindow === "string" ? params.closedWindow : "all";
 
   const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
@@ -30,10 +37,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const closedWindow: ClosedTicketsWindow = CLOSED_WINDOW_OPTIONS.includes(closedWindowParam as ClosedTicketsWindow)
     ? (closedWindowParam as ClosedTicketsWindow)
     : "all";
-  const team: TicketTeamFilter = TEAM_FILTER_OPTIONS.includes(teamParam as TicketTeamFilter)
-    ? (teamParam as TicketTeamFilter)
-    : "all";
   const canManageTickets = await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true });
+  const derivedDefaultTeam = canManageTickets ? resolveDefaultTeamFilter(session.role) : "all";
+  const resolvedTeamParam = teamParam ?? derivedDefaultTeam;
+  const team: TicketTeamFilter = TEAM_FILTER_OPTIONS.includes(resolvedTeamParam as TicketTeamFilter)
+    ? (resolvedTeamParam as TicketTeamFilter)
+    : "all";
 
   console.info("[TicketsDiag][page] loading", {
     at: new Date().toISOString(),

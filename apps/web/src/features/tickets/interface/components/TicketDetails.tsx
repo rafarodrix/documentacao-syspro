@@ -13,7 +13,10 @@ import {
     ChevronDown,
     ChevronUp,
     Clock3,
+    Disc3,
     ExternalLink,
+    Loader2,
+    Save,
     Sparkles,
     Timer,
     UserRound,
@@ -100,35 +103,54 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         });
     };
 
+    const initialTeam = ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
+    const initialModule = ticket?.operations?.module || "";
+    const initialCategory = ticket?.operations?.category || "";
+    const initialPriority = ticket?.priority ?? 2;
+    const currentTeam = localTeam || ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
+    const currentModule = localModule || ticket?.operations?.module || "";
+    const currentCategory = localCategory || ticket?.operations?.category || "";
+    const currentPriority = localPriority ?? ticket?.priority ?? 2;
+
     const changeTeam = (team: string) => {
         if (!ticket || team === currentTeam) return;
         const nextCategory = resolveCategoryForTeam(ticketSettings.categories, team, currentCategory);
-
-        startTransition(async () => {
-            const res = await updateTicketClassificationAction(String(ticket.id), {
-                team,
-                ...(nextCategory !== currentCategory ? { category: nextCategory } : {}),
-            });
-            if (res.success) {
-                setLocalTeam(team);
-                if (nextCategory !== currentCategory) setLocalCategory(nextCategory);
-                toast.success("Setor atualizado.");
-            } else {
-                toast.error(res.error || "Erro ao atualizar setor");
-            }
-            router.refresh();
-        });
+        setLocalTeam(team);
+        if (nextCategory !== currentCategory) setLocalCategory(nextCategory);
     };
 
     const changeClassification = (payload: { module?: string; category?: string; priority?: TicketModulePriority }) => {
-        if (!ticket) return;
+        if (payload.module !== undefined) setLocalModule(payload.module);
+        if (payload.category !== undefined) setLocalCategory(payload.category);
+        if (payload.priority !== undefined) setLocalPriority(mapPriorityToLevel(payload.priority));
+    };
+
+    const resetClassificationDraft = () => {
+        setLocalTeam(ticket?.operations?.currentTeam || "");
+        setLocalModule(ticket?.operations?.module || "");
+        setLocalCategory(ticket?.operations?.category || "");
+        setLocalPriority(ticket?.priority);
+    };
+
+    const classificationDirty =
+        currentTeam !== initialTeam ||
+        currentModule !== initialModule ||
+        currentCategory !== initialCategory ||
+        currentPriority !== initialPriority;
+
+    const saveClassification = () => {
+        if (!ticket || !classificationDirty) return;
+
+        const payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority } = {};
+        if (currentTeam !== initialTeam) payload.team = currentTeam;
+        if (currentModule !== initialModule) payload.module = currentModule;
+        if (currentCategory !== initialCategory) payload.category = currentCategory;
+        if (currentPriority !== initialPriority) payload.priority = mapLevelToPriority(currentPriority);
+
         startTransition(async () => {
             const res = await updateTicketClassificationAction(String(ticket.id), payload);
             if (res.success) {
-                if (payload.module !== undefined) setLocalModule(payload.module);
-                if (payload.category !== undefined) setLocalCategory(payload.category);
-                if (payload.priority !== undefined) setLocalPriority(mapPriorityToLevel(payload.priority));
-                toast.success("Classificacao atualizada.");
+                toast.success("Alteracoes salvas.");
             } else {
                 toast.error(res.error || "Erro ao atualizar classificacao");
             }
@@ -159,10 +181,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     }
 
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
-    const currentTeam = localTeam || ticket.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
-    const currentModule = localModule || ticket.operations?.module || "";
-    const currentCategory = localCategory || ticket.operations?.category || "";
-    const currentPriority = localPriority ?? ticket.priority;
     const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
 
     return (
@@ -184,7 +202,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                     </span>
                     {ticket.updatedAt && (
                         <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" /> Atualizado em {new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}
+                            <Calendar className="h-3 w-3" /> Atualizado em {formatTicketDate(ticket.updatedAt)}
                         </span>
                     )}
                 </div>
@@ -262,13 +280,48 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             onChange={(module) => changeClassification({ module })}
                                             disabled={!isAdmin || isPending}
                                             compact
+                                            mode="single"
                                             labels={{
-                                                module: "Modulo",
-                                                submodule: "Submodulo",
-                                                screen: "Tela",
+                                                single: "Modulo, submodulo e tela",
                                             }}
                                         />
                                     </EditableSidebarField>
+                                    {isAdmin && (
+                                        <div className="space-y-2 rounded-lg border border-dashed border-border/70 bg-muted/10 p-3">
+                                            <div className="flex items-start gap-2">
+                                                <Save className="mt-0.5 h-3.5 w-3.5 text-primary/70" />
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-semibold text-foreground">Persistencia manual</p>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        Alteracoes em setor, categoria, prioridade e modulo ficam pendentes ate salvar.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-8 flex-1 text-xs"
+                                                    disabled={!classificationDirty || isPending}
+                                                    onClick={saveClassification}
+                                                >
+                                                    {isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                                    Salvar alteracoes
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 text-xs"
+                                                    disabled={!classificationDirty || isPending}
+                                                    onClick={resetClassificationDraft}
+                                                >
+                                                    <Disc3 className="mr-2 h-3.5 w-3.5" />
+                                                    Descartar
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </section>
 
                                 <Separator />
@@ -302,7 +355,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                     {ticket.operations?.openedByName && !isSameName(ticket.operations.openedByName, ticket.ownerName) && <SidebarField label="Aberto por" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
                                     <SidebarField label="Criado em" value={<span className="font-mono text-xs text-muted-foreground">{ticket.createdAt}</span>} />
-                                    {ticket.updatedAt && <SidebarField label="Atualizado" value={<span className="font-mono text-xs text-muted-foreground">{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</span>} />}
+                                    {ticket.updatedAt && <SidebarField label="Atualizado" value={<span className="font-mono text-xs text-muted-foreground">{formatTicketDate(ticket.updatedAt)}</span>} />}
                                 </section>
                             </CardContent>
                         </Card>
@@ -493,7 +546,7 @@ function CustomerContextCard({ ticket }: { ticket: TicketDetailsItem }) {
 
 function DetailDate({ value, fallback }: { value?: string | null; fallback: string }) {
     if (!value) return <span className="text-xs text-muted-foreground">{fallback}</span>;
-    return <span className="font-mono text-xs text-muted-foreground">{new Date(value).toLocaleString("pt-BR")}</span>;
+    return <span className="font-mono text-xs text-muted-foreground">{formatTicketDateTime(value)}</span>;
 }
 
 function isSameName(left?: string | null, right?: string | null) {
@@ -664,6 +717,12 @@ function mapPriorityToLevel(priority: TicketModulePriority) {
     return 2;
 }
 
+function mapLevelToPriority(priority: number): TicketModulePriority {
+    if (priority === 1) return "LOW";
+    if (priority === 3) return "HIGH";
+    return "NORMAL";
+}
+
 function parsePriorityOption(option: TicketModuleSettingsPriority): TicketModulePriority {
     const value = `${option.id} ${option.value} ${option.label}`.toLowerCase();
     if (value.includes("low") || value.includes("baixa") || option.id === "1") return "LOW";
@@ -803,9 +862,41 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
                     tone === "ok" && "bg-emerald-100 *:bg-emerald-500",
                 )}
             />
-            <SidebarField label="Vence em" value={<span className="font-mono text-xs text-muted-foreground">{new Date(ticket.slaResolutionDueAt).toLocaleString("pt-BR")}</span>} />
+            <SidebarField label="Vence em" value={<span className="font-mono text-xs text-muted-foreground">{formatTicketDateTime(ticket.slaResolutionDueAt)}</span>} />
         </section>
     );
+}
+
+const ticketDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+});
+
+const ticketDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: "America/Sao_Paulo",
+});
+
+function formatTicketDate(value?: string | null, fallback = "N/D") {
+    if (!value) return fallback;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return fallback;
+    return ticketDateFormatter.format(parsed);
+}
+
+function formatTicketDateTime(value?: string | null, fallback = "N/D") {
+    if (!value) return fallback;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return fallback;
+    return ticketDateTimeFormatter.format(parsed);
 }
 
 function formatSlaDelta(minutes?: number) {
