@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CardContent, CardHeader } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +49,7 @@ import {
 } from "@/features/crm/domain/model";
 import { cn, formatDateSafe } from "@/lib/utils";
 
-type LeadStatusFilter = "ACTIVE" | "CLOSED" | "WON" | "LOST";
+type LeadStatusFilter = "ACTIVE" | "WON" | "LOST";
 type LeadAttentionFilter = "ALL" | "OVERDUE" | "NO_NEXT_STEP" | "DUE_SOON";
 type PipelineColumnId = "LEAD" | "VALIDATION" | "PROPOSAL" | "NEGOTIATION";
 
@@ -262,13 +262,11 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   );
   const closedFilteredLeads = useMemo(() => {
     if (statusFilter === "WON") return filteredLeads.filter((lead) => lead.stage === "WON");
-    if (statusFilter === "LOST") return filteredLeads.filter((lead) => lead.stage === "LOST");
-    return filteredLeads.filter((lead) => lead.stage === "WON" || lead.stage === "LOST");
+    return filteredLeads.filter((lead) => lead.stage === "LOST");
   }, [filteredLeads, statusFilter]);
 
   const stageSummaryFilters = [
     { value: "ACTIVE" as const, label: "Todos", count: activeLeads.length },
-    { value: "CLOSED" as const, label: "Encerrados", count: grouped.WON.length + grouped.LOST.length },
     { value: "WON" as const, label: "Ganhos", count: grouped.WON.length },
     { value: "LOST" as const, label: "Perdidos", count: grouped.LOST.length },
   ];
@@ -394,9 +392,8 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           searchPlaceholder="Buscar empresa, titulo, contato ou proximo passo..."
           onSearchChange={setSearch}
           onClearSearch={() => setSearch("")}
-          resultLabel={`${statusFilter === "ACTIVE" ? activeLeads.filter((lead) => filteredLeads.some((item) => item.id === lead.id)).length : closedFilteredLeads.length} filtrados`}
           filters={
-            <div className="flex flex-col gap-2">
+            <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
               <RegistryFilterGroup value={statusFilter} onChange={setStatusFilter} options={stageSummaryFilters} />
               <RegistryFilterGroup value={attentionFilter} onChange={setAttentionFilter} options={attentionSummaryFilters} />
             </div>
@@ -418,21 +415,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
         />
 
         <RegistryTableCard>
-          <CardHeader className="pb-0">
-              <div className="flex flex-wrap gap-2">
-                {statusFilter === "ACTIVE"
-                ? PIPELINE_COLUMNS.map((column) => (
-                    <Badge key={column.id} variant="outline" className="gap-2 rounded-full px-3 py-1 text-xs">
-                      <span>{column.label}</span>
-                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-foreground">
-                        {getPipelineColumnLeads(filteredGrouped, column).length}
-                      </span>
-                    </Badge>
-                  ))
-                : null}
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-6">
             {leads.length === 0 ? (
               <EmptyPipelineState />
             ) : statusFilter === "ACTIVE" ? (
@@ -440,60 +423,58 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
                 {filteredLeads.filter((lead) => CRM_ACTIVE_STAGE_ORDER.includes(lead.stage)).length === 0 ? (
                   <FilteredEmptyState search={search} statusLabel="pipeline ativo" />
                 ) : (
-                  <div className="overflow-x-auto pb-2">
-                    <div className="flex min-w-max gap-4">
-                      {PIPELINE_COLUMNS.map((column) => {
-                        const stageLeads = getPipelineColumnLeads(filteredGrouped, column);
-                        return (
-                          <section
-                            key={column.id}
-                            className={cn(
-                              "w-[320px] shrink-0 rounded-2xl border border-border/60 bg-muted/20 p-3 transition-colors",
-                              hoveredStage === column.dropStage && "border-primary/50 bg-primary/5",
-                            )}
-                            onDragOver={(event) => {
-                              event.preventDefault();
-                              if (draggedLeadId) setHoveredStage(column.dropStage);
-                            }}
-                            onDragLeave={() => setHoveredStage((current) => (current === column.dropStage ? null : current))}
-                            onDrop={async (event) => {
-                              event.preventDefault();
-                              await handleDrop(column.dropStage);
-                            }}
-                          >
-                            <div className="mb-3 flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-foreground">{column.label}</p>
-                                <p className="mt-1 text-[11px] text-muted-foreground">{column.description}</p>
-                              </div>
-                              <Badge variant="secondary" className="shrink-0 rounded-full px-2.5">
-                                {stageLeads.length}
-                              </Badge>
+                  <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+                    {PIPELINE_COLUMNS.map((column) => {
+                      const stageLeads = getPipelineColumnLeads(filteredGrouped, column);
+                      return (
+                        <section
+                          key={column.id}
+                          className={cn(
+                            "min-w-0 rounded-2xl border border-border/60 bg-muted/20 p-3 transition-colors",
+                            hoveredStage === column.dropStage && "border-primary/50 bg-primary/5",
+                          )}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            if (draggedLeadId) setHoveredStage(column.dropStage);
+                          }}
+                          onDragLeave={() => setHoveredStage((current) => (current === column.dropStage ? null : current))}
+                          onDrop={async (event) => {
+                            event.preventDefault();
+                            await handleDrop(column.dropStage);
+                          }}
+                        >
+                          <div className="mb-3 flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground">{column.label}</p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">{column.description}</p>
                             </div>
+                            <Badge variant="secondary" className="shrink-0 rounded-full px-2.5">
+                              {stageLeads.length}
+                            </Badge>
+                          </div>
 
-                            <div className="space-y-3">
-                              {stageLeads.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-8 text-center text-xs text-muted-foreground">
-                                  Nenhum lead nesta etapa.
-                                </div>
-                              ) : (
-                                stageLeads.map((lead) => (
-                                  <LeadCard
-                                    key={lead.id}
-                                    lead={lead}
-                                    isSaving={savingLeadId === lead.id || isRefreshing}
-                                    onEdit={() => openEditor(lead.id)}
-                                    onStageChange={(nextStage) => handleStageChange(lead, nextStage)}
-                                    onDragStart={handleDragStart}
-                                    onDragEnd={handleDragEnd}
-                                  />
-                                ))
-                              )}
-                            </div>
-                          </section>
-                        );
-                      })}
-                    </div>
+                          <div className="space-y-3">
+                            {stageLeads.length === 0 ? (
+                              <div className="rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-8 text-center text-xs text-muted-foreground">
+                                Nenhum lead nesta etapa.
+                              </div>
+                            ) : (
+                              stageLeads.map((lead) => (
+                                <LeadCard
+                                  key={lead.id}
+                                  lead={lead}
+                                  isSaving={savingLeadId === lead.id || isRefreshing}
+                                  onEdit={() => openEditor(lead.id)}
+                                  onStageChange={(nextStage) => handleStageChange(lead, nextStage)}
+                                  onDragStart={handleDragStart}
+                                  onDragEnd={handleDragEnd}
+                                />
+                              ))
+                            )}
+                          </div>
+                        </section>
+                      );
+                    })}
                   </div>
                 )}
               </div>
