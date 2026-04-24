@@ -15,8 +15,8 @@ export function DocsSidebarInlineCollapse() {
         aria-label={actionLabel}
         title={actionLabel}
         className={cn(
-          'absolute right-2 top-[-2.35rem] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/45 bg-background/65',
-          'text-muted-foreground/85 shadow-sm backdrop-blur-md transition-colors hover:border-primary/20 hover:bg-accent/45 hover:text-foreground',
+          'absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-border/60 bg-background/80',
+          'text-muted-foreground/85 shadow-[0_18px_44px_-28px_hsl(var(--foreground)/0.7)] backdrop-blur-xl transition-all hover:border-primary/20 hover:bg-accent/60 hover:text-foreground',
           collapsed && 'text-primary/90',
         )}
       >

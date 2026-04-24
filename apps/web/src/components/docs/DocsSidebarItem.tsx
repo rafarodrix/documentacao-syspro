@@ -25,11 +25,11 @@ export function DocsSidebarItem({ item }: { item: Item }) {
       icon={item.icon}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'rounded-lg border border-transparent bg-transparent text-[0.95rem] leading-5 transition-colors',
+        'rounded-xl border border-transparent bg-transparent text-[0.95rem] leading-5 transition-all',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
-        'hover:bg-accent/40',
+        'hover:border-border/50 hover:bg-accent/45 hover:shadow-[0_14px_30px_-28px_hsl(var(--foreground)/0.9)]',
         isVisited && !isActive && 'text-muted-foreground/80',
-        isActive && 'border-primary/15 bg-primary/8 text-foreground font-medium',
+        isActive && 'border-primary/15 bg-primary/8 text-foreground font-medium shadow-[0_18px_40px_-30px_hsl(var(--primary)/0.7)]',
       )}
     >
       <span className="flex items-center gap-2.5">

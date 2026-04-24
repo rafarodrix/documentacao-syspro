@@ -62,7 +62,7 @@ export function DocsLayoutClient({
         tree={docsTree}
         nav={{ title: <span className="font-semibold text-sm">Central Trilink</span>, mode: 'top' }}
         themeSwitch={{ enabled: false }}
-        searchToggle={{ enabled: true }}
+        searchToggle={{ enabled: !isDocsHome }}
         sidebar={sharedSidebarProps}
       >
         {children}
@@ -75,7 +75,7 @@ export function DocsLayoutClient({
       tree={docsTree}
       nav={{ title: <span className="font-semibold text-sm">Central Trilink</span> }}
       themeSwitch={{ enabled: false }}
-      searchToggle={{ enabled: true }}
+      searchToggle={{ enabled: !isDocsHome }}
       sidebar={{ ...sharedSidebarProps, enabled: !isDocsHome }}
     >
       {children}

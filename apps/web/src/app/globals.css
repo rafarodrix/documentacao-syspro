@@ -291,12 +291,19 @@
 
   #nd-sidebar.docs-sidebar-shell,
   #nd-sidebar-mobile.docs-sidebar-shell {
-    background: linear-gradient(180deg, hsl(var(--card) / 0.86) 0%, hsl(var(--background) / 0.95) 100%);
-    border-right: 1px solid hsl(var(--border) / 0.36);
+    background:
+      radial-gradient(circle at top, hsl(var(--primary) / 0.08), transparent 32%),
+      linear-gradient(180deg, hsl(var(--card) / 0.92) 0%, hsl(var(--background) / 0.97) 100%);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 28px 80px -52px hsl(var(--foreground) / 0.8);
+    backdrop-filter: blur(18px);
   }
 
   .portal-docs-shell {
     --portal-docs-sidebar-width: 19rem;
+    background:
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 24%),
+      linear-gradient(180deg, hsl(var(--background) / 0.96) 0%, hsl(var(--card) / 0.94) 100%);
   }
 
   .portal-docs-shell #nd-subnav {
@@ -309,12 +316,23 @@
     position: sticky;
     top: 0;
     left: auto;
-    height: calc(100dvh - 8rem);
-    max-height: calc(100dvh - 8rem);
+    margin: 0.9rem 0 0.9rem 0.9rem;
+    height: calc(100dvh - 9.8rem);
+    max-height: calc(100dvh - 9.8rem);
+    border-radius: 1.9rem;
+    overflow: hidden;
     z-index: 10;
   }
 
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
+    border-radius: 1.7rem;
+    box-shadow: 0 24px 68px -46px hsl(var(--foreground) / 0.92);
+  }
+
   .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell {
+    margin: 0.75rem;
+    border-radius: 1.9rem;
+    overflow: hidden;
     z-index: 70;
   }
 
@@ -340,7 +358,7 @@
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor {
-    z-index: 2;
+    z-index: 6;
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor button:focus-visible {
@@ -351,15 +369,15 @@
   /* Densidade mais proxima do layout nativo do Fumadocs */
   #nd-sidebar.docs-sidebar-shell .overscroll-contain,
   #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain {
-    padding: 0.75rem;
+    padding: 0.9rem;
   }
 
   #nd-sidebar.docs-sidebar-shell a[data-active],
   #nd-sidebar.docs-sidebar-shell button[data-state],
   #nd-sidebar-mobile.docs-sidebar-shell a[data-active],
   #nd-sidebar-mobile.docs-sidebar-shell button[data-state] {
-    padding-top: 0.45rem;
-    padding-bottom: 0.45rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] {
