@@ -5,13 +5,9 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  ArrowDown,
   ArrowLeft,
   Building2,
-  CheckCircle2,
-  CircleDot,
   Code2,
-  Flame,
   Headphones,
   Loader2,
   Paperclip,
@@ -31,7 +27,6 @@ import {
   type TicketModuleSettingsPriority,
 } from "@dosc-syspro/contracts/ticket";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -84,12 +79,6 @@ interface CreateTicketPageFormProps {
 
 type TicketTeam = "SUPORTE" | "DESENVOLVIMENTO";
 
-const PRIORITY_ICONS = {
-  "1 low": ArrowDown,
-  "2 normal": CircleDot,
-  "3 high": Flame,
-} as const;
-
 function stripHtml(value: string) {
   return value.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").trim();
 }
@@ -99,18 +88,8 @@ function formatFileSize(bytes: number) {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function getPriorityTone(priority?: string) {
-  if (priority === "1 low") return "border-zinc-500/30 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300";
-  if (priority === "3 high") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300";
-  return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300";
-}
-
 function getTeamLabel(settings: TicketModuleSettings, team: string) {
   return settings.teams.find((item) => item.value === team)?.label || (team === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte");
-}
-
-function getPriorityLabel(settings: TicketModuleSettings, priority: string) {
-  return settings.priorities.find((item) => item.value === priority)?.label || "Normal";
 }
 
 function normalizeTicketTeam(value: string): TicketTeam {
@@ -151,12 +130,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   });
 
   const watchedSubject = form.watch("subject");
-  const watchedPriority = form.watch("priority");
-  const resolvedPriority = watchedPriority || ticketSettings.defaultPriority || DEFAULT_TICKET_MODULE_SETTINGS.defaultPriority;
   const descriptionText = stripHtml(descriptionHtml);
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
-  const selectedCategoryOption = ticketSettings.categories.find((item) => item.value === selectedCategory);
-  const selectedModuleOption = ticketSettings.modules.find((item) => item.value === selectedModule);
 
   const filteredCategories = useMemo(
     () => ticketSettings.categories.filter((category) => !selectedTeam || category.defaultTeam === selectedTeam),
@@ -205,14 +180,12 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     ? Boolean(selectedCompanyId || customerEmail.trim())
     : clientCompanies.length <= 1 || Boolean(selectedCompanyId);
 
-  const readinessItems = [
-    { label: "Identificacao", done: companyRequirementMet },
-    { label: "Assunto", done: watchedSubject.trim().length >= 5 },
-    { label: "Descricao", done: descriptionText.length >= 20 },
-    { label: "Classificacao", done: Boolean(selectedTeam && selectedCategory && selectedModule) },
-  ];
-  const completedItems = readinessItems.filter((item) => item.done).length;
-  const canSubmit = completedItems === readinessItems.length && !isPending;
+  const canSubmit =
+    companyRequirementMet &&
+    watchedSubject.trim().length >= 5 &&
+    descriptionText.length >= 20 &&
+    Boolean(selectedTeam && selectedCategory && selectedModule) &&
+    !isPending;
 
   useEffect(() => {
     let active = true;
@@ -656,55 +629,26 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   options={ticketSettings.modules}
                   value={selectedModule}
                   onChange={setSelectedModule}
+                  mode="single"
+                  compact
+                  labels={{
+                    single: "Modulo, submodulo e tela",
+                  }}
                 />
 
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 bg-card shadow-sm">
-              <CardContent className="space-y-4 p-4 md:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground">Resumo operacional</h2>
-                    <p className="text-xs text-muted-foreground">Conferencia antes do envio.</p>
-                  </div>
-                  <Badge variant="outline" className={cn("rounded-md border px-2 py-1 text-[10px] font-semibold", getPriorityTone(resolvedPriority))}>
-                    {getPriorityLabel(ticketSettings, resolvedPriority)}
-                  </Badge>
-                </div>
-
-                <div className="space-y-2">
-                  {readinessItems.map((item) => (
-                    <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs">
-                      <span className="text-muted-foreground">{item.label}</span>
-                      <span className={cn("inline-flex items-center gap-1 font-medium", item.done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                        {item.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <CircleDot className="h-3.5 w-3.5" />}
-                        {item.done ? "Ok" : "Pendente"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground">
-                  <div className="grid grid-cols-2 gap-2">
-                    <SummaryLine label="Equipe" value={getTeamLabel(ticketSettings, selectedTeam)} />
-                    <SummaryLine label="Categoria" value={selectedCategoryOption?.label || selectedCategory} />
-                    <SummaryLine label="Modulo" value={selectedModuleOption?.label || selectedModule} />
-                  </div>
-                </div>
-
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end xl:flex-col-reverse">
-                  <Button type="button" variant="outline" className="h-10 gap-2" onClick={() => router.push("/portal/tickets")}>
-                    <ArrowLeft className="h-4 w-4" />
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={!canSubmit} className="h-10 gap-2">
-                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    {isPending ? "Enviando" : "Abrir chamado"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" className="h-10 gap-2" onClick={() => router.push("/portal/tickets")}>
+                <ArrowLeft className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={!canSubmit} className="h-10 gap-2">
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {isPending ? "Enviando" : "Abrir chamado"}
+              </Button>
+            </div>
           </aside>
         </form>
       </Form>
@@ -713,14 +657,9 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
 }
 
 function PrioritySelectItem({ priority }: { priority: TicketModuleSettingsPriority }) {
-  const Icon = PRIORITY_ICONS[priority.value as keyof typeof PRIORITY_ICONS] || CircleDot;
-
   return (
     <SelectItem value={priority.value}>
-      <span className="inline-flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5" />
-        {priority.label}
-      </span>
+      <span className="inline-flex items-center gap-2">{priority.label}</span>
     </SelectItem>
   );
 }
@@ -755,15 +694,6 @@ function AttachmentChips({ files, onRemove }: { files: File[]; onRemove: (index:
           </button>
         </div>
       ))}
-    </div>
-  );
-}
-
-function SummaryLine({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="truncate font-medium text-foreground">{value || "Nao definido"}</p>
     </div>
   );
 }

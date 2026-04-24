@@ -466,10 +466,10 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                         options={ticketSettings.modules}
                         value={selectedModule}
                         onChange={setSelectedModule}
+                        mode="single"
+                        compact
                         labels={{
-                          module: "Modulo",
-                          submodule: "Submodulo",
-                          screen: "Tela",
+                          single: "Modulo, submodulo e tela",
                         }}
                       />
                     </FormItem>
