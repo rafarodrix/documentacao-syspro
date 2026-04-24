@@ -3,7 +3,7 @@ import { getCadastrosCompaniesAdminViewData } from "@/features/company/applicati
 import { CompanyTab } from "@/features/company/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface CadastrosEmpresaPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -23,7 +23,9 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
   const result = await getCadastrosCompaniesAdminViewData();
 
   if ("error" in result) return <div>Erro: {result.error}</div>;
-  const canViewCompanies = await currentUserHasPermission("companies:view");
+  const canViewCompanies = await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
+    acceptCompanyScope: true,
+  });
   const canCreateCompanies = await currentUserHasPermission("companies:create");
   const canEditCompanies = await currentUserHasPermission("companies:edit", { acceptCompanyScope: true });
   const canToggleCompanies = await currentUserHasPermission("companies:status");
