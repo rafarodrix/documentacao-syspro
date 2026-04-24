@@ -29,12 +29,12 @@ export function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <AuthLayoutWrapper title="Link InvÃ¡lido" description="SolicitaÃ§Ã£o nÃ£o encontrada." backButton>
+      <AuthLayoutWrapper title="Link Inválido" description="Solicitação não encontrada." backButton>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro</AlertTitle>
           <AlertDescription>
-            O link de recuperaÃ§Ã£o Ã© invÃ¡lido ou expirou. Links sÃ£o vÃ¡lidos por 1 hora.
+            O link de recuperação é inválido ou expirou. Links são válidos por 1 hora.
           </AlertDescription>
         </Alert>
         <Button className="w-full mt-4" asChild>
@@ -77,7 +77,7 @@ export function ResetPasswordForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="MÃ­nimo 8 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 required
                 autoComplete="new-password"
                 value={password}
@@ -117,7 +117,7 @@ export function ResetPasswordForm() {
                   )}
                 >
                   {passwordStrength.label}
-                  {!passwordStrength.passes && " - adicione letras maiÃºsculas, nÃºmeros ou sÃ­mbolos"}
+                  {!passwordStrength.passes && " - adicione letras maiúsculas, números ou símbolos"}
                 </p>
               </div>
             )}
@@ -151,7 +151,7 @@ export function ResetPasswordForm() {
               />
               <button
                 type="button"
-                aria-label={showConfirm ? "Ocultar confirmaÃ§Ã£o" : "Mostrar confirmaÃ§Ã£o"}
+                aria-label={showConfirm ? "Ocultar confirmação" : "Mostrar confirmação"}
                 onClick={() => setShowConfirm((p) => !p)}
                 disabled={loading}
                 className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
@@ -161,7 +161,7 @@ export function ResetPasswordForm() {
             </div>
             {confirmPassword.length > 0 && password !== confirmPassword && (
               <p className="text-[11px] text-orange-500 animate-in fade-in duration-200">
-                As senhas nÃ£o coincidem ainda
+                As senhas não coincidem ainda
               </p>
             )}
           </div>

@@ -22,7 +22,7 @@ export function RegisterForm() {
   return (
     <AuthLayoutWrapper
       title="Crie sua conta"
-      description="Junte-se Ã  equipe da sua empresa no Syspro ERP."
+      description="Junte-se à equipe da sua empresa no Syspro ERP."
     >
       {error && (
         <Alert variant="destructive" className="animate-in fade-in zoom-in-95 duration-300 border-red-500/50 bg-red-500/10 text-red-600">
@@ -101,12 +101,12 @@ export function RegisterForm() {
                 )}
               />
             </div>
-            <p className="text-[11px] text-muted-foreground ml-1">MÃ­nimo de 6 caracteres</p>
+            <p className="text-[11px] text-muted-foreground ml-1">Mínimo de 6 caracteres</p>
           </div>
         </div>
 
         <div className="bg-primary/5 border border-primary/10 p-3 rounded-md text-xs text-primary/80">
-          <strong>Nota:</strong> Se vocÃª deseja <strong>contratar o Syspro</strong> para sua empresa, entre em contato com nosso setor comercial.
+          <strong>Nota:</strong> Se você deseja <strong>contratar o Syspro</strong> para sua empresa, entre em contato com nosso setor comercial.
         </div>
 
         <Button
@@ -129,7 +129,7 @@ export function RegisterForm() {
             <span className="w-full border-t border-border/50" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">JÃ¡ tem acesso?</span>
+            <span className="bg-background px-2 text-muted-foreground">Já tem acesso?</span>
           </div>
         </div>
 

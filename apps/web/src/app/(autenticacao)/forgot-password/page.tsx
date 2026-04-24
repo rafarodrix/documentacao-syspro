@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
     title: "Recuperar Senha | Syspro ERP",
-    description: "Solicite a redefiniÃ§Ã£o da sua senha de acesso.",
+    description: "Solicite a redefinição da sua senha de acesso.",
 };
 
 export default function ForgotPasswordPage() {
