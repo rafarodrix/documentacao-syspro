@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, CircleDollarSign, KanbanSquare, Plus, Target, UserRound } from "lucide-react";
-import type { CrmLeadStage } from "@dosc-syspro/contracts/crm";
+import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,12 @@ import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS, formatLeadCurrency, type LeadDashb
 import { groupLeadsByStage } from "@/features/crm/application/queries";
 
 const STAGE_ORDER: CrmLeadStage[] = ["LEAD", "MQL", "SQL", "PROPOSAL", "NEGOTIATION", "WON", "LOST"];
+
+function resolveLeadContactName(lead: CrmLead) {
+  const primaryManualContact = lead.contacts.find((contact) => contact.isPrimary)?.name?.trim();
+  const firstManualContact = lead.contacts.find((contact) => contact.name.trim())?.name.trim();
+  return lead.primaryContactName || primaryManualContact || firstManualContact || "Sem contato vinculado";
+}
 
 export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   const { leads } = data;
@@ -104,7 +110,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
                             <Separator className="my-3" />
 
                             <div className="space-y-2 text-xs text-muted-foreground">
-                              <LeadMeta icon={UserRound} text={lead.contactName || "Sem contato vinculado"} />
+                              <LeadMeta icon={UserRound} text={resolveLeadContactName(lead)} />
                               <LeadMeta text={CRM_SOURCE_LABELS[lead.source]} />
                               <LeadMeta text={formatLeadCurrency(lead.estimatedValue)} />
                               {lead.nextStep ? <LeadMeta text={lead.nextStep} /> : null}
