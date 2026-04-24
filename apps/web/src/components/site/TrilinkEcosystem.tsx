@@ -27,12 +27,12 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
       {/* --- Background Elements (Magic UI) --- */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-background">
-        <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.10]" />
+        <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] bg-size-[16px_16px] opacity-[0.10]" />
       </div>
 
       {/* Luz Ambiente */}
-      <div className="absolute top-1/3 right-0 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/3 right-0 -translate-y-1/2 w-200 h-200 bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute bottom-0 left-0 w-150 h-150 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
 
       <div className="container px-4 md:px-6 mx-auto max-w-7xl">
 
@@ -55,7 +55,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
           {/* 1. Card: Base de Conhecimento (Largo - Topo Esquerda) */}
           <Card className="md:col-span-2 group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-xl transition-all duration-500 hover:border-primary/20">
             {/* Background Gradient on Hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-all duration-700 group-hover:rotate-12 group-hover:scale-110">
               <BookText className="w-40 h-40 -mr-12 -mt-12 rotate-12 text-foreground" />
@@ -84,7 +84,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
           {/* 2. Card: Suporte (Vertical - Direita) */}
           <Card className="md:row-span-2 group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-xl transition-all duration-500 hover:border-primary/20 flex flex-col">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-b from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <CardContent className="relative z-10 flex flex-col h-full justify-between p-8">
               <div>
@@ -129,7 +129,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
           {/* 3. Card: Ferramentas (Pequeno - Meio Esquerda) */}
           <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-orange-500/30">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full">
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20">
                 <Terminal className="h-5 w-5" />
@@ -146,7 +146,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
           {/* 4. Card: Duvidas frequentes */}
           <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-pink-500/30">
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full">
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 border border-pink-500/20">
                 <HelpCircle className="h-5 w-5" />
@@ -173,7 +173,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
           {/* 6. Card: Status do Sistema (Pequeno - Baixo Direita) */}
           <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-emerald-500/30">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full justify-center items-center text-center">
               <div className="mb-4 relative">
                 <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full animate-pulse" />

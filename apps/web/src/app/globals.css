@@ -301,7 +301,7 @@
 
   .portal-docs-shell {
     --portal-docs-sidebar-width: 17.75rem;
-    --portal-docs-sidebar-top: calc(var(--fd-banner-height, 0px) + var(--fd-nav-height, 0px) + 0.85rem);
+    --portal-docs-sidebar-top: calc(var(--portal-docs-top-offset, 0px) + 0.85rem);
     background:
       radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 24%),
       linear-gradient(180deg, hsl(var(--background) / 0.96) 0%, hsl(var(--card) / 0.94) 100%);
@@ -309,8 +309,8 @@
 
   .portal-docs-shell #nd-subnav {
     position: sticky;
-    top: 0;
-    z-index: 20;
+    top: var(--portal-docs-top-offset, 0px);
+    z-index: 18;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
@@ -323,7 +323,7 @@
     max-height: calc(100dvh - var(--portal-docs-sidebar-top) - 0.85rem);
     border-radius: 1.9rem;
     overflow: hidden;
-    z-index: 15;
+    z-index: 14;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
