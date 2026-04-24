@@ -90,6 +90,10 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
     const changeStatus = (status: TicketModuleStatus) => {
         if (!ticket) return;
+        if (classificationDirty) {
+            toast.error("Salve as alteracoes de classificacao antes de mudar o estagio do ticket.");
+            return;
+        }
         if (status === "RESOLVED") {
             setFinalizeOpen(true);
             return;
@@ -182,6 +186,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
     const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
+    const canManageRelease = currentTeam === "DESENVOLVIMENTO" || Boolean(ticket.publishToReleases);
 
     return (
         <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -327,7 +332,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                 <Separator />
                                 <SlaCompact ticket={ticket} isClosedTicket={isClosedTicket} />
 
-                                {isClosedTicket && isAdmin && (
+                                {isClosedTicket && isAdmin && canManageRelease && (
                                     <>
                                         <Separator />
                                         <section className="space-y-2">

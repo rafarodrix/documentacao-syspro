@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Flag, Video } from "lucide-react";
+import { AlertCircle, Loader2, Flag, Video } from "lucide-react";
 import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,22 +49,47 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   const [isPending, startTransition] = useTransition();
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
+  const currentTeam = (ticket.operations?.currentTeam || "").trim().toUpperCase();
+  const isDevelopmentTicket = currentTeam === "DESENVOLVIMENTO";
   const inferredReleaseType = inferReleaseType(ticket);
   const effectiveReleaseType = inferredReleaseType || "MELHORIA";
-  const shouldSuggestRelease = Boolean(ticket.publishToReleases || ticket.resolvedAt || inferredReleaseType || ticket.operations?.currentTeam === "DESENVOLVIMENTO");
-  const releaseModule = ticket.releaseModule || ticket.operations?.module || "";
+  const shouldSuggestRelease = Boolean(ticket.publishToReleases || (isDevelopmentTicket && (ticket.resolvedAt || inferredReleaseType || ticket.operations?.module)));
 
   const [resolutionSummary, setResolutionSummary] = useState(ticket.resolutionSummary || "");
   const [resolutionVideoUrl, setResolutionVideoUrl] = useState(ticket.resolutionVideoUrl || "");
   const [releaseTitle, setReleaseTitle] = useState(ticket.releaseTitle || ticket.title || "");
-  const releaseType = ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : effectiveReleaseType;
+  const [releaseModule, setReleaseModule] = useState(ticket.releaseModule || ticket.operations?.module || "");
   const [publishToReleases, setPublishToReleases] = useState(shouldSuggestRelease);
+  const releaseType = ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : effectiveReleaseType;
 
   const shouldRequireReleaseFields = publishToReleases;
+  const canFinalize = useMemo(() => {
+    if (!resolutionSummary.trim()) return false;
+    if (shouldRequireReleaseFields && !releaseTitle.trim()) return false;
+    return true;
+  }, [releaseTitle, resolutionSummary, shouldRequireReleaseFields]);
+
+  useEffect(() => {
+    if (!open) return;
+    setResolutionSummary(ticket.resolutionSummary || "");
+    setResolutionVideoUrl(ticket.resolutionVideoUrl || "");
+    setReleaseTitle(ticket.releaseTitle || ticket.title || "");
+    setReleaseModule(ticket.releaseModule || ticket.operations?.module || "");
+    setPublishToReleases(shouldSuggestRelease);
+  }, [
+    open,
+    shouldSuggestRelease,
+    ticket.releaseModule,
+    ticket.releaseTitle,
+    ticket.resolutionSummary,
+    ticket.resolutionVideoUrl,
+    ticket.title,
+    ticket.operations?.module,
+  ]);
 
   const runFinalizeAction = () => {
     if (!resolutionSummary.trim()) {
-      toast.error("Resolucao obrigatoria para finalizar o ticket.");
+      toast.error("Preencha a resolucao aplicada para concluir o ticket.");
       return;
     }
     if (shouldRequireReleaseFields && !releaseType) {
@@ -84,11 +109,11 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
           releaseType: shouldRequireReleaseFields ? releaseType : undefined,
           releaseTitle: shouldRequireReleaseFields ? releaseTitle : undefined,
           releaseModule: shouldRequireReleaseFields ? releaseModule : undefined,
-          publishToReleases,
+          publishToReleases: isDevelopmentTicket ? publishToReleases : false,
         });
 
         if (!result.success) {
-          toast.error(result.error);
+          toast.error(result.error || "Nao foi possivel concluir o ticket.");
           return;
         }
 
@@ -128,19 +153,6 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Titulo da release{publishToReleases ? " *" : ""}
-            </Label>
-            <Input
-              placeholder="Titulo publico (ex: Novo relatorio visual)"
-              className="h-9 text-xs"
-              value={releaseTitle}
-              onChange={(e) => setReleaseTitle(e.target.value)}
-              disabled={isPending}
-            />
-          </div>
-
           <div className="space-y-2">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resolucao Aplicada *</Label>
             <Textarea
@@ -151,6 +163,12 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
               onChange={(e) => setResolutionSummary(e.target.value)}
               disabled={isPending}
             />
+            {!resolutionSummary.trim() && (
+              <p className="flex items-center gap-1.5 text-[11px] text-amber-600">
+                <AlertCircle className="h-3.5 w-3.5" />
+                A conclusao exige o preenchimento da resolucao aplicada.
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -167,23 +185,56 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             </div>
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 rounded-md border bg-muted/20 p-3 text-sm text-foreground transition-colors hover:text-primary">
-            <input
-              type="checkbox"
-              checked={publishToReleases}
-              onChange={(e) => setPublishToReleases(e.target.checked)}
-              className="h-4 w-4 rounded border-border accent-primary"
-              disabled={isPending}
-            />
-            Publicar no painel de Releases ao cliente
-          </label>
+          {isDevelopmentTicket ? (
+            <>
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border bg-muted/20 p-3 text-sm text-foreground transition-colors hover:text-primary">
+                <input
+                  type="checkbox"
+                  checked={publishToReleases}
+                  onChange={(e) => setPublishToReleases(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                  disabled={isPending}
+                />
+                Publicar no painel de Releases ao cliente
+              </label>
+
+              {publishToReleases && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da release *</Label>
+                    <Input
+                      placeholder="Titulo publico (ex: Novo relatorio visual)"
+                      className="h-9 text-xs"
+                      value={releaseTitle}
+                      onChange={(e) => setReleaseTitle(e.target.value)}
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modulo da release</Label>
+                    <Input
+                      placeholder="Modulo impactado"
+                      className="h-9 text-xs"
+                      value={releaseModule}
+                      onChange={(e) => setReleaseModule(e.target.value)}
+                      disabled={isPending}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+              Tickets do setor de suporte sao concluidos sem publicacao em Releases.
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
             Cancelar
           </Button>
-          <Button onClick={runFinalizeAction} disabled={isPending} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={runFinalizeAction} disabled={isPending || !canFinalize} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {ticket.resolvedAt ? "Atualizar Fechamento" : "Concluir Ticket"}
           </Button>
