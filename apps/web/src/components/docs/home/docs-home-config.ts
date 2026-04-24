@@ -1,4 +1,4 @@
-﻿import {
+import {
   BookOpen,
   HelpCircle,
   Users,
@@ -6,10 +6,6 @@
 } from 'lucide-react';
 import type { Role } from '@prisma/client';
 import type { RoleSegment } from './use-docs-dashboard';
-
-// ---------------------------------------------------------------------------
-// Tipos
-// ---------------------------------------------------------------------------
 
 export type QuickLinkTone = 'docs' | 'faq' | 'training' | 'support' | 'technical';
 
@@ -21,36 +17,32 @@ export type QuickLink = {
   tone: QuickLinkTone;
 };
 
-// ---------------------------------------------------------------------------
-// Quick links base
-// ---------------------------------------------------------------------------
-
 export const BASE_QUICK_LINKS: QuickLink[] = [
   {
     href: '/portal/docs/manual',
-    title: 'DocumentaÃ§Ã£o',
-    description: 'Guias e mÃ³dulos para o dia a dia.',
+    title: 'Documentacao',
+    description: 'Guias e modulos para a operacao do dia a dia.',
     icon: BookOpen,
     tone: 'docs',
   },
   {
     href: '/portal/docs/duvidas',
-    title: 'DÃºvidas frequentes',
-    description: 'Respostas para incidentes comuns.',
+    title: 'Duvidas frequentes',
+    description: 'Respostas para incidentes e duvidas recorrentes.',
     icon: HelpCircle,
     tone: 'faq',
   },
   {
     href: '/portal/docs/treinamento',
     title: 'Treinamentos',
-    description: 'Trilhas de capacitaÃ§Ã£o da equipe.',
+    description: 'Trilhas praticas para acelerar a capacitacao da equipe.',
     icon: Users,
     tone: 'training',
   },
   {
     href: '/portal/docs/suporte',
     title: 'Suporte',
-    description: 'Processos, integraÃ§Ãµes e operaÃ§Ã£o.',
+    description: 'Processos, atendimento e operacao assistida.',
     icon: Wrench,
     tone: 'support',
   },
@@ -58,47 +50,39 @@ export const BASE_QUICK_LINKS: QuickLink[] = [
 
 export const TECHNICAL_QUICK_LINK: QuickLink = {
   href: '/portal/docs/manuais-tecnicos',
-  title: 'Manuais tÃ©cnicos',
-  description: 'Arquitetura, backlog e padrÃµes.',
+  title: 'Manuais tecnicos',
+  description: 'Arquitetura, integracoes e padroes tecnicos.',
   icon: Wrench,
   tone: 'technical',
 };
 
-// ---------------------------------------------------------------------------
-// Tarefas iniciais por role
-// ---------------------------------------------------------------------------
-
 export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
   ADMIN: [
-    { href: '/portal/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'GovernanÃ§a tÃ©cnica e padrÃµes.' },
-    { href: '/portal/docs/suporte', title: 'OperaÃ§Ã£o de suporte', description: 'Fluxos de atendimento e escalonamento.' },
-    { href: '/portal/docs/manual', title: 'VisÃ£o funcional do produto', description: 'ConteÃºdo orientado ao cliente final.' },
+    { href: '/portal/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'Governanca tecnica e padroes da operacao.' },
+    { href: '/portal/docs/suporte', title: 'Operacao de suporte', description: 'Fluxos de atendimento, triagem e escalonamento.' },
+    { href: '/portal/docs/manual', title: 'Visao funcional do produto', description: 'Leitura funcional para entender modulos e rotinas.' },
   ],
   DEVELOPER: [
-    { href: '/portal/docs/manuais-tecnicos', title: 'Manuais tÃ©cnicos', description: 'Infra, stack e decisÃµes de arquitetura.' },
-    { href: '/portal/docs/suporte', title: 'Processos de suporte', description: 'Contexto de operaÃ§Ã£o e troubleshooting.' },
-    { href: '/portal/docs/duvidas', title: 'Erros recorrentes', description: 'Base para correÃ§Ãµes rÃ¡pidas.' },
+    { href: '/portal/docs/manuais-tecnicos', title: 'Manuais tecnicos', description: 'Infraestrutura, stack e decisoes de arquitetura.' },
+    { href: '/portal/docs/suporte', title: 'Processos de suporte', description: 'Troubleshooting, contexto operacional e playbooks.' },
+    { href: '/portal/docs/duvidas', title: 'Erros recorrentes', description: 'Referencias rapidas para correcoes mais comuns.' },
   ],
   SUPORTE: [
-    { href: '/portal/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks e processos operacionais.' },
-    { href: '/portal/docs/duvidas', title: 'DÃºvidas e erros comuns', description: 'ResoluÃ§Ã£o rÃ¡pida de incidentes.' },
-    { href: '/portal/docs/treinamento', title: 'Treinamentos', description: 'CapacitaÃ§Ã£o contÃ­nua do time.' },
+    { href: '/portal/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks operacionais e padroes de atendimento.' },
+    { href: '/portal/docs/duvidas', title: 'Duvidas e erros comuns', description: 'Base de resolucao rapida para incidentes frequentes.' },
+    { href: '/portal/docs/treinamento', title: 'Treinamentos', description: 'Capacitacao continua para equipe de suporte.' },
   ],
   CLIENTE_ADMIN: [
-    { href: '/portal/docs/manual', title: 'OperaÃ§Ã£o do sistema', description: 'Rotinas principais do dia a dia.' },
-    { href: '/portal/docs/treinamento', title: 'Treinar equipe', description: 'Materiais para onboarding interno.' },
-    { href: '/portal/docs/duvidas', title: 'Resolver problemas comuns', description: 'Perguntas e respostas rÃ¡pidas.' },
+    { href: '/portal/docs/manual', title: 'Operacao do sistema', description: 'Rotinas essenciais para administrar o ambiente.' },
+    { href: '/portal/docs/treinamento', title: 'Treinar equipe', description: 'Materiais de onboarding e padronização interna.' },
+    { href: '/portal/docs/duvidas', title: 'Resolver problemas comuns', description: 'Consultas rapidas para bloqueios operacionais.' },
   ],
   CLIENTE_USER: [
-    { href: '/portal/docs/manual', title: 'Primeiros passos', description: 'Fluxo bÃ¡sico para comeÃ§ar a operar.' },
-    { href: '/portal/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios.' },
-    { href: '/portal/docs/treinamento', title: 'Aprender mais rÃ¡pido', description: 'Guias prÃ¡ticos por mÃ³dulo.' },
+    { href: '/portal/docs/manual', title: 'Primeiros passos', description: 'Fluxo inicial para comecar a operar com seguranca.' },
+    { href: '/portal/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios do dia a dia.' },
+    { href: '/portal/docs/treinamento', title: 'Aprender mais rapido', description: 'Guias praticos por modulo e processo.' },
   ],
 };
-
-// ---------------------------------------------------------------------------
-// Estilos por tone (Cores semÃ¢nticas Tailwind para suportar Dark/Light mode)
-// ---------------------------------------------------------------------------
 
 export const TONE_STYLES: Record<QuickLinkTone, {
   shineColor: string[];
@@ -106,7 +90,7 @@ export const TONE_STYLES: Record<QuickLinkTone, {
   glowClass: string;
 }> = {
   docs: {
-    shineColor: ['#3b82f633', '#60a5fa33'], // Tons de primary genÃ©ricos para o shine
+    shineColor: ['#3b82f633', '#60a5fa33'],
     pillClass: 'border-primary/20 bg-primary/10 text-primary',
     glowClass: 'from-primary/10',
   },
@@ -131,10 +115,6 @@ export const TONE_STYLES: Record<QuickLinkTone, {
     glowClass: 'from-foreground/5',
   },
 };
-
-// ---------------------------------------------------------------------------
-// Labels por role segment
-// ---------------------------------------------------------------------------
 
 export const ROLE_LABELS: Record<RoleSegment, string> = {
   admin: 'Populares para admins',

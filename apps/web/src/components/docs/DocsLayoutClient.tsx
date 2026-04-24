@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Role } from '@prisma/client';
-import { usePathname } from 'next/navigation';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
@@ -25,9 +24,7 @@ export function DocsLayoutClient({
   role: Role;
   children: ReactNode;
 }) {
-  const pathname = usePathname();
   const isAdmin = role === 'ADMIN';
-  const isDocsHome = pathname === '/portal/docs';
 
   // `null` enquanto hidratando → evita flash de layout errado no SSR
   const [adminLayoutMode, setAdminLayoutMode] = useState<'docs' | 'notebook' | null>(null);
@@ -43,10 +40,9 @@ export function DocsLayoutClient({
   }, [isAdmin]);
 
   const layoutMode = useMemo(() => {
-    if (isDocsHome) return 'docs';
     if (isAdmin) return adminLayoutMode ?? 'docs';
     return getDefaultLayoutForRole(role);
-  }, [isAdmin, adminLayoutMode, role, isDocsHome]);
+  }, [isAdmin, adminLayoutMode, role]);
 
   const sharedSidebarProps = {
     className: 'docs-sidebar-shell portal-docs-sidebar',
@@ -62,7 +58,7 @@ export function DocsLayoutClient({
         tree={docsTree}
         nav={{ title: <span className="font-semibold text-sm">Central Trilink</span>, mode: 'top' }}
         themeSwitch={{ enabled: false }}
-        searchToggle={{ enabled: !isDocsHome }}
+        searchToggle={{ enabled: true }}
         sidebar={sharedSidebarProps}
       >
         {children}
@@ -75,8 +71,8 @@ export function DocsLayoutClient({
       tree={docsTree}
       nav={{ title: <span className="font-semibold text-sm">Central Trilink</span> }}
       themeSwitch={{ enabled: false }}
-      searchToggle={{ enabled: !isDocsHome }}
-      sidebar={{ ...sharedSidebarProps, enabled: !isDocsHome }}
+      searchToggle={{ enabled: true }}
+      sidebar={sharedSidebarProps}
     >
       {children}
     </DocsLayout>

@@ -25,13 +25,11 @@ export default async function PortalDocsLayout({ children }: { children: ReactNo
   return (
     <RootProvider>
       <PortalShellModeController showSidebar={false} />
-      <div className="portal-docs-shell overflow-hidden rounded-[28px] border border-border/60 bg-background shadow-sm">
-        <main className="min-h-0 [--fd-banner-height:0px] [--portal-docs-top-offset:0px]">
-          <DocsLayoutClient docsTree={docsTree} role={session.role}>
-            {children}
-          </DocsLayoutClient>
-        </main>
-      </div>
+      <main className="portal-docs-shell min-h-0 [--fd-banner-height:0px] [--portal-docs-top-offset:0px]">
+        <DocsLayoutClient docsTree={docsTree} role={session.role}>
+          {children}
+        </DocsLayoutClient>
+      </main>
     </RootProvider>
   );
 }

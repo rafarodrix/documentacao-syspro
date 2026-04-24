@@ -314,11 +314,11 @@
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
     position: sticky;
-    top: 0;
+    top: 0.9rem;
     left: auto;
-    margin: 0.9rem 0 0.9rem 0.9rem;
-    height: calc(100dvh - 9.8rem);
-    max-height: calc(100dvh - 9.8rem);
+    margin: 0 0 0.9rem 0.9rem;
+    height: calc(100dvh - 1.8rem);
+    max-height: calc(100dvh - 1.8rem);
     border-radius: 1.9rem;
     overflow: hidden;
     z-index: 10;
@@ -327,6 +327,10 @@
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
     border-radius: 1.7rem;
     box-shadow: 0 24px 68px -46px hsl(var(--foreground) / 0.92);
+  }
+
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell > div:last-child {
+    min-height: 100%;
   }
 
   .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell {
@@ -347,6 +351,11 @@
     z-index: 4;
     background: linear-gradient(180deg, hsl(var(--card) / 0.95) 0%, hsl(var(--card) / 0.84) 100%);
     border-bottom: 1px solid hsl(var(--border) / 0.58);
+  }
+
+  #nd-sidebar.docs-sidebar-shell a,
+  #nd-sidebar-mobile.docs-sidebar-shell a {
+    text-decoration: none;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-active='true'] {
@@ -370,6 +379,13 @@
   #nd-sidebar.docs-sidebar-shell .overscroll-contain,
   #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain {
     padding: 0.9rem;
+  }
+
+  #nd-sidebar.docs-sidebar-shell [data-search-full],
+  #nd-sidebar-mobile.docs-sidebar-shell [data-search-full] {
+    border-radius: 1rem;
+    border-color: hsl(var(--border) / 0.58);
+    background: hsl(var(--background) / 0.7);
   }
 
   #nd-sidebar.docs-sidebar-shell a[data-active],

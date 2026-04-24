@@ -80,7 +80,7 @@ export function InsightLink({
   return (
     <Link
       href={href}
-      className="group relative flex min-h-[48px] items-center justify-between gap-3 rounded-xl border border-transparent bg-transparent px-4 py-3.5 text-sm transition-all hover:bg-accent/70 hover:border-border/60"
+      className="group relative flex min-h-[48px] items-center justify-between gap-3 rounded-xl border border-transparent bg-transparent px-4 py-3.5 text-sm no-underline transition-all hover:bg-accent/70 hover:border-border/60"
     >
       <span className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
       <span className="line-clamp-2 leading-snug">{title}</span>
@@ -147,7 +147,7 @@ export function PremiumLinkCard({
   const tone = TONE_STYLES[item.tone];
 
   return (
-    <Link href={item.href} className="group block animate-docs-fade-up opacity-0" style={style}>
+    <Link href={item.href} className="group block animate-docs-fade-up no-underline opacity-0" style={style}>
       <MagicCard className="h-full rounded-3xl">
         <div className="relative h-full rounded-3xl border border-border/50 bg-background/30 backdrop-blur-2xl p-5 sm:p-6 transition-all group-hover:bg-background/50">
           <div

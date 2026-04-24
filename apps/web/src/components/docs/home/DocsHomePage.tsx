@@ -15,8 +15,8 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
@@ -63,52 +63,52 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
   const featuredUpdates = derived.latestUpdates.slice(0, 3);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="docs-home-page space-y-6 pb-12">
       <section
-        className="relative animate-docs-fade-up overflow-hidden rounded-[32px] border border-border/60 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.16),transparent_28%),radial-gradient(circle_at_85%_20%,hsl(var(--accent)/0.12),transparent_24%),linear-gradient(145deg,hsl(var(--card)/0.96),hsl(var(--background)/0.94))] p-6 opacity-0 shadow-[0_28px_80px_-46px_hsl(var(--foreground)/0.5)] md:p-8"
+        className="relative animate-docs-fade-up overflow-hidden rounded-[34px] border border-border/60 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.16),transparent_30%),linear-gradient(180deg,hsl(var(--background)/0.98),hsl(var(--card)/0.96))] p-6 opacity-0 shadow-[0_28px_80px_-48px_hsl(var(--foreground)/0.65)] md:p-8"
         style={staggerStyle(0)}
       >
-        <div className="pointer-events-none absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-primary/10 blur-[100px]" />
-        <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-white/6 blur-[90px]" />
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.12)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.12)_1px,transparent_1px)] bg-size-[22px_22px] mask-[radial-gradient(ellipse_80%_70%_at_50%_0%,#000_65%,transparent_100%)] opacity-60" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-[34rem] -translate-x-1/2 rounded-full bg-primary/12 blur-[120px]" />
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_320px]">
-          <div className="space-y-5">
+        <div className="relative z-10 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_360px]">
+          <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
-              <Badge variant="outline" className="w-fit rounded-full border-primary/20 bg-primary/8 px-3 text-primary">
+              <Badge variant="outline" className="rounded-full border-primary/20 bg-background/80 px-3 py-1 text-primary">
                 <Sparkles className="mr-1.5 h-3 w-3" />
-                Curadoria da central de ajuda
+                Central de ajuda no portal
               </Badge>
-              <Badge variant="outline" className="w-fit rounded-full border-border/60 bg-background/50 px-3 text-muted-foreground">
+              <Badge variant="outline" className="rounded-full border-border/60 bg-background/70 px-3 py-1 text-muted-foreground">
                 Publico: {ROLE_LABELS[status.roleSegment]}
               </Badge>
             </div>
 
-            <div>
-              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight md:text-5xl">
-                Documentacao premium, pensada para consulta rapida.
+            <div className="max-w-4xl">
+              <h1 className="text-3xl font-extrabold tracking-tight md:text-5xl md:leading-[1.05]">
+                A central oficial da documentacao Syspro ERP, com navegacao mais limpa e direta.
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-                Centralize manuais, duvidas frequentes, treinamentos e materiais tecnicos em uma entrada unica, com visual mais limpo e foco real no que precisa ser encontrado.
+              <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+                Consulte manuais, duvidas frequentes, treinamentos e conteudos tecnicos sem ruido visual, com atalhos mais claros e um fluxo mais proximo da home principal do portal.
               </p>
             </div>
 
-            <div className="rounded-[28px] border border-border/60 bg-background/45 p-3 shadow-[inset_0_1px_0_hsl(var(--background)/0.45)] backdrop-blur-xl">
-              <LargeSearchToggle className="h-14 w-full justify-start rounded-[22px] border-0 bg-background/70 px-4 text-left text-sm shadow-none" />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  'Manuais por modulo',
-                  'FAQ operacional',
-                  canViewTechnical ? 'Guias tecnicos liberados' : 'Treinamentos da equipe',
-                ].map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full border border-border/60 bg-background/55 px-3 py-1 text-[11px] font-medium text-muted-foreground"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href="/portal/docs/manual" className="no-underline">
+                <Button size="lg" className="h-12 px-6 text-sm font-semibold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5">
+                  Explorar documentacao
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/portal/docs/duvidas" className="no-underline">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-12 border-border/60 bg-background/55 px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-accent/50"
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Ir para duvidas frequentes
+                </Button>
+              </Link>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -116,113 +116,88 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
                 <Link
                   key={task.href}
                   href={task.href}
-                  className="group animate-docs-fade-up rounded-[26px] border border-border/60 bg-background/40 p-4 opacity-0 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/60"
+                  className="group animate-docs-fade-up rounded-[28px] border border-border/60 bg-background/55 p-5 no-underline opacity-0 shadow-[0_20px_50px_-40px_hsl(var(--foreground)/0.8)] transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/72"
                   style={staggerStyle(index + 1)}
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                     Trilha sugerida
                   </p>
-                  <p className="mt-3 text-base font-semibold tracking-tight text-foreground">{task.title}</p>
+                  <p className="mt-4 text-lg font-semibold tracking-tight text-foreground">{task.title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{task.description}</p>
-                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-foreground">
-                    Abrir secao
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-foreground/90">
+                    Ver secao
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>
               ))}
             </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              {quickLinks.map((item, index) => (
+                <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 4)} />
+              ))}
+            </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-[30px] border border-border/60 bg-background/50 p-5 shadow-[0_22px_60px_-42px_hsl(var(--foreground)/0.7)] backdrop-blur-xl">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Em destaque
-            </p>
-            <div className="mt-4 rounded-[24px] border border-border/60 bg-background/70 p-4">
-              <p className="text-sm font-semibold text-foreground">{ROLE_LABELS[status.roleSegment]}</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Conteudo filtrado para o perfil atual, priorizando paginas com maior aderencia operacional.
-              </p>
-            </div>
+          <div className="space-y-4">
+            <div className="rounded-[30px] border border-border/60 bg-background/58 p-5 shadow-[0_22px_60px_-42px_hsl(var(--foreground)/0.8)] backdrop-blur-xl">
+              <DocsSectionHeader icon={Compass} label="Em destaque" />
+              <div className="rounded-[24px] border border-border/60 bg-background/75 p-4">
+                <p className="text-sm font-semibold text-foreground">{ROLE_LABELS[status.roleSegment]}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Conteudo filtrado para o perfil atual, com prioridade para paginas operacionais e fluxos de consulta mais frequentes.
+                </p>
+              </div>
 
-            <div className="mt-4">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Atualizacoes recentes
-              </p>
-              <div className="space-y-2">
-                {featuredUpdates.length === 0 ? (
-                  <DocsEmptyState message="As proximas atualizacoes da base aparecerao aqui." />
-                ) : (
-                  featuredUpdates.map((item) => (
-                    <InsightLink
-                      key={item.href}
-                      href={item.href}
-                      title={item.title}
-                      meta={
-                        formatDateMedium(item.lastUpdated) ? (
-                          <span className="text-xs text-muted-foreground">
-                            {formatDateMedium(item.lastUpdated)}
-                          </span>
-                        ) : undefined
-                      }
-                    />
-                  ))
-                )}
+              <div className="mt-5">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  Atualizacoes recentes
+                </p>
+                <div className="space-y-2">
+                  {featuredUpdates.length === 0 ? (
+                    <DocsEmptyState message="As proximas atualizacoes da base aparecerao aqui." />
+                  ) : (
+                    featuredUpdates.map((item) => (
+                      <InsightLink
+                        key={item.href}
+                        href={item.href}
+                        title={item.title}
+                        meta={
+                          formatDateMedium(item.lastUpdated) ? (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDateMedium(item.lastUpdated)}
+                            </span>
+                          ) : undefined
+                        }
+                      />
+                    ))
+                  )}
+                </div>
               </div>
             </div>
+
+            {derived.continueReading ? (
+              <Link
+                href={derived.continueReading.href}
+                className="group flex items-center justify-between gap-4 rounded-[28px] border border-border/60 bg-card/45 p-4 no-underline shadow-sm transition-all hover:border-primary/20 hover:bg-accent/35"
+              >
+                <div className="min-w-0">
+                  <DocsSectionHeader icon={History} label="Continuar leitura" />
+                  <p className="line-clamp-1 text-sm font-semibold text-foreground">
+                    {derived.continueReading.title}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Ultimo acesso em {formatDateTime(derived.continueReading.visitedAt)}
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>
 
-      <section
-        id="acesso-rapido"
-        className="scroll-mt-24 animate-docs-fade-up space-y-4 rounded-[32px] border border-border/60 bg-card/35 p-5 opacity-0 shadow-sm sm:p-6"
-        style={staggerStyle(1)}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <DocsSectionHeader icon={Compass} label="Acesso rapido" />
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Entradas organizadas para quem quer navegar por tema, operacao ou time sem depender de contadores redundantes.
-            </p>
-          </div>
-          <Badge variant="outline" className="rounded-full border-border/60 bg-background/45 px-3 py-1 text-xs text-muted-foreground">
-            Base viva dentro do portal
-          </Badge>
-        </div>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {quickLinks.map((item, index) => (
-            <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 3)} />
-          ))}
-        </div>
-      </section>
-
-      {derived.continueReading ? (
-        <section id="continuar-leitura" className="scroll-mt-24 animate-docs-fade-up rounded-[32px] border border-border/60 bg-card/40 p-5 opacity-0 shadow-sm sm:p-6" style={staggerStyle(3)}>
-          <DocsSectionHeader icon={History} label="Continuar leitura" />
-          <Link
-            href={derived.continueReading.href}
-            className="group flex items-center justify-between gap-4 rounded-[24px] border border-border/60 bg-background/80 p-4 transition-all hover:border-primary/20 hover:bg-accent"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background">
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="line-clamp-1 text-sm font-medium">
-                  {derived.continueReading.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ultimo acesso em {formatDateTime(derived.continueReading.visitedAt)}
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </section>
-      ) : null}
-
-      <section id="insights" className="scroll-mt-24 animate-docs-fade-up space-y-3 rounded-[32px] border border-border/60 bg-card/40 p-5 opacity-0 shadow-sm sm:p-6" style={staggerStyle(4)}>
+      <section id="insights" className="scroll-mt-24 animate-docs-fade-up space-y-3 rounded-[32px] border border-border/60 bg-card/35 p-5 opacity-0 shadow-sm sm:p-6" style={staggerStyle(5)}>
         <DocsSectionHeader icon={TrendingUp} label="Radar de uso" />
         <div className="rounded-[28px] border border-border/60 bg-background/70 p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between px-1">
@@ -332,6 +307,10 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
       </section>
 
       <style jsx global>{`
+        .docs-home-page a {
+          text-decoration: none;
+        }
+
         @media (prefers-reduced-motion: no-preference) {
           .animate-docs-fade-up {
             animation: docsFadeUp 320ms cubic-bezier(0.2, 0.65, 0.2, 1) forwards;
