@@ -1,6 +1,18 @@
 import type { TicketModuleSettingsOption } from "@dosc-syspro/contracts/ticket";
 
 const MODULE_LABEL_SEPARATOR = " > ";
+const MODULE_ROOT_ORDER = [
+  "Cadastro",
+  "Estoque",
+  "Compra",
+  "Financeiro",
+  "Movimento",
+  "Fiscal",
+  "Contabil",
+  "Producao",
+  "Venda",
+  "Relatorio",
+] as const;
 
 function splitModuleSegments(value?: string | null) {
   return String(value ?? "")
@@ -59,7 +71,44 @@ export type TicketModuleHierarchyEntry = {
   option: TicketModuleSettingsOption;
   segments: string[];
   label: string;
+  sortIndex: number;
 };
+
+function compareSegments(left: string[], right: string[]) {
+  const maxLength = Math.max(left.length, right.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const leftSegment = left[index] ?? "";
+    const rightSegment = right[index] ?? "";
+    if (!leftSegment && !rightSegment) continue;
+    if (!leftSegment) return -1;
+    if (!rightSegment) return 1;
+
+    const result = leftSegment.localeCompare(rightSegment, "pt-BR", { sensitivity: "base" });
+    if (result !== 0) return result;
+  }
+
+  return 0;
+}
+
+export function sortTicketModuleOptions(options: TicketModuleSettingsOption[]) {
+  return [...options].sort((left, right) => {
+    const leftSegments = getModuleHierarchySegments(left);
+    const rightSegments = getModuleHierarchySegments(right);
+    const leftRoot = leftSegments[0] ?? "";
+    const rightRoot = rightSegments[0] ?? "";
+    const leftRootIndex = MODULE_ROOT_ORDER.indexOf(leftRoot as (typeof MODULE_ROOT_ORDER)[number]);
+    const rightRootIndex = MODULE_ROOT_ORDER.indexOf(rightRoot as (typeof MODULE_ROOT_ORDER)[number]);
+    const normalizedLeftRootIndex = leftRootIndex === -1 ? Number.MAX_SAFE_INTEGER : leftRootIndex;
+    const normalizedRightRootIndex = rightRootIndex === -1 ? Number.MAX_SAFE_INTEGER : rightRootIndex;
+
+    if (normalizedLeftRootIndex !== normalizedRightRootIndex) {
+      return normalizedLeftRootIndex - normalizedRightRootIndex;
+    }
+
+    return compareSegments(leftSegments, rightSegments);
+  });
+}
 
 export function getModuleHierarchySegments(option: Pick<TicketModuleSettingsOption, "label" | "value">) {
   const labelSegments = splitModuleSegments(option.label);
@@ -79,13 +128,14 @@ export function getModuleHierarchySegments(option: Pick<TicketModuleSettingsOpti
 }
 
 export function buildTicketModuleHierarchy(options: TicketModuleSettingsOption[]): TicketModuleHierarchyEntry[] {
-  return options
-    .map((option) => {
+  return sortTicketModuleOptions(options)
+    .map((option, sortIndex) => {
       const segments = getModuleHierarchySegments(option);
       return {
         option,
         segments,
         label: segments.join(MODULE_LABEL_SEPARATOR),
+        sortIndex,
       };
     })
     .filter((entry) => entry.segments.length > 0);

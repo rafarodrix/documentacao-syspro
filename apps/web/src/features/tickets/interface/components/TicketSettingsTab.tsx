@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -78,11 +78,19 @@ function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSe
         : legacyDevelopmentGroupJid?.trim()
           ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
           : [],
-    modules: settings.modules.map((moduleOption) => ({
-      ...moduleOption,
-      label: normalizeModuleHierarchyLabel(moduleOption.label) || moduleOption.label,
-      value: moduleOption.value?.trim() || buildModuleHierarchyValue(moduleOption.label),
-    })),
+    categories: [...settings.categories].sort((left, right) => {
+      const leftTeam = left.defaultTeam === "DESENVOLVIMENTO" ? 1 : 0;
+      const rightTeam = right.defaultTeam === "DESENVOLVIMENTO" ? 1 : 0;
+      if (leftTeam !== rightTeam) return leftTeam - rightTeam;
+      return left.label.localeCompare(right.label, "pt-BR", { sensitivity: "base" });
+    }),
+    modules: sortTicketModuleOptions(
+      settings.modules.map((moduleOption) => ({
+        ...moduleOption,
+        label: normalizeModuleHierarchyLabel(moduleOption.label) || moduleOption.label,
+        value: moduleOption.value?.trim() || buildModuleHierarchyValue(moduleOption.label),
+      })),
+    ),
     priorities: settings.priorities.map((priority) => {
       const resolutionMinutes = priority.resolutionMinutes ?? priority.slaHours * 60;
       return {
