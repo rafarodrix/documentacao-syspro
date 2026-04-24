@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
-  CircleDollarSign,
   GripVertical,
   Info,
   KanbanSquare,
@@ -16,7 +15,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CRM_LEAD_STAGE_VALUES, type CrmLead, type CrmLeadStage } from "@dosc-syspro/contracts/crm";
+import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardHeader } from "@/components/ui/card";
@@ -38,17 +37,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   RegistryFilterGroup,
-  RegistryMetricCard,
-  RegistryMetrics,
   RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/RegistryListScaffold";
 import {
   CRM_ACTIVE_STAGE_ORDER,
   CRM_SOURCE_LABELS,
-  CRM_STAGE_DESCRIPTIONS,
   CRM_STAGE_LABELS,
-  CRM_STAGE_ORDER,
   formatLeadCurrency,
   type LeadDashboardData,
 } from "@/features/crm/domain/model";
@@ -56,9 +51,83 @@ import { cn, formatDateSafe } from "@/lib/utils";
 
 type LeadStatusFilter = "ACTIVE" | "CLOSED" | "WON" | "LOST";
 type LeadAttentionFilter = "ALL" | "OVERDUE" | "NO_NEXT_STEP" | "DUE_SOON";
+type PipelineColumnId = "LEAD" | "VALIDATION" | "PROPOSAL" | "NEGOTIATION";
 
 const DUE_SOON_DAYS = 7;
 const STALE_LEAD_DAYS = 7;
+const PIPELINE_COLUMNS: Array<{
+  id: PipelineColumnId;
+  label: string;
+  description: string;
+  stages: CrmLeadStage[];
+  dropStage: CrmLeadStage;
+}> = [
+  {
+    id: "LEAD",
+    label: "Lead",
+    description: "Entrada inicial.",
+    stages: ["LEAD"],
+    dropStage: "LEAD",
+  },
+  {
+    id: "VALIDATION",
+    label: "Validacao",
+    description: "Comercial validando aderencia.",
+    stages: ["MQL", "SQL"],
+    dropStage: "SQL",
+  },
+  {
+    id: "PROPOSAL",
+    label: "Proposta",
+    description: "Proposta ou demo comercial.",
+    stages: ["PROPOSAL"],
+    dropStage: "PROPOSAL",
+  },
+  {
+    id: "NEGOTIATION",
+    label: "Negociacao",
+    description: "Ajustes finais para fechamento.",
+    stages: ["NEGOTIATION"],
+    dropStage: "NEGOTIATION",
+  },
+];
+const STAGE_GUIDE_ITEMS = [
+  ...PIPELINE_COLUMNS.map((column) => ({
+    id: column.id,
+    label: column.label,
+    description: column.description,
+    active: true,
+  })),
+  {
+    id: "WON",
+    label: CRM_STAGE_LABELS.WON,
+    description: "Negocio ganho e convertido em cliente.",
+    active: false,
+  },
+  {
+    id: "LOST",
+    label: CRM_STAGE_LABELS.LOST,
+    description: "Oportunidade encerrada sem conversao.",
+    active: false,
+  },
+] as const;
+const STAGE_SELECT_OPTIONS: Array<{ value: CrmLeadStage; label: string }> = [
+  { value: "LEAD", label: "Lead" },
+  { value: "SQL", label: "Validacao" },
+  { value: "PROPOSAL", label: "Proposta" },
+  { value: "NEGOTIATION", label: "Negociacao" },
+  { value: "WON", label: CRM_STAGE_LABELS.WON },
+  { value: "LOST", label: CRM_STAGE_LABELS.LOST },
+];
+
+function getPipelineStageLabel(stage: CrmLeadStage) {
+  if (stage === "MQL" || stage === "SQL") return "Validacao";
+  return CRM_STAGE_LABELS[stage];
+}
+
+function normalizeStageForSelect(stage: CrmLeadStage) {
+  return stage === "MQL" ? "SQL" : stage;
+}
 
 function resolveLeadContactName(lead: CrmLead) {
   const primaryManualContact = lead.contacts.find((contact) => contact.isPrimary)?.name?.trim();
@@ -133,6 +202,13 @@ function groupLeadsByStageLocal(leads: CrmLead[]) {
   };
 }
 
+function getPipelineColumnLeads(
+  grouped: ReturnType<typeof groupLeadsByStageLocal>,
+  column: (typeof PIPELINE_COLUMNS)[number],
+) {
+  return column.stages.flatMap((stage) => grouped[stage]);
+}
+
 export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   const router = useRouter();
   const [isRefreshing, startTransition] = useTransition();
@@ -151,10 +227,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
 
   const grouped = useMemo(() => groupLeadsByStageLocal(leads), [leads]);
   const activeLeads = useMemo(() => leads.filter((lead) => !["WON", "LOST"].includes(lead.stage)), [leads]);
-  const totalPipelineValue = useMemo(
-    () => activeLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0),
-    [activeLeads],
-  );
+  const validationCount = grouped.MQL.length + grouped.SQL.length;
 
   const normalizedSearch = search.trim().toLowerCase();
   const searchedLeads = useMemo(
@@ -277,7 +350,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
       lead.id,
       { stage: nextStage },
       {
-        successMessage: `Lead movido para ${CRM_STAGE_LABELS[nextStage]}.`,
+        successMessage: `Lead movido para ${getPipelineStageLabel(nextStage)}.`,
         optimisticLead: {
           ...lead,
           stage: nextStage,
@@ -309,12 +382,12 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   return (
     <>
       <div className="space-y-5 pb-20">
-        <RegistryMetrics>
-          <RegistryMetricCard title="Leads ativos" value={activeLeads.length} description="Oportunidades em andamento" icon={Target} tone="info" />
-          <RegistryMetricCard title="Em proposta" value={grouped.PROPOSAL.length} description="Leads com proposta aberta" icon={KanbanSquare} tone="warning" />
-          <RegistryMetricCard title="Pipeline" value={formatLeadCurrency(totalPipelineValue)} description="Valor total estimado" icon={CircleDollarSign} tone="success" />
-          <RegistryMetricCard title="Fechamento" value={grouped.NEGOTIATION.length} description="Negocios em fase final" icon={BadgeCheck} tone="neutral" />
-        </RegistryMetrics>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <CompactMetricCard title="Leads ativos" value={activeLeads.length} icon={Target} tone="info" />
+          <CompactMetricCard title="Validacao" value={validationCount} icon={KanbanSquare} tone="warning" />
+          <CompactMetricCard title="Proposta" value={grouped.PROPOSAL.length} icon={PencilLine} tone="success" />
+          <CompactMetricCard title="Negociacao" value={grouped.NEGOTIATION.length} icon={BadgeCheck} tone="neutral" />
+        </div>
 
         <RegistryToolbar
           searchValue={search}
@@ -346,13 +419,13 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
 
         <RegistryTableCard>
           <CardHeader className="pb-0">
-            <div className="flex flex-wrap gap-2">
-              {statusFilter === "ACTIVE"
-                ? CRM_ACTIVE_STAGE_ORDER.map((stage) => (
-                    <Badge key={stage} variant="outline" className="gap-2 rounded-full px-3 py-1 text-xs">
-                      <span>{CRM_STAGE_LABELS[stage]}</span>
+              <div className="flex flex-wrap gap-2">
+                {statusFilter === "ACTIVE"
+                ? PIPELINE_COLUMNS.map((column) => (
+                    <Badge key={column.id} variant="outline" className="gap-2 rounded-full px-3 py-1 text-xs">
+                      <span>{column.label}</span>
                       <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-foreground">
-                        {filteredGrouped[stage].length}
+                        {getPipelineColumnLeads(filteredGrouped, column).length}
                       </span>
                     </Badge>
                   ))
@@ -369,29 +442,29 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
                 ) : (
                   <div className="overflow-x-auto pb-2">
                     <div className="flex min-w-max gap-4">
-                      {CRM_ACTIVE_STAGE_ORDER.map((stage) => {
-                        const stageLeads = filteredGrouped[stage];
+                      {PIPELINE_COLUMNS.map((column) => {
+                        const stageLeads = getPipelineColumnLeads(filteredGrouped, column);
                         return (
                           <section
-                            key={stage}
+                            key={column.id}
                             className={cn(
                               "w-[320px] shrink-0 rounded-2xl border border-border/60 bg-muted/20 p-3 transition-colors",
-                              hoveredStage === stage && "border-primary/50 bg-primary/5",
+                              hoveredStage === column.dropStage && "border-primary/50 bg-primary/5",
                             )}
                             onDragOver={(event) => {
                               event.preventDefault();
-                              if (draggedLeadId) setHoveredStage(stage);
+                              if (draggedLeadId) setHoveredStage(column.dropStage);
                             }}
-                            onDragLeave={() => setHoveredStage((current) => (current === stage ? null : current))}
+                            onDragLeave={() => setHoveredStage((current) => (current === column.dropStage ? null : current))}
                             onDrop={async (event) => {
                               event.preventDefault();
-                              await handleDrop(stage);
+                              await handleDrop(column.dropStage);
                             }}
                           >
                             <div className="mb-3 flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="text-sm font-semibold text-foreground">{CRM_STAGE_LABELS[stage]}</p>
-                                <p className="mt-1 text-[11px] text-muted-foreground">{CRM_STAGE_DESCRIPTIONS[stage]}</p>
+                                <p className="text-sm font-semibold text-foreground">{column.label}</p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">{column.description}</p>
                               </div>
                               <Badge variant="secondary" className="shrink-0 rounded-full px-2.5">
                                 {stageLeads.length}
@@ -458,15 +531,15 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           </DialogHeader>
 
           <div className="space-y-3">
-            {CRM_STAGE_ORDER.map((stage) => (
-              <div key={stage} className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+            {STAGE_GUIDE_ITEMS.map((stage) => (
+              <div key={stage.id} className="rounded-2xl border border-border/60 bg-muted/20 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{CRM_STAGE_LABELS[stage]}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{CRM_STAGE_DESCRIPTIONS[stage]}</p>
+                    <p className="text-sm font-semibold text-foreground">{stage.label}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{stage.description}</p>
                   </div>
-                  <Badge variant={CRM_ACTIVE_STAGE_ORDER.includes(stage) ? "secondary" : "outline"}>
-                    {CRM_ACTIVE_STAGE_ORDER.includes(stage) ? "Etapa ativa" : "Resultado"}
+                  <Badge variant={stage.active ? "secondary" : "outline"}>
+                    {stage.active ? "Etapa ativa" : "Resultado"}
                   </Badge>
                 </div>
               </div>
@@ -497,6 +570,39 @@ function EmptyPipelineState() {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function CompactMetricCard({
+  title,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: number | string;
+  icon: typeof Target;
+  tone: "info" | "success" | "neutral" | "warning";
+}) {
+  const toneClass = {
+    info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    neutral: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
+    warning: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  }[tone];
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="mt-2 text-2xl font-semibold leading-none text-foreground">{value}</p>
+        </div>
+        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md", toneClass)}>
+          <Icon className="h-4 w-4" />
+        </div>
       </div>
     </div>
   );
@@ -583,14 +689,14 @@ function LeadCard({
       </div>
 
       <div className="mt-4 grid gap-2">
-        <Select value={lead.stage} onValueChange={(value) => onStageChange(value as CrmLeadStage)} disabled={isSaving}>
+        <Select value={normalizeStageForSelect(lead.stage)} onValueChange={(value) => onStageChange(value as CrmLeadStage)} disabled={isSaving}>
           <SelectTrigger>
             <SelectValue placeholder="Mover etapa" />
           </SelectTrigger>
           <SelectContent>
-            {CRM_LEAD_STAGE_VALUES.map((value) => (
-              <SelectItem key={value} value={value}>
-                {CRM_STAGE_LABELS[value]}
+            {STAGE_SELECT_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -652,14 +758,14 @@ function ClosedLeadCard({
 
       <div className="mt-4">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mover para</Label>
-        <Select value={lead.stage} onValueChange={(value) => onStageChange(value as CrmLeadStage)} disabled={isSaving}>
+        <Select value={normalizeStageForSelect(lead.stage)} onValueChange={(value) => onStageChange(value as CrmLeadStage)} disabled={isSaving}>
           <SelectTrigger className="mt-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CRM_LEAD_STAGE_VALUES.map((value) => (
-              <SelectItem key={value} value={value}>
-                {CRM_STAGE_LABELS[value]}
+            {STAGE_SELECT_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
