@@ -18,17 +18,52 @@ export const dynamic = "force-dynamic";
 export default async function ReleasesIndexPage() {
   const releases = await getReleases();
   const timeline = groupReleasesByDate(releases);
+  const totalMelhorias = releases.filter((release) => release.type.toLowerCase() !== "bug").length;
+  const totalCorrecoes = releases.filter((release) => release.type.toLowerCase() === "bug").length;
 
   let isFirstCard = true;
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
-      <div className="space-y-4 py-8 text-center">
-        <h1 className="bg-linear-to-b from-foreground to-foreground/70 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent md:text-5xl lg:text-6xl">
-          Novidades
-        </h1>
-        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Fique por dentro da evolucao do sistema. Acompanhe abaixo o historico completo de melhorias e correcoes.
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <section className="overflow-hidden rounded-3xl border border-border/60 bg-linear-to-br from-background via-background to-primary/5">
+        <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-4">
+            <Badge variant="outline" className="w-fit rounded-full px-3 py-1 text-xs uppercase tracking-[0.2em]">
+              Portal Trilink
+            </Badge>
+            <div className="space-y-3">
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+                Releases do sistema
+              </h1>
+              <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
+                Acompanhe o historico de entregas, correcoes e melhorias com o mesmo contexto visual do portal.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:min-w-72">
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <div className="mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                <Rocket className="h-4 w-4" />
+                Melhorias
+              </div>
+              <div className="text-2xl font-semibold">{totalMelhorias}</div>
+            </div>
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <div className="mb-2 flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <Bug className="h-4 w-4" />
+                Correcoes
+              </div>
+              <div className="text-2xl font-semibold">{totalCorrecoes}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold tracking-tight">Linha do tempo</h2>
+        <p className="text-sm text-muted-foreground">
+          Consulte os meses publicados e entre no detalhe de cada pacote liberado.
         </p>
       </div>
 
@@ -42,7 +77,7 @@ export default async function ReleasesIndexPage() {
         <div className="space-y-20">
           {timeline.map(({ year, months }) => (
             <section key={year} className="relative">
-              <div className="sticky top-17.5 z-10 mb-8 flex items-center gap-4 bg-background/95 py-2 backdrop-blur-sm">
+              <div className="sticky top-14 z-10 mb-8 flex items-center gap-4 bg-background/95 py-3 backdrop-blur-sm">
                 <span className="border-l-4 border-primary pl-4 text-3xl font-bold tracking-tight text-foreground/80">
                   {year}
                 </span>

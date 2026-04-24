@@ -29,7 +29,7 @@ export function ReleasesFilter({
   ];
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-8">
+    <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
       {/* Área de Busca */}
       <div className="relative w-full md:max-w-sm group">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />

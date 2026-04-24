@@ -1,13 +1,12 @@
 import type { ReactNode } from 'react';
-import { Role } from '@prisma/client';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { source } from '@/lib/source';
-import { SiteHeader } from "@/components/site/Header";
 import { requireSession } from "@/lib/auth-helpers";
 import { isAdminOnlyDocUrl, DOCS_TECHNICAL_PATH_PREFIX } from '@/app/docs/docs-access';
 import { filterDocTree } from '@/lib/docs-tree-utils';
 import { DocsLayoutClient } from '@/components/docs/DocsLayoutClient';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
+import { PortalShellLayout } from '@/components/platform/app/layout/PortalShellLayout';
 
 export default async function Layout({ children }: { children: ReactNode }) {
   const session = await requireSession();
@@ -15,8 +14,6 @@ export default async function Layout({ children }: { children: ReactNode }) {
   const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
   const canViewAdminOnlyDocs = await currentUserHasPermission("settings:edit");
 
-  // Filtragens compostas: cada chamada a filterDocTree aplica um predicado.
-  // Antes: ~60 linhas com 4 funções espelhadas (stripTechnicalDocs* + stripAdminOnly*).
   const docsTree = filterDocTree(
     filterDocTree(
       source.pageTree,
@@ -26,17 +23,16 @@ export default async function Layout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <RootProvider>
-      <div className="flex min-h-screen flex-col bg-background">
-        <div className="hidden md:block">
-          <SiteHeader />
+    <PortalShellLayout contentClassName="p-3 sm:p-4 lg:p-6" contentContainerClassName="max-w-none animate-none">
+      <RootProvider>
+        <div className="overflow-hidden rounded-[28px] border border-border/60 bg-background shadow-sm">
+          <main className="min-h-0 [--fd-banner-height:0px]">
+            <DocsLayoutClient docsTree={docsTree} role={session.role}>
+              {children}
+            </DocsLayoutClient>
+          </main>
         </div>
-        <main className="flex-1 min-h-0 [--fd-banner-height:0px] md:[--fd-banner-height:64px]">
-          <DocsLayoutClient docsTree={docsTree} role={session.role}>
-            {children}
-          </DocsLayoutClient>
-        </main>
-      </div>
-    </RootProvider>
+      </RootProvider>
+    </PortalShellLayout>
   );
 }

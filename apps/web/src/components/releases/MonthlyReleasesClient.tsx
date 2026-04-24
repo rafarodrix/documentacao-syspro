@@ -52,13 +52,13 @@ export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClient
     <>
       <div className="space-y-10 animate-in fade-in duration-500">
         {melhorias.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
-              <div className="p-1.5 bg-emerald-100 dark:bg-emerald-500/10 rounded-md">
+          <section className="space-y-4 rounded-3xl border border-border/60 bg-card/60 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-emerald-600 dark:text-emerald-500">
+              <div className="rounded-md bg-emerald-100 p-1.5 dark:bg-emerald-500/10">
                 <Rocket className="w-5 h-5" />
               </div>
               Melhorias Implementadas
-              <span className="text-sm font-normal text-muted-foreground ml-auto bg-muted px-2 py-0.5 rounded-full">
+              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-sm font-normal text-muted-foreground">
                 {melhorias.length}
               </span>
             </h2>
@@ -71,13 +71,13 @@ export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClient
         )}
 
         {bugs.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2 text-amber-600 dark:text-amber-500">
-              <div className="p-1.5 bg-amber-100 dark:bg-amber-500/10 rounded-md">
+          <section className="space-y-4 rounded-3xl border border-border/60 bg-card/60 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-amber-600 dark:text-amber-500">
+              <div className="rounded-md bg-amber-100 p-1.5 dark:bg-amber-500/10">
                 <Bug className="w-5 h-5" />
               </div>
               Bugs Corrigidos
-              <span className="text-sm font-normal text-muted-foreground ml-auto bg-muted px-2 py-0.5 rounded-full">
+              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-sm font-normal text-muted-foreground">
                 {bugs.length}
               </span>
             </h2>

@@ -19,11 +19,20 @@ interface AppShellProps {
   children: ReactNode
   initialActiveSessionsCount?: number
   navigationAccess?: NavigationAccess
+  contentClassName?: string
+  contentContainerClassName?: string
 }
 
 const STORAGE_KEY = "trilink.sidebar.collapsed"
 
-export function AppShell({ user, children, initialActiveSessionsCount, navigationAccess }: AppShellProps) {
+export function AppShell({
+  user,
+  children,
+  initialActiveSessionsCount,
+  navigationAccess,
+  contentClassName,
+  contentContainerClassName,
+}: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -53,8 +62,10 @@ export function AppShell({ user, children, initialActiveSessionsCount, navigatio
           navigationAccess={navigationAccess}
         />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-          <div className="max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <main className={`flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 ${contentClassName ?? ""}`.trim()}>
+          <div
+            className={`max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500 ${contentContainerClassName ?? ""}`.trim()}
+          >
             {children}
           </div>
         </main>
