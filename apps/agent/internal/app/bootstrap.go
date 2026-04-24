@@ -18,11 +18,17 @@ import (
 	"trilink/agent/internal/infra/storage"
 	"trilink/agent/internal/infra/telemetry"
 	backupmodule "trilink/agent/internal/modules/backup"
+	devicemodule "trilink/agent/internal/modules/device"
 	remotemodule "trilink/agent/internal/modules/remote"
+	supportmodule "trilink/agent/internal/modules/support"
 	tunnelmodule "trilink/agent/internal/modules/tunnel"
 )
 
 func Bootstrap(ctx context.Context) (*Container, error) {
+	return BootstrapService(ctx)
+}
+
+func BootstrapService(ctx context.Context) (*Container, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
@@ -63,6 +69,8 @@ func Bootstrap(ctx context.Context) (*Container, error) {
 		),
 		tunnelmodule.New(),
 		backupmodule.New(),
+		supportmodule.New(),
+		devicemodule.New(),
 	}
 
 	reconcileService := reconcile.NewService(
@@ -86,6 +94,6 @@ func Bootstrap(ctx context.Context) (*Container, error) {
 	)
 
 	return &Container{
-		Agent: agentService,
+		AgentService: agentService,
 	}, nil
 }

@@ -1,7 +1,11 @@
 package app
 
-import "trilink/agent/internal/core/agent"
+import (
+	"trilink/agent/internal/core/agent"
+	"trilink/agent/internal/ui"
+)
 
 type Container struct {
-	Agent *agent.Service
+	AgentService *agent.Service
+	AgentUI      *ui.Service
 }

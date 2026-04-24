@@ -126,6 +126,10 @@ func (s *Service) inspectCurrentState(ctx context.Context) (domain.CurrentState,
 			state.Tunnel = current
 		case "backup":
 			state.Backup = current
+		case "support":
+			state.Support = current
+		case "device":
+			state.Device = current
 		}
 	}
 
@@ -149,6 +153,10 @@ func (s *Service) applyPlan(
 			currentModule = current.Tunnel
 		case "backup":
 			currentModule = current.Backup
+		case "support":
+			currentModule = current.Support
+		case "device":
+			currentModule = current.Device
 		}
 
 		actions := module.Plan(desired, currentModule)
@@ -184,6 +192,14 @@ func buildAppliedState(
 		Backup: domain.AppliedModuleState{
 			Enabled: desired.Backup.Enabled,
 			Version: desired.Backup.Version,
+		},
+		Support: domain.AppliedModuleState{
+			Enabled: desired.Support.Enabled,
+			Version: desired.Support.Version,
+		},
+		Device: domain.AppliedModuleState{
+			Enabled: desired.Device.Enabled,
+			Version: desired.Device.Version,
 		},
 	}
 

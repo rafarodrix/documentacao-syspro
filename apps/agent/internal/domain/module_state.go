@@ -31,3 +31,18 @@ type BackupDesiredState struct {
 	RetentionDays int    `json:"retention_days"`
 	Target        string `json:"target"`
 }
+
+type SupportDesiredState struct {
+	Enabled           bool   `json:"enabled"`
+	Version           string `json:"version"`
+	Provider          string `json:"provider"`
+	WidgetBaseURL     string `json:"widget_base_url"`
+	AutoAttachContext bool   `json:"auto_attach_context"`
+}
+
+type DeviceDesiredState struct {
+	Enabled          bool   `json:"enabled"`
+	Version          string `json:"version"`
+	CollectInventory bool   `json:"collect_inventory"`
+	CollectMetrics   bool   `json:"collect_metrics"`
+}

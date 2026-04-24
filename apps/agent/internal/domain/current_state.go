@@ -5,9 +5,11 @@ import "time"
 type CurrentState struct {
 	ObservedAt time.Time `json:"observed_at"`
 
-	Remote CurrentModuleState `json:"remote"`
-	Tunnel CurrentModuleState `json:"tunnel"`
-	Backup CurrentModuleState `json:"backup"`
+	Remote  CurrentModuleState `json:"remote"`
+	Tunnel  CurrentModuleState `json:"tunnel"`
+	Backup  CurrentModuleState `json:"backup"`
+	Support CurrentModuleState `json:"support"`
+	Device  CurrentModuleState `json:"device"`
 }
 
 type CurrentModuleState struct {
