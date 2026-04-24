@@ -24,7 +24,6 @@ import {
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
-  inferReleaseTypeFromCategory,
   normalizeReleaseType,
   readReleaseMetadataString,
 } from '@dosc-syspro/core';
@@ -703,7 +702,7 @@ export class TicketsService {
           : null;
     const nextCategoryType = this.resolveCategoryType(settings, nextCategory, currentTeam);
     const effectiveReleaseType =
-      normalizeReleaseType(releaseType) || normalizeReleaseType(exists.releaseType) || normalizeReleaseType(nextCategoryType) || inferReleaseTypeFromCategory(nextCategory);
+      normalizeReleaseType(releaseType) || normalizeReleaseType(exists.releaseType) || normalizeReleaseType(nextCategoryType);
     const effectiveReleaseTitle =
       releaseTitle || readReleaseMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim();
     const effectiveReleaseModule =
@@ -712,6 +711,10 @@ export class TicketsService {
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
+    }
+
+    if (shouldPublishToReleases && !effectiveReleaseType) {
+      throw new BadRequestException('Tipo obrigatorio para publicar em releases.');
     }
 
     if (input.status === TicketStatus.RESOLVED && currentTeam === 'DESENVOLVIMENTO' && !effectiveResolutionSummary) {
@@ -1234,7 +1237,7 @@ export class TicketsService {
       return configuredType;
     }
 
-    return team === 'DESENVOLVIMENTO' ? 'BUG' : 'SUPORTE';
+    return team === 'SUPORTE' ? 'SUPORTE' : null;
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {

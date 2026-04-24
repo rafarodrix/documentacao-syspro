@@ -11,7 +11,10 @@ export const ticketModuleSettingsOptionSchema = z.object({
   icon: z.string().trim().optional(),
   description: z.string().trim().optional(),
   defaultTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
-  type: ticketCategoryTypeSchema.optional(),
+});
+
+export const ticketCategorySettingsOptionSchema = ticketModuleSettingsOptionSchema.extend({
+  type: ticketCategoryTypeSchema,
 });
 
 export const ticketModuleSettingsPrioritySchema = z.object({
@@ -50,7 +53,7 @@ export const DEFAULT_TICKET_QUICK_REPLY_TEMPLATES = [
 ];
 
 export const ticketModuleSettingsSchema = z.object({
-  categories: z.array(ticketModuleSettingsOptionSchema).min(1),
+  categories: z.array(ticketCategorySettingsOptionSchema).min(1),
   priorities: z.array(ticketModuleSettingsPrioritySchema).min(1),
   teams: z.array(ticketModuleSettingsOptionSchema).min(1),
   modules: z.array(ticketModuleSettingsOptionSchema).min(1),
@@ -79,17 +82,17 @@ export type TicketModuleSettingsResponse = z.infer<typeof ticketModuleSettingsRe
 
 export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
   categories: [
-    { id: "incident", label: "Erro", value: "incident", icon: "🔴", defaultTeam: "SUPORTE" },
-    { id: "question", label: "Duvida", value: "question", icon: "💬", defaultTeam: "SUPORTE" },
-    { id: "configuration", label: "Configuracao", value: "configuration", icon: "⚙️", defaultTeam: "SUPORTE" },
-    { id: "training", label: "Treinamento", value: "training", icon: "📚", defaultTeam: "SUPORTE" },
-    { id: "data-issue", label: "Problema de Dados", value: "data-issue", icon: "📝", defaultTeam: "SUPORTE" },
-    { id: "integration-issue", label: "Integracao", value: "integration-issue", icon: "🔗", defaultTeam: "SUPORTE" },
-    { id: "bug", label: "Bug", value: "bug", icon: "🐞", defaultTeam: "DESENVOLVIMENTO" },
-    { id: "enhancement", label: "Melhoria", value: "enhancement", icon: "✨", defaultTeam: "DESENVOLVIMENTO" },
-    { id: "new-feature", label: "Nova Funcionalidade", value: "new-feature", icon: "🚀", defaultTeam: "DESENVOLVIMENTO" },
-    { id: "performance", label: "Performance", value: "performance", icon: "⚡", defaultTeam: "DESENVOLVIMENTO" },
-    { id: "refactoring", label: "Refatoracao", value: "refactoring", icon: "🛠️", defaultTeam: "DESENVOLVIMENTO" },
+    { id: "incident", label: "Erro", value: "incident", icon: "🔴", defaultTeam: "SUPORTE", type: "SUPORTE" },
+    { id: "question", label: "Duvida", value: "question", icon: "💬", defaultTeam: "SUPORTE", type: "SUPORTE" },
+    { id: "configuration", label: "Configuracao", value: "configuration", icon: "⚙️", defaultTeam: "SUPORTE", type: "SUPORTE" },
+    { id: "training", label: "Treinamento", value: "training", icon: "📚", defaultTeam: "SUPORTE", type: "SUPORTE" },
+    { id: "data-issue", label: "Problema de Dados", value: "data-issue", icon: "📝", defaultTeam: "SUPORTE", type: "SUPORTE" },
+    { id: "integration-issue", label: "Integracao", value: "integration-issue", icon: "🔗", defaultTeam: "SUPORTE", type: "SUPORTE" },
+    { id: "bug", label: "Bug", value: "bug", icon: "🐞", defaultTeam: "DESENVOLVIMENTO", type: "BUG" },
+    { id: "enhancement", label: "Melhoria", value: "enhancement", icon: "✨", defaultTeam: "DESENVOLVIMENTO", type: "MELHORIA" },
+    { id: "new-feature", label: "Nova Funcionalidade", value: "new-feature", icon: "🚀", defaultTeam: "DESENVOLVIMENTO", type: "NOVA_FUNCIONALIDADE" },
+    { id: "performance", label: "Performance", value: "performance", icon: "⚡", defaultTeam: "DESENVOLVIMENTO", type: "MELHORIA" },
+    { id: "refactoring", label: "Refatoracao", value: "refactoring", icon: "🛠️", defaultTeam: "DESENVOLVIMENTO", type: "MELHORIA" },
   ],
   priorities: [
     {

@@ -28,15 +28,12 @@ export function normalizeReleaseType(value: unknown): ReleaseKind | null {
   return null;
 }
 
-export function inferReleaseTypeFromCategory(category: unknown): ReleaseKind {
-  const normalized = typeof category === "string" ? category.trim().toLowerCase() : "";
-  if (normalized.includes("new-feature") || normalized.includes("nova funcionalidade") || normalized.includes("feature")) return "NOVA_FUNCIONALIDADE";
-  if (normalized.includes("bug") || normalized.includes("incident") || normalized.includes("erro")) return "BUG";
-  return "MELHORIA";
+export function inferReleaseTypeFromCategory(category: unknown): ReleaseKind | null {
+  return normalizeReleaseType(category);
 }
 
-export function inferReleaseTypeFromMetadata(metadata: unknown): ReleaseKind {
-  return normalizeReleaseType(readReleaseMetadataString(metadata, "categoryType")) || inferReleaseTypeFromCategory(readReleaseMetadataString(metadata, "category"));
+export function inferReleaseTypeFromMetadata(metadata: unknown): ReleaseKind | null {
+  return normalizeReleaseType(readReleaseMetadataString(metadata, "categoryType"));
 }
 
 export function buildReleaseFromTicket(ticket: ReleaseProjectionSource): Release | null {
@@ -46,6 +43,7 @@ export function buildReleaseFromTicket(ticket: ReleaseProjectionSource): Release
   if (!summary) return null;
 
   const releaseType = normalizeReleaseType(ticket.releaseType) || inferReleaseTypeFromMetadata(ticket.metadata);
+  if (!releaseType) return null;
   const date = ticket.closedAt || ticket.updatedAt;
   const isoDate = date instanceof Date ? date.toISOString() : new Date(date).toISOString();
 

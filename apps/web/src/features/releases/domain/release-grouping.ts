@@ -64,7 +64,7 @@ export function groupReleasesByDate(releases: Release[]) {
     else if (type === "melhoria" || type === "feature") acc[year][month].melhorias++;
 
     return acc;
-  }, {} as Record<string, Record<string, { bugs: number; melhorias: number }>>);
+  }, {} as Record<string, Record<string, { bugs: number; melhorias: number; novasFuncionalidades: number }>>);
 
   return Object.entries(grouped)
     .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))

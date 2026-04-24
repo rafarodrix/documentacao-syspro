@@ -20,7 +20,6 @@ import {
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   ticketModuleSettingsSchema,
-  type TicketCategoryType,
   type TicketNotificationGroup,
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
@@ -50,16 +49,6 @@ function createNotificationGroup(label = ""): TicketNotificationGroup {
 }
 
 const ticketSettingsResolver = zodResolver(ticketModuleSettingsSchema) as Resolver<TicketModuleSettings>;
-
-function inferCategoryType(defaultTeam?: string, value?: string, label?: string): TicketCategoryType {
-  if (defaultTeam === "SUPORTE") return "SUPORTE";
-  const normalized = `${value || ""} ${label || ""}`.toLowerCase();
-  if (normalized.includes("new-feature") || normalized.includes("nova funcionalidade") || normalized.includes("feature")) {
-    return "NOVA_FUNCIONALIDADE";
-  }
-  if (normalized.includes("bug")) return "BUG";
-  return "MELHORIA";
-}
 
 function getCategoryTypeOptions(team?: string) {
   if (team === "DESENVOLVIMENTO") {
@@ -93,10 +82,6 @@ function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSe
         : legacyDevelopmentGroupJid?.trim()
           ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
           : [],
-    categories: settings.categories.map((category) => ({
-      ...category,
-      type: category.type ?? inferCategoryType(category.defaultTeam, category.value, category.label),
-    })),
     modules: settings.modules.map((moduleOption) => ({
       ...moduleOption,
       label: normalizeModuleHierarchyLabel(moduleOption.label) || moduleOption.label,
@@ -335,7 +320,7 @@ export function TicketSettingsTab() {
                         )} />
                         <FormField control={form.control} name={`categories.${index}.type`} render={({ field }) => (
                           <FormItem>
-                            <Select onValueChange={field.onChange} value={field.value || inferCategoryType(form.watch(`categories.${index}.defaultTeam`), form.watch(`categories.${index}.value`), form.watch(`categories.${index}.label`))}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
                               </FormControl>
