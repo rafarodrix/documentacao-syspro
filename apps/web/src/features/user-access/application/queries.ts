@@ -3,8 +3,8 @@ import type {
   UserAccessAdminViewData,
   UserAccessCompanyOption,
   UserAccessEditViewData,
+  UserAccessListItem,
 } from "@dosc-syspro/contracts/user";
-import { mapClientUserListItem, type UserListSelectResult } from "@/features/user-access/domain/selects";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import { headers } from "next/headers";
 
@@ -39,7 +39,7 @@ export async function getUsersAdminViewData(): Promise<
       return { error: "Erro ao buscar usuarios." };
     }
 
-    const usersPayload = (await usersResponse.json()) as UserListSelectResult[];
+    const usersPayload = (await usersResponse.json()) as UserAccessListItem[];
     const companiesPayload = companiesResponse.ok
       ? ((await companiesResponse.json()) as UserAccessCompanyOption[])
       : [];
@@ -50,7 +50,7 @@ export async function getUsersAdminViewData(): Promise<
 
     return {
       companies: companiesPayload,
-      users: usersPayload.map(mapClientUserListItem),
+      users: usersPayload,
       isGlobalView,
     };
   } catch {
@@ -66,7 +66,7 @@ export async function getUserEditViewData(userId: string): Promise<UserAccessEdi
 
   if (!userResponse.ok) notFound();
 
-  const user = (await userResponse.json()) as UserListSelectResult;
+  const user = (await userResponse.json()) as UserAccessListItem;
   const companies = companiesResponse.ok
     ? ((await companiesResponse.json()) as UserAccessCompanyOption[])
     : [];

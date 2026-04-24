@@ -17,8 +17,10 @@ import { UserContactAccessService } from './user-contact-access.service';
 import {
   createUserSchema,
   updateUserSchema,
+  userAccessListItemSchema,
   type CreateUserInput,
   type UpdateUserInput,
+  type UserAccessListItem,
   type UserEmailAvailabilityResult,
 } from '@dosc-syspro/contracts/user';
 
@@ -78,11 +80,13 @@ export class UsersService {
       where.role = filters.role as Role;
     }
 
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where,
       include: this.userInclude(),
       orderBy: { createdAt: 'desc' },
     });
+
+    return users.map((user) => this.serializeUserAccessListItem(user));
   }
 
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
@@ -102,7 +106,7 @@ export class UsersService {
       include: this.userInclude(),
     });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
-    return user;
+    return this.serializeUserAccessListItem(user);
   }
 
   async checkEmailAvailability(email: string, rawHeaders?: IncomingHttpHeaders): Promise<UserEmailAvailabilityResult> {
@@ -728,6 +732,55 @@ export class UsersService {
         },
       },
     } as any;
+  }
+
+  private serializeUserAccessListItem(user: any): UserAccessListItem {
+    const primaryContactLink = user.contact?.companyLinks?.[0] ?? null;
+
+    return userAccessListItemSchema.parse({
+      id: user.id,
+      name: user.name ?? null,
+      email: user.email,
+      image: user.image ?? null,
+      role: user.role,
+      isActive: Boolean(user.isActive),
+      deletedAt: user.deletedAt ? new Date(user.deletedAt).toISOString() : null,
+      createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : undefined,
+      memberships: Array.isArray(user.memberships)
+        ? user.memberships.map((membership: any) => ({
+            companyId: membership.companyId,
+            role: membership.role,
+            company: {
+              nomeFantasia: membership.company?.nomeFantasia ?? null,
+              razaoSocial: membership.company?.razaoSocial ?? '',
+            },
+          }))
+        : [],
+      contact: user.contact
+        ? {
+            id: user.contact.id,
+            name: user.contact.name,
+            whatsapp: user.contact.whatsapp ?? null,
+            email: user.contact.email ?? null,
+            phone: user.contact.phone ?? null,
+            companyId: primaryContactLink?.companyId ?? null,
+            company: primaryContactLink?.company
+              ? {
+                  id: primaryContactLink.company.id,
+                  nomeFantasia: primaryContactLink.company.nomeFantasia ?? null,
+                  razaoSocial: primaryContactLink.company.razaoSocial,
+                }
+              : null,
+          }
+        : null,
+      companyName:
+        primaryContactLink?.company?.nomeFantasia ||
+        primaryContactLink?.company?.razaoSocial ||
+        user.memberships?.[0]?.company?.nomeFantasia ||
+        user.memberships?.[0]?.company?.razaoSocial ||
+        'Sem Vinculo',
+      companyId: primaryContactLink?.companyId ?? user.memberships?.[0]?.companyId ?? null,
+    });
   }
 
   private mapRoleToChatwoot(role: Role): 'agent' | 'administrator' {
