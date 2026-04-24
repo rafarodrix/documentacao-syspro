@@ -347,40 +347,29 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             />
                                         </EditableSidebarField>
                                     )}
-                                    {isAdmin && (
-                                        <div className="space-y-2 rounded-lg border border-dashed border-border/70 bg-muted/10 p-3">
-                                            <div className="flex items-start gap-2">
-                                                <Save className="mt-0.5 h-3.5 w-3.5 text-primary/70" />
-                                                <div className="space-y-1">
-                                                    <p className="text-xs font-semibold text-foreground">Persistencia manual</p>
-                                                    <p className="text-[11px] text-muted-foreground">
-                                                        Alteracoes em setor, categoria, prioridade e modulo ficam pendentes ate salvar.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    className="h-8 flex-1 text-xs"
-                                                    disabled={!classificationDirty || isPending}
-                                                    onClick={saveClassification}
-                                                >
-                                                    {isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                                                    Salvar alteracoes
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="h-8 text-xs"
-                                                    disabled={!classificationDirty || isPending}
-                                                    onClick={resetClassificationDraft}
-                                                >
-                                                    <Disc3 className="mr-2 h-3.5 w-3.5" />
-                                                    Descartar
-                                                </Button>
-                                            </div>
+                                    {isAdmin && classificationDirty && (
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-8 flex-1 text-xs"
+                                                disabled={isPending}
+                                                onClick={saveClassification}
+                                            >
+                                                {isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                                Salvar alteracoes
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs"
+                                                disabled={isPending}
+                                                onClick={resetClassificationDraft}
+                                            >
+                                                <Disc3 className="mr-2 h-3.5 w-3.5" />
+                                                Descartar
+                                            </Button>
                                         </div>
                                     )}
                                 </section>

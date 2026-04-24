@@ -150,7 +150,10 @@ export class TicketsService {
     const databaseUrl = data.databaseUrl?.trim() || null;
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
-    const assignedUserId = settings.autoAssignToCreator && isSystemAdmin ? requester.userId : null;
+    const assignedUserId =
+      settings.autoAssignToCreator && isSystemAdmin && normalizedTeam === 'SUPORTE'
+        ? requester.userId
+        : null;
     const now = new Date();
     const priority = data.priority ?? TicketPriority.NORMAL;
     const slaPolicy = this.resolveTicketSlaPolicy(priority, settings);
@@ -176,14 +179,14 @@ export class TicketsService {
       developmentVideoUrl,
       supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
       supportOwnerName: normalizedTeam === 'SUPORTE' && assignedUserId ? openedByName : null,
-      developmentOwnerUserId: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? requester.userId : null,
-      developmentOwnerName: normalizedTeam === 'DESENVOLVIMENTO' && assignedUserId ? openedByName : null,
+      developmentOwnerUserId: null,
+      developmentOwnerName: null,
     } as Prisma.InputJsonValue;
 
     // Timeline messages builder
     const messagesToCreate: Prisma.ConversationMessageCreateWithoutConversationInput[] = [
       {
-        direction: TicketMessageDirection.INTERNAL,
+        direction: TicketMessageDirection.INBOUND,
         type: TicketMessageType.TEXT,
         authorKind: TicketParticipantKind.USER,
         authorUser: { connect: { id: requester.userId } },
@@ -663,6 +666,7 @@ export class TicketsService {
         id: true,
         status: true,
         companyId: true,
+        assignedUserId: true,
         subject: true,
         resolutionSummary: true,
         releaseType: true,
@@ -778,6 +782,38 @@ export class TicketsService {
 
           if (typeof currentMetadata.currentTeam !== 'string' || !currentMetadata.currentTeam.trim()) {
             currentMetadata.currentTeam = requester.role === Role.DEVELOPER ? 'DESENVOLVIMENTO' : 'SUPORTE';
+          }
+        }
+
+        const hasCurrentOwner =
+          typeof currentMetadata.currentOwnerUserId === 'string' && currentMetadata.currentOwnerUserId.trim().length > 0;
+        const hasSupportOwner =
+          typeof currentMetadata.supportOwnerUserId === 'string' && currentMetadata.supportOwnerUserId.trim().length > 0;
+        const hasDevelopmentOwner =
+          typeof currentMetadata.developmentOwnerUserId === 'string' && currentMetadata.developmentOwnerUserId.trim().length > 0;
+
+        if (requester.role === Role.DEVELOPER && !hasDevelopmentOwner) {
+          const developerName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+          currentMetadata.developmentOwnerUserId = requester.userId;
+          currentMetadata.developmentOwnerName = developerName;
+          currentMetadata.currentTeam = 'DESENVOLVIMENTO';
+          if (!hasCurrentOwner && !input.assignedUserId && !exists.assignedUserId) {
+            currentMetadata.currentOwnerUserId = requester.userId;
+            currentMetadata.currentOwnerName = developerName;
+            currentMetadata.currentOwnerRole = requester.role;
+            data.assignedUserId = requester.userId;
+          }
+        }
+
+        if (requester.role !== Role.DEVELOPER && !hasSupportOwner) {
+          const supportName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+          currentMetadata.supportOwnerUserId = requester.userId;
+          currentMetadata.supportOwnerName = supportName;
+          if (!hasCurrentOwner && !input.assignedUserId && !exists.assignedUserId) {
+            currentMetadata.currentOwnerUserId = requester.userId;
+            currentMetadata.currentOwnerName = supportName;
+            currentMetadata.currentOwnerRole = requester.role;
+            data.assignedUserId = requester.userId;
           }
         }
       }
