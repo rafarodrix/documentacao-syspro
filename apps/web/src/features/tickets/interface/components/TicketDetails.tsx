@@ -10,12 +10,14 @@ import {
     ArrowLeft,
     Building2,
     Calendar,
+    Check,
     ChevronDown,
     ChevronUp,
     Clock3,
     Disc3,
     ExternalLink,
     Loader2,
+    Search,
     Save,
     Sparkles,
     Timer,
@@ -23,7 +25,7 @@ import {
     Zap,
 } from "lucide-react";
 import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { updateTicketAssigneeAction, updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
@@ -31,7 +33,10 @@ import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { Separator } from "@/components/ui/separator";
@@ -46,12 +51,21 @@ interface TicketDetailsProps {
     currentUserId?: string;
 }
 
+type InternalUserOption = {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+    isActive?: boolean;
+};
+
 export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
     const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
+    const [internalUsers, setInternalUsers] = useState<InternalUserOption[]>([]);
     const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
     const [localModule, setLocalModule] = useState(ticket?.operations?.module || "");
     const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
@@ -65,13 +79,30 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
         async function loadSettings() {
             try {
-                const response = await fetch("/api/platform/settings/tickets", { cache: "no-store" });
-                const payload = await response.json();
+                const [settingsResponse, usersResponse] = await Promise.all([
+                    fetch("/api/platform/settings/tickets", { cache: "no-store" }),
+                    fetch("/api/users", { cache: "no-store" }),
+                ]);
+                const payload = await settingsResponse.json();
+                const usersPayload = (await usersResponse.json()) as InternalUserOption[] | { data?: InternalUserOption[] };
+
                 if (active && payload?.success && payload?.data) {
                     setTicketSettings(payload.data);
                 }
+
+                if (active) {
+                    const users = Array.isArray(usersPayload)
+                        ? usersPayload
+                        : Array.isArray(usersPayload?.data)
+                            ? usersPayload.data
+                            : [];
+                    setInternalUsers(users.filter((user) => user.isActive !== false));
+                }
             } catch {
-                if (active) setTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS);
+                if (active) {
+                    setTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS);
+                    setInternalUsers([]);
+                }
             }
         }
 
@@ -187,6 +218,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
     const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
     const canManageRelease = currentTeam === "DESENVOLVIMENTO" || Boolean(ticket.publishToReleases);
+    const assignableUsers = getAssignableUsers(internalUsers, currentTeam);
 
     return (
         <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -291,6 +323,30 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             }}
                                         />
                                     </EditableSidebarField>
+                                    {isAdmin && (
+                                        <EditableSidebarField label="Responsavel atual">
+                                            <AssigneeSelect
+                                                value={typeof ticket.ownerId === "string" ? ticket.ownerId : ticket.ownerId ? String(ticket.ownerId) : ""}
+                                                label={ticket.ownerName || "Sem responsavel"}
+                                                users={assignableUsers}
+                                                disabled={isPending}
+                                                onChange={(assignedUserId) => {
+                                                    startTransition(async () => {
+                                                        const res = await updateTicketAssigneeAction(String(ticket.id), {
+                                                            assignedUserId,
+                                                            team: currentTeam,
+                                                        });
+                                                        if (res.success) {
+                                                            toast.success(assignedUserId ? "Responsavel atualizado." : "Responsavel removido.");
+                                                        } else {
+                                                            toast.error(res.error || "Erro ao atualizar responsavel");
+                                                        }
+                                                        router.refresh();
+                                                    });
+                                                }}
+                                            />
+                                        </EditableSidebarField>
+                                    )}
                                     {isAdmin && (
                                         <div className="space-y-2 rounded-lg border border-dashed border-border/70 bg-muted/10 p-3">
                                             <div className="flex items-start gap-2">
@@ -597,6 +653,123 @@ function SupportPeopleFields({ ticket, currentTeam }: { ticket: TicketDetailsIte
                 />
             )}
         </>
+    );
+}
+
+function getAssignableUsers(users: InternalUserOption[], currentTeam?: string | null) {
+    const team = (currentTeam || "").toUpperCase();
+
+    return users.filter((user) => {
+        if (!user?.id) return false;
+        if (team === "DESENVOLVIMENTO") {
+            return user.role === "DEVELOPER" || user.role === "ADMIN";
+        }
+
+        return user.role === "SUPORTE" || user.role === "ADMIN";
+    });
+}
+
+function AssigneeSelect({
+    value,
+    label,
+    users,
+    disabled,
+    onChange,
+}: {
+    value: string;
+    label: string;
+    users: InternalUserOption[];
+    disabled?: boolean;
+    onChange: (value: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+
+    useEffect(() => {
+        if (!open) setQuery("");
+    }, [open]);
+
+    const normalizedQuery = query.trim().toLowerCase();
+    const filteredUsers = normalizedQuery
+        ? users.filter((user) => `${user.name || ""} ${user.email} ${user.role}`.toLowerCase().includes(normalizedQuery))
+        : users;
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled}
+                    className="h-10 w-full justify-between rounded-md border-border/70 bg-background px-3 text-left text-sm font-medium shadow-none transition-colors hover:border-primary/40 hover:bg-muted/30"
+                >
+                    <span className="min-w-0 truncate">{label}</span>
+                    <UserRound className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[20rem] p-0">
+                <div className="border-b border-border/60 p-3">
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Pesquisar tecnico"
+                            className="pl-9"
+                        />
+                    </div>
+                </div>
+                <ScrollArea className="max-h-72">
+                    <div className="p-1.5">
+                        <button
+                            type="button"
+                            className={cn(
+                                "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
+                                !value && "bg-primary/8 text-foreground",
+                            )}
+                            onClick={() => {
+                                onChange("");
+                                setOpen(false);
+                            }}
+                        >
+                            <Check className={cn("h-4 w-4 shrink-0", !value ? "opacity-100 text-primary" : "opacity-0")} />
+                            <span>Sem responsavel</span>
+                        </button>
+
+                        {filteredUsers.map((user) => {
+                            const isSelected = user.id === value;
+                            const userLabel = user.name?.trim() || user.email;
+                            return (
+                                <button
+                                    key={user.id}
+                                    type="button"
+                                    className={cn(
+                                        "flex w-full items-start gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
+                                        isSelected && "bg-primary/8 text-foreground",
+                                    )}
+                                    onClick={() => {
+                                        onChange(user.id);
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check className={cn("mt-0.5 h-4 w-4 shrink-0", isSelected ? "opacity-100 text-primary" : "opacity-0")} />
+                                    <span className="min-w-0">
+                                        <span className="block truncate">{userLabel}</span>
+                                        <span className="block text-xs text-muted-foreground">{user.email}</span>
+                                    </span>
+                                </button>
+                            );
+                        })}
+
+                        {filteredUsers.length === 0 ? (
+                            <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                                Nenhum tecnico encontrado.
+                            </div>
+                        ) : null}
+                    </div>
+                </ScrollArea>
+            </PopoverContent>
+        </Popover>
     );
 }
 

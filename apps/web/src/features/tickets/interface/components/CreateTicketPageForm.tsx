@@ -28,7 +28,7 @@ import {
 } from "@dosc-syspro/contracts/ticket";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -577,21 +577,23 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
           </section>
 
           <aside className="space-y-5">
-            <Card className="border-border/60 bg-card shadow-sm">
-              <CardContent className="space-y-4 p-4 md:p-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                    <Tags className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground">Classificacao</h2>
-                    <p className="text-xs text-muted-foreground">Define fila, SLA e roteamento inicial.</p>
-                  </div>
+            <Card className="relative overflow-hidden border-border/60 bg-card/95 shadow-sm">
+              <div className="absolute left-0 top-0 h-0.5 w-full bg-linear-to-r from-transparent via-primary/40 to-transparent" />
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <Tags className="h-3.5 w-3.5 text-primary/70" />
+                  Informacoes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-0">
+                <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Classificacao</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Define fila, categoria e roteamento inicial do chamado.</p>
                 </div>
 
                 {isSystemUser ? (
                   <div className="space-y-2">
-                    <Label>Equipe atual</Label>
+                    <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Equipe atual</Label>
                     <Select value={selectedTeam} onValueChange={handleTeamChange}>
                       <SelectTrigger className="h-10 border-border/60 bg-background">
                         <SelectValue placeholder="Selecione a equipe" />
@@ -610,7 +612,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                 )}
 
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Categoria</Label>
                   <Select value={selectedCategory} onValueChange={handleCategoryChange}>
                     <SelectTrigger className="h-10 border-border/60 bg-background">
                       <SelectValue placeholder="Selecione a categoria" />
@@ -625,6 +627,8 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Modulo</Label>
                 <TicketModuleCascadeSelect
                   options={ticketSettings.modules}
                   value={selectedModule}
@@ -635,6 +639,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                     single: "Modulo, submodulo e tela",
                   }}
                 />
+                </div>
 
               </CardContent>
             </Card>

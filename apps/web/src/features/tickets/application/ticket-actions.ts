@@ -639,6 +639,37 @@ export async function updateTicketClassificationAction(
   }
 }
 
+export async function updateTicketAssigneeAction(
+  ticketId: string,
+  payload: { assignedUserId?: string; team?: string },
+): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  const assignedUserId = payload.assignedUserId?.trim() ?? "";
+  const team = payload.team?.trim().toUpperCase();
+
+  try {
+    const result = await updateTicketGateway(ticketId, {
+      assignedUserId,
+      ...(team ? { team } : {}),
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao atualizar responsavel." };
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em updateTicketAssigneeAction:", error);
+    return { success: false, error: "Falha ao atualizar responsavel." };
+  }
+}
+
 export async function getUserLinkedCompaniesAction() {
   const session = await getProtectedSession();
   if (!session) return { success: false, data: [] };
