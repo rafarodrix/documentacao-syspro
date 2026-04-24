@@ -20,6 +20,7 @@ import {
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   ticketModuleSettingsSchema,
+  type TicketCategoryType,
   type TicketNotificationGroup,
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
@@ -50,6 +51,28 @@ function createNotificationGroup(label = ""): TicketNotificationGroup {
 
 const ticketSettingsResolver = zodResolver(ticketModuleSettingsSchema) as Resolver<TicketModuleSettings>;
 
+function inferCategoryType(defaultTeam?: string, value?: string, label?: string): TicketCategoryType {
+  if (defaultTeam === "SUPORTE") return "SUPORTE";
+  const normalized = `${value || ""} ${label || ""}`.toLowerCase();
+  if (normalized.includes("new-feature") || normalized.includes("nova funcionalidade") || normalized.includes("feature")) {
+    return "NOVA_FUNCIONALIDADE";
+  }
+  if (normalized.includes("bug")) return "BUG";
+  return "MELHORIA";
+}
+
+function getCategoryTypeOptions(team?: string) {
+  if (team === "DESENVOLVIMENTO") {
+    return [
+      { value: "BUG", label: "Bug" },
+      { value: "MELHORIA", label: "Melhoria" },
+      { value: "NOVA_FUNCIONALIDADE", label: "Nova Funcionalidade" },
+    ] as const;
+  }
+
+  return [{ value: "SUPORTE", label: "Suporte" }] as const;
+}
+
 function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSettings {
   const legacySupportGroupJid = (settings as TicketModuleSettings & { supportNotificationGroupJid?: string }).supportNotificationGroupJid;
   const legacyDevelopmentGroupJid =
@@ -70,6 +93,10 @@ function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSe
         : legacyDevelopmentGroupJid?.trim()
           ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
           : [],
+    categories: settings.categories.map((category) => ({
+      ...category,
+      type: category.type ?? inferCategoryType(category.defaultTeam, category.value, category.label),
+    })),
     modules: settings.modules.map((moduleOption) => ({
       ...moduleOption,
       label: normalizeModuleHierarchyLabel(moduleOption.label) || moduleOption.label,
@@ -93,7 +120,7 @@ export function TicketSettingsTab() {
 
   const form = useForm<TicketModuleSettings>({
     resolver: ticketSettingsResolver,
-    defaultValues: DEFAULT_TICKET_MODULE_SETTINGS,
+    defaultValues: normalizeTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS),
   });
 
   const categoriesArray = useFieldArray({ control: form.control, name: "categories" });
@@ -262,7 +289,7 @@ export function TicketSettingsTab() {
                         <FolderKanban className="h-4 w-4 text-primary/70" />
                         Categorias e roteamento
                       </CardTitle>
-                      <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => categoriesArray.append({ id: createOptionId("cat"), label: "", value: "", defaultTeam: "SUPORTE" })}>
+                      <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => categoriesArray.append({ id: createOptionId("cat"), label: "", value: "", defaultTeam: "SUPORTE", type: "SUPORTE" })}>
                         <Plus className="h-3.5 w-3.5" />
                         Categoria
                       </Button>
@@ -270,7 +297,7 @@ export function TicketSettingsTab() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {categoriesArray.fields.map((fieldItem, index) => (
-                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_11rem_2.5rem]">
+                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_11rem_12rem_2.5rem]">
                         <div className="space-y-2">
                           <FormField control={form.control} name={`categories.${index}.label`} render={({ field }) => (
                             <FormItem>
@@ -292,13 +319,30 @@ export function TicketSettingsTab() {
                         )} />
                         <FormField control={form.control} name={`categories.${index}.defaultTeam`} render={({ field }) => (
                           <FormItem>
-                            <Select onValueChange={field.onChange} value={field.value || "SUPORTE"}>
+                            <Select onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue(`categories.${index}.type`, value === "DESENVOLVIMENTO" ? "BUG" : "SUPORTE", { shouldDirty: true });
+                            }} value={field.value || "SUPORTE"}>
                               <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Fila" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="SUPORTE">Suporte</SelectItem>
                                 <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`categories.${index}.type`} render={({ field }) => (
+                          <FormItem>
+                            <Select onValueChange={field.onChange} value={field.value || inferCategoryType(form.watch(`categories.${index}.defaultTeam`), form.watch(`categories.${index}.value`), form.watch(`categories.${index}.label`))}>
+                              <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {getCategoryTypeOptions(form.watch(`categories.${index}.defaultTeam`)).map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </FormItem>

@@ -32,7 +32,7 @@ const CREATE_TICKET_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
 export async function finalizeTicketAction(input: {
   ticketId: string | number;
-  resolutionSummary: string;
+  resolutionSummary?: string;
   resolutionVideoUrl?: string;
   releaseType?: "BUG" | "MELHORIA";
   releaseTitle?: string;
@@ -44,9 +44,9 @@ export async function finalizeTicketAction(input: {
     return { success: false, error: "Nao autorizado." };
   }
 
-  const resolutionSummary = input.resolutionSummary.trim();
-  if (!resolutionSummary) {
-    return { success: false, error: "Resolucao obrigatoria para finalizar o ticket." };
+  const resolutionSummary = input.resolutionSummary?.trim() || undefined;
+  if (input.publishToReleases && !resolutionSummary) {
+    return { success: false, error: "Resolucao obrigatoria para publicar em releases." };
   }
 
   const video = input.resolutionVideoUrl?.trim() || undefined;

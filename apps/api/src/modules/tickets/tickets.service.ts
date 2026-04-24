@@ -147,6 +147,7 @@ export class TicketsService {
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
     const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory, isSystemAdmin);
+    const normalizedCategoryType = this.resolveCategoryType(settings, normalizedCategory, normalizedTeam);
     const databaseUrl = data.databaseUrl?.trim() || null;
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
@@ -159,6 +160,7 @@ export class TicketsService {
     const metadata = {
       ...(data.metadata && typeof data.metadata === 'object' ? data.metadata : {}),
       category: normalizedCategory,
+      categoryType: normalizedCategoryType,
       module: normalizedModule,
       currentTeam: normalizedTeam,
       currentOwnerUserId: assignedUserId,
@@ -684,20 +686,36 @@ export class TicketsService {
     const publishToReleases = input.publishToReleases;
     const shouldPublishToReleases = publishToReleases === true;
     const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
-    const effectiveReleaseType =
-      normalizeReleaseType(releaseType) || normalizeReleaseType(exists.releaseType) || inferReleaseTypeFromCategory(input.category ?? existingMetadata.category);
-    const effectiveReleaseTitle =
-      releaseTitle || readReleaseMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim();
-    const effectiveReleaseModule =
-      releaseModule || exists.releaseModule?.trim() || readReleaseMetadataString(existingMetadata, 'module');
     const requestedTeam =
       input.team !== undefined
         ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
         : undefined;
+    const currentTeam =
+      requestedTeam ||
+      (typeof existingMetadata.currentTeam === 'string' && existingMetadata.currentTeam.trim()
+        ? existingMetadata.currentTeam.trim().toUpperCase()
+        : null);
+    const nextCategory =
+      input.category !== undefined
+        ? input.category?.trim() || null
+        : typeof existingMetadata.category === 'string'
+          ? existingMetadata.category
+          : null;
+    const nextCategoryType = this.resolveCategoryType(settings, nextCategory, currentTeam);
+    const effectiveReleaseType =
+      normalizeReleaseType(releaseType) || normalizeReleaseType(exists.releaseType) || normalizeReleaseType(nextCategoryType) || inferReleaseTypeFromCategory(nextCategory);
+    const effectiveReleaseTitle =
+      releaseTitle || readReleaseMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim();
+    const effectiveReleaseModule =
+      releaseModule || exists.releaseModule?.trim() || readReleaseMetadataString(existingMetadata, 'module');
     const handoffNote = input.note?.trim();
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
+    }
+
+    if (input.status === TicketStatus.RESOLVED && currentTeam === 'DESENVOLVIMENTO' && !effectiveResolutionSummary) {
+      throw new BadRequestException('Resolucao obrigatoria para concluir tickets do setor de Desenvolvimento.');
     }
 
     if (requestedTeam === 'DESENVOLVIMENTO' && (!handoffNote || handoffNote.length < 20)) {
@@ -705,7 +723,7 @@ export class TicketsService {
     }
 
     if (releaseType && !normalizeReleaseType(releaseType)) {
-      throw new BadRequestException('Tipo de release invalido. Use BUG ou MELHORIA.');
+      throw new BadRequestException('Tipo de release invalido. Use BUG, MELHORIA ou NOVA_FUNCIONALIDADE.');
     }
 
     if (resolutionVideoUrl) {
@@ -724,6 +742,7 @@ export class TicketsService {
         currentMetadata.currentTeam = requestedTeam;
       }
       if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
+      if (input.category !== undefined || input.team !== undefined) currentMetadata.categoryType = nextCategoryType;
       if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
       if (input.status !== undefined) {
         const isClosingStatus = input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED;
@@ -1202,6 +1221,20 @@ export class TicketsService {
     }
 
     return settings.defaultTeam === 'DESENVOLVIMENTO' && allowDevelopment ? 'DESENVOLVIMENTO' : 'SUPORTE';
+  }
+
+  private resolveCategoryType(
+    settings: TicketModuleSettings,
+    category?: string | null,
+    team?: string | null,
+  ): 'SUPORTE' | 'BUG' | 'MELHORIA' | 'NOVA_FUNCIONALIDADE' | null {
+    const normalizedCategory = category?.trim();
+    const configuredType = settings.categories.find((item) => item.value === normalizedCategory)?.type;
+    if (configuredType === 'SUPORTE' || configuredType === 'BUG' || configuredType === 'MELHORIA' || configuredType === 'NOVA_FUNCIONALIDADE') {
+      return configuredType;
+    }
+
+    return team === 'DESENVOLVIMENTO' ? 'BUG' : 'SUPORTE';
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {

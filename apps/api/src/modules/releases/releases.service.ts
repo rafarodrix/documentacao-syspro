@@ -10,6 +10,7 @@ export class ReleasesService {
   async findAll(): Promise<{ success: true; data: Release[] }> {
     const tickets = await this.prisma.conversation.findMany({
       where: {
+        publishToReleases: true,
         resolutionSummary: { not: null },
         status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
       },
@@ -22,6 +23,7 @@ export class ReleasesService {
         resolutionVideoUrl: true,
         releaseType: true,
         releaseModule: true,
+        publishToReleases: true,
         metadata: true,
         closedAt: true,
         updatedAt: true,

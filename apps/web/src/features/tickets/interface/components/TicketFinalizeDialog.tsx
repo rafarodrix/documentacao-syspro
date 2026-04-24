@@ -64,10 +64,10 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
 
   const shouldRequireReleaseFields = publishToReleases;
   const canFinalize = useMemo(() => {
-    if (!resolutionSummary.trim()) return false;
+    if (isDevelopmentTicket && !resolutionSummary.trim()) return false;
     if (shouldRequireReleaseFields && !releaseTitle.trim()) return false;
     return true;
-  }, [releaseTitle, resolutionSummary, shouldRequireReleaseFields]);
+  }, [isDevelopmentTicket, releaseTitle, resolutionSummary, shouldRequireReleaseFields]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,7 +88,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   ]);
 
   const runFinalizeAction = () => {
-    if (!resolutionSummary.trim()) {
+    if (isDevelopmentTicket && !resolutionSummary.trim()) {
       toast.error("Preencha a resolucao aplicada para concluir o ticket.");
       return;
     }
@@ -154,16 +154,18 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
 
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resolucao Aplicada *</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Resumo do fechamento{isDevelopmentTicket ? " *" : ""}
+            </Label>
             <Textarea
               rows={4}
-              placeholder="Descreva a solucao aplicada passo a passo..."
+              placeholder={isDevelopmentTicket ? "Descreva a solucao aplicada passo a passo..." : "Opcional. Informe como o atendimento foi encerrado."}
               className="text-xs resize-none"
               value={resolutionSummary}
               onChange={(e) => setResolutionSummary(e.target.value)}
               disabled={isPending}
             />
-            {!resolutionSummary.trim() && (
+            {isDevelopmentTicket && !resolutionSummary.trim() && (
               <p className="flex items-center gap-1.5 text-[11px] text-amber-600">
                 <AlertCircle className="h-3.5 w-3.5" />
                 A conclusao exige o preenchimento da resolucao aplicada.

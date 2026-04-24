@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const ticketCategoryTypeSchema = z.enum(["SUPORTE", "BUG", "MELHORIA", "NOVA_FUNCIONALIDADE"]);
+export type TicketCategoryType = z.infer<typeof ticketCategoryTypeSchema>;
+
 export const ticketModuleSettingsOptionSchema = z.object({
   id: z.string().trim().min(1),
   label: z.string().trim().min(1),
@@ -8,6 +11,7 @@ export const ticketModuleSettingsOptionSchema = z.object({
   icon: z.string().trim().optional(),
   description: z.string().trim().optional(),
   defaultTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
+  type: ticketCategoryTypeSchema.optional(),
 });
 
 export const ticketModuleSettingsPrioritySchema = z.object({
