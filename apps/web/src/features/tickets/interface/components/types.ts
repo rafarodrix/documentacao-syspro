@@ -7,6 +7,8 @@ export type {
   TicketStatusCounts,
   TicketTeamFilter,
   ClosedTicketsWindow,
+  TicketSortBy,
+  TicketSortOrder,
   TicketQueryParams,
   TicketsDataResponse,
 } from "@/features/tickets/domain/ticket-model";

@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
-import type { ClosedTicketsWindow, TicketListItem, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./types";
+import type { ClosedTicketsWindow, TicketListItem, TicketSortBy, TicketSortOrder, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./types";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsContainerProps {
@@ -25,6 +25,9 @@ interface TicketsContainerProps {
   search: string;
   statusGroup: TicketStatusGroup;
   closedWindow: ClosedTicketsWindow;
+  category: string;
+  sortBy: TicketSortBy;
+  sortOrder: TicketSortOrder;
 }
 
 
@@ -41,6 +44,9 @@ export function TicketsContainer({
   search,
   statusGroup,
   closedWindow,
+  category,
+  sortBy,
+  sortOrder,
 }: TicketsContainerProps) {
   const {
     searchTerm,
@@ -50,6 +56,8 @@ export function TicketsContainer({
     setStatusFilter,
     setClosedWindowFilter,
     setTeamFilter,
+    setCategoryFilter,
+    setSort,
   } = useTicketFilters(search);
 
   useTicketHotkeys({
@@ -107,13 +115,22 @@ export function TicketsContainer({
             queue={queue}
             setQueueFilter={setQueueFilter}
             queueCounts={queueCounts}
+            category={category}
+            setCategoryFilter={setCategoryFilter}
           />
 
 
         </div>
       </section>
 
-      <TicketsTable tickets={tickets} isAdmin={isAdmin} statusGroup={statusGroup} />
+      <TicketsTable
+        tickets={tickets}
+        isAdmin={isAdmin}
+        statusGroup={statusGroup}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={setSort}
+      />
 
       {pagination.total !== null ? (
         <RegistryPagination

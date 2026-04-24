@@ -2,11 +2,13 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getTicketsAction } from "@/features/tickets/application/ticket-actions";
 import { TicketsContainer } from "@/features/tickets/interface";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow, TicketTeamFilter } from "@/features/tickets/domain/ticket-model";
+import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "@/features/tickets/domain/ticket-model";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { Role } from "@prisma/client";
 const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
 const TEAM_FILTER_OPTIONS: TicketTeamFilter[] = ["all", "SUPORTE", "DESENVOLVIMENTO"];
+const SORT_BY_OPTIONS: TicketSortBy[] = ["updatedAt", "subject", "customer"];
+const SORT_ORDER_OPTIONS: TicketSortOrder[] = ["asc", "desc"];
 
 function resolveDefaultTeamFilter(role: Role): TicketTeamFilter {
   if (role === Role.DEVELOPER) return "DESENVOLVIMENTO";
@@ -28,6 +30,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const search = typeof params?.search === "string" ? params.search : "";
   const statusParam = typeof params?.status === "string" ? params.status : "open";
   const teamParam = typeof params?.team === "string" ? params.team : undefined;
+  const categoryParam = typeof params?.category === "string" ? params.category : "";
+  const sortByParam = typeof params?.sortBy === "string" ? params.sortBy : "updatedAt";
+  const sortOrderParam = typeof params?.sortOrder === "string" ? params.sortOrder : "desc";
   const closedWindowParam =
     typeof params?.closedWindow === "string"
       ? params.closedWindow
@@ -48,6 +53,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const team: TicketTeamFilter = TEAM_FILTER_OPTIONS.includes(resolvedTeamParam as TicketTeamFilter)
     ? (resolvedTeamParam as TicketTeamFilter)
     : "all";
+  const sortBy: TicketSortBy = SORT_BY_OPTIONS.includes(sortByParam as TicketSortBy)
+    ? (sortByParam as TicketSortBy)
+    : "updatedAt";
+  const sortOrder: TicketSortOrder = SORT_ORDER_OPTIONS.includes(sortOrderParam as TicketSortOrder)
+    ? (sortOrderParam as TicketSortOrder)
+    : "desc";
 
   console.info("[TicketsDiag][page] loading", {
     at: new Date().toISOString(),
@@ -58,6 +69,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     team,
     statusGroup,
     closedWindow,
+    category: categoryParam || undefined,
+    sortBy,
+    sortOrder,
     hasSearch: Boolean(search.trim()),
   });
 
@@ -69,6 +83,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     search,
     statusGroup,
     closedWindow,
+    category: categoryParam || undefined,
+    sortBy,
+    sortOrder,
   });
 
   if (!success || !data) {
@@ -118,6 +135,9 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       search={search}
       statusGroup={statusGroup}
       closedWindow={closedWindow}
+      category={categoryParam}
+      sortBy={sortBy}
+      sortOrder={sortOrder}
     />
   );
 }

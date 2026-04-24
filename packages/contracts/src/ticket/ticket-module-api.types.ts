@@ -109,6 +109,9 @@ export const ticketModuleListQuerySchema = z.object({
   queue: z.enum(["all", "my_queue", "unassigned", "critical", "no_response"]).optional(),
   team: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
   closedWindow: z.enum(["30d", "60d", "90d", "180d", "365d", "all"]).optional(),
+  category: z.string().trim().optional(),
+  sortBy: z.enum(["updatedAt", "subject", "customer"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
   assignedUserId: z.string().optional(),
   companyId: z.string().optional(),
 });

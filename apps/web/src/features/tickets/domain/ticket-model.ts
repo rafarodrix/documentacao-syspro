@@ -45,6 +45,8 @@ export interface TicketsPagination {
 
 export type ClosedTicketsWindow = "30d" | "60d" | "90d" | "180d" | "365d" | "all";
 export type TicketTeamFilter = "all" | "SUPORTE" | "DESENVOLVIMENTO";
+export type TicketSortBy = "updatedAt" | "subject" | "customer";
+export type TicketSortOrder = "asc" | "desc";
 
 export interface TicketStatusCounts {
     open: number;
@@ -60,6 +62,9 @@ export interface TicketQueryParams {
     statusGroup?: TicketStatusGroup | "all";
     team?: Exclude<TicketTeamFilter, "all">;
     closedWindow?: ClosedTicketsWindow;
+    category?: string;
+    sortBy?: TicketSortBy;
+    sortOrder?: TicketSortOrder;
 }
 
 export type TicketActionFailure = {

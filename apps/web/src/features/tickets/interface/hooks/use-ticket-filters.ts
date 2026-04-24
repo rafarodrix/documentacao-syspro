@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow, TicketTeamFilter } from "../components/types";
+import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "../components/types";
 
 export function useTicketFilters(initialSearch: string) {
   const router = useRouter();
@@ -111,6 +111,33 @@ export function useTicketFilters(initialSearch: string) {
         } else {
           params.set("team", nextTeam);
         }
+        params.delete("category");
+        params.set("page", "1");
+      });
+    },
+    [updateParams]
+  );
+
+  const setCategoryFilter = useCallback(
+    (nextCategory: string) => {
+      updateParams((params) => {
+        const normalized = nextCategory.trim();
+        if (!normalized || normalized === "all") {
+          params.delete("category");
+        } else {
+          params.set("category", normalized);
+        }
+        params.set("page", "1");
+      });
+    },
+    [updateParams]
+  );
+
+  const setSort = useCallback(
+    (sortBy: TicketSortBy, sortOrder: TicketSortOrder) => {
+      updateParams((params) => {
+        params.set("sortBy", sortBy);
+        params.set("sortOrder", sortOrder);
         params.set("page", "1");
       });
     },
@@ -125,6 +152,8 @@ export function useTicketFilters(initialSearch: string) {
     setStatusFilter,
     setClosedWindowFilter,
     setTeamFilter,
+    setCategoryFilter,
+    setSort,
     isPending,
   };
 }

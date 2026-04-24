@@ -496,6 +496,14 @@ export class TicketsService {
       where.assignedUserId = input.assignedUserId;
     }
 
+    if (input.category?.trim()) {
+      const normalizedCategory = input.category.trim();
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        { metadata: { path: ['category'], equals: normalizedCategory } },
+      ];
+    }
+
     const isClosedStatusView =
       input.status === TicketStatus.RESOLVED ||
       input.status === TicketStatus.ARCHIVED ||
@@ -524,11 +532,19 @@ export class TicketsService {
       }
     }
     const queueBaseWhere = teamScopeWhere;
+    const sortBy = input.sortBy || 'updatedAt';
+    const sortOrder: Prisma.SortOrder = input.sortOrder === 'asc' ? 'asc' : 'desc';
+    const orderBy: Prisma.ConversationOrderByWithRelationInput[] =
+      sortBy === 'subject'
+        ? [{ subject: sortOrder }, { updatedAt: 'desc' }]
+        : sortBy === 'customer'
+          ? [{ company: { nomeFantasia: sortOrder } }, { company: { razaoSocial: sortOrder } }, { updatedAt: 'desc' }]
+          : [{ updatedAt: sortOrder }];
 
     const [items, total, baseTotal, openCount, pendingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
-        orderBy: [{ updatedAt: 'desc' }],
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: {

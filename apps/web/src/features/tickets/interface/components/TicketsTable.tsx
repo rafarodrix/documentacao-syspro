@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
 import { formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { TicketListItem } from "./types";
+import type { TicketSortBy, TicketSortOrder } from "./types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge } from "./badges";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
@@ -17,13 +18,19 @@ interface TicketsTableProps {
   tickets: TicketListItem[];
   isAdmin: boolean;
   statusGroup: TicketStatusGroup;
+  sortBy: TicketSortBy;
+  sortOrder: TicketSortOrder;
+  onSortChange: (sortBy: TicketSortBy, sortOrder: TicketSortOrder) => void;
 }
 
-export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProps) {
+export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder, onSortChange }: TicketsTableProps) {
   const router = useRouter();
   const ticketSettings = useTicketModuleSettings();
   const isClosedView = statusGroup === "closed";
-  const emptyStateColSpan = isClosedView ? (isAdmin ? 8 : 7) : (isAdmin ? 8 : 7);
+  const isOpenView = statusGroup === "open";
+  const emptyStateColSpan = isAdmin
+    ? isClosedView || isOpenView ? 8 : 9
+    : isClosedView || isOpenView ? 7 : 8;
 
   return (
     <Card className="overflow-hidden border-border/60 bg-card shadow-sm animate-in fade-in duration-700">
@@ -47,7 +54,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                     #{ticket.number} - {ticket.group}
                   </p>
                 </div>
-                {!isClosedView && <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />}
+                {!isClosedView && !isOpenView && <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />}
               </div>
               {isAdmin && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
               <div className="flex items-center gap-2">
@@ -77,14 +84,16 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
           <TableHeader className="sticky top-0 z-10 bg-muted/40 backdrop-blur">
             <TableRow className="hover:bg-transparent border-b border-border/60">
               <TableHead className="w-28 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
-              <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assunto</TableHead>
-              {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>}
+              <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <SortButton label="Assunto" active={sortBy === "subject"} direction={sortOrder} onClick={() => toggleSort("subject", sortBy, sortOrder, onSortChange)} />
+              </TableHead>
+              {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
-              {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
+              {!isClosedView && !isOpenView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
               {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>}
               {isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Resolvido por</TableHead>}
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Atualizacao</TableHead>
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></TableHead>
               <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
             </TableRow>
           </TableHeader>
@@ -132,7 +141,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                   <TableCell>
                     <TeamBadge team={ticket.team} />
                   </TableCell>
-                  {!isClosedView && (
+                  {!isClosedView && !isOpenView && (
                     <TableCell>
                       <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
                     </TableCell>
@@ -149,7 +158,9 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                       </span>
                     </TableCell>
                   )}
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">{formatDateSafe(ticket.updatedAt)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">
+                    {formatDateSafe(isClosedView ? ticket.resolvedAt || ticket.updatedAt : ticket.updatedAt)}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
                       <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
@@ -178,6 +189,44 @@ function resolveCategoryLabel(
   if (!normalized) return "Nao definida";
   const configured = categories.find((item) => item.value.toLowerCase() === normalized.toLowerCase());
   return configured?.label || humanizeModuleHierarchyValue(normalized) || normalized;
+}
+
+function SortButton({
+  label,
+  active,
+  direction,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  direction: TicketSortOrder;
+  onClick: () => void;
+}) {
+  const Icon = !active ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+    >
+      <span>{label}</span>
+      <Icon className="h-3 w-3" />
+    </button>
+  );
+}
+
+function toggleSort(
+  column: TicketSortBy,
+  currentSortBy: TicketSortBy,
+  currentSortOrder: TicketSortOrder,
+  onSortChange: (sortBy: TicketSortBy, sortOrder: TicketSortOrder) => void,
+) {
+  if (currentSortBy === column) {
+    onSortChange(column, currentSortOrder === "asc" ? "desc" : "asc");
+    return;
+  }
+
+  onSortChange(column, column === "updatedAt" ? "desc" : "asc");
 }
 
 function TeamBadge({ team }: { team?: TicketListItem["team"] }) {

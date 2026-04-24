@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { CalendarDays, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { type TicketStatusGroup, type QueueKey } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketStatusCounts, TicketTeamFilter } from "./types";
 
@@ -21,6 +22,8 @@ interface TicketsFiltersProps {
     queue: QueueKey;
     setQueueFilter: (val: QueueKey) => void;
     queueCounts: Record<QueueKey, number>;
+    category: string;
+    setCategoryFilter: (val: string) => void;
 }
 
 const CLOSED_WINDOW_LABELS: Record<ClosedTicketsWindow, string> = {
@@ -46,7 +49,12 @@ export function TicketsFilters({
     queue,
     setQueueFilter,
     queueCounts,
+    category,
+    setCategoryFilter,
 }: TicketsFiltersProps) {
+    const ticketSettings = useTicketModuleSettings();
+    const categoryOptions = ticketSettings.categories.filter((item) => team === "all" || item.defaultTeam === team);
+
     return (
         <div className="flex w-full flex-col gap-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
@@ -102,6 +110,20 @@ export function TicketsFilters({
                                     </SelectContent>
                                 </Select>
                             )}
+
+                            <Select value={category || "all"} onValueChange={setCategoryFilter}>
+                                <SelectTrigger className="h-10 w-[180px] bg-background">
+                                    <SelectValue placeholder="Categoria" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas categorias</SelectItem>
+                                    {categoryOptions.map((option) => (
+                                        <SelectItem key={option.id} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     )}
                 </div>
