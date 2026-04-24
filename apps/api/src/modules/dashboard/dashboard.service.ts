@@ -171,6 +171,40 @@ export class DashboardService {
     return allowed ? getDailyPasswordForDate() : null;
   }
 
+  private buildScopedCompaniesWhere(companyIds?: string[]) {
+    if (!companyIds) {
+      return { deletedAt: null as null };
+    }
+
+    if (companyIds.length === 0) {
+      return { deletedAt: null as null, id: { in: ['__no_company_scope__'] } };
+    }
+
+    return {
+      deletedAt: null as null,
+      id: { in: companyIds },
+    };
+  }
+
+  private buildScopedUsersWhere(companyIds?: string[]) {
+    if (!companyIds) {
+      return { deletedAt: null as null };
+    }
+
+    if (companyIds.length === 0) {
+      return { deletedAt: null as null, id: { in: ['__no_user_scope__'] } };
+    }
+
+    return {
+      deletedAt: null as null,
+      OR: [
+        { memberships: { some: { companyId: { in: companyIds } } } },
+        { contact: { is: { companyLinks: { some: { companyId: { in: companyIds } } } } } },
+        { contactLinks: { some: { companyId: { in: companyIds } } } },
+      ],
+    };
+  }
+
   async getDashboard(rawHeaders?: IncomingHttpHeaders): Promise<DashboardResponse> {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const dailyPassword = await this.resolveDailyPassword(rawHeaders);
@@ -180,6 +214,19 @@ export class DashboardService {
       const dashboardUF = await this.getUserDashboardUF(requester.userId);
       const { start } = getLast7DaysRange();
       const now = new Date();
+      const [canViewCompaniesModule, canViewUsersModule, companyScope, userScope] = await Promise.all([
+        this.authorizationService.userHasPermission(requester, 'companies:view', { acceptCompanyScope: true }),
+        this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }),
+        this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
+        this.authorizationService.resolveCompanyAccessScope(requester, 'users:view_team', 'users:view_all'),
+      ]);
+
+      const scopedCompanyIds =
+        canViewCompaniesModule || companyScope.isGlobal ? undefined : companyScope.companyIds;
+      const scopedUserIds =
+        canViewUsersModule || userScope.isGlobal ? undefined : userScope.companyIds;
+      const companyBaseWhere = this.buildScopedCompaniesWhere(scopedCompanyIds);
+      const userBaseWhere = this.buildScopedUsersWhere(scopedUserIds);
 
       const [
         companiesCount,
@@ -191,23 +238,23 @@ export class DashboardService {
         sefazRecords,
         companyActivity,
       ] = await Promise.all([
-        this.prisma.company.count({ where: { status: 'ACTIVE', deletedAt: null } }),
+        this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } }),
         this.prisma.company.count({
-          where: { deletedAt: null, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
+          where: { ...companyBaseWhere, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
         }),
         this.prisma.company.count({
           where: {
-            deletedAt: null,
+            ...companyBaseWhere,
             createdAt: {
               gte: new Date(now.getFullYear(), now.getMonth() - 1, 1),
               lt: new Date(now.getFullYear(), now.getMonth(), 1),
             },
           },
         }),
-        this.prisma.user.count({ where: { deletedAt: null } }),
-        this.prisma.user.count({ where: { isActive: true, deletedAt: null } }),
+        this.prisma.user.count({ where: userBaseWhere }),
+        this.prisma.user.count({ where: { ...userBaseWhere, isActive: true } }),
         this.prisma.company.findMany({
-          where: { deletedAt: null },
+          where: companyBaseWhere,
           orderBy: { createdAt: 'desc' },
           take: 5,
           select: {
@@ -228,7 +275,7 @@ export class DashboardService {
           take: 2,
         }),
         this.prisma.company.findMany({
-          where: { deletedAt: null, createdAt: { gte: start } },
+          where: { ...companyBaseWhere, createdAt: { gte: start } },
           select: { createdAt: true },
         }),
       ]);
