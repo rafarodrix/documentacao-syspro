@@ -20,7 +20,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-  const { filteredBugs, filteredMelhorias } = useMemo(() => {
+  const { filteredBugs, filteredMelhorias, filteredNovasFuncionalidades } = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     const filteredBySearch = initialReleases.filter((release) => {
       const matchesText =
@@ -37,11 +37,19 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
       (release) => release.type.toLowerCase() === "bug" && (activeFilter === "all" || activeFilter === "bug"),
     );
 
-    const melhorias = filteredBySearch.filter(
-      (release) => release.type.toLowerCase() !== "bug" && (activeFilter === "all" || activeFilter === "melhoria"),
+    const novasFuncionalidades = filteredBySearch.filter(
+      (release) =>
+        release.type.toLowerCase() === "nova funcionalidade" &&
+        (activeFilter === "all" || activeFilter === "nova_funcionalidade"),
     );
 
-    return { filteredBugs: bugs, filteredMelhorias: melhorias };
+    const melhorias = filteredBySearch.filter(
+      (release) =>
+        !["bug", "nova funcionalidade"].includes(release.type.toLowerCase()) &&
+        (activeFilter === "all" || activeFilter === "melhoria"),
+    );
+
+    return { filteredBugs: bugs, filteredMelhorias: melhorias, filteredNovasFuncionalidades: novasFuncionalidades };
   }, [initialReleases, searchTerm, activeFilter]);
 
   const monthName = releaseMonthNames[Number(month) - 1] || month;
@@ -81,7 +89,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
         />
       </div>
 
-      {filteredBugs.length === 0 && filteredMelhorias.length === 0 ? (
+      {filteredBugs.length === 0 && filteredMelhorias.length === 0 && filteredNovasFuncionalidades.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-muted/20 py-20 text-center">
           <p className="text-muted-foreground">Nenhum resultado encontrado para sua busca.</p>
           <Button
@@ -96,7 +104,7 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
           </Button>
         </div>
       ) : (
-        <MonthlyReleasesClient melhorias={filteredMelhorias} bugs={filteredBugs} />
+        <MonthlyReleasesClient melhorias={filteredMelhorias} bugs={filteredBugs} novasFuncionalidades={filteredNovasFuncionalidades} />
       )}
     </div>
   );

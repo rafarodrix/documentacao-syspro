@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bug, Rocket } from "lucide-react";
+import { Bug, Rocket, Sparkles } from "lucide-react";
 import { ReleaseCard } from "./ReleaseCard";
 import type { Release } from "@dosc-syspro/core";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
 interface MonthlyReleasesClientProps {
   melhorias: Release[];
   bugs: Release[];
+  novasFuncionalidades: Release[];
 }
 
 function getYouTubeEmbedUrl(url: string | null): string | null {
@@ -40,7 +41,7 @@ function getYouTubeEmbedUrl(url: string | null): string | null {
   return null;
 }
 
-export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClientProps) {
+export function MonthlyReleasesClient({ melhorias, bugs, novasFuncionalidades }: MonthlyReleasesClientProps) {
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
 
   const embedUrl = useMemo(
@@ -51,6 +52,25 @@ export function MonthlyReleasesClient({ melhorias, bugs }: MonthlyReleasesClient
   return (
     <>
       <div className="space-y-10 animate-in fade-in duration-500">
+        {novasFuncionalidades.length > 0 && (
+          <section className="space-y-4 rounded-3xl border border-border/60 bg-card/60 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-sky-600 dark:text-sky-500">
+              <div className="rounded-md bg-sky-100 p-1.5 dark:bg-sky-500/10">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              Novas Funcionalidades
+              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-sm font-normal text-muted-foreground">
+                {novasFuncionalidades.length}
+              </span>
+            </h2>
+            <div className="grid grid-cols-1 gap-4">
+              {novasFuncionalidades.map((release) => (
+                <ReleaseCard key={release.id} release={release} onOpenDetails={setSelectedRelease} />
+              ))}
+            </div>
+          </section>
+        )}
+
         {melhorias.length > 0 && (
           <section className="space-y-4 rounded-3xl border border-border/60 bg-card/60 p-5 sm:p-6">
             <h2 className="flex items-center gap-2 text-xl font-semibold text-emerald-600 dark:text-emerald-500">

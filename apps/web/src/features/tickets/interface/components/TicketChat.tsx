@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Bot, FileText, Headset, History, Loader2, MessageSquareText, Paperclip, Send, User, X } from "lucide-react";
+import { AlertCircle, Bot, FileText, Headset, History, Info, Loader2, MessageSquareText, Paperclip, Send, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem } from "./types";
 import "react-quill-new/dist/quill.snow.css";
@@ -163,6 +163,18 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                 </DropdownMenu>
                             </div>
 
+                            <div className={cn(
+                                "flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[11px] text-muted-foreground",
+                                composerIsInternal
+                                    ? "border-amber-200/60 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/20"
+                                    : "border-border/60 bg-muted/20",
+                            )}>
+                                <Info className="h-3.5 w-3.5 shrink-0" />
+                                <span>{composerIsInternal ? "Nota interna visivel apenas para a equipe." : "Resposta enviada ao cliente e registrada no historico do ticket."}</span>
+                                <span className="opacity-70">Templates: {quickTemplates.length}</span>
+                                <span className="opacity-70">Anexos: {files.length}</span>
+                            </div>
+
                             {files.length > 0 && (
                                 <div className="flex flex-wrap gap-2 px-1">
                                     {files.map((file, idx) => (
@@ -179,13 +191,26 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
 
                             <div className="flex gap-3">
                                 <div id="ticket-reply-input" className="min-w-0 flex-1" tabIndex={-1}>
+                                    <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                                        <div>
+                                            <p className="text-xs font-semibold text-foreground">
+                                                {composerIsInternal ? "Editor de nota interna" : "Editor de resposta"}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {composerIsInternal ? "Use para contexto tecnico, handoff e observacoes operacionais." : "Use linguagem objetiva e descreva os proximos passos para o cliente."}
+                                            </p>
+                                        </div>
+                                        <span className="text-[11px] text-muted-foreground">
+                                            {stripHtml(message).trim().length} caracteres
+                                        </span>
+                                    </div>
                                     <ReactQuill
                                         theme="snow"
                                         value={message}
                                         onChange={setMessage}
                                         placeholder={composerIsInternal ? "Registre uma nota visivel apenas para a equipe..." : "Digite sua resposta ao cliente..."}
                                         modules={{
-                                            toolbar: [["bold", "italic", "underline"], [{ list: "ordered" }, { list: "bullet" }], ["clean"]],
+                                            toolbar: [[{ header: [2, 3, false] }], ["bold", "italic", "underline"], [{ list: "ordered" }, { list: "bullet" }], ["blockquote", "clean"]],
                                         }}
                                     />
                                 </div>
@@ -206,11 +231,12 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                                     <Button
                                         onClick={() => handleSend(messageMode)}
                                         disabled={isPending || (!message.trim() && files.length === 0)}
-                                        size="icon"
-                                        className="h-10 w-10 rounded-lg shadow"
+                                        size="default"
+                                        className="h-10 min-w-28 rounded-lg shadow"
                                         title={composerIsInternal ? "Registrar nota interna" : "Enviar resposta ao cliente"}
                                     >
-                                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                        {composerIsInternal ? "Registrar" : "Enviar"}
                                     </Button>
                                 </div>
                             </div>

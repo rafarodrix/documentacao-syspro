@@ -21,6 +21,7 @@ export type ReleaseMonthSummary = {
   monthName: string;
   bugs: number;
   melhorias: number;
+  novasFuncionalidades: number;
 };
 
 export function groupReleasesByMonth(releases: Release[]): ReleaseMonthSummary[] {
@@ -31,12 +32,15 @@ export function groupReleasesByMonth(releases: Release[]): ReleaseMonthSummary[]
     const key = `${year}-${month}`;
 
     if (!acc[key]) {
-      acc[key] = { year, month, monthName: releaseMonthNames[Number(month) - 1], bugs: 0, melhorias: 0 };
+      acc[key] = { year, month, monthName: releaseMonthNames[Number(month) - 1], bugs: 0, melhorias: 0, novasFuncionalidades: 0 };
     }
 
-    if (release.type.toLowerCase() === "bug") {
+    const type = release.type.toLowerCase();
+    if (type === "bug") {
       acc[key].bugs++;
-    } else if (release.type.toLowerCase() === "melhoria") {
+    } else if (type === "nova funcionalidade") {
+      acc[key].novasFuncionalidades++;
+    } else if (type === "melhoria") {
       acc[key].melhorias++;
     }
 
@@ -52,10 +56,11 @@ export function groupReleasesByDate(releases: Release[]) {
 
     const [year, month] = release.isoDate.split("-");
     if (!acc[year]) acc[year] = {};
-    if (!acc[year][month]) acc[year][month] = { bugs: 0, melhorias: 0 };
+    if (!acc[year][month]) acc[year][month] = { bugs: 0, melhorias: 0, novasFuncionalidades: 0 };
 
     const type = release.type.toLowerCase();
     if (type === "bug") acc[year][month].bugs++;
+    else if (type === "nova funcionalidade") acc[year][month].novasFuncionalidades++;
     else if (type === "melhoria" || type === "feature") acc[year][month].melhorias++;
 
     return acc;

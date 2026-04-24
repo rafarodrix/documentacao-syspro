@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlayCircle, FileText, Bug, Sparkles } from "lucide-react";
+import { PlayCircle, FileText, Bug, Rocket, Sparkles } from "lucide-react";
 import type { Release } from "@dosc-syspro/core";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,9 @@ interface ReleaseCardProps {
 }
 
 export function ReleaseCard({ release, onOpenDetails }: ReleaseCardProps) {
-  const isBug = release.type.toLowerCase() === "bug";
+  const normalizedType = release.type.toLowerCase();
+  const isBug = normalizedType === "bug";
+  const isFeature = normalizedType === "nova funcionalidade";
   const hasVideo = !!release.videoLink;
 
   const typeConfig = isBug
@@ -23,9 +25,17 @@ export function ReleaseCard({ release, onOpenDetails }: ReleaseCardProps) {
           "bg-amber-500/15 text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 border-amber-500/20",
         borderHover: "group-hover:border-amber-500/50",
       }
+    : isFeature
+      ? {
+          label: "Nova Funcionalidade",
+          icon: Sparkles,
+          badgeClass:
+            "bg-sky-500/15 text-sky-700 dark:text-sky-400 hover:bg-sky-500/25 border-sky-500/20",
+          borderHover: "group-hover:border-sky-500/50",
+        }
     : {
         label: "Melhoria",
-        icon: Sparkles,
+        icon: Rocket,
         badgeClass:
           "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25 border-emerald-500/20",
         borderHover: "group-hover:border-emerald-500/50",

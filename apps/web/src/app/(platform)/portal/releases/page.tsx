@@ -18,7 +18,8 @@ export const dynamic = "force-dynamic";
 export default async function ReleasesIndexPage() {
   const releases = await getReleases();
   const timeline = groupReleasesByDate(releases);
-  const totalMelhorias = releases.filter((release) => release.type.toLowerCase() !== "bug").length;
+  const totalMelhorias = releases.filter((release) => release.type.toLowerCase() === "melhoria").length;
+  const totalNovasFuncionalidades = releases.filter((release) => release.type.toLowerCase() === "nova funcionalidade").length;
   const totalCorrecoes = releases.filter((release) => release.type.toLowerCase() === "bug").length;
 
   let isFirstCard = true;
@@ -41,13 +42,20 @@ export default async function ReleasesIndexPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:min-w-72">
+          <div className="grid grid-cols-1 gap-3 sm:min-w-96 sm:grid-cols-3">
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
               <div className="mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                 <Rocket className="h-4 w-4" />
                 Melhorias
               </div>
               <div className="text-2xl font-semibold">{totalMelhorias}</div>
+            </div>
+            <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4">
+              <div className="mb-2 flex items-center gap-2 text-sky-700 dark:text-sky-400">
+                <Sparkles className="h-4 w-4" />
+                Novas Funcionalidades
+              </div>
+              <div className="text-2xl font-semibold">{totalNovasFuncionalidades}</div>
             </div>
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
               <div className="mb-2 flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -85,7 +93,7 @@ export default async function ReleasesIndexPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {months.map(({ month, bugs, melhorias }) => {
+                {months.map(({ month, bugs, melhorias, novasFuncionalidades }) => {
                   const monthIndex = Number(month) - 1;
                   const href = `/portal/releases/${year}/${month}`;
                   const isLatest = isFirstCard;
@@ -114,16 +122,22 @@ export default async function ReleasesIndexPage() {
                             ) : null}
                           </div>
 
-                          <div className="mb-6 mt-auto grid gap-3">
-                            <div className="flex items-center justify-between rounded border border-emerald-500/10 bg-emerald-500/5 p-2 text-sm">
-                              <span className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                <Rocket className="h-4 w-4" /> Melhorias
-                              </span>
-                              <span className="font-mono font-bold">{melhorias}</span>
-                            </div>
-                            <div className="flex items-center justify-between rounded border border-amber-500/10 bg-amber-500/5 p-2 text-sm">
-                              <span className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                                <Bug className="h-4 w-4" /> Correcoes
+                            <div className="mb-6 mt-auto grid gap-3">
+                              <div className="flex items-center justify-between rounded border border-emerald-500/10 bg-emerald-500/5 p-2 text-sm">
+                                <span className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                                  <Rocket className="h-4 w-4" /> Melhorias
+                                </span>
+                                <span className="font-mono font-bold">{melhorias}</span>
+                              </div>
+                              <div className="flex items-center justify-between rounded border border-sky-500/10 bg-sky-500/5 p-2 text-sm">
+                                <span className="flex items-center gap-2 text-sky-700 dark:text-sky-400">
+                                  <Sparkles className="h-4 w-4" /> Novas Funcionalidades
+                                </span>
+                                <span className="font-mono font-bold">{novasFuncionalidades}</span>
+                              </div>
+                              <div className="flex items-center justify-between rounded border border-amber-500/10 bg-amber-500/5 p-2 text-sm">
+                                <span className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                                  <Bug className="h-4 w-4" /> Correcoes
                               </span>
                               <span className="font-mono font-bold">{bugs}</span>
                             </div>

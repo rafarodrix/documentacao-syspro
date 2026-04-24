@@ -51,7 +51,7 @@ export function buildReleaseFromTicket(ticket: ReleaseProjectionSource): Release
 
   return {
     id: ticket.ticketNumber || ticket.id,
-    type: releaseType === "BUG" ? "Bug" : "Melhoria",
+    type: releaseType === "BUG" ? "Bug" : releaseType === "NOVA_FUNCIONALIDADE" ? "Nova Funcionalidade" : "Melhoria",
     isoDate: isoDate.slice(0, 10),
     title: readReleaseMetadataString(ticket.metadata, "releaseTitle") || ticket.subject || "Atualizacao sem titulo",
     summary,

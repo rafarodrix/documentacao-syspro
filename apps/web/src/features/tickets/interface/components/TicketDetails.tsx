@@ -359,8 +359,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                 <section className="space-y-3">
                                     {ticket.operations?.openedByName && !isSameName(ticket.operations.openedByName, ticket.ownerName) && <SidebarField label="Aberto por" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
-                                    <SidebarField label="Criado em" value={<span className="font-mono text-xs text-muted-foreground">{ticket.createdAt}</span>} />
-                                    {ticket.updatedAt && <SidebarField label="Atualizado" value={<span className="font-mono text-xs text-muted-foreground">{formatTicketDate(ticket.updatedAt)}</span>} />}
                                 </section>
                             </CardContent>
                         </Card>

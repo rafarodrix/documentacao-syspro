@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Bug, Calendar, Sparkles } from 'lucide-react';
+import { ArrowRight, BarChart3, Bug, Calendar, Rocket, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { ReleaseMonthSummary } from '@/features/releases/domain/release-grouping';
@@ -71,10 +71,17 @@ export function ReleaseCycleCard({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between rounded-md border border-green-500/20 bg-green-500/10 px-2.5 py-1.5 text-xs text-green-600">
                     <span className="flex items-center gap-1.5 font-medium">
-                      <Sparkles className="h-3 w-3" />
+                      <Rocket className="h-3 w-3" />
                       Melhorias
                     </span>
                     <span className="font-mono font-bold">{summary.melhorias}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border border-sky-500/20 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-600">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Sparkles className="h-3 w-3" />
+                      Novas funcs.
+                    </span>
+                    <span className="font-mono font-bold">{summary.novasFuncionalidades}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600">
                     <span className="flex items-center gap-1.5 font-medium">

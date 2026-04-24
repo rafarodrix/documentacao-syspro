@@ -1,11 +1,11 @@
 "use client";
 
-import { Search, Bug, Rocket, Layers } from "lucide-react";
+import { Search, Bug, Rocket, Layers, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type FilterType = "all" | "melhoria" | "bug";
+export type FilterType = "all" | "melhoria" | "bug" | "nova_funcionalidade";
 
 interface ReleasesFilterProps {
   searchTerm: string;
@@ -25,6 +25,7 @@ export function ReleasesFilter({
   const filters: { id: FilterType; label: string; icon: React.ElementType }[] = [
     { id: "all", label: "Todos", icon: Layers },
     { id: "melhoria", label: "Melhorias", icon: Rocket },
+    { id: "nova_funcionalidade", label: "Novas Funcionalidades", icon: Sparkles },
     { id: "bug", label: "Bugs", icon: Bug },
   ];
 
