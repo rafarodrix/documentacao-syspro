@@ -30,6 +30,7 @@ export const dashboardCompanySummarySchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_DOCS"]),
   createdAt: z.string().min(1),
   membershipsCount: z.number().int().nonnegative(),
+  contactsCount: z.number().int().nonnegative().optional(),
   cidade: z.string().nullable(),
   estado: z.string().nullable(),
 });
@@ -62,6 +63,8 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   companiesGrowth: z.number().int(),
   usersCount: z.number().int().nonnegative(),
   activeUsersCount: z.number().int().nonnegative(),
+  contactsCount: z.number().int().nonnegative(),
+  canViewUsers: z.boolean(),
   companies: z.array(dashboardCompanySummarySchema),
   sefazNfe: dashboardSefazStatusSchema,
   sefazNfce: dashboardSefazStatusSchema,

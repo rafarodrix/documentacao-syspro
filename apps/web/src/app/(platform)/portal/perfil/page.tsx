@@ -1,30 +1,27 @@
-import { getProtectedSession } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { UserProfileSettings } from "@/components/platform/shared/UserProfileSettings";
 
 export default async function AdminProfilePage() {
-    const session = await getProtectedSession();
-    if (!session) return null;
+  const session = await requireSession();
 
-    const user = await prisma.user.findUnique({
-        where: { id: session.userId },
-        select: {
-            name: true,
-            email: true,
-            image: true,
-            role: true,
-        }
-    });
+  const user = await prisma.user.findUnique({
+    where: { email: session.email },
+    select: {
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+    },
+  });
 
-    if (!user) return <div>Usuário não encontrado.</div>;
+  const userData = {
+    name: user?.name || session.name || "Usuario",
+    email: user?.email || session.email,
+    image: user?.image ?? session.image,
+    role: user?.role ?? session.role,
+    twoFactorEnabled: true,
+  };
 
-    const userData = {
-        name: user.name || "Admin",
-        email: user.email,
-        image: user.image,
-        role: user.role,
-        twoFactorEnabled: true // Admins podem ter isso forçado como true no futuro
-    };
-
-    return <UserProfileSettings user={userData} />;
+  return <UserProfileSettings user={userData} />;
 }

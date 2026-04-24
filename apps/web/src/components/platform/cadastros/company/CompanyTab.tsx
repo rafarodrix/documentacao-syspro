@@ -416,7 +416,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
               />
             ) : (
               paginatedData.map((company) => {
-                const memberCount = company._count?.memberships ?? company.usersCount ?? 0
+                const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
                 return (
                   <ClickableCard
                     key={company.id}
@@ -495,7 +495,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
                 </TableRow>
               ) : (
                 paginatedData.map((company, index) => {
-                  const memberCount = company._count?.memberships ?? company.usersCount ?? 0
+                  const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
 
                   return (
                     <ClickableTableRow

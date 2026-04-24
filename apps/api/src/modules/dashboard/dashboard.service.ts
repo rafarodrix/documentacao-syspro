@@ -214,12 +214,15 @@ export class DashboardService {
       const dashboardUF = await this.getUserDashboardUF(requester.userId);
       const { start } = getLast7DaysRange();
       const now = new Date();
-      const [canViewCompaniesModule, canViewUsersModule, companyScope, userScope] = await Promise.all([
+      const [canViewCompaniesModule, canViewUsersDirect, canViewUsersScoped, canViewUsersGlobal, companyScope, userScope] = await Promise.all([
         this.authorizationService.userHasPermission(requester, 'companies:view', { acceptCompanyScope: true }),
         this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }),
+        this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }),
+        this.authorizationService.userHasPermission(requester, 'users:view_all'),
         this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
         this.authorizationService.resolveCompanyAccessScope(requester, 'users:view_team', 'users:view_all'),
       ]);
+      const canViewUsersModule = canViewUsersGlobal || canViewUsersScoped || canViewUsersDirect;
 
       const scopedCompanyIds =
         canViewCompaniesModule || companyScope.isGlobal ? undefined : companyScope.companyIds;
@@ -234,6 +237,7 @@ export class DashboardService {
         companiesLastMonth,
         usersCount,
         activeUsersCount,
+        contactsCount,
         recentCompanies,
         sefazRecords,
         companyActivity,
@@ -253,6 +257,9 @@ export class DashboardService {
         }),
         this.prisma.user.count({ where: userBaseWhere }),
         this.prisma.user.count({ where: { ...userBaseWhere, isActive: true } }),
+        this.prisma.companyContactCompanyLink.count({
+          where: scopedCompanyIds ? { companyId: { in: scopedCompanyIds } } : undefined,
+        }),
         this.prisma.company.findMany({
           where: companyBaseWhere,
           orderBy: { createdAt: 'desc' },
@@ -265,6 +272,7 @@ export class DashboardService {
             status: true,
             createdAt: true,
             _count: { select: { memberships: true } },
+            contactLinks: { select: { id: true } },
             addresses: { take: 1, select: { cidade: true, estado: true } },
           },
         }),
@@ -309,6 +317,7 @@ export class DashboardService {
         status: company.status,
         createdAt: company.createdAt.toISOString(),
         membershipsCount: company._count.memberships,
+        contactsCount: company.contactLinks.length,
         cidade: company.addresses[0]?.cidade ?? null,
         estado: company.addresses[0]?.estado ?? null,
       }));
@@ -326,6 +335,8 @@ export class DashboardService {
           companiesGrowth: companiesThisMonth - companiesLastMonth,
           usersCount,
           activeUsersCount,
+          contactsCount,
+          canViewUsers: canViewUsersModule || userScope.isGlobal,
           companies,
           sefazNfe: {
             uf: dashboardUF,

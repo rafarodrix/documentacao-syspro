@@ -15,7 +15,8 @@ export interface RecentCompanyItem {
   cidade?: string | null
   estado?: string | null
   createdAt: Date | string | null
-  _count?: { memberships: number }
+  contactsCount?: number
+  _count?: { memberships: number; contactLinks?: number }
 }
 
 interface RecentCompaniesProps {
@@ -138,9 +139,10 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
                     <p className="text-[11px] text-muted-foreground">
                       {formatRelativeDate(company.createdAt)}
                     </p>
-                    {company._count ? (
+                    {company._count || typeof company.contactsCount === "number" ? (
                       <p className="text-[11px] text-muted-foreground/60">
-                        {company._count.memberships} {company._count.memberships === 1 ? "usuario" : "usuarios"}
+                        {(company.contactsCount ?? company._count?.contactLinks ?? 0)}{" "}
+                        {(company.contactsCount ?? company._count?.contactLinks ?? 0) === 1 ? "contato" : "contatos"}
                       </p>
                     ) : null}
                   </div>

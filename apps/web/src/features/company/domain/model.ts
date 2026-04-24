@@ -93,10 +93,12 @@ export interface CompanyListItem {
   contractBlockReasonLabel?: string | null;
   isBlockedByContract?: boolean;
   usersCount?: number;
+  contactsCount?: number;
   address?: CompanyAddressView | null;
   accountingFirm?: { id: string; nomeFantasia: string | null } | null;
   _count?: {
     memberships: number;
+    contactLinks?: number;
     contracts?: number;
     branches?: number;
     accountingClients?: number;

@@ -279,6 +279,7 @@ export class CompaniesService {
         _count: {
           select: {
             memberships: true,
+            contactLinks: true,
             contracts: true,
             branches: true,
             accountingClients: true,
@@ -298,6 +299,7 @@ export class CompaniesService {
       return {
         ...company,
         usersCount: company._count?.memberships ?? 0,
+        contactsCount: company._count?.contactLinks ?? 0,
         address: company.addresses?.[0] || null,
         isBlockedByContract: Boolean(block),
         contractBlockReasonLabel: block?.label ?? null,

@@ -55,6 +55,7 @@ export default async function DashboardPage() {
 
   if (data.mode === "admin") {
     const adminData = data;
+    const showUsersMetric = adminData.canViewUsers;
     const sefazStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
       ONLINE: {
         label: "Operacional",
@@ -164,16 +165,28 @@ export default async function DashboardPage() {
               <Users className="h-20 w-20 rotate-12 text-violet-500" />
             </div>
             <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Usuarios</CardTitle>
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {showUsersMetric ? "Usuarios" : "Contatos"}
+              </CardTitle>
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
                 <Users className="h-3.5 w-3.5 text-violet-500" />
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-              <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.usersCount.toLocaleString("pt-BR")}</div>
+              <div className="text-3xl font-bold tracking-tight tabular-nums">
+                {(showUsersMetric ? adminData.usersCount : adminData.contactsCount).toLocaleString("pt-BR")}
+              </div>
               <div className="mt-1">
                 <span className="text-xs text-muted-foreground">
-                  <span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos
+                  {showUsersMetric ? (
+                    <>
+                      <span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium text-emerald-500">{adminData.contactsCount}</span> vinculados ao escopo
+                    </>
+                  )}
                 </span>
               </div>
             </CardContent>
