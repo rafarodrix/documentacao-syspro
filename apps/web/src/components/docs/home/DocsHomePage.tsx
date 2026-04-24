@@ -1,22 +1,13 @@
 'use client';
 
 import { useMemo, type CSSProperties } from 'react';
-import Link from 'next/link';
 import type { Role } from '@prisma/client';
-import {
-  ArrowRight,
-  BookOpen,
-  Calendar,
-  Clock,
-  History,
-  Search,
-  Sparkles,
-  Wrench,
-} from 'lucide-react';
+import { BookOpen, Clock, History, Search } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
 import { DocsSurface } from '@/components/docs/DocsSurface';
+import { ReleaseCycleCard } from '@/components/releases/ReleaseCycleCard';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
 import { useDocsDashboard, type DocsHomeEntry } from './use-docs-dashboard';
 import { InsightLink, PremiumLinkCard } from './DocsHomeComponents';
@@ -45,7 +36,6 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
       ? [...BASE_QUICK_LINKS, TECHNICAL_QUICK_LINK]
       : BASE_QUICK_LINKS;
   }, [canViewTechnical]);
-  const latestRelease = releaseSummaries[0] ?? null;
 
   return (
     <div className="docs-home-page space-y-6 pb-12">
@@ -61,81 +51,27 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
       <section className="animate-docs-fade-up space-y-4 opacity-0" style={staggerStyle(1)}>
         <DocsSurface className="rounded-[28px] bg-card/35 p-4 shadow-sm">
           <DocsSectionHeader icon={Search} label="Acessos rapidos" />
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {quickLinks.map((item, index) => (
-              <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 2)} />
+              <PremiumLinkCard
+                key={item.href}
+                item={item}
+                style={staggerStyle(index + 2)}
+                featured={index === 0}
+                className={index === 0 ? 'md:col-span-2 xl:col-span-2' : undefined}
+              />
             ))}
           </div>
         </DocsSurface>
 
-        <DocsSurface className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--background)/0.86),hsl(var(--card)/0.96))] p-5 shadow-sm">
-          <div className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative z-10">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">Ciclo de Atualizacoes</h3>
-                  <p className="text-sm text-muted-foreground">Dados reais do modulo de releases</p>
-                </div>
-              </div>
-              <Link href="/portal/releases" className="inline-flex items-center gap-1 text-sm font-medium text-primary no-underline">
-                Releases
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="rounded-[22px] border border-border/60 bg-background/70 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  {latestRelease ? (
-                    <>
-                      <span>{latestRelease.monthName}</span>
-                      <span className="text-xs font-normal text-muted-foreground">/{latestRelease.year}</span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">Sem referencia recente</span>
-                  )}
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-                    <span className="inline-flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      Melhorias
-                    </span>
-                    <span className="font-semibold tabular-nums">{latestRelease?.melhorias ?? 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
-                    <span className="inline-flex items-center gap-2">
-                      <Wrench className="h-4 w-4" />
-                      Correcoes
-                    </span>
-                    <span className="font-semibold tabular-nums">{latestRelease?.bugs ?? 0}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[22px] border border-border/60 bg-background/55 p-4">
-                <p className="text-sm font-medium text-foreground">Ritmo de evolucao do produto</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O resumo mensal acompanha o mesmo fluxo de releases exibido no portal principal e reduz a distancia entre documentacao e entrega.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full border border-border/60 bg-background/65 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-                    Releases
-                  </span>
-                  <span className="inline-flex items-center rounded-full border border-border/60 bg-background/65 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-                    Atualizacao mensal consolidada
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </DocsSurface>
+        <ReleaseCycleCard
+          summaries={releaseSummaries}
+          releaseLink="/portal/releases"
+          title="Ciclo de Atualizacoes"
+          description="Mesmo modulo de releases da home principal, agora integrado a documentacao"
+          ctaLabel="Abrir releases"
+          className="rounded-[28px] border-border/55 bg-[linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--card)/0.96))] shadow-sm"
+        />
       </section>
 
       <section

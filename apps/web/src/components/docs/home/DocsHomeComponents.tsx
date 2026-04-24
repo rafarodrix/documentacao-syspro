@@ -33,17 +33,30 @@ export function InsightLink({
 export function PremiumLinkCard({
   item,
   style,
+  className,
+  featured = false,
 }: {
   item: QuickLink;
   style?: CSSProperties;
+  className?: string;
+  featured?: boolean;
 }) {
   const Icon = item.icon;
   const tone = TONE_STYLES[item.tone];
 
   return (
-    <Link href={item.href} className="group block animate-docs-fade-up no-underline opacity-0" style={style}>
+    <Link
+      href={item.href}
+      className={cn('group block animate-docs-fade-up no-underline opacity-0', className)}
+      style={style}
+    >
       <MagicCard className="h-full rounded-[24px]">
-        <div className="relative h-full rounded-[24px] border border-border/50 bg-background/35 p-4 backdrop-blur-xl transition-all group-hover:bg-background/55">
+        <div
+          className={cn(
+            'relative h-full rounded-[24px] border border-border/50 bg-background/35 p-4 backdrop-blur-xl transition-all group-hover:bg-background/55',
+            featured && 'p-5 md:p-6',
+          )}
+        >
           <div
             className={cn(
               'pointer-events-none absolute inset-0 rounded-[24px] bg-gradient-to-br to-transparent opacity-20',
@@ -53,8 +66,13 @@ export function PremiumLinkCard({
           <ShineBorder shineColor={tone.shineColor} duration={11} className="opacity-25" />
           <div className="relative z-10 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-background/70">
-                <Icon className="h-4.5 w-4.5 text-foreground/80" />
+              <div
+                className={cn(
+                  'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-background/70',
+                  featured && 'h-12 w-12 rounded-2xl',
+                )}
+              >
+                <Icon className={cn('h-4.5 w-4.5 text-foreground/80', featured && 'h-5 w-5')} />
               </div>
               <div className="space-y-1.5">
                 <span
@@ -65,7 +83,9 @@ export function PremiumLinkCard({
                 >
                   {item.title}
                 </span>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
+                <p className={cn('text-sm text-muted-foreground', featured && 'max-w-xl text-[15px] leading-7')}>
+                  {item.description}
+                </p>
               </div>
             </div>
             <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />

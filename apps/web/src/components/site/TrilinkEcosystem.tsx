@@ -1,14 +1,10 @@
 ﻿import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
   Terminal,
-  BarChart3,
-  Calendar,
-  Sparkles,
-  Bug,
   LayoutGrid,
   Headset,
   BookText,
@@ -17,17 +13,11 @@ import {
   Activity,
   ExternalLink
 } from "lucide-react";
-
-interface ReleaseSummary {
-  year: string;
-  month: string;
-  monthName: string;
-  melhorias: number;
-  bugs: number;
-}
+import type { ReleaseMonthSummary } from "@/features/releases/domain/release-grouping";
+import { ReleaseCycleCard } from "@/components/releases/ReleaseCycleCard";
 
 interface TrilinkEcosystemProps {
-  summaries: ReleaseSummary[];
+  summaries: ReleaseMonthSummary[];
   releaseLink: string;
 }
 
@@ -172,59 +162,14 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
           </Card>
 
           {/* 5. Card: Release Notes (Largo - Baixo Esquerda) */}
-          <Card className="md:col-span-2 relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-purple-500/30">
-            {/* Ambient Glow */}
-            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
-
-            <CardContent className="relative z-10 p-8">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                    <BarChart3 className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold leading-none mb-1">Ciclo de Atualizações</h3>
-                    <span className="text-sm text-muted-foreground">Evolução contínua do produto</span>
-                  </div>
-                </div>
-                <Link href={releaseLink} className="text-sm font-medium text-purple-500 hover:text-purple-400 transition-colors flex items-center gap-1 group">
-                  Roadmap Completo <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {summaries.length > 0 ? (
-                  summaries.map((summary) => (
-                    <Link
-                      key={`${summary.year}-${summary.month}`}
-                      href={`/portal/releases/${summary.year}/${summary.month}`}
-                      className="group/card block p-4 rounded-xl border bg-card hover:bg-accent/50 hover:border-purple-500/30 transition-all hover:-translate-y-1 shadow-sm"
-                    >
-                      <div className="flex items-center gap-2 font-semibold text-sm mb-3 text-foreground">
-                        <Calendar className="w-4 h-4 text-muted-foreground group-hover/card:text-purple-500 transition-colors" />
-                        {summary.monthName} <span className="text-xs opacity-50 font-normal">/{summary.year}</span>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between rounded-md border border-green-500/20 bg-green-500/10 px-2.5 py-1.5 text-xs text-green-600">
-                          <span className="flex items-center gap-1.5 font-medium"><Sparkles className="w-3 h-3" /> Melhorias</span>
-                          <span className="font-bold font-mono">{summary.melhorias}</span>
-                        </div>
-                        <div className="flex items-center justify-between rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600">
-                          <span className="flex items-center gap-1.5 font-medium"><Bug className="w-3 h-3" /> Correções</span>
-                          <span className="font-bold font-mono">{summary.bugs}</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="col-span-3 py-8 text-center border border-dashed rounded-xl text-muted-foreground text-sm">
-                    Nenhuma atualização recente.
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ReleaseCycleCard
+            summaries={summaries}
+            releaseLink={releaseLink}
+            className="md:col-span-2"
+            title="Ciclo de Atualizações"
+            description="Evolução contínua do produto"
+            ctaLabel="Roadmap Completo"
+          />
 
           {/* 6. Card: Status do Sistema (Pequeno - Baixo Direita) */}
           <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-emerald-500/30">
