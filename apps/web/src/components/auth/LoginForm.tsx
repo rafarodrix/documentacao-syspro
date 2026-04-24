@@ -50,7 +50,7 @@ export function LoginForm() {
           onSubmit={handleSubmit}
           className="space-y-4"
           noValidate
-          aria-label="FormulÃ¡rio de login"
+          aria-label="Formulário de login"
         >
           <div className="space-y-2">
             <Label
@@ -97,24 +97,15 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label
-                htmlFor="password"
-                className={cn(
-                  "text-xs uppercase font-semibold tracking-wider transition-colors",
-                  hasError ? "text-red-500" : "text-muted-foreground",
-                )}
-              >
-                Senha
-              </Label>
-              <Link
-                href="/forgot-password"
-                tabIndex={isLoading ? -1 : 0}
-                className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                Esqueceu a senha?
-              </Link>
-            </div>
+            <Label
+              htmlFor="password"
+              className={cn(
+                "text-xs uppercase font-semibold tracking-wider transition-colors",
+                hasError ? "text-red-500" : "text-muted-foreground",
+              )}
+            >
+              Senha
+            </Label>
 
             <div className="relative group">
               <Lock
@@ -178,6 +169,16 @@ export function LoginForm() {
               "Entrar no Sistema"
             )}
           </Button>
+
+          <div className="flex justify-center pt-1">
+            <Link
+              href="/forgot-password"
+              tabIndex={isLoading ? -1 : 0}
+              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Esqueceu a senha?
+            </Link>
+          </div>
         </form>
 
         <div className="space-y-4 pt-1">
@@ -193,23 +194,14 @@ export function LoginForm() {
           </div>
 
           <p className="text-center text-sm text-muted-foreground">
-            Entre em contato pelo{" "}
-            <Link
-              href="https://wa.me/5534997713731?text=OlÃ¡"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
-            >
-              WhatsApp
-            </Link>
-            {" "}ou fale com o{" "}
+            Fale com o{" "}
             <Link
               href="/portal/docs/suporte"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
-              suporte tÃ©cnico
+              suporte técnico
             </Link>
-            .
+            {" "}para solicitar seu acesso.
           </p>
         </div>
       </div>

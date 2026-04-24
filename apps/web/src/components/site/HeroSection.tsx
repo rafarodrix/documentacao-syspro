@@ -26,11 +26,11 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
           </Link>
         </div>
 
-        {/* TÃ­tulo Principal */}
+        {/* Titulo Principal */}
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 max-w-5xl mx-auto leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
           A <span className="text-primary relative inline-block">
             Central
-            {/* Brilho intenso atrÃ¡s da marca */}
+            {/* Brilho intenso atras da marca */}
             <span className="absolute inset-0 bg-primary/40 blur-3xl -z-10 opacity-50"></span>
           </span> Oficial <br className="hidden md:block" />
           do{" "}
@@ -47,12 +47,12 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
           </span>.
         </h1>
 
-        {/* DescriÃ§Ã£o */}
+        {/* Descricao */}
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed font-light animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-          Acesse a documentaÃ§Ã£o oficial do <strong>Syspro ERP</strong>. Guias, tutoriais, releases, boas prÃ¡ticas e ferramentas exclusivas da Trilink para apoiar seu dia a dia..
+          Acesse a documentação oficial do <strong>Syspro ERP</strong>. Guias, tutoriais, releases, boas práticas e ferramentas exclusivas da Trilink para apoiar seu dia a dia.
         </p>
 
-        {/* BotÃµes de AÃ§Ã£o */}
+        {/* Botoes de acao */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
           <Link href="/portal" className="w-full sm:w-auto">
             <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 bg-primary hover:bg-primary/90">
@@ -70,12 +70,12 @@ export function HeroSection({ currentVersion, releaseLink }: HeroSectionProps) {
                 transition-all duration-300 group"
             >
               <BookOpen className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              Explorar DocumentaÃ§Ã£o
+              Explorar Documentação
             </Button>
           </Link>
         </div>
 
-        {/* Features RodapÃ© do Hero */}
+        {/* Features rodape do hero */}
         <div className="animate-in fade-in duration-1000 delay-700">
           <HeroFeatures />
         </div>
@@ -107,7 +107,7 @@ function Spotlight() {
 function FloatingElements() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
-      {/* Elementos com animaÃ§Ã£o flutuante (float) */}
+      {/* Elementos com animacao flutuante */}
       <div className="absolute top-[15%] left-[5%] text-foreground/5 animate-float delay-0 hidden xl:block">
         <FileText size={80} strokeWidth={0.5} className="-rotate-12" />
       </div>
@@ -140,7 +140,7 @@ function ReleaseBadge({ currentVersion }: { currentVersion: string }) {
       </span>
 
       <span className="relative z-10 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-        Portal <span className="font-bold text-primary">{currentVersion}</span> disponÃ­vel
+        Portal <span className="font-bold text-primary">{currentVersion}</span> disponível
       </span>
 
       <span className="relative z-10 ml-1 flex items-center text-xs text-muted-foreground/60 group-hover:text-primary transition-colors">
@@ -153,7 +153,7 @@ function ReleaseBadge({ currentVersion }: { currentVersion: string }) {
 function HeroFeatures() {
   const features = [
     { icon: Library, text: "Base de Conhecimento" },
-    { icon: History, text: "HistÃ³ria de VersÃµes" },
+    { icon: History, text: "História de Versões" },
     { icon: LifeBuoy, text: "Suporte Especializado" },
   ];
 

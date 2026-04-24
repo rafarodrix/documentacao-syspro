@@ -47,7 +47,7 @@ export function SiteFooter() {
               Solucoes robustas para gestao empresarial. Simplificando processos, garantindo compliance e conectando resultados para impulsionar o seu negocio.
             </p>
 
-            {/* BotÃµes Sociais */}
+            {/* Botoes sociais */}
             <div className="flex items-center gap-2">
               <SocialButton href="https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5" />
               <SocialButton href="https://www.instagram.com/trilinksoftwares" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500 hover:border-pink-500/20 hover:bg-pink-500/5" />
@@ -55,7 +55,7 @@ export function SiteFooter() {
             </div>
           </div>
 
-          {/* COLUNA 2: Acesso RÃ¡pido */}
+          {/* COLUNA 2: Institucional */}
           <div className="md:col-span-2 md:col-start-6 flex flex-col gap-4">
             <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Institucional</h4>
             <ul className="space-y-3">
@@ -66,7 +66,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <FooterLink href="https://www.trilink.com.br/public/downloads" external>
-                  <Download className="h-3.5 w-3.5 mr-2 opacity-70" /> Ãrea de Downloads
+                  <Download className="h-3.5 w-3.5 mr-2 opacity-70" /> Área de Downloads
                 </FooterLink>
               </li>
             </ul>
@@ -77,14 +77,14 @@ export function SiteFooter() {
             <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Suporte</h4>
             <ul className="space-y-3">
               <li><FooterLink href="/portal/docs/manual">Documentacao Oficial</FooterLink></li>
-              <li><FooterLink href="/portal/docs/duvidas">DÃºvidas Frequentes</FooterLink></li>
+              <li><FooterLink href="/portal/docs/duvidas">Dúvidas Frequentes</FooterLink></li>
               <li><FooterLink href="/portal/docs/suporte">Suporte</FooterLink></li>
             </ul>
           </div>
 
           {/* COLUNA 4: Legal */}
           <div className="md:col-span-2 flex flex-col gap-4">
-            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso RÃ¡pido</h4>
+            <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Acesso Rápido</h4>
             <ul className="space-y-3">
               <li><FooterLink href="/login">Login</FooterLink></li>
               <li><FooterLink href="/portal">Portal do Cliente</FooterLink></li>
@@ -93,7 +93,7 @@ export function SiteFooter() {
 
         </div>
 
-        {/* --- RODAPÃ‰ INFERIOR --- */}
+        {/* --- Rodape inferior --- */}
         <div className="border-t border-border/40 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-xs text-muted-foreground text-center md:text-left">
             &copy; {currentYear} Trilink Software Ltda. Todos os direitos reservados.
@@ -101,7 +101,7 @@ export function SiteFooter() {
 
           <div className="flex items-center gap-6 text-xs text-muted-foreground">
             <FooterLink href="/termos">Termos de Uso</FooterLink>
-            <FooterLink href="/privacidade">PolÃ­tica de Privacidade</FooterLink>
+            <FooterLink href="/privacidade">Política de Privacidade</FooterLink>
           </div>
         </div>
 

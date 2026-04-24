@@ -46,16 +46,16 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
       <div className="container px-4 md:px-6 mx-auto max-w-7xl">
 
-        {/* CabeÃ§alho da SeÃ§Ã£o */}
+        {/* Cabecalho da secao */}
         <div className="mb-20 md:text-center max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
           <Badge variant="outline" className="mb-4 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors">
             Ecossistema Integrado
           </Badge>
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-foreground">
-            O Hub de InteligÃªncia do seu ERP
+            O Hub de Inteligência do seu ERP
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            Centralizamos a expertise tÃ©cnica da Trilink em ferramentas modernas que transformam a maneira como sua equipe interage com o Syspro.
+            Centralizamos a expertise técnica da Trilink em ferramentas modernas que transformam a maneira como sua equipe interage com o Syspro.
           </p>
         </div>
 
@@ -77,10 +77,10 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                   <LayoutGrid className="h-6 w-6" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-foreground group-hover:text-blue-600 transition-colors">
-                  DocumentaÃ§Ã£o Viva
+                  Documentação Viva
                 </h3>
                 <p className="text-muted-foreground max-w-md text-base">
-                  NÃ£o apenas manuais. Acesse guias interativos, referÃªncias de API e boas prÃ¡ticas validadas pelos nossos consultores sÃªniores.
+                  Não apenas manuais. Acesse guias interativos, referências de API e boas práticas validadas pelos nossos consultores sêniores.
                 </p>
               </div>
 
@@ -103,21 +103,21 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                 </div>
                 <h3 className="text-xl font-bold mb-4">Suporte Trilink</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-8">
-                  ConexÃ£o direta com quem entende do seu negÃ³cio. Abertura de chamados, rastreamento de SLA e suporte remoto especializado.
+                  Conexão direta com quem entende do seu negócio. Abertura de chamados, rastreamento de SLA e suporte remoto especializado.
                 </p>
 
                 <ul className="space-y-4 text-sm text-muted-foreground/90 mb-8">
                   <li className="flex items-center gap-3">
                     <span className="flex h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                    Atendimento PrioritÃ¡rio
+                    Atendimento Prioritário
                   </li>
                   <li className="flex items-center gap-3">
                     <span className="flex h-2 w-2 rounded-full bg-blue-500" />
-                    Consultoria TÃ©cnica
+                    Consultoria Técnica
                   </li>
                   <li className="flex items-center gap-3">
                     <span className="flex h-2 w-2 rounded-full bg-amber-500" />
-                    AnÃ¡lise de Logs
+                    Análise de Logs
                   </li>
                 </ul>
               </div>
@@ -146,24 +146,24 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               </div>
               <h3 className="text-lg font-bold mb-2 group-hover:text-orange-600 transition-colors">Syspro Tools</h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
-                Validadores XML, scripts SQL e utilitÃ¡rios de automaÃ§Ã£o para facilitar o dia a dia.
+                Validadores XML, scripts SQL e utilitários de automação para facilitar o dia a dia.
               </p>
-              <Link href="/tools" className="flex items-center text-xs font-medium text-orange-500 gap-1 group-hover:translate-x-1 transition-transform">
+              <Link href="/portal/tools" className="flex items-center text-xs font-medium text-orange-500 gap-1 group-hover:translate-x-1 transition-transform">
                 Acessar Tools <ArrowRight className="h-3 w-3" />
               </Link>
             </CardContent>
           </Card>
 
-          {/* 4. Card: DÃºvidas Frequentes (Pequeno - Meio Centro) */}
+          {/* 4. Card: Duvidas frequentes */}
           <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-pink-500/30">
             <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full">
               <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 border border-pink-500/20">
                 <HelpCircle className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold mb-2 group-hover:text-pink-600 transition-colors">FAQ & DÃºvidas</h3>
+              <h3 className="text-lg font-bold mb-2 group-hover:text-pink-600 transition-colors">FAQ & Dúvidas</h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
-                Respostas rÃ¡pidas para as perguntas mais comuns sobre configuraÃ§Ã£o e uso do ERP.
+                Respostas rápidas para as perguntas mais comuns sobre configuração e uso do ERP.
               </p>
               <Link href="/portal/docs/duvidas" className="flex items-center text-xs font-medium text-pink-500 gap-1 group-hover:translate-x-1 transition-transform">
                 Ver Respostas <ArrowRight className="h-3 w-3" />
@@ -183,8 +183,8 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                     <BarChart3 className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold leading-none mb-1">Ciclo de AtualizaÃ§Ãµes</h3>
-                    <span className="text-sm text-muted-foreground">EvoluÃ§Ã£o contÃ­nua do produto</span>
+                    <h3 className="text-xl font-bold leading-none mb-1">Ciclo de Atualizações</h3>
+                    <span className="text-sm text-muted-foreground">Evolução contínua do produto</span>
                   </div>
                 </div>
                 <Link href={releaseLink} className="text-sm font-medium text-purple-500 hover:text-purple-400 transition-colors flex items-center gap-1 group">
@@ -211,7 +211,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                           <span className="font-bold font-mono">{summary.melhorias}</span>
                         </div>
                         <div className="flex items-center justify-between rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-600">
-                          <span className="flex items-center gap-1.5 font-medium"><Bug className="w-3 h-3" /> CorreÃ§Ãµes</span>
+                          <span className="flex items-center gap-1.5 font-medium"><Bug className="w-3 h-3" /> Correções</span>
                           <span className="font-bold font-mono">{summary.bugs}</span>
                         </div>
                       </div>
@@ -219,7 +219,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                   ))
                 ) : (
                   <div className="col-span-3 py-8 text-center border border-dashed rounded-xl text-muted-foreground text-sm">
-                    Nenhuma atualizaÃ§Ã£o recente.
+                    Nenhuma atualização recente.
                   </div>
                 )}
               </div>
@@ -248,7 +248,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               </div>
 
               <Link href="/status" className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1">
-                HistÃ³rico de incidentes <ExternalLink className="h-3 w-3" />
+                Histórico de incidentes <ExternalLink className="h-3 w-3" />
               </Link>
             </CardContent>
           </Card>
