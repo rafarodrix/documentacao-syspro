@@ -258,7 +258,7 @@ export class UsersService {
     });
 
     await this.syncPortalUserToChatwootSafe(createdUserId);
-    return createdUser;
+    return this.serializeUserAccessListItem(createdUser);
   }
 
   private normalizeEmail(value?: string | null) {
@@ -352,11 +352,14 @@ export class UsersService {
 
       await this.userContactAccessService.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
 
-      return updatedUser;
+      return (tx.user as any).findUnique({
+        where: { id },
+        include: this.userInclude(),
+      });
     });
 
     await this.syncPortalUserToChatwootSafe(id);
-    return updatedUser;
+    return this.serializeUserAccessListItem(updatedUser);
   }
 
   async remove(id: string, rawHeaders?: IncomingHttpHeaders) {
