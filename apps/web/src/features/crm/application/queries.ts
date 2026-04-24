@@ -2,7 +2,7 @@ import "server-only";
 
 import type { CrmLead } from "@dosc-syspro/contracts/crm";
 import type { LeadDashboardData } from "@/features/crm/domain/model";
-import { fetchCrmLeadsGateway } from "@/features/crm/infrastructure/crm.gateway";
+import { fetchCrmLeadByIdGateway, fetchCrmLeadsGateway } from "@/features/crm/infrastructure/crm.gateway";
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   try {
@@ -13,6 +13,15 @@ export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   } catch (error) {
     console.error("Erro ao carregar leads do CRM:", error);
     return { leads: [] };
+  }
+}
+
+export async function getCrmLeadById(id: string): Promise<CrmLead | null> {
+  try {
+    return await fetchCrmLeadByIdGateway(id);
+  } catch (error) {
+    console.error("Erro ao carregar lead do CRM:", error);
+    return null;
   }
 }
 

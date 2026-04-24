@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, CircleDollarSign, FileSearch, Target, UsersRound } from "lucide-react";
 import { toast } from "sonner";
-import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLeadManualContact } from "@dosc-syspro/contracts/crm";
+import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLead, type CrmLeadManualContact } from "@dosc-syspro/contracts/crm";
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/model";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
 import { Button } from "@/components/ui/button";
@@ -113,13 +113,47 @@ function hasCommercialQualification(form: LeadFormState) {
   );
 }
 
-export function CreateLeadPageForm() {
+type CreateLeadPageFormProps = {
+  mode?: "create" | "edit";
+  leadId?: string;
+  initialData?: CrmLead | null;
+};
+
+function mapLeadToFormState(lead?: CrmLead | null): LeadFormState {
+  if (!lead) return DEFAULT_FORM_STATE;
+
+  return {
+    title: lead.title ?? "",
+    stage: lead.stage ?? "LEAD",
+    source: lead.source ?? "MANUAL",
+    companyName: lead.companyName ?? "",
+    tradeName: lead.tradeName ?? "",
+    document: lead.document ? formatCNPJ(lead.document) : "",
+    industry: lead.industry ?? "",
+    companySize: lead.companySize ?? "",
+    city: lead.city ?? "",
+    state: lead.state ?? "",
+    estimatedValue: typeof lead.estimatedValue === "number" ? String(lead.estimatedValue) : "",
+    licenseValue: typeof lead.licenseValue === "number" ? String(lead.licenseValue) : "",
+    monthlyFee: typeof lead.monthlyFee === "number" ? String(lead.monthlyFee) : "",
+    minimumWagePercentage: typeof lead.minimumWagePercentage === "number" ? String(lead.minimumWagePercentage) : "",
+    expectedCloseAt: lead.expectedCloseAt ?? "",
+    nextStep: lead.nextStep ?? "",
+    qualificationNotes: lead.qualificationNotes ?? "",
+    lostReason: lead.lostReason ?? "",
+  };
+}
+
+export function CreateLeadPageForm({ mode = "create", leadId, initialData = null }: CreateLeadPageFormProps) {
   const router = useRouter();
+  const isEdit = mode === "edit";
   const [activeTab, setActiveTab] = useState("essentials");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
-  const [form, setForm] = useState<LeadFormState>(DEFAULT_FORM_STATE);
-  const [contacts, setContacts] = useState<CrmLeadManualContact[]>([{ ...EMPTY_CONTACT }]);
+  const [form, setForm] = useState<LeadFormState>(() => mapLeadToFormState(initialData));
+  const [contacts, setContacts] = useState<CrmLeadManualContact[]>(() =>
+    initialData?.contacts?.length ? initialData.contacts.map((contact) => ({ ...contact })) : [{ ...EMPTY_CONTACT }],
+  );
 
   const essentialReady = Boolean(form.title.trim() && form.companyName.trim());
   const companyReady = hasCompanyContext(form);
@@ -234,8 +268,8 @@ export function CreateLeadPageForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/crm/leads", {
-        method: "POST",
+      const response = await fetch(isEdit && leadId ? `/api/crm/leads/${leadId}` : "/api/crm/leads", {
+        method: isEdit ? "PATCH" : "POST",
         credentials: "include",
         body: JSON.stringify({
           title: form.title.trim(),
@@ -265,16 +299,16 @@ export function CreateLeadPageForm() {
 
       const payload = await response.json().catch(() => null);
       if (!response.ok || payload?.success === false) {
-        toast.error(payload?.error || payload?.message || "Falha ao criar lead.");
+        toast.error(payload?.error || payload?.message || (isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead."));
         return;
       }
 
-      toast.success("Lead criado com sucesso.");
+      toast.success(isEdit ? "Lead atualizado com sucesso." : "Lead criado com sucesso.");
       router.push("/portal/comercial/leads");
       router.refresh();
     } catch (error) {
-      console.error("Erro ao criar lead:", error);
-      toast.error("Falha ao criar lead.");
+      console.error(`Erro ao ${isEdit ? "atualizar" : "criar"} lead:`, error);
+      toast.error(isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead.");
     } finally {
       setIsSubmitting(false);
     }
@@ -284,7 +318,7 @@ export function CreateLeadPageForm() {
     <form onSubmit={handleSubmit} className="mx-auto flex max-w-5xl flex-col gap-6 p-6 pb-20">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Novo lead</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{isEdit ? "Editar lead" : "Novo lead"}</h1>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Organize o cadastro em quatro frentes: essenciais, empresa, contatos e qualificacao comercial.
           </p>
@@ -294,7 +328,7 @@ export function CreateLeadPageForm() {
             <Link href="/portal/comercial/leads">Cancelar</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Salvando..." : "Salvar lead"}
+            {isSubmitting ? "Salvando..." : isEdit ? "Salvar alteracoes" : "Salvar lead"}
           </Button>
         </div>
       </div>

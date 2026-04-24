@@ -4,6 +4,7 @@ import {
   crmSupportDataResponseSchema,
   crmLeadCreateSchema,
   type CrmLeadCreateInput,
+  type CrmLead,
   type CrmLeadListResponse,
   type CrmLeadResponse,
   type CrmSupportDataResponse,
@@ -24,6 +25,11 @@ export async function createCrmLeadGateway(input: CrmLeadCreateInput): Promise<C
       body: JSON.stringify(payload),
     }),
   );
+}
+
+export async function fetchCrmLeadByIdGateway(id: string): Promise<CrmLead | null> {
+  const response = crmLeadResponseSchema.parse(await callBackendApi("crm", `/leads/${id}`));
+  return response.success ? response.data ?? null : null;
 }
 
 export async function fetchCrmSupportDataGateway(): Promise<CrmSupportDataResponse> {
