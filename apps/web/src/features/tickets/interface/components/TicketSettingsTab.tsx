@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import type { ReactNode } from "react";
 import { useFieldArray, useForm, type FieldPath, type Resolver, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
-  AlertCircle,
   Clock,
-  FolderKanban,
   Layers3,
   Loader2,
   MessageSquareText,
@@ -29,7 +26,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,8 +113,6 @@ export function TicketSettingsTab() {
   const developmentNotificationGroupsArray = useFieldArray({ control: form.control, name: "developmentNotificationGroups" });
 
   const priorities = form.watch("priorities");
-  const defaultTeam = form.watch("defaultTeam");
-  const defaultPriority = form.watch("defaultPriority");
   const autoResponseEnabled = form.watch("autoResponseEnabled");
 
   useEffect(() => {
@@ -210,44 +204,8 @@ export function TicketSettingsTab() {
               <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
             </div>
 
-            <Card className="border-border/60 bg-card/95">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Resumo operacional</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <Metric label="Fila padrao" value={defaultTeam === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte"} />
-                  <Metric label="Prioridade" value={priorities.find((priority) => priority.value === defaultPriority)?.label || defaultPriority} />
-                  <Metric
-                    label="Grupos suporte"
-                    value={String(form.watch("supportNotificationGroups")?.filter((group) => group.active).length || 0)}
-                  />
-                  <Metric
-                    label="Grupos dev"
-                    value={String(form.watch("developmentNotificationGroups")?.filter((group) => group.active).length || 0)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  <Metric label="Categorias" value={categoriesArray.fields.length} />
-                  <Metric label="Equipes" value={teamsArray.fields.length} />
-                  <Metric label="Modulos" value={modulesArray.fields.length} />
-                  <Metric label="Templates" value={templatesArray.fields.length} />
-                </div>
-                {form.formState.isDirty && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
-                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Existem alteracoes pendentes.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Tabs defaultValue="catalog" className="w-full">
-              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-5">
-                <TabsTrigger value="catalog" className="gap-1.5 text-xs">
-                  <FolderKanban className="h-3.5 w-3.5" />
-                  Categorias
-                </TabsTrigger>
+            <Tabs defaultValue="structure" className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-4">
                 <TabsTrigger value="structure" className="gap-1.5 text-xs">
                   <Layers3 className="h-3.5 w-3.5" />
                   Estrutura
@@ -266,128 +224,218 @@ export function TicketSettingsTab() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="catalog" className="mt-5 space-y-5">
-                <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <CardTitle className="flex items-center gap-2 text-sm">
-                        <FolderKanban className="h-4 w-4 text-primary/70" />
-                        Categorias e roteamento
-                      </CardTitle>
-                      <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => categoriesArray.append({ id: createOptionId("cat"), label: "", value: "", defaultTeam: "SUPORTE", type: "SUPORTE" })}>
-                        <Plus className="h-3.5 w-3.5" />
-                        Categoria
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {categoriesArray.fields.map((fieldItem, index) => (
-                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_11rem_12rem_2.5rem]">
-                        <div className="space-y-2">
-                          <FormField control={form.control} name={`categories.${index}.label`} render={({ field }) => (
-                            <FormItem>
-                              <FormControl><Input placeholder="Nome da categoria" {...field} /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name={`categories.${index}.description`} render={({ field }) => (
-                            <FormItem>
-                              <FormControl><Input placeholder="Descricao operacional" className="h-8 text-xs" {...field} /></FormControl>
-                            </FormItem>
-                          )} />
-                        </div>
-                        <FormField control={form.control} name={`categories.${index}.value`} render={({ field }) => (
-                          <FormItem>
-                            <FormControl><Input placeholder="slug" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name={`categories.${index}.defaultTeam`} render={({ field }) => (
-                          <FormItem>
-                            <Select onValueChange={(value) => {
-                              field.onChange(value);
-                              form.setValue(`categories.${index}.type`, value === "DESENVOLVIMENTO" ? "BUG" : "SUPORTE", { shouldDirty: true });
-                            }} value={field.value || "SUPORTE"}>
-                              <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Fila" /></SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="SUPORTE">Suporte</SelectItem>
-                                <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name={`categories.${index}.type`} render={({ field }) => (
-                          <FormItem>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {getCategoryTypeOptions(form.watch(`categories.${index}.defaultTeam`)).map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )} />
-                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive" onClick={() => categoriesArray.remove(index)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-              </TabsContent>
-
               <TabsContent value="structure" className="mt-5 space-y-5">
-                <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <Layers3 className="h-4 w-4 text-primary/70" />
-                      Estrutura operacional
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-6 xl:grid-cols-2">
-                    <CatalogList
-                      title="Equipes"
-                      onAdd={() => teamsArray.append({ id: createOptionId("team"), label: "", value: "" })}
-                    >
-                      {teamsArray.fields.map((fieldItem, index) => (
-                        <CompactOptionRow
-                          key={fieldItem.id}
-                          labelName={`teams.${index}.label`}
-                          valueName={`teams.${index}.value`}
-                          labelPlaceholder="Equipe"
-                          valuePlaceholder="SLUG"
-                          onRemove={() => teamsArray.remove(index)}
-                          form={form}
-                        />
-                      ))}
-                    </CatalogList>
+                <Tabs defaultValue="categories" className="w-full">
+                  <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
+                    <TabsTrigger value="categories" className="text-xs">Categorias</TabsTrigger>
+                    <TabsTrigger value="teams" className="text-xs">Equipes</TabsTrigger>
+                    <TabsTrigger value="modules" className="text-xs">Modulos</TabsTrigger>
+                  </TabsList>
 
-                    <CatalogList
-                      title="Modulos"
-                      onAdd={() => modulesArray.append({ id: createOptionId("mod"), label: "", value: "" })}
-                      description="Use a hierarquia com > para refletir modulo, submenu e tela. Ex: Financeiro > Contas > Contas Bancarias."
-                    >
-                      {modulesArray.fields.map((fieldItem, index) => (
-                        <ModuleOptionRow
-                          key={fieldItem.id}
-                          labelName={`modules.${index}.label`}
-                          valueName={`modules.${index}.value`}
-                          labelPlaceholder="Financeiro > Contas > Contas Bancarias"
-                          valuePlaceholder="financeiro/contas/contas-bancarias"
-                          onRemove={() => modulesArray.remove(index)}
-                          form={form}
-                        />
-                      ))}
-                    </CatalogList>
+                  <TabsContent value="categories" className="mt-5">
+                    <Card className="border-border/60">
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2 text-sm">
+                              <Layers3 className="h-4 w-4 text-primary/70" />
+                              Categorias e roteamento
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground">
+                              Defina a equipe padrao e o tipo operacional de cada categoria.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5 text-xs"
+                            onClick={() =>
+                              categoriesArray.append({
+                                id: createOptionId("cat"),
+                                label: "",
+                                value: "",
+                                defaultTeam: "SUPORTE",
+                                type: "SUPORTE",
+                              })
+                            }
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Categoria
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {categoriesArray.fields.map((fieldItem, index) => (
+                          <div
+                            key={fieldItem.id}
+                            className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_11rem_12rem_2.5rem]"
+                          >
+                            <div className="space-y-2">
+                              <FormField
+                                control={form.control}
+                                name={`categories.${index}.label`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl><Input placeholder="Nome da categoria" {...field} /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`categories.${index}.description`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl><Input placeholder="Descricao operacional" className="h-8 text-xs" {...field} /></FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <FormField
+                              control={form.control}
+                              name={`categories.${index}.value`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl><Input placeholder="slug" {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`categories.${index}.defaultTeam`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <Select
+                                    onValueChange={(value) => {
+                                      field.onChange(value);
+                                      form.setValue(`categories.${index}.type`, value === "DESENVOLVIMENTO" ? "BUG" : "SUPORTE", {
+                                        shouldDirty: true,
+                                      });
+                                    }}
+                                    value={field.value || "SUPORTE"}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger><SelectValue placeholder="Fila" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="SUPORTE">Suporte</SelectItem>
+                                      <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`categories.${index}.type`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {getCategoryTypeOptions(form.watch(`categories.${index}.defaultTeam`)).map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                          {option.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                              onClick={() => categoriesArray.remove(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                  </CardContent>
-                </Card>
+                  <TabsContent value="teams" className="mt-5">
+                    <Card className="border-border/60">
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2 text-sm">
+                              <Layers3 className="h-4 w-4 text-primary/70" />
+                              Equipes
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground">
+                              Mantenha as filas disponiveis para triagem e roteamento dos tickets.
+                            </p>
+                          </div>
+                          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => teamsArray.append({ id: createOptionId("team"), label: "", value: "" })}>
+                            <Plus className="h-3.5 w-3.5" />
+                            Equipe
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {teamsArray.fields.map((fieldItem, index) => (
+                            <CompactOptionRow
+                              key={fieldItem.id}
+                              labelName={`teams.${index}.label`}
+                              valueName={`teams.${index}.value`}
+                              labelPlaceholder="Equipe"
+                              valuePlaceholder="SLUG"
+                              onRemove={() => teamsArray.remove(index)}
+                              form={form}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="modules" className="mt-5">
+                    <Card className="border-border/60">
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2 text-sm">
+                              <Layers3 className="h-4 w-4 text-primary/70" />
+                              Modulos do Syspro
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground">
+                              A lista segue a ordem do menu principal do Syspro. Use a hierarquia com {">"} para modulo, submenu e tela.
+                            </p>
+                          </div>
+                          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => modulesArray.append({ id: createOptionId("mod"), label: "", value: "" })}>
+                            <Plus className="h-3.5 w-3.5" />
+                            Modulo
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {modulesArray.fields.map((fieldItem, index) => (
+                            <ModuleOptionRow
+                              key={fieldItem.id}
+                              labelName={`modules.${index}.label`}
+                              valueName={`modules.${index}.value`}
+                              labelPlaceholder="Financeiro > Contas > Contas Bancarias"
+                              valuePlaceholder="financeiro/contas/contas-bancarias"
+                              onRemove={() => modulesArray.remove(index)}
+                              form={form}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               <TabsContent value="sla" className="mt-5">
@@ -635,23 +683,6 @@ export function TicketSettingsTab() {
   );
 }
 
-function CatalogList({ title, description, onAdd, children }: { title: string; description?: string; onAdd: () => void; children: ReactNode }) {
-  return (
-    <div className="min-w-0 space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold">{title}</h3>
-          {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-        </div>
-        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={onAdd}>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-      <div className="space-y-2">{children}</div>
-    </div>
-  );
-}
-
 function NotificationGroupsSection({
   title,
   description,
@@ -832,24 +863,6 @@ function LabeledNumberInput({ label, value, min, max, onChange }: { label: strin
       <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate font-medium text-foreground">{value}</span>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
     </div>
   );
 }
