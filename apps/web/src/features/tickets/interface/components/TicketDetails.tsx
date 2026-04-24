@@ -459,7 +459,12 @@ function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: Ti
     if (openingArticleIndex === -1) return cleanedArticles;
 
     const openingArticle = cleanedArticles[openingArticleIndex];
-    const missingResources = resources.filter((resource) => !openingArticle.body.includes(resource.url));
+    const existingResourcesArticle = cleanedArticles.find((article) => article.id === "opening-technical-resources");
+    const missingResources = resources.filter(
+        (resource) =>
+            !openingArticle.body.includes(resource.url) &&
+            !existingResourcesArticle?.body.includes(resource.url),
+    );
 
     if (!missingResources.length) return cleanedArticles;
 
@@ -486,12 +491,20 @@ function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: Ti
     ].join("");
 
     const nextArticles = [...cleanedArticles];
-    nextArticles[openingArticleIndex] = {
-        ...openingArticle,
-        body: `${openingArticle.body}${resourceMarkup}`,
-    };
+    nextArticles.splice(openingArticleIndex + 1, 0, {
+        id: "opening-technical-resources",
+        from: "Recursos internos",
+        body: resourceMarkup,
+        createdAt: openingArticle.createdAt,
+        sender: "Agent",
+        isInternal: true,
+        messageType: "TEXT",
+    });
 
-    return nextArticles;
+    return nextArticles.filter((article, index, currentArticles) => {
+        if (article.id !== "opening-technical-resources") return true;
+        return currentArticles.findIndex((candidate) => candidate.id === "opening-technical-resources") === index;
+    };
 }
 
 function findOpeningArticleIndex(articles: TicketArticleItem[]) {
