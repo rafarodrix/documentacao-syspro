@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import type {
-  ClientUserEditViewData,
-  UserAccessListItem,
-} from "@/features/user-access/domain/model";
+  UserAccessAdminViewData,
+  UserAccessCompanyOption,
+  UserAccessEditViewData,
+} from "@dosc-syspro/contracts/user";
 import { mapClientUserListItem, type UserListSelectResult } from "@/features/user-access/domain/selects";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import { headers } from "next/headers";
@@ -25,7 +26,7 @@ async function apiRequest(path: string, init?: RequestInit) {
 }
 
 export async function getUsersAdminViewData(): Promise<
-  | { companies: ClientUserEditViewData["companies"]; users: UserAccessListItem[]; isGlobalView: boolean }
+  | UserAccessAdminViewData
   | ActionError
 > {
   try {
@@ -40,7 +41,7 @@ export async function getUsersAdminViewData(): Promise<
 
     const usersPayload = (await usersResponse.json()) as UserListSelectResult[];
     const companiesPayload = companiesResponse.ok
-      ? ((await companiesResponse.json()) as ClientUserEditViewData["companies"])
+      ? ((await companiesResponse.json()) as UserAccessCompanyOption[])
       : [];
 
     const isGlobalView = usersPayload.some((user) =>
@@ -57,7 +58,7 @@ export async function getUsersAdminViewData(): Promise<
   }
 }
 
-export async function getUserEditViewData(userId: string): Promise<ClientUserEditViewData & { context: "CLIENT" | "SYSTEM" }> {
+export async function getUserEditViewData(userId: string): Promise<UserAccessEditViewData> {
   const [userResponse, companiesResponse] = await Promise.all([
     apiRequest(`/users/${encodeURIComponent(userId)}`),
     apiRequest("/companies/options"),
@@ -67,7 +68,7 @@ export async function getUserEditViewData(userId: string): Promise<ClientUserEdi
 
   const user = (await userResponse.json()) as UserListSelectResult;
   const companies = companiesResponse.ok
-    ? ((await companiesResponse.json()) as ClientUserEditViewData["companies"])
+    ? ((await companiesResponse.json()) as UserAccessCompanyOption[])
     : [];
   const isSystemUser = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
 

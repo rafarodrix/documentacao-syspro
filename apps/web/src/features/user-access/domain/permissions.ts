@@ -3,7 +3,7 @@ import { ROLE_LABELS as APP_ROLE_LABELS } from "@dosc-syspro/core";
 import {
   SETTINGS_PERMISSION_DEFINITIONS,
   type SettingsPermissionKey,
-} from "@dosc-syspro/contracts";
+} from "@dosc-syspro/contracts/settings";
 
 export const ROLE_LABELS: Record<Role, string> = APP_ROLE_LABELS as Record<Role, string>;
 

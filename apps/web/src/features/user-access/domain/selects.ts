@@ -1,4 +1,4 @@
-import type { UserAccessListItem } from "@/features/user-access/domain/model";
+import type { UserAccessListItem } from "@dosc-syspro/contracts/user";
 
 export const userListSelect = {
   id: true,
