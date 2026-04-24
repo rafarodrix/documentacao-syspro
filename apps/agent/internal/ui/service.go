@@ -7,6 +7,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	uistate "trilink/agent/internal/core/ui_state"
+	"trilink/agent/internal/infra/tray"
 )
 
 type Logger interface {
@@ -17,21 +18,55 @@ type TrayRunner interface {
 	Run(ctx context.Context) error
 }
 
+type TrayActions interface {
+	Actions() <-chan tray.Action
+}
+
 type SummaryClient interface {
 	GetSummary(ctx context.Context) (uistate.Summary, error)
 }
 
-type Service struct {
-	logger  Logger
-	tray    TrayRunner
-	summary SummaryClient
+type NotificationsClient interface {
+	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
 }
 
-func NewService(logger Logger, tray TrayRunner, summary SummaryClient) *Service {
+type ActionsClient interface {
+	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
+}
+
+type TrayStateUpdater interface {
+	UpdateSummary(summary uistate.Summary)
+	ShowNotifications(notifications []uistate.Notification)
+	SupportActionReady(result uistate.ActionResult)
+}
+
+type Service struct {
+	logger        Logger
+	tray          TrayRunner
+	trayActions   TrayActions
+	summary       SummaryClient
+	notifications NotificationsClient
+	actions   ActionsClient
+	trayState TrayStateUpdater
+}
+
+func NewService(
+	logger Logger,
+	tray TrayRunner,
+	trayActions TrayActions,
+	summary SummaryClient,
+	notifications NotificationsClient,
+	actions ActionsClient,
+	trayState TrayStateUpdater,
+) *Service {
 	return &Service{
-		logger:  logger,
-		tray:    tray,
-		summary: summary,
+		logger:        logger,
+		tray:          tray,
+		trayActions:   trayActions,
+		summary:       summary,
+		notifications: notifications,
+		actions:       actions,
+		trayState:     trayState,
 	}
 }
 
@@ -49,6 +84,14 @@ func (s *Service) Run(ctx context.Context) error {
 		return s.pollSummaryLoop(ctx)
 	})
 
+	g.Go(func() error {
+		return s.pollNotificationsLoop(ctx)
+	})
+
+	g.Go(func() error {
+		return s.handleTrayActions(ctx)
+	})
+
 	return g.Wait()
 }
 
@@ -61,6 +104,7 @@ func (s *Service) pollSummaryLoop(ctx context.Context) error {
 		if err != nil {
 			s.logger.Info("agent ui summary refresh failed", "error", err)
 		} else {
+			s.trayState.UpdateSummary(summary)
 			s.logger.Info("agent ui summary refreshed", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
 		}
 
@@ -68,6 +112,61 @@ func (s *Service) pollSummaryLoop(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
+		}
+	}
+}
+
+func (s *Service) pollNotificationsLoop(ctx context.Context) error {
+	ticker := time.NewTicker(45 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		notifications, err := s.notifications.ListNotifications(ctx)
+		if err != nil {
+			s.logger.Info("agent ui notifications refresh failed", "error", err)
+		} else {
+			s.trayState.ShowNotifications(notifications)
+			s.logger.Info("agent ui notifications refreshed", "count", len(notifications))
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
+	}
+}
+
+func (s *Service) OpenSupportConversation(ctx context.Context) error {
+	supportResult, err := s.actions.OpenSupportConversation(ctx)
+	if err != nil {
+		s.logger.Info("agent ui support action failed", "error", err)
+		return err
+	}
+
+	s.trayState.SupportActionReady(supportResult)
+	s.logger.Info("agent ui support action completed", "accepted", supportResult.Accepted, "message", supportResult.Message, "target", supportResult.Target)
+	return nil
+}
+
+func (s *Service) handleTrayActions(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case action, ok := <-s.trayActions.Actions():
+			if !ok {
+				return nil
+			}
+
+			switch action {
+			case tray.ActionOpenSupport:
+				if err := s.OpenSupportConversation(ctx); err != nil {
+					s.logger.Info("agent ui tray support action failed", "error", err)
+				}
+			default:
+				s.logger.Info("agent ui received unknown tray action", "action", action)
+			}
 		}
 	}
 }

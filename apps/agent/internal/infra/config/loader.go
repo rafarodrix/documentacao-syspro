@@ -27,9 +27,14 @@ func Load() (Config, error) {
 			RustDeskInstallerSHA256: getEnv("REMOTE_RUSTDESK_INSTALLER_SHA256", ""),
 			RustDeskInstallArgs:     getEnv("REMOTE_RUSTDESK_INSTALL_ARGS", "/S"),
 		},
+		Support: SupportConfig{
+			ChatwootBaseURL:      getEnv("SUPPORT_CHATWOOT_BASE_URL", "https://chat.trilinksoftware.com.br"),
+			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", "GoMFRV3pyJf4sh9CKYqQpWkh"),
+		},
 		Agent: AgentConfig{
 			Version:     getEnv("AGENT_VERSION", "go-agent-v1"),
 			Environment: getEnv("AGENT_ENVIRONMENT", "Producao"),
+			IPCAddress:  getEnv("AGENT_IPC_ADDRESS", "127.0.0.1:48721"),
 		},
 	}
 

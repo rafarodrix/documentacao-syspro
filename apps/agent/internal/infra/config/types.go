@@ -5,6 +5,7 @@ type Config struct {
 	Portal   PortalConfig
 	Paths    PathsConfig
 	Remote   RemoteConfig
+	Support  SupportConfig
 	Agent    AgentConfig
 }
 
@@ -27,7 +28,13 @@ type RemoteConfig struct {
 	RustDeskInstallArgs     string
 }
 
+type SupportConfig struct {
+	ChatwootBaseURL      string
+	ChatwootWebsiteToken string
+}
+
 type AgentConfig struct {
 	Version     string
 	Environment string
+	IPCAddress  string
 }
