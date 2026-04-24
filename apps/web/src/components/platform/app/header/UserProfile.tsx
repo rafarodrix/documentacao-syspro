@@ -25,14 +25,15 @@ interface UserProfileProps {
     role: Role
   }
   canAccessSettings?: boolean
+  canAccessAtendimento?: boolean
 }
 
-export function UserProfile({ user, canAccessSettings = false }: UserProfileProps) {
+export function UserProfile({
+  user,
+  canAccessSettings = false,
+  canAccessAtendimento = false,
+}: UserProfileProps) {
   const router = useRouter()
-  const canAccessChatwoot =
-    user.role === "ADMIN" ||
-    user.role === "DEVELOPER" ||
-    user.role === "SUPORTE"
 
   const handleLogout = async () => {
     await authClient.signOut()
@@ -93,7 +94,7 @@ export function UserProfile({ user, canAccessSettings = false }: UserProfileProp
           Ajuda
         </DropdownMenuItem>
 
-        {canAccessChatwoot ? (
+        {canAccessAtendimento ? (
           <DropdownMenuItem
             className="cursor-pointer gap-2"
             onClick={() => {

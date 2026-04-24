@@ -2,20 +2,26 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AlertCircle, ArrowLeft, MessagesSquare } from "lucide-react";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { resolveServerOrigin } from "@/lib/server-origin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function AtendimentoPage() {
-  await requireRole(["ADMIN", "DEVELOPER", "SUPORTE"]);
+  const session = await requireSession();
+  const canAccessAtendimento = await currentUserHasPermission("atendimento:view", { acceptCompanyScope: true });
+
+  if (!canAccessAtendimento || !["ADMIN", "DEVELOPER", "SUPORTE"].includes(session.role)) {
+    redirect("/portal");
+  }
 
   const requestHeaders = await headers();
   const cookie = requestHeaders.get("cookie");
   const appOrigin = resolveServerOrigin(requestHeaders);
   let chatwootUrl: string | undefined;
   let failureMessage =
-    "Verifique se o CHATWOOT_PLATFORM_API_TOKEN esta configurado no backend e se o Platform App tem permissao sobre a conta atual do Chatwoot.";
+    "Nao foi possivel concluir o acesso unificado ao atendimento. Verifique a integracao do Chatwoot no portal.";
 
   try {
     const response = await fetch(`${appOrigin}/api/users/me/chatwoot/sso`, {
@@ -67,11 +73,6 @@ export default async function AtendimentoPage() {
                 <Link href="/portal">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Voltar ao portal
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="https://chat.trilinksoftware.com.br" target="_blank" rel="noreferrer">
-                  Abrir Chatwoot direto
                 </Link>
               </Button>
             </div>

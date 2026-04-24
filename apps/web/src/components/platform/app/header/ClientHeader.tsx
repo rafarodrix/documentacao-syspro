@@ -2,12 +2,11 @@
 
 import { ModeToggle } from "@/components/ModeToggle"
 import { Button } from "@/components/ui/button"
-import { PanelLeftClose, PanelLeftOpen, Plus, Ticket } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { Breadcrumbs } from "./Breadcrumbs"
 import { CommandPaletteTrigger } from "./CommandPaletteTrigger"
 import { UserProfile } from "./UserProfile"
 import { NotificationsMenu } from "./NotificationsMenu"
-import Link from "next/link"
 import type { Role } from "@prisma/client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { RemoteActiveSessionsCounter } from "@/features/remote/interface/active-sessions-counter"
@@ -44,34 +43,23 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialA
       <Breadcrumbs />
 
       <div className="flex-1 flex justify-center max-w-sm mx-auto gap-4">
-        <CommandPaletteTrigger />
+        <CommandPaletteTrigger navigationAccess={navigationAccess} />
         {isSystemUser && (
           <RemoteActiveSessionsCounter initialCount={initialActiveSessionsCount} />
         )}
       </div>
 
       <div className="flex items-center gap-1.5">
-        {navigationAccess?.tickets !== false ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            asChild
-          >
-            <Link href={isSystemUser ? "/portal/tickets" : "/portal/tickets?novo=1"}>
-              {isSystemUser ? <Ticket className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-              {isSystemUser ? "Central" : "Novo chamado"}
-            </Link>
-          </Button>
-        ) : null}
-
         <NotificationsMenu />
 
         <ModeToggle />
 
         <div className="h-4 w-px bg-border/60 mx-1" />
-
-        <UserProfile user={user} canAccessSettings={Boolean(navigationAccess?.settings)} />
+        <UserProfile
+          user={user}
+          canAccessSettings={Boolean(navigationAccess?.settings)}
+          canAccessAtendimento={Boolean(navigationAccess?.atendimento) && isSystemUser}
+        />
       </div>
     </header>
   )
