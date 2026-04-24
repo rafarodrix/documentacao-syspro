@@ -5,15 +5,16 @@ import Link from "next/link"
 import { Menu, Sparkles, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { AppSidebar, SidebarUser } from "./AppSidebar"
+import { AppSidebar, SidebarUser, type NavigationAccess } from "./AppSidebar"
 import { cn } from "@/lib/utils"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 
 interface MobileHeaderProps {
   user: SidebarUser
+  navigationAccess?: NavigationAccess
 }
 
-export function MobileHeader({ user }: MobileHeaderProps) {
+export function MobileHeader({ user, navigationAccess }: MobileHeaderProps) {
   const [open, setOpen] = useState(false)
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
 
@@ -58,7 +59,7 @@ export function MobileHeader({ user }: MobileHeaderProps) {
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="p-0 w-[284px] border-r-border/40">
-          <AppSidebar user={user} mobile onClose={() => setOpen(false)} />
+          <AppSidebar user={user} mobile onClose={() => setOpen(false)} navigationAccess={navigationAccess} />
         </SheetContent>
       </Sheet>
     </header>

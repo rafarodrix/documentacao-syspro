@@ -11,6 +11,7 @@ import Link from "next/link"
 import type { Role } from "@prisma/client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { RemoteActiveSessionsCounter } from "@/features/remote/interface/active-sessions-counter"
+import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar"
 
 interface ClientHeaderProps {
   user: {
@@ -22,9 +23,10 @@ interface ClientHeaderProps {
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
   initialActiveSessionsCount?: number
+  navigationAccess?: NavigationAccess
 }
 
-export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialActiveSessionsCount }: ClientHeaderProps) {
+export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialActiveSessionsCount, navigationAccess }: ClientHeaderProps) {
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
 
   return (
@@ -49,17 +51,19 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialA
       </div>
 
       <div className="flex items-center gap-1.5">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          asChild
-        >
-          <Link href={isSystemUser ? "/portal/tickets" : "/portal/tickets?novo=1"}>
-            {isSystemUser ? <Ticket className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            {isSystemUser ? "Central" : "Novo chamado"}
-          </Link>
-        </Button>
+        {navigationAccess?.tickets !== false ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            asChild
+          >
+            <Link href={isSystemUser ? "/portal/tickets" : "/portal/tickets?novo=1"}>
+              {isSystemUser ? <Ticket className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {isSystemUser ? "Central" : "Novo chamado"}
+            </Link>
+          </Button>
+        ) : null}
 
         <NotificationsMenu />
 
@@ -67,7 +71,7 @@ export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialA
 
         <div className="h-4 w-px bg-border/60 mx-1" />
 
-        <UserProfile user={user} />
+        <UserProfile user={user} canAccessSettings={Boolean(navigationAccess?.settings)} />
       </div>
     </header>
   )

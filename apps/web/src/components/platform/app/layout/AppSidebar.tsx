@@ -54,6 +54,23 @@ export interface AppSidebarProps {
   mobile?: boolean
   onClose?: () => void
   collapsed?: boolean
+  navigationAccess?: NavigationAccess
+}
+
+export interface NavigationAccess {
+  dashboard: boolean
+  companies: boolean
+  users: boolean
+  contacts: boolean
+  tickets: boolean
+  atendimento: boolean
+  remote: boolean
+  crm: boolean
+  contracts: boolean
+  docs: boolean
+  releases: boolean
+  tools: boolean
+  settings: boolean
 }
 
 const NAV_MAIN: NavItemType[] = [
@@ -86,6 +103,10 @@ const NAV_DOCS: NavItemType[] = [
 
 function filterByRole(items: NavItemType[], role: UserRole): NavItemType[] {
   return items.filter((item) => !item.roles || item.roles.includes(role))
+}
+
+function filterByAccess(items: NavItemType[], accessByHref: Partial<Record<string, boolean>>): NavItemType[] {
+  return items.filter((item) => accessByHref[item.href] !== false)
 }
 
 export function getRoleLabel(role: UserRole): string {
@@ -163,12 +184,14 @@ function SidebarFooter({
   onClose,
   collapsed,
   mobile,
+  navigationAccess,
 }: {
   user: SidebarUser
   isSystemUser: boolean
   onClose?: () => void
   collapsed?: boolean
   mobile?: boolean
+  navigationAccess?: NavigationAccess
 }) {
   const router = useRouter()
 
@@ -236,12 +259,12 @@ function SidebarFooter({
             <DropdownMenuItem
               className="cursor-pointer gap-2 text-sm"
               onClick={() => {
-                router.push(isSystemUser ? "/portal/configuracoes" : "/portal/perfil")
+                router.push(isSystemUser && navigationAccess?.settings ? "/portal/configuracoes" : "/portal/perfil")
                 onClose?.()
               }}
             >
               <Settings className="h-4 w-4 text-muted-foreground" />
-              {isSystemUser ? "Configuracoes" : "Meus Dados"}
+              {isSystemUser && navigationAccess?.settings ? "Configuracoes" : "Meu Perfil"}
             </DropdownMenuItem>
 
             <DropdownMenuItem
@@ -302,10 +325,32 @@ function SidebarFooter({
   )
 }
 
-export function AppSidebar({ user, mobile = false, onClose, collapsed = false }: AppSidebarProps) {
+export function AppSidebar({ user, mobile = false, onClose, collapsed = false, navigationAccess }: AppSidebarProps) {
   const pathname = usePathname()
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
+  const mainItems = filterByAccess(filterByRole(NAV_MAIN, user.role), {
+    "/portal": navigationAccess?.dashboard,
+  })
+  const cadastroItems = filterByAccess(filterByRole(NAV_CADASTROS, user.role), {
+    "/portal/cadastros/empresa": navigationAccess?.companies,
+    "/portal/cadastros/usuarios": navigationAccess?.users,
+    "/portal/contatos": navigationAccess?.contacts,
+  })
+  const supportItems = filterByAccess(filterByRole(NAV_SUPPORT, user.role), {
+    "/portal/tickets": navigationAccess?.tickets,
+    "/portal/atendimento": navigationAccess?.atendimento,
+    "/portal/plataforma-remota": navigationAccess?.remote,
+  })
+  const commercialItems = filterByAccess(filterByRole(NAV_COMMERCIAL, user.role), {
+    "/portal/comercial/leads": navigationAccess?.crm,
+    "/portal/contratos": navigationAccess?.contracts,
+  })
+  const docsItems = filterByAccess(filterByRole(NAV_DOCS, user.role), {
+    "/docs": navigationAccess?.docs,
+    "/releases": navigationAccess?.releases,
+    "/portal/tools": navigationAccess?.tools,
+  })
 
   const isActive = (href: string) => (href === "/portal" ? pathname === "/portal" : pathname.startsWith(href))
 
@@ -321,47 +366,59 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
       <SidebarBrand isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />
 
       <div className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2 py-4 pb-6 space-y-4">
-        {filterByRole(NAV_MAIN, user.role).map((item) => (
+        {mainItems.map((item) => (
           <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
         ))}
 
-        <Separator className="bg-border/30 mx-1" />
+        {cadastroItems.length > 0 ? (
+          <>
+            <Separator className="bg-border/30 mx-1" />
+            <NavGroup title="Cadastros" collapsed={isSidebarCollapsed}>
+              {cadastroItems.map((item) => (
+                <NavItem
+                  key={item.href}
+                  item={item}
+                  isActive={isActive(item.href)}
+                  onClick={onClose}
+                  collapsed={isSidebarCollapsed}
+                />
+              ))}
+            </NavGroup>
+          </>
+        ) : null}
 
-        <NavGroup title="Cadastros" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_CADASTROS, user.role).map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isActive={isActive(item.href)}
-              onClick={onClose}
-              collapsed={isSidebarCollapsed}
-            />
-          ))}
-        </NavGroup>
+        {supportItems.length > 0 ? (
+          <>
+            <Separator className="bg-border/30 mx-1" />
+            <NavGroup title="Suporte" collapsed={isSidebarCollapsed}>
+              {supportItems.map((item) => (
+                <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+              ))}
+            </NavGroup>
+          </>
+        ) : null}
 
-        <Separator className="bg-border/30 mx-1" />
+        {commercialItems.length > 0 ? (
+          <>
+            <Separator className="bg-border/30 mx-1" />
+            <NavGroup title="Comercial" collapsed={isSidebarCollapsed}>
+              {commercialItems.map((item) => (
+                <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+              ))}
+            </NavGroup>
+          </>
+        ) : null}
 
-        <NavGroup title="Suporte" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_SUPPORT, user.role).map((item) => (
-            <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
-          ))}
-        </NavGroup>
-
-        <Separator className="bg-border/30 mx-1" />
-
-        <NavGroup title="Comercial" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_COMMERCIAL, user.role).map((item) => (
-            <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
-          ))}
-        </NavGroup>
-
-        <Separator className="bg-border/30 mx-1" />
-
-        <NavGroup title="Documentacao" collapsed={isSidebarCollapsed}>
-          {filterByRole(NAV_DOCS, user.role).map((item) => (
-            <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
-          ))}
-        </NavGroup>
+        {docsItems.length > 0 ? (
+          <>
+            <Separator className="bg-border/30 mx-1" />
+            <NavGroup title="Documentacao" collapsed={isSidebarCollapsed}>
+              {docsItems.map((item) => (
+                <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
+              ))}
+            </NavGroup>
+          </>
+        ) : null}
       </div>
 
       <SidebarFooter
@@ -370,6 +427,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false }:
         onClose={onClose}
         collapsed={isSidebarCollapsed}
         mobile={mobile}
+        navigationAccess={navigationAccess}
       />
     </div>
   )

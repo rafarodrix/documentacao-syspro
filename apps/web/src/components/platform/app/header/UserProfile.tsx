@@ -24,9 +24,10 @@ interface UserProfileProps {
     image?: string | null
     role: Role
   }
+  canAccessSettings?: boolean
 }
 
-export function UserProfile({ user }: UserProfileProps) {
+export function UserProfile({ user, canAccessSettings = false }: UserProfileProps) {
   const router = useRouter()
   const canAccessChatwoot =
     user.role === "ADMIN" ||
@@ -80,9 +81,11 @@ export function UserProfile({ user }: UserProfileProps) {
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem className="cursor-pointer gap-2">
-          <Settings className="h-4 w-4 text-muted-foreground" />
-          Preferências
+        <DropdownMenuItem asChild className="cursor-pointer gap-2">
+          <Link href={canAccessSettings ? "/portal/configuracoes" : "/portal/perfil"}>
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            {canAccessSettings ? "Configuracoes" : "Preferencias"}
+          </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem className="cursor-pointer gap-2">
@@ -115,4 +118,3 @@ export function UserProfile({ user }: UserProfileProps) {
     </DropdownMenu>
   )
 }
-

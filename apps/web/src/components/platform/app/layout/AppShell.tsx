@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { AppSidebar } from "@/components/platform/app/layout/AppSidebar"
 import { MobileHeader } from "@/components/platform/app/layout/MobileHeader"
 import { ClientHeader } from "@/components/platform/app/header/ClientHeader"
+import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar"
 
 interface AppShellUser {
   name: string
@@ -17,11 +18,12 @@ interface AppShellProps {
   user: AppShellUser
   children: ReactNode
   initialActiveSessionsCount?: number
+  navigationAccess?: NavigationAccess
 }
 
 const STORAGE_KEY = "trilink.sidebar.collapsed"
 
-export function AppShell({ user, children, initialActiveSessionsCount }: AppShellProps) {
+export function AppShell({ user, children, initialActiveSessionsCount, navigationAccess }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -38,16 +40,17 @@ export function AppShell({ user, children, initialActiveSessionsCount }: AppShel
   return (
     <div className="flex h-screen w-full bg-muted/5 overflow-hidden">
       <aside className="hidden md:flex fixed inset-y-0 left-0 z-50">
-        <AppSidebar user={user} collapsed={collapsed} />
+        <AppSidebar user={user} collapsed={collapsed} navigationAccess={navigationAccess} />
       </aside>
 
       <div className={`flex-1 flex flex-col h-full transition-[padding-left] duration-200 ${collapsed ? "md:pl-20" : "md:pl-72"}`}>
-        <MobileHeader user={user} />
+        <MobileHeader user={user} navigationAccess={navigationAccess} />
         <ClientHeader 
           user={user} 
           sidebarCollapsed={collapsed} 
           onToggleSidebar={() => setCollapsed((prev) => !prev)} 
           initialActiveSessionsCount={initialActiveSessionsCount}
+          navigationAccess={navigationAccess}
         />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">

@@ -4,6 +4,8 @@ import { getProtectedSession } from "@/lib/auth-helpers"
 import { AppShell } from "@/components/platform/app/layout/AppShell"
 import { getActiveSessionsCount } from "@/features/remote/application/session-queries"
 import { getRemoteTenantScope } from "@/features/remote/application/scope"
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access"
+import { SYSTEM_ROLES } from "@dosc-syspro/core"
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getProtectedSession()
@@ -18,6 +20,32 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     console.error("[PortalLayout] Falha ao carregar contador de sessoes remotas:", error)
   }
 
+  const navigationAccess = {
+    dashboard: await currentUserHasPermission("dashboard:view"),
+    companies: await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
+      acceptCompanyScope: true,
+    }),
+    users: await currentUserHasAnyPermission(["users:view", "users:view_team", "users:view_all"], {
+      acceptCompanyScope: true,
+    }),
+    contacts: await currentUserHasAnyPermission(["contacts:view", "contacts:view_team", "contacts:view_all"], {
+      acceptCompanyScope: true,
+    }),
+    tickets: await currentUserHasAnyPermission(["tickets:view_own", "tickets:view_all", "tickets:create", "tickets:manage"], {
+      acceptCompanyScope: true,
+    }),
+    atendimento: await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }),
+    remote: await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
+      acceptCompanyScope: true,
+    }),
+    crm: SYSTEM_ROLES.includes(session.role),
+    contracts: await currentUserHasPermission("contracts:view", { acceptCompanyScope: true }),
+    docs: true,
+    releases: true,
+    tools: await currentUserHasPermission("tools:view"),
+    settings: await currentUserHasPermission("settings:view"),
+  }
+
   const user = {
     name: session.name ?? session.email.split("@")[0] ?? "Usuário",
     email: session.email,
@@ -26,7 +54,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppShell user={user} initialActiveSessionsCount={initialActiveSessionsCount}>
+    <AppShell user={user} initialActiveSessionsCount={initialActiveSessionsCount} navigationAccess={navigationAccess}>
       {children}
     </AppShell>
   )
