@@ -12,7 +12,7 @@ import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { requireSession } from '@/lib/auth-helpers';
 import {
   canUserAccessDocUrl,
-} from '@/app/docs/docs-access';
+} from '@/lib/docs-access';
 import { DocsHomePage } from '@/components/docs/home/DocsHomePage';
 import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
 import { DocsMetaChips } from '@/components/docs/DocsMetaChips';

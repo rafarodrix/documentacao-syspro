@@ -33,14 +33,6 @@ export function isAdminOnlyDocUrl(url: string): boolean {
   return isAdminOnlyDocSlug(relativeSlug);
 }
 
-/**
- * Verifica se um usuario pode acessar uma URL de documentacao.
- *
- * Regras:
- * 1. Manuais tecnicos -> apenas perfis com capability tecnica
- * 2. Perfis cliente -> verificar segmento da empresa
- * 3. Demais perfis -> acesso liberado
- */
 export async function canUserAccessDocUrl({
   url,
   role,

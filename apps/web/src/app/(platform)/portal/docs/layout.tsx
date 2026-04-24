@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { source } from '@/lib/source';
 import { requireSession } from "@/lib/auth-helpers";
-import { isAdminOnlyDocUrl, DOCS_TECHNICAL_PATH_PREFIX } from '@/app/docs/docs-access';
+import { isAdminOnlyDocUrl, DOCS_TECHNICAL_PATH_PREFIX } from '@/lib/docs-access';
 import { filterDocTree } from '@/lib/docs-tree-utils';
 import { DocsLayoutClient } from '@/components/docs/DocsLayoutClient';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
