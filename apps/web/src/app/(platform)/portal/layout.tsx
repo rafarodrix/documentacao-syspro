@@ -5,7 +5,6 @@ import { AppShell } from "@/components/platform/app/layout/AppShell"
 import { getActiveSessionsCount } from "@/features/remote/application/session-queries"
 import { getRemoteTenantScope } from "@/features/remote/application/scope"
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access"
-import { SYSTEM_ROLES } from "@dosc-syspro/core"
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getProtectedSession()
@@ -34,11 +33,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     tickets: await currentUserHasAnyPermission(["tickets:view_own", "tickets:view_all", "tickets:create", "tickets:manage"], {
       acceptCompanyScope: true,
     }),
-    atendimento: await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }),
-    remote: await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
+    atendimento: await currentUserHasPermission("atendimento:view", { acceptCompanyScope: true }),
+    remote: await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
       acceptCompanyScope: true,
     }),
-    crm: SYSTEM_ROLES.includes(session.role),
+    crm: await currentUserHasAnyPermission(["crm:view", "crm:manage"], {
+      acceptCompanyScope: true,
+    }),
     contracts: await currentUserHasPermission("contracts:view", { acceptCompanyScope: true }),
     docs: true,
     releases: true,
