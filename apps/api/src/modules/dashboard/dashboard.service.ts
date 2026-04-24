@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
 import { Role } from '@prisma/client';
 import type {
+  DashboardCrmSummary,
   DashboardDailyPassword,
   DashboardResponse,
   DashboardTicketKpis,
@@ -57,6 +58,12 @@ function getLast7DaysRange() {
   }
 
   return { start, days };
+}
+
+function startOfDay(date = new Date()) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
 }
 
 function toSeries(events: Date[]) {
@@ -127,6 +134,56 @@ function buildTicketKpis(records: DashboardTicketSummary[]): DashboardTicketKpis
   const open = records.filter((ticket) => ticket.status === 'Aberto').length;
 
   return { open, pending, resolved };
+}
+
+function buildCrmSummary(leads: any[]): DashboardCrmSummary {
+  const today = startOfDay();
+  const stages: Array<'LEAD' | 'MQL' | 'SQL' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST'> = [
+    'LEAD',
+    'MQL',
+    'SQL',
+    'PROPOSAL',
+    'NEGOTIATION',
+    'WON',
+    'LOST',
+  ];
+  const stageLabels: Record<string, string> = {
+    LEAD: 'Lead',
+    MQL: 'MQL',
+    SQL: 'SQL',
+    PROPOSAL: 'Proposta',
+    NEGOTIATION: 'Negociacao',
+    WON: 'Ganho',
+    LOST: 'Perdido',
+  };
+
+  const activeLeads = leads.filter((lead) => lead.stage !== 'WON' && lead.stage !== 'LOST');
+  const wonLeads = leads.filter((lead) => lead.stage === 'WON');
+  const lostLeads = leads.filter((lead) => lead.stage === 'LOST');
+  const proposalLeads = leads.filter((lead) => lead.stage === 'PROPOSAL');
+  const negotiationLeads = leads.filter((lead) => lead.stage === 'NEGOTIATION');
+  const overdueLeads = activeLeads.filter((lead) => {
+    if (!lead.expectedCloseAt) return false;
+    return new Date(lead.expectedCloseAt) < today;
+  });
+  const noNextStepLeads = activeLeads.filter((lead) => !String(lead.nextStep ?? '').trim());
+
+  return {
+    activeLeads: activeLeads.length,
+    proposalLeads: proposalLeads.length,
+    negotiationLeads: negotiationLeads.length,
+    wonLeads: wonLeads.length,
+    lostLeads: lostLeads.length,
+    overdueLeads: overdueLeads.length,
+    noNextStepLeads: noNextStepLeads.length,
+    pipelineValue: activeLeads.reduce((sum, lead) => sum + Number(lead.estimatedValue ?? 0), 0),
+    wonValue: wonLeads.reduce((sum, lead) => sum + Number(lead.estimatedValue ?? 0), 0),
+    stageDistribution: stages.map((stage) => ({
+      stage,
+      label: stageLabels[stage],
+      count: leads.filter((lead) => lead.stage === stage).length,
+    })),
+  };
 }
 
 @Injectable()
@@ -243,6 +300,7 @@ export class DashboardService {
         recentUsers,
         sefazRecords,
         companyActivity,
+        crmLeads,
       ] = await Promise.all([
         this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } }),
         this.prisma.company.count({
@@ -340,6 +398,14 @@ export class DashboardService {
         this.prisma.company.findMany({
           where: { ...companyBaseWhere, createdAt: { gte: start } },
           select: { createdAt: true },
+        }),
+        (this.prisma as any).crmLead.findMany({
+          select: {
+            stage: true,
+            estimatedValue: true,
+            expectedCloseAt: true,
+            nextStep: true,
+          },
         }),
       ]);
 
@@ -442,6 +508,7 @@ export class DashboardService {
           tickets,
           totalOpen,
           activity: toSeries(companyActivity.map((company) => company.createdAt)),
+          crm: buildCrmSummary(crmLeads),
         },
       };
     }

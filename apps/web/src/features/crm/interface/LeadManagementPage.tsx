@@ -55,11 +55,70 @@ import {
 import { cn, formatDateSafe } from "@/lib/utils";
 
 type LeadStatusFilter = "ACTIVE" | "CLOSED" | "WON" | "LOST";
+type LeadAttentionFilter = "ALL" | "OVERDUE" | "NO_NEXT_STEP" | "DUE_SOON";
+
+const DUE_SOON_DAYS = 7;
+const STALE_LEAD_DAYS = 7;
 
 function resolveLeadContactName(lead: CrmLead) {
   const primaryManualContact = lead.contacts.find((contact) => contact.isPrimary)?.name?.trim();
   const firstManualContact = lead.contacts.find((contact) => contact.name.trim())?.name.trim();
   return lead.primaryContactName || primaryManualContact || firstManualContact || "Sem contato vinculado";
+}
+
+function getStartOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function getLeadAttentionState(lead: CrmLead) {
+  const today = getStartOfToday();
+  const expectedCloseAt = lead.expectedCloseAt ? new Date(lead.expectedCloseAt) : null;
+  const updatedAt = new Date(lead.updatedAt);
+  const daysWithoutUpdate = Math.floor((Date.now() - updatedAt.getTime()) / 86400000);
+  const expectedDiffDays = expectedCloseAt ? Math.ceil((expectedCloseAt.getTime() - today.getTime()) / 86400000) : null;
+
+  return {
+    isClosed: lead.stage === "WON" || lead.stage === "LOST",
+    isOverdue: Boolean(expectedCloseAt && expectedCloseAt < today && lead.stage !== "WON" && lead.stage !== "LOST"),
+    isDueSoon: Boolean(
+      expectedDiffDays !== null &&
+      expectedDiffDays >= 0 &&
+      expectedDiffDays <= DUE_SOON_DAYS &&
+      lead.stage !== "WON" &&
+      lead.stage !== "LOST",
+    ),
+    hasNextStep: Boolean(lead.nextStep?.trim()),
+    isStale: daysWithoutUpdate >= STALE_LEAD_DAYS && lead.stage !== "WON" && lead.stage !== "LOST",
+    daysWithoutUpdate,
+    expectedDiffDays,
+  };
+}
+
+function matchesAttentionFilter(lead: CrmLead, filter: LeadAttentionFilter) {
+  const state = getLeadAttentionState(lead);
+  if (filter === "OVERDUE") return state.isOverdue;
+  if (filter === "NO_NEXT_STEP") return !state.hasNextStep && !state.isClosed;
+  if (filter === "DUE_SOON") return state.isDueSoon;
+  return true;
+}
+
+function sortLeadsForBoard(leads: CrmLead[]) {
+  return [...leads].sort((a, b) => {
+    const aAttention = getLeadAttentionState(a);
+    const bAttention = getLeadAttentionState(b);
+
+    const aScore = Number(aAttention.isOverdue) * 4 + Number(!aAttention.hasNextStep) * 3 + Number(aAttention.isDueSoon) * 2 + Number(aAttention.isStale);
+    const bScore = Number(bAttention.isOverdue) * 4 + Number(!bAttention.hasNextStep) * 3 + Number(bAttention.isDueSoon) * 2 + Number(bAttention.isStale);
+    if (aScore !== bScore) return bScore - aScore;
+
+    const aDate = a.expectedCloseAt ? new Date(a.expectedCloseAt).getTime() : Number.MAX_SAFE_INTEGER;
+    const bDate = b.expectedCloseAt ? new Date(b.expectedCloseAt).getTime() : Number.MAX_SAFE_INTEGER;
+    if (aDate !== bDate) return aDate - bDate;
+
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 }
 
 function groupLeadsByStageLocal(leads: CrmLead[]) {
@@ -80,6 +139,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   const [leads, setLeads] = useState<CrmLead[]>(data.leads);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatusFilter>("ACTIVE");
+  const [attentionFilter, setAttentionFilter] = useState<LeadAttentionFilter>("ALL");
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [hoveredStage, setHoveredStage] = useState<CrmLeadStage | null>(null);
   const [savingLeadId, setSavingLeadId] = useState<string | null>(null);
@@ -97,7 +157,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   );
 
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredLeads = useMemo(
+  const searchedLeads = useMemo(
     () =>
       leads.filter((lead) => {
         if (!normalizedSearch) return true;
@@ -115,7 +175,18 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
     [leads, normalizedSearch],
   );
 
-  const filteredGrouped = useMemo(() => groupLeadsByStageLocal(filteredLeads), [filteredLeads]);
+  const filteredLeads = useMemo(
+    () => searchedLeads.filter((lead) => matchesAttentionFilter(lead, attentionFilter)),
+    [searchedLeads, attentionFilter],
+  );
+
+  const filteredGrouped = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(groupLeadsByStageLocal(filteredLeads)).map(([stage, stageLeads]) => [stage, sortLeadsForBoard(stageLeads)]),
+      ) as ReturnType<typeof groupLeadsByStageLocal>,
+    [filteredLeads],
+  );
   const closedFilteredLeads = useMemo(() => {
     if (statusFilter === "WON") return filteredLeads.filter((lead) => lead.stage === "WON");
     if (statusFilter === "LOST") return filteredLeads.filter((lead) => lead.stage === "LOST");
@@ -127,6 +198,12 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
     { value: "CLOSED" as const, label: "Encerrados", count: grouped.WON.length + grouped.LOST.length },
     { value: "WON" as const, label: "Ganhos", count: grouped.WON.length },
     { value: "LOST" as const, label: "Perdidos", count: grouped.LOST.length },
+  ];
+  const attentionSummaryFilters = [
+    { value: "ALL" as const, label: "Todos", count: searchedLeads.length },
+    { value: "OVERDUE" as const, label: "Atrasados", count: searchedLeads.filter((lead) => getLeadAttentionState(lead).isOverdue).length },
+    { value: "NO_NEXT_STEP" as const, label: "Sem proximo passo", count: searchedLeads.filter((lead) => !getLeadAttentionState(lead).hasNextStep && !getLeadAttentionState(lead).isClosed).length },
+    { value: "DUE_SOON" as const, label: "Fechando em breve", count: searchedLeads.filter((lead) => getLeadAttentionState(lead).isDueSoon).length },
   ];
 
   async function persistLeadUpdate(
@@ -246,11 +323,10 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           onClearSearch={() => setSearch("")}
           resultLabel={`${statusFilter === "ACTIVE" ? activeLeads.filter((lead) => filteredLeads.some((item) => item.id === lead.id)).length : closedFilteredLeads.length} filtrados`}
           filters={
-            <RegistryFilterGroup
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={stageSummaryFilters}
-            />
+            <div className="flex flex-col gap-2">
+              <RegistryFilterGroup value={statusFilter} onChange={setStatusFilter} options={stageSummaryFilters} />
+              <RegistryFilterGroup value={attentionFilter} onChange={setAttentionFilter} options={attentionSummaryFilters} />
+            </div>
           }
           actions={
             <>
@@ -462,6 +538,8 @@ function LeadCard({
   onDragStart: (event: DragEvent<HTMLDivElement>, leadId: string) => void;
   onDragEnd: () => void;
 }) {
+  const attention = getLeadAttentionState(lead);
+
   return (
     <div
       draggable={!isSaving}
@@ -495,6 +573,13 @@ function LeadCard({
         <LeadMeta text={formatLeadCurrency(lead.estimatedValue)} />
         {lead.expectedCloseAt ? <LeadMeta text={`Fechamento: ${formatDateSafe(lead.expectedCloseAt)}`} /> : null}
         {lead.nextStep ? <LeadMeta text={lead.nextStep} /> : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {attention.isOverdue ? <LeadSignal tone="red" text="Fechamento atrasado" /> : null}
+        {attention.isDueSoon ? <LeadSignal tone="amber" text="Fechando em breve" /> : null}
+        {!attention.hasNextStep ? <LeadSignal tone="violet" text="Sem proximo passo" /> : null}
+        {attention.isStale ? <LeadSignal tone="slate" text={`${attention.daysWithoutUpdate}d sem atualizacao`} /> : null}
       </div>
 
       <div className="mt-4 grid gap-2">
@@ -597,4 +682,21 @@ function LeadMeta({
       <span className="line-clamp-2">{text}</span>
     </div>
   );
+}
+
+function LeadSignal({
+  tone,
+  text,
+}: {
+  tone: "red" | "amber" | "violet" | "slate";
+  text: string;
+}) {
+  const toneClass = {
+    red: "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300",
+    amber: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+    violet: "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-300",
+    slate: "border-border/60 bg-muted/40 text-muted-foreground",
+  }[tone];
+
+  return <span className={cn("rounded-full border px-2 py-1 text-[10px] font-medium", toneClass)}>{text}</span>;
 }

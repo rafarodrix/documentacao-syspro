@@ -70,6 +70,25 @@ export const dashboardDailyPasswordSchema = z.object({
   formattedDate: z.string().min(1),
 });
 
+export const dashboardCrmStageSummarySchema = z.object({
+  stage: z.enum(["LEAD", "MQL", "SQL", "PROPOSAL", "NEGOTIATION", "WON", "LOST"]),
+  label: z.string().min(1),
+  count: z.number().int().nonnegative(),
+});
+
+export const dashboardCrmSummarySchema = z.object({
+  activeLeads: z.number().int().nonnegative(),
+  proposalLeads: z.number().int().nonnegative(),
+  negotiationLeads: z.number().int().nonnegative(),
+  wonLeads: z.number().int().nonnegative(),
+  lostLeads: z.number().int().nonnegative(),
+  overdueLeads: z.number().int().nonnegative(),
+  noNextStepLeads: z.number().int().nonnegative(),
+  pipelineValue: z.number().nonnegative(),
+  wonValue: z.number().nonnegative(),
+  stageDistribution: z.array(dashboardCrmStageSummarySchema),
+});
+
 const dashboardViewBaseSchema = z.object({
   ticketWarning: z.string().optional(),
   dailyPassword: dashboardDailyPasswordSchema.nullable().optional(),
@@ -91,6 +110,7 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   tickets: z.array(dashboardTicketSummarySchema),
   totalOpen: z.number().int().nonnegative(),
   activity: z.array(dashboardActivityPointSchema),
+  crm: dashboardCrmSummarySchema.optional(),
 });
 
 export const clientDashboardViewSchema = dashboardViewBaseSchema.extend({
@@ -161,6 +181,8 @@ export type DashboardRecentContact = z.infer<typeof dashboardRecentContactSchema
 export type DashboardRecentUser = z.infer<typeof dashboardRecentUserSchema>;
 export type DashboardSefazStatus = z.infer<typeof dashboardSefazStatusSchema>;
 export type DashboardDailyPassword = z.infer<typeof dashboardDailyPasswordSchema>;
+export type DashboardCrmStageSummary = z.infer<typeof dashboardCrmStageSummarySchema>;
+export type DashboardCrmSummary = z.infer<typeof dashboardCrmSummarySchema>;
 export type AdminDashboardView = z.infer<typeof adminDashboardViewSchema>;
 export type ClientDashboardView = z.infer<typeof clientDashboardViewSchema>;
 export type DashboardView = z.infer<typeof dashboardViewSchema>;

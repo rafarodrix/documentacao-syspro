@@ -4,6 +4,7 @@ import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
@@ -17,6 +18,7 @@ import {
   Minus,
   PlusCircle,
   Sparkles,
+  Target,
   TrendingDown,
   TrendingUp,
   Users,
@@ -49,6 +51,66 @@ function GrowthIndicator({ value }: { value: number }) {
   );
 }
 
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function DashboardMetricCard({
+  title,
+  value,
+  helper,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: number | string;
+  helper: string;
+  icon: typeof Target;
+  tone: "blue" | "amber" | "emerald" | "red";
+}) {
+  const toneClass = {
+    blue: "bg-sky-500/10 text-sky-500",
+    amber: "bg-amber-500/10 text-amber-500",
+    emerald: "bg-emerald-500/10 text-emerald-500",
+    red: "bg-red-500/10 text-red-500",
+  }[tone];
+
+  return (
+    <Card className="border-border/50 bg-card/70">
+      <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
+        <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", toneClass)}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className="text-3xl font-bold tracking-tight tabular-nums">{value}</div>
+        <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ExecutiveLine({
+  label,
+  value,
+  emphasis = "text-foreground",
+}: {
+  label: string;
+  value: string;
+  emphasis?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/50 px-3 py-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("font-semibold tabular-nums", emphasis)}>{value}</span>
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   await requireSession();
   const data = await getDashboardData();
@@ -60,21 +122,9 @@ export default async function DashboardPage() {
     const recentContacts = adminData.recentContacts ?? [];
     const recentUsers = adminData.recentUsers ?? [];
     const sefazStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
-      ONLINE: {
-        label: "Operacional",
-        color: "text-emerald-500",
-        dot: "bg-emerald-500",
-      },
-      UNSTABLE: {
-        label: "Instavel",
-        color: "text-amber-500",
-        dot: "bg-amber-500",
-      },
-      OFFLINE: {
-        label: "Indisponivel",
-        color: "text-red-500",
-        dot: "bg-red-500",
-      },
+      ONLINE: { label: "Operacional", color: "text-emerald-500", dot: "bg-emerald-500" },
+      UNSTABLE: { label: "Instavel", color: "text-amber-500", dot: "bg-amber-500" },
+      OFFLINE: { label: "Indisponivel", color: "text-red-500", dot: "bg-red-500" },
     };
 
     const sefazNfeStatus = sefazStatusMap[adminData.sefazNfe.status as SefazStatusKey];
@@ -87,180 +137,265 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Card
-            className={cn(
-              "border-border/50 bg-card/70",
-              (adminData.sefazNfe.status !== "ONLINE" || adminData.sefazNfce.status !== "ONLINE") && "border-amber-500/30",
-            )}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Zap className="h-4 w-4 text-amber-500" />
-                SEFAZ MG
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFe</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                      {adminData.sefazNfe.status === "ONLINE" ? (
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                      ) : null}
-                      <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
-                    </span>
-                    <span className={cn("text-sm font-semibold", sefazNfeStatus.color)}>{sefazNfeStatus.label}</span>
+        <Tabs defaultValue="operacional" className="space-y-4">
+          <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
+            <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
+              <Zap className="h-4 w-4" />
+              Operacional
+            </TabsTrigger>
+            <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
+              <Target className="h-4 w-4" />
+              Comercial
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="operacional" className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <Card
+                className={cn(
+                  "border-border/50 bg-card/70",
+                  (adminData.sefazNfe.status !== "ONLINE" || adminData.sefazNfce.status !== "ONLINE") && "border-amber-500/30",
+                )}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    SEFAZ MG
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFe</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                          {adminData.sefazNfe.status === "ONLINE" ? (
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                          ) : null}
+                          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
+                        </span>
+                        <span className={cn("text-sm font-semibold", sefazNfeStatus.color)}>{sefazNfeStatus.label}</span>
+                      </div>
+                    </div>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {adminData.sefazNfe.status === "OFFLINE" || adminData.sefazNfe.latency <= 0 ? "Sem medicao" : `${adminData.sefazNfe.latency}ms`}
+                    </p>
                   </div>
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {adminData.sefazNfe.status === "OFFLINE" || adminData.sefazNfe.latency <= 0
-                    ? "Sem medicao"
-                    : `${adminData.sefazNfe.latency}ms`}
-                </p>
-              </div>
 
-              <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFC-e</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                      {adminData.sefazNfce.status === "ONLINE" ? (
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                      ) : null}
-                      <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfceStatus.dot)} />
-                    </span>
-                    <span className={cn("text-sm font-semibold", sefazNfceStatus.color)}>{sefazNfceStatus.label}</span>
+                  <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFC-e</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                          {adminData.sefazNfce.status === "ONLINE" ? (
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                          ) : null}
+                          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfceStatus.dot)} />
+                        </span>
+                        <span className={cn("text-sm font-semibold", sefazNfceStatus.color)}>{sefazNfceStatus.label}</span>
+                      </div>
+                    </div>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {adminData.sefazNfce.status === "OFFLINE" || adminData.sefazNfce.latency <= 0 ? "Sem medicao" : `${adminData.sefazNfce.latency}ms`}
+                    </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                  <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
                 </div>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {adminData.sefazNfce.status === "OFFLINE" || adminData.sefazNfce.latency <= 0
-                    ? "Sem medicao"
-                    : `${adminData.sefazNfce.latency}ms`}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                  <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Empresas Ativas</CardTitle>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
+                    <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.companiesCount.toLocaleString("pt-BR")}</div>
+                  <div className="mt-1">
+                    <GrowthIndicator value={adminData.companiesGrowth} />
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
-            <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
-              <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
+              <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                  <Users className="h-20 w-20 rotate-12 text-violet-500" />
+                </div>
+                <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                  <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {showUsersMetric ? "Usuarios" : "Contatos"}
+                  </CardTitle>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
+                    <Users className="h-3.5 w-3.5 text-violet-500" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="text-3xl font-bold tracking-tight tabular-nums">
+                    {(showUsersMetric ? adminData.usersCount : (adminData.contactsCount ?? 0)).toLocaleString("pt-BR")}
+                  </div>
+                  <div className="mt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {showUsersMetric ? (
+                        <><span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos</>
+                      ) : (
+                        <><span className="font-medium text-emerald-500">{adminData.contactsCount ?? 0}</span> vinculados ao escopo</>
+                      )}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/70">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <KeyRound className="h-4 w-4" />
+                    Senha do dia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.18em]">
+                    {dailyPassword?.password ?? "-----"}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Empresas Ativas
-              </CardTitle>
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
-                <Building2 className="h-3.5 w-3.5 text-blue-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.companiesCount.toLocaleString("pt-BR")}</div>
-              <div className="mt-1">
-                <GrowthIndicator value={adminData.companiesGrowth} />
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
-            <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
-              <Users className="h-20 w-20 rotate-12 text-violet-500" />
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+              <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
             </div>
-            <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {showUsersMetric ? "Usuarios" : "Contatos"}
-              </CardTitle>
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
-                <Users className="h-3.5 w-3.5 text-violet-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-3xl font-bold tracking-tight tabular-nums">
-                {(showUsersMetric ? adminData.usersCount : (adminData.contactsCount ?? 0)).toLocaleString("pt-BR")}
-              </div>
-              <div className="mt-1">
-                <span className="text-xs text-muted-foreground">
-                  {showUsersMetric ? (
-                    <>
-                      <span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-medium text-emerald-500">{adminData.contactsCount ?? 0}</span> vinculados ao escopo
-                    </>
-                  )}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-border/50 bg-card/70">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <KeyRound className="h-4 w-4" />
-                Senha do dia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.18em]">
-                {dailyPassword?.password ?? "-----"}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              <RecentCompanies companies={adminData.companies} />
+              <RecentRecords
+                title="Ultimos contatos cadastrados"
+                description="Contatos recentes dentro do seu escopo"
+                emptyTitle="Nenhum contato cadastrado"
+                emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
+                viewAllHref="/portal/contatos"
+                createHref="/portal/contatos/novo"
+                createLabel="Cadastrar contato"
+                icon="contact"
+                items={recentContacts.map((contact) => ({
+                  id: contact.id,
+                  title: contact.name,
+                  subtitle: contact.email || contact.whatsapp || "Sem canal principal",
+                  meta: contact.companyNames?.length ? contact.companyNames.join(" â€¢ ") : "Sem empresa vinculada",
+                  createdAt: contact.createdAt,
+                  tags: contact.companyNames?.slice(0, 2),
+                }))}
+              />
+              {adminData.canViewUsers ? (
+                <RecentRecords
+                  title="Ultimos usuarios cadastrados"
+                  description="Usuarios recentes dentro do seu escopo"
+                  emptyTitle="Nenhum usuario cadastrado"
+                  emptyDescription="Novos usuarios aparecerao aqui assim que forem criados."
+                  viewAllHref="/portal/cadastros/usuarios"
+                  createHref="/portal/cadastros/usuarios/novo"
+                  createLabel="Novo usuario"
+                  icon="user"
+                  items={recentUsers.map((user) => ({
+                    id: user.id,
+                    title: user.name,
+                    subtitle: user.email,
+                    meta: user.companyNames?.length ? user.companyNames.join(" â€¢ ") : user.role,
+                    createdAt: user.createdAt,
+                    tags: [user.role],
+                  }))}
+                />
+              ) : null}
+            </div>
+          </TabsContent>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-          <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
-        </div>
+          <TabsContent value="comercial" className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <DashboardMetricCard
+                title="Pipeline ativo"
+                value={adminData.crm?.activeLeads ?? 0}
+                helper={adminData.crm ? formatCurrency(adminData.crm.pipelineValue) : "Sem dados"}
+                icon={Target}
+                tone="blue"
+              />
+              <DashboardMetricCard
+                title="Em proposta"
+                value={adminData.crm?.proposalLeads ?? 0}
+                helper={`${adminData.crm?.negotiationLeads ?? 0} em negociacao`}
+                icon={TrendingUp}
+                tone="amber"
+              />
+              <DashboardMetricCard
+                title="Ganhos"
+                value={adminData.crm?.wonLeads ?? 0}
+                helper={adminData.crm ? formatCurrency(adminData.crm.wonValue) : "Sem dados"}
+                icon={Sparkles}
+                tone="emerald"
+              />
+              <DashboardMetricCard
+                title="Risco operacional"
+                value={(adminData.crm?.overdueLeads ?? 0) + (adminData.crm?.noNextStepLeads ?? 0)}
+                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados • ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
+                icon={TrendingDown}
+                tone="red"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <RecentCompanies companies={adminData.companies} />
-          <RecentRecords
-            title="Ultimos contatos cadastrados"
-            description="Contatos recentes dentro do seu escopo"
-            emptyTitle="Nenhum contato cadastrado"
-            emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
-            viewAllHref="/portal/contatos"
-            createHref="/portal/contatos/novo"
-            createLabel="Cadastrar contato"
-            icon="contact"
-            items={recentContacts.map((contact) => ({
-              id: contact.id,
-              title: contact.name,
-              subtitle: contact.email || contact.whatsapp || "Sem canal principal",
-              meta: contact.companyNames?.length ? contact.companyNames.join(" • ") : "Sem empresa vinculada",
-              createdAt: contact.createdAt,
-              tags: contact.companyNames?.slice(0, 2),
-            }))}
-          />
-          {adminData.canViewUsers ? (
-            <RecentRecords
-              title="Ultimos usuarios cadastrados"
-              description="Usuarios recentes dentro do seu escopo"
-              emptyTitle="Nenhum usuario cadastrado"
-              emptyDescription="Novos usuarios aparecerao aqui assim que forem criados."
-              viewAllHref="/portal/cadastros/usuarios"
-              createHref="/portal/cadastros/usuarios/novo"
-              createLabel="Novo usuario"
-              icon="user"
-              items={recentUsers.map((user) => ({
-                id: user.id,
-                title: user.name,
-                subtitle: user.email,
-                meta: user.companyNames?.length ? user.companyNames.join(" • ") : user.role,
-                createdAt: user.createdAt,
-                tags: [user.role],
-              }))}
-            />
-          ) : null}
-        </div>
+            <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
+              <Card className="border-border/50 bg-card/70">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Distribuicao do funil</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(adminData.crm?.stageDistribution ?? []).map((item) => {
+                    const maxCount = Math.max(...(adminData.crm?.stageDistribution ?? [{ count: 1 }]).map((entry) => entry.count), 1);
+                    const width = `${Math.max((item.count / maxCount) * 100, item.count > 0 ? 8 : 0)}%`;
+                    return (
+                      <div key={item.stage} className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-3 text-xs">
+                          <span className="font-medium text-foreground">{item.label}</span>
+                          <span className="tabular-nums text-muted-foreground">{item.count}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted/60">
+                          <div className="h-2 rounded-full bg-primary/70" style={{ width }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/70">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Leitura executiva</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <ExecutiveLine label="Leads ativos" value={`${adminData.crm?.activeLeads ?? 0}`} emphasis="text-foreground" />
+                  <ExecutiveLine label="Propostas abertas" value={`${adminData.crm?.proposalLeads ?? 0}`} />
+                  <ExecutiveLine label="Em negociacao" value={`${adminData.crm?.negotiationLeads ?? 0}`} />
+                  <ExecutiveLine label="Perdidos" value={`${adminData.crm?.lostLeads ?? 0}`} />
+                  <ExecutiveLine label="Atrasados" value={`${adminData.crm?.overdueLeads ?? 0}`} emphasis={(adminData.crm?.overdueLeads ?? 0) > 0 ? "text-amber-500" : "text-foreground"} />
+                  <ExecutiveLine label="Sem proximo passo" value={`${adminData.crm?.noNextStepLeads ?? 0}`} emphasis={(adminData.crm?.noNextStepLeads ?? 0) > 0 ? "text-red-500" : "text-foreground"} />
+                  <div className="pt-2">
+                    <Button asChild variant="outline" className="w-full gap-2">
+                      <Link href="/portal/comercial/leads">
+                        <ArrowUpRight className="h-4 w-4" />
+                        Abrir CRM Comercial
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
 
   const hasMultipleCompanies = data.companyCount > 1;
-  const previewCompanies = data.companyNames.slice(0, 2).join(" • ");
+  const previewCompanies = data.companyNames.slice(0, 2).join(" â€¢ ");
   const extraCompaniesCount = Math.max(data.companyCount - 2, 0);
 
   return (
