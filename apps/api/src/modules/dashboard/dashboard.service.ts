@@ -376,7 +376,7 @@ export class DashboardService {
         cidade: company.addresses[0]?.cidade ?? null,
         estado: company.addresses[0]?.estado ?? null,
       }));
-      const contacts = recentContacts.map((contact) => ({
+      const contacts = recentContacts.map((contact: any) => ({
         id: contact.id,
         name: contact.name,
         email: contact.email ?? null,
