@@ -238,7 +238,6 @@ export class UsersService {
     let authResult;
     try {
       authResult = await this.authService.auth.api.createUser({
-        headers: new Headers(),
         body: {
           email: normalizedEmail,
           name: data.name || 'Sem nome',

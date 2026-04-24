@@ -193,7 +193,6 @@ export class AuthService {
 
     try {
       const result = await this.auth.api.listUsers({
-        headers: new Headers(),
         query: {
           searchField: 'email',
           searchOperator: 'contains',
