@@ -99,6 +99,16 @@ function parseNullableNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function hasContactContent(contact: CrmLeadManualContact) {
+  return Boolean(
+    contact.name.trim() ||
+    contact.role?.trim() ||
+    contact.email?.trim() ||
+    contact.phone?.trim() ||
+    contact.whatsapp?.trim(),
+  );
+}
+
 function hasCompanyContext(form: LeadFormState) {
   return Boolean(form.document.trim() || form.tradeName.trim() || form.city.trim() || form.state.trim());
 }
@@ -172,6 +182,13 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
           isPrimary: index === 0 ? true : Boolean(contact.isPrimary),
         }))
         .filter((contact) => contact.name),
+    [contacts],
+  );
+  const incompleteContactIndex = useMemo(
+    () =>
+      contacts.findIndex(
+        (contact) => hasContactContent(contact) && !contact.name.trim(),
+      ),
     [contacts],
   );
 
@@ -261,6 +278,12 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
 
     if (!normalizedContacts.length) {
       toast.error("Informe ao menos um contato manual do lead.");
+      setActiveTab("contacts");
+      return;
+    }
+
+    if (incompleteContactIndex >= 0) {
+      toast.error(`Preencha o nome do contato ${incompleteContactIndex + 1} para salvar os dados informados.`);
       setActiveTab("contacts");
       return;
     }
