@@ -32,6 +32,7 @@ export const userEmailAvailabilityCodeSchema = z.enum([
   "INVALID_EMAIL",
   "LOCAL_ACTIVE_EXISTS",
   "LOCAL_INACTIVE_EXISTS",
+  "AUTH_PROVIDER_EXISTS",
 ]);
 
 export const userEmailAvailabilitySchema = z.object({

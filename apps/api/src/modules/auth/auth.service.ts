@@ -187,6 +187,35 @@ export class AuthService {
     }
   }
 
+  async findAuthUserByEmail(email: string) {
+    const normalizedEmail = this.normalizeEmail(email);
+    if (!normalizedEmail) return null;
+
+    try {
+      const result = await this.auth.api.listUsers({
+        headers: new Headers(),
+        query: {
+          searchField: 'email',
+          searchOperator: 'contains',
+          searchValue: normalizedEmail,
+          limit: 10,
+          offset: 0,
+        },
+      });
+
+      const matchedUser =
+        result?.users?.find((user: { email?: string | null }) => this.normalizeEmail(user?.email) === normalizedEmail) ??
+        null;
+
+      return matchedUser;
+    } catch (error) {
+      this.logger.warn(
+        `Better Auth listUsers falhou para email=${normalizedEmail}: ${error instanceof Error ? error.message : String(error ?? 'unknown')}`,
+      );
+      return null;
+    }
+  }
+
   private getAuthErrorMessage(error: unknown): string | null {
     if (typeof error !== 'object' || error === null) return null;
 
@@ -208,6 +237,11 @@ export class AuthService {
     }
 
     return headers;
+  }
+
+  private normalizeEmail(value?: string | null) {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return normalized || null;
   }
 
   private async sendResetPasswordEmail(email: string, resetLink: string, userName: string) {

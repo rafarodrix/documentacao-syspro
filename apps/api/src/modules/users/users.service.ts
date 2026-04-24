@@ -140,6 +140,15 @@ export class UsersService {
     });
 
     if (!existingUser) {
+      const authUser = await this.authService.findAuthUserByEmail(normalizedEmail);
+      if (authUser) {
+        return {
+          available: false,
+          code: 'AUTH_PROVIDER_EXISTS',
+          message: 'Este e-mail ja existe na autenticacao do sistema. Verifique usuarios antigos, excluidos ou convites anteriores.',
+        };
+      }
+
       return {
         available: true,
         code: 'AVAILABLE',
@@ -198,6 +207,16 @@ export class UsersService {
         `[users.create.conflict] email=${normalizedEmail} source=local_user_active userId=${existingUser.id}`
       );
       throw new ConflictException('Este e-mail ja esta cadastrado como usuario.');
+    }
+
+    const existingAuthUser = await this.authService.findAuthUserByEmail(normalizedEmail);
+    if (existingAuthUser) {
+      this.logger.warn(
+        `[users.create.conflict] email=${normalizedEmail} source=auth_provider_precheck userId=${String((existingAuthUser as { id?: string | null })?.id ?? '')}`,
+      );
+      throw new ConflictException(
+        'Este e-mail ja existe na autenticacao do sistema. Verifique usuarios antigos, excluidos ou convites anteriores.',
+      );
     }
 
     const normalizedContactId = this.normalizeContactId(data.contactId);
