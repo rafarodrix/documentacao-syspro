@@ -93,6 +93,39 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
+function getUserCompanyChips(user: UserWithRelations) {
+  const membershipCompanies = (user.memberships ?? [])
+    .map((membership) => ({
+      key: `membership:${membership.companyId}`,
+      label: membership.company?.nomeFantasia || membership.company?.razaoSocial || "Empresa",
+    }))
+    .filter((company) => company.label.trim().length > 0);
+
+  if (membershipCompanies.length > 0) {
+    return membershipCompanies;
+  }
+
+  if (user.contact?.company) {
+    return [
+      {
+        key: `contact:${user.contact.company.id}`,
+        label: user.contact.company.nomeFantasia || user.contact.company.razaoSocial,
+      },
+    ];
+  }
+
+  if (user.companyId && user.companyName && user.companyName !== "Sem Vinculo") {
+    return [
+      {
+        key: `fallback:${user.companyId}`,
+        label: user.companyName,
+      },
+    ];
+  }
+
+  return [];
+}
+
 interface UserActionsProps {
   user: UserWithRelations;
   isLoading: boolean;
@@ -190,8 +223,12 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
 
     return users.filter(
       (user) => {
-        const companyText = user.memberships
-          ?.map((membership) => `${membership.company?.nomeFantasia || ""} ${membership.company?.razaoSocial || ""}`)
+        const companyText = [
+          ...user.memberships.map((membership) => `${membership.company?.nomeFantasia || ""} ${membership.company?.razaoSocial || ""}`),
+          user.contact?.company?.nomeFantasia || "",
+          user.contact?.company?.razaoSocial || "",
+          user.companyName || "",
+        ]
           .join(" ")
           .toLowerCase();
 
@@ -246,6 +283,11 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
       withoutCompany: users.length - withCompany,
     };
   }, [users]);
+
+  const companyChipsByUser = useMemo(
+    () => new Map(users.map((user) => [user.id, getUserCompanyChips(user)])),
+    [users],
+  );
 
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
@@ -465,15 +507,15 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
                     <TableCell>
                       <div className="flex flex-col gap-1.5">
                         <RoleBadge role={user.role} />
-                        {user.memberships?.length > 0 ? (
+                        {(companyChipsByUser.get(user.id)?.length ?? 0) > 0 ? (
                           <div className="flex flex-wrap gap-1">
-                            {user.memberships.map((m) => (
+                            {(companyChipsByUser.get(user.id) ?? []).map((company) => (
                               <span
-                                key={m.companyId}
+                                key={company.key}
                                 className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-muted border border-border/40 text-muted-foreground"
                               >
                                 <Building className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                                <span className="truncate max-w-25">{m.company?.nomeFantasia || m.company?.razaoSocial}</span>
+                                <span className="truncate max-w-25">{company.label}</span>
                               </span>
                             ))}
                           </div>

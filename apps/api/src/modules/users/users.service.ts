@@ -738,6 +738,7 @@ export class UsersService {
           email: true,
           phone: true,
           companyLinks: {
+            orderBy: [{ isPrimary: 'desc' }, { companyId: 'asc' }],
             select: {
               companyId: true,
               isPrimary: true,
