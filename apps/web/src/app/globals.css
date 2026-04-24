@@ -314,18 +314,18 @@
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
     position: sticky;
-    top: 0;
+    top: 0.75rem;
     left: auto;
-    margin: 0;
-    height: 100dvh;
-    max-height: 100dvh;
-    border-radius: 0 1.5rem 1.5rem 0;
+    margin: 0 0 0.75rem 0.75rem;
+    height: calc(100dvh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    border-radius: 1.9rem;
     overflow: hidden;
     z-index: 10;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
-    border-radius: 0 1.25rem 1.25rem 0;
+    border-radius: 1.9rem;
     box-shadow: 0 24px 68px -46px hsl(var(--foreground) / 0.92);
   }
 
@@ -354,7 +354,7 @@
   }
 
   #nd-sidebar.docs-sidebar-shell > div:first-child {
-    padding-top: 0.25rem;
+    padding-top: 0.35rem;
   }
 
   #nd-sidebar.docs-sidebar-shell a,
@@ -372,11 +372,6 @@
 
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor {
     z-index: 6;
-  }
-
-  #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor > button {
-    right: 0.85rem;
-    top: 0.85rem;
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor button:focus-visible {

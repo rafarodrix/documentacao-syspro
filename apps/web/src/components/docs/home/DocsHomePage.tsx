@@ -6,7 +6,6 @@ import type { Role } from '@prisma/client';
 import {
   ArrowRight,
   Clock,
-  Compass,
   History,
   Search,
 } from 'lucide-react';
@@ -15,11 +14,10 @@ import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
 import { useDocsDashboard, type DocsHomeEntry } from './use-docs-dashboard';
-import { InsightLink, PremiumLinkCard } from './DocsHomeComponents';
+import { InsightLink } from './DocsHomeComponents';
 import {
   BASE_QUICK_LINKS,
   TECHNICAL_QUICK_LINK,
-  ROLE_START_TASKS,
 } from './docs-home-config';
 
 const staggerStyle = (index: number): CSSProperties => ({
@@ -41,13 +39,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
       : BASE_QUICK_LINKS;
   }, [canViewTechnical]);
 
-  const startTasks = useMemo(() => {
-    const tasks = ROLE_START_TASKS[role] ?? ROLE_START_TASKS.CLIENTE_USER;
-    return canViewTechnical
-      ? tasks
-      : tasks.filter((t) => !t.href.startsWith('/portal/docs/manuais-tecnicos'));
-  }, [role, canViewTechnical]);
-
   return (
     <div className="docs-home-page space-y-6 pb-12">
       <section
@@ -56,14 +47,6 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
       >
         <div className="rounded-[22px] border border-border/60 bg-background/65 p-3 backdrop-blur-xl">
           <LargeSearchToggle className="h-12 w-full justify-start rounded-[18px] border-0 bg-background/70 px-4 text-left text-sm shadow-none" />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              Busca unificada da documentacao
-            </span>
-            <span className="inline-flex items-center rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              Paginas, modulos e atalhos
-            </span>
-          </div>
         </div>
       </section>
 
@@ -71,20 +54,20 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         className="animate-docs-fade-up space-y-3 opacity-0"
         style={staggerStyle(1)}
       >
-        <DocsSectionHeader icon={Compass} label="Trilhas sugeridas" />
-        <div className="grid gap-3 md:grid-cols-3">
-          {startTasks.map((task, index) => (
+        <DocsSectionHeader icon={Search} label="Acessos rapidos" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {quickLinks.map((item, index) => (
             <Link
-              key={task.href}
-              href={task.href}
+              key={item.href}
+              href={item.href}
               className="group animate-docs-fade-up rounded-[24px] border border-border/60 bg-background/50 p-5 no-underline opacity-0 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/70"
               style={staggerStyle(index + 2)}
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Trilha sugerida
+                Acesso rapido
               </p>
-              <p className="mt-4 text-lg font-semibold tracking-tight text-foreground">{task.title}</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{task.description}</p>
+              <p className="mt-4 text-lg font-semibold tracking-tight text-foreground">{item.title}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-foreground/90">
                 Ver secao
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -95,20 +78,8 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
       </section>
 
       <section
-        className="animate-docs-fade-up space-y-3 opacity-0"
-        style={staggerStyle(2)}
-      >
-        <DocsSectionHeader icon={Search} label="Acessos rapidos" />
-        <div className="grid gap-3 lg:grid-cols-2">
-          {quickLinks.map((item, index) => (
-            <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 5)} />
-          ))}
-        </div>
-      </section>
-
-      <section
         className="animate-docs-fade-up grid gap-4 opacity-0 lg:grid-cols-2"
-        style={staggerStyle(3)}
+        style={staggerStyle(2)}
       >
         <div className="rounded-[26px] border border-border/60 bg-card/35 p-4 shadow-sm">
           <DocsSectionHeader icon={Clock} label="Ultimas 5 atualizacoes" />
