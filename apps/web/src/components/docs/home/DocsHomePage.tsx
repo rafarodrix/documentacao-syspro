@@ -31,6 +31,7 @@ type DocsHomePageProps = {
 };
 
 export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProps) {
+export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProps) {
   const { derived } = useDocsDashboard(pages, role, canViewTechnical);
 
   const quickLinks = useMemo(() => {
