@@ -96,6 +96,10 @@ function normalizeTicketTeam(value: string): TicketTeam {
   return value === "DESENVOLVIMENTO" ? "DESENVOLVIMENTO" : "SUPORTE";
 }
 
+function getSuggestedCategoryForTeam(settings: TicketModuleSettings, team: TicketTeam) {
+  return settings.categories.find((category) => category.defaultTeam === team)?.value || "";
+}
+
 export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -197,7 +201,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
 
         const nextSettings = json.data;
         const nextTeam: TicketTeam = isSystemUser ? nextSettings.defaultTeam : "SUPORTE";
-        const nextCategory = nextSettings.categories.find((item) => item.defaultTeam === nextTeam)?.value || nextSettings.categories[0]?.value || "incident";
+        const nextCategory = getSuggestedCategoryForTeam(nextSettings, nextTeam) || nextSettings.categories[0]?.value || "incident";
 
         setTicketSettings(nextSettings);
         setSelectedTeam(nextTeam);
@@ -299,9 +303,9 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const handleTeamChange = (value: string) => {
     const team = normalizeTicketTeam(value);
     setSelectedTeam(team);
-    const availableCategories = ticketSettings.categories.filter((category) => category.defaultTeam === team);
-    if (availableCategories.length > 0 && !availableCategories.some((category) => category.value === selectedCategory)) {
-      setSelectedCategory(availableCategories[0].value);
+    const suggestedCategory = getSuggestedCategoryForTeam(ticketSettings, team);
+    if (suggestedCategory) {
+      setSelectedCategory(suggestedCategory);
     }
   };
 

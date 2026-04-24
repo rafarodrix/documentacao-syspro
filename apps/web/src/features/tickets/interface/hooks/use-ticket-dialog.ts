@@ -25,6 +25,10 @@ type CompanyOption = {
     name: string;
 };
 
+function getSuggestedCategoryForTeam(settings: TicketModuleSettings, team: string) {
+    return settings.categories.find((category) => category.defaultTeam === team)?.value || "";
+}
+
 export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogOptions = {}) {
     const searchParams = useSearchParams();
     const [files, setFiles] = useState<File[]>([]);
@@ -109,9 +113,10 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 if (!active || !json.success || !json.data) return;
 
                 setTicketSettings(json.data);
-                setSelectedCategory(json.data.categories[0]?.value || "incident");
+                const nextTeam = options.isSystemUser ? json.data.defaultTeam : "SUPORTE";
+                setSelectedTeam(nextTeam);
+                setSelectedCategory(getSuggestedCategoryForTeam(json.data, nextTeam) || json.data.categories[0]?.value || "incident");
                 setSelectedModule(json.data.modules[0]?.value || "");
-                setSelectedTeam(options.isSystemUser ? json.data.defaultTeam : "SUPORTE");
             })
             .catch((error) => {
                 logError("ticket_settings.fetch_failed", error);

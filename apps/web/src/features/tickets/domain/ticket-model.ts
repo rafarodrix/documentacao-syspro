@@ -133,7 +133,9 @@ export interface TicketDetailsItem {
         module?: string | null;
         databaseUrl?: string | null;
         developmentVideoUrl?: string | null;
+        supportOwnerUserId?: string | null;
         supportOwnerName?: string | null;
+        developmentOwnerUserId?: string | null;
         developmentOwnerName?: string | null;
     } | null;
     createdAt: string;

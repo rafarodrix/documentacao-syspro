@@ -405,7 +405,9 @@ export async function getTicketDetailsAction(ticketId: string): Promise<TicketDe
           module: readNullableMetadata(ticket.metadata, "module"),
           databaseUrl: readNullableMetadata(ticket.metadata, "databaseUrl"),
           developmentVideoUrl: readNullableMetadata(ticket.metadata, "developmentVideoUrl"),
+          supportOwnerUserId: readNullableMetadata(ticket.metadata, "supportOwnerUserId"),
           supportOwnerName: readNullableMetadata(ticket.metadata, "supportOwnerName"),
+          developmentOwnerUserId: readNullableMetadata(ticket.metadata, "developmentOwnerUserId"),
           developmentOwnerName: readNullableMetadata(ticket.metadata, "developmentOwnerName"),
         },
         createdAt: new Date(ticket.createdAt).toLocaleDateString("pt-BR"),
@@ -667,6 +669,34 @@ export async function updateTicketAssigneeAction(
   } catch (error) {
     console.error("Erro em updateTicketAssigneeAction:", error);
     return { success: false, error: "Falha ao atualizar responsavel." };
+  }
+}
+
+export async function updateTicketOwnersAction(
+  ticketId: string,
+  payload: { supportOwnerUserId?: string; developmentOwnerUserId?: string },
+): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  try {
+    const result = await updateTicketGateway(ticketId, {
+      ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
+      ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao atualizar responsaveis." };
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true };
+  } catch (error) {
+    console.error("Erro em updateTicketOwnersAction:", error);
+    return { success: false, error: "Falha ao atualizar responsaveis." };
   }
 }
 

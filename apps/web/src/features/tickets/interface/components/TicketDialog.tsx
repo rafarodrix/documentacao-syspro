@@ -442,9 +442,9 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                       <Label className="text-xs">Roteado para:</Label>
                       <Select value={selectedTeam} onValueChange={(val) => {
                           setSelectedTeam(val);
-                          const availableCats = ticketSettings.categories.filter((c) => c.defaultTeam === val);
-                          if (availableCats.length > 0 && !availableCats.find(c => c.value === selectedCategory)) {
-                             setSelectedCategory(availableCats[0].value);
+                          const suggestedCategory = ticketSettings.categories.find((category) => category.defaultTeam === val)?.value;
+                          if (suggestedCategory) {
+                            setSelectedCategory(suggestedCategory);
                           }
                       }} disabled={!isSystemUser}>
                         <FormControl>

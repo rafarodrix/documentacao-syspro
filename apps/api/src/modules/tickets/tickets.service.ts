@@ -686,6 +686,8 @@ export class TicketsService {
     const releaseType = input.releaseType?.trim().toUpperCase();
     const releaseTitle = input.releaseTitle?.trim();
     const releaseModule = input.releaseModule?.trim();
+    const supportOwnerUserId = input.supportOwnerUserId?.trim();
+    const developmentOwnerUserId = input.developmentOwnerUserId?.trim();
     const publishToReleases = input.publishToReleases;
     const shouldPublishToReleases = publishToReleases === true;
     const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
@@ -819,6 +821,81 @@ export class TicketsService {
       }
 
       if (input.priority !== undefined) data.priority = input.priority;
+
+      if (input.supportOwnerUserId !== undefined) {
+        if (supportOwnerUserId) {
+          const supportOwner = await tx.user.findUnique({
+            where: { id: supportOwnerUserId },
+            select: { id: true, name: true, email: true, role: true },
+          });
+
+          if (!supportOwner) {
+            throw new NotFoundException('Analista de suporte nao encontrado.');
+          }
+          if (supportOwner.role !== Role.SUPORTE && supportOwner.role !== Role.ADMIN) {
+            throw new BadRequestException('O analista responsavel precisa ser um usuario de Suporte ou Admin.');
+          }
+
+          const supportOwnerName = supportOwner.name?.trim() || supportOwner.email;
+          currentMetadata.supportOwnerUserId = supportOwner.id;
+          currentMetadata.supportOwnerName = supportOwnerName;
+
+          if (currentTeam === 'SUPORTE') {
+            data.assignedUserId = supportOwner.id;
+            currentMetadata.currentOwnerUserId = supportOwner.id;
+            currentMetadata.currentOwnerName = supportOwnerName;
+            currentMetadata.currentOwnerRole = supportOwner.role;
+          }
+        } else {
+          delete currentMetadata.supportOwnerUserId;
+          delete currentMetadata.supportOwnerName;
+
+          if (currentTeam === 'SUPORTE') {
+            data.assignedUserId = null;
+            delete currentMetadata.currentOwnerUserId;
+            delete currentMetadata.currentOwnerName;
+            delete currentMetadata.currentOwnerRole;
+          }
+        }
+      }
+
+      if (input.developmentOwnerUserId !== undefined) {
+        if (developmentOwnerUserId) {
+          const developmentOwner = await tx.user.findUnique({
+            where: { id: developmentOwnerUserId },
+            select: { id: true, name: true, email: true, role: true },
+          });
+
+          if (!developmentOwner) {
+            throw new NotFoundException('Desenvolvedor nao encontrado.');
+          }
+          if (developmentOwner.role !== Role.DEVELOPER && developmentOwner.role !== Role.ADMIN) {
+            throw new BadRequestException('O desenvolvedor responsavel precisa ser um usuario de Desenvolvimento ou Admin.');
+          }
+
+          const developmentOwnerName = developmentOwner.name?.trim() || developmentOwner.email;
+          currentMetadata.developmentOwnerUserId = developmentOwner.id;
+          currentMetadata.developmentOwnerName = developmentOwnerName;
+
+          if (currentTeam === 'DESENVOLVIMENTO') {
+            data.assignedUserId = developmentOwner.id;
+            currentMetadata.currentOwnerUserId = developmentOwner.id;
+            currentMetadata.currentOwnerName = developmentOwnerName;
+            currentMetadata.currentOwnerRole = developmentOwner.role;
+          }
+        } else {
+          delete currentMetadata.developmentOwnerUserId;
+          delete currentMetadata.developmentOwnerName;
+
+          if (currentTeam === 'DESENVOLVIMENTO') {
+            data.assignedUserId = null;
+            delete currentMetadata.currentOwnerUserId;
+            delete currentMetadata.currentOwnerName;
+            delete currentMetadata.currentOwnerRole;
+          }
+        }
+      }
+
       if (input.assignedUserId !== undefined) {
         data.assignedUserId = input.assignedUserId;
         if (input.assignedUserId) {

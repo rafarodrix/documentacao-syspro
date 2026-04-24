@@ -75,6 +75,8 @@ export const ticketModuleUpdateRequestSchema = z.object({
   status: ticketModuleStatusSchema.optional(),
   priority: ticketModulePrioritySchema.optional(),
   assignedUserId: z.string().trim().optional(),
+  supportOwnerUserId: z.string().trim().optional(),
+  developmentOwnerUserId: z.string().trim().optional(),
   resolutionSummary: z.string().trim().optional(),
   resolutionVideoUrl: z.string().trim().optional(),
   releaseType: z.string().trim().optional(),

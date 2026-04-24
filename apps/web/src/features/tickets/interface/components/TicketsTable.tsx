@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
-import { toast } from "sonner";
 import { formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { TicketListItem } from "./types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
-import { StatusBadge, PriorityBadge, SlaBadge, QuickButton } from "./badges";
-import { ticketQuickAction } from "@/features/tickets/application/ticket-actions";
+import { StatusBadge, PriorityBadge } from "./badges";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 interface TicketsTableProps {
@@ -23,40 +20,8 @@ interface TicketsTableProps {
 
 export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const isClosedView = statusGroup === "closed";
-  const emptyStateColSpan = isClosedView ? (isAdmin ? 6 : 5) : (isAdmin ? 9 : 8);
-
-  const runQuickAction = (ticketId: string | number, action: "assume" | "priority_high" | "macro_followup") => {
-    const actionKey = `${ticketId}:${action}`;
-    setLoadingAction(actionKey);
-
-    startTransition(async () => {
-      try {
-        const result = await ticketQuickAction({ ticketId, action });
-
-        if (!result.success) {
-          toast.error(result.error || "Falha ao executar acao rapida.");
-          return;
-        }
-
-        const label =
-          action === "assume"
-            ? "Ticket assumido com sucesso."
-            : action === "priority_high"
-              ? "Prioridade alterada para alta."
-              : "Macro aplicada com sucesso.";
-
-        toast.success(label);
-        router.refresh();
-      } catch {
-        toast.error("Erro de conexao ao executar acao rapida.");
-      } finally {
-        setLoadingAction(null);
-      }
-    });
-  };
+  const emptyStateColSpan = isClosedView ? (isAdmin ? 7 : 6) : (isAdmin ? 8 : 7);
 
   return (
     <Card className="overflow-hidden border-border/60 bg-card shadow-sm animate-in fade-in duration-700">
@@ -86,21 +51,18 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
               <div className="flex items-center gap-2">
                 <TeamBadge team={ticket.team} />
                 <PriorityBadge priority={ticket.priority} />
-                {!isClosedView && <SlaBadge ticket={ticket} />}
+                {ticket.category ? (
+                  <span className="rounded-md border border-border/50 bg-muted/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {ticket.category}
+                  </span>
+                ) : null}
                 <span className="text-[11px] text-muted-foreground ml-auto">{formatDateSafe(ticket.updatedAt)}</span>
               </div>
-              {!isClosedView && (
-                <div className="flex flex-wrap gap-2">
-                  {isAdmin && (
-                    <>
-                      <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
-                    </>
-                  )}
-                  <Button variant="outline" size="sm" asChild className="ml-auto">
-                    <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>Abrir</Link>
-                  </Button>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" asChild className="ml-auto">
+                  <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>Abrir</Link>
+                </Button>
+              </div>
             </div>
           ))
         )}
@@ -113,12 +75,12 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
               <TableHead className="w-28 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
               <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Assunto</TableHead>
               {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</TableHead>}
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
               {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>
-              {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Atualizacao</TableHead>
-              {!isClosedView && <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>}
+              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -141,7 +103,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                     <div className="flex flex-col gap-0.5">
                       <span className="max-w-96 truncate text-sm font-medium text-foreground">{ticket.title}</span>
                       <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        {[humanizeModuleHierarchyValue(ticket.module) || ticket.group, ticket.category].filter(Boolean).join(" / ")}
+                        {humanizeModuleHierarchyValue(ticket.module) || ticket.group}
                       </span>
                     </div>
                   </TableCell>
@@ -158,6 +120,11 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                   )}
 
                   <TableCell>
+                    <span className="text-xs text-muted-foreground">
+                      {ticket.category || "Nao definida"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <TeamBadge team={ticket.team} />
                   </TableCell>
                   {!isClosedView && (
@@ -168,29 +135,17 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                   <TableCell>
                     <PriorityBadge priority={ticket.priority} />
                   </TableCell>
-                  {!isClosedView && (
-                    <TableCell>
-                      <SlaBadge ticket={ticket} />
-                    </TableCell>
-                  )}
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">{formatDateSafe(ticket.updatedAt)}</TableCell>
-                  {!isClosedView && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1.5">
-                        {isAdmin && (
-                          <>
-                            <QuickButton label="Assumir" pending={isPending && loadingAction === `${ticket.id}:assume`} onClick={() => runQuickAction(ticket.id, "assume")} />
-                          </>
-                        )}
-                        <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
-                          <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
-                            <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
-                            <ArrowUpRight className="h-3 w-3" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1.5">
+                      <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
+                        <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
+                          <span className="hidden sm:inline mr-1 text-xs font-medium">Abrir</span>
+                          <ArrowUpRight className="h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}

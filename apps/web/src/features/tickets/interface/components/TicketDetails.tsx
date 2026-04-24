@@ -25,7 +25,7 @@ import {
     Zap,
 } from "lucide-react";
 import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketAssigneeAction, updateTicketClassificationAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { updateTicketClassificationAction, updateTicketOwnersAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
@@ -218,7 +218,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
     const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
     const canManageRelease = currentTeam === "DESENVOLVIMENTO" || Boolean(ticket.publishToReleases);
-    const assignableUsers = getAssignableUsers(internalUsers, currentTeam);
+    const supportUsers = getAssignableUsers(internalUsers, "SUPORTE");
+    const developmentUsers = getAssignableUsers(internalUsers, "DESENVOLVIMENTO");
 
     return (
         <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -237,6 +238,11 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                     <span className="flex items-center gap-1">
                         <Clock3 className="h-3 w-3" /> Criado em {ticket.createdAt}
                     </span>
+                    {ticket.operations?.openedByName && (
+                        <span className="flex items-center gap-1">
+                            <UserRound className="h-3 w-3" /> Aberto por {ticket.operations.openedByName}
+                        </span>
+                    )}
                     {ticket.updatedAt && (
                         <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" /> Atualizado em {formatTicketDate(ticket.updatedAt)}
@@ -323,30 +329,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             }}
                                         />
                                     </EditableSidebarField>
-                                    {isAdmin && (
-                                        <EditableSidebarField label="Responsavel atual">
-                                            <AssigneeSelect
-                                                value={typeof ticket.ownerId === "string" ? ticket.ownerId : ticket.ownerId ? String(ticket.ownerId) : ""}
-                                                label={ticket.ownerName || "Sem responsavel"}
-                                                users={assignableUsers}
-                                                disabled={isPending}
-                                                onChange={(assignedUserId) => {
-                                                    startTransition(async () => {
-                                                        const res = await updateTicketAssigneeAction(String(ticket.id), {
-                                                            assignedUserId,
-                                                            team: currentTeam,
-                                                        });
-                                                        if (res.success) {
-                                                            toast.success(assignedUserId ? "Responsavel atualizado." : "Responsavel removido.");
-                                                        } else {
-                                                            toast.error(res.error || "Erro ao atualizar responsavel");
-                                                        }
-                                                        router.refresh();
-                                                    });
-                                                }}
-                                            />
-                                        </EditableSidebarField>
-                                    )}
                                     {isAdmin && classificationDirty && (
                                         <div className="flex gap-2">
                                             <Button
@@ -396,13 +378,29 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
                                 <Separator />
                                 <section className="space-y-3">
-                                    <SupportPeopleFields ticket={ticket} currentTeam={currentTeam} />
+                                    <SupportPeopleFields
+                                        ticket={ticket}
+                                        isAdmin={isAdmin}
+                                        isPending={isPending}
+                                        supportUsers={supportUsers}
+                                        developmentUsers={developmentUsers}
+                                        onUpdateOwners={(payload) => {
+                                            startTransition(async () => {
+                                                const res = await updateTicketOwnersAction(String(ticket.id), payload);
+                                                if (res.success) {
+                                                    toast.success("Responsaveis atualizados.");
+                                                } else {
+                                                    toast.error(res.error || "Erro ao atualizar responsaveis");
+                                                }
+                                                router.refresh();
+                                            });
+                                        }}
+                                    />
                                     <SidebarField label="Resolucao" value={<DetailDate value={ticket.resolvedAt} fallback="Pendente" />} />
                                 </section>
 
                                 <Separator />
                                 <section className="space-y-3">
-                                    {ticket.operations?.openedByName && !isSameName(ticket.operations.openedByName, ticket.ownerName) && <SidebarField label="Aberto por" value={<span className="text-xs">{ticket.operations.openedByName}</span>} />}
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
                                 </section>
                             </CardContent>
@@ -504,7 +502,7 @@ function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: Ti
     return nextArticles.filter((article, index, currentArticles) => {
         if (article.id !== "opening-technical-resources") return true;
         return currentArticles.findIndex((candidate) => candidate.id === "opening-technical-resources") === index;
-    };
+    });
 }
 
 function findOpeningArticleIndex(articles: TicketArticleItem[]) {
@@ -610,46 +608,70 @@ function DetailDate({ value, fallback }: { value?: string | null; fallback: stri
     return <span className="font-mono text-xs text-muted-foreground">{formatTicketDateTime(value)}</span>;
 }
 
-function isSameName(left?: string | null, right?: string | null) {
-    return Boolean(left && right && left.trim().toLowerCase() === right.trim().toLowerCase());
-}
-
-function SupportPeopleFields({ ticket, currentTeam }: { ticket: TicketDetailsItem; currentTeam?: string | null }) {
-    const team = (currentTeam || "").toUpperCase();
-    const supportName = ticket.operations?.supportOwnerName || (team === "SUPORTE" ? ticket.ownerName : null);
-    const developerName = ticket.operations?.developmentOwnerName || (team === "DESENVOLVIMENTO" ? ticket.ownerName : null);
-    const currentOwnerName = ticket.ownerName || (ticket.ownerId ? `#${ticket.ownerId}` : null);
-    const ownerIsAlreadyIdentified =
-        isSameName(currentOwnerName, supportName) ||
-        isSameName(currentOwnerName, developerName);
+function SupportPeopleFields({
+    ticket,
+    isAdmin,
+    isPending,
+    supportUsers,
+    developmentUsers,
+    onUpdateOwners,
+}: {
+    ticket: TicketDetailsItem;
+    isAdmin: boolean;
+    isPending: boolean;
+    supportUsers: InternalUserOption[];
+    developmentUsers: InternalUserOption[];
+    onUpdateOwners: (payload: { supportOwnerUserId?: string; developmentOwnerUserId?: string }) => void;
+}) {
+    const supportName = ticket.operations?.supportOwnerName || "Nao definido";
+    const supportId = ticket.operations?.supportOwnerUserId || "";
+    const developerName = ticket.operations?.developmentOwnerName || "Nao definido";
+    const developerId = ticket.operations?.developmentOwnerUserId || "";
 
     return (
         <>
-            <SidebarField
-                label="Analista suporte"
-                value={
-                    <span className="flex items-center justify-end gap-1.5 text-xs">
-                        {supportName && <UserRound className="h-3 w-3 text-muted-foreground" />}
-                        {supportName || "Nao definido"}
-                    </span>
-                }
-            />
-            <SidebarField
-                label="Desenvolvedor"
-                value={
-                    <span className="flex items-center justify-end gap-1.5 text-xs">
-                        {developerName && <UserRound className="h-3 w-3 text-muted-foreground" />}
-                        {developerName || "Nao definido"}
-                    </span>
-                }
-            />
-            {currentOwnerName && !ownerIsAlreadyIdentified && (
+            {isAdmin ? (
+                <EditableSidebarField label="Analista responsavel">
+                    <OwnerSelect
+                        value={supportId}
+                        label={supportName}
+                        users={supportUsers}
+                        disabled={isPending}
+                        emptyLabel="Sem analista responsavel"
+                        searchPlaceholder="Pesquisar analista"
+                        onChange={(value) => onUpdateOwners({ supportOwnerUserId: value })}
+                    />
+                </EditableSidebarField>
+            ) : (
                 <SidebarField
-                    label="Responsavel atual"
+                    label="Analista responsavel"
                     value={
                         <span className="flex items-center justify-end gap-1.5 text-xs">
-                            <UserRound className="h-3 w-3 text-muted-foreground" />
-                            {currentOwnerName}
+                            {supportId && <UserRound className="h-3 w-3 text-muted-foreground" />}
+                            {supportName}
+                        </span>
+                    }
+                />
+            )}
+            {isAdmin ? (
+                <EditableSidebarField label="Desenvolvedor">
+                    <OwnerSelect
+                        value={developerId}
+                        label={developerName}
+                        users={developmentUsers}
+                        disabled={isPending}
+                        emptyLabel="Sem desenvolvedor"
+                        searchPlaceholder="Pesquisar desenvolvedor"
+                        onChange={(value) => onUpdateOwners({ developmentOwnerUserId: value })}
+                    />
+                </EditableSidebarField>
+            ) : (
+                <SidebarField
+                    label="Desenvolvedor"
+                    value={
+                        <span className="flex items-center justify-end gap-1.5 text-xs">
+                            {developerId && <UserRound className="h-3 w-3 text-muted-foreground" />}
+                            {developerName}
                         </span>
                     }
                 />
@@ -658,9 +680,7 @@ function SupportPeopleFields({ ticket, currentTeam }: { ticket: TicketDetailsIte
     );
 }
 
-function getAssignableUsers(users: InternalUserOption[], currentTeam?: string | null) {
-    const team = (currentTeam || "").toUpperCase();
-
+function getAssignableUsers(users: InternalUserOption[], team: "SUPORTE" | "DESENVOLVIMENTO") {
     return users.filter((user) => {
         if (!user?.id) return false;
         if (team === "DESENVOLVIMENTO") {
@@ -671,17 +691,21 @@ function getAssignableUsers(users: InternalUserOption[], currentTeam?: string | 
     });
 }
 
-function AssigneeSelect({
+function OwnerSelect({
     value,
     label,
     users,
     disabled,
+    emptyLabel,
+    searchPlaceholder,
     onChange,
 }: {
     value: string;
     label: string;
     users: InternalUserOption[];
     disabled?: boolean;
+    emptyLabel: string;
+    searchPlaceholder: string;
     onChange: (value: string) => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -709,14 +733,14 @@ function AssigneeSelect({
                     <UserRound className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[20rem] p-0">
+            <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-(--radix-popover-trigger-width) p-0">
                 <div className="border-b border-border/60 p-3">
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Pesquisar tecnico"
+                            placeholder={searchPlaceholder}
                             className="pl-9"
                         />
                     </div>
@@ -735,7 +759,7 @@ function AssigneeSelect({
                             }}
                         >
                             <Check className={cn("h-4 w-4 shrink-0", !value ? "opacity-100 text-primary" : "opacity-0")} />
-                            <span>Sem responsavel</span>
+                            <span>{emptyLabel}</span>
                         </button>
 
                         {filteredUsers.map((user) => {
@@ -765,7 +789,7 @@ function AssigneeSelect({
 
                         {filteredUsers.length === 0 ? (
                             <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                                Nenhum tecnico encontrado.
+                                Nenhum usuario encontrado.
                             </div>
                         ) : null}
                     </div>
