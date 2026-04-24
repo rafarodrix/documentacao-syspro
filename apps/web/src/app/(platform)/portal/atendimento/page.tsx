@@ -20,6 +20,8 @@ export default async function AtendimentoPage() {
   const cookie = requestHeaders.get("cookie");
   const appOrigin = resolveServerOrigin(requestHeaders);
   let chatwootUrl: string | undefined;
+  let responseMode: "sso" | "fallback" | undefined;
+  let responseReason: string | undefined;
   let failureMessage =
     "Nao foi possivel concluir o acesso unificado ao atendimento. Verifique a integracao do Chatwoot no portal.";
 
@@ -34,9 +36,14 @@ export default async function AtendimentoPage() {
     });
 
     if (response.ok) {
-      const payload = (await response.json()) as { url?: string };
+      const payload = (await response.json()) as { url?: string; mode?: "sso" | "fallback"; reason?: string; message?: string };
       if (payload?.url) {
         chatwootUrl = payload.url;
+        responseMode = payload.mode;
+        responseReason = payload.reason;
+      }
+      if (payload?.message) {
+        failureMessage = payload.message;
       }
     } else {
       const payload = await response.json().catch(() => null) as { message?: string; error?: string } | null;
@@ -48,7 +55,7 @@ export default async function AtendimentoPage() {
       : "Nao foi possivel consultar o link SSO do Chatwoot.";
   }
 
-  if (chatwootUrl) {
+  if (chatwootUrl && responseMode === "sso") {
     redirect(chatwootUrl);
   }
 
@@ -65,7 +72,15 @@ export default async function AtendimentoPage() {
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-muted-foreground">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-              <p>{failureMessage}</p>
+              <div className="space-y-2">
+                <p>{failureMessage}</p>
+                {responseReason === "platform_app_permission" ? (
+                  <p className="text-xs">
+                    O acesso automatico depende de permissao do Platform App no Chatwoot para as rotas
+                    {" "}<code>/platform/api/v1/users/:id</code> e <code>/platform/api/v1/users/:id/login</code>.
+                  </p>
+                ) : null}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -75,6 +90,13 @@ export default async function AtendimentoPage() {
                   Voltar ao portal
                 </Link>
               </Button>
+              {chatwootUrl ? (
+                <Button asChild>
+                  <Link href={chatwootUrl} target="_blank" rel="noreferrer">
+                    Abrir Chatwoot direto
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>

@@ -444,7 +444,12 @@ export class UsersService {
       this.logger.warn(
         `Chatwoot indisponivel ao listar agentes para ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
       );
-      return { url: fallbackUrl };
+      return {
+        url: fallbackUrl,
+        mode: 'fallback',
+        reason: 'chatwoot_unavailable',
+        message: 'O Chatwoot esta indisponivel no momento. O portal pode abrir apenas a URL base da conta.',
+      };
     }
 
     let agent = agents.find((item: any) => String(item?.email ?? '').trim().toLowerCase() === user.email.toLowerCase());
@@ -469,7 +474,12 @@ export class UsersService {
         this.logger.warn(
           `Chatwoot indisponivel ao provisionar ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
         );
-        return { url: fallbackUrl };
+        return {
+          url: fallbackUrl,
+          mode: 'fallback',
+          reason: 'chatwoot_unavailable',
+          message: 'O Chatwoot esta indisponivel no momento. O portal pode abrir apenas a URL base da conta.',
+        };
       }
 
       const createdId = String(created?.id ?? '').trim();
@@ -492,7 +502,12 @@ export class UsersService {
           this.logger.warn(
             `Chatwoot indisponivel ao vincular ${user.email} na conta ${context.chatwoot.accountId}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
           );
-          return { url: fallbackUrl };
+          return {
+            url: fallbackUrl,
+            mode: 'fallback',
+            reason: 'chatwoot_unavailable',
+            message: 'O Chatwoot esta indisponivel no momento. O portal pode abrir apenas a URL base da conta.',
+          };
         }
       }
 
@@ -518,7 +533,12 @@ export class UsersService {
           this.logger.warn(
             `Chatwoot indisponivel ao atualizar o usuario ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
           );
-          return { url: fallbackUrl };
+          return {
+            url: fallbackUrl,
+            mode: 'fallback',
+            reason: 'chatwoot_unavailable',
+            message: 'O Chatwoot esta indisponivel no momento. O portal pode abrir apenas a URL base da conta.',
+          };
         } else {
           throw error;
         }
@@ -533,20 +553,31 @@ export class UsersService {
         this.logger.warn(
           `Chatwoot indisponivel ao gerar SSO do usuario ${user.email}. Redirecionando para a URL base da conta. Motivo: ${error.message}`
         );
-        return { url: fallbackUrl };
+        return {
+          url: fallbackUrl,
+          mode: 'fallback',
+          reason: 'chatwoot_unavailable',
+          message: 'O Chatwoot esta indisponivel no momento. O portal pode abrir apenas a URL base da conta.',
+        };
       }
 
       if (!this.isChatwootNonPermissibleResourceError(error)) {
         throw error;
       }
 
-      url = fallbackUrl;
       this.logger.warn(
         `Platform App sem permissao para gerar SSO do usuario ${user.email} no Chatwoot. Redirecionando para a URL base da conta.`
       );
+      return {
+        url: fallbackUrl,
+        mode: 'fallback',
+        reason: 'platform_app_permission',
+        message:
+          'O usuario ja existe no Chatwoot, mas o Platform App configurado nao tem permissao para gerar o acesso automatico por SSO.',
+      };
     }
 
-    return { url };
+    return { url, mode: 'sso' };
   }
 
   private isChatwootNonPermissibleResourceError(error: unknown): boolean {
@@ -657,12 +688,22 @@ export class UsersService {
           throw new Error(`Falha ao provisionar usuario ${user.email} no Chatwoot.`);
         }
       } else {
-        await this.chatwootClient.updatePlatformUser(context.chatwoot, platformUserId, {
-          name: user.name?.trim() || user.email,
-          displayName: user.name?.trim() || user.email,
-          email: user.email,
-          customAttributes,
-        });
+        try {
+          await this.chatwootClient.updatePlatformUser(context.chatwoot, platformUserId, {
+            name: user.name?.trim() || user.email,
+            displayName: user.name?.trim() || user.email,
+            email: user.email,
+            customAttributes,
+          });
+        } catch (error: any) {
+          if (this.isChatwootNonPermissibleResourceError(error)) {
+            this.logger.warn(
+              `Platform App sem permissao para sincronizar o perfil ${user.email} no Chatwoot. Mantendo usuario existente sem atualizar atributos.`,
+            );
+          } else {
+            throw error;
+          }
+        }
       }
 
       platformUserIdByBase.set(cacheKey, platformUserId);
