@@ -736,12 +736,19 @@ export class ProcessOutgoingMessageUseCase {
     const normalizedSenderName = this.normalizeAgentName(senderName);
     if (!normalizedSenderName) return normalizedContent;
 
-    const prefix = `Nome do atendente: ${normalizedSenderName}`;
-    if (normalizedContent.toLowerCase().startsWith(prefix.toLowerCase())) {
-      return normalizedContent;
+    const legacyPrefix = `Nome do atendente: ${normalizedSenderName}`;
+    const boldPrefix = `*${normalizedSenderName}:*`;
+    if (
+      normalizedContent.toLowerCase().startsWith(legacyPrefix.toLowerCase()) ||
+      normalizedContent.startsWith(boldPrefix)
+    ) {
+      const withoutLegacyPrefix = normalizedContent
+        .replace(new RegExp(`^${this.escapeRegExp(legacyPrefix)}\\s*`, 'i'), '')
+        .trim();
+      return withoutLegacyPrefix ? `${boldPrefix} ${withoutLegacyPrefix}` : boldPrefix;
     }
 
-    return `${prefix}\n\n${normalizedContent}`;
+    return `${boldPrefix} ${normalizedContent}`;
   }
 
   private extractSenderName(payload: any, message: any, conversationMessage: any): string | undefined {
@@ -754,12 +761,13 @@ export class ProcessOutgoingMessageUseCase {
       conversationMessage?.user;
 
     const candidates = [
-      sender?.name,
       sender?.available_name,
       sender?.display_name,
+      sender?.name,
+      payload?.conversation?.meta?.assignee?.available_name,
+      payload?.conversation?.meta?.assignee?.display_name,
       sender?.email,
       payload?.conversation?.meta?.assignee?.name,
-      payload?.conversation?.meta?.assignee?.available_name,
     ];
 
     for (const candidate of candidates) {
@@ -773,6 +781,10 @@ export class ProcessOutgoingMessageUseCase {
   private normalizeAgentName(value: unknown): string | undefined {
     const normalized = String(value ?? '').trim();
     return normalized || undefined;
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
 }

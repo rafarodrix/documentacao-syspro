@@ -158,7 +158,7 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="prependAgentNameOnOutbound"
                     label="Enviar nome do atendente no WhatsApp"
-                    description="Prefixa a resposta enviada ao cliente com 'Nome do atendente: ...' usando o agente que respondeu no Chatwoot."
+                    description="Prefixa a resposta enviada ao cliente com o nome do atendente em destaque, por exemplo '*Rafael Rodrigues:* Olá, como posso ajudar?'."
                     checked={behavior.prependAgentNameOnOutbound}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, prependAgentNameOnOutbound: checked }))
