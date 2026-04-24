@@ -295,6 +295,33 @@
     border-right: 1px solid hsl(var(--border) / 0.36);
   }
 
+  .portal-docs-shell {
+    --portal-docs-sidebar-width: 19rem;
+  }
+
+  .portal-docs-shell #nd-subnav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
+    position: sticky;
+    top: 0;
+    left: auto;
+    height: calc(100dvh - 8rem);
+    max-height: calc(100dvh - 8rem);
+    z-index: 10;
+  }
+
+  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell {
+    z-index: 70;
+  }
+
+  .portal-docs-shell [data-layout="docs"] {
+    isolation: isolate;
+  }
+
   #nd-sidebar.docs-sidebar-shell > div:first-child,
   #nd-sidebar-mobile.docs-sidebar-shell > div:first-child {
     position: sticky;

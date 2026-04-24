@@ -4,6 +4,7 @@ import { useMemo, type CSSProperties } from 'react';
 import Link from 'next/link';
 import type { Role } from '@prisma/client';
 import {
+  BadgeCheck,
   ArrowRight,
   BarChart3,
   BookOpen,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { Badge } from '@/components/ui/badge';
+import { RegistryToolbar } from '@/components/platform/shared/RegistryListScaffold';
 import { cn } from '@/lib/utils';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
@@ -64,39 +66,66 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
   }, [role, canViewTechnical]);
 
   return (
-    <div className="space-y-10 pb-12">
-      {/* Hero */}
+    <div className="space-y-6 pb-12">
       <section
-        className="relative animate-docs-fade-up overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] bg-card p-5 opacity-0 md:p-6"
+        className="relative animate-docs-fade-up overflow-hidden rounded-3xl border border-border/60 bg-linear-to-br from-card via-card to-primary/5 p-6 opacity-0 shadow-sm md:p-8"
         style={staggerStyle(0)}
       >
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-sky-500/10 blur-[80px]" />
 
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <h1 className="max-w-3xl text-2xl font-semibold tracking-tight md:text-4xl">
-            Como podemos ajudar?
-          </h1>
-          <Badge
-            variant="outline"
-            className="shrink-0 border-primary/20 bg-primary/5 text-primary"
-          >
-            <Sparkles className="mr-1.5 h-3 w-3" />
-            Base de conhecimento atualizada
-          </Badge>
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-3">
+            <Badge variant="outline" className="w-fit border-primary/20 bg-primary/5 text-primary">
+              <Sparkles className="mr-1.5 h-3 w-3" />
+              Central de ajuda no portal
+            </Badge>
+            <div>
+              <h1 className="max-w-3xl text-2xl font-semibold tracking-tight md:text-4xl">
+                Documentação e guias operacionais
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Acesse manuais, dúvidas frequentes, treinamentos e materiais técnicos dentro do mesmo ambiente do portal.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-3 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Público</p>
+            <p className="mt-2 text-sm font-medium text-foreground">{ROLE_LABELS[status.roleSegment]}</p>
+          </div>
         </div>
 
-        <LargeSearchToggle className="h-11 min-w-65 w-full flex-1 justify-start rounded-xl border-border/70 bg-background/85 text-sm" />
+        <RegistryToolbar
+          searchValue=""
+          searchPlaceholder="Buscar páginas e atalhos da documentação"
+          onSearchChange={() => {}}
+          filters={
+            <div className="flex items-center gap-2 overflow-x-auto">
+              <Badge variant="secondary" className="rounded-full px-3 py-1">
+                <Compass className="mr-1.5 h-3 w-3" />
+                {startTasks.length} trilhas
+              </Badge>
+              <Badge variant="secondary" className="rounded-full px-3 py-1">
+                <History className="mr-1.5 h-3 w-3" />
+                {derived.recent.length} recentes
+              </Badge>
+              <Badge variant="secondary" className="rounded-full px-3 py-1">
+                <BadgeCheck className="mr-1.5 h-3 w-3" />
+                {metrics.insightCount} insights
+              </Badge>
+            </div>
+          }
+          actions={<LargeSearchToggle className="h-10 min-w-70 justify-start rounded-xl border-border/70 bg-background/85 text-sm" />}
+        />
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <HeroMetric href="#acesso-rapido" icon={Compass} label="Trilhas iniciais" value={startTasks.length} />
           <HeroMetric href="#continuar-leitura" icon={History} label="Recentes" value={derived.recent.length} />
           <HeroMetric href="#insights" icon={BarChart3} label="Insights ativos" value={metrics.insightCount} className="col-span-2 sm:col-span-1" />
         </div>
       </section>
 
-      {/* Acesso rÃ¡pido */}
-      <section id="acesso-rapido" className="scroll-mt-24 animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(1)}>
+      <section id="acesso-rapido" className="scroll-mt-24 animate-docs-fade-up space-y-3 rounded-3xl border border-border/60 bg-card/40 p-5 opacity-0 shadow-sm sm:p-6" style={staggerStyle(1)}>
         <DocsSectionHeader icon={LayoutDashboard} label="Acesso rÃ¡pido" />
         <div className="grid gap-3 sm:grid-cols-2">
           {quickLinks.map((item, index) => (
@@ -105,13 +134,12 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </div>
       </section>
 
-      {/* Continuar leitura */}
       {derived.continueReading ? (
-        <section id="continuar-leitura" className="scroll-mt-24 animate-docs-fade-up opacity-0" style={staggerStyle(3)}>
+        <section id="continuar-leitura" className="scroll-mt-24 animate-docs-fade-up rounded-3xl border border-border/60 bg-card/40 p-5 opacity-0 shadow-sm sm:p-6" style={staggerStyle(3)}>
           <DocsSectionHeader icon={History} label="Continuar leitura" />
           <Link
             href={derived.continueReading.href}
-            className="group flex items-center justify-between gap-4 rounded-xl border border-transparent bg-card/40 p-4 transition-all hover:border-border/60 hover:bg-accent"
+            className="group flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-background/80 p-4 transition-all hover:border-primary/20 hover:bg-accent"
           >
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background">
@@ -131,10 +159,9 @@ export function DocsHomePage({ pages, canViewTechnical, role }: DocsHomePageProp
         </section>
       ) : null}
 
-      {/* Insights de uso */}
-      <section id="insights" className="scroll-mt-24 animate-docs-fade-up space-y-3 opacity-0" style={staggerStyle(4)}>
+      <section id="insights" className="scroll-mt-24 animate-docs-fade-up space-y-3 rounded-3xl border border-border/60 bg-card/40 p-5 opacity-0 shadow-sm sm:p-6" style={staggerStyle(4)}>
         <DocsSectionHeader icon={TrendingUp} label="Insights de uso" />
-        <div className="rounded-2xl border border-border/60 bg-card/40 p-3 sm:p-4">
+        <div className="rounded-2xl border border-border/60 bg-background/70 p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between px-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Painel de inteligÃªncia

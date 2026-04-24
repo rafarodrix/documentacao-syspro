@@ -9,7 +9,7 @@ import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
 import { DocsSidebarInlineCollapse } from '@/components/docs/DocsSidebarInlineCollapse';
-import { DOCS_STORAGE_KEYS, readStorage, writeStorage } from '@/lib/docs-storage';
+import { DOCS_STORAGE_KEYS, readStorage } from '@/lib/docs-storage';
 
 function getDefaultLayoutForRole(role: Role): 'docs' | 'notebook' {
   if (role === 'SUPORTE' || role === 'DEVELOPER') return 'notebook';
@@ -49,7 +49,7 @@ export function DocsLayoutClient({
   }, [isAdmin, adminLayoutMode, role, isDocsHome]);
 
   const sharedSidebarProps = {
-    className: 'docs-sidebar-shell',
+    className: 'docs-sidebar-shell portal-docs-sidebar',
     defaultOpenLevel: 0,
     collapsible: false,
     banner: <DocsSidebarInlineCollapse />,

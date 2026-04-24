@@ -15,15 +15,15 @@ import { DOCS_STORAGE_KEYS, readStorage, writeStorage } from '@/lib/docs-storage
 type QuickLink = { href: string; label: string; icon: typeof BookOpenText };
 
 const BASE_LINKS: QuickLink[] = [
-  { href: '/docs', label: 'Central da Doc', icon: BookOpenText },
-  { href: '/docs/manual/cadastro', label: 'Cadastro', icon: BookOpenText },
-  { href: '/docs/manual/financeiro', label: 'Financeiro', icon: ReceiptText },
-  { href: '/docs/duvidas/rejeicoes/nfe-nfce', label: 'RejeiÃ§Ãµes NFe', icon: CircleHelp },
-  { href: '/docs/suporte', label: 'Suporte', icon: LifeBuoy },
+  { href: '/portal/docs', label: 'Central da Doc', icon: BookOpenText },
+  { href: '/portal/docs/manual/cadastro', label: 'Cadastro', icon: BookOpenText },
+  { href: '/portal/docs/manual/financeiro', label: 'Financeiro', icon: ReceiptText },
+  { href: '/portal/docs/duvidas/rejeicoes/nfe-nfce', label: 'RejeiÃ§Ãµes NFe', icon: CircleHelp },
+  { href: '/portal/docs/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
 const SYSTEM_LINKS: QuickLink[] = [
-  { href: '/docs/manuais-tecnicos', label: 'Manuais TÃ©cnicos', icon: BookOpenText },
+  { href: '/portal/docs/manuais-tecnicos', label: 'Manuais TÃ©cnicos', icon: BookOpenText },
 ];
 
 export function DocsSidebarQuickLinks({ role }: { role: Role }) {

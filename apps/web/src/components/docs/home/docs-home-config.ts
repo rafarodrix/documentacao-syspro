@@ -27,28 +27,28 @@ export type QuickLink = {
 
 export const BASE_QUICK_LINKS: QuickLink[] = [
   {
-    href: '/docs/manual',
+    href: '/portal/docs/manual',
     title: 'DocumentaÃ§Ã£o',
     description: 'Guias e mÃ³dulos para o dia a dia.',
     icon: BookOpen,
     tone: 'docs',
   },
   {
-    href: '/docs/duvidas',
+    href: '/portal/docs/duvidas',
     title: 'DÃºvidas frequentes',
     description: 'Respostas para incidentes comuns.',
     icon: HelpCircle,
     tone: 'faq',
   },
   {
-    href: '/docs/treinamento',
+    href: '/portal/docs/treinamento',
     title: 'Treinamentos',
     description: 'Trilhas de capacitaÃ§Ã£o da equipe.',
     icon: Users,
     tone: 'training',
   },
   {
-    href: '/docs/suporte',
+    href: '/portal/docs/suporte',
     title: 'Suporte',
     description: 'Processos, integraÃ§Ãµes e operaÃ§Ã£o.',
     icon: Wrench,
@@ -57,7 +57,7 @@ export const BASE_QUICK_LINKS: QuickLink[] = [
 ];
 
 export const TECHNICAL_QUICK_LINK: QuickLink = {
-  href: '/docs/manuais-tecnicos',
+  href: '/portal/docs/manuais-tecnicos',
   title: 'Manuais tÃ©cnicos',
   description: 'Arquitetura, backlog e padrÃµes.',
   icon: Wrench,
@@ -70,29 +70,29 @@ export const TECHNICAL_QUICK_LINK: QuickLink = {
 
 export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
   ADMIN: [
-    { href: '/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'GovernanÃ§a tÃ©cnica e padrÃµes.' },
-    { href: '/docs/suporte', title: 'OperaÃ§Ã£o de suporte', description: 'Fluxos de atendimento e escalonamento.' },
-    { href: '/docs/manual', title: 'VisÃ£o funcional do produto', description: 'ConteÃºdo orientado ao cliente final.' },
+    { href: '/portal/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'GovernanÃ§a tÃ©cnica e padrÃµes.' },
+    { href: '/portal/docs/suporte', title: 'OperaÃ§Ã£o de suporte', description: 'Fluxos de atendimento e escalonamento.' },
+    { href: '/portal/docs/manual', title: 'VisÃ£o funcional do produto', description: 'ConteÃºdo orientado ao cliente final.' },
   ],
   DEVELOPER: [
-    { href: '/docs/manuais-tecnicos', title: 'Manuais tÃ©cnicos', description: 'Infra, stack e decisÃµes de arquitetura.' },
-    { href: '/docs/suporte', title: 'Processos de suporte', description: 'Contexto de operaÃ§Ã£o e troubleshooting.' },
-    { href: '/docs/duvidas', title: 'Erros recorrentes', description: 'Base para correÃ§Ãµes rÃ¡pidas.' },
+    { href: '/portal/docs/manuais-tecnicos', title: 'Manuais tÃ©cnicos', description: 'Infra, stack e decisÃµes de arquitetura.' },
+    { href: '/portal/docs/suporte', title: 'Processos de suporte', description: 'Contexto de operaÃ§Ã£o e troubleshooting.' },
+    { href: '/portal/docs/duvidas', title: 'Erros recorrentes', description: 'Base para correÃ§Ãµes rÃ¡pidas.' },
   ],
   SUPORTE: [
-    { href: '/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks e processos operacionais.' },
-    { href: '/docs/duvidas', title: 'DÃºvidas e erros comuns', description: 'ResoluÃ§Ã£o rÃ¡pida de incidentes.' },
-    { href: '/docs/treinamento', title: 'Treinamentos', description: 'CapacitaÃ§Ã£o contÃ­nua do time.' },
+    { href: '/portal/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks e processos operacionais.' },
+    { href: '/portal/docs/duvidas', title: 'DÃºvidas e erros comuns', description: 'ResoluÃ§Ã£o rÃ¡pida de incidentes.' },
+    { href: '/portal/docs/treinamento', title: 'Treinamentos', description: 'CapacitaÃ§Ã£o contÃ­nua do time.' },
   ],
   CLIENTE_ADMIN: [
-    { href: '/docs/manual', title: 'OperaÃ§Ã£o do sistema', description: 'Rotinas principais do dia a dia.' },
-    { href: '/docs/treinamento', title: 'Treinar equipe', description: 'Materiais para onboarding interno.' },
-    { href: '/docs/duvidas', title: 'Resolver problemas comuns', description: 'Perguntas e respostas rÃ¡pidas.' },
+    { href: '/portal/docs/manual', title: 'OperaÃ§Ã£o do sistema', description: 'Rotinas principais do dia a dia.' },
+    { href: '/portal/docs/treinamento', title: 'Treinar equipe', description: 'Materiais para onboarding interno.' },
+    { href: '/portal/docs/duvidas', title: 'Resolver problemas comuns', description: 'Perguntas e respostas rÃ¡pidas.' },
   ],
   CLIENTE_USER: [
-    { href: '/docs/manual', title: 'Primeiros passos', description: 'Fluxo bÃ¡sico para comeÃ§ar a operar.' },
-    { href: '/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios.' },
-    { href: '/docs/treinamento', title: 'Aprender mais rÃ¡pido', description: 'Guias prÃ¡ticos por mÃ³dulo.' },
+    { href: '/portal/docs/manual', title: 'Primeiros passos', description: 'Fluxo bÃ¡sico para comeÃ§ar a operar.' },
+    { href: '/portal/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios.' },
+    { href: '/portal/docs/treinamento', title: 'Aprender mais rÃ¡pido', description: 'Guias prÃ¡ticos por mÃ³dulo.' },
   ],
 };
 
