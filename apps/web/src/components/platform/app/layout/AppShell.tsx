@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/platform/app/layout/AppSidebar"
 import { MobileHeader } from "@/components/platform/app/layout/MobileHeader"
 import { ClientHeader } from "@/components/platform/app/header/ClientHeader"
 import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar"
+import { usePortalShellMode } from "@/components/platform/app/layout/PortalShellModeContext"
 
 interface AppShellUser {
   name: string
@@ -33,7 +34,9 @@ export function AppShell({
   contentClassName,
   contentContainerClassName,
 }: AppShellProps) {
+  const { mode } = usePortalShellMode()
   const [collapsed, setCollapsed] = useState(false)
+  const showPortalSidebar = mode.showSidebar
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY)
@@ -48,14 +51,21 @@ export function AppShell({
 
   return (
     <div className="flex h-screen w-full bg-muted/5 overflow-hidden">
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-50">
-        <AppSidebar user={user} collapsed={collapsed} navigationAccess={navigationAccess} />
-      </aside>
+      {showPortalSidebar ? (
+        <aside className="hidden md:flex fixed inset-y-0 left-0 z-50">
+          <AppSidebar user={user} collapsed={collapsed} navigationAccess={navigationAccess} />
+        </aside>
+      ) : null}
 
-      <div className={`flex-1 flex flex-col h-full transition-[padding-left] duration-200 ${collapsed ? "md:pl-20" : "md:pl-72"}`}>
-        <MobileHeader user={user} navigationAccess={navigationAccess} />
+      <div
+        className={`flex-1 flex flex-col h-full transition-[padding-left] duration-200 ${
+          showPortalSidebar ? (collapsed ? "md:pl-20" : "md:pl-72") : "md:pl-0"
+        }`}
+      >
+        {showPortalSidebar ? <MobileHeader user={user} navigationAccess={navigationAccess} /> : null}
         <ClientHeader 
           user={user} 
+          showSidebarToggle={showPortalSidebar}
           sidebarCollapsed={collapsed} 
           onToggleSidebar={() => setCollapsed((prev) => !prev)} 
           initialActiveSessionsCount={initialActiveSessionsCount}

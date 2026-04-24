@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { isAdminOnlyDocUrl, DOCS_TECHNICAL_PATH_PREFIX } from '@/lib/docs-access';
 import { filterDocTree } from '@/lib/docs-tree-utils';
 import { DocsLayoutClient } from '@/components/docs/DocsLayoutClient';
+import { PortalShellModeController } from '@/components/platform/app/layout/PortalShellModeContext';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
 
 export default async function PortalDocsLayout({ children }: { children: ReactNode }) {
@@ -23,6 +24,7 @@ export default async function PortalDocsLayout({ children }: { children: ReactNo
 
   return (
     <RootProvider>
+      <PortalShellModeController showSidebar={false} />
       <div className="portal-docs-shell overflow-hidden rounded-[28px] border border-border/60 bg-background shadow-sm">
         <main className="min-h-0 [--fd-banner-height:0px] [--portal-docs-top-offset:0px]">
           <DocsLayoutClient docsTree={docsTree} role={session.role}>

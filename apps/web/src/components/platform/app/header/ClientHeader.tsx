@@ -19,26 +19,36 @@ interface ClientHeaderProps {
     image?: string | null
     role: Role
   }
+  showSidebarToggle?: boolean
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
   initialActiveSessionsCount?: number
   navigationAccess?: NavigationAccess
 }
 
-export function ClientHeader({ user, sidebarCollapsed, onToggleSidebar, initialActiveSessionsCount, navigationAccess }: ClientHeaderProps) {
+export function ClientHeader({
+  user,
+  showSidebarToggle = true,
+  sidebarCollapsed,
+  onToggleSidebar,
+  initialActiveSessionsCount,
+  navigationAccess,
+}: ClientHeaderProps) {
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
 
   return (
     <header className="hidden md:flex sticky top-0 z-40 h-14 items-center gap-4 border-b border-border/40 bg-background/90 px-4 lg:px-6 backdrop-blur-md">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
-        onClick={onToggleSidebar}
-        aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
-      >
-        {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-      </Button>
+      {showSidebarToggle ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+          onClick={onToggleSidebar}
+          aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </Button>
+      ) : null}
 
       <Breadcrumbs />
 
