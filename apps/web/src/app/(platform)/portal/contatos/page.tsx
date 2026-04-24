@@ -14,6 +14,7 @@ export default async function ContatosRootPage() {
   const canCreate = await currentUserHasPermission("contacts:create", { acceptCompanyScope: true });
   const canEdit = await currentUserHasPermission("contacts:edit", { acceptCompanyScope: true });
   const canDelete = await currentUserHasPermission("contacts:delete", { acceptCompanyScope: true });
+  const canSync = await currentUserHasPermission("contacts:sync");
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -27,6 +28,7 @@ export default async function ContatosRootPage() {
         canCreate={canCreate}
         canEdit={canEdit}
         canDelete={canDelete}
+        canSync={canSync}
       />
     </div>
   );

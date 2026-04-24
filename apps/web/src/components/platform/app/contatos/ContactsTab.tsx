@@ -99,6 +99,7 @@ interface ContactsTabProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canSync: boolean;
 }
 
 const SCOPE_LABELS: Record<ScopeFilter, string> = {
@@ -135,7 +136,7 @@ function formatCpf(value?: string | null) {
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 }
 
-export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps) {
+export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: ContactsTabProps) {
   const router = useRouter();
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [contactStats, setContactStats] = useState<ContactStats | null>(null);
@@ -384,12 +385,18 @@ export function ContactsTab({ canCreate, canEdit, canDelete }: ContactsTabProps)
                 size="sm"
                 className="h-9 gap-2"
                 onClick={() => void refreshContactsView()}
-                disabled={loadingList}
+                disabled={loadingList || !canSync}
               >
                 {loadingList ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Atualizar
               </Button>
-              <Button variant="outline" size="sm" className="h-9 gap-2" onClick={handleEvolutionSync} disabled={syncing}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-2"
+                onClick={handleEvolutionSync}
+                disabled={syncing || !canSync}
+              >
                 {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Sincronizar
               </Button>
