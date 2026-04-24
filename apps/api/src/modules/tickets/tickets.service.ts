@@ -695,11 +695,16 @@ export class TicketsService {
       input.team !== undefined
         ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
         : undefined;
+    const previousTeam =
+      typeof existingMetadata.currentTeam === 'string' && existingMetadata.currentTeam.trim()
+        ? existingMetadata.currentTeam.trim().toUpperCase()
+        : null;
     const currentTeam =
       requestedTeam ||
-      (typeof existingMetadata.currentTeam === 'string' && existingMetadata.currentTeam.trim()
-        ? existingMetadata.currentTeam.trim().toUpperCase()
-        : null);
+      previousTeam;
+    const shouldResetDevelopmentWorkflow =
+      requestedTeam === 'DESENVOLVIMENTO' && previousTeam !== 'DESENVOLVIMENTO';
+    const requestedStatus = shouldResetDevelopmentWorkflow ? TicketStatus.NEW : input.status;
     const nextCategory =
       input.category !== undefined
         ? input.category?.trim() || null
@@ -723,11 +728,11 @@ export class TicketsService {
       throw new BadRequestException('Tipo obrigatorio para publicar em releases.');
     }
 
-    if (input.status === TicketStatus.RESOLVED && currentTeam === 'DESENVOLVIMENTO' && !effectiveResolutionSummary) {
+    if (requestedStatus === TicketStatus.RESOLVED && currentTeam === 'DESENVOLVIMENTO' && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para concluir tickets do setor de Desenvolvimento.');
     }
 
-    if (requestedTeam === 'DESENVOLVIMENTO' && (!handoffNote || handoffNote.length < 20)) {
+    if (requestedTeam === 'DESENVOLVIMENTO' && previousTeam !== 'DESENVOLVIMENTO' && (!handoffNote || handoffNote.length < 20)) {
       throw new BadRequestException('Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres).');
     }
 
@@ -749,16 +754,30 @@ export class TicketsService {
 
       if (input.team !== undefined) {
         currentMetadata.currentTeam = requestedTeam;
+        if (shouldResetDevelopmentWorkflow) {
+          data.status = TicketStatus.NEW;
+          data.closedAt = null;
+          data.resolvedByUserId = null;
+          data.slaResolutionHitAt = null;
+          data.assignedUserId = null;
+          delete currentMetadata.currentOwnerUserId;
+          delete currentMetadata.currentOwnerName;
+          delete currentMetadata.currentOwnerRole;
+          delete currentMetadata.developmentOwnerUserId;
+          delete currentMetadata.developmentOwnerName;
+          delete currentMetadata.resolvedByName;
+          delete currentMetadata.resolvedByRole;
+        }
       }
       if (input.category !== undefined) currentMetadata.category = input.category?.trim() || null;
       if (input.category !== undefined || input.team !== undefined) currentMetadata.categoryType = nextCategoryType;
       if (input.module !== undefined) currentMetadata.module = input.module?.trim() || null;
-      if (input.status !== undefined) {
-        const isClosingStatus = input.status === TicketStatus.RESOLVED || input.status === TicketStatus.ARCHIVED;
-        data.status = input.status;
+      if (requestedStatus !== undefined) {
+        const isClosingStatus = requestedStatus === TicketStatus.RESOLVED || requestedStatus === TicketStatus.ARCHIVED;
+        data.status = requestedStatus;
         data.closedAt = isClosingStatus ? new Date() : null;
-        data.resolvedByUserId = input.status === TicketStatus.RESOLVED ? requester.userId : null;
-        if (input.status === TicketStatus.RESOLVED) {
+        data.resolvedByUserId = requestedStatus === TicketStatus.RESOLVED ? requester.userId : null;
+        if (requestedStatus === TicketStatus.RESOLVED) {
           data.slaResolutionHitAt = new Date();
         }
         if (!isClosingStatus) {
@@ -766,7 +785,7 @@ export class TicketsService {
           delete currentMetadata.resolvedByName;
           delete currentMetadata.resolvedByRole;
         }
-        if (input.status === TicketStatus.RESOLVED) {
+        if (requestedStatus === TicketStatus.RESOLVED) {
           const resolver = await tx.user.findUnique({
             where: { id: requester.userId },
             select: { name: true, email: true },
@@ -794,7 +813,7 @@ export class TicketsService {
         const hasDevelopmentOwner =
           typeof currentMetadata.developmentOwnerUserId === 'string' && currentMetadata.developmentOwnerUserId.trim().length > 0;
 
-        if (requester.role === Role.DEVELOPER && !hasDevelopmentOwner) {
+        if (requester.role === Role.DEVELOPER && !hasDevelopmentOwner && !shouldResetDevelopmentWorkflow) {
           const developerName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
           currentMetadata.developmentOwnerUserId = requester.userId;
           currentMetadata.developmentOwnerName = developerName;
@@ -807,7 +826,7 @@ export class TicketsService {
           }
         }
 
-        if (requester.role !== Role.DEVELOPER && !hasSupportOwner) {
+        if (requester.role !== Role.DEVELOPER && !hasSupportOwner && !shouldResetDevelopmentWorkflow) {
           const supportName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
           currentMetadata.supportOwnerUserId = requester.userId;
           currentMetadata.supportOwnerName = supportName;
@@ -958,7 +977,7 @@ export class TicketsService {
         });
       }
 
-      if (requestedTeam) {
+      if (requestedTeam && requestedTeam !== previousTeam) {
         await tx.conversationMessage.create({
           data: {
             conversationId: id,

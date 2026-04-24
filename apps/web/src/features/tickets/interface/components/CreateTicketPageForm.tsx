@@ -53,6 +53,10 @@ import {
   type TicketCompanyPickerOption,
 } from "@/features/tickets/interface/components/TicketCompanyPicker";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
+import {
+  getSuggestedCategoryForTeam,
+  useTicketModuleSettings,
+} from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 
 import "react-quill-new/dist/quill.snow.css";
 
@@ -96,10 +100,6 @@ function normalizeTicketTeam(value: string): TicketTeam {
   return value === "DESENVOLVIMENTO" ? "DESENVOLVIMENTO" : "SUPORTE";
 }
 
-function getSuggestedCategoryForTeam(settings: TicketModuleSettings, team: TicketTeam) {
-  return settings.categories.find((category) => category.defaultTeam === team)?.value || "";
-}
-
 export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -116,7 +116,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [descriptionHtml, setDescriptionHtml] = useState("");
-  const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
+  const ticketSettings = useTicketModuleSettings();
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
   const [selectedTeam, setSelectedTeam] = useState<TicketTeam>(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
@@ -192,29 +192,17 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     !isPending;
 
   useEffect(() => {
-    let active = true;
+    const nextTeam: TicketTeam = isSystemUser ? ticketSettings.defaultTeam : "SUPORTE";
+    const nextCategory =
+      getSuggestedCategoryForTeam(ticketSettings, nextTeam) ||
+      ticketSettings.categories[0]?.value ||
+      "incident";
 
-    fetch("/api/platform/settings/tickets", { method: "GET", cache: "no-store" })
-      .then(async (response) => {
-        const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
-        if (!active || !json.success || !json.data) return;
-
-        const nextSettings = json.data;
-        const nextTeam: TicketTeam = isSystemUser ? nextSettings.defaultTeam : "SUPORTE";
-        const nextCategory = getSuggestedCategoryForTeam(nextSettings, nextTeam) || nextSettings.categories[0]?.value || "incident";
-
-        setTicketSettings(nextSettings);
-        setSelectedTeam(nextTeam);
-        setSelectedCategory(nextCategory);
-        setSelectedModule(nextSettings.modules[0]?.value || "");
-        form.setValue("priority", nextSettings.defaultPriority, { shouldValidate: false });
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-    };
-  }, [form, isSystemUser]);
+    setSelectedTeam(nextTeam);
+    setSelectedCategory(nextCategory);
+    setSelectedModule((current) => current || ticketSettings.modules[0]?.value || "");
+    form.setValue("priority", ticketSettings.defaultPriority, { shouldValidate: false });
+  }, [form, isSystemUser, ticketSettings]);
 
   useEffect(() => {
     if (isSystemUser) return;

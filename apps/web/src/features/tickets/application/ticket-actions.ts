@@ -605,7 +605,7 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
 
 export async function updateTicketClassificationAction(
   ticketId: string,
-  payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority; note?: string },
+  payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority; status?: TicketModuleStatus; note?: string },
 ): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
@@ -619,6 +619,7 @@ export async function updateTicketClassificationAction(
     ...(payload.module !== undefined ? { module: payload.module.trim() } : {}),
     ...(payload.category !== undefined ? { category: payload.category.trim() } : {}),
     ...(payload.priority !== undefined ? { priority: payload.priority } : {}),
+    ...(payload.status !== undefined ? { status: payload.status } : {}),
     ...(note ? { note } : team === "DESENVOLVIMENTO" ? { note: "Classificacao atualizada para Desenvolvimento pelo painel do ticket." } : {}),
   };
 

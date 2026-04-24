@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import dynamic from "next/dynamic";
-import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModuleSettings } from "@dosc-syspro/contracts/ticket";
+import { DEFAULT_TICKET_MODULE_SETTINGS } from "@dosc-syspro/contracts/ticket";
 import { useTicketChat } from "@/features/tickets/interface";
+import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +45,7 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
     const [isDragging, setIsDragging] = useState(false);
     const [quickTemplates, setQuickTemplates] = useState(DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const ticketSettings = useTicketModuleSettings();
     const isClosed = ["closed", "merged", "fechado", "resolvido", "finalizado", "recusado"].includes(
         (ticketStatus || "").toLowerCase(),
     );
@@ -53,20 +55,8 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
     const composerIsInternal = messageMode === "INTERNAL";
 
     useEffect(() => {
-        let active = true;
-
-        fetch("/api/platform/settings/tickets", { method: "GET", cache: "no-store" })
-            .then(async (response) => {
-                const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
-                if (!active || !json.success || !json.data?.quickReplyTemplates) return;
-                setQuickTemplates(json.data.quickReplyTemplates);
-            })
-            .catch(() => undefined);
-
-        return () => {
-            active = false;
-        };
-    }, []);
+        setQuickTemplates(ticketSettings.quickReplyTemplates);
+    }, [ticketSettings]);
 
     const insertTemplate = (body: string) => {
         const html = body.trim().startsWith("<") ? body : `<p>${body}</p>`;

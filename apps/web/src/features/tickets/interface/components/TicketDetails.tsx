@@ -18,14 +18,13 @@ import {
     ExternalLink,
     Loader2,
     Search,
-    Save,
     Sparkles,
     Timer,
     UserRound,
     Zap,
 } from "lucide-react";
-import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModulePriority, type TicketModuleSettings, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketClassificationAction, updateTicketOwnersAction, updateTicketStatusAction } from "@/features/tickets/application/ticket-actions";
+import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
+import { updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
@@ -38,7 +37,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem } from "./types";
@@ -64,12 +65,13 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
-    const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
+    const ticketSettings = useTicketModuleSettings();
     const [internalUsers, setInternalUsers] = useState<InternalUserOption[]>([]);
     const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
     const [localModule, setLocalModule] = useState(ticket?.operations?.module || "");
     const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
     const [localPriority, setLocalPriority] = useState(ticket?.priority);
+    const [transferNote, setTransferNote] = useState("");
     const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
     void currentUserId;
@@ -79,16 +81,8 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
         async function loadSettings() {
             try {
-                const [settingsResponse, usersResponse] = await Promise.all([
-                    fetch("/api/platform/settings/tickets", { cache: "no-store" }),
-                    fetch("/api/users", { cache: "no-store" }),
-                ]);
-                const payload = await settingsResponse.json();
+                const usersResponse = await fetch("/api/users", { cache: "no-store" });
                 const usersPayload = (await usersResponse.json()) as InternalUserOption[] | { data?: InternalUserOption[] };
-
-                if (active && payload?.success && payload?.data) {
-                    setTicketSettings(payload.data);
-                }
 
                 if (active) {
                     const users = Array.isArray(usersPayload)
@@ -100,7 +94,6 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                 }
             } catch {
                 if (active) {
-                    setTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS);
                     setInternalUsers([]);
                 }
             }
@@ -117,25 +110,17 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         setLocalModule(ticket?.operations?.module || "");
         setLocalCategory(ticket?.operations?.category || "");
         setLocalPriority(ticket?.priority);
+        setTransferNote("");
     }, [ticket?.id, ticket?.operations?.category, ticket?.operations?.currentTeam, ticket?.operations?.module, ticket?.priority]);
 
     const changeStatus = (status: TicketModuleStatus) => {
         if (!ticket) return;
-        if (classificationDirty) {
-            toast.error("Salve as alteracoes de classificacao antes de mudar o estagio do ticket.");
-            return;
-        }
         if (status === "RESOLVED") {
             setFinalizeOpen(true);
             return;
         }
 
-        startTransition(async () => {
-            const res = await updateTicketStatusAction(String(ticket.id), status);
-            if (res.success) toast.success("Estagio atualizado.");
-            else toast.error(res.error || "Erro ao atualizar estagio");
-            router.refresh();
-        });
+        persistWorkflowChange(status, classificationDirty ? "Classificacao e estagio atualizados." : "Estagio atualizado.");
     };
 
     const initialTeam = ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
@@ -152,6 +137,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         const nextCategory = resolveCategoryForTeam(ticketSettings.categories, team, currentCategory);
         setLocalTeam(team);
         if (nextCategory !== currentCategory) setLocalCategory(nextCategory);
+        if (team !== "DESENVOLVIMENTO") setTransferNote("");
     };
 
     const changeClassification = (payload: { module?: string; category?: string; priority?: TicketModulePriority }) => {
@@ -165,6 +151,7 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         setLocalModule(ticket?.operations?.module || "");
         setLocalCategory(ticket?.operations?.category || "");
         setLocalPriority(ticket?.priority);
+        setTransferNote("");
     };
 
     const classificationDirty =
@@ -172,25 +159,44 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         currentModule !== initialModule ||
         currentCategory !== initialCategory ||
         currentPriority !== initialPriority;
+    const movingToDevelopment = currentTeam === "DESENVOLVIMENTO" && initialTeam !== "DESENVOLVIMENTO";
+    const requiresTransferNote = movingToDevelopment && isAdmin;
 
-    const saveClassification = () => {
-        if (!ticket || !classificationDirty) return;
+    const persistWorkflowChange = (status?: TicketModuleStatus, successMessage = "Alteracoes salvas.") => {
+        if (!ticket) return;
 
-        const payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority } = {};
+        const payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority; status?: TicketModuleStatus; note?: string } = {};
         if (currentTeam !== initialTeam) payload.team = currentTeam;
         if (currentModule !== initialModule) payload.module = currentModule;
         if (currentCategory !== initialCategory) payload.category = currentCategory;
         if (currentPriority !== initialPriority) payload.priority = mapLevelToPriority(currentPriority);
+        if (status) payload.status = status;
+        if (movingToDevelopment) {
+            const normalizedNote = transferNote.trim();
+            if (normalizedNote.length < 20) {
+                toast.error("Informe o contexto para o desenvolvimento com no minimo 20 caracteres.");
+                return;
+            }
+            payload.note = normalizedNote;
+        }
+
+        if (!Object.keys(payload).length) return;
 
         startTransition(async () => {
             const res = await updateTicketClassificationAction(String(ticket.id), payload);
             if (res.success) {
-                toast.success("Alteracoes salvas.");
+                toast.success(successMessage);
+                setTransferNote("");
             } else {
-                toast.error(res.error || "Erro ao atualizar classificacao");
+                toast.error(res.error || "Erro ao atualizar ticket");
             }
             router.refresh();
         });
+    };
+
+    const saveClassification = () => {
+        if (!ticket || !classificationDirty) return;
+        persistWorkflowChange(undefined, "Alteracoes salvas.");
     };
 
     useTicketHotkeys({
@@ -278,6 +284,11 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                                     <Sparkles className="h-3.5 w-3.5 text-primary/70" />
                                     Informacoes
+                                    {classificationDirty && (
+                                        <Badge variant="outline" className="ml-auto rounded-full border-amber-500/30 bg-amber-500/10 px-2 text-[10px] text-amber-600 dark:text-amber-400">
+                                            Rascunho
+                                        </Badge>
+                                    )}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4 pt-0">
@@ -329,6 +340,20 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             }}
                                         />
                                     </EditableSidebarField>
+                                    {requiresTransferNote && (
+                                        <EditableSidebarField label="Contexto para o desenvolvimento">
+                                            <Textarea
+                                                value={transferNote}
+                                                onChange={(event) => setTransferNote(event.target.value)}
+                                                placeholder="Descreva o que ja foi validado, comportamento esperado, comportamento atual e impacto no cliente."
+                                                className="min-h-24 resize-none border-border/70 bg-background text-sm"
+                                                disabled={isPending}
+                                            />
+                                            <p className="mt-1 text-[10px] text-muted-foreground">
+                                                Minimo 20 caracteres. O ticket vai entrar em Desenvolvimento como Novo e sem desenvolvedor assumido.
+                                            </p>
+                                        </EditableSidebarField>
+                                    )}
                                     {isAdmin && classificationDirty && (
                                         <div className="flex gap-2">
                                             <Button

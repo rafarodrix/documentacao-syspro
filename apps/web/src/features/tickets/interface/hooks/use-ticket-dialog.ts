@@ -5,8 +5,12 @@ import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts/ticket";
-import { DEFAULT_TICKET_MODULE_SETTINGS, type TicketModuleSettings } from "@dosc-syspro/contracts/ticket";
+import { DEFAULT_TICKET_MODULE_SETTINGS } from "@dosc-syspro/contracts/ticket";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
+import {
+    getSuggestedCategoryForTeam,
+    useTicketModuleSettings,
+} from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { toast } from "sonner";
 
 type UseTicketDialogOptions = {
@@ -25,10 +29,6 @@ type CompanyOption = {
     name: string;
 };
 
-function getSuggestedCategoryForTeam(settings: TicketModuleSettings, team: string) {
-    return settings.categories.find((category) => category.defaultTeam === team)?.value || "";
-}
-
 export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogOptions = {}) {
     const searchParams = useSearchParams();
     const [files, setFiles] = useState<File[]>([]);
@@ -39,7 +39,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [customerOptionsError, setCustomerOptionsError] = useState<string | null>(null);
     const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-    const [ticketSettings, setTicketSettings] = useState<TicketModuleSettings>(DEFAULT_TICKET_MODULE_SETTINGS);
+    const ticketSettings = useTicketModuleSettings();
     const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
     const [selectedModule, setSelectedModule] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
     const [selectedTeam, setSelectedTeam] = useState<string>(
@@ -105,28 +105,20 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const triggerFileInput = () => fileInputRef.current?.click();
 
     useEffect(() => {
-        let active = true;
-
-        fetch("/api/platform/settings/tickets", { method: "GET", cache: "no-store" })
-            .then(async (response) => {
-                const json = (await response.json()) as { success?: boolean; data?: TicketModuleSettings };
-                if (!active || !json.success || !json.data) return;
-
-                setTicketSettings(json.data);
-                const nextTeam = options.isSystemUser ? json.data.defaultTeam : "SUPORTE";
-                setSelectedTeam(nextTeam);
-                setSelectedCategory(getSuggestedCategoryForTeam(json.data, nextTeam) || json.data.categories[0]?.value || "incident");
-                setSelectedModule(json.data.modules[0]?.value || "");
-            })
-            .catch((error) => {
-                logError("ticket_settings.fetch_failed", error);
-            });
-
-        return () => {
-            active = false;
-        };
+        try {
+            const nextTeam = options.isSystemUser ? ticketSettings.defaultTeam : "SUPORTE";
+            setSelectedTeam(nextTeam);
+            setSelectedCategory(
+                getSuggestedCategoryForTeam(ticketSettings, nextTeam) ||
+                ticketSettings.categories[0]?.value ||
+                "incident",
+            );
+            setSelectedModule((current) => current || ticketSettings.modules[0]?.value || "");
+        } catch (error) {
+            logError("ticket_settings.apply_failed", error);
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [ticketSettings, options.isSystemUser]);
 
     useEffect(() => {
         if (!options.isSystemUser) {
