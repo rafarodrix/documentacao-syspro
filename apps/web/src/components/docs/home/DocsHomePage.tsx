@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Role } from '@prisma/client';
 import {
   ArrowRight,
+  BookOpen,
   Calendar,
   Clock,
   History,
@@ -15,6 +16,7 @@ import {
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
+import { DocsSurface } from '@/components/docs/DocsSurface';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
 import { useDocsDashboard, type DocsHomeEntry } from './use-docs-dashboard';
 import { InsightLink, PremiumLinkCard } from './DocsHomeComponents';
@@ -57,19 +59,19 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
       </section>
 
       <section className="animate-docs-fade-up space-y-4 opacity-0" style={staggerStyle(1)}>
-        <div className="rounded-[28px] border border-border/60 bg-card/35 p-4 shadow-sm">
+        <DocsSurface className="rounded-[28px] bg-card/35 p-4 shadow-sm">
           <DocsSectionHeader icon={Search} label="Acessos rapidos" />
           <div className="grid gap-3 md:grid-cols-2">
             {quickLinks.map((item, index) => (
               <PremiumLinkCard key={item.href} item={item} style={staggerStyle(index + 2)} />
             ))}
           </div>
-        </div>
+        </DocsSurface>
 
-        <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--background)/0.86),hsl(var(--card)/0.96))] p-5 shadow-sm">
+        <DocsSurface className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--background)/0.86),hsl(var(--card)/0.96))] p-5 shadow-sm">
           <div className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative z-10">
-            <div className="mb-6 flex items-center justify-between gap-3">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
                   <Calendar className="h-5 w-5" />
@@ -85,59 +87,69 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               </Link>
             </div>
 
-            <div className="rounded-[22px] border border-border/60 bg-background/70 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                {latestRelease ? (
-                  <>
-                    <span>{latestRelease.monthName}</span>
-                    <span className="text-xs font-normal text-muted-foreground">/{latestRelease.year}</span>
-                  </>
-                ) : (
-                  <span className="text-muted-foreground">Sem referencia recente</span>
-                )}
+            <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+              <div className="rounded-[22px] border border-border/60 bg-background/70 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {latestRelease ? (
+                    <>
+                      <span>{latestRelease.monthName}</span>
+                      <span className="text-xs font-normal text-muted-foreground">/{latestRelease.year}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Sem referencia recente</span>
+                  )}
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
+                    <span className="inline-flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Melhorias
+                    </span>
+                    <span className="font-semibold tabular-nums">{latestRelease?.melhorias ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
+                    <span className="inline-flex items-center gap-2">
+                      <Wrench className="h-4 w-4" />
+                      Correcoes
+                    </span>
+                    <span className="font-semibold tabular-nums">{latestRelease?.bugs ?? 0}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-                  <span className="inline-flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Melhorias
+              <div className="rounded-[22px] border border-border/60 bg-background/55 p-4">
+                <p className="text-sm font-medium text-foreground">Ritmo de evolucao do produto</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  O resumo mensal acompanha o mesmo fluxo de releases exibido no portal principal e reduz a distancia entre documentacao e entrega.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full border border-border/60 bg-background/65 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                    Releases
                   </span>
-                  <span className="font-semibold tabular-nums">{latestRelease?.melhorias ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
-                  <span className="inline-flex items-center gap-2">
-                    <Wrench className="h-4 w-4" />
-                    Correcoes
+                  <span className="inline-flex items-center rounded-full border border-border/60 bg-background/65 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+                    Atualizacao mensal consolidada
                   </span>
-                  <span className="font-semibold tabular-nums">{latestRelease?.bugs ?? 0}</span>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-4 rounded-[22px] border border-border/60 bg-background/55 p-4">
-              <p className="text-sm font-medium text-foreground">Ritmo de evolucao do produto</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                O resumo mensal agora acompanha o mesmo fluxo de releases exibido no portal principal.
-              </p>
             </div>
           </div>
-        </div>
+        </DocsSurface>
       </section>
 
       <section
         className="animate-docs-fade-up grid gap-4 opacity-0 lg:grid-cols-2"
         style={staggerStyle(2)}
       >
-        <div className="rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
+        <DocsSurface className="rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
             <DocsSectionHeader icon={Clock} label="Ultimas 5 atualizacoes" />
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background/60 text-muted-foreground">
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {derived.latestUpdates.length === 0 ? (
               <DocsEmptyState message="As proximas atualizacoes da base aparecerao aqui." />
             ) : (
@@ -157,16 +169,16 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               ))
             )}
           </div>
-        </div>
+        </DocsSurface>
 
-        <div className="rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
+        <DocsSurface className="rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
             <DocsSectionHeader icon={History} label="Ultimos 5 continuar leitura" />
             <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/60 bg-background/60 text-muted-foreground">
-              <Wrench className="h-4 w-4" />
+              <BookOpen className="h-4 w-4" />
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {derived.recent.length === 0 ? (
               <DocsEmptyState message="Seu historico de leitura aparecera aqui em breve." />
             ) : (
@@ -184,7 +196,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               ))
             )}
           </div>
-        </div>
+        </DocsSurface>
       </section>
 
       <style jsx global>{`
