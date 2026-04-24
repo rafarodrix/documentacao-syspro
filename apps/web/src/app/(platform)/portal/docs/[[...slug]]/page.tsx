@@ -110,7 +110,7 @@ export default async function PortalDocsPage(props: {
 
   const breadcrumbItems = slug.reduce<Array<{ href: string; label: string }>>(
     (acc, segment) => {
-      const parentPath = acc.length === 1 ? '' : acc[acc.length - 1].href.replace(/^\/portal\/docs/, '');
+      const parentPath = acc.length <= 2 ? '' : acc[acc.length - 1].href.replace(/^\/portal\/docs/, '');
       const nextPath = `${parentPath}/${segment}`.replace(/^\/+/, '');
       const targetSlug = nextPath.split('/').filter(Boolean);
       const targetPage = source.getPage(targetSlug);
@@ -120,7 +120,10 @@ export default async function PortalDocsPage(props: {
       });
       return acc;
     },
-    [{ href: DOCS_BASE_PATH, label: 'Documentacao' }],
+    [
+      { href: '/portal', label: 'Portal' },
+      { href: DOCS_BASE_PATH, label: 'Documentacao' },
+    ],
   );
 
   const navigationPool = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);

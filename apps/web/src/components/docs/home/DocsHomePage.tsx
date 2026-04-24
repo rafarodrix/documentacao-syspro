@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo, type CSSProperties } from 'react';
+import Link from 'next/link';
 import type { Role } from '@prisma/client';
-import { BookOpen, Clock, History, Search } from 'lucide-react';
+import { BookOpen, ChevronRight, Clock, History, Search } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
@@ -39,16 +40,34 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
 
   return (
     <div className="docs-home-page space-y-6 pb-12">
+      <section className="animate-docs-fade-up opacity-0" style={staggerStyle(0)}>
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-muted-foreground/90">
+          <Link
+            href="/portal"
+            className="inline-flex items-center rounded-full border border-border/60 bg-background/60 px-2.5 py-1 no-underline transition-colors hover:border-border hover:bg-accent/50 hover:text-foreground"
+          >
+            Portal
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/55" />
+          <Link
+            href="/portal/docs"
+            className="inline-flex items-center rounded-full border border-border/60 bg-background/60 px-2.5 py-1 no-underline transition-colors hover:border-border hover:bg-accent/50 hover:text-foreground"
+          >
+            Documentacao
+          </Link>
+        </div>
+      </section>
+
       <section
         className="animate-docs-fade-up rounded-[28px] border border-border/60 bg-card/35 p-4 opacity-0 shadow-sm md:p-5"
-        style={staggerStyle(0)}
+        style={staggerStyle(1)}
       >
         <div className="rounded-[22px] border border-border/60 bg-background/65 p-3 backdrop-blur-xl">
           <LargeSearchToggle className="h-12 w-full justify-start rounded-[18px] border-0 bg-background/70 px-4 text-left text-sm shadow-none" />
         </div>
       </section>
 
-      <section className="animate-docs-fade-up space-y-4 opacity-0" style={staggerStyle(1)}>
+      <section className="animate-docs-fade-up space-y-4 opacity-0" style={staggerStyle(2)}>
         <DocsSurface className="rounded-[28px] bg-card/35 p-4 shadow-sm">
           <DocsSectionHeader icon={Search} label="Acessos rapidos" />
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -76,7 +95,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
 
       <section
         className="animate-docs-fade-up grid gap-4 opacity-0 lg:grid-cols-2"
-        style={staggerStyle(2)}
+        style={staggerStyle(3)}
       >
         <DocsSurface className="rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
