@@ -81,7 +81,7 @@ export function useTicketFilters(initialSearch: string) {
         }
         if (nextStatus === "closed") {
           params.delete("queue");
-          params.delete("closedWindow");
+          params.set("closedWindow", "30d");
         }
         params.set("page", "1");
       });

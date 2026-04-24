@@ -187,6 +187,7 @@ function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
     team: team === "SUPORTE" || team === "DESENVOLVIMENTO" ? team : null,
     module: moduleName,
     category: categoryName,
+    resolvedByName: readNullableMetadata(ticket.metadata, "resolvedByName"),
     ownerId: ticket.assignedUserId,
     firstResponseAt: ticket.slaResponseHitAt ?? null,
     resolvedAt: ticket.closedAt,

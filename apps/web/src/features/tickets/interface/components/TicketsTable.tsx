@@ -11,6 +11,7 @@ import type { TicketListItem } from "./types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge } from "./badges";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 
 interface TicketsTableProps {
   tickets: TicketListItem[];
@@ -20,8 +21,9 @@ interface TicketsTableProps {
 
 export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProps) {
   const router = useRouter();
+  const ticketSettings = useTicketModuleSettings();
   const isClosedView = statusGroup === "closed";
-  const emptyStateColSpan = isClosedView ? (isAdmin ? 7 : 6) : (isAdmin ? 8 : 7);
+  const emptyStateColSpan = isClosedView ? (isAdmin ? 8 : 7) : (isAdmin ? 8 : 7);
 
   return (
     <Card className="overflow-hidden border-border/60 bg-card shadow-sm animate-in fade-in duration-700">
@@ -50,14 +52,16 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
               {isAdmin && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
               <div className="flex items-center gap-2">
                 <TeamBadge team={ticket.team} />
-                <PriorityBadge priority={ticket.priority} />
                 {ticket.category ? (
                   <span className="rounded-md border border-border/50 bg-muted/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {ticket.category}
+                    {resolveCategoryLabel(ticketSettings.categories, ticket.category)}
                   </span>
                 ) : null}
                 <span className="text-[11px] text-muted-foreground ml-auto">{formatDateSafe(ticket.updatedAt)}</span>
               </div>
+              {isClosedView && ticket.resolvedByName ? (
+                <p className="text-[11px] text-muted-foreground">Resolvido por {ticket.resolvedByName}</p>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" asChild className="ml-auto">
                   <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>Abrir</Link>
@@ -78,7 +82,8 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
               {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>
+              {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>}
+              {isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Resolvido por</TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Atualizacao</TableHead>
               <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
             </TableRow>
@@ -121,7 +126,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
 
                   <TableCell>
                     <span className="text-xs text-muted-foreground">
-                      {ticket.category || "Nao definida"}
+                      {resolveCategoryLabel(ticketSettings.categories, ticket.category)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -132,9 +137,18 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
                       <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
                     </TableCell>
                   )}
-                  <TableCell>
-                    <PriorityBadge priority={ticket.priority} />
-                  </TableCell>
+                  {!isClosedView && (
+                    <TableCell>
+                      <PriorityBadge priority={ticket.priority} />
+                    </TableCell>
+                  )}
+                  {isClosedView && (
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">
+                        {ticket.resolvedByName || "Nao informado"}
+                      </span>
+                    </TableCell>
+                  )}
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">{formatDateSafe(ticket.updatedAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
@@ -154,6 +168,16 @@ export function TicketsTable({ tickets, isAdmin, statusGroup }: TicketsTableProp
       </div>
     </Card>
   );
+}
+
+function resolveCategoryLabel(
+  categories: Array<{ value: string; label: string }>,
+  category?: string | null,
+) {
+  const normalized = (category || "").trim();
+  if (!normalized) return "Nao definida";
+  const configured = categories.find((item) => item.value.toLowerCase() === normalized.toLowerCase());
+  return configured?.label || humanizeModuleHierarchyValue(normalized) || normalized;
 }
 
 function TeamBadge({ team }: { team?: TicketListItem["team"] }) {

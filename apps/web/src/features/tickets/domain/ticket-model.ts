@@ -19,6 +19,7 @@ export interface TicketListItem {
     team?: "SUPORTE" | "DESENVOLVIMENTO" | null;
     module?: string | null;
     category?: string | null;
+    resolvedByName?: string | null;
     ownerId?: string | number | null;
     firstResponseAt?: string | null;
     resolvedAt?: string | null;

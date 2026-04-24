@@ -28,7 +28,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const search = typeof params?.search === "string" ? params.search : "";
   const statusParam = typeof params?.status === "string" ? params.status : "open";
   const teamParam = typeof params?.team === "string" ? params.team : undefined;
-  const closedWindowParam = typeof params?.closedWindow === "string" ? params.closedWindow : "all";
+  const closedWindowParam =
+    typeof params?.closedWindow === "string"
+      ? params.closedWindow
+      : statusGroup === "closed"
+        ? "30d"
+        : "all";
 
   const queue = TICKET_QUEUE_KEYS.includes(queueParam as QueueKey)
     ? (queueParam as QueueKey)
