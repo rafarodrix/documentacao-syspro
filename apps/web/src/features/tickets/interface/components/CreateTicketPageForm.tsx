@@ -509,8 +509,9 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                       </Button>
                     </div>
                   </div>
-                  <div className="overflow-hidden rounded-md border border-border/60 bg-background [&_.ql-container]:border-0 [&_.ql-editor]:min-h-44 [&_.ql-editor]:text-sm [&_.ql-editor.ql-blank::before]:text-muted-foreground/60 [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-border/60 [&_.ql-toolbar]:bg-muted/20">
+                  <div className="ticket-create-editor overflow-hidden rounded-md border border-border/60 bg-background">
                     <ReactQuill
+                      className="ticket-create-editor__quill"
                       theme="snow"
                       value={descriptionHtml}
                       onChange={setDescriptionHtml}

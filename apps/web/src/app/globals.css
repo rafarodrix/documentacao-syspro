@@ -523,3 +523,30 @@
 .dark .ql-snow .ql-picker-options {
   @apply bg-card border-border shadow-lg rounded-md;
 }
+
+.ticket-create-editor .ql-toolbar.ql-snow {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border: 0;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  background: hsl(var(--muted) / 0.32);
+  backdrop-filter: blur(10px);
+}
+
+.ticket-create-editor .ql-container.ql-snow {
+  min-height: 20rem;
+  max-height: none;
+  overflow: visible;
+  border: 0;
+}
+
+.ticket-create-editor .ql-editor {
+  min-height: 20rem;
+  padding: 1rem;
+}
+
+.ticket-create-editor .ql-editor.ql-blank::before {
+  left: 1rem;
+  right: 1rem;
+}
