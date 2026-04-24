@@ -74,7 +74,7 @@ export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string;
   ],
   CLIENTE_ADMIN: [
     { href: '/portal/docs/manual', title: 'Operacao do sistema', description: 'Rotinas essenciais para administrar o ambiente.' },
-    { href: '/portal/docs/treinamento', title: 'Treinar equipe', description: 'Materiais de onboarding e padronização interna.' },
+    { href: '/portal/docs/treinamento', title: 'Treinar equipe', description: 'Materiais de onboarding e padronizacao interna.' },
     { href: '/portal/docs/duvidas', title: 'Resolver problemas comuns', description: 'Consultas rapidas para bloqueios operacionais.' },
   ],
   CLIENTE_USER: [

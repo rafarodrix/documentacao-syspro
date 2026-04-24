@@ -314,18 +314,18 @@
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
     position: sticky;
-    top: 0.9rem;
+    top: 0;
     left: auto;
-    margin: 0 0 0.9rem 0.9rem;
-    height: calc(100dvh - 1.8rem);
-    max-height: calc(100dvh - 1.8rem);
-    border-radius: 1.9rem;
+    margin: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0 1.5rem 1.5rem 0;
     overflow: hidden;
     z-index: 10;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
-    border-radius: 1.7rem;
+    border-radius: 0 1.25rem 1.25rem 0;
     box-shadow: 0 24px 68px -46px hsl(var(--foreground) / 0.92);
   }
 
@@ -353,6 +353,10 @@
     border-bottom: 1px solid hsl(var(--border) / 0.58);
   }
 
+  #nd-sidebar.docs-sidebar-shell > div:first-child {
+    padding-top: 0.25rem;
+  }
+
   #nd-sidebar.docs-sidebar-shell a,
   #nd-sidebar-mobile.docs-sidebar-shell a {
     text-decoration: none;
@@ -368,6 +372,11 @@
 
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor {
     z-index: 6;
+  }
+
+  #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor > button {
+    right: 0.85rem;
+    top: 0.85rem;
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor button:focus-visible {
