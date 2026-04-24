@@ -1204,7 +1204,7 @@ export class ProcessIncomingMessageUseCase {
         const primaryCompany = sysproContact.companyLinks[0]?.company;
         const primaryCompanyId = sysproContact.companyLinks[0]?.companyId;
         const contactName = primaryCompany
-          ? `${sysproContact.name} - ${primaryCompany.nomeFantasia || primaryCompany.razaoSocial}`
+          ? `${sysproContact.name} | ${primaryCompany.nomeFantasia || primaryCompany.razaoSocial}`
           : sysproContact.name;
 
         let picResult: { profilePictureUrl?: string } = {};
@@ -1380,8 +1380,18 @@ export class ProcessIncomingMessageUseCase {
       },
       include: {
         companyLinks: {
-          select: { id: true },
+          where: { isPrimary: true },
           take: 1,
+          select: {
+            id: true,
+            companyId: true,
+            company: {
+              select: {
+                nomeFantasia: true,
+                razaoSocial: true,
+              },
+            },
+          },
         },
       },
     });
@@ -1391,6 +1401,8 @@ export class ProcessIncomingMessageUseCase {
     const nextStatus = contact.companyLinks.length
       ? CompanyContactStatus.LINKED
       : CompanyContactStatus.PENDING_LINK;
+    const primaryCompany = contact.companyLinks[0]?.company;
+    const primaryCompanyName = primaryCompany?.nomeFantasia || primaryCompany?.razaoSocial || null;
     await this.prisma.companyContact.update({
       where: { id: contact.id },
       data: { status: nextStatus },
@@ -1399,7 +1411,12 @@ export class ProcessIncomingMessageUseCase {
     try {
       if (chatwootLink.contactIdentifier) {
         await this.chatwootClient.updateContact(connection.chatwoot, chatwootLink.contactIdentifier, {
+          name: contact.name,
           phone_number: phone.startsWith('+') ? phone : `+${phone}`,
+          additional_attributes: {
+            last_name: primaryCompanyName ? `| ${primaryCompanyName}` : null,
+            company_name: primaryCompanyName,
+          },
           custom_attributes: {
             syspro_contact_id: contact.id,
             syspro_contact_name: contact.name,
