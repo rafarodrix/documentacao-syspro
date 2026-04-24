@@ -35,6 +35,24 @@ export const dashboardCompanySummarySchema = z.object({
   estado: z.string().nullable(),
 });
 
+export const dashboardRecentContactSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().nullable().optional(),
+  whatsapp: z.string().nullable().optional(),
+  createdAt: z.string().min(1),
+  companyNames: z.array(z.string().min(1)).optional(),
+});
+
+export const dashboardRecentUserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().min(1),
+  role: z.string().min(1),
+  createdAt: z.string().min(1),
+  companyNames: z.array(z.string().min(1)).optional(),
+});
+
 export const dashboardSefazStatusSchema = z.object({
   uf: z.string().min(2).max(2),
   service: z.enum(["NFE", "NFCE"]),
@@ -66,6 +84,8 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   contactsCount: z.number().int().nonnegative(),
   canViewUsers: z.boolean(),
   companies: z.array(dashboardCompanySummarySchema),
+  recentContacts: z.array(dashboardRecentContactSchema),
+  recentUsers: z.array(dashboardRecentUserSchema),
   sefazNfe: dashboardSefazStatusSchema,
   sefazNfce: dashboardSefazStatusSchema,
   tickets: z.array(dashboardTicketSummarySchema),
@@ -137,6 +157,8 @@ export type DashboardActivityPoint = z.infer<typeof dashboardActivityPointSchema
 export type DashboardTicketSummary = z.infer<typeof dashboardTicketSummarySchema>;
 export type DashboardTicketKpis = z.infer<typeof dashboardTicketKpisSchema>;
 export type DashboardCompanySummary = z.infer<typeof dashboardCompanySummarySchema>;
+export type DashboardRecentContact = z.infer<typeof dashboardRecentContactSchema>;
+export type DashboardRecentUser = z.infer<typeof dashboardRecentUserSchema>;
 export type DashboardSefazStatus = z.infer<typeof dashboardSefazStatusSchema>;
 export type DashboardDailyPassword = z.infer<typeof dashboardDailyPasswordSchema>;
 export type AdminDashboardView = z.infer<typeof adminDashboardViewSchema>;

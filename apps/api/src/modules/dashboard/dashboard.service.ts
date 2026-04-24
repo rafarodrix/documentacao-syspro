@@ -239,6 +239,8 @@ export class DashboardService {
         activeUsersCount,
         contactsCount,
         recentCompanies,
+        recentContacts,
+        recentUsers,
         sefazRecords,
         companyActivity,
       ] = await Promise.all([
@@ -276,6 +278,59 @@ export class DashboardService {
             addresses: { take: 1, select: { cidade: true, estado: true } },
           },
         }),
+        (this.prisma.companyContact as any).findMany({
+          where: scopedCompanyIds
+            ? {
+                status: { not: 'ARCHIVED' },
+                companyLinks: { some: { companyId: { in: scopedCompanyIds } } },
+              }
+            : { status: { not: 'ARCHIVED' } },
+          orderBy: [{ createdAt: 'desc' }],
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            whatsapp: true,
+            createdAt: true,
+            companyLinks: {
+              orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+              select: {
+                company: {
+                  select: {
+                    nomeFantasia: true,
+                    razaoSocial: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        canViewUsersModule
+          ? this.prisma.user.findMany({
+              where: userBaseWhere,
+              orderBy: [{ createdAt: 'desc' }],
+              take: 5,
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true,
+                memberships: {
+                  orderBy: [{ createdAt: 'asc' }],
+                  select: {
+                    company: {
+                      select: {
+                        nomeFantasia: true,
+                        razaoSocial: true,
+                      },
+                    },
+                  },
+                },
+              },
+            })
+          : Promise.resolve([]),
         this.prisma.sefazStatusCurrent.findMany({
           where: { uf: dashboardUF },
           orderBy: { checkedAt: 'desc' },
@@ -321,6 +376,34 @@ export class DashboardService {
         cidade: company.addresses[0]?.cidade ?? null,
         estado: company.addresses[0]?.estado ?? null,
       }));
+      const contacts = recentContacts.map((contact) => ({
+        id: contact.id,
+        name: contact.name,
+        email: contact.email ?? null,
+        whatsapp: contact.whatsapp ?? null,
+        createdAt: contact.createdAt.toISOString(),
+        companyNames: Array.from(
+          new Set(
+            (contact.companyLinks ?? [])
+              .map((link: any) => link.company?.nomeFantasia || link.company?.razaoSocial)
+              .filter(Boolean),
+          ),
+        ),
+      }));
+      const users = recentUsers.map((user) => ({
+        id: user.id,
+        name: user.name?.trim() || user.email,
+        email: user.email,
+        role: String(user.role),
+        createdAt: user.createdAt.toISOString(),
+        companyNames: Array.from(
+          new Set(
+            (user.memberships ?? [])
+              .map((membership: any) => membership.company?.nomeFantasia || membership.company?.razaoSocial)
+              .filter(Boolean),
+          ),
+        ),
+      }));
 
       const latestNfe = sefazRecords.find((item) => item.service === 'NFE');
       const latestNfce = sefazRecords.find((item) => item.service === 'NFCE');
@@ -338,6 +421,8 @@ export class DashboardService {
           contactsCount,
           canViewUsers: canViewUsersModule || userScope.isGlobal,
           companies,
+          recentContacts: contacts,
+          recentUsers: users,
           sefazNfe: {
             uf: dashboardUF,
             service: 'NFE',

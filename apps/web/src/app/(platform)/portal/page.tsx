@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
-import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
+import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -211,14 +211,46 @@ export default async function DashboardPage() {
           <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-7">
-          <ActivityChart
-            title="Novos cadastros por dia"
-            description="Empresas criadas nos ultimos 7 dias"
-            points={adminData.activity}
-            badgeLabel="Atualizado agora"
-          />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <RecentCompanies companies={adminData.companies} />
+          <RecentRecords
+            title="Ultimos contatos cadastrados"
+            description="Contatos recentes dentro do seu escopo"
+            emptyTitle="Nenhum contato cadastrado"
+            emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
+            viewAllHref="/portal/contatos"
+            createHref="/portal/contatos/novo"
+            createLabel="Cadastrar contato"
+            icon="contact"
+            items={adminData.recentContacts.map((contact) => ({
+              id: contact.id,
+              title: contact.name,
+              subtitle: contact.email || contact.whatsapp || "Sem canal principal",
+              meta: contact.companyNames?.length ? contact.companyNames.join(" • ") : "Sem empresa vinculada",
+              createdAt: contact.createdAt,
+              tags: contact.companyNames?.slice(0, 2),
+            }))}
+          />
+          {adminData.canViewUsers ? (
+            <RecentRecords
+              title="Ultimos usuarios cadastrados"
+              description="Usuarios recentes dentro do seu escopo"
+              emptyTitle="Nenhum usuario cadastrado"
+              emptyDescription="Novos usuarios aparecerao aqui assim que forem criados."
+              viewAllHref="/portal/cadastros/usuarios"
+              createHref="/portal/cadastros/usuarios/novo"
+              createLabel="Novo usuario"
+              icon="user"
+              items={adminData.recentUsers.map((user) => ({
+                id: user.id,
+                title: user.name,
+                subtitle: user.email,
+                meta: user.companyNames?.length ? user.companyNames.join(" • ") : user.role,
+                createdAt: user.createdAt,
+                tags: [user.role],
+              }))}
+            />
+          ) : null}
         </div>
       </div>
     );
