@@ -10,8 +10,10 @@ import (
 	"trilink/agent/internal/core/identity"
 	"trilink/agent/internal/core/reconcile"
 	"trilink/agent/internal/core/registration"
+	uistate "trilink/agent/internal/core/ui_state"
 	"trilink/agent/internal/infra/config"
 	"trilink/agent/internal/infra/http"
+	"trilink/agent/internal/infra/ipc"
 	"trilink/agent/internal/infra/logging"
 	"trilink/agent/internal/infra/platform"
 	"trilink/agent/internal/infra/runtime"
@@ -49,6 +51,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	registrationService := registration.NewService(portalClient, stateStore, logger, eventBus)
 	heartbeatService := heartbeat.NewService(portalClient, stateStore, logger, eventBus)
 	desiredStateService := desiredstate.NewService(portalClient, stateStore, logger, eventBus)
+	uiStateService := uistate.NewService()
 
 	modules := []reconcile.Module{
 		remotemodule.New(
@@ -95,5 +98,6 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 
 	return &Container{
 		AgentService: agentService,
+		IPCServer:    ipc.NewServer(logger, uiStateService),
 	}, nil
 }

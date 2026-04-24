@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/signal"
 	"syscall"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func Run() error {
@@ -24,7 +26,19 @@ func RunService() error {
 		return fmt.Errorf("agent service container is not initialized")
 	}
 
-	return container.AgentService.Run(ctx)
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return container.AgentService.Run(ctx)
+	})
+
+	if container.IPCServer != nil {
+		g.Go(func() error {
+			return container.IPCServer.Start(ctx)
+		})
+	}
+
+	return g.Wait()
 }
 
 func RunUI() error {

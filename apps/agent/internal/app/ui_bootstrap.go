@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"trilink/agent/internal/infra/config"
+	"trilink/agent/internal/infra/ipc"
 	"trilink/agent/internal/infra/logging"
+	"trilink/agent/internal/infra/tray"
 	"trilink/agent/internal/ui"
 )
 
@@ -18,7 +20,9 @@ func BootstrapUI(ctx context.Context) (*Container, error) {
 	}
 
 	logger := logging.New(cfg.LogLevel)
-	agentUI := ui.NewService(logger)
+	trayService := tray.NewService(logger)
+	ipcClient := ipc.NewClient(logger)
+	agentUI := ui.NewService(logger, trayService, ipcClient)
 
 	return &Container{
 		AgentUI: agentUI,

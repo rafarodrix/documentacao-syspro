@@ -16,7 +16,9 @@ func NewService(logger Logger) *Service {
 }
 
 func (s *Service) Run(ctx context.Context) error {
-	s.logger.Info("tray service scaffolded")
+	s.logger.Info("tray service starting")
+	defer s.logger.Info("tray service stopped")
+
 	<-ctx.Done()
 	return nil
 }

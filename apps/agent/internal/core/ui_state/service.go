@@ -18,7 +18,7 @@ func (s *Service) Snapshot(ctx context.Context) (Summary, error) {
 	_ = ctx
 
 	return Summary{
-		ServiceStatus: "starting",
+		ServiceStatus: "running",
 		UserVisible:   true,
 	}, nil
 }
