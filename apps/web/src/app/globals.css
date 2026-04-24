@@ -314,14 +314,14 @@
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
     position: sticky;
-    top: 0.75rem;
+    top: calc(var(--fd-nav-height, 0px) + 0.75rem);
     left: auto;
     margin: 0 0 0.75rem 0.75rem;
-    height: calc(100dvh - 1.5rem);
-    max-height: calc(100dvh - 1.5rem);
+    height: calc(100dvh - var(--fd-nav-height, 0px) - 1.5rem);
+    max-height: calc(100dvh - var(--fd-nav-height, 0px) - 1.5rem);
     border-radius: 1.9rem;
     overflow: hidden;
-    z-index: 10;
+    z-index: 25;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {

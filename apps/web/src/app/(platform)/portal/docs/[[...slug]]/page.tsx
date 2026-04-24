@@ -30,6 +30,8 @@ import {
   formatDateLong,
 } from '@/lib/docs-utils';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
+import { getReleases } from '@/features/releases/application/queries';
+import { groupReleasesByMonth } from '@/features/releases/domain/release-grouping';
 
 const DOCS_BASE_PATH = "/portal/docs";
 
@@ -57,6 +59,7 @@ export default async function PortalDocsPage(props: {
 
   if (slug.length === 0) {
     const allPages = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
+    const releaseSummaries = groupReleasesByMonth(await getReleases()).slice(0, 3);
 
     const visibility = await Promise.all(
       allPages.map((item) =>
@@ -82,6 +85,7 @@ export default async function PortalDocsPage(props: {
             pages={visiblePages}
             canViewTechnical={canViewTechnicalDocs}
             role={session.role}
+            releaseSummaries={releaseSummaries}
           />
         </DocsBody>
       </DocsPage>
