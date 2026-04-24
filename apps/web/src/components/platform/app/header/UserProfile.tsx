@@ -98,7 +98,7 @@ export function UserProfile({
           <DropdownMenuItem
             className="cursor-pointer gap-2"
             onClick={() => {
-              router.push("/portal/atendimento")
+              window.open("/portal/atendimento", "_blank", "noopener,noreferrer")
             }}
           >
             <MessagesSquare className="h-4 w-4 text-muted-foreground" />
