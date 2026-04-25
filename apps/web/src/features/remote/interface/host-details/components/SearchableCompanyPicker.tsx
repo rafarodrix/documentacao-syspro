@@ -21,6 +21,7 @@ export function SearchableCompanyPicker({
   options,
   onChange,
   disabled,
+  searchUrl,
 }: {
   value: string;
   options: Array<{ id: string; label: string; searchText?: string }>;
