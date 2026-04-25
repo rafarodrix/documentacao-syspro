@@ -40,16 +40,30 @@ export function HostInstallationsTab({
   isRelinkingInstallation: boolean;
   handleRelinkInstallation: (updateId: string, companyId: string | null) => void;
 }) {
+  const primaryCompanyName =
+    details.host?.companyName ??
+    details.company?.nomeFantasia ??
+    details.company?.razaoSocial ??
+    "Sem empresa principal vinculada";
+
   return (
     <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Instalacoes da maquina</CardTitle>
+          <CardTitle className="text-lg">Instalacoes detectadas</CardTitle>
           <CardDescription>
-            Vinculo por instalacao com busca de empresa, filtro de pendencias e acoes em lote.
+            A empresa principal do host ja foi definida no vinculo inicial. Use esta aba para revisar as instalacoes detectadas e, quando necessario, vincular empresas adicionais por instalacao.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-xl border border-border/50 bg-background/40 p-4">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{primaryCompanyName}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              O fluxo padrao e herdar esta empresa como referencia principal da maquina. Vinculos nesta aba so devem complementar cenarios com multiplas instalacoes ou diretorios separados no mesmo host.
+            </p>
+          </div>
+
           <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
             <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
               <div className="space-y-1">
@@ -71,7 +85,7 @@ export function HostInstallationsTab({
               {canManageInstallations ? (
                 <div className="space-y-1">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Empresa para vincular em lote
+                    Empresa adicional para instalacoes filtradas
                   </p>
                   <SearchableCompanyPicker
                     value={bulkInstallationCompanyId || UNLINKED_COMPANY_VALUE}
@@ -98,7 +112,7 @@ export function HostInstallationsTab({
                   }
                   onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
                 >
-                  Vincular filtradas
+                  Aplicar empresa nas filtradas
                 </Button>
               ) : null}
               {canManageInstallations ? (
@@ -108,7 +122,7 @@ export function HostInstallationsTab({
                   disabled={isBulkRelinkingInstallations || !installationContextsForDisplay.length}
                   onClick={() => handleBulkRelinkInstallations(null)}
                 >
-                  Desvincular filtradas
+                  Limpar vinculos filtrados
                 </Button>
               ) : null}
             </div>
@@ -116,6 +130,9 @@ export function HostInstallationsTab({
               {installationFilter === "unlinked"
                 ? `${installationContextsForDisplay.length} instalacao(oes) sem vinculo exibida(s).`
                 : `${dedupedInstallationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Use o vinculo adicional por instalacao para orientar inventario, caminhos de backup e responsabilidades por diretorio quando houver mais de uma empresa no mesmo host.
             </p>
           </div>
           {installationContextsForDisplay.length ? (
@@ -242,7 +259,10 @@ export function HostInstallationsTab({
                   </div>
 
                   <div className="mt-3 rounded-lg border border-border/40 bg-background/30 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Vinculo da instalacao</p>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa desta instalacao</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Se esta instalacao pertencer a outra empresa hospedada na mesma maquina, ajuste o vinculo aqui. Caso contrario, mantenha a empresa principal do host.
+                    </p>
                     {canManageInstallations ? (
                       <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
                         <SearchableCompanyPicker
@@ -269,7 +289,7 @@ export function HostInstallationsTab({
                             );
                           }}
                         >
-                          Salvar vinculo
+                          Aplicar vinculo
                         </Button>
                         <Button
                           size="sm"
@@ -283,7 +303,7 @@ export function HostInstallationsTab({
                             handleRelinkInstallation(entry.id, null);
                           }}
                         >
-                          Remover vinculo
+                          Limpar vinculo
                         </Button>
                       </div>
                     ) : (

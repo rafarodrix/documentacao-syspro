@@ -836,7 +836,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:w-auto md:grid-cols-5">
             <TabsTrigger value="geral">Visao Geral</TabsTrigger>
             <TabsTrigger value="tecnicas">Informacoes tecnicas</TabsTrigger>
-            <TabsTrigger value="instalacoes">Instalacoes</TabsTrigger>
+            <TabsTrigger value="instalacoes">Instalacoes detectadas</TabsTrigger>
             <TabsTrigger value="infra">Infra</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>

@@ -773,9 +773,9 @@ func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) r
 
 func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) discoverDecision {
 	flow := inferBootstrapFlow(resp)
-	requiresBootstrap := false
+	requiresBootstrap := flow == domain.RemoteBootstrapFlowHostBootstrapRequired || flow == domain.RemoteBootstrapFlowTokenInvalid
 	if resp != nil {
-		requiresBootstrap = resp.Transition.RequiresAuthenticatedBootstrap
+		requiresBootstrap = requiresBootstrap || resp.Transition.RequiresAuthenticatedBootstrap
 	}
 
 	if !requiresBootstrap {
