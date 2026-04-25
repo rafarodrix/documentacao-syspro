@@ -32,6 +32,11 @@ type NotificationsClient interface {
 
 type ActionsClient interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
+	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
+}
+
+type SetupClient interface {
+	GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error)
 }
 
 type TargetOpener interface {
@@ -50,6 +55,7 @@ type Service struct {
 	trayActions   TrayActions
 	summary       SummaryClient
 	notifications NotificationsClient
+	setup         SetupClient
 	actions       ActionsClient
 	opener        TargetOpener
 	trayState     TrayStateUpdater
@@ -61,6 +67,7 @@ func NewService(
 	trayActions TrayActions,
 	summary SummaryClient,
 	notifications NotificationsClient,
+	setup SetupClient,
 	actions ActionsClient,
 	opener TargetOpener,
 	trayState TrayStateUpdater,
@@ -71,6 +78,7 @@ func NewService(
 		trayActions:   trayActions,
 		summary:       summary,
 		notifications: notifications,
+		setup:         setup,
 		actions:       actions,
 		opener:        opener,
 		trayState:     trayState,
@@ -80,6 +88,8 @@ func NewService(
 func (s *Service) Run(ctx context.Context) error {
 	s.logger.Info("agent ui starting")
 	defer s.logger.Info("agent ui stopped")
+
+	s.maybeOpenSetupExperience(ctx)
 
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -100,6 +110,32 @@ func (s *Service) Run(ctx context.Context) error {
 	})
 
 	return g.Wait()
+}
+
+func (s *Service) maybeOpenSetupExperience(ctx context.Context) {
+	status, err := s.setup.GetSetupStatus(ctx)
+	if err != nil {
+		s.logger.Info("agent ui setup status fetch failed", "error", err)
+		return
+	}
+	if status.Complete {
+		s.logger.Info("agent ui setup experience skipped because onboarding is complete")
+		return
+	}
+
+	result, err := s.actions.OpenSetupExperience(ctx)
+	if err != nil {
+		s.logger.Info("agent ui setup experience action failed", "error", err)
+		return
+	}
+	if result.Target == "" {
+		return
+	}
+	if err := s.opener.Open(ctx, result.Target); err != nil {
+		s.logger.Info("agent ui setup experience open failed", "error", err, "target", result.Target)
+		return
+	}
+	s.logger.Info("agent ui setup experience opened", "target", result.Target, "stage", status.Stage)
 }
 
 func (s *Service) pollSummaryLoop(ctx context.Context) error {

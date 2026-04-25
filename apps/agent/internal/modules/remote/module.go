@@ -242,7 +242,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 	}
 
 	hostname := currentHostname()
-	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, false, nil); err != nil {
+	if err := m.refreshRustDeskState(ctx, st, false, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before discover failed", "error", err)
 	}
 	discoverResp, err := m.client.Discover(ctx, domain.RemoteDiscoverRequest{
@@ -303,7 +303,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 }
 
 func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, hostname string, intent remoteDesiredIntent) domain.ApplyResult {
-	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, false, nil); err != nil {
+	if err := m.refreshRustDeskState(ctx, st, false, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before bootstrap failed", "error", err)
 	}
 

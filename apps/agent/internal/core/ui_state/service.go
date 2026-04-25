@@ -34,6 +34,26 @@ type ActionResult struct {
 	Target   string `json:"target,omitempty"`
 }
 
+type SetupStep struct {
+	Key    string `json:"key"`
+	Label  string `json:"label"`
+	Status string `json:"status"`
+	Detail string `json:"detail,omitempty"`
+}
+
+type SetupStatus struct {
+	Complete    bool        `json:"complete"`
+	Stage       string      `json:"stage"`
+	Title       string      `json:"title"`
+	Summary     string      `json:"summary"`
+	ProgressPct int         `json:"progress_pct"`
+	LastError   string      `json:"last_error,omitempty"`
+	CompanyName string      `json:"company_name,omitempty"`
+	HostID      string      `json:"host_id,omitempty"`
+	RustDeskID  string      `json:"rustdesk_id,omitempty"`
+	Steps       []SetupStep `json:"steps"`
+}
+
 type SupportContextSyncResult struct {
 	Accepted bool   `json:"accepted"`
 	Message  string `json:"message"`
@@ -120,6 +140,144 @@ func (s *Service) OpenSupportConversation(ctx context.Context) (ActionResult, er
 	}, nil
 }
 
+func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
+	_ = ctx
+
+	context := s.buildSupportContext()
+	desired, _ := loadJSON[domain.DesiredState](filepath.Join(s.stateDir, "desired_state.json"))
+	current, _ := loadJSON[domain.CurrentState](filepath.Join(s.stateDir, "current_state.json"))
+	results, _ := loadJSON[[]domain.ApplyResult](filepath.Join(s.stateDir, "apply_results.json"))
+	remoteState, _ := loadJSON[persistedRemoteState](filepath.Join(s.stateDir, "remote_state.json"))
+
+	remoteResult := findModuleResult(results, "remote")
+	steps := []SetupStep{
+		buildStep(
+			"identity",
+			"Identidade do agente",
+			context.DeviceID != "",
+			"",
+			firstNonEmpty("Dispositivo registrado: "+context.DeviceID, "Gerando identidade local"),
+		),
+		buildStep(
+			"portal",
+			"Conexao com o portal",
+			desired.Version > 0,
+			derivePortalError(remoteResult),
+			fmt.Sprintf("Desired state atual: v%d", desired.Version),
+		),
+		buildStep(
+			"discover",
+			"Descoberta da maquina",
+			remoteState.LastBootstrapFlow != "" || remoteState.HostID != "",
+			deriveDiscoverError(remoteResult),
+			deriveDiscoverDetail(remoteState, remoteResult),
+		),
+		buildStep(
+			"rustdesk",
+			"Instalacao do remoto",
+			remoteState.RustDeskID != "" || remoteState.CurrentVersion != "" || remoteState.RustDeskExecutable != "",
+			deriveRustDeskInstallError(remoteResult),
+			deriveRustDeskDetail(remoteState),
+		),
+		buildStep(
+			"link",
+			"Vinculo com a empresa",
+			remoteState.HostID != "" && remoteState.CompanyID != "",
+			"",
+			deriveLinkDetail(remoteState),
+		),
+		buildStep(
+			"sync",
+			"Remoto operacional",
+			remoteState.AgentToken != "" && !remoteState.RebootstrapRequired && !remoteState.LastSyncAt.IsZero() && current.Remote.Status == domain.ModuleStatusReady,
+			deriveSyncError(remoteResult),
+			deriveSyncDetail(remoteState, current),
+		),
+	}
+
+	completed := 0
+	lastError := ""
+	stage := "Concluido"
+	summary := "Agente pronto para atendimento e remoto."
+	complete := true
+	for _, step := range steps {
+		if step.Status == "complete" {
+			completed++
+			continue
+		}
+		complete = false
+		stage = step.Label
+		summary = firstNonEmpty(step.Detail, "Aguardando proxima etapa do onboarding.")
+		if step.Status == "error" {
+			lastError = step.Detail
+		}
+		break
+	}
+
+	progress := 0
+	if len(steps) > 0 {
+		progress = int(float64(completed) / float64(len(steps)) * 100)
+	}
+
+	if !complete && lastError == "" {
+		for _, step := range steps {
+			if step.Status == "error" {
+				lastError = step.Detail
+				break
+			}
+		}
+	}
+
+	return SetupStatus{
+		Complete:    complete,
+		Stage:       stage,
+		Title:       "Instalacao do Agente Trilink",
+		Summary:     summary,
+		ProgressPct: progress,
+		LastError:   lastError,
+		CompanyName: context.CompanyDisplayName,
+		HostID:      context.HostID,
+		RustDeskID:  context.RustDeskID,
+		Steps:       steps,
+	}, nil
+}
+
+func (s *Service) OpenSetupExperience(ctx context.Context) (ActionResult, error) {
+	status, err := s.SetupStatus(ctx)
+	if err != nil {
+		return ActionResult{
+			Accepted: false,
+			Message:  "setup experience request rejected",
+		}, err
+	}
+
+	statusJSON, err := json.Marshal(status)
+	if err != nil {
+		return ActionResult{
+			Accepted: false,
+			Message:  "setup experience request rejected",
+		}, fmt.Errorf("marshal setup status: %w", err)
+	}
+
+	target, err := webview.EnsureSetupProgressPage(s.stateDir, webview.SetupProgressConfig{
+		IPCBaseURL:        s.chatwoot.IPCBaseURL,
+		InitialStatusJSON: string(statusJSON),
+		SupportBaseURL:    s.chatwoot.BaseURL,
+	})
+	if err != nil {
+		return ActionResult{
+			Accepted: false,
+			Message:  "setup experience request rejected",
+		}, err
+	}
+
+	return ActionResult{
+		Accepted: true,
+		Message:  "setup experience request accepted",
+		Target:   target,
+	}, nil
+}
+
 func (s *Service) SyncSupportConversationContext(ctx context.Context, conversationID string) (SupportContextSyncResult, error) {
 	if strings.TrimSpace(conversationID) == "" {
 		return SupportContextSyncResult{
@@ -168,13 +326,19 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 }
 
 type persistedRemoteState struct {
-	CompanyID       string `json:"company_id"`
-	CompanyName     string `json:"company_name"`
-	HostID          string `json:"host_id"`
-	Alias           string `json:"alias"`
-	RustDeskID      string `json:"rustdesk_id"`
-	DefaultPassword string `json:"default_password"`
-	MachineName     string `json:"machine_name"`
+	AgentToken          string    `json:"agent_token"`
+	CompanyID           string    `json:"company_id"`
+	CompanyName         string    `json:"company_name"`
+	HostID              string    `json:"host_id"`
+	Alias               string    `json:"alias"`
+	RustDeskID          string    `json:"rustdesk_id"`
+	DefaultPassword     string    `json:"default_password"`
+	MachineName         string    `json:"machine_name"`
+	CurrentVersion      string    `json:"current_version"`
+	RustDeskExecutable  string    `json:"rustdesk_executable"`
+	RebootstrapRequired bool      `json:"rebootstrap_required"`
+	LastBootstrapFlow   string    `json:"last_bootstrap_flow"`
+	LastSyncAt          time.Time `json:"last_sync_at"`
 }
 
 func (s *Service) buildSupportContext() webview.SupportContext {
@@ -326,4 +490,124 @@ func loadJSON[T any](path string) (T, error) {
 	}
 
 	return value, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func findModuleResult(results []domain.ApplyResult, module string) *domain.ApplyResult {
+	for i := range results {
+		if results[i].Module == module {
+			return &results[i]
+		}
+	}
+	return nil
+}
+
+func buildStep(key, label string, complete bool, errDetail, pendingDetail string) SetupStep {
+	if complete {
+		return SetupStep{Key: key, Label: label, Status: "complete", Detail: pendingDetail}
+	}
+	if strings.TrimSpace(errDetail) != "" {
+		return SetupStep{Key: key, Label: label, Status: "error", Detail: errDetail}
+	}
+	return SetupStep{Key: key, Label: label, Status: "pending", Detail: pendingDetail}
+}
+
+func derivePortalError(result *domain.ApplyResult) string {
+	if result == nil {
+		return ""
+	}
+	if strings.Contains(strings.ToLower(result.Message), "desired state") {
+		return firstNonEmpty(result.Error, result.Message)
+	}
+	if strings.Contains(strings.ToLower(result.Error), "desired state") {
+		return result.Error
+	}
+	return ""
+}
+
+func deriveDiscoverError(result *domain.ApplyResult) string {
+	if result == nil {
+		return ""
+	}
+	value := strings.ToLower(firstNonEmpty(result.Error, result.Message))
+	if strings.Contains(value, "discover") || strings.Contains(value, "discovery token") {
+		return firstNonEmpty(result.Error, result.Message)
+	}
+	return ""
+}
+
+func deriveDiscoverDetail(st persistedRemoteState, result *domain.ApplyResult) string {
+	if st.HostID != "" {
+		return "Host identificado no portal."
+	}
+	if st.LastBootstrapFlow != "" {
+		return "Fluxo remoto atual: " + st.LastBootstrapFlow
+	}
+	if result != nil && strings.TrimSpace(result.Message) != "" {
+		return result.Message
+	}
+	return "Aguardando descoberta inicial da maquina no portal."
+}
+
+func deriveRustDeskInstallError(result *domain.ApplyResult) string {
+	if result == nil {
+		return ""
+	}
+	value := strings.ToLower(firstNonEmpty(result.Error, result.Message))
+	if strings.Contains(value, "msi installer") || strings.Contains(value, "exit status 1603") || strings.Contains(value, "rustdesk") {
+		return firstNonEmpty(result.Error, result.Message)
+	}
+	return ""
+}
+
+func deriveRustDeskDetail(st persistedRemoteState) string {
+	switch {
+	case st.RustDeskID != "":
+		return "RustDesk detectado no host: " + st.RustDeskID
+	case st.RustDeskExecutable != "":
+		return "Executavel remoto localizado no host."
+	default:
+		return "Aguardando instalacao e deteccao do RustDesk."
+	}
+}
+
+func deriveLinkDetail(st persistedRemoteState) string {
+	switch {
+	case st.CompanyID != "" && st.CompanyName != "":
+		return "Empresa vinculada: " + st.CompanyName
+	case st.HostID != "":
+		return "Host remoto criado e aguardando vinculo empresarial."
+	default:
+		return "Aguardando vinculacao da maquina a um host/empresa no portal."
+	}
+}
+
+func deriveSyncError(result *domain.ApplyResult) string {
+	if result == nil {
+		return ""
+	}
+	value := strings.ToLower(firstNonEmpty(result.Error, result.Message))
+	if strings.Contains(value, "sync failed") || strings.Contains(value, "bootstrap failed") {
+		return firstNonEmpty(result.Error, result.Message)
+	}
+	return ""
+}
+
+func deriveSyncDetail(st persistedRemoteState, current domain.CurrentState) string {
+	switch {
+	case !st.LastSyncAt.IsZero() && current.Remote.Status == domain.ModuleStatusReady:
+		return "Configuracao remota sincronizada e operacional."
+	case st.AgentToken != "":
+		return "Credencial remota emitida; aguardando sincronizacao final."
+	default:
+		return "Aguardando bootstrap e sync autenticado do remoto."
+	}
 }

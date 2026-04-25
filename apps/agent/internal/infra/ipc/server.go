@@ -23,8 +23,13 @@ type NotificationProvider interface {
 	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
 }
 
+type SetupProvider interface {
+	SetupStatus(ctx context.Context) (uistate.SetupStatus, error)
+}
+
 type ActionProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
+	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
@@ -35,6 +40,7 @@ type Server struct {
 	logger        Logger
 	summary       SummaryProvider
 	notifications NotificationProvider
+	setup         SetupProvider
 	actions       ActionProvider
 }
 
@@ -43,6 +49,7 @@ func NewServer(
 	logger Logger,
 	summary SummaryProvider,
 	notifications NotificationProvider,
+	setup SetupProvider,
 	actions ActionProvider,
 ) *Server {
 	return &Server{
@@ -50,6 +57,7 @@ func NewServer(
 		logger:        logger,
 		summary:       summary,
 		notifications: notifications,
+		setup:         setup,
 		actions:       actions,
 	}
 }
@@ -105,6 +113,23 @@ func (s *Server) Start(ctx context.Context) error {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(notifications)
 	})
+	mux.HandleFunc("/setup", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		status, err := s.setup.SetupStatus(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(status)
+	})
 	mux.HandleFunc("/actions/support/open", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -112,6 +137,23 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 
 		result, err := s.actions.OpenSupportConversation(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(result)
+	})
+	mux.HandleFunc("/actions/setup/open", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		result, err := s.actions.OpenSetupExperience(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Header().Set("Content-Type", "application/json")

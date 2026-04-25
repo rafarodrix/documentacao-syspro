@@ -24,7 +24,7 @@ func BootstrapUI(ctx context.Context) (*Container, error) {
 	trayService := tray.NewService(logger, cfg.Paths.StateDir)
 	ipcClient := ipc.NewClient(cfg.Agent.IPCAddress, logger)
 	webviewOpener := webview.NewOpener(logger)
-	agentUI := ui.NewService(logger, trayService, trayService, ipcClient, ipcClient, ipcClient, webviewOpener, trayService)
+	agentUI := ui.NewService(logger, trayService, trayService, ipcClient, ipcClient, ipcClient, ipcClient, webviewOpener, trayService)
 
 	return &Container{
 		AgentUI: agentUI,

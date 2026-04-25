@@ -82,8 +82,37 @@ func (c *Client) ListNotifications(ctx context.Context) ([]uistate.Notification,
 	return notifications, nil
 }
 
+func (c *Client) GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/setup", nil)
+	if err != nil {
+		return uistate.SetupStatus{}, fmt.Errorf("build ipc setup request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return uistate.SetupStatus{}, fmt.Errorf("fetch ipc setup: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return uistate.SetupStatus{}, fmt.Errorf("ipc setup returned status %d", resp.StatusCode)
+	}
+
+	var status uistate.SetupStatus
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return uistate.SetupStatus{}, fmt.Errorf("decode ipc setup: %w", err)
+	}
+
+	c.logger.Info("ipc client fetched setup", "stage", status.Stage, "progress_pct", status.ProgressPct, "complete", status.Complete)
+	return status, nil
+}
+
 func (c *Client) OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error) {
 	return c.postAction(ctx, "/actions/support/open")
+}
+
+func (c *Client) OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error) {
+	return c.postAction(ctx, "/actions/setup/open")
 }
 
 func (c *Client) SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error) {
