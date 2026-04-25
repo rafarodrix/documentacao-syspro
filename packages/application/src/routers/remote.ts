@@ -364,23 +364,6 @@ export const remoteRouter = createRouter({
     },
   }),
 
-  hostsRotateInstallToken: defineMutation<{ payload: unknown }, unknown>({
-    auth: "role",
-    roles: ["ADMIN", "DEVELOPER", "SUPORTE"],
-    handler: async ({ ctx, input }) => {
-      const payload = parseOrThrow(hostAgentTokenInputSchema, {
-        ...sanitizeAuthenticatedPayload(input.payload),
-        scope: buildScopeFromSession(ctx),
-      });
-
-      try {
-        return await createRemoteService(ctx).rotateHostInstallToken(payload);
-      } catch (error) {
-        mapRemoteErrorToApiError(error);
-      }
-    },
-  }),
-
   hostsRevokeAgentToken: defineMutation<{ payload: unknown }, unknown>({
     auth: "role",
     roles: ["ADMIN", "DEVELOPER", "SUPORTE"],

@@ -112,32 +112,6 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
   };
 }
 
-function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
-  const normalized = lastHeartbeatErrorMessage?.toLowerCase() ?? "";
-
-  if (normalized.includes("agenttoken expirado")) {
-    return {
-      label: "Credencial expirada",
-      className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-      needsBootstrap: true,
-    };
-  }
-
-  if (normalized.includes("agenttoken invalido") || normalized.includes("agenttoken rotacionado") || normalized.includes("agenttoken indisponivel")) {
-    return {
-      label: "Renovacao de credencial necessaria",
-      className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-      needsBootstrap: true,
-    };
-  }
-
-  return {
-    label: "Agente operacional",
-    className: "border-border/60 bg-background/70 text-muted-foreground",
-    needsBootstrap: false,
-  };
-}
-
 function getOperationalStateFilter(item: DirectoryItem) {
   if (item.productStatus === "ATTENTION_REQUIRED") return "attention_required" as const;
   if (item.productStatus === "AWAITING_LINK" || item.productStatus === "PROVISIONING_REMOTE") {
@@ -895,7 +869,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             <div className="space-y-4">
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
-                const agentToken = getAgentTokenMeta(item.lastHeartbeatErrorMessage);
                 const productStatus = getRemoteProductStatusMeta(item.productStatus);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const installationNames = item.installationCompanies.length
@@ -926,11 +899,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                             <Badge variant="outline" className={`h-5 text-[10px] ${productStatus.className}`}>
                               {productStatus.label}
                             </Badge>
-                            {agentToken.needsBootstrap && (
-                              <Badge variant="outline" className={`h-5 text-[10px] ${agentToken.className}`}>
-                                {agentToken.label}
-                              </Badge>
-                            )}
                             
                             {/* Live Telemetry Badges */}
                             {item.lastAgentMetrics?.cpuLoad !== undefined && (

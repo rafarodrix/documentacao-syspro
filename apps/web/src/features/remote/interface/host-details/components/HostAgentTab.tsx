@@ -10,17 +10,14 @@ import { isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reaso
 import { AGENT_ACK_REASON_LABEL } from "../constants";
 
 export function HostAgentTab({
-  agentTokenMeta,
   host,
   orchestrationStrategy,
-  bootstrapFlowLabel,
   productStatusMeta,
   contractValidationError,
   agentHealthCard,
   serviceStatusIcon,
   autoHealStatusIcon,
   details,
-  bootstrapFlowMeta,
   bootstrapRateMetrics,
   contractSchemaVersions,
   agentMetrics,
@@ -30,7 +27,6 @@ export function HostAgentTab({
   handleRequestRemoteAction,
   isRequestingSelfHeal,
   handleCopy,
-  agentTokenExpiresAt,
   rustDeskCompliance,
   visibleAgentCommands,
   hiddenAcknowledgedCount,
@@ -47,26 +43,6 @@ export function HostAgentTab({
         <CardDescription>Recorte operacional detalhado da telemetria, health, conectividade e execucao local.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div
-          className={cn(
-            "rounded-xl border p-4 text-sm",
-            agentTokenMeta.needsBootstrap
-              ? "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-200"
-              : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-          )}
-        >
-          <p className="font-medium">
-            {agentTokenMeta.needsBootstrap
-              ? "Este host precisa de nova Vinculacao de Maquina autenticada"
-              : "Este host esta no fluxo autenticado por credencial"}
-          </p>
-          <p className="mt-1">
-            {agentTokenMeta.needsBootstrap
-              ? "Execute novamente a Vinculacao de Maquina autenticada neste host e aguarde o proximo heartbeat valido."
-              : "Se precisar reinstalar ou reaplicar configuracao, siga o fluxo de Vinculacao de Maquina autenticada no agente."}
-          </p>
-        </div>
-
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
           <p className="text-sm font-medium text-foreground">Resumo operacional</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -155,13 +131,6 @@ export function HostAgentTab({
                   <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastSyncAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo de vinculacao</p>
-                  <Badge variant="outline" className={cn("mt-2 font-mono text-[11px]", bootstrapFlowMeta.tone)}>
-                    {bootstrapFlowLabel}
-                  </Badge>
-                  <p className="mt-2 text-xs text-muted-foreground">{bootstrapFlowMeta.hint}</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas consecutivas</p>
                   <p className="mt-2 text-sm text-foreground">{details.agentHealth.consecutiveFailures}</p>
                 </div>
@@ -226,16 +195,10 @@ export function HostAgentTab({
             </details>
 
             <div className="flex flex-wrap gap-2">
-              {!agentTokenMeta.needsBootstrap ? (
-                <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
-                  <Fingerprint className="h-4 w-4" />
-                  {isRevokingAgentToken ? "Renovando..." : "Renovacao de Credencial"}
-                </Button>
-              ) : (
-                <div className="w-full rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 sm:w-auto">
-                  Nova Vinculacao de Maquina pendente
-                </div>
-              )}
+              <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
+                <Fingerprint className="h-4 w-4" />
+                {isRevokingAgentToken ? "Renovando..." : "Renovar identidade do agente"}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}
@@ -254,33 +217,6 @@ export function HostAgentTab({
                 <HardDriveDownload className="h-4 w-4" />
                 {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar identidade"}
               </Button>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado da credencial</p>
-                <p className="mt-1 text-sm text-foreground">{agentTokenMeta.label}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Primeira vinculacao autenticada</p>
-                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.lastRegisterAt)}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Origem da vinculacao</p>
-                <p className="mt-1 text-sm text-foreground">{host.agent.lastRegisterSource ?? "Sem leitura"}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Emissao da credencial</p>
-                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.agentTokenIssuedAt)}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo uso da credencial</p>
-                <p className="mt-1 text-sm text-foreground">{formatDateTime(host.agent.agentTokenLastUsedAt)}</p>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Expiracao prevista</p>
-                <p className="mt-1 text-sm text-foreground">{formatDateOnly(agentTokenExpiresAt)}</p>
-              </div>
             </div>
 
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">

@@ -13,7 +13,6 @@ import type {
   RelinkHostSysproUpdateOutput,
   RevokeHostAgentTokenOutput,
   RotateHostAgentTokenOutput,
-  RotateHostInstallTokenOutput,
   UpdateHostInput,
   UpdateHostOutput,
   RemoteHostAdminPort,
@@ -335,55 +334,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         message: "agentToken rotacionado. Execute o bootstrap novamente no host para emitir nova credencial.",
       };
     },
-
-
-    async rotateHostInstallToken(input: HostAgentTokenInput): Promise<RotateHostInstallTokenOutput> {
-      const scopedWhere = buildScopedWhere(input.scope.companyIds, input.scope.isGlobalView);
-      const existingHost = await prisma.remoteHost.findFirst({
-        where: { id: input.hostId, ...scopedWhere },
-        select: { id: true, name: true },
-      });
-
-      if (!existingHost) {
-        throw new Error("HOST_NOT_FOUND");
-      }
-
-      let installToken = buildInstallToken();
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const host = await prisma.remoteHost.update({
-            where: { id: input.hostId },
-            data: { installToken },
-            select: {
-              id: true,
-              name: true,
-              installToken: true,
-              updatedAt: true,
-            },
-          });
-
-          return {
-            host,
-            message: "Token de instalacao regenerado. Use este valor no bootstrap da maquina.",
-          };
-        } catch (error) {
-          const isUniqueViolation =
-            typeof error === "object" &&
-            error !== null &&
-            "code" in error &&
-            (error as { code?: string }).code === "P2002";
-
-          if (!isUniqueViolation || attempt === 3) {
-            throw error;
-          }
-
-          installToken = buildInstallToken();
-        }
-      }
-
-      throw new Error("HOST_INSTALL_TOKEN_ROTATE_FAILED");
-    },
-
     async revokeHostAgentToken(input: HostAgentTokenInput): Promise<RevokeHostAgentTokenOutput> {
       const scopedWhere = buildScopedWhere(input.scope.companyIds, input.scope.isGlobalView);
       const existingHost = await prisma.remoteHost.findFirst({

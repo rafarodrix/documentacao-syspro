@@ -68,9 +68,6 @@ import {
   getCommandStatusMeta,
   formatHourMinute,
   extractStringFromPayload,
-  getAgentTokenMeta,
-  getBootstrapFlowLabel,
-  getBootstrapFlowMeta,
   readBootstrapRateMetrics,
   readContractSchemaVersions,
   extractContractValidationError,
@@ -129,13 +126,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim();
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
-  const agentTokenMeta = useMemo(() => getAgentTokenMeta(host.lastHeartbeatErrorMessage), [host.lastHeartbeatErrorMessage]);
-  const agentTokenExpiresAt = useMemo(() => {
-    if (!host.agent.agentTokenIssuedAt) return null;
-    const issuedAt = new Date(host.agent.agentTokenIssuedAt);
-    issuedAt.setDate(issuedAt.getDate() + 30);
-    return issuedAt.toISOString();
-  }, [host.agent.agentTokenIssuedAt]);
   const rustDeskCompliance = useMemo(() => {
     const expectedAlias = resolveExpectedRustDeskAlias({
       hostName: host.name,
@@ -431,14 +421,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   );
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
-  const bootstrapFlowLabel = useMemo(
-    () => getBootstrapFlowLabel(details.agentHealth.bootstrapFlow),
-    [details.agentHealth.bootstrapFlow]
-  );
-  const bootstrapFlowMeta = useMemo(
-    () => getBootstrapFlowMeta(details.agentHealth.bootstrapFlow),
-    [details.agentHealth.bootstrapFlow]
-  );
   const productStatusMeta = useMemo(
     () => getRemoteProductStatusMeta(details.agentHealth.productStatus),
     [details.agentHealth.productStatus]
@@ -1100,17 +1082,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
         <TabsContent value="agente">
           <HostAgentTab
-            agentTokenMeta={agentTokenMeta}
             host={host}
             orchestrationStrategy={orchestrationStrategy}
-            bootstrapFlowLabel={bootstrapFlowLabel}
             productStatusMeta={productStatusMeta}
             contractValidationError={contractValidationError}
             agentHealthCard={agentHealthCard}
             serviceStatusIcon={serviceStatusIcon}
             autoHealStatusIcon={autoHealStatusIcon}
             details={details}
-            bootstrapFlowMeta={bootstrapFlowMeta}
             bootstrapRateMetrics={bootstrapRateMetrics}
             contractSchemaVersions={contractSchemaVersions}
             agentMetrics={agentMetrics}
@@ -1120,7 +1099,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             handleRequestRemoteAction={handleRequestRemoteAction}
             isRequestingSelfHeal={isRequestingSelfHeal}
             handleCopy={handleCopy}
-            agentTokenExpiresAt={agentTokenExpiresAt}
             rustDeskCompliance={rustDeskCompliance}
             visibleAgentCommands={visibleAgentCommands}
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
