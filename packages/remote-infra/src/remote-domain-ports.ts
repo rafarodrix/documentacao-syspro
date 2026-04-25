@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import {
   normalizeCompareValue,
@@ -34,6 +35,10 @@ const DEFAULT_REMOTE_MODULE_SETTINGS = {
   rustDeskVersion: "1.4.6",
   defaultPassword: "Trilink098",
 };
+
+function buildInstallToken() {
+  return `rhost_${randomBytes(12).toString("hex")}`;
+}
 
 type RemoteLogger = {
   info(event: string, fields?: Record<string, unknown>): void;
@@ -126,7 +131,7 @@ export function createRemoteDiscoverPort(params: {
       };
     },
     async findLinkedHost(linkedHostId) {
-      return prisma.remoteHost.findFirst({
+      const host = await prisma.remoteHost.findFirst({
         where: { id: linkedHostId },
         select: {
           id: true,
@@ -136,6 +141,32 @@ export function createRemoteDiscoverPort(params: {
           lastHeartbeatErrorMessage: true,
         },
       });
+
+      if (!host) {
+        return null;
+      }
+
+      if (host.installToken) {
+        return host;
+      }
+
+      const updatedHost = await prisma.remoteHost.update({
+        where: { id: host.id },
+        data: { installToken: buildInstallToken() },
+        select: {
+          id: true,
+          name: true,
+          installToken: true,
+          agentTokenHash: true,
+          lastHeartbeatErrorMessage: true,
+        },
+      });
+
+      logger.info("remote.domain.discover.install_token_regenerated", {
+        hostId: updatedHost.id,
+      });
+
+      return updatedHost;
     },
     async updateDiscoveredHost(id, payload) {
       const record = await prisma.remoteDiscoveredHost.update({

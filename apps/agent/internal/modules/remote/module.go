@@ -284,6 +284,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 	})
 
 	decision := m.resolveDiscoverDecision(discoverResp)
+	m.logger.Info("remote discover decision", "flow", decision.flow, "phase", decision.phase, "message", decision.message)
 	switch decision.phase {
 	case runtimePhaseWait:
 		return domain.ApplyResult{
