@@ -53,6 +53,10 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
 	if err := os.MkdirAll(uiDir, 0o755); err != nil {
 		return "", fmt.Errorf("create ui dir: %w", err)
 	}
+	if err := copyBrandAssetsToDir(uiDir); err != nil {
+		return "", err
+	}
+	brand := resolveBrandAssets(stateDir)
 
 	pagePath := filepath.Join(uiDir, "support-chatwoot.html")
 	content := fmt.Sprintf(`<!doctype html>
@@ -111,6 +115,17 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       font-size: 17px;
       font-weight: 700;
       text-align: left;
+    }
+    .agent-support-brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .agent-support-logo {
+      height: 28px;
+      width: auto;
+      object-fit: contain;
     }
 
     .agent-support-copy {
@@ -352,7 +367,10 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
   <div class="agent-support-shell">
     <div class="agent-support-panel">
       <div class="agent-support-header">
-        <div class="agent-support-title">Suporte Trilink</div>
+        <div class="agent-support-brand">
+          <div class="agent-support-title">Suporte Trilink</div>
+          <img class="agent-support-logo" id="support-brand-logo" alt="Trilink" />
+        </div>
         <div class="agent-support-copy" id="status-copy">
           Estamos iniciando o canal oficial de atendimento.
         </div>
@@ -411,6 +429,8 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       var BASE_URL=%q;
       var SUPPORT_CONTEXT=%s;
       var IPC_BASE_URL=%q;
+      var LOGO_LIGHT_URL=%q;
+      var LOGO_DARK_URL=%q;
       var statusCopy=d.getElementById('status-copy');
       var supportStage=d.getElementById('support-stage');
       var supportActions=d.getElementById('support-actions');
@@ -426,7 +446,16 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       var remoteAlert=d.getElementById('remote-alert');
       var remoteAlertTitle=d.getElementById('remote-alert-title');
       var remoteAlertCopy=d.getElementById('remote-alert-copy');
+      var supportBrandLogo=d.getElementById('support-brand-logo');
       openBrowserLink.href = BASE_URL;
+      var preferredLogo = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? (LOGO_LIGHT_URL || LOGO_DARK_URL)
+        : (LOGO_DARK_URL || LOGO_LIGHT_URL);
+      if (preferredLogo) {
+        supportBrandLogo.src = preferredLogo;
+      } else {
+        supportBrandLogo.style.display = 'none';
+      }
 
       if (SUPPORT_CONTEXT.companyDisplayName) {
         companyPill.textContent = 'Empresa: ' + SUPPORT_CONTEXT.companyDisplayName;
@@ -596,7 +625,7 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
   </script>
 </body>
 </html>
-`, baseURL, contextJSON, ipcBaseURL, websiteToken)
+`, baseURL, contextJSON, ipcBaseURL, brand.LogoLightURL, brand.LogoDarkURL, websiteToken)
 
 	if err := os.WriteFile(pagePath, []byte(content), 0o644); err != nil {
 		return "", fmt.Errorf("write chatwoot widget page: %w", err)

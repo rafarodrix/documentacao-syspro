@@ -5,6 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UNLINKED_COMPANY_VALUE } from "../constants";
 
+function normalizeCompanySearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s|/-]/gu, " ")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function SearchableCompanyPicker({
   value,
   options,
@@ -19,9 +29,9 @@ export function SearchableCompanyPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeCompanySearch(query);
     if (!q) return options;
-    return options.filter((option) => option.label.toLowerCase().includes(q));
+    return options.filter((option) => normalizeCompanySearch(option.label).includes(q));
   }, [options, query]);
   const selectedLabel =
     value === UNLINKED_COMPANY_VALUE

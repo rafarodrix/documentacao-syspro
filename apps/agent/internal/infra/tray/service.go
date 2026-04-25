@@ -32,6 +32,7 @@ type Service struct {
 	stateDir   string
 	actions    chan Action
 	actionFile string
+	iconPath   string
 }
 
 func NewService(logger Logger, stateDir string) *Service {
@@ -40,6 +41,7 @@ func NewService(logger Logger, stateDir string) *Service {
 		stateDir:   stateDir,
 		actions:    make(chan Action, 8),
 		actionFile: filepath.Join(stateDir, "ui", "tray-actions.log"),
+		iconPath:   resolveTrayIconPath(stateDir),
 	}
 }
 
@@ -138,13 +140,13 @@ func (s *Service) ensureTrayFiles() error {
 }
 
 func (s *Service) startWindowsTrayHost(ctx context.Context) (*exec.Cmd, error) {
-	script := buildWindowsTrayScript(s.actionFile)
+	script := buildWindowsTrayScript(s.actionFile, s.iconPath)
 	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-STA", "-Command", script)
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start tray host: %w", err)
 	}
 
-	s.logger.Info("windows tray host started", "pid", cmd.Process.Pid)
+	s.logger.Info("windows tray host started", "pid", cmd.Process.Pid, "icon_path", s.iconPath)
 	return cmd, nil
 }
 
@@ -188,14 +190,42 @@ func (s *Service) readPendingActions(offset int64) (int64, error) {
 	return int64(len(data)), nil
 }
 
-func buildWindowsTrayScript(actionFile string) string {
+func resolveTrayIconPath(stateDir string) string {
+	candidates := make([]string, 0, 4)
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "icon.ico"),
+			filepath.Join(exeDir, "assets", "icon.ico"),
+		)
+	}
+	candidates = append(candidates,
+		filepath.Join(stateDir, "icon.ico"),
+		filepath.Join(stateDir, "ui", "icon.ico"),
+	)
+
+	for _, candidate := range candidates {
+		if strings.TrimSpace(candidate) == "" {
+			continue
+		}
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
+func buildWindowsTrayScript(actionFile string, iconPath string) string {
 	actionFile = strings.ReplaceAll(actionFile, "'", "''")
+	iconPath = strings.ReplaceAll(iconPath, "'", "''")
 	lines := []string{
 		"Add-Type -AssemblyName System.Windows.Forms",
 		"Add-Type -AssemblyName System.Drawing",
 		fmt.Sprintf("$actionFile = '%s'", actionFile),
+		fmt.Sprintf("$iconPath = '%s'", iconPath),
 		"$notifyIcon = New-Object System.Windows.Forms.NotifyIcon",
-		"$notifyIcon.Icon = [System.Drawing.SystemIcons]::Information",
+		"if ($iconPath -and (Test-Path -LiteralPath $iconPath)) { $notifyIcon.Icon = New-Object System.Drawing.Icon($iconPath) } else { $notifyIcon.Icon = [System.Drawing.SystemIcons]::Information }",
 		"$notifyIcon.Text = 'Trilink Support'",
 		"$notifyIcon.Visible = $true",
 		"$menu = New-Object System.Windows.Forms.ContextMenuStrip",

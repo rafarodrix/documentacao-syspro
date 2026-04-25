@@ -321,6 +321,16 @@ function normalizeCompanyIdentity(value: string | null | undefined) {
     .toLowerCase();
 }
 
+function buildCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
+  const nomeFantasia = input.nomeFantasia?.trim() ?? "";
+  const razaoSocial = input.razaoSocial.trim();
+
+  if (!nomeFantasia) return razaoSocial;
+  if (normalizeCompanyIdentity(nomeFantasia) === normalizeCompanyIdentity(razaoSocial)) return nomeFantasia;
+
+  return `${nomeFantasia} | ${razaoSocial}`;
+}
+
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -445,7 +455,6 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       razaoSocial: true,
     },
     orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
-    take: 200,
   });
 
   const [
@@ -494,8 +503,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
         ? { deletedAt: null }
         : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
       select: { id: true, nomeFantasia: true, razaoSocial: true },
-      orderBy: [{ razaoSocial: "asc" }],
-      take: 100,
+      orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
     }),
     prisma.remoteHost.count({ where: scopedWhere }),
     prisma.remoteHost.count({ where: { ...scopedWhere, status: "ACTIVE" } }),
@@ -709,7 +717,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
     })),
     companyOptions: companies.map((company) => ({
       id: company.id,
-      label: company.nomeFantasia ?? company.razaoSocial,
+      label: buildCompanyOptionLabel(company),
     })),
     hostOptions: hostOptionsRows.map((host) => ({
       id: host.id,
@@ -1001,7 +1009,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
-      label: company.nomeFantasia ?? company.razaoSocial,
+      label: buildCompanyOptionLabel(company),
     })),
     pendingItems,
     items: hosts.map((host) =>
@@ -1333,7 +1341,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
     },
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
-      label: company.nomeFantasia ?? company.razaoSocial,
+      label: buildCompanyOptionLabel(company),
     })),
     installGuide: buildInstallGuide(hostView),
     company: {

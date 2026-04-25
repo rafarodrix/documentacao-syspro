@@ -18,6 +18,10 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
 	if err := os.MkdirAll(uiDir, 0o755); err != nil {
 		return "", fmt.Errorf("create ui dir: %w", err)
 	}
+	if err := copyBrandAssetsToDir(uiDir); err != nil {
+		return "", err
+	}
+	brand := resolveBrandAssets(stateDir)
 
 	pagePath := filepath.Join(uiDir, "agent-setup.html")
 	content := fmt.Sprintf(`<!doctype html>
@@ -76,6 +80,17 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       padding: 20px 20px 16px;
       background: linear-gradient(180deg, #fdfefe 0%%, #f5f9fc 100%%);
       border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand-logo {
+      height: 34px;
+      width: auto;
+      object-fit: contain;
     }
     .eyebrow {
       font-size: 11px;
@@ -288,7 +303,10 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
   <div class="shell">
     <div class="panel">
       <div class="hero">
-        <div class="eyebrow">Agente Trilink</div>
+        <div class="brand">
+          <div class="eyebrow">Agente Trilink</div>
+          <img class="brand-logo" id="brand-logo" alt="Trilink" />
+        </div>
         <h1 id="title">Instalacao do Agente Trilink</h1>
         <div class="summary" id="summary"></div>
       </div>
@@ -325,6 +343,8 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
   <script>
     const ipcBaseUrl = %q;
     let currentStatus = %s;
+    const logoLightUrl = %q;
+    const logoDarkUrl = %q;
 
     function escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[char]));
@@ -338,6 +358,16 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
 
     function render(status) {
       currentStatus = status;
+      const preferredLogo = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? (logoLightUrl || logoDarkUrl)
+        : (logoDarkUrl || logoLightUrl);
+      const brandLogo = document.getElementById('brand-logo');
+      if (preferredLogo) {
+        brandLogo.src = preferredLogo;
+        brandLogo.style.display = '';
+      } else {
+        brandLogo.style.display = 'none';
+      }
       document.getElementById('title').textContent = status.title || 'Instalacao do Agente Trilink';
       document.getElementById('summary').textContent = status.summary || '';
       document.getElementById('stage').textContent = status.stage || 'Inicializando';
@@ -435,7 +465,7 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
   </script>
 </body>
 </html>
-`, strings.TrimSpace(cfg.IPCBaseURL), cfg.InitialStatusJSON)
+`, strings.TrimSpace(cfg.IPCBaseURL), cfg.InitialStatusJSON, brand.LogoLightURL, brand.LogoDarkURL)
 
 	if err := os.WriteFile(pagePath, []byte(content), 0o644); err != nil {
 		return "", fmt.Errorf("write setup progress page: %w", err)
