@@ -21,6 +21,7 @@ type Action string
 
 const (
 	ActionOpenSupport Action = "open_support"
+	ActionOpenSetup   Action = "open_setup"
 	ActionExit        Action = "exit"
 )
 
@@ -43,7 +44,7 @@ func NewService(logger Logger, stateDir string) *Service {
 }
 
 func (s *Service) Run(ctx context.Context) error {
-	s.logger.Info("tray service starting", "primary_action", ActionOpenSupport)
+	s.logger.Info("tray service starting", "primary_action", ActionOpenSupport, "secondary_action", ActionOpenSetup)
 	defer s.logger.Info("tray service stopped")
 
 	if runtime.GOOS != "windows" {
@@ -177,7 +178,7 @@ func (s *Service) readPendingActions(offset int64) (int64, error) {
 			continue
 		}
 		switch Action(action) {
-		case ActionOpenSupport, ActionExit:
+		case ActionOpenSupport, ActionOpenSetup, ActionExit:
 			s.Trigger(Action(action))
 		default:
 			s.logger.Info("tray emitted unknown action", "action", action)
@@ -199,8 +200,10 @@ func buildWindowsTrayScript(actionFile string) string {
 		"$notifyIcon.Visible = $true",
 		"$menu = New-Object System.Windows.Forms.ContextMenuStrip",
 		"$supportItem = $menu.Items.Add('Abrir suporte')",
+		"$setupItem = $menu.Items.Add('Acompanhar instalacao')",
 		"$exitItem = $menu.Items.Add('Sair')",
 		"$supportItem.Add_Click({ Add-Content -LiteralPath $actionFile -Value 'open_support' })",
+		"$setupItem.Add_Click({ Add-Content -LiteralPath $actionFile -Value 'open_setup' })",
 		"$exitItem.Add_Click({ Add-Content -LiteralPath $actionFile -Value 'exit'; $notifyIcon.Visible = $false; [System.Windows.Forms.Application]::Exit() })",
 		"$notifyIcon.ContextMenuStrip = $menu",
 		"$notifyIcon.Add_DoubleClick({ Add-Content -LiteralPath $actionFile -Value 'open_support' })",

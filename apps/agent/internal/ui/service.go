@@ -213,6 +213,8 @@ func (s *Service) handleTrayActions(ctx context.Context) error {
 				if err := s.OpenSupportConversation(ctx); err != nil {
 					s.logger.Info("agent ui tray support action failed", "error", err)
 				}
+			case tray.ActionOpenSetup:
+				s.maybeOpenSetupExperience(ctx)
 			case tray.ActionExit:
 				s.logger.Info("agent ui received tray exit action")
 				return nil

@@ -205,6 +205,61 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       line-height: 1.55;
       color: var(--muted);
     }
+    .focus-step {
+      margin: 0 20px 18px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%%, #f7fbfe 100%%);
+    }
+    .focus-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .focus-title {
+      margin-top: 8px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+    .focus-detail {
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .subtle {
+      margin: 0 20px 16px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .completed-wrap {
+      margin: 0 20px 20px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+    .completed-toggle {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      list-style: none;
+    }
+    .completed-toggle::-webkit-details-marker {
+      display: none;
+    }
+    .completed-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
     .actions {
       display: flex;
       gap: 10px;
@@ -246,7 +301,22 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
         <div class="meta" id="meta"></div>
         <div class="error" id="error"></div>
       </div>
+      <div class="focus-step">
+        <div class="focus-label">Etapa atual</div>
+        <div class="focus-title" id="focus-title"></div>
+        <div class="focus-detail" id="focus-detail"></div>
+      </div>
+      <div class="subtle">
+        <span id="step-count"></span>
+        <span id="polling-status">Atualizacao automatica a cada 5s</span>
+      </div>
       <div class="steps" id="steps"></div>
+      <div class="completed-wrap" id="completed-wrap" style="display:none;">
+        <details>
+          <summary class="completed-toggle" id="completed-toggle"></summary>
+          <div class="completed-list" id="completed-steps"></div>
+        </details>
+      </div>
       <div class="actions">
         <button type="button" class="secondary" id="refresh-btn">Atualizar agora</button>
       </div>
@@ -273,6 +343,7 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       document.getElementById('stage').textContent = status.stage || 'Inicializando';
       document.getElementById('percent').textContent = (status.progress_pct || 0) + '%%';
       document.getElementById('bar-fill').style.width = (status.progress_pct || 0) + '%%';
+      document.getElementById('polling-status').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       const meta = document.getElementById('meta');
       meta.innerHTML = '';
@@ -297,9 +368,17 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
         error.textContent = '';
       }
 
+      const allSteps = status.steps || [];
+      const pendingSteps = allSteps.filter((step) => step.status !== 'complete');
+      const completedSteps = allSteps.filter((step) => step.status === 'complete');
+      const currentStep = pendingSteps[0] || completedSteps[completedSteps.length - 1] || null;
+      document.getElementById('focus-title').textContent = currentStep ? currentStep.label : 'Inicializando';
+      document.getElementById('focus-detail').textContent = currentStep ? (currentStep.detail || '') : '';
+      document.getElementById('step-count').textContent = completedSteps.length + ' de ' + allSteps.length + ' etapas concluidas';
+
       const steps = document.getElementById('steps');
       steps.innerHTML = '';
-      (status.steps || []).forEach((step) => {
+      pendingSteps.forEach((step) => {
         const article = document.createElement('article');
         article.className = 'step ' + (step.status || 'pending');
         article.innerHTML =
@@ -313,6 +392,31 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
           '</div>';
         steps.appendChild(article);
       });
+
+      const completedWrap = document.getElementById('completed-wrap');
+      const completedTitle = document.getElementById('completed-toggle');
+      const completedList = document.getElementById('completed-steps');
+      completedList.innerHTML = '';
+      if (completedSteps.length > 0) {
+        completedWrap.style.display = '';
+        completedTitle.textContent = 'Etapas concluidas (' + completedSteps.length + ')';
+        completedSteps.forEach((step) => {
+          const article = document.createElement('article');
+          article.className = 'step complete';
+          article.innerHTML =
+            '<div class="dot"></div>' +
+            '<div>' +
+              '<div class="step-head">' +
+                '<div class="step-label">' + escapeHtml(step.label) + '</div>' +
+                '<div class="step-status">Concluido</div>' +
+              '</div>' +
+              '<div class="step-detail">' + escapeHtml(step.detail || '') + '</div>' +
+            '</div>';
+          completedList.appendChild(article);
+        });
+      } else {
+        completedWrap.style.display = 'none';
+      }
     }
 
     async function refresh() {

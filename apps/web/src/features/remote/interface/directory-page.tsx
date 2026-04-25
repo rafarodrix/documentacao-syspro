@@ -322,21 +322,30 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   const filteredPendingItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
-    return directory.pendingItems.filter((item) => {
-      const haystack = normalizeSearchValue([
-        item.machineName,
-        item.rustdeskId,
-        item.agentVersion,
-        item.provider,
-        item.environment,
-        item.description,
-        item.installationCompanies.join(" "),
-      ]
-        .filter(Boolean)
-        .join(" "));
+    return directory.pendingItems
+      .filter((item) => {
+        const haystack = normalizeSearchValue([
+          item.machineName,
+          item.rustdeskId,
+          item.agentVersion,
+          item.provider,
+          item.environment,
+          item.description,
+          item.installationCompanies.join(" "),
+        ]
+          .filter(Boolean)
+          .join(" "));
 
-      return !term || haystack.includes(term);
-    });
+        return !term || haystack.includes(term);
+      })
+      .sort((a, b) => {
+        const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
+        const bHeartbeat = b.lastHeartbeatAt ? Date.parse(b.lastHeartbeatAt) : 0;
+        if (aHeartbeat !== bHeartbeat) {
+          return bHeartbeat - aHeartbeat;
+        }
+        return (a.machineName ?? "").localeCompare(b.machineName ?? "", "pt-BR");
+      });
   }, [directory.pendingItems, searchTerm]);
 
   const directoryStats = useMemo(() => {
