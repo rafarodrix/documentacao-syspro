@@ -23,7 +23,6 @@ type RemoteProcedure =
   | 'hostsUpdate'
   | 'hostsDelete'
   | 'hostsRotateAgentToken'
-  | 'hostsRotateInstallToken'
   | 'hostsRevokeAgentToken'
   | 'hostsRelinkSysproUpdate'
   | 'addressBookList'
@@ -374,10 +373,6 @@ export class RemoteAdminService {
     return this.callRemoteProcedure('hostsRotateAgentToken', { hostId }, rawHeaders);
   }
 
-  rotateRemoteHostInstallToken(hostId: string, rawHeaders?: Record<string, unknown>) {
-    return this.callRemoteProcedure('hostsRotateInstallToken', { hostId }, rawHeaders);
-  }
-
   revokeRemoteHostAgentToken(hostId: string, rawHeaders?: Record<string, unknown>) {
     return this.callRemoteProcedure('hostsRevokeAgentToken', { hostId }, rawHeaders);
   }
@@ -484,7 +479,6 @@ export class RemoteAdminService {
       (procedure === 'hostsCreate' ||
         procedure === 'hostsUpdate' ||
         procedure === 'hostsRotateAgentToken' ||
-        procedure === 'hostsRotateInstallToken' ||
         procedure === 'hostsRevokeAgentToken') &&
       result &&
       typeof result === 'object' &&

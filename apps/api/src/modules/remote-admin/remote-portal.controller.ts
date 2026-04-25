@@ -61,11 +61,6 @@ export class RemotePortalController {
     return this.remoteAdminService.revokeRemoteHostAgentToken(id, req.headers);
   }
 
-  @Post('hosts/:id/install-token')
-  rotateHostInstallToken(@Req() req: Request, @Param('id') id: string) {
-    return this.remoteAdminService.rotateRemoteHostInstallToken(id, req.headers);
-  }
-
   @Patch('hosts/:id/syspro-updates/:updateId')
   relinkHostSysproUpdate(
     @Req() req: Request,

@@ -49,6 +49,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 import {
   isRemoteAgentAckReasonCode,
@@ -85,19 +86,16 @@ import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
-import { useAckStream } from "./hooks/use-ack-stream";
 
 
 
 export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
   const router = useRouter();
   const { host } = details;
-  const { isConnected } = useAckStream(host.id);
   const [projectedHostName, setProjectedHostName] = useState(host.name);
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
-  const [isRotatingInstallToken, startRotatingInstallToken] = useTransition();
   const [isRequestingResendConfig, startRequestingResendConfig] = useTransition();
   const [isRequestingSelfHeal, startRequestingSelfHeal] = useTransition();
   const [isRelinkingInstallation, startRelinkingInstallation] = useTransition();
@@ -105,7 +103,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
-  const [latestInstallToken, setLatestInstallToken] = useState<string | null>(null);
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
@@ -442,35 +439,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     () => getBootstrapFlowMeta(details.agentHealth.bootstrapFlow),
     [details.agentHealth.bootstrapFlow]
   );
-  const shouldShowDiagnosticsPlaybook = useMemo(
-    () =>
-      details.agentHealth.bootstrapFlow === "token_invalid" ||
-      details.agentHealth.bootstrapFlow === "triagem_await_install_token" ||
-      details.agentHealth.bootstrapFlow === "body_parse_failed",
-    [details.agentHealth.bootstrapFlow]
+  const productStatusMeta = useMemo(
+    () => getRemoteProductStatusMeta(details.agentHealth.productStatus),
+    [details.agentHealth.productStatus]
   );
-  const diagnosticsPlaybookScript = useMemo(() => {
-    const discoveryToken = "<DISCOVERY_TOKEN>";
-    const installToken = host.installToken ?? "<INSTALL_TOKEN>";
-    const rustdeskId = normalizedRustdeskId ?? "<RUSTDESK_ID>";
-    return [
-      "$reg = \"HKLM:\\SOFTWARE\\Trilink\\RemoteAgent\"",
-      "if (-not (Test-Path $reg)) { New-Item -Path $reg -Force | Out-Null }",
-      `Set-ItemProperty -Path $reg -Name "DiscoveryToken" -Value "${discoveryToken}"`,
-      `Set-ItemProperty -Path $reg -Name "InstallToken" -Value "${installToken}"`,
-      `Set-ItemProperty -Path $reg -Name "PortalBaseUrl" -Value "https://ajuda.trilinksoftware.com.br"`,
-      "",
-      "$body = @{",
-      `  installToken = "${installToken}"`,
-      `  rustdeskId   = "${rustdeskId}"`,
-      "  machineName  = $env:COMPUTERNAME",
-      "  agentVersion = \"trilink-agent-v1\"",
-      "  environment  = \"Producao\"",
-      "} | ConvertTo-Json",
-      "",
-      "Invoke-WebRequest -Method Post -Uri \"https://ajuda.trilinksoftware.com.br/api/remote/rustdesk/bootstrap\" -ContentType \"application/json\" -Body $body -UseBasicParsing",
-    ].join("\n");
-  }, [host.installToken, normalizedRustdeskId]);
   const systemSnapshot = details.agentTelemetry.systemSnapshot;
   const networkSnapshot = details.agentTelemetry.networkSnapshot;
   const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
@@ -686,26 +658,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           method: "POST",
         });
         toast.success(result.message ?? "Credencial renovada.");
-        router.refresh();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      }
-    });
-  }
-
-  function handleRotateInstallToken() {
-    startRotatingInstallToken(async () => {
-      try {
-        const result = await requestRemoteMutation<{ installToken?: string | null }>({
-          url: `/api/remote/hosts/${host.id}/install-token`,
-          method: "POST",
-        });
-        const token = result.data?.installToken?.trim() ?? null;
-        if (token) {
-          setLatestInstallToken(token);
-          await handleCopy(token, "InstallToken");
-        }
-        toast.success(result.message ?? "Token de instalacao regenerado.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -1152,6 +1104,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             host={host}
             orchestrationStrategy={orchestrationStrategy}
             bootstrapFlowLabel={bootstrapFlowLabel}
+            productStatusMeta={productStatusMeta}
             contractValidationError={contractValidationError}
             agentHealthCard={agentHealthCard}
             serviceStatusIcon={serviceStatusIcon}
@@ -1161,17 +1114,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             bootstrapRateMetrics={bootstrapRateMetrics}
             contractSchemaVersions={contractSchemaVersions}
             agentMetrics={agentMetrics}
-            isRotatingInstallToken={isRotatingInstallToken}
-            handleRotateInstallToken={handleRotateInstallToken}
             isRevokingAgentToken={isRevokingAgentToken}
             handleRotateAgentToken={handleRotateAgentToken}
             isRequestingResendConfig={isRequestingResendConfig}
             handleRequestRemoteAction={handleRequestRemoteAction}
             isRequestingSelfHeal={isRequestingSelfHeal}
-            shouldShowDiagnosticsPlaybook={shouldShowDiagnosticsPlaybook}
-            diagnosticsPlaybookScript={diagnosticsPlaybookScript}
             handleCopy={handleCopy}
-            latestInstallToken={latestInstallToken}
             agentTokenExpiresAt={agentTokenExpiresAt}
             rustDeskCompliance={rustDeskCompliance}
             visibleAgentCommands={visibleAgentCommands}

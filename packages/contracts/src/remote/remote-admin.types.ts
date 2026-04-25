@@ -35,6 +35,12 @@ export type RemoteDiscoveredHostStatus = "PENDING_LINK" | "LINKED" | "IGNORED";
 
 export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
 export type RemoteOperationalStatus = "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY";
+export type RemoteProductStatus =
+  | "AWAITING_LINK"
+  | "PROVISIONING_REMOTE"
+  | "REMOTE_READY"
+  | "ATTENTION_REQUIRED"
+  | "IN_SERVICE";
 export type RemoteAgentCommandType =
   | "REAPPLY_ALIAS"
   | "REAPPLY_CONFIG"
@@ -53,7 +59,6 @@ export type RemoteSessionAuditAction =
   | "COMMENT_POSTED";
 
 export type RemoteAgentInstallStage =
-  | "TOKEN_READY"
   | "RUSTDESK_LINKED"
   | "HEARTBEAT_OK";
 
@@ -73,7 +78,6 @@ export type RemoteHostSummary = {
   description?: string | null;
   notes?: string | null;
   agentExternalId?: string | null;
-  installToken?: string | null;
   machineName?: string | null;
   agentVersion?: string | null;
   status: RemoteHostStatus;
@@ -217,7 +221,6 @@ export type RemoteConfiguredHostItem = {
   status: RemoteHostStatus;
   description: string;
   notes: string | null;
-  installToken: string | null;
   machineName: string | null;
   agentVersion: string | null;
   serviceStatus: string | null;
@@ -230,7 +233,6 @@ export type RemoteConfiguredHostItem = {
     | "linked_host_detected"
     | "host_bootstrap_required"
     | "token_invalid"
-    | "triagem_await_install_token"
     | "body_parse_failed"
     | "unknown";
   contractErrorCode: string | null;
@@ -251,11 +253,11 @@ export type RemoteConfiguredHostItem = {
   agentTokenLastUsedAt: string | null;
   openSessionCount: number;
   operationalStatus: RemoteOperationalStatus;
+  productStatus: RemoteProductStatus;
   lastSessionAt: string | null;
   lastSessionStatus: RemoteSessionStatus | null;
   lastTicketNumber: string | null;
   agent: {
-    installToken: string | null;
     rustdeskId: string | null;
     machineName: string | null;
     agentVersion: string | null;
@@ -410,6 +412,7 @@ export type RemoteHostDetails = {
   tenantScope: RemoteTenantScope;
   host: RemoteConfiguredHostItem;
   agentHealth: {
+    productStatus: RemoteProductStatus;
     lastDiscoverAt: string | null;
     lastSyncAt: string | null;
     bootstrapFlow:
@@ -417,7 +420,6 @@ export type RemoteHostDetails = {
       | "linked_host_detected"
       | "host_bootstrap_required"
       | "token_invalid"
-      | "triagem_await_install_token"
       | "body_parse_failed"
       | "unknown";
     consecutiveFailures: number;

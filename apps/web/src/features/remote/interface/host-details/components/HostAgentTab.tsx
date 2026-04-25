@@ -14,6 +14,7 @@ export function HostAgentTab({
   host,
   orchestrationStrategy,
   bootstrapFlowLabel,
+  productStatusMeta,
   contractValidationError,
   agentHealthCard,
   serviceStatusIcon,
@@ -23,17 +24,12 @@ export function HostAgentTab({
   bootstrapRateMetrics,
   contractSchemaVersions,
   agentMetrics,
-  isRotatingInstallToken,
-  handleRotateInstallToken,
   isRevokingAgentToken,
   handleRotateAgentToken,
   isRequestingResendConfig,
   handleRequestRemoteAction,
   isRequestingSelfHeal,
-  shouldShowDiagnosticsPlaybook,
-  diagnosticsPlaybookScript,
   handleCopy,
-  latestInstallToken,
   agentTokenExpiresAt,
   rustDeskCompliance,
   visibleAgentCommands,
@@ -84,8 +80,9 @@ export function HostAgentTab({
               <p className="mt-1 text-sm text-foreground">{orchestrationStrategy}</p>
             </div>
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo atual</p>
-              <p className="mt-1 font-mono text-xs text-foreground">{bootstrapFlowLabel}</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado do produto</p>
+              <p className="mt-1 text-sm text-foreground">{productStatusMeta.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{productStatusMeta.description}</p>
             </div>
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Contrato</p>
@@ -229,19 +226,6 @@ export function HostAgentTab({
             </details>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => handleCopy(host.installToken, "Credencial do host")} className="w-full gap-2 sm:w-auto">
-                <Fingerprint className="h-4 w-4" />
-                Copiar credencial
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleRotateInstallToken}
-                disabled={isRotatingInstallToken}
-                className="w-full gap-2 sm:w-auto"
-              >
-                <Fingerprint className="h-4 w-4" />
-                {isRotatingInstallToken ? "Gerando..." : "Regenerar installToken"}
-              </Button>
               {!agentTokenMeta.needsBootstrap ? (
                 <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
                   <Fingerprint className="h-4 w-4" />
@@ -271,53 +255,6 @@ export function HostAgentTab({
                 {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar identidade"}
               </Button>
             </div>
-
-            {shouldShowDiagnosticsPlaybook ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  Playbook automatico de diagnostico
-                </p>
-                <p className="mt-1 text-sm text-amber-800 dark:text-amber-100">
-                  Estado atual do host: <span className="font-mono">{bootstrapFlowLabel}</span>. Copie o script para o suporte executar a nova vinculacao da maquina.
-                </p>
-                <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-amber-500/30 bg-background/60 p-3 text-xs text-foreground">
-                  {diagnosticsPlaybookScript}
-                </pre>
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopy(diagnosticsPlaybookScript, "Script de diagnostico")}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copiar script de diagnostico
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            {latestInstallToken ? (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  Novo installToken gerado para este host
-                </p>
-                <p className="mt-2 break-all font-mono text-xs text-amber-800 dark:text-amber-100">
-                  {latestInstallToken}
-                </p>
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopy(latestInstallToken, "InstallToken")}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copiar installToken
-                  </Button>
-                </div>
-              </div>
-            ) : null}
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">

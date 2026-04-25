@@ -11,6 +11,7 @@ import type {
   RemotePlatformOverview,
   RemoteAgentInstallStage,
   RemoteAgentLifecycleStatus,
+  RemoteProductStatus,
 } from "./model";
 import { Prisma } from "@prisma/client";
 
@@ -40,11 +41,10 @@ function mapHostDescription(input: {
 }
 
 function resolveAgentLifecycleStatus(input: {
-  installToken: string | null;
   rustdeskId: string | null;
   lastHeartbeatAt: Date | null;
 }): RemoteAgentLifecycleStatus {
-  if (!input.installToken || !input.rustdeskId) {
+  if (!input.rustdeskId) {
     return "PENDING_INSTALL";
   }
 
@@ -59,17 +59,47 @@ function resolveAgentLifecycleStatus(input: {
 }
 
 function buildInstallStages(input: {
-  installToken: string | null;
   rustdeskId: string | null;
   lastHeartbeatAt: Date | null;
 }): RemoteAgentInstallStage[] {
   const stages: RemoteAgentInstallStage[] = [];
 
-  if (input.installToken) stages.push("TOKEN_READY");
   if (input.rustdeskId) stages.push("RUSTDESK_LINKED");
   if (input.lastHeartbeatAt) stages.push("HEARTBEAT_OK");
 
   return stages;
+}
+
+function resolveRemoteProductStatus(input: {
+  bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"];
+  lifecycleStatus: RemoteAgentLifecycleStatus;
+  operationalStatus: RemoteConfiguredHostItem["operationalStatus"];
+  contractErrorCode: string | null;
+}): RemoteProductStatus {
+  if (input.operationalStatus === "SESSION_BUSY") return "IN_SERVICE";
+  if (input.bootstrapFlow === "pending_link") return "AWAITING_LINK";
+
+  if (
+    input.bootstrapFlow === "token_invalid" ||
+    input.bootstrapFlow === "body_parse_failed" ||
+    input.operationalStatus === "OFFLINE" ||
+    !!input.contractErrorCode
+  ) {
+    return "ATTENTION_REQUIRED";
+  }
+
+  if (
+    input.lifecycleStatus === "PENDING_INSTALL" ||
+    input.bootstrapFlow === "host_bootstrap_required" ||
+    input.bootstrapFlow === "linked_host_detected" ||
+    input.operationalStatus === "MISCONFIGURED"
+  ) {
+    return "PROVISIONING_REMOTE";
+  }
+
+  if (input.operationalStatus === "ONLINE") return "REMOTE_READY";
+
+  return "ATTENTION_REQUIRED";
 }
 
 function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
@@ -78,7 +108,6 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"] =
     bootstrapFlowFromMetrics ??
     (() => {
-      if (!host.installToken) return "triagem_await_install_token";
       if (!host.agentExternalId) return "host_bootstrap_required";
       const lastHeartbeatError = (host.lastHeartbeatErrorMessage ?? "").toLowerCase();
       if (/agenttoken (invalido|expirado|rotacionado|indisponivel)/.test(lastHeartbeatError)) {
@@ -105,12 +134,10 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
       agentVersion: host.agentVersion,
     });
   const lifecycleStatus = resolveAgentLifecycleStatus({
-    installToken: host.installToken,
     rustdeskId: host.agentExternalId,
     lastHeartbeatAt: host.lastHeartbeatAt,
   });
   const installStages = buildInstallStages({
-    installToken: host.installToken,
     rustdeskId: host.agentExternalId,
     lastHeartbeatAt: host.lastHeartbeatAt,
   });
@@ -132,6 +159,17 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const lastExtendedSnapshotAt = extendedSnapshotDates.length
     ? new Date(Math.max(...extendedSnapshotDates.map((value) => (value instanceof Date ? value.getTime() : 0)))).toISOString()
     : null;
+  const operationalStatus = resolveRemoteOperationalStatus({
+    rustdeskId: host.agentExternalId,
+    lastHeartbeatAt: host.lastHeartbeatAt,
+    openSessionCount,
+  });
+  const productStatus = resolveRemoteProductStatus({
+    bootstrapFlow,
+    lifecycleStatus,
+    operationalStatus,
+    contractErrorCode,
+  });
 
   return {
     id: host.id,
@@ -145,7 +183,6 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     status: host.status,
     description,
     notes: host.notes,
-    installToken: host.installToken,
     machineName: host.machineName,
     agentVersion: host.agentVersion,
     serviceStatus: host.serviceStatus ?? null,
@@ -166,12 +203,8 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     agentTokenIssuedAt: host.agentTokenIssuedAt instanceof Date ? host.agentTokenIssuedAt.toISOString() : null,
     agentTokenLastUsedAt: host.agentTokenLastUsedAt instanceof Date ? host.agentTokenLastUsedAt.toISOString() : null,
     openSessionCount,
-    operationalStatus: resolveRemoteOperationalStatus({
-      rustdeskId: host.agentExternalId,
-      installToken: host.installToken,
-      lastHeartbeatAt: host.lastHeartbeatAt,
-      openSessionCount,
-    }),
+    operationalStatus,
+    productStatus,
     lastSessionAt,
     lastSessionStatus,
     lastTicketNumber,
@@ -183,7 +216,6 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
       lastExtendedSnapshotAt,
     },
     agent: {
-      installToken: host.installToken,
       rustdeskId: host.agentExternalId,
       machineName: host.machineName,
       agentVersion: host.agentVersion,
@@ -210,12 +242,6 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
 
 function buildInstallGuide(item: RemoteConfiguredHostItem) {
   return [
-    {
-      id: "TOKEN_READY" as const,
-      title: "Host com token operacional",
-      description: "O portal precisa manter installToken valido para bootstrap do agente.",
-      done: item.agent.installStages.includes("TOKEN_READY"),
-    },
     {
       id: "RUSTDESK_LINKED" as const,
       title: "RustDesk ID vinculado",
@@ -349,7 +375,6 @@ function readBootstrapFlowFromMetrics(metrics: unknown): RemoteHostDetails["agen
     flow === "linked_host_detected" ||
     flow === "host_bootstrap_required" ||
     flow === "token_invalid" ||
-    flow === "triagem_await_install_token" ||
     flow === "body_parse_failed" ||
     flow === "unknown"
   ) {
@@ -539,7 +564,6 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       description: "remote_host.description",
       notes: "remote_host.notes",
       agentExternalId: "remote_host.agentExternalId",
-      installToken: "remote_host.installToken",
       machineName: "remote_host.machineName",
       agentVersion: "remote_host.agentVersion",
       status: "ACTIVE",
@@ -570,7 +594,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       {
         id: "remote-hosts",
         title: "Ambientes e agentes",
-        description: "Cadastro de clientes, ambientes, hosts e agentes com companyId explicito, token de instalacao e heartbeat OSS-first.",
+        description: "Cadastro de clientes, ambientes, hosts e agentes com companyId explicito e heartbeat OSS-first.",
         status: "foundation",
         nextStep: "Validar auto-registro do agente, heartbeat e enriquecimento operacional do host.",
       },
@@ -614,7 +638,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       { method: "GET", path: "/api/remote/hosts", purpose: "Listar hosts remotos no escopo do usuario" },
       { method: "POST", path: "/api/remote/hosts", purpose: "Cadastrar host remoto" },
       { method: "POST", path: "/api/remote/agents/discover", purpose: "Registrar maquina descoberta e manter heartbeat sem host previo" },
-      { method: "POST", path: "/api/remote/rustdesk/bootstrap", purpose: "Bootstrap autenticado do host via installToken para emissao de agentToken" },
+      { method: "POST", path: "/api/remote/rustdesk/bootstrap", purpose: "Bootstrap autenticado do host para emissao de agentToken" },
       { method: "POST", path: "/api/remote/rustdesk/sync", purpose: "Heartbeat autenticado, compliance do cliente e sincronizacao operacional" },
       { method: "POST", path: "/api/remote/rustdesk/ack", purpose: "Ack de comandos executados pelo agente no host" },
       { method: "GET", path: "/api/remote/sessions", purpose: "Listar sessoes remotas no escopo do usuario" },
@@ -660,7 +684,6 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       description: host.description,
       agentExternalId: host.agentExternalId,
       notes: host.notes,
-      installToken: host.installToken,
       machineName: host.machineName,
       agentVersion: host.agentVersion,
       status: host.status,
@@ -954,7 +977,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
       totalHosts,
       activeHosts,
       companies: companies.length,
-      pendingInstall: hosts.filter((host) => !host.installToken || !host.agentExternalId).length,
+      pendingInstall: hosts.filter((host) => !host.agentExternalId).length,
       linkedAgents: hosts.filter((host) => !!host.agentExternalId).length,
       onlineAgents: hosts.filter((host) => !!host.lastHeartbeatAt).length,
       pendingDiscovery: pendingItems.length,
@@ -1242,32 +1265,33 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
   const bootstrapFlowFromMetrics = readBootstrapFlowFromMetrics(host.lastAgentMetrics);
   const bootstrapFlow: RemoteHostDetails["agentHealth"]["bootstrapFlow"] = (() => {
     if (bootstrapFlowFromMetrics) return bootstrapFlowFromMetrics;
-    if (!host.installToken) return "triagem_await_install_token";
     if (host.discoveryRecord?.status === "PENDING_LINK") return "pending_link";
     if (!host.agentTokenHash) return "host_bootstrap_required";
     if (host.discoveryRecord?.status === "LINKED") return "linked_host_detected";
     return "unknown";
   })();
   const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
+  const hostView = mapDirectoryItem({
+    ...host,
+    serviceStatus,
+    lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt,
+    lastHeartbeatErrorAt: host.lastHeartbeatErrorAt,
+    lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage,
+    lastKnownIp: host.lastKnownIp,
+    lastRegisterAt: host.lastRegisterAt,
+    lastRegisterSource: host.lastRegisterSource,
+    sessions: host.sessions.map((session) => ({
+      createdAt: session.createdAt,
+      status: session.status,
+      ticketNumber: session.ticketNumber,
+    })),
+  });
 
   return {
     tenantScope,
-    host: mapDirectoryItem({
-      ...host,
-      serviceStatus,
-      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt,
-      lastHeartbeatErrorAt: host.lastHeartbeatErrorAt,
-      lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage,
-      lastKnownIp: host.lastKnownIp,
-      lastRegisterAt: host.lastRegisterAt,
-      lastRegisterSource: host.lastRegisterSource,
-      sessions: host.sessions.map((session) => ({
-        createdAt: session.createdAt,
-        status: session.status,
-        ticketNumber: session.ticketNumber,
-      })),
-    }),
+    host: hostView,
     agentHealth: {
+      productStatus: hostView.productStatus,
       lastDiscoverAt:
         host.discoveryRecord?.lastHeartbeatAt?.toISOString() ??
         host.discoveryRecord?.updatedAt?.toISOString() ??
@@ -1311,23 +1335,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       id: company.id,
       label: company.nomeFantasia ?? company.razaoSocial,
     })),
-    installGuide: buildInstallGuide(
-      mapDirectoryItem({
-        ...host,
-        serviceStatus,
-        lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt,
-        lastHeartbeatErrorAt: host.lastHeartbeatErrorAt,
-        lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage,
-        lastKnownIp: host.lastKnownIp,
-        lastRegisterAt: host.lastRegisterAt,
-        lastRegisterSource: host.lastRegisterSource,
-        sessions: host.sessions.map((session: any) => ({
-          createdAt: session.createdAt,
-          status: session.status,
-          ticketNumber: session.ticketNumber,
-        })),
-      })
-    ),
+    installGuide: buildInstallGuide(hostView),
     company: {
       id: host.company.id,
       razaoSocial: host.company.razaoSocial,

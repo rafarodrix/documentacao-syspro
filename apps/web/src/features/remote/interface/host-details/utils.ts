@@ -338,7 +338,6 @@ export function getBootstrapFlowLabel(
     | "linked_host_detected"
     | "host_bootstrap_required"
     | "token_invalid"
-    | "triagem_await_install_token"
     | "body_parse_failed"
     | "unknown"
 ) {
@@ -346,7 +345,6 @@ export function getBootstrapFlowLabel(
   if (value === "linked_host_detected") return "linked_host_detected";
   if (value === "host_bootstrap_required") return "host_bootstrap_required";
   if (value === "token_invalid") return "token_invalid";
-  if (value === "triagem_await_install_token") return "triagem_await_install_token";
   if (value === "body_parse_failed") return "body_parse_failed";
   return "unknown";
 }
@@ -357,7 +355,6 @@ export function getBootstrapFlowMeta(
     | "linked_host_detected"
     | "host_bootstrap_required"
     | "token_invalid"
-    | "triagem_await_install_token"
     | "body_parse_failed"
     | "unknown"
 ) {
@@ -367,7 +364,7 @@ export function getBootstrapFlowMeta(
       hint: "Credencial do agente invalida ou expirada. Nova vinculacao necessaria.",
     };
   }
-  if (value === "host_bootstrap_required" || value === "triagem_await_install_token") {
+  if (value === "host_bootstrap_required") {
     return {
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
       hint: "Host aguardando vinculacao para voltar ao sync autenticado.",

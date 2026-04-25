@@ -257,7 +257,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 			return domain.ApplyResult{
 				Module:  "remote",
 				Changed: false,
-				Message: fmt.Sprintf("bootstrap flow %s requires REMOTE_INSTALL_TOKEN", flow),
+				Message: fmt.Sprintf("bootstrap flow %s is waiting for install token from the linked host in portal", flow),
 			}
 		}
 		return m.runBootstrapThenSync(ctx, st, hostname)

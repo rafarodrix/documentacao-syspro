@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import {
   RemoteApiClientError,
   getRemoteApiErrorMessage,
@@ -138,19 +139,12 @@ function getAgentTokenMeta(lastHeartbeatErrorMessage: string | null) {
 }
 
 function getOperationalStateFilter(item: DirectoryItem) {
-  if (item.bootstrapFlow === "token_invalid") return "token_invalid" as const;
-
-  const bootstrapRequired =
-    item.bootstrapFlow === "host_bootstrap_required" ||
-    item.bootstrapFlow === "triagem_await_install_token" ||
-    !item.installToken ||
-    !item.rustdeskId ||
-    item.agent.lifecycleStatus === "PENDING_INSTALL";
-  if (bootstrapRequired) return "bootstrap_required" as const;
-
-  const syncOk = item.operationalStatus === "ONLINE" || item.operationalStatus === "RECENT";
-  if (syncOk) return "sync_ok" as const;
-
+  if (item.productStatus === "ATTENTION_REQUIRED") return "attention_required" as const;
+  if (item.productStatus === "AWAITING_LINK" || item.productStatus === "PROVISIONING_REMOTE") {
+    return "provisioning" as const;
+  }
+  if (item.productStatus === "REMOTE_READY") return "ready" as const;
+  if (item.productStatus === "IN_SERVICE") return "in_service" as const;
   return "other" as const;
 }
 
@@ -190,8 +184,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
-  const [agentFilter, setAgentFilter] = useState<"all" | "pending" | "linked" | "online" | "stale">("all");
-  const [operationalFilter, setOperationalFilter] = useState<"all" | "token_invalid" | "bootstrap_required" | "sync_ok">("all");
+  const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
+  const [operationalFilter, setOperationalFilter] = useState<"all" | "attention_required" | "provisioning" | "ready" | "in_service">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
   const [quickDescription, setQuickDescription] = useState("");
@@ -199,7 +193,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [latestQuickInstallToken, setLatestQuickInstallToken] = useState<{ hostName: string; token: string } | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
   useEffect(() => {
@@ -255,14 +248,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           status: "ACTIVE",
         },
       });
-
-      const savedHost = payload.data as { name?: string | null; installToken?: string | null };
-      if (savedHost?.installToken) {
-        setLatestQuickInstallToken({
-          hostName: savedHost.name?.trim() || name,
-          token: savedHost.installToken,
-        });
-      }
 
       toast.success("Maquina cadastrada.");
       setQuickRustdeskId("");
@@ -348,15 +333,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       const matchesHeartbeat = heartbeatFilter === "all" || heartbeat.bucket === heartbeatFilter;
       const matchesAgent =
         agentFilter === "all" ||
-        (agentFilter === "pending" && item.agent.lifecycleStatus === "PENDING_INSTALL") ||
-        (agentFilter === "linked" &&
-          (item.agent.lifecycleStatus === "INSTALLED" ||
-            item.agent.lifecycleStatus === "ONLINE" ||
-            item.agent.lifecycleStatus === "STALE" ||
-            item.agent.lifecycleStatus === "UNLINKED")) ||
-        (agentFilter === "online" && item.agent.lifecycleStatus === "ONLINE") ||
-        (agentFilter === "stale" &&
-          (item.agent.lifecycleStatus === "STALE" || item.agent.lifecycleStatus === "UNLINKED"));
+        (agentFilter === "awaiting_link" && item.productStatus === "AWAITING_LINK") ||
+        (agentFilter === "provisioning" && item.productStatus === "PROVISIONING_REMOTE") ||
+        (agentFilter === "ready" && item.productStatus === "REMOTE_READY") ||
+        (agentFilter === "attention" && item.productStatus === "ATTENTION_REQUIRED") ||
+        (agentFilter === "in_service" && item.productStatus === "IN_SERVICE");
       const operationalState = getOperationalStateFilter(item);
       const matchesOperational = operationalFilter === "all" || operationalState === operationalFilter;
 
@@ -384,10 +365,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   }, [directory.pendingItems, searchTerm]);
 
   const directoryStats = useMemo(() => {
-    const ready = directory.items.filter((item) => item.operationalStatus === "ONLINE").length;
-    const attention = directory.items.filter((item) => item.operationalStatus === "RECENT").length;
-    const openSessions = directory.items.filter((item) => item.operationalStatus === "SESSION_BUSY").length;
-    const pendingSetup = directory.items.filter((item) => item.operationalStatus === "MISCONFIGURED").length;
+    const ready = directory.items.filter((item) => item.productStatus === "REMOTE_READY").length;
+    const attention = directory.items.filter((item) => item.productStatus === "ATTENTION_REQUIRED").length;
+    const openSessions = directory.items.filter((item) => item.productStatus === "IN_SERVICE").length;
+    const pendingSetup = directory.items.filter((item) => item.productStatus === "PROVISIONING_REMOTE").length;
 
     return { ready, attention, openSessions, pendingSetup };
   }, [directory.items]);
@@ -500,38 +481,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           )}
         </div>
       </div>
-      {latestQuickInstallToken ? (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-            InstallToken gerado para {latestQuickInstallToken.hostName}
-          </p>
-          <p className="mt-1 break-all font-mono text-xs text-amber-800 dark:text-amber-100">
-            {latestQuickInstallToken.token}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                try {
-                  await copyTextWithFallback(latestQuickInstallToken.token);
-                  toast.success("InstallToken copiado.");
-                } catch {
-                  toast.error("Falha ao copiar installToken.");
-                }
-              }}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Copiar installToken
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setLatestQuickInstallToken(null)}>
-              Fechar
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
           <CardHeader className="pb-2">
@@ -792,9 +741,11 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Qualquer</SelectItem>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="linked">Vinculado</SelectItem>
-                        <SelectItem value="online">Operacional</SelectItem>
+                        <SelectItem value="awaiting_link">Aguardando vinculo</SelectItem>
+                        <SelectItem value="provisioning">Provisionando</SelectItem>
+                        <SelectItem value="ready">Remoto pronto</SelectItem>
+                        <SelectItem value="attention">Atencao</SelectItem>
+                        <SelectItem value="in_service">Em atendimento</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -807,9 +758,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Qualquer</SelectItem>
-                        <SelectItem value="token_invalid">Token Invalido</SelectItem>
-                        <SelectItem value="bootstrap_required">Bootstrap</SelectItem>
-                        <SelectItem value="sync_ok">Sync OK</SelectItem>
+                        <SelectItem value="provisioning">Provisionando</SelectItem>
+                        <SelectItem value="ready">Remoto pronto</SelectItem>
+                        <SelectItem value="attention_required">Atencao</SelectItem>
+                        <SelectItem value="in_service">Em atendimento</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -944,6 +896,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
                 const agentToken = getAgentTokenMeta(item.lastHeartbeatErrorMessage);
+                const productStatus = getRemoteProductStatusMeta(item.productStatus);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const installationNames = item.installationCompanies.length
                   ? item.installationCompanies
@@ -970,6 +923,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                                 {item.environment}
                               </Badge>
                             )}
+                            <Badge variant="outline" className={`h-5 text-[10px] ${productStatus.className}`}>
+                              {productStatus.label}
+                            </Badge>
                             {agentToken.needsBootstrap && (
                               <Badge variant="outline" className={`h-5 text-[10px] ${agentToken.className}`}>
                                 {agentToken.label}

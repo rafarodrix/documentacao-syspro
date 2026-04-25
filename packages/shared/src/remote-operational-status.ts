@@ -2,7 +2,6 @@ import type { RemoteOperationalStatus } from "@dosc-syspro/contracts/remote";
 
 export type RemoteOperationalStatusInput = {
   rustdeskId: string | null;
-  installToken: string | null;
   lastHeartbeatAt: string | Date | null;
   openSessionCount: number;
 };
@@ -10,7 +9,7 @@ export type RemoteOperationalStatusInput = {
 export function resolveRemoteOperationalStatus(
   input: RemoteOperationalStatusInput,
 ): RemoteOperationalStatus {
-  if (!input.rustdeskId || !input.installToken) {
+  if (!input.rustdeskId) {
     return "MISCONFIGURED";
   }
 

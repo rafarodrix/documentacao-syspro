@@ -1,4 +1,4 @@
-import type { RemoteOperationalStatus } from "@dosc-syspro/contracts/remote";
+import type { RemoteOperationalStatus, RemoteProductStatus } from "@dosc-syspro/contracts/remote";
 export { resolveRemoteOperationalStatus } from "@dosc-syspro/shared/remote-operational-status";
 export type { RemoteOperationalStatusInput } from "@dosc-syspro/shared/remote-operational-status";
 
@@ -34,7 +34,7 @@ export function getRemoteOperationalStatusMeta(status: RemoteOperationalStatus) 
     return {
       label: "MISCONFIGURED",
       title: "Configuracao pendente",
-      description: "Falta RustDesk ID ou token de instalacao para operacao segura.",
+      description: "A convergencia tecnica do modulo remoto ainda nao foi concluida.",
       className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
     };
   }
@@ -44,5 +44,45 @@ export function getRemoteOperationalStatusMeta(status: RemoteOperationalStatus) 
     title: "Sem heartbeat",
     description: "Sem atividade recente do agente no portal.",
     className: "border-zinc-500/20 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
+  };
+}
+
+export function getRemoteProductStatusMeta(status: RemoteProductStatus) {
+  if (status === "AWAITING_LINK") {
+    return {
+      label: "Aguardando vinculo",
+      description: "A maquina ja foi descoberta, mas ainda nao foi vinculada a um host da empresa.",
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  if (status === "PROVISIONING_REMOTE") {
+    return {
+      label: "Provisionando remoto",
+      description: "O agente esta convergindo instalacao, bootstrap e configuracao do modulo remoto.",
+      className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    };
+  }
+
+  if (status === "REMOTE_READY") {
+    return {
+      label: "Remoto pronto",
+      description: "A maquina esta convergida e pronta para uso operacional.",
+      className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  if (status === "IN_SERVICE") {
+    return {
+      label: "Em atendimento",
+      description: "Existe sessao ativa ou solicitada para este host.",
+      className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    };
+  }
+
+  return {
+    label: "Atencao necessaria",
+    description: "O agente precisa de intervencao ou confirmou degradacao operacional.",
+    className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
   };
 }

@@ -16,6 +16,7 @@ export type {
   RemoteModuleSettings,
   RemoteModuleSettingsActionResponse,
   RemoteOperationalStatus,
+  RemoteProductStatus,
   RemotePlatformDirectory,
   RemotePlatformEndpoint,
   RemotePlatformModule,
