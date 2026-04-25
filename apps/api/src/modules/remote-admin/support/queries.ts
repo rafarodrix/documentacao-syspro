@@ -177,6 +177,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     companyName,
     installationCompanies: host.installationCompanies ?? [],
     name: host.name,
+    machineProfile: (host.machineProfile ?? null) as RemoteConfiguredHostItem["machineProfile"],
     environment: host.environment,
     provider: host.provider,
     rustdeskId: host.agentExternalId,
@@ -961,6 +962,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     return {
       id: host.id,
       machineName: host.machineName,
+      machineProfile: null,
       rustdeskId: host.agentExternalId,
       agentVersion: host.agentVersion,
       provider: host.provider,

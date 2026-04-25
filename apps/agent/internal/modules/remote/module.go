@@ -353,7 +353,9 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		TargetVersion:   bootstrapResp.TargetVersion,
 		DefaultPassword: bootstrapResp.DefaultPassword,
 	})
+	_ = m.saveState(ctx, st)
 	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, true, nil); err != nil {
+		m.logger.Warn("remote bootstrap local apply failed after token issuance", "host_id", st.HostID, "error", err)
 		return m.fail("bootstrap rustdesk apply failed", err)
 	}
 	_ = m.saveState(ctx, st)
@@ -776,6 +778,9 @@ func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) di
 	requiresBootstrap := flow == domain.RemoteBootstrapFlowHostBootstrapRequired || flow == domain.RemoteBootstrapFlowTokenInvalid
 	if resp != nil {
 		requiresBootstrap = requiresBootstrap || resp.Transition.RequiresAuthenticatedBootstrap
+	}
+	if !requiresBootstrap && flow == domain.RemoteBootstrapFlowLinkedHostDetected && strings.TrimSpace(m.installToken) != "" {
+		requiresBootstrap = true
 	}
 
 	if !requiresBootstrap {

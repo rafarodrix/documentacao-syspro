@@ -692,6 +692,7 @@ model RemoteHost {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   name                           String
+  machineProfile                 String?
   environment                    String?
   provider                       String?
   description                    String?          @db.Text

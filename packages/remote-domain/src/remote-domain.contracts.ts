@@ -338,6 +338,7 @@ export type StopSessionOutput = {
 // -----------------------------------------------------------------------------
 
 const hostStatusSchema = z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]);
+const hostMachineProfileSchema = z.enum(["SERVER", "WORKSTATION", "TERMINAL", "BACKUP_NODE"]);
 
 export const linkDiscoveredHostInputSchema = z.object({
   scope: sessionScopeSchema,
@@ -352,6 +353,7 @@ export const createHostInputSchema = z.object({
   companyId: z.string().trim().min(1),
   name: z.string().trim().min(1),
   machineName: z.string().trim().nullable().optional(),
+  machineProfile: hostMachineProfileSchema.nullable().optional(),
   environment: z.string().trim().nullable().optional(),
   provider: z.string().trim().nullable().optional(),
   description: z.string().trim().nullable().optional(),
@@ -366,6 +368,7 @@ export const updateHostInputSchema = z.object({
   companyId: z.string().trim().min(1),
   name: z.string().trim().min(1),
   machineName: z.string().trim().nullable().optional(),
+  machineProfile: hostMachineProfileSchema.nullable().optional(),
   environment: z.string().trim().nullable().optional(),
   provider: z.string().trim().nullable().optional(),
   description: z.string().trim().nullable().optional(),

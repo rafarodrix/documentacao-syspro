@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { SearchableCompanyPicker } from "./SearchableCompanyPicker";
 import { formatDateTime, getSysproUpdateHealthMeta } from "../utils";
-import { COMPANY_SERVER_TYPE_LABEL, DEFAULT_INSTALLATION_DIRECTORY, REMOTE_CONNECTION_LABEL, UNLINKED_COMPANY_VALUE } from "../constants";
+import { COMPANY_SERVER_TYPE_LABEL, DEFAULT_INSTALLATION_DIRECTORY, MACHINE_PROFILE_LABEL, REMOTE_CONNECTION_LABEL, UNLINKED_COMPANY_VALUE } from "../constants";
 
 export function HostInstallationsTab({
   details,
@@ -23,6 +23,10 @@ export function HostInstallationsTab({
   setSelectedCompanyByUpdateId,
   isRelinkingInstallation,
   handleRelinkInstallation,
+  machineProfileDraft,
+  setMachineProfileDraft,
+  isSavingMachineProfile,
+  handleSaveMachineProfile,
 }: {
   details: any;
   installationFilter: "all" | "unlinked";
@@ -39,6 +43,10 @@ export function HostInstallationsTab({
   setSelectedCompanyByUpdateId: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   isRelinkingInstallation: boolean;
   handleRelinkInstallation: (updateId: string, companyId: string | null) => void;
+  machineProfileDraft: string;
+  setMachineProfileDraft: (value: string) => void;
+  isSavingMachineProfile: boolean;
+  handleSaveMachineProfile: (value: string | null) => void;
 }) {
   const primaryCompanyName =
     details.host?.companyName ??
@@ -62,6 +70,49 @@ export function HostInstallationsTab({
             <p className="mt-2 text-xs text-muted-foreground">
               O fluxo padrao e herdar esta empresa como referencia principal da maquina. Vinculos nesta aba so devem complementar cenarios com multiplas instalacoes ou diretorios separados no mesmo host.
             </p>
+          </div>
+
+          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,320px)_auto] lg:items-end">
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Perfil da maquina</p>
+                <Select
+                  value={machineProfileDraft}
+                  onValueChange={setMachineProfileDraft}
+                  disabled={isSavingMachineProfile || !canManageInstallations}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o perfil operacional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SERVER">{MACHINE_PROFILE_LABEL.SERVER}</SelectItem>
+                    <SelectItem value="WORKSTATION">{MACHINE_PROFILE_LABEL.WORKSTATION}</SelectItem>
+                    <SelectItem value="TERMINAL">{MACHINE_PROFILE_LABEL.TERMINAL}</SelectItem>
+                    <SelectItem value="BACKUP_NODE">{MACHINE_PROFILE_LABEL.BACKUP_NODE}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                size="sm"
+                disabled={
+                  isSavingMachineProfile ||
+                  !canManageInstallations ||
+                  !machineProfileDraft ||
+                  machineProfileDraft === (details.host.machineProfile ?? "")
+                }
+                onClick={() => handleSaveMachineProfile(machineProfileDraft || null)}
+              >
+                Salvar perfil da maquina
+              </Button>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Este perfil orienta o comportamento esperado do host para suporte, inventario e politicas futuras de backup por diretorio.
+            </p>
+            {!canManageInstallations ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Seu perfil tem acesso somente leitura para classificar a maquina.
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-xl border border-border/50 bg-muted/15 p-4">

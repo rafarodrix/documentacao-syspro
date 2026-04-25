@@ -32,6 +32,7 @@ export type RemoteAccessPolicy = {
 
 export type RemoteHostStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE";
 export type RemoteDiscoveredHostStatus = "PENDING_LINK" | "LINKED" | "IGNORED";
+export type RemoteMachineProfile = "SERVER" | "WORKSTATION" | "TERMINAL" | "BACKUP_NODE";
 
 export type RemoteSessionStatus = "REQUESTED" | "STARTED" | "ENDED" | "FAILED" | "CANCELLED";
 export type RemoteOperationalStatus = "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY";
@@ -216,6 +217,7 @@ export type RemoteConfiguredHostItem = {
   companyName: string | null;
   installationCompanies: string[];
   name: string;
+  machineProfile: RemoteMachineProfile | null;
   environment: string | null;
   provider: string | null;
   rustdeskId: string | null;
@@ -292,6 +294,7 @@ export type RemoteConfiguredHostItem = {
 export type RemoteDiscoveredHostItem = {
   id: string;
   machineName: string | null;
+  machineProfile: RemoteMachineProfile | null;
   rustdeskId: string | null;
   agentVersion: string | null;
   provider: string | null;

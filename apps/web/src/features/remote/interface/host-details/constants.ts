@@ -1,4 +1,5 @@
 import { REMOTE_AGENT_ACK_REASON_LABELS, type RemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
+import type { RemoteMachineProfile } from "@/features/remote/domain/model";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 
 export const COMPANY_SERVER_TYPE_LABEL: Record<"SYSPRO_SERVER" | "IIS", string> = {
@@ -13,6 +14,13 @@ export const REMOTE_CONNECTION_LABEL: Record<"DDNS_NOIP" | "RADMIN_VPN", string>
 
 export const DEFAULT_INSTALLATION_DIRECTORY = "C:\\Syspro\\Server\\SysproServer.exe";
 export const UNLINKED_COMPANY_VALUE = "__unlinked__";
+
+export const MACHINE_PROFILE_LABEL: Record<RemoteMachineProfile, string> = {
+  SERVER: "Servidor",
+  WORKSTATION: "Estacao",
+  TERMINAL: "Terminal",
+  BACKUP_NODE: "Backup node",
+};
 
 export const EXPECTED_SCHEMA_VERSIONS = {
   discover: "discover.payload.v1",

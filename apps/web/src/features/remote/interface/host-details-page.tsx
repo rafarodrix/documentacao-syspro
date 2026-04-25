@@ -100,6 +100,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
+  const [machineProfileDraft, setMachineProfileDraft] = useState(host.machineProfile ?? "");
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
@@ -120,6 +121,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         .finally(() => setIsLoadingTicket(false));
     }
   }, [ticketNumber]);
+
+  useEffect(() => {
+    setMachineProfileDraft(host.machineProfile ?? "");
+  }, [host.machineProfile]);
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
@@ -616,6 +621,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             companyId: host.companyId,
             name: normalizedProjectedHostName,
             machineName: host.machineName,
+            machineProfile: host.machineProfile,
             environment: host.environment,
             provider: host.provider,
             description: host.description,
@@ -626,6 +632,34 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         });
 
         toast.success("Nome da maquina atualizado.");
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
+  function handleSaveMachineProfile(nextMachineProfile: string | null) {
+    startSavingMachineName(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}`,
+          method: "PATCH",
+          body: {
+            companyId: host.companyId,
+            name: host.name,
+            machineName: host.machineName,
+            machineProfile: nextMachineProfile,
+            environment: host.environment,
+            provider: host.provider,
+            description: host.description,
+            notes: host.notes,
+            agentExternalId: host.rustdeskId,
+            status: host.status,
+          },
+        });
+
+        toast.success("Perfil da maquina atualizado.");
+        router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -1077,6 +1111,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             setSelectedCompanyByUpdateId={setSelectedCompanyByUpdateId}
             isRelinkingInstallation={isRelinkingInstallation}
             handleRelinkInstallation={handleRelinkInstallation}
+            machineProfileDraft={machineProfileDraft}
+            setMachineProfileDraft={setMachineProfileDraft}
+            isSavingMachineProfile={isSavingMachineName}
+            handleSaveMachineProfile={handleSaveMachineProfile}
           />
         </TabsContent>
 
