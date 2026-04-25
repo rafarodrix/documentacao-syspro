@@ -102,6 +102,9 @@ export function createRemoteDiscoverPort(params: {
       return transitions as any;
     },
     normalizeSystemMetrics(value) {
+      if (value === undefined || value === null) {
+        return null;
+      }
       return toJsonValue(value);
     },
     async findDiscoveredHost(input) {
