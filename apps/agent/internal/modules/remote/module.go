@@ -224,6 +224,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 	}
 
 	st.HostID = firstNonEmpty(discoverResp.HostID, st.HostID)
+	m.installToken = firstNonEmpty(strings.TrimSpace(m.installToken), strings.TrimSpace(discoverResp.InstallToken))
 	st.MachineName = hostname
 	st.LastBootstrapFlow = string(flow)
 	_ = m.saveState(ctx, st)
@@ -239,6 +240,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 		"mode":               discoverResp.Mode,
 		"discovered_host_id": discoverResp.DiscoveredHostID,
 		"host_id":            discoverResp.HostID,
+		"install_token_auto": strings.TrimSpace(discoverResp.InstallToken) != "",
 	})
 
 	switch flow {

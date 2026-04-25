@@ -29,7 +29,8 @@ const DEFAULT_REMOTE_MODULE_SETTINGS = {
   rustDeskServerHost: "rustdesk.trilinksoftware.com.br",
   rustDeskServerConfig:
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
-  rustDeskPublicKey: "",
+  rustDeskPublicKey:
+    "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskVersion: "1.4.6",
   defaultPassword: "Trilink098",
 };
@@ -127,6 +128,7 @@ export function createRemoteDiscoverPort(params: {
         select: {
           id: true,
           name: true,
+          installToken: true,
           agentTokenHash: true,
           lastHeartbeatErrorMessage: true,
         },

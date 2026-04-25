@@ -305,6 +305,7 @@ export type RemoteDiscoverExistingHost = {
 export type RemoteDiscoverLinkedHost = {
   id: string;
   name: string;
+  installToken: string | null;
   agentTokenHash: string | null;
   lastHeartbeatErrorMessage: string | null;
 };

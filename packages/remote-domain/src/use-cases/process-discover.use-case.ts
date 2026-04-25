@@ -95,6 +95,7 @@ export async function processDiscover(
         discoveredHostId: discoveredHost.id,
         hostId: linkedHost.id,
         hostName: linkedHost.name,
+        installToken: linkedHost.installToken ?? undefined,
         heartbeatAuth: "agentToken",
         bootstrapFlow,
         transition,

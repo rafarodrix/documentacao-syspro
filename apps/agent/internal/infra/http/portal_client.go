@@ -246,6 +246,7 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 	}
 	if c.cfg.Portal.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.cfg.Portal.APIKey)
+		req.Header.Set("x-internal-api-key", c.cfg.Portal.APIKey)
 	}
 	for key, value := range extraHeaders {
 		if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {

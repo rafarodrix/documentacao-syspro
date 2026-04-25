@@ -168,12 +168,13 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 }
 
 type persistedRemoteState struct {
-	CompanyID   string `json:"company_id"`
-	CompanyName string `json:"company_name"`
-	HostID      string `json:"host_id"`
-	Alias       string `json:"alias"`
-	RustDeskID  string `json:"rustdesk_id"`
-	MachineName string `json:"machine_name"`
+	CompanyID       string `json:"company_id"`
+	CompanyName     string `json:"company_name"`
+	HostID          string `json:"host_id"`
+	Alias           string `json:"alias"`
+	RustDeskID      string `json:"rustdesk_id"`
+	DefaultPassword string `json:"default_password"`
+	MachineName     string `json:"machine_name"`
 }
 
 func (s *Service) buildSupportContext() webview.SupportContext {
@@ -195,6 +196,7 @@ func (s *Service) buildSupportContext() webview.SupportContext {
 		context.HostID = strings.TrimSpace(remoteState.HostID)
 		context.HostAlias = strings.TrimSpace(remoteState.Alias)
 		context.RustDeskID = strings.TrimSpace(remoteState.RustDeskID)
+		context.RemoteAccessPassword = strings.TrimSpace(remoteState.DefaultPassword)
 		context.MachineName = strings.TrimSpace(remoteState.MachineName)
 	}
 

@@ -263,6 +263,7 @@ export type ProcessDiscoverOutput = {
   discoveredHostId: string;
   hostId?: string;
   hostName?: string;
+  installToken?: string;
   heartbeatAuth: "discoveryToken" | "agentToken";
   bootstrapFlow: DiscoverTransitionKey;
   transition: DiscoverTransition;

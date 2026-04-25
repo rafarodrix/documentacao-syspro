@@ -80,6 +80,7 @@ type RemoteDiscoverResponse struct {
 	DiscoveredHostID string                   `json:"discoveredHostId"`
 	HostID           string                   `json:"hostId,omitempty"`
 	HostName         string                   `json:"hostName,omitempty"`
+	InstallToken     string                   `json:"installToken,omitempty"`
 	HeartbeatAuth    RemoteHeartbeatAuth      `json:"heartbeatAuth"`
 	BootstrapFlow    RemoteBootstrapFlow      `json:"bootstrapFlow"`
 	Transition       RemoteDiscoverTransition `json:"transition"`
