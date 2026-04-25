@@ -64,6 +64,35 @@ type remoteState struct {
 	UpdatedAt           time.Time `json:"updated_at"`
 }
 
+type runtimePhase string
+
+const (
+	runtimePhaseDiscover  runtimePhase = "discover"
+	runtimePhaseBootstrap runtimePhase = "bootstrap"
+	runtimePhaseSync      runtimePhase = "sync"
+	runtimePhaseWait      runtimePhase = "wait"
+)
+
+type runtimePlan struct {
+	phase      runtimePhase
+	hostname   string
+	agentToken string
+	message    string
+}
+
+type discoverDecision struct {
+	phase   runtimePhase
+	flow    domain.RemoteBootstrapFlow
+	message string
+}
+
+type remoteDesiredIntent struct {
+	managed          bool
+	installIfMissing bool
+	bootstrapEnabled bool
+	syncEnabled      bool
+}
+
 type Module struct {
 	client          PortalClient
 	store           StateStore
@@ -153,16 +182,21 @@ func (m *Module) Inspect(ctx context.Context) (domain.CurrentModuleState, error)
 }
 
 func (m *Module) Plan(desired domain.DesiredState, current domain.CurrentModuleState) []domain.ReconcileAction {
-	if !desired.Remote.Enabled {
+	intent := resolveRemoteDesiredIntent(desired.Remote)
+	if !desired.Remote.Enabled || !intent.managed {
 		return nil
 	}
 
-	if current.Status == domain.ModuleStatusReady {
+	if current.Status == domain.ModuleStatusReady && intent.syncEnabled {
 		return []domain.ReconcileAction{{
 			Module: "remote",
 			Type:   "sync_cycle",
 			Reason: "remote sync heartbeat",
 		}}
+	}
+
+	if !intent.bootstrapEnabled {
+		return nil
 	}
 
 	return []domain.ReconcileAction{{
@@ -176,23 +210,29 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, current
 	_ = desired
 	_ = current
 
-	var st remoteState
-	_ = m.store.LoadJSON(ctx, stateFile, &st)
+	st := m.loadState(ctx)
+	intent := resolveRemoteDesiredIntent(desired.Remote)
+	plan := m.buildRuntimePlan(&st, intent)
 
-	if st.AgentToken != "" && !st.RebootstrapRequired {
-		m.logger.Debug("remote sync using persisted agent token", "host_id", st.HostID)
-		return m.runSync(ctx, &st, st.AgentToken)
+	switch plan.phase {
+	case runtimePhaseSync:
+		m.logger.Debug("remote runtime plan", "phase", plan.phase, "host_id", st.HostID)
+		return m.runSync(ctx, &st, plan.agentToken)
+	case runtimePhaseDiscover:
+		if st.RebootstrapRequired {
+			m.logger.Info("remote rebootstrap required; clearing local agent token", "host_id", st.HostID)
+		}
+		return m.runDiscoverBootstrapSync(ctx, &st, intent)
+	default:
+		return domain.ApplyResult{
+			Module:  "remote",
+			Changed: false,
+			Message: firstNonEmpty(plan.message, "remote runtime plan has no executable phase"),
+		}
 	}
-
-	st.AgentToken = ""
-	if st.RebootstrapRequired {
-		m.logger.Info("remote rebootstrap required; clearing local agent token", "host_id", st.HostID)
-	}
-
-	return m.runDiscoverBootstrapSync(ctx, &st)
 }
 
-func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) domain.ApplyResult {
+func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, intent remoteDesiredIntent) domain.ApplyResult {
 	if m.discoveryToken == "" {
 		return domain.ApplyResult{
 			Module:  "remote",
@@ -202,7 +242,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 	}
 
 	hostname := currentHostname()
-	if err := m.refreshRustDeskState(ctx, st, true, false, nil); err != nil {
+	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before discover failed", "error", err)
 	}
 	discoverResp, err := m.client.Discover(ctx, domain.RemoteDiscoverRequest{
@@ -243,35 +283,27 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState) 
 		"install_token_auto": strings.TrimSpace(discoverResp.InstallToken) != "",
 	})
 
-	switch flow {
-	case domain.RemoteBootstrapFlowPendingLink:
+	decision := m.resolveDiscoverDecision(discoverResp)
+	switch decision.phase {
+	case runtimePhaseWait:
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
-			Message: "waiting for manual host link in portal",
+			Message: decision.message,
 		}
-	case domain.RemoteBootstrapFlowLinkedHostDetected,
-		domain.RemoteBootstrapFlowHostBootstrapRequired,
-		domain.RemoteBootstrapFlowTokenInvalid:
-		if m.installToken == "" {
-			return domain.ApplyResult{
-				Module:  "remote",
-				Changed: false,
-				Message: fmt.Sprintf("bootstrap flow %s is waiting for install token from the linked host in portal", flow),
-			}
-		}
-		return m.runBootstrapThenSync(ctx, st, hostname)
+	case runtimePhaseBootstrap:
+		return m.runBootstrapThenSync(ctx, st, hostname, intent)
 	default:
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
-			Error:   fmt.Sprintf("unknown remote bootstrap flow: %s", flow),
+			Error:   fmt.Sprintf("unknown remote discover decision for flow %s", decision.flow),
 		}
 	}
 }
 
-func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, hostname string) domain.ApplyResult {
-	if err := m.refreshRustDeskState(ctx, st, true, false, nil); err != nil {
+func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, hostname string, intent remoteDesiredIntent) domain.ApplyResult {
+	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before bootstrap failed", "error", err)
 	}
 
@@ -320,7 +352,7 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		TargetVersion:   bootstrapResp.TargetVersion,
 		DefaultPassword: bootstrapResp.DefaultPassword,
 	})
-	if err := m.refreshRustDeskState(ctx, st, true, true, nil); err != nil {
+	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, true, nil); err != nil {
 		return m.fail("bootstrap rustdesk apply failed", err)
 	}
 	_ = m.saveState(ctx, st)
@@ -696,6 +728,96 @@ func (m *Module) fail(message string, err error) domain.ApplyResult {
 	}
 }
 
+func (m *Module) loadState(ctx context.Context) remoteState {
+	var st remoteState
+	_ = m.store.LoadJSON(ctx, stateFile, &st)
+	return st
+}
+
+func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) runtimePlan {
+	if !intent.managed {
+		return runtimePlan{
+			phase:   runtimePhaseWait,
+			message: "remote module is not managed by desired state",
+		}
+	}
+
+	if st.AgentToken != "" && !st.RebootstrapRequired {
+		if !intent.syncEnabled {
+			return runtimePlan{
+				phase:   runtimePhaseWait,
+				message: "remote sync is disabled by desired state",
+			}
+		}
+		return runtimePlan{
+			phase:      runtimePhaseSync,
+			hostname:   firstNonEmpty(st.MachineName, currentHostname()),
+			agentToken: st.AgentToken,
+		}
+	}
+
+	st.AgentToken = ""
+	if !intent.bootstrapEnabled {
+		return runtimePlan{
+			phase:   runtimePhaseWait,
+			message: "remote bootstrap is disabled by desired state",
+		}
+	}
+
+	return runtimePlan{
+		phase:    runtimePhaseDiscover,
+		hostname: firstNonEmpty(st.MachineName, currentHostname()),
+	}
+}
+
+func (m *Module) resolveDiscoverDecision(resp *domain.RemoteDiscoverResponse) discoverDecision {
+	flow := inferBootstrapFlow(resp)
+	requiresBootstrap := false
+	if resp != nil {
+		requiresBootstrap = resp.Transition.RequiresAuthenticatedBootstrap
+	}
+
+	if !requiresBootstrap {
+		return discoverDecision{
+			phase:   runtimePhaseWait,
+			flow:    flow,
+			message: "waiting for host link in portal before remote bootstrap",
+		}
+	}
+
+	if strings.TrimSpace(m.installToken) == "" {
+		return discoverDecision{
+			phase:   runtimePhaseWait,
+			flow:    flow,
+			message: fmt.Sprintf("linked host is waiting for bootstrap token delivery from portal (flow %s)", flow),
+		}
+	}
+
+	return discoverDecision{
+		phase: runtimePhaseBootstrap,
+		flow:  flow,
+	}
+}
+
+func resolveRemoteDesiredIntent(desired domain.RemoteDesiredState) remoteDesiredIntent {
+	mode := strings.TrimSpace(strings.ToLower(desired.Mode))
+	managed := desired.Enabled
+	if mode == "observe" || mode == "disabled" {
+		managed = false
+	}
+
+	installIfMissing := desired.InstallIfMissing
+	bootstrapEnabled := desired.BootstrapEnabled
+	syncEnabled := desired.SyncEnabled
+
+	return remoteDesiredIntent{
+		managed:          managed,
+		installIfMissing: installIfMissing,
+		bootstrapEnabled: bootstrapEnabled,
+		syncEnabled:      syncEnabled,
+	}
+}
+
 func currentHostname() string {
 	hostname, err := os.Hostname()
 	if err != nil || hostname == "" {
@@ -707,6 +829,9 @@ func currentHostname() string {
 func inferBootstrapFlow(resp *domain.RemoteDiscoverResponse) domain.RemoteBootstrapFlow {
 	if resp == nil {
 		return ""
+	}
+	if resp.BootstrapFlow != "" {
+		return resp.BootstrapFlow
 	}
 	if resp.Transition.NextEndpoint == "/api/remote/rustdesk/bootstrap" {
 		return domain.RemoteBootstrapFlowHostBootstrapRequired

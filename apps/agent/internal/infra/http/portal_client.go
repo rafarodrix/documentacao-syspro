@@ -165,8 +165,12 @@ func (c *PortalClient) localDesiredState() domain.DesiredState {
 		Version:   1,
 		UpdatedAt: time.Now().UTC(),
 		Remote: domain.RemoteDesiredState{
-			Enabled: c.cfg.Remote.Enabled,
-			Version: c.cfg.Agent.Version,
+			Enabled:          c.cfg.Remote.Enabled,
+			Version:          c.cfg.Agent.Version,
+			Mode:             "managed",
+			InstallIfMissing: true,
+			BootstrapEnabled: true,
+			SyncEnabled:      true,
 		},
 	}
 }

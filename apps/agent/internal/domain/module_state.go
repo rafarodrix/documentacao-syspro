@@ -10,8 +10,12 @@ const (
 )
 
 type RemoteDesiredState struct {
-	Enabled bool   `json:"enabled"`
-	Version string `json:"version"`
+	Enabled          bool   `json:"enabled"`
+	Version          string `json:"version"`
+	Mode             string `json:"mode,omitempty"`
+	InstallIfMissing bool   `json:"install_if_missing,omitempty"`
+	BootstrapEnabled bool   `json:"bootstrap_enabled,omitempty"`
+	SyncEnabled      bool   `json:"sync_enabled,omitempty"`
 }
 
 type TunnelDesiredState struct {
