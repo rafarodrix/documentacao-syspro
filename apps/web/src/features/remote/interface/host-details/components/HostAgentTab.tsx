@@ -65,6 +65,11 @@ export function HostAgentTab({
               <p className="mt-1 text-sm text-foreground">{contractValidationError ?? "Sem erro"}</p>
             </div>
           </div>
+          {host.productStatus === "AWAITING_LINK" ? (
+            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+              A maquina ja foi descoberta pelo agente, mas ainda nao foi vinculada no portal. Nesse estado o RustDesk ainda nao e instalado. O proximo passo e concluir o vinculo do host para liberar bootstrap e provisionamento remoto.
+            </div>
+          ) : null}
         </div>
 
         <details className="rounded-xl border border-border/50 bg-muted/10 p-4">

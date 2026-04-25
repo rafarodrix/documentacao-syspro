@@ -54,6 +54,7 @@ import {
   getRemoteApiErrorMessage,
   requestRemoteMutation,
 } from "@/features/remote/interface/remote-api";
+import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 
@@ -773,8 +774,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <summary className="cursor-pointer text-sm font-semibold text-foreground">Maquinas pendentes de vinculacao</summary>
               <div className="mt-3 space-y-3">
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <p className="text-sm font-medium text-foreground">Triagem inicial do agente</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Maquinas descobertas por onboarding do agente. Escolha a empresa e transforme cada uma em host operacional nesta mesma tela.
+                  Estas maquinas ja foram descobertas pelo agente, mas ainda nao receberam vinculo empresarial.
+                  Enquanto permanecerem aqui, o agente nao instala nem configura o RustDesk. O fluxo correto e: descoberta, vinculo, bootstrap, instalacao/configuracao do remoto.
                 </p>
               </div>
 
@@ -827,26 +830,19 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       ) : (
                         <p className="text-sm text-muted-foreground">Nenhuma instalacao detectada ainda no heartbeat.</p>
                       )}
+                      <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+                        Proximo passo: vincular a maquina a uma empresa/host. So depois disso o agente recebe bootstrap e habilita o remoto.
+                      </div>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                      <Select
+                      <SearchableCompanyPicker
                         value={pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? ""}
-                        onValueChange={(value) =>
+                        options={directory.companyOptions}
+                        onChange={(value) =>
                           setPendingCompanyById((current) => ({ ...current, [item.id]: value }))
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a empresa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {directory.companyOptions.map((company) => (
-                            <SelectItem key={company.id} value={company.id}>
-                              {company.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                       <Input
                         value={pendingNameById[item.id] ?? item.machineName ?? ""}
                         onChange={(event) =>
