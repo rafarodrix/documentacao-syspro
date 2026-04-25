@@ -1,8 +1,12 @@
-import { requireRole } from "@/lib/auth-helpers";
-import { SYSTEM_ROLES } from "@dosc-syspro/core";
+import { redirect } from "next/navigation";
+import { requireSession } from "@/lib/auth-helpers";
 import { CreateLeadPageForm } from "@/features/crm/interface/CreateLeadPageForm";
+import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function ComercialLeadsCreatePage() {
-  await requireRole([...SYSTEM_ROLES]);
+  await requireSession();
+  if (!(await currentUserHasAnyPermission(["crm:view", "crm:manage"], { acceptCompanyScope: true }))) {
+    redirect("/portal");
+  }
   return <CreateLeadPageForm />;
 }

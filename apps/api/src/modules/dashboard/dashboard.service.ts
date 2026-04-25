@@ -186,6 +186,12 @@ function buildCrmSummary(leads: any[]): DashboardCrmSummary {
   };
 }
 
+function getDashboardTicketTeam(role: Role): 'SUPORTE' | 'DESENVOLVIMENTO' | undefined {
+  if (role === Role.DEVELOPER) return 'DESENVOLVIMENTO';
+  if (role === Role.SUPORTE) return 'SUPORTE';
+  return undefined;
+}
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -271,22 +277,41 @@ export class DashboardService {
       const dashboardUF = await this.getUserDashboardUF(requester.userId);
       const { start } = getLast7DaysRange();
       const now = new Date();
-      const [canViewCompaniesModule, canViewUsersDirect, canViewUsersScoped, canViewUsersGlobal, companyScope, userScope] = await Promise.all([
+      const [
+        canViewCompaniesModule,
+        canViewContactsDirect,
+        canViewContactsScoped,
+        canViewContactsGlobal,
+        canViewUsersDirect,
+        canViewUsersScoped,
+        canViewUsersGlobal,
+        companyScope,
+        contactScope,
+        userScope,
+      ] = await Promise.all([
         this.authorizationService.userHasPermission(requester, 'companies:view', { acceptCompanyScope: true }),
+        this.authorizationService.userHasPermission(requester, 'contacts:view', { acceptCompanyScope: true }),
+        this.authorizationService.userHasPermission(requester, 'contacts:view_team', { acceptCompanyScope: true }),
+        this.authorizationService.userHasPermission(requester, 'contacts:view_all'),
         this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }),
         this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }),
         this.authorizationService.userHasPermission(requester, 'users:view_all'),
         this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
+        this.authorizationService.resolveCompanyAccessScope(requester, 'contacts:view_team', 'contacts:view_all'),
         this.authorizationService.resolveCompanyAccessScope(requester, 'users:view_team', 'users:view_all'),
       ]);
+      const canViewCrm =
+        (await this.authorizationService.userHasPermission(requester, 'crm:view', { acceptCompanyScope: true })) ||
+        (await this.authorizationService.userHasPermission(requester, 'crm:manage', { acceptCompanyScope: true }));
+      const canViewContactsModule = canViewContactsDirect || canViewContactsScoped || canViewContactsGlobal;
       const canViewUsersModule = canViewUsersGlobal || canViewUsersScoped || canViewUsersDirect;
 
-      const scopedCompanyIds =
-        canViewCompaniesModule || companyScope.isGlobal ? undefined : companyScope.companyIds;
-      const scopedUserIds =
-        canViewUsersModule || userScope.isGlobal ? undefined : userScope.companyIds;
+      const scopedCompanyIds = companyScope.isGlobal ? undefined : companyScope.companyIds;
+      const scopedContactIds = contactScope.isGlobal ? undefined : contactScope.companyIds;
+      const scopedUserIds = userScope.isGlobal ? undefined : userScope.companyIds;
       const companyBaseWhere = this.buildScopedCompaniesWhere(scopedCompanyIds);
       const userBaseWhere = this.buildScopedUsersWhere(scopedUserIds);
+      const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
 
       const [
         companiesCount,
@@ -302,68 +327,80 @@ export class DashboardService {
         companyActivity,
         crmLeads,
       ] = await Promise.all([
-        this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } }),
-        this.prisma.company.count({
-          where: { ...companyBaseWhere, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
-        }),
-        this.prisma.company.count({
-          where: {
-            ...companyBaseWhere,
-            createdAt: {
-              gte: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-              lt: new Date(now.getFullYear(), now.getMonth(), 1),
-            },
-          },
-        }),
+        canViewCompaniesModule
+          ? this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } })
+          : Promise.resolve(0),
+        canViewCompaniesModule
+          ? this.prisma.company.count({
+              where: { ...companyBaseWhere, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
+            })
+          : Promise.resolve(0),
+        canViewCompaniesModule
+          ? this.prisma.company.count({
+              where: {
+                ...companyBaseWhere,
+                createdAt: {
+                  gte: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+                  lt: new Date(now.getFullYear(), now.getMonth(), 1),
+                },
+              },
+            })
+          : Promise.resolve(0),
         this.prisma.user.count({ where: userBaseWhere }),
         this.prisma.user.count({ where: { ...userBaseWhere, isActive: true } }),
-        this.prisma.companyContactCompanyLink.count({
-          where: scopedCompanyIds ? { companyId: { in: scopedCompanyIds } } : undefined,
-        }),
-        this.prisma.company.findMany({
-          where: companyBaseWhere,
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          select: {
-            id: true,
-            razaoSocial: true,
-            nomeFantasia: true,
-            cnpj: true,
-            status: true,
-            createdAt: true,
-            _count: { select: { memberships: true } },
-            contactLinks: { select: { id: true } },
-            addresses: { take: 1, select: { cidade: true, estado: true } },
-          },
-        }),
-        (this.prisma.companyContact as any).findMany({
-          where: scopedCompanyIds
-            ? {
-                status: { not: 'ARCHIVED' },
-                companyLinks: { some: { companyId: { in: scopedCompanyIds } } },
-              }
-            : { status: { not: 'ARCHIVED' } },
-          orderBy: [{ createdAt: 'desc' }],
-          take: 5,
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            whatsapp: true,
-            createdAt: true,
-            companyLinks: {
-              orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        canViewContactsModule
+          ? this.prisma.companyContactCompanyLink.count({
+              where: scopedContactIds ? { companyId: { in: scopedContactIds } } : undefined,
+            })
+          : Promise.resolve(0),
+        canViewCompaniesModule
+          ? this.prisma.company.findMany({
+              where: companyBaseWhere,
+              orderBy: { createdAt: 'desc' },
+              take: 5,
               select: {
-                company: {
+                id: true,
+                razaoSocial: true,
+                nomeFantasia: true,
+                cnpj: true,
+                status: true,
+                createdAt: true,
+                _count: { select: { memberships: true } },
+                contactLinks: { select: { id: true } },
+                addresses: { take: 1, select: { cidade: true, estado: true } },
+              },
+            })
+          : Promise.resolve([]),
+        canViewContactsModule
+          ? (this.prisma.companyContact as any).findMany({
+              where: scopedContactIds
+                ? {
+                    status: { not: 'ARCHIVED' },
+                    companyLinks: { some: { companyId: { in: scopedContactIds } } },
+                  }
+                : { status: { not: 'ARCHIVED' } },
+              orderBy: [{ createdAt: 'desc' }],
+              take: 5,
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                whatsapp: true,
+                createdAt: true,
+                companyLinks: {
+                  orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
                   select: {
-                    nomeFantasia: true,
-                    razaoSocial: true,
+                    company: {
+                      select: {
+                        nomeFantasia: true,
+                        razaoSocial: true,
+                      },
+                    },
                   },
                 },
               },
-            },
-          },
-        }),
+            })
+          : Promise.resolve([]),
         canViewUsersModule
           ? this.prisma.user.findMany({
               where: userBaseWhere,
@@ -395,18 +432,22 @@ export class DashboardService {
           distinct: ['service'],
           take: 2,
         }),
-        this.prisma.company.findMany({
-          where: { ...companyBaseWhere, createdAt: { gte: start } },
-          select: { createdAt: true },
-        }),
-        (this.prisma as any).crmLead.findMany({
-          select: {
-            stage: true,
-            estimatedValue: true,
-            expectedCloseAt: true,
-            nextStep: true,
-          },
-        }),
+        canViewCompaniesModule
+          ? this.prisma.company.findMany({
+              where: { ...companyBaseWhere, createdAt: { gte: start } },
+              select: { createdAt: true },
+            })
+          : Promise.resolve([]),
+        canViewCrm
+          ? (this.prisma as any).crmLead.findMany({
+              select: {
+                stage: true,
+                estimatedValue: true,
+                expectedCloseAt: true,
+                nextStep: true,
+              },
+            })
+          : Promise.resolve([]),
       ]);
 
       let ticketWarning: string | undefined;
@@ -414,7 +455,14 @@ export class DashboardService {
 
       try {
         ticketsResponse = await withTimeout(
-          this.ticketsService.findAll({ page: '1', pageSize: '50' }, rawHeaders),
+          this.ticketsService.findAll(
+            {
+              page: '1',
+              pageSize: '50',
+              ...(dashboardTicketTeam ? { team: dashboardTicketTeam } : {}),
+            },
+            rawHeaders,
+          ),
           DASHBOARD_TICKETS_TIMEOUT_MS,
           'Consulta de tickets do dashboard',
         );
@@ -485,6 +533,8 @@ export class DashboardService {
           usersCount,
           activeUsersCount,
           contactsCount,
+          canViewCompanies: canViewCompaniesModule,
+          canViewContacts: canViewContactsModule,
           canViewUsers: canViewUsersModule || userScope.isGlobal,
           companies,
           recentContacts: contacts,
@@ -508,7 +558,7 @@ export class DashboardService {
           tickets,
           totalOpen,
           activity: toSeries(companyActivity.map((company) => company.createdAt)),
-          crm: buildCrmSummary(crmLeads),
+          crm: canViewCrm ? buildCrmSummary(crmLeads) : undefined,
         },
       };
     }

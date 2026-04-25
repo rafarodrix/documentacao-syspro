@@ -101,6 +101,8 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   usersCount: z.number().int().nonnegative(),
   activeUsersCount: z.number().int().nonnegative(),
   contactsCount: z.number().int().nonnegative().default(0),
+  canViewCompanies: z.boolean().default(true),
+  canViewContacts: z.boolean().default(true),
   canViewUsers: z.boolean().default(true),
   companies: z.array(dashboardCompanySummarySchema),
   recentContacts: z.array(dashboardRecentContactSchema).default([]),

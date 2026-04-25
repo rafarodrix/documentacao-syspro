@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
+import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { cn } from "@/lib/utils";
 
 type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
@@ -113,12 +114,19 @@ function ExecutiveLine({
 
 export default async function DashboardPage() {
   await requireSession();
+  const canAccessCrm = await currentUserHasAnyPermission(["crm:view", "crm:manage"], {
+    acceptCompanyScope: true,
+  });
   const data = await getDashboardData();
   const dailyPassword = data.dailyPassword ?? null;
 
   if (data.mode === "admin") {
     const adminData = data;
-    const showUsersMetric = adminData.canViewUsers ?? true;
+    const canViewCompanies = adminData.canViewCompanies ?? true;
+    const canViewContacts = adminData.canViewContacts ?? true;
+    const canViewUsers = adminData.canViewUsers ?? true;
+    const showUsersMetric = canViewUsers;
+    const showPeopleMetric = canViewUsers || canViewContacts;
     const recentContacts = adminData.recentContacts ?? [];
     const recentUsers = adminData.recentUsers ?? [];
     const sefazStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
@@ -143,10 +151,12 @@ export default async function DashboardPage() {
               <Zap className="h-4 w-4" />
               Operacional
             </TabsTrigger>
-            <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
-              <Target className="h-4 w-4" />
-              Comercial
-            </TabsTrigger>
+            {canAccessCrm ? (
+              <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
+                <Target className="h-4 w-4" />
+                Comercial
+              </TabsTrigger>
+            ) : null}
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
@@ -202,51 +212,55 @@ export default async function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
-                <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
-                  <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
-                </div>
-                <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-                  <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Empresas Ativas</CardTitle>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
-                    <Building2 className="h-3.5 w-3.5 text-blue-500" />
+              {canViewCompanies ? (
+                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                    <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
                   </div>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.companiesCount.toLocaleString("pt-BR")}</div>
-                  <div className="mt-1">
-                    <GrowthIndicator value={adminData.companiesGrowth} />
-                  </div>
-                </CardContent>
-              </Card>
+                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Empresas Ativas</CardTitle>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
+                      <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.companiesCount.toLocaleString("pt-BR")}</div>
+                    <div className="mt-1">
+                      <GrowthIndicator value={adminData.companiesGrowth} />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
 
-              <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
-                <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
-                  <Users className="h-20 w-20 rotate-12 text-violet-500" />
-                </div>
-                <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-                  <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {showUsersMetric ? "Usuarios" : "Contatos"}
-                  </CardTitle>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
-                    <Users className="h-3.5 w-3.5 text-violet-500" />
+              {showPeopleMetric ? (
+                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                    <Users className="h-20 w-20 rotate-12 text-violet-500" />
                   </div>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="text-3xl font-bold tracking-tight tabular-nums">
-                    {(showUsersMetric ? adminData.usersCount : (adminData.contactsCount ?? 0)).toLocaleString("pt-BR")}
-                  </div>
-                  <div className="mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {showUsersMetric ? (
-                        <><span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos</>
-                      ) : (
-                        <><span className="font-medium text-emerald-500">{adminData.contactsCount ?? 0}</span> vinculados ao escopo</>
-                      )}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {showUsersMetric ? "Usuarios" : "Contatos"}
+                    </CardTitle>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
+                      <Users className="h-3.5 w-3.5 text-violet-500" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-3xl font-bold tracking-tight tabular-nums">
+                      {(showUsersMetric ? adminData.usersCount : (adminData.contactsCount ?? 0)).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {showUsersMetric ? (
+                          <><span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos</>
+                        ) : (
+                          <><span className="font-medium text-emerald-500">{adminData.contactsCount ?? 0}</span> vinculados ao escopo</>
+                        )}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
 
               <Card className="border-border/50 bg-card/70">
                 <CardHeader className="pb-2">
@@ -267,27 +281,29 @@ export default async function DashboardPage() {
               <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              <RecentCompanies companies={adminData.companies} />
-              <RecentRecords
-                title="Ultimos contatos cadastrados"
-                description="Contatos recentes dentro do seu escopo"
-                emptyTitle="Nenhum contato cadastrado"
-                emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
-                viewAllHref="/portal/contatos"
-                createHref="/portal/contatos/novo"
-                createLabel="Cadastrar contato"
-                icon="contact"
-                items={recentContacts.map((contact) => ({
-                  id: contact.id,
-                  title: contact.name,
-                  subtitle: contact.email || contact.whatsapp || "Sem canal principal",
-                  meta: contact.companyNames?.length ? contact.companyNames.join(" Ã¢â‚¬Â¢ ") : "Sem empresa vinculada",
-                  createdAt: contact.createdAt,
-                  tags: contact.companyNames?.slice(0, 2),
-                }))}
-              />
-              {adminData.canViewUsers ? (
+            <div className={cn("grid grid-cols-1 gap-4", canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1")}>
+              {canViewCompanies ? <RecentCompanies companies={adminData.companies} /> : null}
+              {canViewContacts ? (
+                <RecentRecords
+                  title="Ultimos contatos cadastrados"
+                  description="Contatos recentes dentro do seu escopo"
+                  emptyTitle="Nenhum contato cadastrado"
+                  emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
+                  viewAllHref="/portal/contatos"
+                  createHref="/portal/contatos/novo"
+                  createLabel="Cadastrar contato"
+                  icon="contact"
+                  items={recentContacts.map((contact) => ({
+                    id: contact.id,
+                    title: contact.name,
+                    subtitle: contact.email || contact.whatsapp || "Sem canal principal",
+                    meta: contact.companyNames?.length ? contact.companyNames.join(" Ã¢â‚¬Â¢ ") : "Sem empresa vinculada",
+                    createdAt: contact.createdAt,
+                    tags: contact.companyNames?.slice(0, 2),
+                  }))}
+                />
+              ) : null}
+              {canViewUsers ? (
                 <RecentRecords
                   title="Ultimos usuarios cadastrados"
                   description="Usuarios recentes dentro do seu escopo"
@@ -310,6 +326,7 @@ export default async function DashboardPage() {
             </div>
           </TabsContent>
 
+          {canAccessCrm ? (
           <TabsContent value="comercial" className="space-y-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               <DashboardMetricCard
@@ -389,6 +406,7 @@ export default async function DashboardPage() {
               </Card>
             </div>
           </TabsContent>
+          ) : null}
         </Tabs>
       </div>
     );

@@ -1,6 +1,8 @@
 import { requireSession } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 import { getSettingsContractsAdminViewData } from "@/features/settings/application/queries";
 import { BulkReadjustDialog, ContractSheet, ContractStats, ContractsTable } from "@/features/contracts/interface";
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface ContratosPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -8,10 +10,19 @@ interface ContratosPageProps {
 
 export default async function ContratosPage({ searchParams }: ContratosPageProps) {
   await requireSession();
+  if (!(await currentUserHasPermission("contracts:view", { acceptCompanyScope: true }))) {
+    redirect("/portal");
+  }
 
   const params = searchParams ? await searchParams : undefined;
   const mode = typeof params?.mode === "string" ? params.mode : "";
   const isCreateMode = mode === "create";
+  const canCreateContracts = await currentUserHasAnyPermission(["contracts:create", "contracts:edit"], {
+    acceptCompanyScope: true,
+  });
+  if (isCreateMode && !canCreateContracts) {
+    redirect("/portal/contratos");
+  }
   const contractsView = await getSettingsContractsAdminViewData();
 
   return (
@@ -26,7 +37,7 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
         {!isCreateMode && (
           <div className="flex items-center gap-3">
             <BulkReadjustDialog />
-            <ContractSheet companies={contractsView.companies} mode="button" />
+            {canCreateContracts ? <ContractSheet companies={contractsView.companies} mode="button" /> : null}
           </div>
         )}
       </div>
