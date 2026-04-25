@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { RemoteAdminService } from './remote-admin.service';
 
@@ -34,6 +34,11 @@ export class RemotePortalController {
   @Post('discovered-hosts/:id/link')
   linkDiscoveredHost(@Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
     return this.remoteAdminService.linkDiscoveredHost(id, body, req.headers);
+  }
+
+  @Get('companies/search')
+  searchCompanies(@Req() req: Request, @Query('q') query?: string) {
+    return this.remoteAdminService.searchRemoteCompanies(query ?? '', req.headers);
   }
 
   @Post('hosts')

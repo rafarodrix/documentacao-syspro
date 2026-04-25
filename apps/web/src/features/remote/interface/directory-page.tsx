@@ -844,22 +844,30 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       </div>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                      <SearchableCompanyPicker
-                        value={pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? ""}
-                        options={directory.companyOptions}
-                        onChange={(value) =>
-                          setPendingCompanyById((current) => ({ ...current, [item.id]: value }))
-                        }
-                      />
-                      <Input
-                        value={pendingNameById[item.id] ?? item.machineName ?? ""}
-                        onChange={(event) =>
-                          setPendingNameById((current) => ({ ...current, [item.id]: event.target.value }))
-                        }
-                        placeholder="Nome do host"
-                      />
-                      <Button type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}>
+                    <div className="grid gap-3 xl:grid-cols-[minmax(360px,1.35fr)_minmax(280px,1fr)_auto] xl:items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Empresa</Label>
+                        <SearchableCompanyPicker
+                          value={pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? ""}
+                          options={directory.companyOptions}
+                          searchUrl="/api/remote/companies/search"
+                          onChange={(value) =>
+                            setPendingCompanyById((current) => ({ ...current, [item.id]: value }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome do host</Label>
+                        <Input
+                          className="min-w-[280px]"
+                          value={pendingNameById[item.id] ?? item.machineName ?? ""}
+                          onChange={(event) =>
+                            setPendingNameById((current) => ({ ...current, [item.id]: event.target.value }))
+                          }
+                          placeholder="Ex.: Servidor matriz fiscal"
+                        />
+                      </div>
+                      <Button className="xl:min-w-[120px]" type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}>
                         Vincular
                       </Button>
                     </div>

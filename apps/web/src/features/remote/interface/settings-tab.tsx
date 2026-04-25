@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/RemoteModuleSettingsForm";
 
 type RemoteAccessSettingsTabProps = {
-  companyOptions: Array<{ id: string; label: string }>;
+  companyOptions: Array<{ id: string; label: string; searchText?: string }>;
 };
 
 export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettingsTabProps) {

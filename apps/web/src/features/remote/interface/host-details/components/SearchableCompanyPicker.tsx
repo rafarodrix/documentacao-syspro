@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UNLINKED_COMPANY_VALUE } from "../constants";
+import { requestRemoteQuery } from "@/features/remote/interface/remote-api";
 
 function normalizeCompanySearch(value: string) {
   return value
@@ -22,21 +23,59 @@ export function SearchableCompanyPicker({
   disabled,
 }: {
   value: string;
-  options: Array<{ id: string; label: string }>;
+  options: Array<{ id: string; label: string; searchText?: string }>;
   onChange: (value: string) => void;
   disabled?: boolean;
+  searchUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [asyncOptions, setAsyncOptions] = useState<Array<{ id: string; label: string; searchText?: string }>>([]);
+
+  useEffect(() => {
+    if (!searchUrl || !open) return;
+
+    const controller = new AbortController();
+    const handle = window.setTimeout(async () => {
+      try {
+        const url = query.trim()
+          ? `${searchUrl}?q=${encodeURIComponent(query.trim())}`
+          : searchUrl;
+        const response = await requestRemoteQuery<{ options: Array<{ id: string; label: string; searchText?: string }> }>({
+          url,
+          method: "GET",
+          signal: controller.signal,
+        });
+        setAsyncOptions(response.data.options ?? []);
+      } catch {
+        if (!controller.signal.aborted) {
+          setAsyncOptions([]);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(handle);
+    };
+  }, [open, query, searchUrl]);
+
+  const mergedOptions = useMemo(() => {
+    const byId = new Map<string, { id: string; label: string; searchText?: string }>();
+    for (const option of options) byId.set(option.id, option);
+    for (const option of asyncOptions) byId.set(option.id, option);
+    return Array.from(byId.values());
+  }, [options, asyncOptions]);
+
   const filtered = useMemo(() => {
     const q = normalizeCompanySearch(query);
-    if (!q) return options;
-    return options.filter((option) => normalizeCompanySearch(option.label).includes(q));
-  }, [options, query]);
+    if (!q) return mergedOptions;
+    return mergedOptions.filter((option) => normalizeCompanySearch(option.searchText ?? option.label).includes(q));
+  }, [mergedOptions, query]);
   const selectedLabel =
     value === UNLINKED_COMPANY_VALUE
       ? "Sem vinculo"
-      : options.find((option) => option.id === value)?.label ?? "Selecionar empresa";
+      : mergedOptions.find((option) => option.id === value)?.label ?? "Selecionar empresa";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

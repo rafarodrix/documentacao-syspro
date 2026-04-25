@@ -33,6 +33,27 @@ type RemoteProcedure =
 
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
 
+function normalizeCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
+  const nomeFantasia = input.nomeFantasia?.trim() ?? '';
+  const razaoSocial = input.razaoSocial.trim();
+
+  if (!nomeFantasia) return razaoSocial;
+  if (nomeFantasia.localeCompare(razaoSocial, 'pt-BR', { sensitivity: 'base' }) === 0) return nomeFantasia;
+  return `${nomeFantasia} | ${razaoSocial}`;
+}
+
+function buildCompanySearchWhere(query: string) {
+  const trimmed = query.trim();
+  if (!trimmed) return {};
+
+  return {
+    OR: [
+      { nomeFantasia: { contains: trimmed, mode: Prisma.QueryMode.insensitive } },
+      { razaoSocial: { contains: trimmed, mode: Prisma.QueryMode.insensitive } },
+    ],
+  };
+}
+
 @Injectable()
 export class RemoteAdminService {
   private readonly logger = new Logger(RemoteAdminService.name);
@@ -86,6 +107,40 @@ export class RemoteAdminService {
     await this.authorizationService.getRequester(rawHeaders as any);
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     return getRemoteHostDetails(tenantScope, hostId);
+  }
+
+  async searchRemoteCompanies(query: string, rawHeaders?: Record<string, unknown>) {
+    await this.authorizationService.getRequester(rawHeaders as any);
+    const tenantScope = await this.resolveTenantScope(rawHeaders);
+    const companyWhere = tenantScope.isGlobalView
+      ? { deletedAt: null, ...buildCompanySearchWhere(query) }
+      : {
+          deletedAt: null,
+          id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] },
+          ...buildCompanySearchWhere(query),
+        };
+
+    const companies = await prisma.company.findMany({
+      where: companyWhere,
+      select: {
+        id: true,
+        nomeFantasia: true,
+        razaoSocial: true,
+      },
+      orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
+      take: 50,
+    });
+
+    return {
+      success: true,
+      data: {
+        options: companies.map((company) => ({
+          id: company.id,
+          label: normalizeCompanyOptionLabel(company),
+          searchText: `${company.nomeFantasia?.trim() ?? ''} ${company.razaoSocial.trim()}`.trim(),
+        })),
+      },
+    };
   }
 
   async getSessions(

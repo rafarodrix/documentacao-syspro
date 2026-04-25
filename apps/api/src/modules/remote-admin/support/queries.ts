@@ -331,6 +331,12 @@ function buildCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSoci
   return `${nomeFantasia} | ${razaoSocial}`;
 }
 
+function buildCompanyOptionSearchText(input: { nomeFantasia: string | null; razaoSocial: string }) {
+  return [input.nomeFantasia?.trim() ?? "", input.razaoSocial.trim()]
+    .filter((entry) => !!entry)
+    .join(" ");
+}
+
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -718,6 +724,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
     companyOptions: companies.map((company) => ({
       id: company.id,
       label: buildCompanyOptionLabel(company),
+      searchText: buildCompanyOptionSearchText(company),
     })),
     hostOptions: hostOptionsRows.map((host) => ({
       id: host.id,
@@ -1010,6 +1017,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
       label: buildCompanyOptionLabel(company),
+      searchText: buildCompanyOptionSearchText(company),
     })),
     pendingItems,
     items: hosts.map((host) =>
@@ -1342,6 +1350,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
       label: buildCompanyOptionLabel(company),
+      searchText: buildCompanyOptionSearchText(company),
     })),
     installGuide: buildInstallGuide(hostView),
     company: {

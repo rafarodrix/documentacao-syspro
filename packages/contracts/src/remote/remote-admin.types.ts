@@ -200,6 +200,7 @@ export type RemotePlatformOverview = {
   companyOptions: Array<{
     id: string;
     label: string;
+    searchText?: string;
   }>;
   hostOptions: Array<{
     id: string;
@@ -371,6 +372,7 @@ export type RemotePlatformDirectory = {
   companyOptions: Array<{
     id: string;
     label: string;
+    searchText?: string;
   }>;
   pendingItems: RemoteDiscoveredHostItem[];
   items: RemoteConfiguredHostItem[];
@@ -456,6 +458,7 @@ export type RemoteHostDetails = {
   companyOptions: Array<{
     id: string;
     label: string;
+    searchText?: string;
   }>;
   installGuide: Array<{
     id: RemoteAgentInstallStage;
