@@ -26,7 +26,7 @@ import {
 const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
 
 const DEFAULT_REMOTE_MODULE_SETTINGS = {
-  rustDeskServerHost: "acesso.trilinksoftware.com.br",
+  rustDeskServerHost: "rustdesk.trilinksoftware.com.br",
   rustDeskServerConfig:
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskPublicKey: "",
@@ -637,5 +637,4 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin.port";
 export { createRemoteAddressBookPort } from "./remote-address-book.port";
-
 

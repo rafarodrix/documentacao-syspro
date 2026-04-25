@@ -41,6 +41,8 @@ type EventBus interface {
 type remoteState struct {
 	AgentToken          string    `json:"agent_token,omitempty"`
 	HostID              string    `json:"host_id,omitempty"`
+	CompanyID           string    `json:"company_id,omitempty"`
+	CompanyName         string    `json:"company_name,omitempty"`
 	Alias               string    `json:"alias,omitempty"`
 	RustDeskID          string    `json:"rustdesk_id,omitempty"`
 	MachineName         string    `json:"machine_name,omitempty"`
@@ -299,6 +301,8 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 
 	st.AgentToken = bootstrapResp.AgentToken
 	st.HostID = firstNonEmpty(bootstrapResp.HostID, st.HostID)
+	st.CompanyID = firstNonEmpty(bootstrapResp.CompanyID, st.CompanyID)
+	st.CompanyName = firstNonEmpty(bootstrapResp.CompanyName, st.CompanyName)
 	st.Alias = firstNonEmpty(bootstrapResp.Alias, st.Alias)
 	st.RustDeskID = firstNonEmpty(bootstrapResp.RustDeskID, st.RustDeskID)
 	st.MachineName = firstNonEmpty(bootstrapResp.MachineName, hostname)
@@ -354,6 +358,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 
 	st.HostID = firstNonEmpty(syncResp.HostID, st.HostID)
+	st.CompanyName = firstNonEmpty(syncResp.CompanyName, st.CompanyName)
 	st.Alias = firstNonEmpty(syncResp.Alias, st.Alias)
 	st.RustDeskID = firstNonEmpty(syncResp.RustDeskID, st.RustDeskID)
 	st.MachineName = firstNonEmpty(syncResp.MachineName, hostname)

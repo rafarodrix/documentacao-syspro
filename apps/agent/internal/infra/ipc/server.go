@@ -25,6 +25,7 @@ type NotificationProvider interface {
 
 type ActionProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
+	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
 // Server will host the local service-to-UI transport.
@@ -111,6 +112,33 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 
 		result, err := s.actions.OpenSupportConversation(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(result)
+	})
+	mux.HandleFunc("/actions/support/sync-context", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		var payload struct {
+			ConversationID string `json:"conversationId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid json payload"})
+			return
+		}
+
+		result, err := s.actions.SyncSupportConversationContext(r.Context(), payload.ConversationID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Header().Set("Content-Type", "application/json")

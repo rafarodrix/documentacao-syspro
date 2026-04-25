@@ -260,6 +260,7 @@ export async function processSync(
   return {
     contractVersion: "rustdesk.sync.v1",
     hostId: persisted.host.id,
+    companyName: context.companyName,
     alias,
     rustdeskId: persisted.host.agentExternalId,
     machineName: persisted.host.machineName,

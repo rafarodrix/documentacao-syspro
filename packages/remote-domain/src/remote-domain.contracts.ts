@@ -216,6 +216,7 @@ export type ProcessBootstrapOutput = {
   bootstrapMode: "host";
   hostId: string;
   companyId: string;
+  companyName: string;
   alias: string;
   rustdeskId: string | null;
   machineName: string | null;
@@ -271,6 +272,7 @@ export type ProcessDiscoverOutput = {
 export type ProcessSyncOutput = {
   contractVersion: "rustdesk.sync.v1";
   hostId: string;
+  companyName: string;
   alias: string;
   rustdeskId: string | null;
   machineName: string | null;

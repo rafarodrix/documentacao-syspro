@@ -469,6 +469,40 @@ export class ChatwootClient {
     );
   }
 
+  async listConversationLabels(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+  ): Promise<string[]> {
+    const response = await this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/labels`,
+      'GET',
+    );
+
+    if (Array.isArray(response?.payload)) {
+      return response.payload.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
+    }
+
+    if (Array.isArray(response)) {
+      return response.map((item: unknown) => String(item ?? '').trim()).filter(Boolean);
+    }
+
+    return [];
+  }
+
+  async setConversationLabels(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    labels: string[],
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/labels`,
+      'POST',
+      { labels },
+    );
+  }
+
   async listAgents(config: ChatwootConnectionConfig): Promise<any[]> {
     const response = await this.request(
       config,

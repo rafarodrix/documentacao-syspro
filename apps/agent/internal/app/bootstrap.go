@@ -55,7 +55,8 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	uiStateService := uistate.NewService(cfg.Paths.StateDir, webview.ChatwootConfig{
 		BaseURL:      cfg.Support.ChatwootBaseURL,
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
-	})
+		IPCBaseURL:   "http://" + cfg.Agent.IPCAddress,
+	}, cfg.Agent.Version, cfg.Agent.Environment, portalClient)
 
 	modules := []reconcile.Module{
 		remotemodule.New(

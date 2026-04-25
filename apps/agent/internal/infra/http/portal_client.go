@@ -151,6 +151,15 @@ func (c *PortalClient) Ack(ctx context.Context, req domain.RemoteAckRequest) err
 	return err
 }
 
+func (c *PortalClient) SyncSupportConversationContext(ctx context.Context, conversationID string, supportContext domain.SupportConversationContext) error {
+	body := map[string]any{
+		"conversationId": conversationID,
+		"context":        supportContext,
+	}
+	_, err := c.postInternal(ctx, "/api/integrations/chatwoot/agent-context/sync", body)
+	return err
+}
+
 func (c *PortalClient) localDesiredState() domain.DesiredState {
 	return domain.DesiredState{
 		Version:   1,
@@ -166,15 +175,25 @@ func (c *PortalClient) post(ctx context.Context, path string, body any) (json.Ra
 	return c.doRequest(ctx, http.MethodPost, path, body)
 }
 
+func (c *PortalClient) postInternal(ctx context.Context, path string, body any) (json.RawMessage, error) {
+	return c.doRequestWithHeaders(ctx, http.MethodPost, path, body, map[string]string{
+		"x-internal-api-key": c.cfg.Portal.APIKey,
+	})
+}
+
 func (c *PortalClient) get(ctx context.Context, path string) (json.RawMessage, error) {
 	return c.doRequest(ctx, http.MethodGet, path, nil)
 }
 
 func (c *PortalClient) doRequest(ctx context.Context, method, path string, body any) (json.RawMessage, error) {
+	return c.doRequestWithHeaders(ctx, method, path, body, nil)
+}
+
+func (c *PortalClient) doRequestWithHeaders(ctx context.Context, method, path string, body any, extraHeaders map[string]string) (json.RawMessage, error) {
 	var lastErr error
 
 	for attempt := 1; attempt <= 3; attempt++ {
-		resp, status, err := c.doRequestOnce(ctx, method, path, body)
+		resp, status, err := c.doRequestOnce(ctx, method, path, body, extraHeaders)
 		if err == nil {
 			return resp, nil
 		}
@@ -206,7 +225,7 @@ func (c *PortalClient) doRequest(ctx context.Context, method, path string, body 
 	return nil, lastErr
 }
 
-func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, body any) (json.RawMessage, int, error) {
+func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, body any, extraHeaders map[string]string) (json.RawMessage, int, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -227,6 +246,12 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 	}
 	if c.cfg.Portal.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.cfg.Portal.APIKey)
+	}
+	for key, value := range extraHeaders {
+		if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {
+			continue
+		}
+		req.Header.Set(key, value)
 	}
 
 	start := time.Now()

@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,7 +59,12 @@ type rustDeskManager struct {
 func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, installerArgs string) *rustDeskManager {
 	args := strings.TrimSpace(installerArgs)
 	if args == "" {
-		args = "/S"
+		switch strings.ToLower(filepath.Ext(strings.TrimSpace(installerURL))) {
+		case ".msi":
+			args = "/qn /norestart"
+		default:
+			args = "/S"
+		}
 	}
 
 	return &rustDeskManager{
@@ -112,6 +119,8 @@ func (m *rustDeskManager) ensureInstalled(ctx context.Context, upgrade *rustDesk
 		}
 		if strings.TrimSpace(upgrade.SilentArgs) != "" {
 			silentArgs = strings.TrimSpace(upgrade.SilentArgs)
+		} else if strings.ToLower(filepath.Ext(downloadURL)) == ".msi" {
+			silentArgs = "/qn /norestart"
 		}
 	}
 
@@ -236,6 +245,10 @@ func (m *rustDeskManager) getServiceStatus(ctx context.Context) string {
 }
 
 func (m *rustDeskManager) downloadInstaller(ctx context.Context, rawURL, checksum string) (string, error) {
+	if localPath, ok := m.resolveLocalInstallerPath(rawURL); ok {
+		return m.prepareLocalInstaller(localPath, checksum)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("build installer request: %w", err)
@@ -283,6 +296,123 @@ func (m *rustDeskManager) downloadInstaller(ctx context.Context, rawURL, checksu
 	}
 
 	return installerPath, nil
+}
+
+func (m *rustDeskManager) resolveLocalInstallerPath(raw string) (string, bool) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", false
+	}
+
+	if strings.HasPrefix(strings.ToLower(trimmed), "file://") {
+		parsed, err := url.Parse(trimmed)
+		if err != nil {
+			return "", false
+		}
+		if parsed.Scheme != "file" {
+			return "", false
+		}
+		localPath := parsed.Path
+		if runtime.GOOS == "windows" {
+			localPath = strings.TrimPrefix(localPath, "/")
+			localPath = strings.ReplaceAll(localPath, "/", `\`)
+		}
+		return localPath, true
+	}
+
+	if strings.HasPrefix(strings.ToLower(trimmed), "http://") || strings.HasPrefix(strings.ToLower(trimmed), "https://") {
+		return "", false
+	}
+
+	return trimmed, true
+}
+
+func (m *rustDeskManager) prepareLocalInstaller(localPath, checksum string) (string, error) {
+	resolvedPath := filepath.Clean(strings.TrimSpace(localPath))
+	if resolvedPath == "" {
+		return "", fmt.Errorf("local installer path is empty")
+	}
+
+	info, err := os.Stat(resolvedPath)
+	if err != nil {
+		return "", fmt.Errorf("stat local installer: %w", err)
+	}
+	if info.IsDir() {
+		return "", fmt.Errorf("local installer path points to a directory")
+	}
+
+	if err := verifyInstallerChecksum(resolvedPath, checksum); err != nil {
+		return "", err
+	}
+
+	downloadsDir := filepath.Join(m.stateDir, "downloads")
+	if err := os.MkdirAll(downloadsDir, 0o755); err != nil {
+		return "", fmt.Errorf("create downloads dir: %w", err)
+	}
+
+	targetPath := filepath.Join(downloadsDir, filepath.Base(resolvedPath))
+	if sameFile(targetPath, resolvedPath) {
+		return resolvedPath, nil
+	}
+
+	if err := copyFile(resolvedPath, targetPath, info.Mode()); err != nil {
+		return "", err
+	}
+
+	return targetPath, nil
+}
+
+func verifyInstallerChecksum(path, checksum string) error {
+	expected := strings.TrimSpace(strings.ToLower(checksum))
+	if expected == "" {
+		return nil
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open installer for checksum: %w", err)
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return fmt.Errorf("read installer for checksum: %w", err)
+	}
+
+	actual := hex.EncodeToString(hash.Sum(nil))
+	if actual != expected {
+		return fmt.Errorf("installer checksum mismatch: expected %s got %s", expected, actual)
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string, mode fs.FileMode) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("open local installer: %w", err)
+	}
+	defer source.Close()
+
+	target, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("create local installer copy: %w", err)
+	}
+	defer target.Close()
+
+	if _, err := io.Copy(target, source); err != nil {
+		return fmt.Errorf("copy local installer: %w", err)
+	}
+
+	if err := os.Chmod(dst, mode); err != nil {
+		return fmt.Errorf("chmod local installer copy: %w", err)
+	}
+
+	return nil
+}
+
+func sameFile(a, b string) bool {
+	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }
 
 func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silentArgs string) error {

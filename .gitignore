@@ -53,6 +53,8 @@ blob-report/
 .env
 .env.e2e
 .env*.local
+apps/api/.env
+apps/agent/.env
 apps/web/.env.e2e
 *.pem
 

@@ -82,7 +82,7 @@ type CredentialDraft = {
 };
 
 const defaultValues: RemoteModuleSettings = {
-  rustDeskServerHost: "acesso.trilinksoftware.com.br",
+  rustDeskServerHost: "rustdesk.trilinksoftware.com.br",
   rustDeskServerConfig:
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskPublicKey: "",
@@ -399,7 +399,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="rustDeskServerHost">Host do servidor</Label>
-            <Input id="rustDeskServerHost" placeholder="acesso.trilinksoftware.com.br" {...form.register("rustDeskServerHost")} />
+            <Input id="rustDeskServerHost" placeholder="rustdesk.trilinksoftware.com.br" {...form.register("rustDeskServerHost")} />
             <p className="text-xs text-muted-foreground">Usado como `custom-rendezvous-server` no onboarding do agente.</p>
           </div>
 

@@ -12,8 +12,8 @@ func Load() (Config, error) {
 	cfg := Config{
 		LogLevel: getEnv("AGENT_LOG_LEVEL", "debug"),
 		Portal: PortalConfig{
-			BaseURL:         getEnv("PORTAL_BASE_URL", "http://localhost:3000"),
-			APIKey:          getEnv("PORTAL_API_KEY", ""),
+			BaseURL:         getEnvAny([]string{"PORTAL_BASE_URL", "PORTAL_API_BASE_URL"}, "http://localhost:3000"),
+			APIKey:          getEnvAny([]string{"PORTAL_API_KEY", "INTERNAL_API_KEY"}, ""),
 			AgentAPIEnabled: getEnvBool("PORTAL_AGENT_API_ENABLED", false),
 		},
 		Paths: PathsConfig{
@@ -23,12 +23,12 @@ func Load() (Config, error) {
 			Enabled:                 getEnvBool("REMOTE_ENABLED", true),
 			DiscoveryToken:          getEnv("REMOTE_DISCOVERY_TOKEN", ""),
 			InstallToken:            getEnv("REMOTE_INSTALL_TOKEN", ""),
-			RustDeskInstallerURL:    getEnv("REMOTE_RUSTDESK_INSTALLER_URL", ""),
-			RustDeskInstallerSHA256: getEnv("REMOTE_RUSTDESK_INSTALLER_SHA256", ""),
-			RustDeskInstallArgs:     getEnv("REMOTE_RUSTDESK_INSTALL_ARGS", "/S"),
+			RustDeskInstallerURL:    getEnvAny([]string{"REMOTE_RUSTDESK_INSTALLER_URL", "REMOTE_RUSTDESK_UPGRADE_URL"}, ""),
+			RustDeskInstallerSHA256: getEnvAny([]string{"REMOTE_RUSTDESK_INSTALLER_SHA256", "REMOTE_RUSTDESK_UPGRADE_SHA256"}, ""),
+			RustDeskInstallArgs:     getEnvAny([]string{"REMOTE_RUSTDESK_INSTALL_ARGS", "REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS"}, ""),
 		},
 		Support: SupportConfig{
-			ChatwootBaseURL:      getEnv("SUPPORT_CHATWOOT_BASE_URL", "https://chat.trilinksoftware.com.br"),
+			ChatwootBaseURL:      getEnvAny([]string{"SUPPORT_CHATWOOT_BASE_URL", "CHATWOOT_URL"}, "https://chat.trilinksoftware.com.br"),
 			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", "GoMFRV3pyJf4sh9CKYqQpWkh"),
 		},
 		Agent: AgentConfig{
@@ -55,6 +55,15 @@ func (c Config) validate() error {
 func getEnv(key, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 		return value
+	}
+	return fallback
+}
+
+func getEnvAny(keys []string, fallback string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+			return value
+		}
 	}
 	return fallback
 }

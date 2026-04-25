@@ -87,6 +87,7 @@ export async function processBootstrap(
     bootstrapMode: "host",
     hostId: persisted.id,
     companyId: persisted.companyId,
+    companyName: host.companyName,
     alias,
     rustdeskId: persisted.agentExternalId,
     machineName: persisted.machineName,

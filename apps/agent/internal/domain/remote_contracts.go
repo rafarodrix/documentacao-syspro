@@ -104,6 +104,7 @@ type RemoteBootstrapResponse struct {
 	BootstrapMode       string `json:"bootstrapMode"`
 	HostID              string `json:"hostId"`
 	CompanyID           string `json:"companyId"`
+	CompanyName         string `json:"companyName,omitempty"`
 	Alias               string `json:"alias"`
 	RustDeskID          string `json:"rustdeskId"`
 	MachineName         string `json:"machineName"`
@@ -164,6 +165,7 @@ type RemoteSyncCommand struct {
 type RemoteSyncResponse struct {
 	ContractVersion      string `json:"contractVersion"`
 	HostID               string `json:"hostId"`
+	CompanyName          string `json:"companyName,omitempty"`
 	Alias                string `json:"alias"`
 	RustDeskID           string `json:"rustdeskId"`
 	MachineName          string `json:"machineName"`

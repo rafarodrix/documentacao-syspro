@@ -86,6 +86,33 @@ func (c *Client) OpenSupportConversation(ctx context.Context) (uistate.ActionRes
 	return c.postAction(ctx, "/actions/support/open")
 }
 
+func (c *Client) SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error) {
+	body := strings.NewReader(fmt.Sprintf(`{"conversationId":%q}`, strings.TrimSpace(conversationID)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/actions/support/sync-context", body)
+	if err != nil {
+		return uistate.SupportContextSyncResult{}, fmt.Errorf("build ipc support context sync request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return uistate.SupportContextSyncResult{}, fmt.Errorf("execute ipc support context sync: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return uistate.SupportContextSyncResult{}, fmt.Errorf("ipc support context sync returned status %d", resp.StatusCode)
+	}
+
+	var result uistate.SupportContextSyncResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return uistate.SupportContextSyncResult{}, fmt.Errorf("decode ipc support context sync response: %w", err)
+	}
+
+	c.logger.Info("ipc client synced support context", "conversation_id", conversationID, "accepted", result.Accepted)
+	return result, nil
+}
+
 func (c *Client) postAction(ctx context.Context, path string) (uistate.ActionResult, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, nil)
 	if err != nil {
