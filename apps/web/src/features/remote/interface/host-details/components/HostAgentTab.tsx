@@ -150,7 +150,7 @@ export function HostAgentTab({
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo discover</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima descoberta</p>
                   <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastDiscoverAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
@@ -158,7 +158,7 @@ export function HostAgentTab({
                   <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastSyncAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bootstrap flow</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fluxo de vinculacao</p>
                   <Badge variant="outline" className={cn("mt-2 font-mono text-[11px]", bootstrapFlowMeta.tone)}>
                     {bootstrapFlowLabel}
                   </Badge>
@@ -175,7 +175,7 @@ export function HostAgentTab({
                   </p>
                   {bootstrapRateMetrics.cycles !== null ? (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {bootstrapRateMetrics.bootstrapCycles ?? 0}/{bootstrapRateMetrics.cycles} ciclos
+                      {bootstrapRateMetrics.bootstrapCycles ?? 0}/{bootstrapRateMetrics.cycles} ciclos com vinculacao
                     </p>
                   ) : null}
                 </div>
@@ -268,7 +268,7 @@ export function HostAgentTab({
                 className="w-full gap-2 sm:w-auto"
               >
                 <HardDriveDownload className="h-4 w-4" />
-                {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias"}
+                {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar identidade"}
               </Button>
             </div>
 
@@ -278,7 +278,7 @@ export function HostAgentTab({
                   Playbook automatico de diagnostico
                 </p>
                 <p className="mt-1 text-sm text-amber-800 dark:text-amber-100">
-                  Estado atual do host: <span className="font-mono">{bootstrapFlowLabel}</span>. Copie o script para o suporte executar no servidor.
+                  Estado atual do host: <span className="font-mono">{bootstrapFlowLabel}</span>. Copie o script para o suporte executar a nova vinculacao da maquina.
                 </p>
                 <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-amber-500/30 bg-background/60 p-3 text-xs text-foreground">
                   {diagnosticsPlaybookScript}
@@ -348,14 +348,14 @@ export function HostAgentTab({
 
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
               <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                Compliance e convergencia do cliente
+                Compliance e convergencia do modulo remoto
               </summary>
               <div className="mt-4 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Compliance do cliente RustDesk</p>
+                    <p className="text-sm font-medium text-foreground">Compliance do modulo remoto</p>
                     <p className="text-sm text-muted-foreground">
-                      O portal compara o que espera do cliente com o que o agente reportou no ultimo `sync`.
+                      O portal compara o que espera do host com o que o agente reportou no ultimo `sync`.
                     </p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
@@ -461,7 +461,7 @@ export function HostAgentTab({
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-                    Nenhuma acao pendente. O cliente reportado esta aderente ao que o portal espera neste momento.
+                    Nenhuma acao pendente. O host reportado esta aderente ao que o portal espera neste momento.
                   </div>
                 )}
               </div>

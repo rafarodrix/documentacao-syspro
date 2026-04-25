@@ -107,7 +107,7 @@ export function getServiceStatusMeta(value: string | null) {
 
   if (normalized === "not_found") {
     return {
-      label: "Servico RustDesk nao encontrado",
+      label: "Servico remoto nao encontrado",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
     };
   }
@@ -364,13 +364,13 @@ export function getBootstrapFlowMeta(
   if (value === "token_invalid") {
     return {
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      hint: "Credencial do agente invalida/expirada. Rebootstrap necessario.",
+      hint: "Credencial do agente invalida ou expirada. Nova vinculacao necessaria.",
     };
   }
   if (value === "host_bootstrap_required" || value === "triagem_await_install_token") {
     return {
       tone: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-      hint: "Host aguardando bootstrap para voltar ao sync autenticado.",
+      hint: "Host aguardando vinculacao para voltar ao sync autenticado.",
     };
   }
   if (value === "linked_host_detected") {

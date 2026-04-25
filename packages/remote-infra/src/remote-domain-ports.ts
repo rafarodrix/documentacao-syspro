@@ -31,7 +31,6 @@ const DEFAULT_REMOTE_MODULE_SETTINGS = {
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskPublicKey: "",
   rustDeskVersion: "1.4.6",
-  heartbeatIntervalMinutes: 5,
   defaultPassword: "Trilink098",
 };
 
@@ -64,7 +63,6 @@ async function getRemoteModuleSettingsSnapshot() {
       typeof parsed.rustDeskServerHost === "string" &&
       typeof parsed.rustDeskServerConfig === "string" &&
       typeof parsed.rustDeskVersion === "string" &&
-      typeof parsed.heartbeatIntervalMinutes === "number" &&
       typeof parsed.defaultPassword === "string"
     ) {
       return {
@@ -72,7 +70,6 @@ async function getRemoteModuleSettingsSnapshot() {
         rustDeskServerConfig: parsed.rustDeskServerConfig.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.rustDeskServerConfig,
         rustDeskPublicKey: (parsed.rustDeskPublicKey || "").trim(),
         rustDeskVersion: parsed.rustDeskVersion.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.rustDeskVersion,
-        heartbeatIntervalMinutes: Number(parsed.heartbeatIntervalMinutes) || DEFAULT_REMOTE_MODULE_SETTINGS.heartbeatIntervalMinutes,
         defaultPassword: parsed.defaultPassword.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.defaultPassword,
       };
     }
@@ -637,4 +634,3 @@ export function createRemoteSessionPort(params: { logger: RemoteLogger }) {
 }
 export { createRemoteHostAdminPort } from "./remote-host-admin.port";
 export { createRemoteAddressBookPort } from "./remote-address-book.port";
-

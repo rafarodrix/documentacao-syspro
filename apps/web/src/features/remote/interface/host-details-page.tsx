@@ -175,7 +175,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         },
         {
           id: "serverHost",
-          label: "Servidor ID/Relay",
+          label: "Servidor remoto",
           expected: expectedServerHost,
           reported: reportedServerHost,
           match: !!reportedServerHost && reportedServerHost.trim().toLowerCase() === expectedServerHost.trim().toLowerCase(),
@@ -189,7 +189,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         },
         {
           id: "publicKey",
-          label: "Key publica",
+          label: "Chave publica",
           expected: expectedPublicKeyHash ? "Hash oficial carregado" : "Sem configuracao",
           reported: reportedPublicKeyHash ? "Hash reportado pelo agente" : null,
           match: !!reportedPublicKeyHash && !!expectedPublicKeyHash && reportedPublicKeyHash === expectedPublicKeyHash,
@@ -637,13 +637,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
   function handleOpenRustDesk() {
     if (!rustdeskHref) {
-      toast.error("RustDesk ID nao configurado.");
+      toast.error("Identificador remoto nao configurado.");
       return;
     }
 
     window.location.assign(rustdeskHref);
     window.setTimeout(() => {
-      toast("Se o RustDesk nao abrir, copie o ID e conecte manualmente.");
+      toast("Se o acesso remoto nao abrir, copie o ID e conecte manualmente.");
     }, 600);
   }
 
@@ -792,7 +792,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
   const handleStartOrchestratedSession = async () => {
     if (!normalizedRustdeskId) {
-      toast.error("Host sem ID RustDesk. Nao e possivel iniciar sessao.");
+      toast.error("Host sem identificador remoto. Nao e possivel iniciar sessao.");
       return;
     }
 
@@ -802,11 +802,11 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           hostId: host.id,
           companyId: host.companyId,
           ticketNumber: ticketNumber,
-          reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso tÃ©cnico via Portal",
+          reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso tecnico via Portal",
         });
 
         if (result.success) {
-          toast.success("SessÃ£o auditada iniciada.");
+          toast.success("Sessao auditada iniciada.");
           // Abre o RustDesk (usando o ID da maquina para o deep link)
           const href = isMobileClient 
             ? `rustdesk://[${normalizedRustdeskId}]` 
@@ -817,7 +817,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           toast.error(result.error ?? "Falha ao iniciar sessao auditada.");
         }
       } catch (error) {
-        toast.error("Erro ao processar inÃ­cio de sessÃ£o.");
+        toast.error("Erro ao processar inicio de sessao.");
       }
     });
   };
@@ -891,7 +891,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 ) : (
                     <PlayCircle className="h-4 w-4" />
                 )}
-                {isStartingSession ? "Iniciando..." : (isMobileClient ? "App" : "Acesso Auditado")}
+                {isStartingSession ? "Iniciando..." : (isMobileClient ? "App" : "Sessao auditada")}
             </Button>
           </div>
         </div>
@@ -915,7 +915,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
               <CardHeader className="pb-3 px-6 pt-6">
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  Live Health Snapshot
+                  Saude do host
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 pt-0 grid gap-6 sm:grid-cols-3">
@@ -947,7 +947,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 <CardHeader className="pb-3 px-6 pt-6">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest text-blue-400 flex items-center gap-2">
                     <Ticket className="h-4 w-4" />
-                    Tickets Support Context
+                    Contexto do atendimento
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-6 pb-6">
@@ -968,7 +968,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-blue-300/70 italic">Nao foi possÃ­vel recuperar os detalhes do chamado #{ticketNumber}.</div>
+                    <div className="text-sm text-blue-300/70 italic">Nao foi possivel recuperar os detalhes do chamado #{ticketNumber}.</div>
                   )}
                 </CardContent>
               </Card>
@@ -990,20 +990,20 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                    <CardHeader className="pb-2 px-4 pt-4">
                     <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      Alertas CrÃ­ticos
+                      Alertas criticos
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 flex flex-wrap gap-2">
                     {rebootPending && (
                       <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
                         <RefreshCw className="mr-1.5 h-3 w-3 animate-spin-slow" />
-                        Reinicializacao NecessÃ¡ria
+                        Reinicializacao necessaria
                       </Badge>
                     )}
                     {(host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) && (
                       <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
                         <Database className="mr-1.5 h-3 w-3" />
-                        Espaco em Disco CrÃ­tico
+                        Espaco em disco critico
                       </Badge>
                     )}
                     {contractValidationError && (
@@ -1021,7 +1021,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                  <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Ãšltima Atividade</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Ultima atividade</span>
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
@@ -1043,7 +1043,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
                <Card className="border-border/40 bg-muted/5">
                  <CardHeader className="pb-3 px-6 pt-6 uppercase tracking-widest font-bold text-muted-foreground text-[10px] border-b border-border/40 mb-4">
-                    InstalaÃ§Ãµes Detectadas no Host
+                    Instalacoes detectadas no host
                  </CardHeader>
                  <CardContent className="px-6 pb-6 p-0">
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -1067,33 +1067,33 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <div className="w-full lg:w-72 space-y-4">
                 <Card className="border-border/40 bg-muted/5">
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AÃ§Ãµes RÃ¡pidas</CardTitle>
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Acoes rapidas</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 flex flex-col gap-2">
                     <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}>
                       <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                      Reenviar ConfiguraÃ§Ãµes
+                      Reenviar configuracao
                     </Button>
                     <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}>
                       <Zap className="mr-2 h-3.5 w-3.5" />
-                      Corrigir Alias/Config
+                      Reaplicar identidade
                     </Button>
                     <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/5 group" onClick={handleRotateAgentToken}>
                       <Shield className="mr-2 h-3.5 w-3.5 transition-transform group-hover:rotate-180 duration-500" />
-                      Revogar Credenciais
+                      Renovar credenciais
                     </Button>
                   </CardContent>
                 </Card>
 
                 <div className="rounded-xl border border-border/40 bg-background/40 p-4 space-y-4">
-                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">SessÃµes Ativas</p>
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sessoes ativas</p>
                    <div className="flex items-center gap-3">
                       <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
                         <Monitor className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-foreground">{host.openSessionCount || "Zero"} sessÃµes</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Monitoramento em Tempo Real</p>
+                        <p className="text-sm font-bold text-foreground">{host.openSessionCount || "Zero"} sessoes</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Monitoramento em tempo real</p>
                       </div>
                    </div>
                 </div>
@@ -1185,6 +1185,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
+
 
 
 

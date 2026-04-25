@@ -10,7 +10,6 @@ import {
 } from './support/queries';
 import { getRemoteEfficiencyMetrics } from './support/report-queries';
 import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/session-queries';
-import { getRemoteModuleSettingsSnapshot } from './support/module-settings-server';
 import type { RemoteSessionStatus, RemoteTenantScope } from './support/model';
 
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS';
@@ -396,44 +395,6 @@ export class RemoteAdminService {
     await this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
     const result = await cleanupExpiredRemoteSessions();
     return { success: true, data: result };
-  }
-
-  async getRustDeskClientProfile(rawHeaders?: Record<string, unknown>) {
-    await this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
-
-    const settings = await getRemoteModuleSettingsSnapshot();
-    const serverHost = settings.rustDeskServerHost.trim();
-    const apiHost = serverHost;
-    const key = settings.rustDeskPublicKey.trim();
-    const serverConfig = settings.rustDeskServerConfig.trim();
-    const targetVersion = settings.rustDeskVersion.trim();
-    const defaultPassword = settings.defaultPassword;
-    const portalBaseUrl = this.getHeader(rawHeaders, 'x-portal-origin') ?? '';
-
-    return {
-      success: true,
-      data: {
-        contractVersion: 'rustdesk.client-profile.v1',
-        profile: {
-          serverIdRelay: serverHost,
-          serverApi: apiHost,
-          key,
-          serverConfig,
-          targetVersion,
-          defaultPassword,
-        },
-        commands: {
-          bootstrapEndpoint: `${portalBaseUrl}/api/remote/rustdesk/bootstrap`,
-          syncEndpoint: `${portalBaseUrl}/api/remote/rustdesk/sync`,
-          ackEndpoint: `${portalBaseUrl}/api/remote/rustdesk/ack`,
-        },
-        notes: [
-          'Use o bootstrap autenticado para emissao de agentToken e inicio do ciclo de sync.',
-          'No cliente customizado, aplique serverIdRelay/serverApi/key/serverConfig como defaults.',
-          'O fluxo discover permanece apenas para triagem sem autenticar operacao recorrente.',
-        ],
-      },
-    };
   }
 
   async listRemoteAddressBook(rawHeaders?: Record<string, unknown>) {

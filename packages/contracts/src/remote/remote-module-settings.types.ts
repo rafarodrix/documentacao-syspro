@@ -7,7 +7,6 @@ export const remoteModuleSettingsSchema = z.object({
   rustDeskServerConfig: z.string().trim().min(10, "Informe a configuracao exportada do RustDesk."),
   rustDeskPublicKey: z.string().trim().optional().default(""),
   rustDeskVersion: z.string().trim().min(3, "Informe a versao alvo do RustDesk."),
-  heartbeatIntervalMinutes: z.coerce.number().int().min(1, "Minimo de 1 minuto.").max(120, "Maximo de 120 minutos."),
   defaultPassword: z.string().trim().min(4, "Informe a senha padrao do agente."),
 });
 
@@ -17,7 +16,6 @@ export const DEFAULT_REMOTE_MODULE_SETTINGS = {
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskPublicKey: "",
   rustDeskVersion: "1.4.6",
-  heartbeatIntervalMinutes: 5,
   defaultPassword: "Trilink098",
 } satisfies z.infer<typeof remoteModuleSettingsSchema>;
 

@@ -101,8 +101,4 @@ export class RemotePortalController {
     return this.remoteAdminService.revokeAddressBookCredential(id, req.headers);
   }
 
-  @Get('rustdesk/client-profile')
-  getRustDeskClientProfile(@Req() req: Request) {
-    return this.remoteAdminService.getRustDeskClientProfile(req.headers);
-  }
 }

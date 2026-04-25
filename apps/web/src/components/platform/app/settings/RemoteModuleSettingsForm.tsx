@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertCircle, Copy, KeyRound, Link2, Loader2, MonitorCog, RefreshCw, Save, TimerReset, Trash2 } from "lucide-react";
+import { AlertCircle, Copy, KeyRound, Loader2, MonitorCog, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,24 +55,6 @@ type AddressBookCredentialItem = {
   revokedBy?: { id: string; name: string | null; email: string } | null;
 };
 
-type RemoteClientProfile = {
-  contractVersion: string;
-  profile: {
-    serverIdRelay: string;
-    serverApi: string;
-    key: string;
-    serverConfig: string;
-    targetVersion: string;
-    defaultPassword: string;
-  };
-  commands: {
-    bootstrapEndpoint: string;
-    syncEndpoint: string;
-    ackEndpoint: string;
-  };
-  notes: string[];
-};
-
 type CredentialDraft = {
   label: string;
   integrationKey: string;
@@ -87,7 +69,6 @@ const defaultValues: RemoteModuleSettings = {
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskPublicKey: "",
   rustDeskVersion: "1.4.6",
-  heartbeatIntervalMinutes: 5,
   defaultPassword: "Trilink098",
 };
 
@@ -142,8 +123,6 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
   const [credentialQuery, setCredentialQuery] = useState("");
   const [latestIssuedToken, setLatestIssuedToken] = useState<{ token: string; preview: string } | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
-  const [clientProfile, setClientProfile] = useState<RemoteClientProfile | null>(null);
-  const [clientProfileLoading, setClientProfileLoading] = useState(true);
 
   const form = useForm<RemoteModuleSettingsFormValues>({
     resolver: zodResolver(remoteModuleSettingsSchema),
@@ -182,32 +161,6 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
       setCredentialDraft({ companyId: companyOptions[0].id });
     }
   }, [companyOptions, credentialDraft.companyId]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadClientProfile() {
-      try {
-        setClientProfileLoading(true);
-        const result = await requestRemoteQuery<RemoteClientProfile>({
-          url: "/api/remote/rustdesk/client-profile",
-          method: "GET",
-        });
-        if (!mounted) return;
-        setClientProfile(result.data ?? null);
-      } catch (error) {
-        if (!mounted) return;
-        toast.error(getRemoteApiErrorMessage(error));
-      } finally {
-        if (mounted) setClientProfileLoading(false);
-      }
-    }
-
-    loadClientProfile();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const sortedCredentials = useMemo(() => {
     const normalizedQuery = credentialQuery.trim().toLowerCase();
@@ -389,9 +342,9 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               <MonitorCog className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Servidor RustDesk</CardTitle>
+              <CardTitle className="text-lg">Motor remoto</CardTitle>
               <CardDescription>
-                Estes valores alimentam o perfil oficial do cliente RustDesk e os endpoints autenticados.
+                Parametros globais usados pelo Agente Trilink para convergir o RustDesk no host gerenciado.
               </CardDescription>
             </div>
           </div>
@@ -400,13 +353,13 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div className="space-y-2">
             <Label htmlFor="rustDeskServerHost">Host do servidor</Label>
             <Input id="rustDeskServerHost" placeholder="rustdesk.trilinksoftware.com.br" {...form.register("rustDeskServerHost")} />
-            <p className="text-xs text-muted-foreground">Usado como `custom-rendezvous-server` no onboarding do agente.</p>
+            <p className="text-xs text-muted-foreground">Host principal aplicado pelo agente no bootstrap e na convergencia remota.</p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="rustDeskPublicKey">Chave publica</Label>
             <Input id="rustDeskPublicKey" placeholder="Cole a chave publica do seu servidor RustDesk" {...form.register("rustDeskPublicKey")} />
-            <p className="text-xs text-muted-foreground">Opcional. Quando preenchida, o agente aplica `--option key` na instalacao.</p>
+            <p className="text-xs text-muted-foreground">Opcional. Mantida para compatibilidade e verificacao de conformidade do host.</p>
           </div>
 
           <div className="space-y-2 md:col-span-2">
@@ -417,7 +370,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               placeholder="Cole aqui a string exportada do RustDesk self-hosted"
               {...form.register("rustDeskServerConfig")}
             />
-            <p className="text-xs text-muted-foreground">Essa string e aplicada no cliente para alinhar o acesso ao seu servidor proprio.</p>
+            <p className="text-xs text-muted-foreground">String oficial aplicada pelo agente para alinhar o host ao servidor remoto da empresa.</p>
           </div>
         </CardContent>
       </Card>
@@ -426,31 +379,20 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         <CardHeader className="pb-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
-              <TimerReset className="h-5 w-5" />
+              <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Politicas do agente</CardTitle>
+              <CardTitle className="text-lg">Padrao operacional</CardTitle>
               <CardDescription>
-                Defaults operacionais aplicados no bootstrap, sync recorrente e convergencia do agente.
+                Parametros realmente aplicados pelo Agente Trilink na convergencia do modulo remoto.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-3">
+        <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="rustDeskVersion">Versao alvo</Label>
             <Input id="rustDeskVersion" placeholder="1.4.6" {...form.register("rustDeskVersion")} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="heartbeatIntervalMinutes">Heartbeat (minutos)</Label>
-            <Input
-              id="heartbeatIntervalMinutes"
-              type="number"
-              min={1}
-              max={120}
-              {...form.register("heartbeatIntervalMinutes", { valueAsNumber: true })}
-            />
           </div>
 
           <div className="space-y-2">
@@ -458,84 +400,9 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <Input id="defaultPassword" {...form.register("defaultPassword")} />
           </div>
 
-          <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-3">
-            Esses parametros impactam diretamente o Card de Saude do Agente em `Detalhes` do host, incluindo status atual,
-            estado de auto-cura e convergencia do cliente.
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-2">
+            Esses parametros definem a versao esperada do RustDesk e a senha padrao aplicada pelo agente no host.
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
-              <Link2 className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Perfil para cliente customizado</CardTitle>
-              <CardDescription>
-                Dados oficiais para cliente RustDesk customizado, com servidor proprio e integracao direta com `bootstrap/sync/ack`.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {clientProfileLoading ? (
-            <p className="text-sm text-muted-foreground">Carregando perfil de cliente...</p>
-          ) : clientProfile ? (
-            <>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                  {clientProfile.contractVersion}
-                </Badge>
-                <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                  Servidor: {clientProfile.profile.serverIdRelay || "nao configurado"}
-                </Badge>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Servidor ID/Relay</p>
-                  <p className="mt-1 break-all text-sm font-medium text-foreground">{clientProfile.profile.serverIdRelay || "Nao configurado"}</p>
-                </div>
-                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Servidor da API</p>
-                  <p className="mt-1 break-all text-sm font-medium text-foreground">{clientProfile.profile.serverApi || "Nao configurado"}</p>
-                </div>
-                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Key publica</p>
-                  <p className="mt-1 break-all text-xs font-mono text-foreground">{clientProfile.profile.key || "Nao configurado"}</p>
-                </div>
-                <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Versao alvo</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{clientProfile.profile.targetVersion || "Nao configurado"}</p>
-                </div>
-              </div>
-              <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Endpoints operacionais</p>
-                <div className="mt-2 grid gap-2 text-xs text-muted-foreground">
-                  <p><span className="font-medium text-foreground">Bootstrap:</span> {clientProfile.commands.bootstrapEndpoint}</p>
-                  <p><span className="font-medium text-foreground">Sync:</span> {clientProfile.commands.syncEndpoint}</p>
-                  <p><span className="font-medium text-foreground">Ack:</span> {clientProfile.commands.ackEndpoint}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => copyText(clientProfile.profile.serverIdRelay, "Servidor ID/Relay")} disabled={!clientProfile.profile.serverIdRelay}>
-                  <Copy className="mr-2 h-3.5 w-3.5" />
-                  Copiar servidor
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => copyText(clientProfile.profile.key, "Key publica")} disabled={!clientProfile.profile.key}>
-                  <Copy className="mr-2 h-3.5 w-3.5" />
-                  Copiar key
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => copyText(clientProfile.profile.serverConfig, "Configuracao exportada")} disabled={!clientProfile.profile.serverConfig}>
-                  <Copy className="mr-2 h-3.5 w-3.5" />
-                  Copiar serverConfig
-                </Button>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Perfil do cliente indisponivel.</p>
-          )}
         </CardContent>
       </Card>
 
@@ -545,7 +412,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div>
             <p className="font-medium">Segredo de descoberta</p>
             <p className="mt-1 text-xs text-amber-700/90 dark:text-amber-200/80">
-              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas a governanca global do RustDesk dentro do Agente Trilink.
+              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas a governanca global do modulo remoto dentro do Agente Trilink.
             </p>
           </div>
         </div>
@@ -558,9 +425,9 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               <KeyRound className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Credenciais do Address Book</CardTitle>
+              <CardTitle className="text-lg">Credenciais do catalogo remoto</CardTitle>
               <CardDescription>
-                Operacao de credenciais autenticadas para consumo do endpoint `/api/remote/rustdesk/address-book`.
+                Credenciais autenticadas para integracoes que consomem o catalogo remoto publicado pelo portal.
               </CardDescription>
             </div>
           </div>
