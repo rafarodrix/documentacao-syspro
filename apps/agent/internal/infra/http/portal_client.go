@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +32,30 @@ type PortalClient struct {
 	logger     Logger
 	httpClient *http.Client
 	baseURL    string
+}
+
+type HTTPStatusError struct {
+	StatusCode int
+	Method     string
+	Path       string
+	Body       string
+}
+
+func (e *HTTPStatusError) Error() string {
+	return fmt.Sprintf("unexpected status %d on %s %s: %s", e.StatusCode, e.Method, e.Path, e.Body)
+}
+
+func IsStatusError(err error, statuses ...int) bool {
+	var statusErr *HTTPStatusError
+	if !errors.As(err, &statusErr) {
+		return false
+	}
+	for _, status := range statuses {
+		if statusErr.StatusCode == status {
+			return true
+		}
+	}
+	return false
 }
 
 func NewPortalClient(cfg config.Config, store StateStore, logger Logger) *PortalClient {
@@ -286,7 +311,12 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 	)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, resp.StatusCode, fmt.Errorf("unexpected status %d on %s %s: %s", resp.StatusCode, method, path, string(respBody))
+		return nil, resp.StatusCode, &HTTPStatusError{
+			StatusCode: resp.StatusCode,
+			Method:     method,
+			Path:       path,
+			Body:       string(respBody),
+		}
 	}
 
 	var envelope struct {

@@ -106,6 +106,7 @@ type Module struct {
 	installerURL    string
 	installerSHA256 string
 	installerArgs   string
+	rustDeskFactory func() rustDeskController
 }
 
 type Option func(*Module)
@@ -374,6 +375,15 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		m.logger.Warn("remote rustdesk refresh before sync failed", "error", err)
 	}
 
+	flushStats := m.flushPendingAcks(ctx, agentToken)
+	if flushStats.Sent > 0 || flushStats.Retained > 0 || flushStats.Discarded > 0 {
+		m.logger.Info("remote pending ack flush completed",
+			"sent", flushStats.Sent,
+			"retained", flushStats.Retained,
+			"discarded", flushStats.Discarded,
+		)
+	}
+
 	hostname := firstNonEmpty(st.MachineName, currentHostname())
 	syncResp, err := m.client.Sync(ctx, domain.RemoteSyncRequest{
 		AgentToken:     agentToken,
@@ -427,6 +437,15 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			Details:    ack.details,
 		}); err != nil {
 			m.logger.Warn("remote command ack failed", "command_id", cmd.ID, "error", err)
+			m.enqueueAck(ctx, pendingAck{
+				CommandID:  cmd.ID,
+				AgentToken: agentToken,
+				Status:     ack.status,
+				ReasonCode: ack.reasonCode,
+				Message:    ack.message,
+				Details:    ack.details,
+				EnqueuedAt: time.Now().UTC(),
+			})
 			continue
 		}
 		m.logger.Info("remote command ack sent", "command_id", cmd.ID, "status", ack.status)
@@ -569,7 +588,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 }
 
 func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requireInstall, forceApply bool, upgrade *rustDeskUpgradeSpec) error {
-	manager := newRustDeskManager(m.logger, m.stateDir, m.installerURL, m.installerSHA256, m.installerArgs)
+	manager := m.newRustDeskController()
 	if requireInstall || upgrade != nil {
 		exePath, installedNow, err := manager.ensureInstalled(ctx, upgrade)
 		if err != nil {
@@ -630,7 +649,7 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 	return nil
 }
 
-func mustInspect(manager *rustDeskManager, ctx context.Context, fallback rustDeskStatus) rustDeskStatus {
+func mustInspect(manager rustDeskController, ctx context.Context, fallback rustDeskStatus) rustDeskStatus {
 	status, err := manager.inspect(ctx)
 	if err != nil {
 		return fallback
@@ -735,6 +754,13 @@ func (m *Module) loadState(ctx context.Context) remoteState {
 	var st remoteState
 	_ = m.store.LoadJSON(ctx, stateFile, &st)
 	return st
+}
+
+func (m *Module) newRustDeskController() rustDeskController {
+	if m.rustDeskFactory != nil {
+		return m.rustDeskFactory()
+	}
+	return newRustDeskManager(m.logger, m.stateDir, m.installerURL, m.installerSHA256, m.installerArgs)
 }
 
 func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) runtimePlan {

@@ -47,6 +47,13 @@ type rustDeskStatus struct {
 	Version        string
 }
 
+type rustDeskController interface {
+	inspect(ctx context.Context) (rustDeskStatus, error)
+	ensureInstalled(ctx context.Context, upgrade *rustDeskUpgradeSpec) (string, bool, error)
+	ensureServiceRunning(ctx context.Context, exePath string) (string, error)
+	applyDesiredConfig(ctx context.Context, exePath string, desired rustDeskDesiredConfig) error
+}
+
 type rustDeskManager struct {
 	logger          Logger
 	stateDir        string
@@ -190,12 +197,32 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 }
 
 func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
-	output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("& '%s' --get-id | Out-String", escapePowerShellSingleQuoted(exePath)))
-	if err != nil {
-		m.logger.Warn("rustdesk id capture failed", "error", err)
-		return ""
+	const maxAttempts = 8
+
+	waitSeconds := 2
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("& '%s' --get-id 2>&1 | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | Out-String", escapePowerShellSingleQuoted(exePath)))
+		if err == nil {
+			if id := normalizeRustDeskID(output); id != "" {
+				return id
+			}
+		} else {
+			m.logger.Warn("rustdesk id capture failed", "attempt", attempt, "max", maxAttempts, "error", err)
+		}
+
+		if attempt == maxAttempts {
+			break
+		}
+
+		m.logger.Warn("rustdesk id unavailable, retrying", "attempt", attempt, "max", maxAttempts, "wait_seconds", waitSeconds)
+		select {
+		case <-ctx.Done():
+			return ""
+		case <-time.After(time.Duration(waitSeconds) * time.Second):
+		}
 	}
-	return normalizeRustDeskID(output)
+
+	return ""
 }
 
 func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string {
@@ -420,20 +447,59 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 	ext := strings.ToLower(filepath.Ext(installerPath))
 	switch ext {
 	case ".msi":
+		_ = m.runPowerShell(ctx, "Stop-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
+		time.Sleep(2 * time.Second)
+
+		logPath, logErr := m.prepareInstallerLogPath("rustdesk-msi-install")
+		if logErr != nil {
+			m.logger.Warn("rustdesk installer log path prepare failed", "error", logErr)
+		}
 		msiArgs := []string{"/i", installerPath, "/qn", "/norestart"}
+		if logPath != "" {
+			msiArgs = append(msiArgs, "/l*v", logPath)
+		}
 		cmd := exec.CommandContext(ctx, "msiexec.exe", msiArgs...)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("run msi installer: %w: %s", err, strings.TrimSpace(string(output)))
+			return classifyInstallerError("run msi installer", err, output, logPath)
+		}
+		time.Sleep(3 * time.Second)
+		_ = m.runPowerShell(ctx, "Start-Service -Name 'RustDesk' -ErrorAction SilentlyContinue")
+		if logPath != "" {
+			m.logger.Info("rustdesk msi installer completed", "log_path", logPath)
 		}
 	default:
 		cmd := exec.CommandContext(ctx, installerPath, args...)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("run installer: %w: %s", err, strings.TrimSpace(string(output)))
+			return classifyInstallerError("run installer", err, output, "")
 		}
 	}
 	return nil
+}
+
+func classifyInstallerError(prefix string, err error, output []byte, logPath string) error {
+	message := strings.TrimSpace(string(output))
+	if strings.Contains(strings.ToLower(message), "error 1925") || strings.Contains(strings.ToLower(message), "sufficient privileges") {
+		if logPath != "" {
+			return fmt.Errorf("%s: rustdesk installation requires administrative privileges (installer log: %s)", prefix, logPath)
+		}
+		return fmt.Errorf("%s: rustdesk installation requires administrative privileges", prefix)
+	}
+	if logPath != "" {
+		return fmt.Errorf("%s: %w: %s (installer log: %s)", prefix, err, message, logPath)
+	}
+	return fmt.Errorf("%s: %w: %s", prefix, err, message)
+}
+
+func (m *rustDeskManager) prepareInstallerLogPath(prefix string) (string, error) {
+	logsDir := filepath.Join(m.stateDir, "logs")
+	if err := os.MkdirAll(logsDir, 0o755); err != nil {
+		return "", fmt.Errorf("create logs dir: %w", err)
+	}
+
+	filename := fmt.Sprintf("%s-%s.log", prefix, time.Now().UTC().Format("20060102-150405"))
+	return filepath.Join(logsDir, filename), nil
 }
 
 func (m *rustDeskManager) runRustDeskCommand(ctx context.Context, exePath string, args ...string) error {

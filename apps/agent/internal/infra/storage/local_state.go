@@ -32,15 +32,13 @@ func (s *LocalStateStore) SaveJSON(ctx context.Context, name string, value any) 
 		return fmt.Errorf("marshal json: %w", err)
 	}
 
-	path := filepath.Join(s.baseDir, name)
-	return writeFileAtomic(path, data, 0o644)
+	return s.writeJSONFile(name, data)
 }
 
 func (s *LocalStateStore) LoadJSON(ctx context.Context, name string, dest any) error {
 	_ = ctx
 
-	path := filepath.Join(s.baseDir, name)
-	data, err := os.ReadFile(path)
+	data, err := s.readJSONFile(name)
 	if err != nil {
 		return err
 	}
@@ -50,4 +48,14 @@ func (s *LocalStateStore) LoadJSON(ctx context.Context, name string, dest any) e
 	}
 
 	return nil
+}
+
+func (s *LocalStateStore) readJSONFile(name string) ([]byte, error) {
+	path := filepath.Join(s.baseDir, name)
+	return os.ReadFile(path)
+}
+
+func (s *LocalStateStore) writeJSONFile(name string, data []byte) error {
+	path := filepath.Join(s.baseDir, name)
+	return writeFileAtomic(path, data, 0o644)
 }

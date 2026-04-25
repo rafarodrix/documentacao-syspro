@@ -1,3 +1,5 @@
+//go:build !windows
+
 package platform
 
 import (
@@ -32,7 +34,6 @@ func (s *WindowsIdentitySource) GetIdentity(ctx context.Context) (domain.DeviceI
 	}
 
 	sum := sha256.Sum256([]byte(hostname + "|" + runtime.GOOS))
-
 	return domain.DeviceIdentity{
 		DeviceID:       hex.EncodeToString(sum[:16]),
 		Hostname:       hostname,

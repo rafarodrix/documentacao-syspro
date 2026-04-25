@@ -39,7 +39,8 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 
 	logger := logging.New(cfg.LogLevel)
 
-	stateStore := storage.NewLocalStateStore(cfg.Paths.StateDir, logger)
+	localStateStore := storage.NewLocalStateStore(cfg.Paths.StateDir, logger)
+	stateStore := storage.NewProtectedStateStore(localStateStore)
 	portalClient := http.NewPortalClient(cfg, stateStore, logger)
 	executor := runtime.NewExecutor(logger)
 
