@@ -18,6 +18,7 @@ import { RemoteAdminModule } from './modules/remote-admin/remote-admin.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReleasesModule } from './modules/releases/releases.module';
 import { CrmModule } from './modules/crm/crm.module';
+import { AgentsModule } from './modules/agents/agents.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CrmModule } from './modules/crm/crm.module';
     DashboardModule,
     ReleasesModule,
     CrmModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
