@@ -63,6 +63,9 @@ if (-not $env:AGENT_STATE_DIR) {
 if (-not $env:AGENT_IPC_ADDRESS) {
   $env:AGENT_IPC_ADDRESS = "\\.\pipe\trilink-agent-ipc"
 }
+if (-not $env:AGENT_IPC_TOKEN) {
+  $env:AGENT_IPC_TOKEN = [guid]::NewGuid().ToString("N")
+}
 
 $bundledRustDeskInstaller =
   (Get-ChildItem -Path (Join-Path $installRoot "rustdesk") -File -ErrorAction SilentlyContinue |

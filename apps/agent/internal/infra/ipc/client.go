@@ -12,15 +12,17 @@ import (
 
 type Client struct {
 	baseURL    string
+	token      string
 	httpClient *http.Client
 	logger     Logger
 }
 
-func NewClient(addr string, logger Logger) *Client {
+func NewClient(addr string, token string, logger Logger) *Client {
 	httpClient, baseURL := newHTTPClient(strings.TrimSpace(addr))
 
 	return &Client{
 		baseURL:    baseURL,
+		token:      strings.TrimSpace(token),
 		httpClient: httpClient,
 		logger:     logger,
 	}
@@ -31,6 +33,7 @@ func (c *Client) GetSummary(ctx context.Context) (uistate.Summary, error) {
 	if err != nil {
 		return uistate.Summary{}, fmt.Errorf("build ipc summary request: %w", err)
 	}
+	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -56,6 +59,7 @@ func (c *Client) ListNotifications(ctx context.Context) ([]uistate.Notification,
 	if err != nil {
 		return nil, fmt.Errorf("build ipc notifications request: %w", err)
 	}
+	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -81,6 +85,7 @@ func (c *Client) GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error
 	if err != nil {
 		return uistate.SetupStatus{}, fmt.Errorf("build ipc setup request: %w", err)
 	}
+	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -116,6 +121,7 @@ func (c *Client) SyncSupportConversationContext(ctx context.Context, conversatio
 		return uistate.SupportContextSyncResult{}, fmt.Errorf("build ipc support context sync request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -141,6 +147,7 @@ func (c *Client) postAction(ctx context.Context, path string) (uistate.ActionRes
 	if err != nil {
 		return uistate.ActionResult{}, fmt.Errorf("build ipc action request: %w", err)
 	}
+	c.applyAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -159,4 +166,10 @@ func (c *Client) postAction(ctx context.Context, path string) (uistate.ActionRes
 
 	c.logger.Info("ipc client executed action", "path", path, "accepted", result.Accepted)
 	return result, nil
+}
+
+func (c *Client) applyAuth(req *http.Request) {
+	if c.token != "" {
+		req.Header.Set("X-IPC-Token", c.token)
+	}
 }

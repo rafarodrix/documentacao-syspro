@@ -22,8 +22,11 @@ func BootstrapUI(ctx context.Context) (*Container, error) {
 	}
 
 	logger := logging.New(cfg.LogLevel)
+	if err := webview.ValidateRuntime(); err != nil {
+		return nil, fmt.Errorf("validate webview2 runtime: %w", err)
+	}
 	trayService := tray.NewService(logger, cfg.Paths.StateDir)
-	ipcClient := ipc.NewClient(cfg.Agent.IPCAddress, logger)
+	ipcClient := ipc.NewClient(cfg.Agent.IPCAddress, cfg.Agent.IPCToken, logger)
 	webviewOpener := webview.NewOpener(logger, cfg.Paths.StateDir, ipcNativeBridge{client: ipcClient})
 	agentUI := ui.NewService(logger, trayService, trayService, ipcClient, ipcClient, ipcClient, ipcClient, webviewOpener, trayService)
 

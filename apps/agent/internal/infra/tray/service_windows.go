@@ -1,0 +1,149 @@
+//go:build windows
+
+package tray
+
+import (
+	"context"
+	"fmt"
+	"sync"
+
+	"fyne.io/systray"
+
+	agentassets "trilink/agent/assets"
+	uistate "trilink/agent/internal/core/ui_state"
+)
+
+type Logger interface {
+	Info(msg string, kv ...any)
+}
+
+type Action string
+
+const (
+	ActionOpenSupport Action = "open_support"
+	ActionOpenSetup   Action = "open_setup"
+	ActionExit        Action = "exit"
+)
+
+type Service struct {
+	logger   Logger
+	stateDir string
+	actions  chan Action
+
+	mu             sync.Mutex
+	currentSummary uistate.Summary
+	ready          bool
+}
+
+func NewService(logger Logger, stateDir string) *Service {
+	return &Service{
+		logger:   logger,
+		stateDir: stateDir,
+		actions:  make(chan Action, 8),
+	}
+}
+
+func (s *Service) Run(ctx context.Context) error {
+	s.logger.Info("tray service starting", "primary_action", ActionOpenSupport, "secondary_action", ActionOpenSetup)
+	defer s.logger.Info("tray service stopped")
+
+	var readyOnce sync.Once
+	var supportItem *systray.MenuItem
+	var setupItem *systray.MenuItem
+	var quitItem *systray.MenuItem
+
+	onReady := func() {
+		readyOnce.Do(func() {
+			s.mu.Lock()
+			s.ready = true
+			s.mu.Unlock()
+			systray.SetIcon(agentassets.IconICO)
+			systray.SetTitle("Trilink Agent")
+			systray.SetTooltip(s.tooltipText())
+
+			supportItem = systray.AddMenuItem("Abrir suporte", "Canal oficial Trilink")
+			setupItem = systray.AddMenuItem("Acompanhar instalacao", "Ver progresso do agente")
+			systray.AddSeparator()
+			quitItem = systray.AddMenuItem("Sair", "Encerrar interface do agente")
+
+			go s.handleClicks(ctx, supportItem, setupItem, quitItem)
+			go func() {
+				<-ctx.Done()
+				systray.Quit()
+			}()
+		})
+	}
+
+	onExit := func() {
+		close(s.actions)
+	}
+
+	systray.Run(onReady, onExit)
+	return nil
+}
+
+func (s *Service) handleClicks(ctx context.Context, supportItem, setupItem, quitItem *systray.MenuItem) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-supportItem.ClickedCh:
+			s.Trigger(ActionOpenSupport)
+		case <-setupItem.ClickedCh:
+			s.Trigger(ActionOpenSetup)
+		case <-quitItem.ClickedCh:
+			s.Trigger(ActionExit)
+			systray.Quit()
+			return
+		}
+	}
+}
+
+func (s *Service) Actions() <-chan Action {
+	return s.actions
+}
+
+func (s *Service) Trigger(action Action) {
+	select {
+	case s.actions <- action:
+		s.logger.Info("tray action queued", "action", action)
+	default:
+		s.logger.Info("tray action dropped because queue is full", "action", action)
+	}
+}
+
+func (s *Service) UpdateSummary(summary uistate.Summary) {
+	s.mu.Lock()
+	s.currentSummary = summary
+	ready := s.ready
+	s.mu.Unlock()
+
+	if ready {
+		systray.SetTooltip(s.tooltipText())
+	}
+	s.logger.Info("tray summary updated", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
+}
+
+func (s *Service) ShowNotifications(notifications []uistate.Notification) {
+	s.logger.Info("tray notifications updated", "count", len(notifications))
+}
+
+func (s *Service) SupportActionReady(result uistate.ActionResult) {
+	s.logger.Info("tray support action ready", "accepted", result.Accepted, "target", result.Target)
+}
+
+func (s *Service) tooltipText() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.currentSummary.ServiceStatus == "" {
+		return "Trilink Agent"
+	}
+
+	visibility := "oculto"
+	if s.currentSummary.UserVisible {
+		visibility = "visivel"
+	}
+
+	return fmt.Sprintf("Trilink Agent\nServico: %s\nUI: %s", s.currentSummary.ServiceStatus, visibility)
+}

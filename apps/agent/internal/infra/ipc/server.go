@@ -35,6 +35,7 @@ type ActionProvider interface {
 
 type Server struct {
 	addr          string
+	token         string
 	logger        Logger
 	summary       SummaryProvider
 	notifications NotificationProvider
@@ -44,6 +45,7 @@ type Server struct {
 
 func NewServer(
 	addr string,
+	token string,
 	logger Logger,
 	summary SummaryProvider,
 	notifications NotificationProvider,
@@ -52,6 +54,7 @@ func NewServer(
 ) *Server {
 	return &Server{
 		addr:          addr,
+		token:         token,
 		logger:        logger,
 		summary:       summary,
 		notifications: notifications,
@@ -68,7 +71,7 @@ func (s *Server) Start(ctx context.Context) error {
 		s.logger.Info("ipc server starting", "addr", s.addr, "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
 	}
 
-	mux := s.newMux()
+	mux := s.withAuth(s.newMux())
 	errCh := make(chan error, 1)
 
 	mainServer := &http.Server{
@@ -213,5 +216,20 @@ func writeJSON(w http.ResponseWriter, statusCode int, value any) {
 func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-IPC-Token")
+}
+
+func (s *Server) withAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setCORSHeaders(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if s.token != "" && r.Header.Get("X-IPC-Token") != s.token {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

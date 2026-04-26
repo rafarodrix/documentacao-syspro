@@ -91,11 +91,10 @@ func (s *Service) Run(ctx context.Context) error {
 
 	s.maybeOpenSetupExperience(ctx)
 
-	g, ctx := errgroup.WithContext(ctx)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	g.Go(func() error {
-		return s.tray.Run(ctx)
-	})
+	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
 		return s.pollSummaryLoop(ctx)
@@ -109,7 +108,13 @@ func (s *Service) Run(ctx context.Context) error {
 		return s.handleTrayActions(ctx)
 	})
 
-	return g.Wait()
+	trayErr := s.tray.Run(ctx)
+	cancel()
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	return trayErr
 }
 
 func (s *Service) maybeOpenSetupExperience(ctx context.Context) {

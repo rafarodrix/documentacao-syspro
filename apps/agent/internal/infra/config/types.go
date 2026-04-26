@@ -37,4 +37,5 @@ type AgentConfig struct {
 	Version     string
 	Environment string
 	IPCAddress  string
+	IPCToken    string
 }
