@@ -5,6 +5,8 @@ import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
+import type { CompanyOption } from "@dosc-syspro/contracts/company";
+import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import type { Role as PrismaRole } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -36,31 +38,6 @@ const ROLE = {
   CLIENTE_ADMIN: "CLIENTE_ADMIN",
   CLIENTE_USER: "CLIENTE_USER",
 } as const;
-
-type ContactOption = {
-  id: string;
-  name: string;
-  whatsapp?: string | null;
-  email?: string | null;
-  companyId?: string | null;
-  companyIds?: string[];
-  company?: {
-    id: string;
-    razaoSocial: string;
-    nomeFantasia?: string | null;
-  } | null;
-  companies?: Array<{
-    id: string;
-    razaoSocial: string;
-    nomeFantasia?: string | null;
-  }>;
-};
-
-type CompanyOption = {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia: string | null;
-};
 
 export interface CreateUserPageFormProps {
   companies: CompanyOption[];

@@ -5,6 +5,7 @@ import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
+import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import {
   Briefcase,
   Building2,
@@ -33,12 +34,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
 import { cn } from "@/lib/utils";
-
-type CompanyOption = {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia?: string | null;
-};
 
 type Props = {
   companies: CompanyOption[];

@@ -141,3 +141,11 @@ export const createCompanySchema = z
 
 export type CreateCompanyInput = z.input<typeof createCompanySchema>;
 export type CreateCompanyOutput = z.output<typeof createCompanySchema>;
+
+export const companyOptionSchema = z.object({
+  id: z.string(),
+  razaoSocial: z.string(),
+  nomeFantasia: z.string().nullable(),
+});
+
+export type CompanyOption = z.output<typeof companyOptionSchema>;
