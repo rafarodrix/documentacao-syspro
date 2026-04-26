@@ -16,8 +16,8 @@ export type RegistryFormSection<TId extends string = string> = {
 };
 
 type RegistryFormScaffoldProps<TId extends string = string> = {
-  title: string;
-  description: string;
+  title: ReactNode;
+  description: ReactNode;
   onBack: () => void;
   children: ReactNode;
   formId?: string;

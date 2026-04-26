@@ -21,6 +21,7 @@ export type { AddressInput } from "./shared/address.types";
 
 // Context exports
 export * from "./company/index";
+export * from "./contact/index";
 export * from "./documento/index";
 export * from "./user/index";
 export * from "./ticket/index";
