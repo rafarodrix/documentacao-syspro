@@ -65,6 +65,11 @@ Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir:
 Name: "{group}\Verificar WebView2 Runtime"; Filename: "{cmd}"; Parameters: "/c powershell -ExecutionPolicy Bypass -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; WorkingDir: "{app}"
 Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
 
+; {userstartup}: inicia apenas para o usuario que instalou (nao para todos da maquina)
+; Usa PowerShell direto para suprimir a janela CMD que .cmd abre brevemente
+Name: "{userstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
+
+
 [Run]
 ; 1. Verificar e instalar WebView2 Runtime se ausente (necessario para agent-ui)
 Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; Flags: runhidden; StatusMsg: "Verificando WebView2 Runtime..."
@@ -86,6 +91,22 @@ Type: filesandordirs; Name: "{commonappdata}\Trilink\Agent\runtime-state"
 
 [Code]
 
+// ---------------------------------------------------------------------------
+// Utilitarios de instalacao
+// ---------------------------------------------------------------------------
+
+function GenerateGuid: string;
+var
+  Guid: TGUID;
+begin
+  CreateGUID(Guid);
+  Result := GUIDToString(Guid);
+  Result := Copy(Result, 2, Length(Result) - 2);
+  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
+  Result := LowerCase(Result);
+end;
+
+
 procedure StopServiceViaSCM(SvcName: string);
 var
   RC: Integer;
@@ -97,6 +118,33 @@ procedure CopyFileIfMissing(Src, Dst: string);
 begin
   if not FileExists(Dst) and FileExists(Src) then
     CopyFile(Src, Dst, False);
+end;
+
+procedure InjectIPCToken(EnvPath: string);
+var
+  Lines: TStringList;
+  i: Integer;
+  HasToken: Boolean;
+begin
+  HasToken := False;
+  Lines := TStringList.Create;
+  try
+    if FileExists(EnvPath) then
+      Lines.LoadFromFile(EnvPath);
+    for i := 0 to Lines.Count - 1 do
+      if Pos('AGENT_IPC_TOKEN=', Lines[i]) = 1 then
+      begin
+        HasToken := True;
+        Break;
+      end;
+    if not HasToken then
+    begin
+      Lines.Add('AGENT_IPC_TOKEN=' + GenerateGuid());
+      Lines.SaveToFile(EnvPath);
+    end;
+  finally
+    Lines.Free;
+  end;
 end;
 
 // ---------------------------------------------------------------------------
@@ -195,6 +243,9 @@ begin
     if not FileExists(EnvTarget) then
       CopyFileIfMissing(ExpandConstant('{app}\config\.env.example'), EnvTarget);
 
+    // Garante AGENT_IPC_TOKEN unico nos dois arquivos
+    if FileExists(EnvSeed) then   InjectIPCToken(EnvSeed);
+    if FileExists(EnvTarget) then InjectIPCToken(EnvTarget);
   end;
 end;
 

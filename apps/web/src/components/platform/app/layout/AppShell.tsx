@@ -59,7 +59,7 @@ export function AppShell({
 
       <div
         className={`flex-1 flex flex-col h-full transition-[padding-left] duration-200 ${
-          showPortalSidebar ? (collapsed ? "md:pl-20" : "md:pl-72") : "md:pl-0"
+          showPortalSidebar ? (collapsed ? "md:pl-16" : "md:pl-64") : "md:pl-0"
         }`}
       >
         {showPortalSidebar ? <MobileHeader user={user} navigationAccess={navigationAccess} /> : null}
