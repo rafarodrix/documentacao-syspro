@@ -2,6 +2,7 @@
 
 import type { Role } from "@prisma/client"
 import type { ReactNode } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -147,30 +148,46 @@ function SidebarBrand({
     <div className={cn("flex h-14 items-center border-b border-border/40 shrink-0", collapsed ? "px-3 justify-center" : "px-4")}>
       <Link
         href="/portal"
-        className={cn("flex items-center font-semibold group w-full", collapsed ? "justify-center" : "gap-3")}
+        className={cn("flex items-center font-semibold group w-full", collapsed ? "justify-center" : "gap-2")}
         onClick={onClose}
         title={collapsed ? "Trilink" : undefined}
       >
-        <div
-          className={cn(
-            "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-all duration-300",
-            isSystemUser
-              ? "bg-violet-600 group-hover:bg-violet-700 group-hover:shadow-violet-500/25 group-hover:shadow-md"
-              : "bg-linear-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
-          )}
-        >
-          {isSystemUser ? <ShieldCheck className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
-        </div>
-
-        {!collapsed && (
-          <div className="flex flex-col gap-0">
-            <span className="text-[13px] font-bold tracking-tight text-foreground leading-tight">
-              Trilink
-              {isSystemUser && <span className="text-violet-500 dark:text-violet-400">Admin</span>}
-            </span>
-            <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-medium group-hover:text-primary/70 transition-colors leading-tight">
-              {isSystemUser ? "Painel de Controle" : "Portal do Cliente"}
-            </span>
+        {collapsed ? (
+          <div
+            className={cn(
+              "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-all duration-300",
+              isSystemUser
+                ? "bg-violet-600 group-hover:bg-violet-700 group-hover:shadow-violet-500/25 group-hover:shadow-md"
+                : "bg-linear-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
+            )}
+          >
+            {isSystemUser ? <ShieldCheck className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="relative h-7 w-28 dark:hidden">
+              <Image
+                src="/img/logo/logo-escura.png"
+                alt="Trilink"
+                fill
+                className="object-contain object-left"
+                sizes="112px"
+              />
+            </div>
+            <div className="relative hidden h-7 w-28 dark:block">
+              <Image
+                src="/img/logo/logo-clara.png"
+                alt="Trilink"
+                fill
+                className="object-contain object-left"
+                sizes="112px"
+              />
+            </div>
+            {isSystemUser && (
+              <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wider">
+                Admin
+              </span>
+            )}
           </div>
         )}
       </Link>
