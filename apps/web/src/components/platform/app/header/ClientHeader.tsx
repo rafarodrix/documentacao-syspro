@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { Breadcrumbs } from "./Breadcrumbs"
 import { CommandPaletteTrigger } from "./CommandPaletteTrigger"
-import { UserProfile } from "./UserProfile"
 import { NotificationsMenu } from "./NotificationsMenu"
 import type { Role } from "@prisma/client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
@@ -64,12 +63,6 @@ export function ClientHeader({
       <div className="flex items-center gap-0.5">
         <NotificationsMenu />
         <ModeToggle />
-        <div className="h-4 w-px bg-border/50 mx-1.5 shrink-0" />
-        <UserProfile
-          user={user}
-          canAccessSettings={Boolean(navigationAccess?.settings)}
-          canAccessAtendimento={Boolean(navigationAccess?.atendimento) && isSystemUser}
-        />
       </div>
     </header>
   )
