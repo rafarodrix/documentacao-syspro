@@ -11,6 +11,7 @@ import (
 )
 
 type Logger interface {
+	Debug(msg string, kv ...any)
 	Info(msg string, kv ...any)
 }
 
@@ -153,7 +154,7 @@ func (s *Service) pollSummaryLoop(ctx context.Context) error {
 			s.logger.Info("agent ui summary refresh failed", "error", err)
 		} else {
 			s.trayState.UpdateSummary(summary)
-			s.logger.Info("agent ui summary refreshed", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
+			s.logger.Debug("agent ui summary refreshed", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
 		}
 
 		select {
@@ -174,7 +175,7 @@ func (s *Service) pollNotificationsLoop(ctx context.Context) error {
 			s.logger.Info("agent ui notifications refresh failed", "error", err)
 		} else {
 			s.trayState.ShowNotifications(notifications)
-			s.logger.Info("agent ui notifications refreshed", "count", len(notifications))
+			s.logger.Debug("agent ui notifications refreshed", "count", len(notifications))
 		}
 
 		select {

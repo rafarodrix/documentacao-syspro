@@ -20,6 +20,9 @@ import (
 
 var rustDeskIDPattern = regexp.MustCompile(`\d{7,12}`)
 
+// rustDeskConfigIDPattern matches "id = 'XXXXXXXXX'" or "id = XXXXXXXXX" in TOML config files.
+var rustDeskConfigIDPattern = regexp.MustCompile(`(?m)^id\s*=\s*['"]?(\d{7,12})['"]?`)
+
 type rustDeskDesiredConfig struct {
 	Alias           string
 	ServerHost      string
@@ -197,10 +200,23 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 }
 
 func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
-	const maxAttempts = 8
+	// Fast path: read from config files without spawning a process.
+	// When the agent runs as LocalSystem (Session 0), rustdesk.exe --get-id
+	// often returns empty because RustDesk's CLI IPC only works in interactive
+	// sessions. Reading the TOML config file directly is reliable.
+	if id := m.getIDFromConfigFiles(); id != "" {
+		return id
+	}
 
+	const maxAttempts = 8
 	waitSeconds := 2
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		// Try config files on every attempt — the file appears once the service
+		// has registered with the relay server (usually within a few seconds).
+		if id := m.getIDFromConfigFiles(); id != "" {
+			return id
+		}
+
 		output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("& '%s' --get-id 2>&1 | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | Out-String", escapePowerShellSingleQuoted(exePath)))
 		if err == nil {
 			if id := normalizeRustDeskID(output); id != "" {
@@ -223,6 +239,43 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 	}
 
 	return ""
+}
+
+// getIDFromConfigFiles reads the RustDesk ID directly from its TOML config
+// files. This works in Session 0 (SYSTEM) where --get-id may return empty.
+func (m *rustDeskManager) getIDFromConfigFiles() string {
+	candidates := []string{
+		// MSI / all-users install: service runs as LocalSystem
+		`C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		`C:\Windows\SysWOW64\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		// Older RustDesk versions used RustDesk.toml
+		`C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
+		`C:\Windows\SysWOW64\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
+		// ProgramData paths used by some installer configurations
+		filepath.Join(os.Getenv("ProgramData"), "RustDesk", "config", "RustDesk2.toml"),
+		filepath.Join(os.Getenv("ProgramData"), "RustDesk", "config", "RustDesk.toml"),
+	}
+	for _, path := range candidates {
+		if strings.TrimSpace(path) == "" {
+			continue
+		}
+		if id := parseRustDeskIDFromConfig(path); id != "" {
+			return id
+		}
+	}
+	return ""
+}
+
+func parseRustDeskIDFromConfig(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	match := rustDeskConfigIDPattern.FindSubmatch(data)
+	if len(match) < 2 {
+		return ""
+	}
+	return strings.TrimSpace(string(match[1]))
 }
 
 func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string {

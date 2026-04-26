@@ -12,6 +12,7 @@ import (
 )
 
 type Logger interface {
+	Debug(msg string, kv ...any)
 	Info(msg string, kv ...any)
 }
 
