@@ -636,7 +636,10 @@ func buildRustDeskMSIInstallArgs(installerPath, logPath string) []string {
 	args := []string{
 		"/i", installerPath,
 		"REBOOT=ReallySuppress",
-		"LAUNCH_TRAY_APP=",
+		"LAUNCH_TRAY_APP=0",
+		"STARTUPSHORTCUTS=0",
+		"DESKTOPSHORTCUTS=0",
+		"STARTMENUSHORTCUTS=0",
 		"/qn",
 		"/norestart",
 	}

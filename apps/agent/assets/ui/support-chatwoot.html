@@ -416,6 +416,35 @@
       font-size: 12px;
     }
 
+    .agent-support-stage-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .agent-support-stage-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 0;
+      background: linear-gradient(180deg, var(--brand) 0%, #144f83 100%);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 12px 22px rgba(16, 63, 105, 0.18);
+    }
+
+    .agent-support-stage-button.secondary {
+      background: #dce4ea;
+      color: var(--text);
+      box-shadow: none;
+    }
+
     .agent-support-stage.hidden {
       display: none;
     }
@@ -523,8 +552,12 @@
         <div class="agent-support-stage" id="support-stage">
           <div class="agent-support-stage-content">
             <div class="agent-support-stage-title">Preparando sessão de atendimento</div>
-            <div class="agent-support-stage-copy">
+            <div class="agent-support-stage-copy" id="support-stage-copy">
               O agente está carregando o widget de suporte e sincronizando o contexto técnico deste dispositivo.
+            </div>
+            <div class="agent-support-stage-actions">
+              <button class="agent-support-stage-button" id="open-chatwoot-button" type="button" style="display:none">Abrir atendimento</button>
+              <button class="agent-support-stage-button secondary" id="retry-chatwoot-button" type="button" style="display:none">Tentar novamente</button>
             </div>
           </div>
         </div>
@@ -539,6 +572,7 @@
       var LOGO_DARK_URL=__LOGO_DARK_URL__;
       var statusCopy=d.getElementById('status-copy');
       var supportStage=d.getElementById('support-stage');
+      var supportStageCopy=d.getElementById('support-stage-copy');
       var companyPill=d.getElementById('company-pill');
       var hostPill=d.getElementById('host-pill');
       var remotePill=d.getElementById('remote-pill');
@@ -555,6 +589,43 @@
       var remoteAlertTitle=d.getElementById('remote-alert-title');
       var remoteAlertCopy=d.getElementById('remote-alert-copy');
       var supportBrandLogo=d.getElementById('support-brand-logo');
+      var openChatwootButton=d.getElementById('open-chatwoot-button');
+      var retryChatwootButton=d.getElementById('retry-chatwoot-button');
+      var chatwootReady = false;
+      var chatwootOpened = false;
+
+      var setStageMessage = function(title, copy) {
+        var titleEl = supportStage.querySelector('.agent-support-stage-title');
+        if (titleEl && title) {
+          titleEl.textContent = title;
+        }
+        if (supportStageCopy && copy) {
+          supportStageCopy.textContent = copy;
+        }
+      };
+
+      var setStageButtonsVisible = function(openVisible, retryVisible) {
+        openChatwootButton.style.display = openVisible ? 'inline-flex' : 'none';
+        retryChatwootButton.style.display = retryVisible ? 'inline-flex' : 'none';
+      };
+
+      var openChatwoot = function() {
+        if (!window.$chatwoot) {
+          return false;
+        }
+        try {
+          if (typeof window.$chatwoot.toggle === 'function') {
+            window.$chatwoot.toggle('open');
+            chatwootOpened = true;
+            return true;
+          }
+          if (typeof window.$chatwoot.toggleBubbleVisibility === 'function') {
+            window.$chatwoot.toggleBubbleVisibility('show');
+          }
+        } catch (err) {
+        }
+        return false;
+      };
       var preferredLogo = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
         ? (LOGO_LIGHT_URL || LOGO_DARK_URL)
         : (LOGO_DARK_URL || LOGO_LIGHT_URL);
@@ -649,7 +720,7 @@
       }
 
       window.chatwootSettings = {
-        hideMessageBubble: true,
+        hideMessageBubble: false,
         showUnreadMessagesDialog: false,
         welcomeTitle: 'Suporte Trilink',
         welcomeDescription: SUPPORT_CONTEXT.remoteStatus === 'ready'
@@ -700,13 +771,24 @@
       };
 
       window.addEventListener('chatwoot:ready', function () {
-        supportStage.classList.add('hidden');
+        chatwootReady = true;
         statusCopy.innerHTML = SUPPORT_CONTEXT.remoteStatus === 'ready'
           ? 'Atendimento pronto com contexto técnico e vínculo remoto carregados.'
           : SUPPORT_CONTEXT.remoteStatus === 'offline'
             ? 'Atendimento pronto com contexto parcial. RustDesk não instalado nesta máquina.'
             : 'Atendimento pronto com contexto parcial. O vínculo remoto ainda não está disponível nesta máquina.';
+        setStageMessage('Atendimento pronto', 'Clique em "Abrir atendimento" se a conversa não aparecer automaticamente nesta janela.');
+        setStageButtonsVisible(true, true);
         applySupportContext();
+        window.setTimeout(function () {
+          if (openChatwoot()) {
+            window.setTimeout(function () {
+              if (chatwootOpened) {
+                supportStage.classList.add('hidden');
+              }
+            }, 1200);
+          }
+        }, 150);
       });
 
       window.addEventListener('chatwoot:on-message', function (event) {
@@ -719,6 +801,8 @@
       g.onerror = function () {
         statusCopy.innerHTML = 'Não foi possível carregar o SDK do atendimento. Verifique acesso ao Chatwoot nesta máquina.';
         supportStage.classList.remove('hidden');
+        setStageMessage('Falha ao carregar o atendimento', 'O SDK do Chatwoot não foi carregado nesta máquina. Revise conectividade, WebView2 e acesso ao domínio do suporte.');
+        setStageButtonsVisible(false, true);
       };
       s.parentNode.insertBefore(g,s);
       g.onload=function(){
@@ -726,7 +810,25 @@
           websiteToken: __CHATWOOT_WEBSITE_TOKEN__,
           baseUrl: BASE_URL
         });
+        window.setTimeout(function () {
+          if (!chatwootReady) {
+            setStageMessage('Carregando atendimento', 'O canal de suporte está demorando para responder. Você pode tentar abrir novamente sem fechar esta janela.');
+            setStageButtonsVisible(false, true);
+          }
+        }, 4000);
       };
+
+      openChatwootButton.addEventListener('click', function () {
+        openChatwoot();
+      });
+
+      retryChatwootButton.addEventListener('click', function () {
+        if (chatwootReady) {
+          openChatwoot();
+          return;
+        }
+        window.location.reload();
+      });
     })(document,"script");
   </script>
 </body>

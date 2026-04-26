@@ -37,8 +37,11 @@ func TestBuildRustDeskMSIInstallArgsDisablesTrayLaunch(t *testing.T) {
 	t.Parallel()
 
 	args := buildRustDeskMSIInstallArgs(`C:\tmp\rustdesk.msi`, `C:\tmp\rustdesk.log`)
-	if !slices.Contains(args, "LAUNCH_TRAY_APP=") {
-		t.Fatalf("expected LAUNCH_TRAY_APP= in args, got %v", args)
+	if !slices.Contains(args, "LAUNCH_TRAY_APP=0") {
+		t.Fatalf("expected LAUNCH_TRAY_APP=0 in args, got %v", args)
+	}
+	if !slices.Contains(args, "STARTUPSHORTCUTS=0") {
+		t.Fatalf("expected STARTUPSHORTCUTS=0 in args, got %v", args)
 	}
 	if !slices.Contains(args, "/l*v") {
 		t.Fatalf("expected verbose log flag in args, got %v", args)
