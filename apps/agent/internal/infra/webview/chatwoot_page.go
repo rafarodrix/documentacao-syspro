@@ -558,13 +558,26 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       };
 
       var syncedConversationIds = {};
+      var hasNativeBridge = function () {
+        return !!(window.agentBridge && window.agentBridge.available && typeof window.agentBridge.invoke === 'function');
+      };
       var trySyncConversationContext = function (conversationId) {
         var normalizedConversationId = String(conversationId || '').trim();
-        if (!normalizedConversationId || syncedConversationIds[normalizedConversationId] || !IPC_BASE_URL) {
+        if (!normalizedConversationId || syncedConversationIds[normalizedConversationId]) {
+          return;
+        }
+        if (!IPC_BASE_URL && !hasNativeBridge()) {
           return;
         }
 
         syncedConversationIds[normalizedConversationId] = true;
+
+        if (hasNativeBridge()) {
+          window.agentBridge.invoke('sync_support_conversation_context', normalizedConversationId).catch(function () {
+            syncedConversationIds[normalizedConversationId] = false;
+          });
+          return;
+        }
 
         window.fetch(IPC_BASE_URL + '/actions/support/sync-context', {
           method: 'POST',

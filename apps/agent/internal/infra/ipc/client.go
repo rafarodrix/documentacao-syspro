@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	uistate "trilink/agent/internal/core/ui_state"
 )
@@ -18,17 +17,12 @@ type Client struct {
 }
 
 func NewClient(addr string, logger Logger) *Client {
-	baseURL := strings.TrimSpace(addr)
-	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
-		baseURL = "http://" + baseURL
-	}
+	httpClient, baseURL := newHTTPClient(strings.TrimSpace(addr))
 
 	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Second,
-		},
-		logger: logger,
+		baseURL:    baseURL,
+		httpClient: httpClient,
+		logger:     logger,
 	}
 }
 

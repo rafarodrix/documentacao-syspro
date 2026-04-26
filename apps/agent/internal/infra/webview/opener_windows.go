@@ -1,3 +1,5 @@
+//go:build windows
+
 package webview
 
 import (
@@ -9,62 +11,139 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	webview2 "github.com/jchv/go-webview2"
 )
 
 type Logger interface {
 	Info(msg string, kv ...any)
 }
 
-// Opener prefers a modern app-like host on Windows. It first tries Microsoft Edge
-// in app mode for Chromium rendering and a dedicated window. If Edge isn't
-// available, it falls back to the legacy WinForms host.
-// Non-Windows platforms still use the OS default handler for now.
-type Opener struct {
-	logger Logger
+type NativeBridge interface {
+	Invoke(ctx context.Context, action string, payload string) (string, error)
 }
 
-func NewOpener(logger Logger) *Opener {
-	return &Opener{logger: logger}
+type Opener struct {
+	logger   Logger
+	stateDir string
+	bridge   NativeBridge
+}
+
+func NewOpener(logger Logger, stateDir string, bridge NativeBridge) *Opener {
+	return &Opener{
+		logger:   logger,
+		stateDir: stateDir,
+		bridge:   bridge,
+	}
 }
 
 func (o *Opener) Open(ctx context.Context, target string) error {
+	go o.openAsync(ctx, target)
+	return nil
+}
+
+func (o *Opener) openAsync(ctx context.Context, target string) {
+	if err := o.openWithWebView2(ctx, target); err != nil {
+		o.logger.Info("webview2 open failed, falling back", "target", target, "error", err)
+		if fallbackErr := o.openWithProcessFallback(ctx, target); fallbackErr != nil {
+			o.logger.Info("fallback ui target open failed", "target", target, "error", fallbackErr)
+		}
+	}
+}
+
+func (o *Opener) openWithWebView2(ctx context.Context, target string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	windowTitle := resolveWindowTitle(target)
+	windowWidth, windowHeight := resolveWindowSize(target)
+	navigateTarget, err := toWebViewTarget(target)
+	if err != nil {
+		return err
+	}
+
+	dataPath := filepath.Join(o.stateDir, "webview2")
+	_ = os.MkdirAll(dataPath, 0o755)
+
+	w := webview2.NewWithOptions(webview2.WebViewOptions{
+		Debug:     false,
+		AutoFocus: true,
+		DataPath:  dataPath,
+		WindowOptions: webview2.WindowOptions{
+			Title:  windowTitle,
+			Width:  uint(windowWidth),
+			Height: uint(windowHeight),
+			Center: true,
+		},
+	})
+	if w == nil {
+		return fmt.Errorf("webview2 runtime unavailable")
+	}
+	defer w.Destroy()
+
+	if err := w.Bind("agent_native_invoke", func(action string, payload string) (string, error) {
+		return o.invokeBridge(action, payload)
+	}); err != nil {
+		return fmt.Errorf("bind webview bridge: %w", err)
+	}
+
+	w.Init(`window.agentBridge = {
+  available: true,
+  invoke: function(action, payload) {
+    return window.agent_native_invoke(action, payload || "");
+  }
+};`)
+	w.SetTitle(windowTitle)
+	w.SetSize(windowWidth, windowHeight, webview2.HintNone)
+	w.Navigate(navigateTarget)
+
+	go func() {
+		<-ctx.Done()
+		w.Terminate()
+	}()
+
+	o.logger.Info("opening ui target with webview2", "target", navigateTarget, "title", windowTitle)
+	w.Run()
+	return nil
+}
+
+func (o *Opener) invokeBridge(action string, payload string) (string, error) {
+	if o.bridge == nil {
+		return "", fmt.Errorf("bridge unavailable")
+	}
+	return o.bridge.Invoke(context.Background(), strings.TrimSpace(action), strings.TrimSpace(payload))
+}
+
+func (o *Opener) openWithProcessFallback(ctx context.Context, target string) error {
 	var cmd *exec.Cmd
 	windowTitle := resolveWindowTitle(target)
 
-	switch runtime.GOOS {
-	case "windows":
-		if edgePath, ok := findEdgeExecutable(); ok {
-			appTarget, err := toEdgeAppTarget(target)
-			if err != nil {
-				return err
-			}
-
-			cmd = exec.CommandContext(
-				ctx,
-				"powershell.exe",
-				"-NoProfile",
-				"-ExecutionPolicy",
-				"Bypass",
-				"-STA",
-				"-Command",
-				buildWindowsEdgeAppHostScript(edgePath, appTarget, windowTitle),
-			)
-			o.logger.Info("opening ui target with edge app mode", "target", appTarget, "title", windowTitle)
-		} else {
-			cmd = exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-STA", "-Command", buildWindowsWebViewScript(target, windowTitle))
-			o.logger.Info("opening ui target with winforms fallback", "target", target, "title", windowTitle)
+	if edgePath, ok := findEdgeExecutable(); ok {
+		appTarget, err := toEdgeAppTarget(target)
+		if err != nil {
+			return err
 		}
-	case "darwin":
-		cmd = exec.CommandContext(ctx, "open", target)
-	default:
-		cmd = exec.CommandContext(ctx, "xdg-open", target)
+		cmd = exec.CommandContext(
+			ctx,
+			"powershell.exe",
+			"-NoProfile",
+			"-ExecutionPolicy",
+			"Bypass",
+			"-STA",
+			"-Command",
+			buildWindowsEdgeAppHostScript(edgePath, appTarget, windowTitle),
+		)
+		o.logger.Info("opening ui target with edge app mode fallback", "target", appTarget, "title", windowTitle)
+	} else {
+		cmd = exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-STA", "-Command", buildWindowsWebViewScript(target, windowTitle))
+		o.logger.Info("opening ui target with winforms fallback", "target", target, "title", windowTitle)
 	}
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("open target %q: %w", target, err)
 	}
 
-	o.logger.Info("ui target opened", "target", target, "title", windowTitle)
+	o.logger.Info("ui target opened with fallback", "target", target, "title", windowTitle)
 	return nil
 }
 
@@ -74,6 +153,14 @@ func resolveWindowTitle(target string) string {
 		return "Trilink Agent Setup"
 	}
 	return "Trilink Support"
+}
+
+func resolveWindowSize(target string) (int, int) {
+	base := strings.ToLower(filepath.Base(target))
+	if strings.Contains(base, "setup") {
+		return 480, 760
+	}
+	return 420, 760
 }
 
 func findEdgeExecutable() (string, bool) {
@@ -92,6 +179,13 @@ func findEdgeExecutable() (string, bool) {
 	}
 
 	return "", false
+}
+
+func toWebViewTarget(target string) (string, error) {
+	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") || strings.HasPrefix(target, "file://") {
+		return target, nil
+	}
+	return toEdgeAppTarget(target)
 }
 
 func toEdgeAppTarget(target string) (string, error) {

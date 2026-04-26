@@ -326,7 +326,8 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       </div>
       <div class="subtle">
         <span id="step-count"></span>
-        <span id="polling-status">Atualizacao automatica a cada 5s</span>
+        <span id="polling-status">Conectando ao stream de atualizacao</span>
+        <span id="last-update"></span>
       </div>
       <div class="steps" id="steps"></div>
       <div class="completed-wrap" id="completed-wrap" style="display:none;">
@@ -373,7 +374,7 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       document.getElementById('stage').textContent = status.stage || 'Inicializando';
       document.getElementById('percent').textContent = (status.progress_pct || 0) + '%%';
       document.getElementById('bar-fill').style.width = (status.progress_pct || 0) + '%%';
-      document.getElementById('polling-status').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('last-update').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       const meta = document.getElementById('meta');
       meta.innerHTML = '';
@@ -449,7 +450,28 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       }
     }
 
+    let evtSource = null;
+    let pollFallbackTimer = null;
+    let nativeRefreshTimer = null;
+
+    function hasNativeBridge() {
+      return !!(window.agentBridge && window.agentBridge.available && typeof window.agentBridge.invoke === 'function');
+    }
+
+    async function refreshViaNativeBridge() {
+      if (!hasNativeBridge()) return false;
+      try {
+        const raw = await window.agentBridge.invoke('get_setup_status', '');
+        const status = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        render(status);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
     async function refresh() {
+      if (await refreshViaNativeBridge()) return;
       if (!ipcBaseUrl) return;
       try {
         const response = await fetch(ipcBaseUrl + '/setup', { cache: 'no-store' });
@@ -459,9 +481,59 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       } catch (_) {}
     }
 
+    function schedulePollingFallback() {
+      if (pollFallbackTimer) return;
+      document.getElementById('polling-status').textContent = 'Stream indisponivel, usando polling a cada 5s';
+      pollFallbackTimer = window.setInterval(refresh, 5000);
+    }
+
+    function connectSetupEvents() {
+      if (hasNativeBridge()) {
+        document.getElementById('polling-status').textContent = 'Atualizacao nativa ativa';
+        nativeRefreshTimer = window.setInterval(refresh, 2000);
+        refresh();
+        return;
+      }
+
+      if (!ipcBaseUrl || typeof EventSource === 'undefined') {
+        schedulePollingFallback();
+        return;
+      }
+
+      try {
+        evtSource = new EventSource(ipcBaseUrl + '/events/setup');
+      } catch (_) {
+        schedulePollingFallback();
+        return;
+      }
+
+      evtSource.onopen = () => {
+        document.getElementById('polling-status').textContent = 'Atualizacao em tempo real ativa';
+        if (pollFallbackTimer) {
+          window.clearInterval(pollFallbackTimer);
+          pollFallbackTimer = null;
+        }
+      };
+
+      evtSource.onmessage = (event) => {
+        try {
+          const status = JSON.parse(event.data);
+          render(status);
+        } catch (_) {}
+      };
+
+      evtSource.onerror = () => {
+        if (evtSource) {
+          evtSource.close();
+          evtSource = null;
+        }
+        schedulePollingFallback();
+      };
+    }
+
     document.getElementById('refresh-btn').addEventListener('click', refresh);
     render(currentStatus);
-    window.setInterval(refresh, 5000);
+    connectSetupEvents();
   </script>
 </body>
 </html>

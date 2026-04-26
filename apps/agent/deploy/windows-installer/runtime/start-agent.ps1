@@ -61,7 +61,10 @@ if (-not $env:AGENT_STATE_DIR) {
   $env:AGENT_STATE_DIR = $stateDir
 }
 if (-not $env:AGENT_IPC_ADDRESS) {
-  $env:AGENT_IPC_ADDRESS = "127.0.0.1:48721"
+  $env:AGENT_IPC_ADDRESS = "\\.\pipe\trilink-agent-ipc"
+}
+if (-not $env:AGENT_IPC_HTTP_BRIDGE_ADDRESS) {
+  $env:AGENT_IPC_HTTP_BRIDGE_ADDRESS = "127.0.0.1:48721"
 }
 
 $bundledRustDeskInstaller =
@@ -99,4 +102,3 @@ if (-not (Get-Process -Name "agent-service" -ErrorAction SilentlyContinue)) {
 if (-not (Get-Process -Name "agent-ui" -ErrorAction SilentlyContinue)) {
   Start-Process -FilePath $uiExe
 }
-

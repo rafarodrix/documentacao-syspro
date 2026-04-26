@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"trilink/agent/internal/core/agent"
 	"trilink/agent/internal/core/desiredstate"
@@ -56,7 +57,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	uiStateService := uistate.NewService(cfg.Paths.StateDir, webview.ChatwootConfig{
 		BaseURL:      cfg.Support.ChatwootBaseURL,
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
-		IPCBaseURL:   "http://" + cfg.Agent.IPCAddress,
+		IPCBaseURL:   httpBridgeBaseURL(cfg.Agent.IPCAddress, cfg.Agent.IPCHTTPBridgeAddress),
 	}, cfg.Agent.Version, cfg.Agent.Environment, portalClient)
 
 	modules := []reconcile.Module{
@@ -104,6 +105,19 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 
 	return &Container{
 		AgentService: agentService,
-		IPCServer:    ipc.NewServer(cfg.Agent.IPCAddress, logger, uiStateService, uiStateService, uiStateService, uiStateService),
+		IPCServer:    ipc.NewServer(cfg.Agent.IPCAddress, cfg.Agent.IPCHTTPBridgeAddress, logger, uiStateService, uiStateService, uiStateService, uiStateService),
 	}, nil
+}
+
+func httpBridgeBaseURL(ipcAddress, bridgeAddress string) string {
+	if bridge := bridgeAddress; bridge != "" {
+		if strings.HasPrefix(bridge, "http://") || strings.HasPrefix(bridge, "https://") {
+			return bridge
+		}
+		return "http://" + bridge
+	}
+	if strings.HasPrefix(ipcAddress, "http://") || strings.HasPrefix(ipcAddress, "https://") {
+		return ipcAddress
+	}
+	return "http://" + ipcAddress
 }
