@@ -1,10 +1,10 @@
 package webview
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	agentassets "trilink/agent/assets"
 )
@@ -15,22 +15,18 @@ type BrandAssets struct {
 }
 
 func resolveBrandAssets(targetDir string) BrandAssets {
+	_ = targetDir
 	return BrandAssets{
-		LogoLightURL: fileURL(filepath.Join(targetDir, "logo-clara.png")),
-		LogoDarkURL:  fileURL(filepath.Join(targetDir, "logo-escura.png")),
+		LogoLightURL: pngDataURL(agentassets.LogoLightPNG),
+		LogoDarkURL:  pngDataURL(agentassets.LogoDarkPNG),
 	}
 }
 
-func fileURL(path string) string {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		abs = path
+func pngDataURL(data []byte) string {
+	if len(data) == 0 {
+		return ""
 	}
-	slashed := filepath.ToSlash(abs)
-	if strings.HasPrefix(slashed, "/") {
-		return "file://" + slashed
-	}
-	return "file:///" + slashed
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data)
 }
 
 func copyBrandAssetsToDir(targetDir string) error {

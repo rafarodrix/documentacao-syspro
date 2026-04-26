@@ -143,9 +143,9 @@ func resolveWindowTitle(target string) string {
 func resolveWindowSize(target string) (int, int) {
 	base := strings.ToLower(filepath.Base(target))
 	if strings.Contains(base, "setup") {
-		return 480, 760
+		return 430, 640
 	}
-	return 420, 760
+	return 390, 620
 }
 
 func toWebViewTarget(target string) (string, error) {
