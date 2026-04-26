@@ -1,6 +1,6 @@
 import "server-only";
 
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
@@ -30,10 +30,8 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
   query.set("q", input.q);
   query.set("limit", String(input.limit));
 
-  const response = await callBackendApi<{ options?: CustomerEmailOption[] }>(
-    "tickets",
-    `/customer-emails?${query.toString()}`,
-  );
+  const response = await callWebApi(`/api/tickets/customer-emails?${query.toString()}`)
+    .then((res) => res.json() as Promise<{ options?: CustomerEmailOption[] }>);
 
   return Array.isArray(response.options) ? response.options : [];
 }

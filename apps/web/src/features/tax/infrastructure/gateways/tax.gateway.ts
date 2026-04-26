@@ -1,4 +1,4 @@
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 import type {
   TaxAnexoListItem,
   TaxClassificationListViewData,
@@ -64,22 +64,22 @@ function normalizeNcm(items: TaxNcmListItem[]): TaxNcmListItem[] {
 
 export async function fetchTaxClassificationListViewGateway(): Promise<TaxClassificationListViewData> {
   return normalizeClassificationListViewData(
-    await callBackendApi<TaxClassificationListViewData>("tax", "/classifications"),
+    await callWebApi("/api/tax/classifications").then((res) => res.json() as Promise<TaxClassificationListViewData>),
   );
 }
 
 export async function fetchTaxRulesViewGateway(): Promise<TaxRulesGroupItem[]> {
-  return normalizeRulesViewData(await callBackendApi<TaxRulesGroupItem[]>("tax", "/rules"));
+  return normalizeRulesViewData(await callWebApi("/api/tax/rules").then((res) => res.json() as Promise<TaxRulesGroupItem[]>));
 }
 
 export async function fetchTaxAnexosViewGateway(): Promise<TaxAnexoListItem[]> {
-  return normalizeAnexos(await callBackendApi<TaxAnexoListItem[]>("tax", "/anexos"));
+  return normalizeAnexos(await callWebApi("/api/tax/anexos").then((res) => res.json() as Promise<TaxAnexoListItem[]>));
 }
 
 export async function fetchTaxCredPresumidoViewGateway(): Promise<TaxCredPresumidoListItem[]> {
-  return normalizeCredPresumido(await callBackendApi<TaxCredPresumidoListItem[]>("tax", "/cred-presumido"));
+  return normalizeCredPresumido(await callWebApi("/api/tax/cred-presumido").then((res) => res.json() as Promise<TaxCredPresumidoListItem[]>));
 }
 
 export async function fetchTaxNcmViewGateway(): Promise<TaxNcmListItem[]> {
-  return normalizeNcm(await callBackendApi<TaxNcmListItem[]>("tax", "/ncm"));
+  return normalizeNcm(await callWebApi("/api/tax/ncm").then((res) => res.json() as Promise<TaxNcmListItem[]>));
 }

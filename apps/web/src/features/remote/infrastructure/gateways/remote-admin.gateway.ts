@@ -1,4 +1,4 @@
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 import type {
   RemoteHostDetails,
   RemotePlatformDirectory,
@@ -8,15 +8,15 @@ import type {
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 
 export async function fetchRemotePlatformDirectoryGateway(): Promise<RemotePlatformDirectory> {
-  return callBackendApi<RemotePlatformDirectory>("remote-admin", "/directory");
+  return callWebApi("/api/remote-admin/directory").then((res) => res.json() as Promise<RemotePlatformDirectory>);
 }
 
 export async function fetchRemotePlatformOverviewGateway(): Promise<RemotePlatformOverview> {
-  return callBackendApi<RemotePlatformOverview>("remote-admin", "/overview");
+  return callWebApi("/api/remote-admin/overview").then((res) => res.json() as Promise<RemotePlatformOverview>);
 }
 
 export async function fetchRemoteHostDetailsGateway(hostId: string): Promise<RemoteHostDetails | null> {
-  return callBackendApi<RemoteHostDetails | null>("remote-admin", `/hosts/${hostId}/details`);
+  return callWebApi(`/api/remote-admin/hosts/${hostId}/details`).then((res) => res.json() as Promise<RemoteHostDetails | null>);
 }
 
 export async function fetchRemoteSessionsGateway(options?: {
@@ -34,7 +34,7 @@ export async function fetchRemoteSessionsGateway(options?: {
   if (options?.pageSize) params.set("pageSize", String(options.pageSize));
   const search = params.toString();
 
-  return callBackendApi<{
+  return callWebApi(`/api/remote-admin/sessions${search ? `?${search}` : ""}`).then((res) => res.json() as Promise<{
     sessions: RemotePlatformOverview["recentSessions"];
     pagination: {
       page: number;
@@ -45,9 +45,9 @@ export async function fetchRemoteSessionsGateway(options?: {
       hasNextPage: boolean;
     };
     hostOptions: Array<{ id: string; name: string }>;
-  }>("remote-admin", `/sessions${search ? `?${search}` : ""}`);
+  }>);
 }
 
 export async function fetchRemoteEfficiencyMetricsGateway(): Promise<EfficiencyMetrics> {
-  return callBackendApi<EfficiencyMetrics>("remote-admin", "/reports/efficiency");
+  return callWebApi("/api/remote-admin/reports/efficiency").then((res) => res.json() as Promise<EfficiencyMetrics>);
 }

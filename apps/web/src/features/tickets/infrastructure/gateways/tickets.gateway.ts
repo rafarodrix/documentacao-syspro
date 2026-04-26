@@ -14,10 +14,11 @@ import {
   ticketModuleListResponseSchema,
   ticketModuleMutationResponseSchema,
 } from "@dosc-syspro/contracts/ticket";
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 
 async function callTicketsApi<T>(path: string, init?: RequestInit): Promise<T> {
-  return callBackendApi<T>("tickets", path, init);
+  const response = await callWebApi(`/api/tickets${path}`, init);
+  return response.json() as Promise<T>;
 }
 
 export async function fetchTicketsGateway(query: URLSearchParams): Promise<TicketModuleListResponse> {

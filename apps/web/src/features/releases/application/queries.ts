@@ -1,5 +1,5 @@
 import type { Release } from "@dosc-syspro/core";
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 
 type ReleasesResponse = {
     success: boolean;
@@ -8,7 +8,7 @@ type ReleasesResponse = {
 
 export async function getReleases(): Promise<Release[]> {
   try {
-    const response = await callBackendApi<ReleasesResponse>("releases", "");
+    const response = await callWebApi("/api/releases").then((res) => res.json() as Promise<ReleasesResponse>);
     return response.success ? response.data ?? [] : [];
   } catch (error) {
     console.warn("getReleases failed:", error);
