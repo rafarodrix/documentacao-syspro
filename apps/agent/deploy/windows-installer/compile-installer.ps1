@@ -1,18 +1,33 @@
+param(
+  [string]$Version = ""
+)
+
 $ErrorActionPreference = "Stop"
 
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$issFile = Join-Path $root "AgenteTrilink.iss"
+$root       = Split-Path -Parent $MyInvocation.MyCommand.Path
+$issFile    = Join-Path $root "AgenteTrilink.iss"
 $packScript = Join-Path $root "build-installer-package.ps1"
 
 if (-not (Test-Path $issFile)) {
   throw "Arquivo .iss nao encontrado: $issFile"
 }
-
 if (-not (Test-Path $packScript)) {
   throw "Script de empacotamento nao encontrado: $packScript"
 }
 
-Write-Host "Montando pacote de staging do instalador..."
+# Resolve versao: parametro > git tag > fallback
+if (-not $Version) {
+  try {
+    $tag = git -C $root describe --tags --match "v*" --abbrev=0 2>$null
+    if ($tag -match '^v?(\d+\.\d+\.\d+)') {
+      $Version = $Matches[1]
+    }
+  } catch {}
+}
+if (-not $Version) { $Version = "1.0.0" }
+
+Write-Host "Versao do instalador: $Version"
+Write-Host "Montando pacote de staging..."
 & powershell -ExecutionPolicy Bypass -File $packScript
 
 $candidates = @(
@@ -23,14 +38,14 @@ $candidates = @(
 )
 
 $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-
 if (-not $iscc) {
   throw "ISCC.exe nao encontrado. Instale o Inno Setup 6 e rode novamente."
 }
 
 Write-Host "Compilando instalador com: $iscc"
-& $iscc $issFile
+& $iscc "/DMyAppVersion=$Version" $issFile
 
+$agentRoot  = Resolve-Path (Join-Path $root "..\..")
+$outputDir  = Join-Path $agentRoot "dist\windows-installer\output"
 Write-Host ""
-Write-Host "Instalador gerado em:"
-Write-Host "  C:\DEV\documentacao-syspro\apps\agent\dist\windows-installer\output"
+Write-Host "Instalador gerado em: $outputDir\agente-trilink-setup-$Version.exe"
