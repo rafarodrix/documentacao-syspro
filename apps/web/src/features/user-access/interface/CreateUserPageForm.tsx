@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ElementType } from "react";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -8,23 +9,20 @@ import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/u
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import type { Role as PrismaRole } from "@prisma/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
+import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/RegistryFormScaffold";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   AlertCircle,
   Building2,
   Check,
-  CheckCircle2,
   ChevronsUpDown,
-  CircleDot,
   Link2,
   Loader2,
   Mail,
@@ -32,7 +30,6 @@ import {
   Search,
   ShieldCheck,
   UserRound,
-  type LucideIcon,
 } from "lucide-react";
 
 const ROLE = {
@@ -50,6 +47,25 @@ const ROLE_LABELS: Record<string, string> = {
   CLIENTE_ADMIN: "Gestor",
   CLIENTE_USER: "Usuario",
 };
+
+type SectionId = "geral" | "vinculo";
+
+const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
+  {
+    id: "geral",
+    title: "Geral",
+    description: "Perfil e credenciais",
+    icon: ShieldCheck as ElementType,
+    fields: ["name", "email", "password", "role"],
+  },
+  {
+    id: "vinculo",
+    title: "Vinculo do contato",
+    description: "Contato e empresas herdadas",
+    icon: Link2 as ElementType,
+    fields: ["contactId"],
+  },
+];
 
 export interface CreateUserPageFormProps {
   companies: CompanyOption[];
@@ -82,6 +98,7 @@ export function CreateUserPageForm({
   allowedRoles,
 }: CreateUserPageFormProps) {
   const router = useRouter();
+  const [currentSection, setCurrentSection] = useState<SectionId>("geral");
   const fallbackAllowedRoles = useMemo(() => {
     if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as PrismaRole[];
     if (context === "CLIENT") return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN] as PrismaRole[];
@@ -330,13 +347,28 @@ export function CreateUserPageForm({
   };
 
   const hasErrors = Object.keys(errors).length > 0;
+  const currentIndex = Math.max(
+    SECTIONS.findIndex((section) => section.id === currentSection),
+    0,
+  );
+  const progressPct = Math.round(((currentIndex + 1) / SECTIONS.length) * 100);
+  const sectionStateMap = useMemo(() => {
+    return SECTIONS.reduce<Record<SectionId, "error" | "ready" | "idle">>((acc, section) => {
+      const hasError = section.fields.some((field) => hasPath(errors, field));
+      if (hasError) {
+        acc[section.id] = "error";
+        return acc;
+      }
 
-  const readinessItems = [
-    { label: "Nome", done: String(watchedName ?? "").trim().length >= 3 },
-    { label: "Email", done: Boolean(watchedEmail && isValidEmailFormat(String(watchedEmail))) },
-    { label: "Contato", done: Boolean(selectedContactId) },
-    { label: "Nivel de acesso", done: Boolean(selectedRole) },
-  ];
+      const hasValue = section.fields.some((field) => {
+        const value = form.getValues(field as keyof CreateUserInput);
+        if (Array.isArray(value)) return value.length > 0;
+        return String(value ?? "").trim().length > 0;
+      });
+      acc[section.id] = hasValue ? "ready" : "idle";
+      return acc;
+    }, {} as Record<SectionId, "error" | "ready" | "idle">);
+  }, [errors, form]);
 
   const title =
     mode === "edit"
@@ -356,10 +388,15 @@ export function CreateUserPageForm({
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <RegistryFormScaffold
           title={title}
-          description="O usuario herda identidade, empresas e escopo operacional do contato vinculado."
+          description={`${SECTIONS.find((section) => section.id === currentSection)?.title} - ${SECTIONS.find((section) => section.id === currentSection)?.description}`}
           onBack={() => router.push(backHref)}
-          progressValue={selectedContactId ? 100 : 50}
-          progressText={selectedContactId ? "Contato vinculado" : "Contato pendente"}
+          sections={SECTIONS}
+          currentSection={currentSection}
+          sectionStates={sectionStateMap}
+          onSectionChange={setCurrentSection}
+          progressLabel="Preenchimento"
+          progressValue={progressPct}
+          progressText={`${currentIndex + 1}/${SECTIONS.length}`}
           submitLabel={mode === "edit" ? "Salvar alteracoes" : "Salvar usuario"}
           isSubmitting={isSubmitting}
           canSubmit={canSubmitForm}
@@ -386,95 +423,20 @@ export function CreateUserPageForm({
             </>
           }
         >
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
-            <section className="space-y-5">
-              <div className="grid gap-3 md:grid-cols-3">
-                <SummaryCard
-                  title="Identidade"
-                  value={String(watchedName ?? "").trim().length >= 3 ? "Ok" : "Pendente"}
-                  icon={UserRound}
-                  tone={String(watchedName ?? "").trim().length >= 3 ? "success" : "neutral"}
-                />
-                <SummaryCard
-                  title="Nivel de acesso"
-                  value={ROLE_LABELS[selectedRole] ?? "Pendente"}
-                  icon={ShieldCheck}
-                  tone={selectedRole ? "info" : "neutral"}
-                />
-                <SummaryCard
-                  title="Contato"
-                  value={selectedContactId ? "Vinculado" : "Pendente"}
-                  icon={Link2}
-                  tone={selectedContactId ? "success" : "neutral"}
-                />
-              </div>
-
-              <Card className="border-border/60 bg-card shadow-sm">
-                <CardContent className="space-y-5 p-4 md:p-5">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-primary/10">
-                      <UserRound className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Contato e credenciais</p>
-                      <p className="text-xs text-muted-foreground">O usuario herda identidade e empresas do contato vinculado.</p>
-                    </div>
+          <div className="space-y-5">
+            {currentSection === "geral" ? (
+              <section className="space-y-5">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md bg-primary/10 p-1.5">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
                   </div>
-
-                <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
-                  <div className="flex items-center gap-2">
-                    <Link2 className="h-4 w-4 text-primary/70" />
-                    <div>
-                      <p className="text-sm font-medium">Contato principal</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        O usuario sempre representa um contato. As empresas acessiveis sao derivadas desse contato.
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Perfil e credenciais</p>
+                    <p className="text-xs text-muted-foreground">Defina acesso, e-mail e identificacao do usuario.</p>
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="contactId"
-                    render={({ field }) => {
-                      return (
-                        <FormItem>
-                          <FormLabel>Contato</FormLabel>
-                          <FormControl>
-                            <ContactPicker
-                              value={toInputValue(field.value)}
-                              options={contactOptions}
-                              loading={loadingContacts}
-                              searchValue={contactSearch}
-                              onSearchChange={setContactSearch}
-                              onChange={field.onChange}
-                              placeholder="Selecione um contato"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
-
-                  {selectedContact ? (
-                    <div className="grid gap-2 rounded-md border border-border/50 bg-background/80 p-3 text-xs text-muted-foreground md:grid-cols-2">
-                      <div>
-                        <span className="font-medium text-foreground">Contato:</span> {selectedContact.name}
-                      </div>
-                      <div>
-                        <span className="font-medium text-foreground">WhatsApp / Email:</span>{" "}
-                        {selectedContact.whatsapp || selectedContact.email || "Nao informado"}
-                      </div>
-                      <div className="md:col-span-2 inline-flex items-center gap-1.5">
-                        <Building2 className="h-3.5 w-3.5" />
-                        <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
-                        {selectedCompanyNames || "Sem empresa vinculada"}
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="role"
@@ -506,9 +468,9 @@ export function CreateUserPageForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>E-mail de acesso</FormLabel>
-                      <FormControl>
+                        <FormControl>
                           <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
-                      </FormControl>
+                        </FormControl>
                         {mode !== "edit" && emailAvailability.status === "checking" ? (
                           <p className="text-[11px] text-muted-foreground">Verificando disponibilidade do e-mail...</p>
                         ) : null}
@@ -553,63 +515,67 @@ export function CreateUserPageForm({
                     </FormItem>
                   )}
                 />
-                </CardContent>
-              </Card>
-            </section>
+              </section>
+            ) : null}
 
-            <aside className="space-y-5">
-              <Card className="border-border/60 bg-card shadow-sm">
-                <CardContent className="space-y-4 p-4 md:p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                      <UserRound className="h-4 w-4" />
+            {currentSection === "vinculo" ? (
+              <section className="space-y-5">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md bg-primary/10 p-1.5">
+                    <UserRound className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Contato principal</p>
+                    <p className="text-xs text-muted-foreground">O usuario herda identidade e empresas do contato vinculado.</p>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="contactId"
+                  render={({ field }) => {
+                    return (
+                      <FormItem>
+                        <FormLabel>Contato</FormLabel>
+                        <FormControl>
+                          <ContactPicker
+                            value={toInputValue(field.value)}
+                            options={contactOptions}
+                            loading={loadingContacts}
+                            searchValue={contactSearch}
+                            onSearchChange={setContactSearch}
+                            onChange={field.onChange}
+                            placeholder="Selecione um contato"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                {selectedContact ? (
+                  <div className="grid gap-2 rounded-md border border-border/50 bg-background/80 p-3 text-xs text-muted-foreground md:grid-cols-2">
+                    <div>
+                      <span className="font-medium text-foreground">Contato:</span> {selectedContact.name}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Resumo do usuario</p>
-                      <p className="text-xs text-muted-foreground">Conferencia rapida antes de salvar.</p>
+                      <span className="font-medium text-foreground">WhatsApp / Email:</span>{" "}
+                      {selectedContact.whatsapp || selectedContact.email || "Nao informado"}
+                    </div>
+                    <div className="md:col-span-2 inline-flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5" />
+                      <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
+                      {selectedCompanyNames || "Sem empresa vinculada"}
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    {readinessItems.map((item) => (
-                      <div
-                        key={item.label}
-                        className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs"
-                      >
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 font-medium",
-                            item.done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
-                          )}
-                        >
-                          {item.done ? (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : (
-                            <CircleDot className="h-3.5 w-3.5" />
-                          )}
-                          {item.done ? "Ok" : "Pendente"}
-                        </span>
-                      </div>
-                    ))}
+                ) : (
+                  <div className="rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                    Nenhum contato vinculado.
                   </div>
-
-                  <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs">
-                    <div className="space-y-3">
-                      <SummaryLine icon={UserRound} label="Nome" value={String(watchedName ?? "") || "Nao informado"} />
-                      <SummaryLine icon={Mail} label="Email" value={String(watchedEmail ?? "") || "Nao informado"} />
-                      <SummaryLine icon={ShieldCheck} label="Nivel" value={ROLE_LABELS[selectedRole] ?? "Nao definido"} />
-                      <SummaryLine icon={Link2} label="Contato" value={selectedContact?.name || "Nao vinculado"} />
-                      <SummaryLine icon={Building2} label="Empresa" value={selectedCompanyNames || "Sem empresa"} />
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    Use o botao fixo no rodape para salvar. O contato vinculado define as empresas acessiveis pelo usuario.
-                  </p>
-                </CardContent>
-              </Card>
-            </aside>
+                )}
+              </section>
+            ) : null}
           </div>
         </RegistryFormScaffold>
       </form>
@@ -752,58 +718,13 @@ function ContactPicker({
   );
 }
 
-function SummaryCard({
-  title,
-  value,
-  icon: Icon,
-  tone,
-}: {
-  title: string;
-  value: string;
-  icon: LucideIcon;
-  tone: "info" | "success" | "neutral";
-}) {
-  const toneClass = {
-    info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-    neutral: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
-  }[tone];
-
-  return (
-    <Card className="border-border/60 bg-card shadow-sm">
-      <CardContent className="flex items-start justify-between gap-3 p-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {title}
-          </p>
-          <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
-        </div>
-        <div className={cn("flex h-9 w-9 items-center justify-center rounded-md", toneClass)}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SummaryLine({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex min-w-0 items-start gap-2">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        <p className="truncate text-xs font-medium text-foreground">{value}</p>
-      </div>
-    </div>
-  );
+function hasPath(obj: unknown, path: string): boolean {
+  if (!obj || typeof obj !== "object") return false;
+  const parts = path.split(".");
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (!current || typeof current !== "object" || !(part in (current as Record<string, unknown>))) return false;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return !!current;
 }
