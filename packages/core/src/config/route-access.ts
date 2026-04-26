@@ -2,6 +2,7 @@ export type AppRole = "ADMIN" | "DEVELOPER" | "SUPORTE" | "CLIENTE_ADMIN" | "CLI
 
 export const APP_ROLES: AppRole[] = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN", "CLIENTE_USER"];
 export const SYSTEM_ROLES: AppRole[] = ["ADMIN", "DEVELOPER", "SUPORTE"];
+export const CLIENT_ROLES: AppRole[] = ["CLIENTE_ADMIN", "CLIENTE_USER"];
 export const CADASTRO_MANAGER_ROLES: AppRole[] = ["ADMIN", "DEVELOPER", "SUPORTE", "CLIENTE_ADMIN"];
 
 export const CADASTROS_ROUTE_RULES = {
