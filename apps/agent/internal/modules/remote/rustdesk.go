@@ -659,7 +659,7 @@ func readRustDeskIDFromConfig(path string) string {
 		}
 
 		key := strings.ToLower(strings.TrimSpace(match[1]))
-		if !strings.Contains(key, "id") {
+		if !isRustDeskIDKey(key) {
 			continue
 		}
 
@@ -738,6 +738,9 @@ func rustDeskPasswordPriority(key, value, defaultPassword string) int {
 	if key == "" || value == "" || !strings.Contains(key, "password") {
 		return 0
 	}
+	if !looksLikeRustDeskAccessPassword(value) {
+		return 0
+	}
 
 	switch {
 	case strings.Contains(key, "temporary") || strings.Contains(key, "one-time") || strings.Contains(key, "one_time"):
@@ -753,6 +756,32 @@ func rustDeskPasswordPriority(key, value, defaultPassword string) int {
 		}
 		return 120
 	}
+}
+
+func isRustDeskIDKey(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "id", "rustdesk-id", "rustdesk_id":
+		return true
+	default:
+		return false
+	}
+}
+
+func looksLikeRustDeskAccessPassword(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+	if strings.ContainsAny(value, "/+=") {
+		return false
+	}
+	if strings.ContainsAny(value, " \t\r\n") {
+		return false
+	}
+	if len(value) < 4 || len(value) > 16 {
+		return false
+	}
+	return true
 }
 
 func splitWindowsArgs(raw string) []string {

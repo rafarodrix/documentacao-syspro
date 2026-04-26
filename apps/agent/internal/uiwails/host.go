@@ -1,0 +1,282 @@
+package uiwails
+
+import (
+	"context"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
+	uistate "trilink/agent/internal/core/ui_state"
+	"trilink/agent/internal/infra/ipc"
+
+	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+const (
+	eventNavigate      = "agent:navigate"
+	eventSetupStatus   = "agent:setup-status"
+	eventSummary       = "agent:summary"
+	eventNotifications = "agent:notifications"
+)
+
+type Logger interface {
+	Debug(msg string, kv ...any)
+	Info(msg string, kv ...any)
+}
+
+type setupStatusClient interface {
+	GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error)
+}
+
+type summaryClient interface {
+	GetSummary(ctx context.Context) (uistate.Summary, error)
+}
+
+type notificationsClient interface {
+	ListNotifications(ctx context.Context) ([]uistate.Notification, error)
+}
+
+type actionsClient interface {
+	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
+	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
+	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
+}
+
+type supportSessionProvider interface {
+	SupportSession(ctx context.Context) (uistate.SupportSession, error)
+}
+
+type Host struct {
+	logger          Logger
+	ipc             *ipc.Client
+	supportProvider supportSessionProvider
+
+	mu            sync.Mutex
+	runtimeCtx    context.Context
+	currentTarget string
+	started       bool
+}
+
+func NewHost(logger Logger, ipcClient *ipc.Client, supportProvider supportSessionProvider) *Host {
+	return &Host{
+		logger:          logger,
+		ipc:             ipcClient,
+		supportProvider: supportProvider,
+		currentTarget:   uistate.TargetSetupExperience,
+	}
+}
+
+func (h *Host) Open(ctx context.Context, target string) error {
+	_ = ctx
+
+	target = normalizeTarget(target)
+	h.mu.Lock()
+	h.currentTarget = target
+	runtimeCtx := h.runtimeCtx
+	started := h.started
+	h.mu.Unlock()
+
+	if started && runtimeCtx != nil {
+		h.showTarget(runtimeCtx, target)
+	}
+	return nil
+}
+
+func (h *Host) Quit() {
+	h.mu.Lock()
+	runtimeCtx := h.runtimeCtx
+	h.mu.Unlock()
+	if runtimeCtx != nil {
+		wruntime.Quit(runtimeCtx)
+	}
+}
+
+func (h *Host) showTarget(runtimeCtx context.Context, target string) {
+	target = normalizeTarget(target)
+	width, height, title := targetWindow(target)
+
+	wruntime.WindowSetSize(runtimeCtx, width, height)
+	wruntime.WindowSetTitle(runtimeCtx, title)
+	wruntime.WindowUnminimise(runtimeCtx)
+	wruntime.WindowShow(runtimeCtx)
+	wruntime.WindowCenter(runtimeCtx)
+	wruntime.EventsEmit(runtimeCtx, eventNavigate, map[string]string{"target": target})
+
+	h.logger.Info("opening ui target with wails", "target", target, "title", title)
+}
+
+func (h *Host) Startup(runtimeCtx context.Context, api *API) {
+	h.mu.Lock()
+	h.runtimeCtx = runtimeCtx
+	h.started = true
+	target := h.currentTarget
+	h.mu.Unlock()
+
+	h.showTarget(runtimeCtx, target)
+	api.startPushLoops(runtimeCtx)
+}
+
+func (h *Host) Shutdown() {
+	h.mu.Lock()
+	h.runtimeCtx = nil
+	h.started = false
+	h.mu.Unlock()
+}
+
+func normalizeTarget(target string) string {
+	switch strings.TrimSpace(strings.ToLower(target)) {
+	case "", strings.ToLower(uistate.TargetSetupExperience), strings.ToLower(filepath.Base(uistate.TargetSetupExperience)):
+		return uistate.TargetSetupExperience
+	case strings.ToLower(uistate.TargetSupportConversation), strings.ToLower(filepath.Base(uistate.TargetSupportConversation)):
+		return uistate.TargetSupportConversation
+	default:
+		if strings.Contains(strings.ToLower(target), "support") {
+			return uistate.TargetSupportConversation
+		}
+		return uistate.TargetSetupExperience
+	}
+}
+
+func targetWindow(target string) (int, int, string) {
+	switch normalizeTarget(target) {
+	case uistate.TargetSupportConversation:
+		return 420, 620, "Trilink Support"
+	default:
+		return 430, 640, "Trilink Agent Setup"
+	}
+}
+
+type API struct {
+	logger          Logger
+	host            *Host
+	setup           setupStatusClient
+	summary         summaryClient
+	notifications   notificationsClient
+	actions         actionsClient
+	supportProvider supportSessionProvider
+
+	pushOnce sync.Once
+}
+
+func NewAPI(logger Logger, host *Host, ipcClient *ipc.Client, supportProvider supportSessionProvider) *API {
+	return &API{
+		logger:          logger,
+		host:            host,
+		setup:           ipcClient,
+		summary:         ipcClient,
+		notifications:   ipcClient,
+		actions:         ipcClient,
+		supportProvider: supportProvider,
+	}
+}
+
+func (a *API) GetSetupStatus() (uistate.SetupStatus, error) {
+	return a.setup.GetSetupStatus(context.Background())
+}
+
+func (a *API) GetSummary() (uistate.Summary, error) {
+	return a.summary.GetSummary(context.Background())
+}
+
+func (a *API) ListNotifications() ([]uistate.Notification, error) {
+	return a.notifications.ListNotifications(context.Background())
+}
+
+func (a *API) GetSupportSession() (uistate.SupportSession, error) {
+	return a.supportProvider.SupportSession(context.Background())
+}
+
+func (a *API) OpenSupportConversation() (uistate.ActionResult, error) {
+	result, err := a.actions.OpenSupportConversation(context.Background())
+	if err != nil {
+		return result, err
+	}
+	if result.Target != "" {
+		_ = a.host.Open(context.Background(), result.Target)
+	}
+	return result, nil
+}
+
+func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
+	result, err := a.actions.OpenSetupExperience(context.Background())
+	if err != nil {
+		return result, err
+	}
+	if result.Target != "" {
+		_ = a.host.Open(context.Background(), result.Target)
+	}
+	return result, nil
+}
+
+func (a *API) SyncSupportConversationContext(conversationID string) (uistate.SupportContextSyncResult, error) {
+	return a.actions.SyncSupportConversationContext(context.Background(), conversationID)
+}
+
+func (a *API) startPushLoops(runtimeCtx context.Context) {
+	a.pushOnce.Do(func() {
+		go a.emitSetupLoop(runtimeCtx)
+		go a.emitSummaryLoop(runtimeCtx)
+		go a.emitNotificationsLoop(runtimeCtx)
+	})
+}
+
+func (a *API) emitSetupLoop(runtimeCtx context.Context) {
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		status, err := a.setup.GetSetupStatus(runtimeCtx)
+		if err != nil {
+			a.logger.Info("wails setup push failed", "error", err)
+		} else {
+			wruntime.EventsEmit(runtimeCtx, eventSetupStatus, status)
+		}
+
+		select {
+		case <-runtimeCtx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func (a *API) emitSummaryLoop(runtimeCtx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		summary, err := a.summary.GetSummary(runtimeCtx)
+		if err != nil {
+			a.logger.Info("wails summary push failed", "error", err)
+		} else {
+			wruntime.EventsEmit(runtimeCtx, eventSummary, summary)
+		}
+
+		select {
+		case <-runtimeCtx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func (a *API) emitNotificationsLoop(runtimeCtx context.Context) {
+	ticker := time.NewTicker(45 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		notifications, err := a.notifications.ListNotifications(runtimeCtx)
+		if err != nil {
+			a.logger.Info("wails notifications push failed", "error", err)
+		} else {
+			wruntime.EventsEmit(runtimeCtx, eventNotifications, notifications)
+		}
+
+		select {
+		case <-runtimeCtx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}

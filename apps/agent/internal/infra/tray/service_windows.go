@@ -46,12 +46,11 @@ func NewService(logger Logger, stateDir string) *Service {
 }
 
 func (s *Service) Run(ctx context.Context) error {
-	s.logger.Info("tray service starting", "primary_action", ActionOpenSupport, "secondary_action", ActionOpenSetup)
+	s.logger.Info("tray service starting", "primary_action", ActionOpenSupport)
 	defer s.logger.Info("tray service stopped")
 
 	var readyOnce sync.Once
 	var supportItem *systray.MenuItem
-	var setupItem *systray.MenuItem
 	var quitItem *systray.MenuItem
 
 	onReady := func() {
@@ -64,11 +63,10 @@ func (s *Service) Run(ctx context.Context) error {
 			systray.SetTooltip(s.tooltipText())
 
 			supportItem = systray.AddMenuItem("Abrir suporte", "Canal oficial Trilink")
-			setupItem = systray.AddMenuItem("Acompanhar instalacao", "Ver progresso do agente")
 			systray.AddSeparator()
 			quitItem = systray.AddMenuItem("Sair", "Encerrar interface do agente")
 
-			go s.handleClicks(ctx, supportItem, setupItem, quitItem)
+			go s.handleClicks(ctx, supportItem, quitItem)
 			go func() {
 				<-ctx.Done()
 				systray.Quit()
@@ -84,15 +82,13 @@ func (s *Service) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) handleClicks(ctx context.Context, supportItem, setupItem, quitItem *systray.MenuItem) {
+func (s *Service) handleClicks(ctx context.Context, supportItem, quitItem *systray.MenuItem) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-supportItem.ClickedCh:
 			s.Trigger(ActionOpenSupport)
-		case <-setupItem.ClickedCh:
-			s.Trigger(ActionOpenSetup)
 		case <-quitItem.ClickedCh:
 			s.Trigger(ActionExit)
 			systray.Quit()

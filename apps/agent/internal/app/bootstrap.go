@@ -19,7 +19,6 @@ import (
 	"trilink/agent/internal/infra/runtime"
 	"trilink/agent/internal/infra/storage"
 	"trilink/agent/internal/infra/telemetry"
-	"trilink/agent/internal/infra/webview"
 	backupmodule "trilink/agent/internal/modules/backup"
 	devicemodule "trilink/agent/internal/modules/device"
 	remotemodule "trilink/agent/internal/modules/remote"
@@ -53,7 +52,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	registrationService := registration.NewService(portalClient, stateStore, logger, eventBus)
 	heartbeatService := heartbeat.NewService(portalClient, stateStore, logger, eventBus)
 	desiredStateService := desiredstate.NewService(portalClient, stateStore, logger, eventBus)
-	uiStateService := uistate.NewService(cfg.Paths.StateDir, webview.ChatwootConfig{
+	uiStateService := uistate.NewService(cfg.Paths.StateDir, uistate.ChatwootConfig{
 		BaseURL:      cfg.Support.ChatwootBaseURL,
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
 	}, cfg.Agent.Version, cfg.Agent.Environment, portalClient)

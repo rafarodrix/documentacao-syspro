@@ -19,8 +19,8 @@ DefaultDirName={autopf}\Trilink\Agente
 DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\icon.ico
 SetupIconFile={#SourceDir}\icon.ico
-Compression=lzma
-SolidCompression=yes
+Compression=lzma2
+SolidCompression=no
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
@@ -58,16 +58,16 @@ Source: "{#SourceDir}\README-installer.txt"; DestDir: "{app}"; DestName: "LEIA-M
 Source: "{#SourceDir}\rustdesk\*"; DestDir: "{app}\rustdesk"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 
 [Icons]
-Name: "{group}\Iniciar Interface do Agente"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
+Name: "{group}\Iniciar Interface do Agente"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 Name: "{group}\Parar Interface do Agente"; Filename: "{app}\scripts\stop-agent.cmd"; WorkingDir: "{app}"
 Name: "{group}\Editar configuracao"; Filename: "{app}\scripts\open-config.cmd"; WorkingDir: "{app}"
 Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir: "{app}"
 Name: "{group}\Verificar WebView2 Runtime"; Filename: "{cmd}"; Parameters: "/c powershell -ExecutionPolicy Bypass -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; WorkingDir: "{app}"
-Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
-; {userstartup}: inicia apenas para o usuario que instalou (nao para todos da maquina)
+; {commonstartup}: inicia para qualquer usuario que fizer logon na maquina
 ; Usa PowerShell direto para suprimir a janela CMD que .cmd abre brevemente
-Name: "{userstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
+Name: "{commonstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 
 
 [Run]
@@ -96,14 +96,14 @@ Type: filesandordirs; Name: "{commonappdata}\Trilink\Agent\runtime-state"
 // ---------------------------------------------------------------------------
 
 function GenerateGuid: string;
-var
-  Guid: TGUID;
 begin
-  CreateGUID(Guid);
-  Result := GUIDToString(Guid);
-  Result := Copy(Result, 2, Length(Result) - 2);
-  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
-  Result := LowerCase(Result);
+  Result := LowerCase(
+    GetMD5OfString(
+      GetDateTimeString('yyyymmddhhnnsszzz', '-', '-') +
+      IntToStr(Random(MaxInt)) +
+      ExpandConstant('{computername}')
+    )
+  );
 end;
 
 

@@ -33,6 +33,38 @@ func TestReadRustDeskIDFromConfig(t *testing.T) {
 	}
 }
 
+func TestReadRustDeskIDFromConfigIgnoresEncID(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "enc-id = '999999999'\nid = '123456789'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	got := readRustDeskIDFromConfig(path)
+	if got != "123456789" {
+		t.Fatalf("expected rustdesk id 123456789, got %q", got)
+	}
+}
+
+func TestReadRustDeskPasswordFromConfigIgnoresEncodedValues(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "password = '00wdpnE7T2omZG8nGuUHR/zC45wIlwYkSUqts='\npermanent-password = '123456'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	got := readRustDeskPasswordFromConfig(path, "")
+	if got != "123456" {
+		t.Fatalf("expected plain RustDesk password 123456, got %q", got)
+	}
+}
+
 func TestBuildRustDeskMSIInstallArgsDisablesTrayLaunch(t *testing.T) {
 	t.Parallel()
 

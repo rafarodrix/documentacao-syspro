@@ -1,6 +1,6 @@
 //go:build !windows
 
-package webview
+package uiwails
 
 func ValidateRuntime() error {
 	return nil

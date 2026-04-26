@@ -9,20 +9,94 @@ $runtimeRoot = Join-Path $root "runtime"
 $sourceEnv = Join-Path $agentRoot ".env"
 $sourceEnvExample = Join-Path $agentRoot ".env.example"
 
+function Remove-DirectoryRobust {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  if (-not (Test-Path $Path)) {
+    return
+  }
+
+  $item = Get-Item -LiteralPath $Path -Force
+  if (-not $item.PSIsContainer) {
+    try {
+      $item.Attributes = [System.IO.FileAttributes]::Normal
+    } catch {
+    }
+    [System.IO.File]::Delete($item.FullName)
+    return
+  }
+
+  Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | ForEach-Object {
+    try {
+      $_.Attributes = [System.IO.FileAttributes]::Normal
+    } catch {
+    }
+  }
+
+  try {
+    (Get-Item -LiteralPath $Path -Force).Attributes = [System.IO.FileAttributes]::Directory
+  } catch {
+  }
+
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+      Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | ForEach-Object {
+        if ($_.PSIsContainer) {
+          [System.IO.Directory]::Delete($_.FullName, $false)
+        } else {
+          [System.IO.File]::Delete($_.FullName)
+        }
+      }
+      [System.IO.Directory]::Delete($Path, $false)
+      return
+    } catch {
+      if ($attempt -eq 3) {
+        throw
+      }
+      Start-Sleep -Milliseconds 500
+    }
+  }
+}
+
+function Ensure-Directory {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  for ($attempt = 1; $attempt -le 5; $attempt++) {
+    try {
+      [System.IO.Directory]::CreateDirectory($Path) | Out-Null
+      return
+    } catch {
+      if ($attempt -eq 5) {
+        throw
+      }
+      Start-Sleep -Milliseconds 500
+    }
+  }
+}
+
 if (-not (Test-Path $sourceDeployRoot)) {
   throw "Pacote base nao encontrado: $sourceDeployRoot"
 }
 
 if (Test-Path $stageRoot) {
-  Remove-Item -LiteralPath $stageRoot -Recurse -Force
+  Get-ChildItem -LiteralPath $stageRoot -Force -ErrorAction SilentlyContinue | ForEach-Object {
+    Remove-DirectoryRobust -Path $_.FullName
+  }
+} else {
+  Ensure-Directory -Path $stageRoot
 }
 
-New-Item -ItemType Directory -Force -Path $stageRoot | Out-Null
-New-Item -ItemType Directory -Force -Path $outputRoot | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $stageRoot "assets\img") | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $stageRoot "scripts") | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $stageRoot "config") | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $stageRoot "rustdesk") | Out-Null
+Ensure-Directory -Path $outputRoot
+Ensure-Directory -Path (Join-Path $stageRoot "assets\img")
+Ensure-Directory -Path (Join-Path $stageRoot "scripts")
+Ensure-Directory -Path (Join-Path $stageRoot "config")
+Ensure-Directory -Path (Join-Path $stageRoot "rustdesk")
 
 Copy-Item -LiteralPath (Join-Path $sourceDeployRoot "agent-service.exe") -Destination (Join-Path $stageRoot "agent-service.exe")
 Copy-Item -LiteralPath (Join-Path $sourceDeployRoot "agent-ui.exe") -Destination (Join-Path $stageRoot "agent-ui.exe")
@@ -76,4 +150,3 @@ Write-Host "Saida do instalador: $outputRoot"
 Write-Host ""
 Write-Host "Para compilar com Inno Setup:"
 Write-Host "  ISCC.exe `"$root\AgenteTrilink.iss`""
-
