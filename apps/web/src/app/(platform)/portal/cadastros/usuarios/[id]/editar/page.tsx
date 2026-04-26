@@ -3,13 +3,13 @@ import { CreateUserPageForm } from "@/features/user-access/interface";
 import { getUserEditViewData } from "@/features/user-access/application/queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
-import { Role } from "@prisma/client";
+import type { UserRoleValue } from "@dosc-syspro/contracts/user";
 
-function getAllowedRolesForRequester(role: Role): Role[] {
-  if (role === Role.ADMIN) return [Role.CLIENTE_USER, Role.CLIENTE_ADMIN, Role.SUPORTE, Role.DEVELOPER, Role.ADMIN];
-  if (role === Role.DEVELOPER) return [Role.DEVELOPER];
-  if (role === Role.SUPORTE) return [Role.SUPORTE];
-  if (role === Role.CLIENTE_ADMIN) return [Role.CLIENTE_USER, Role.CLIENTE_ADMIN];
+function getAllowedRolesForRequester(role: UserRoleValue): UserRoleValue[] {
+  if (role === "ADMIN") return ["CLIENTE_USER", "CLIENTE_ADMIN", "SUPORTE", "DEVELOPER", "ADMIN"];
+  if (role === "DEVELOPER") return ["DEVELOPER"];
+  if (role === "SUPORTE") return ["SUPORTE"];
+  if (role === "CLIENTE_ADMIN") return ["CLIENTE_USER", "CLIENTE_ADMIN"];
   return [];
 }
 
@@ -20,7 +20,7 @@ export default async function CadastrosUsuariosEditarPage({ params }: PageProps)
   const session = await requireSession();
 
   if (!(await currentUserHasPermission("users:edit", { acceptCompanyScope: true }))) return <CadastrosAccessDenied />;
-  const allowedRoles = getAllowedRolesForRequester(session.role as Role);
+  const allowedRoles = getAllowedRolesForRequester(session.role as UserRoleValue);
   if (!allowedRoles.length) return <CadastrosAccessDenied />;
 
   const { id } = await params;

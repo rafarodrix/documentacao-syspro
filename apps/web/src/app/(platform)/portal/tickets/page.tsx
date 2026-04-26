@@ -3,16 +3,16 @@ import { getTicketsAction } from "@/features/tickets/application/ticket-actions"
 import { TicketsContainer } from "@/features/tickets/interface";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "@/features/tickets/domain/ticket-model";
+import type { UserRoleValue } from "@dosc-syspro/contracts/user";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
-import { Role } from "@prisma/client";
 const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
 const TEAM_FILTER_OPTIONS: TicketTeamFilter[] = ["all", "SUPORTE", "DESENVOLVIMENTO"];
 const SORT_BY_OPTIONS: TicketSortBy[] = ["updatedAt", "subject", "customer"];
 const SORT_ORDER_OPTIONS: TicketSortOrder[] = ["asc", "desc"];
 
-function resolveDefaultTeamFilter(role: Role): TicketTeamFilter {
-  if (role === Role.DEVELOPER) return "DESENVOLVIMENTO";
-  if (role === Role.SUPORTE) return "SUPORTE";
+function resolveDefaultTeamFilter(role: UserRoleValue): TicketTeamFilter {
+  if (role === "DEVELOPER") return "DESENVOLVIMENTO";
+  if (role === "SUPORTE") return "SUPORTE";
   return "all";
 }
 

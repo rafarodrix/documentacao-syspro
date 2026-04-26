@@ -1,5 +1,11 @@
-import type { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
-import type { CreateCompanyInput, CompanyOption } from "@dosc-syspro/contracts/company";
+import type {
+  CompanyOption,
+  CompanySegmentValue,
+  CompanyStatusValue,
+  CreateCompanyInput,
+  IndicadorIEValue,
+  TaxRegimeValue,
+} from "@dosc-syspro/contracts/company";
 export type { CompanyOption } from "@dosc-syspro/contracts/company";
 
 export type CompanyValidationErrors = Partial<Record<keyof CreateCompanyInput, string[]>>;
@@ -79,8 +85,8 @@ export interface CompanyListItem {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string | null;
-  segment?: CompanySegment | null;
-  status: CompanyStatus;
+  segment?: CompanySegmentValue | null;
+  status: CompanyStatusValue;
   serverType?: "SYSPRO_SERVER" | "IIS" | null;
   serverPort?: number | null;
   serverHost?: string | null;
@@ -109,9 +115,9 @@ export interface CompanyEditInitialData {
   cnpj: string;
   razaoSocial: string;
   nomeFantasia: string;
-  segment?: CompanySegment | null;
+  segment?: CompanySegmentValue | null;
   logoUrl: string;
-  status: CompanyStatus;
+  status: CompanyStatusValue;
   serverType: "SYSPRO_SERVER" | "IIS";
   serverPort: number;
   serverHost: string;
@@ -121,8 +127,8 @@ export interface CompanyEditInitialData {
   remoteConnections: CompanyRemoteConnectionInput[];
   parentCompanyId: string;
   accountingFirmId: string;
-  regimeTributario?: TaxRegime | null;
-  indicadorIE: IndicadorIE;
+  regimeTributario?: TaxRegimeValue | null;
+  indicadorIE: IndicadorIEValue;
   inscricaoEstadual: string;
   inscricaoMunicipal: string;
   cnae: string;
@@ -169,4 +175,3 @@ export interface CompanyEditViewData {
   canEditCnpj: boolean;
   initialData: CompanyEditInitialData;
 }
-

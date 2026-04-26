@@ -5,10 +5,9 @@ import type { ElementType } from "react";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
+import { createUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
-import type { Role as PrismaRole } from "@prisma/client";
 import { AnimatePresence, motion } from "framer-motion";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -79,7 +78,7 @@ export interface CreateUserPageFormProps {
   mode?: "create" | "edit";
   userId?: string;
   initialData?: Partial<CreateUserInput>;
-  allowedRoles?: PrismaRole[];
+  allowedRoles?: UserRoleValue[];
 }
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -104,9 +103,9 @@ export function CreateUserPageForm({
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
   const fallbackAllowedRoles = useMemo(() => {
-    if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as PrismaRole[];
-    if (context === "CLIENT") return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN] as PrismaRole[];
-    return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN, ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as PrismaRole[];
+    if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as UserRoleValue[];
+    if (context === "CLIENT") return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN] as UserRoleValue[];
+    return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN, ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as UserRoleValue[];
   }, [context, isAdmin]);
   const availableRoles = allowedRoles?.length ? allowedRoles : fallbackAllowedRoles;
   const defaultRole = availableRoles[0] ?? ROLE.CLIENTE_USER;
@@ -379,7 +378,7 @@ export function CreateUserPageForm({
       ? "Editar usuario"
       : "Novo usuario";
 
-  const roleItems: Array<{ value: PrismaRole; label: string }> = [
+  const roleItems: Array<{ value: UserRoleValue; label: string }> = [
     { value: ROLE.CLIENTE_USER, label: "Usuario" },
     { value: ROLE.CLIENTE_ADMIN, label: "Gestor da Unidade" },
     { value: ROLE.SUPORTE, label: "Suporte" },

@@ -1,18 +1,18 @@
-import { Role } from "@prisma/client";
 import { ROLE_LABELS as APP_ROLE_LABELS } from "@dosc-syspro/core";
+import type { UserRoleValue } from "@dosc-syspro/contracts/user";
 import {
   SETTINGS_PERMISSION_DEFINITIONS,
   type SettingsPermissionKey,
 } from "@dosc-syspro/contracts/settings";
 
-export const ROLE_LABELS: Record<Role, string> = APP_ROLE_LABELS as Record<Role, string>;
+export const ROLE_LABELS: Record<UserRoleValue, string> = APP_ROLE_LABELS as Record<UserRoleValue, string>;
 
 export const SYSTEM_PERMISSIONS = Object.fromEntries(
   SETTINGS_PERMISSION_DEFINITIONS.map((permission) => [permission.key, permission.label]),
 ) as Record<SettingsPermissionKey, string>;
 
 export type PermissionKey = SettingsPermissionKey;
-export type AccessControlMatrix = Record<Role, SettingsPermissionKey[]>;
+export type AccessControlMatrix = Record<UserRoleValue, SettingsPermissionKey[]>;
 
 export const ACCESS_MATRIX: AccessControlMatrix = {
   ADMIN: Object.keys(SYSTEM_PERMISSIONS) as PermissionKey[],

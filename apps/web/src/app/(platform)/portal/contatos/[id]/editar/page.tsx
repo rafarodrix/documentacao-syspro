@@ -2,8 +2,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyOptionsAction } from "@/features/company/application/queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/CreateContactPageForm";
-import { headers } from "next/headers";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 import { notFound } from "next/navigation";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 
@@ -30,14 +29,8 @@ type ContactDetail = {
 };
 
 async function getContactById(id: string): Promise<ContactDetail | null> {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  const response = await fetch(`${getBackendApiBaseUrl()}/contacts/${encodeURIComponent(id)}`, {
-    headers: withInternalApiHeaders({
-      ...(cookie ? { cookie } : {}),
-    }),
-    cache: "no-store",
+  const response = await callWebApi(`/api/contacts/${encodeURIComponent(id)}`, {
+    method: "GET",
   });
 
   if (!response.ok) return null;

@@ -1,25 +1,19 @@
-import { CompanySegment } from "@prisma/client";
-import { headers } from "next/headers";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import type { CompanySegmentValue } from "@dosc-syspro/contracts/company";
+import { callWebApi } from "@/lib/web-api";
 
 export async function canAccessByCompanySegment(
   _userId: string,
-  requiredSegments: CompanySegment[],
+  requiredSegments: CompanySegmentValue[],
 ): Promise<boolean> {
   if (!requiredSegments.length) return true;
 
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
   try {
-    const response = await fetch(`${getBackendApiBaseUrl()}/companies/access/segments`, {
+    const response = await callWebApi("/api/companies/access/segments", {
       method: "POST",
-      headers: withInternalApiHeaders({
+      headers: {
         "content-type": "application/json",
-        ...(cookie ? { cookie } : {}),
-      }),
+      },
       body: JSON.stringify({ requiredSegments }),
-      cache: "no-store",
     });
 
     if (!response.ok) return false;

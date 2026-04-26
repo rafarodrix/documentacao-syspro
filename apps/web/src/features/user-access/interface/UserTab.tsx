@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Role } from "@prisma/client";
-import type { UserAccessListItem } from "@dosc-syspro/contracts/user";
+import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -50,14 +49,14 @@ function getInitials(name: string | null): string {
   return name.substring(0, 2).toUpperCase();
 }
 
-function RoleBadge({ role }: { role: Role }) {
-  const isPrivileged = role === Role.ADMIN || role === Role.DEVELOPER || role === Role.SUPORTE;
-  const labels: Record<Role, string> = {
-    [Role.ADMIN]: "Admin",
-    [Role.DEVELOPER]: "Desenvolvedor",
-    [Role.SUPORTE]: "Suporte",
-    [Role.CLIENTE_ADMIN]: "Gestor",
-    [Role.CLIENTE_USER]: "Usuario",
+function RoleBadge({ role }: { role: UserRoleValue }) {
+  const isPrivileged = role === "ADMIN" || role === "DEVELOPER" || role === "SUPORTE";
+  const labels: Record<UserRoleValue, string> = {
+    ADMIN: "Admin",
+    DEVELOPER: "Desenvolvedor",
+    SUPORTE: "Suporte",
+    CLIENTE_ADMIN: "Gestor",
+    CLIENTE_USER: "Usuario",
   };
 
   return (
@@ -237,8 +236,8 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
             (companyFilter === "with_company" && Boolean(user.companyId)) ||
             (companyFilter === "without_company" && !user.companyId)) &&
           (roleFilter === "all" ||
-            (roleFilter === "client" && (user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER)) ||
-            (roleFilter === "system" && (user.role === Role.ADMIN || user.role === Role.DEVELOPER || user.role === Role.SUPORTE))) &&
+            (roleFilter === "client" && (user.role === "CLIENTE_ADMIN" || user.role === "CLIENTE_USER")) ||
+            (roleFilter === "system" && (user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE"))) &&
           (
             !term ||
             user.name?.toLowerCase().includes(term) ||
@@ -269,8 +268,8 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
   }, [page, totalPages]);
 
   const counts = useMemo(() => {
-    const client = users.filter((user) => user.role === Role.CLIENTE_ADMIN || user.role === Role.CLIENTE_USER).length;
-    const system = users.filter((user) => user.role === Role.ADMIN || user.role === Role.DEVELOPER || user.role === Role.SUPORTE).length;
+    const client = users.filter((user) => user.role === "CLIENTE_ADMIN" || user.role === "CLIENTE_USER").length;
+    const system = users.filter((user) => user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE").length;
     const withCompany = users.filter((user) => Boolean(user.companyId)).length;
 
     return {

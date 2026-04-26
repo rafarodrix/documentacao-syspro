@@ -6,7 +6,7 @@ import {
   type EvolutionSettingsInput,
 } from "@dosc-syspro/contracts/evolution";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 
 export type EvolutionQrCodeResult = {
   instance: string;
@@ -34,6 +34,10 @@ function unauthorizedResponse() {
   return { success: false, error: "UNAUTHORIZED", settings: DEFAULT_EVOLUTION_SETTINGS };
 }
 
+async function apiRequest(path: string, init?: RequestInit) {
+  return callWebApi(`/api/platform/settings/evolution${path}`, init);
+}
+
 export async function getEvolutionSettingsAction() {
   const session = await getProtectedSession();
   if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
@@ -41,10 +45,8 @@ export async function getEvolutionSettingsAction() {
   }
 
   try {
-    const res = await fetch(`${getBackendApiBaseUrl()}/settings/evolution`, {
+    const res = await apiRequest("", {
       method: "GET",
-      headers: withInternalApiHeaders(),
-      cache: "no-store",
     });
 
     const data = await res.json().catch(() => ({}));
@@ -76,13 +78,12 @@ export async function updateEvolutionSettingsAction(input: EvolutionSettingsInpu
   }
 
   try {
-    const res = await fetch(`${getBackendApiBaseUrl()}/settings/evolution`, {
+    const res = await apiRequest("", {
       method: "PUT",
-      headers: withInternalApiHeaders({
+      headers: {
         "Content-Type": "application/json",
-      }),
+      },
       body: JSON.stringify(validation.data),
-      cache: "no-store",
     });
 
     const data = await res.json().catch(() => ({}));
@@ -112,10 +113,8 @@ export async function getEvolutionInstanceStatusAction(): Promise<
   }
 
   try {
-    const res = await fetch(`${getBackendApiBaseUrl()}/settings/evolution/status`, {
+    const res = await apiRequest("/status", {
       method: "GET",
-      headers: withInternalApiHeaders(),
-      cache: "no-store",
     });
 
     const data = await res.json().catch(() => ({}));
@@ -141,12 +140,11 @@ export async function requestEvolutionQrCodeAction(): Promise<EvolutionQrCodeAct
   }
 
   try {
-    const res = await fetch(`${getBackendApiBaseUrl()}/settings/evolution/qrcode`, {
+    const res = await apiRequest("/qrcode", {
       method: "POST",
-      headers: withInternalApiHeaders({
+      headers: {
         "Content-Type": "application/json",
-      }),
-      cache: "no-store",
+      },
     });
 
     const data = await res.json().catch(() => ({}));
