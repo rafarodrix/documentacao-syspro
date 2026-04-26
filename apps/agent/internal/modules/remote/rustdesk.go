@@ -220,6 +220,9 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 			return fmt.Errorf("apply rustdesk password: %w", err)
 		}
 	}
+	// Restart the service so it picks up the new config cleanly.  This also
+	// eliminates any residual white-screen state from a previous launch.
+	_ = m.runPowerShell(ctx, "Restart-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
 	return nil
 }
 
@@ -560,6 +563,10 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		if err != nil {
 			return classifyInstallerError("run installer", err, output, "")
 		}
+		// Kill any GUI/tray the EXE installer auto-launched; prevents the white
+		// screen the user would see if RustDesk opens before config is applied.
+		_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
+		time.Sleep(2 * time.Second)
 	}
 	return nil
 }

@@ -15,7 +15,7 @@ type Route = "agent://setup" | "agent://support";
 const defaultSetupStatus = new uistate.SetupStatus({
   complete: false,
   stage: "Inicializando",
-  title: "Instalacao do Agente Trilink",
+  title: "Provisionamento do Agente",
   summary: "Preparando contexto inicial do agente.",
   progress_pct: 0,
   steps: [],
@@ -73,10 +73,7 @@ function App() {
     const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
 
     const onReady = () => {
-      if (cancelled) {
-        return;
-      }
-
+      if (cancelled) return;
       hideChatwootBubble();
       setChatwootReady(true);
     };
@@ -92,9 +89,7 @@ function App() {
           "",
       ).trim();
 
-      if (!conversationId || syncedConversationIds.current[conversationId]) {
-        return;
-      }
+      if (!conversationId || syncedConversationIds.current[conversationId]) return;
 
       syncedConversationIds.current[conversationId] = true;
       void SyncSupportConversationContext(conversationId).catch(() => {
@@ -134,10 +129,7 @@ function App() {
       script.async = true;
       script.onload = bootChatwoot;
       script.onerror = () => {
-        if (cancelled) {
-          return;
-        }
-
+        if (cancelled) return;
         setChatwootReady(false);
       };
       document.body.appendChild(script);
@@ -152,28 +144,51 @@ function App() {
 
   const pendingSteps = setupStatus.steps.filter((step) => step.status !== "complete");
   const completedSteps = setupStatus.steps.filter((step) => step.status === "complete");
-  const focusStep = pendingSteps[0] ?? completedSteps[completedSteps.length - 1];
+  const activeStep = pendingSteps[0] ?? null;
+
+  const overallState: "complete" | "error" | "running" | "idle" = setupStatus.complete
+    ? "complete"
+    : setupStatus.last_error
+      ? "error"
+      : setupStatus.progress_pct > 0
+        ? "running"
+        : "idle";
 
   return (
     <div className={`shell route-${route === "agent://support" ? "support" : "setup"}`}>
+      {/* Shared top navbar */}
+      <nav className="navbar">
+        <div className="navbar-brand">
+          <span className="navbar-dot" />
+          <span className="navbar-name">Trilink</span>
+          <span className="navbar-divider" />
+          <span className="navbar-product">Enterprise Agent</span>
+        </div>
+        <div className={`navbar-badge state-${overallState}`}>
+          {overallState === "complete" && "Ativo"}
+          {overallState === "error" && "Erro"}
+          {overallState === "running" && "Configurando"}
+          {overallState === "idle" && "Iniciando"}
+        </div>
+      </nav>
+
       {route === "agent://support" ? (
         <SupportScreen
           session={supportSession}
           chatwootReady={chatwootReady}
           onOpenSupport={() => {
-            if (chatwootReady && openChatwoot()) {
-              return;
-            }
+            if (chatwootReady && openChatwoot()) return;
             void OpenSupportConversation();
           }}
+          onOpenSetup={() => void OpenSetupExperience()}
         />
       ) : (
         <SetupScreen
           status={setupStatus}
           pendingSteps={pendingSteps}
           completedSteps={completedSteps}
-          focusStep={focusStep}
-          onOpenSetup={() => void OpenSetupExperience()}
+          activeStep={activeStep}
+          overallState={overallState}
         />
       )}
     </div>
@@ -184,110 +199,146 @@ function SetupScreen(props: {
   status: uistate.SetupStatus;
   pendingSteps: uistate.SetupStep[];
   completedSteps: uistate.SetupStep[];
-  focusStep?: uistate.SetupStep;
-  onOpenSetup: () => void;
+  activeStep?: uistate.SetupStep | null;
+  overallState: "complete" | "error" | "running" | "idle";
 }) {
-  const { status, pendingSteps, completedSteps, focusStep, onOpenSetup } = props;
+  const { status, pendingSteps, completedSteps, activeStep, overallState } = props;
+  const allSteps = [...pendingSteps, ...completedSteps];
+  const [showCompleted, setShowCompleted] = useState(false);
 
   return (
     <main className="panel setup-panel">
-      <section className="hero">
-        <div className="eyebrow">Trilink Enterprise Agent</div>
-        <h1>{status.title}</h1>
-        <p className="summary">{status.summary}</p>
-        <div className="hero-grid">
-          <div className="hero-stat">
-            <span className="hero-stat-label">Progresso</span>
-            <strong className="brand">{status.progress_pct}%</strong>
+      {/* Hero progress block */}
+      <section className="setup-hero">
+        <div className="setup-hero-left">
+          <div className="setup-stage-label">
+            {overallState === "complete" ? "Provisionamento concluido" : activeStep?.label ?? status.stage}
           </div>
-          <div className="hero-stat">
-            <span className="hero-stat-label">Pipeline</span>
-            <strong>
-              {completedSteps.length}/{status.steps.length}
-            </strong>
+          <div className="setup-stage-detail">
+            {overallState === "complete"
+              ? "Agente registrado e operacional."
+              : activeStep?.detail ?? status.summary}
           </div>
-          <div className="hero-stat">
-            <span className="hero-stat-label">Canal remoto</span>
-            <strong>{status.rustdesk_id ? "Conectado" : "Em preparo"}</strong>
-          </div>
+        </div>
+
+        <div className="setup-progress-ring">
+          <svg className="ring-svg" viewBox="0 0 56 56" fill="none">
+            <circle className="ring-track" cx="28" cy="28" r="24" strokeWidth="4" />
+            <circle
+              className={`ring-fill state-${overallState}`}
+              cx="28"
+              cy="28"
+              r="24"
+              strokeWidth="4"
+              strokeDasharray={`${(status.progress_pct / 100) * 150.8} 150.8`}
+              strokeLinecap="round"
+              transform="rotate(-90 28 28)"
+            />
+          </svg>
+          <div className="ring-label">{status.progress_pct}<span>%</span></div>
         </div>
       </section>
 
-      <section className="section">
-        <div className="card soft">
-          <div className="card-body">
-            <div className="progress-head">
-              <div>
-                <div className="progress-label">Visao operacional</div>
-                <div className="stage">{focusStep?.label ?? status.stage}</div>
-              </div>
-              <div className="percent">{status.progress_pct}%</div>
-            </div>
-            <div className="bar">
-              <div className="bar-fill" style={{ width: `${status.progress_pct}%` }} />
-            </div>
-            <div className="meta">
-              {status.company_name ? <span className="pill">Empresa: {status.company_name}</span> : null}
-              {status.host_id ? <span className="pill">Host: {status.host_id}</span> : null}
-              {status.rustdesk_id ? <span className="pill">RustDesk ID: {status.rustdesk_id}</span> : null}
-            </div>
-            {status.last_error ? <div className="error visible">{status.last_error}</div> : null}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="card">
-          <div className="card-body focus-card">
-            <div>
-              <div className="progress-label">Detalhe atual</div>
-              <div className="focus-title">{focusStep?.label ?? "Inicializando"}</div>
-              <div className="focus-detail">{focusStep?.detail ?? "Preparando contexto inicial do agente."}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="steps-section">
-        <div className="section-title">Pipeline de provisionamento</div>
-        <div className="steps">
-          {pendingSteps.map((step, index) => (
-            <article className={`step ${step.status}`} key={step.key}>
-              <div className="step-index">{String(index + 1).padStart(2, "0")}</div>
-              <div className="step-copy">
-                <div className="step-label">{step.label}</div>
-                <div className="step-detail">{step.detail}</div>
-              </div>
-              <div className="step-status">{statusText(step.status)}</div>
-            </article>
-          ))}
-        </div>
-
-        {completedSteps.length > 0 ? (
-          <details className="completed-wrap">
-            <summary className="completed-toggle">Etapas concluidas ({completedSteps.length})</summary>
-            <div className="completed-list">
-              {completedSteps.map((step, index) => (
-                <article className="step complete" key={step.key}>
-                  <div className="step-index">{String(index + 1).padStart(2, "0")}</div>
-                  <div className="step-copy">
-                    <div className="step-label">{step.label}</div>
-                    <div className="step-detail">{step.detail}</div>
-                  </div>
-                  <div className="step-status">Concluido</div>
-                </article>
-              ))}
-            </div>
-          </details>
-        ) : null}
-      </section>
-
-      <div className="actions">
-        <button type="button" onClick={onOpenSetup}>
-          Reabrir janela
-        </button>
+      {/* Progress bar */}
+      <div className="setup-bar-wrap">
+        <div className={`setup-bar-fill state-${overallState}`} style={{ width: `${status.progress_pct}%` }} />
       </div>
+
+      {/* Device metadata row */}
+      {(status.company_name || status.host_id || status.rustdesk_id) && (
+        <div className="device-row">
+          {status.company_name && (
+            <div className="device-chip">
+              <span className="device-chip-label">Empresa</span>
+              <span className="device-chip-value">{status.company_name}</span>
+            </div>
+          )}
+          {status.host_id && (
+            <div className="device-chip">
+              <span className="device-chip-label">Host</span>
+              <span className="device-chip-value mono">{status.host_id}</span>
+            </div>
+          )}
+          <div className="device-chip">
+            <span className="device-chip-label">Canal remoto</span>
+            <span className={`device-chip-value ${status.rustdesk_id ? "ok-val" : "dim-val"}`}>
+              {status.rustdesk_id ?? "Em preparo"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {status.last_error && (
+        <div className="error-banner">
+          <span className="error-icon">!</span>
+          <span>{status.last_error}</span>
+        </div>
+      )}
+
+      {/* Steps timeline */}
+      <section className="timeline-section">
+        <div className="timeline-header">
+          <span className="timeline-title">Pipeline de provisionamento</span>
+          <span className="timeline-count">
+            {completedSteps.length}/{status.steps.length} etapas
+          </span>
+        </div>
+
+        <div className="timeline">
+          {/* Pending / active steps */}
+          {pendingSteps.map((step, i) => (
+            <TimelineItem key={step.key} step={step} isFirst={i === 0 && overallState === "running"} />
+          ))}
+
+          {/* Completed steps toggle */}
+          {completedSteps.length > 0 && (
+            <>
+              <button
+                type="button"
+                className="timeline-toggle"
+                onClick={() => setShowCompleted((v) => !v)}
+              >
+                <span className="timeline-toggle-icon">{showCompleted ? "▲" : "▼"}</span>
+                {showCompleted ? "Ocultar" : "Ver"} {completedSteps.length} etapa
+                {completedSteps.length !== 1 ? "s" : ""} concluida
+                {completedSteps.length !== 1 ? "s" : ""}
+              </button>
+
+              {showCompleted &&
+                completedSteps.map((step) => (
+                  <TimelineItem key={step.key} step={step} isFirst={false} />
+                ))}
+            </>
+          )}
+
+          {/* Empty state */}
+          {allSteps.length === 0 && (
+            <div className="timeline-empty">Aguardando etapas de provisionamento...</div>
+          )}
+        </div>
+      </section>
     </main>
+  );
+}
+
+function TimelineItem({ step, isFirst }: { step: uistate.SetupStep; isFirst: boolean }) {
+  return (
+    <div className={`timeline-item ${step.status}${isFirst ? " active" : ""}`}>
+      <div className="timeline-icon-wrap">
+        <div className={`timeline-icon ${step.status}`}>
+          {step.status === "complete" && <CheckIcon />}
+          {step.status === "error" && <span>!</span>}
+          {step.status === "pending" && <span />}
+        </div>
+        <div className="timeline-line" />
+      </div>
+      <div className="timeline-content">
+        <div className="timeline-item-label">{step.label}</div>
+        <div className="timeline-item-detail">{step.detail}</div>
+      </div>
+      <div className={`timeline-badge ${step.status}`}>{stepBadge(step.status)}</div>
+    </div>
   );
 }
 
@@ -295,57 +346,77 @@ function SupportScreen(props: {
   session: uistate.SupportSession | null;
   chatwootReady: boolean;
   onOpenSupport: () => void;
+  onOpenSetup: () => void;
 }) {
-  const { session, chatwootReady, onOpenSupport } = props;
+  const { session, chatwootReady, onOpenSupport, onOpenSetup } = props;
   const context = session?.context;
 
   return (
     <main className="panel support-panel">
-      <section className="hero support-hero">
-        <div className="eyebrow">Atendimento oficial</div>
-        <h1>Chat Trilink</h1>
-        <p className="summary">Atendimento da Trilink via chat com contexto tecnico do dispositivo.</p>
+      <section className="support-hero">
+        <div>
+          <div className="support-hero-label">Atendimento oficial</div>
+          <div className="support-hero-title">Suporte Trilink</div>
+        </div>
+        <button type="button" className="btn-ghost" onClick={onOpenSetup} title="Ver status do agente">
+          <StatusIcon />
+        </button>
       </section>
 
-      <section className="section">
-        <div className="card soft">
-          <div className="card-body support-body">
-            <div className="support-head">
-              <div className="progress-label">Acesso remoto corporativo</div>
-              <div className={`support-status ${context?.remoteStatus ?? "pending"}`}>
-                {context?.remoteStatusText ?? "Em analise"}
+      <section className="support-body">
+        <div className="support-card">
+          <div className="support-card-head">
+            <span className="support-card-label">Acesso remoto corporativo</span>
+            <span className={`support-status-pill ${context?.remoteStatus ?? "pending"}`}>
+              {context?.remoteStatusText ?? "Em analise"}
+            </span>
+          </div>
+
+          <div className="support-fields">
+            <div className="support-field">
+              <div className="support-field-label">ID remoto</div>
+              <div className="support-field-value mono">
+                {context?.rustdeskId ?? "Aguardando identificacao"}
               </div>
             </div>
-
-            <div className="support-grid-values">
-              <div>
-                <div className="support-label">ID remoto</div>
-                <div className="support-value">{context?.rustdeskId ?? "Aguardando identificacao"}</div>
+            <div className="support-field">
+              <div className="support-field-label">Senha de acesso</div>
+              <div className="support-field-value mono">
+                {context?.remoteAccessPassword ??
+                  (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
+                    ? "Disponivel no aplicativo RustDesk"
+                    : "Aguardando configuracao")}
               </div>
-              <div>
-                <div className="support-label">Senha de acesso</div>
-                <div className="support-value">
-                  {context?.remoteAccessPassword ??
-                    (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
-                      ? "Disponivel no aplicativo RustDesk"
-                      : "Aguardando configuracao")}
-                </div>
-              </div>
-            </div>
-
-            <div className="actions compact support-actions">
-              <button type="button" onClick={onOpenSupport}>
-                {chatwootReady ? "Abrir atendimento" : "Tentar novamente"}
-              </button>
             </div>
           </div>
+
+          <button type="button" className="btn-primary" onClick={onOpenSupport}>
+            {chatwootReady ? "Abrir atendimento" : "Tentar novamente"}
+          </button>
         </div>
       </section>
     </main>
   );
 }
 
-function statusText(status: uistate.SetupStep["status"]) {
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StatusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.5 9h7M9 5.5v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function stepBadge(status: uistate.SetupStep["status"]) {
   if (status === "complete") return "Concluido";
   if (status === "error") return "Erro";
   return "Pendente";
@@ -356,9 +427,7 @@ function openChatwoot() {
     $chatwoot?: { toggle?: (mode: string) => void; toggleBubbleVisibility?: (mode: string) => void };
   }).$chatwoot;
 
-  if (!chatwoot) {
-    return false;
-  }
+  if (!chatwoot) return false;
 
   try {
     chatwoot.toggle?.("open");
@@ -377,7 +446,7 @@ function hideChatwootBubble() {
   try {
     chatwoot?.toggleBubbleVisibility?.("hide");
   } catch {
-    // ignore widget visibility failures; support remains available via button
+    // ignore
   }
 }
 

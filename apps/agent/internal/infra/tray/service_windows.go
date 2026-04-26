@@ -53,6 +53,8 @@ func (s *Service) Run(ctx context.Context) error {
 	var supportItem *systray.MenuItem
 	var quitItem *systray.MenuItem
 
+	var setupItem *systray.MenuItem
+
 	onReady := func() {
 		readyOnce.Do(func() {
 			s.mu.Lock()
@@ -62,11 +64,12 @@ func (s *Service) Run(ctx context.Context) error {
 			systray.SetTitle("Trilink Agent")
 			systray.SetTooltip(s.tooltipText())
 
+			setupItem = systray.AddMenuItem("Status do agente", "Provisionnamento e diagnostico")
 			supportItem = systray.AddMenuItem("Abrir suporte", "Canal oficial Trilink")
 			systray.AddSeparator()
 			quitItem = systray.AddMenuItem("Sair", "Encerrar interface do agente")
 
-			go s.handleClicks(ctx, supportItem, quitItem)
+			go s.handleClicks(ctx, setupItem, supportItem, quitItem)
 			go func() {
 				<-ctx.Done()
 				systray.Quit()
@@ -82,11 +85,13 @@ func (s *Service) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) handleClicks(ctx context.Context, supportItem, quitItem *systray.MenuItem) {
+func (s *Service) handleClicks(ctx context.Context, setupItem, supportItem, quitItem *systray.MenuItem) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-setupItem.ClickedCh:
+			s.Trigger(ActionOpenSetup)
 		case <-supportItem.ClickedCh:
 			s.Trigger(ActionOpenSupport)
 		case <-quitItem.ClickedCh:
