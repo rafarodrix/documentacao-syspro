@@ -9,7 +9,7 @@ import {
   runSefazCheckGateway,
   updateGeneralSettingsGateway,
   updateSefazRoutesGateway,
-} from "@/features/settings/infrastructure/settings.gateway";
+} from "@/features/settings/infrastructure/gateways/settings.gateway";
 
 export async function updateSettingsAction(data: SettingsOutput): Promise<SettingsActionResponse> {
   const validation = settingsSchema.safeParse(data);

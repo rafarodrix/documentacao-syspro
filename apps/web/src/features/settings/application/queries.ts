@@ -13,7 +13,7 @@ import {
   fetchSettingsRemoteAdminViewGateway,
   fetchGeneralSettingsGateway,
   fetchSefazRoutesGateway,
-} from "@/features/settings/infrastructure/settings.gateway";
+} from "@/features/settings/infrastructure/gateways/settings.gateway";
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
   try {
     const response = await fetchGeneralSettingsGateway();

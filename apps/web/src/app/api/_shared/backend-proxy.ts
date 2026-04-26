@@ -1,3 +1,17 @@
+/**
+ * Proxy HTTP de apps/web → apps/api.
+ *
+ * Rotas em src/app/api/ que usam proxyToBackend delegam a requisicao para o
+ * servidor NestJS (apps/api), preservando headers, body e query string.
+ * Esse padrao existe para manter um unico ponto de entrada HTTP no browser
+ * (same-origin) enquanto o processamento ocorre no runtime dedicado do API.
+ *
+ * Ao adicionar uma nova rota proxy:
+ *   1. Crie o endpoint correspondente em apps/api/src/modules/<modulo>/
+ *   2. Declare o contrato de entrada/saida em @dosc-syspro/contracts/<dominio>
+ *   3. Use `internal: true` apenas para chamadas server-to-server que precisam
+ *      do header x-internal-api-key (ex.: revalidate, scripts internos).
+ */
 import type { NextRequest } from "next/server";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 

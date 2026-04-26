@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { fetchIntegrationDiagnosticsGateway } from "@/features/settings/infrastructure/settings.gateway";
+import { fetchIntegrationDiagnosticsGateway } from "@/features/settings/infrastructure/gateways/settings.gateway";
 
 export async function GET() {
   try {

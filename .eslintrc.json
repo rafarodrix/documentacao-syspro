@@ -12,7 +12,7 @@
             "paths": [
               {
                 "name": "@/lib/prisma",
-                "message": "Interface/componente nao deve acessar Prisma diretamente. Use application/queries da feature."
+                "message": "Interface/componente nao deve acessar Prisma diretamente. Use application/queries ou application/actions da feature — essa camada e a borda de dados correta para o server-side."
               }
             ],
             "patterns": [
@@ -39,13 +39,31 @@
             "paths": [
               {
                 "name": "@/lib/prisma",
-                "message": "Page/route de modulo com feature nao deve acessar Prisma diretamente. Use queries/actions da feature."
+                "message": "Page/route de modulo com feature nao deve acessar Prisma diretamente. Use queries/actions da feature — essa camada e a borda de dados correta para o server-side."
               }
             ],
             "patterns": [
               {
                 "group": ["@/core/infrastructure/**"],
                 "message": "Page/route de modulo com feature nao deve importar infraestrutura tecnica diretamente."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/features/*/application/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "warn",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/*/interface/**"],
+                "message": "application/ nao deve importar da camada interface/. O fluxo de dependencia e: interface -> application -> infrastructure -> domain."
               }
             ]
           }

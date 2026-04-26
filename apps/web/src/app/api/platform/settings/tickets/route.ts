@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import {
   fetchTicketModuleSettingsGateway,
   updateTicketModuleSettingsGateway,
-} from "@/features/settings/infrastructure/settings.gateway";
+} from "@/features/settings/infrastructure/gateways/settings.gateway";
 
 export async function GET() {
   try {

@@ -1,6 +1,6 @@
 import type { RemoteTenantScope } from "@/features/remote/domain/model";
 import type { RemoteSessionStatus, RemotePlatformOverview } from "@/features/remote/domain/model";
-import { fetchRemoteSessionsGateway } from "@/features/remote/infrastructure/remote-admin.gateway";
+import { fetchRemoteSessionsGateway } from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
 
 export async function getRemoteSessions(
   _tenantScope: RemoteTenantScope,

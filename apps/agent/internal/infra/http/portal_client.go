@@ -274,7 +274,6 @@ func (c *PortalClient) doRequestOnce(ctx context.Context, method, path string, b
 		req.Header.Set("Content-Type", "application/json")
 	}
 	if c.cfg.Portal.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.cfg.Portal.APIKey)
 		req.Header.Set("x-internal-api-key", c.cfg.Portal.APIKey)
 	}
 	for key, value := range extraHeaders {

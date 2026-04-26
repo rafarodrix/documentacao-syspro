@@ -2,7 +2,7 @@ import "server-only";
 
 import type { CrmLead } from "@dosc-syspro/contracts/crm";
 import type { LeadDashboardData } from "@/features/crm/domain/model";
-import { fetchCrmLeadByIdGateway, fetchCrmLeadsGateway } from "@/features/crm/infrastructure/crm.gateway";
+import { fetchCrmLeadByIdGateway, fetchCrmLeadsGateway } from "@/features/crm/infrastructure/gateways/crm.gateway";
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   try {

@@ -721,7 +721,7 @@ export async function getUserLinkedCompaniesAction() {
   }
 }
 
-import { updateTicketModuleSettingsGateway } from "@/features/settings/infrastructure/settings.gateway";
+import { updateTicketModuleSettingsGateway } from "@/features/settings/infrastructure/gateways/settings.gateway";
 
 export async function saveTicketSettingsAction(settings: import("@dosc-syspro/contracts/ticket").TicketModuleSettings): Promise<{success: boolean, message?: string, error?: string}> {
   const session = await getProtectedSession();

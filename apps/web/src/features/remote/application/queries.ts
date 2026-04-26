@@ -8,7 +8,7 @@ import {
   fetchRemoteHostDetailsGateway,
   fetchRemotePlatformDirectoryGateway,
   fetchRemotePlatformOverviewGateway,
-} from "@/features/remote/infrastructure/remote-admin.gateway";
+} from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
 
 export async function getRemotePlatformOverview(_tenantScope: RemoteTenantScope): Promise<RemotePlatformOverview> {
   return fetchRemotePlatformOverviewGateway();
