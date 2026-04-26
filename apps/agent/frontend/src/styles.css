@@ -246,6 +246,7 @@ h1 {
   font-size: 13px;
   line-height: 1.6;
   font-weight: 600;
+  white-space: pre-wrap;
 }
 
 .focus-card {

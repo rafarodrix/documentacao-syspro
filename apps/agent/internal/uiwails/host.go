@@ -193,7 +193,9 @@ func (a *API) OpenSupportConversation() (uistate.ActionResult, error) {
 		return result, err
 	}
 	if result.Target != "" {
-		_ = a.host.Open(context.Background(), result.Target)
+		if navErr := a.host.Open(context.Background(), result.Target); navErr != nil {
+			a.logger.Info("navigate to support conversation failed", "target", result.Target, "error", navErr)
+		}
 	}
 	return result, nil
 }
@@ -204,7 +206,9 @@ func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
 		return result, err
 	}
 	if result.Target != "" {
-		_ = a.host.Open(context.Background(), result.Target)
+		if navErr := a.host.Open(context.Background(), result.Target); navErr != nil {
+			a.logger.Info("navigate to setup experience failed", "target", result.Target, "error", navErr)
+		}
 	}
 	return result, nil
 }
