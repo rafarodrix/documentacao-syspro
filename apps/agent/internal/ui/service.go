@@ -93,6 +93,10 @@ func (s *Service) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// On startup, open setup window only if provisioning is not yet complete.
+	// A brief delay lets the IPC connection settle before the first call.
+	go s.autoOpenSetupIfNeeded(ctx)
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
@@ -114,6 +118,15 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 	return trayErr
+}
+
+func (s *Service) autoOpenSetupIfNeeded(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(1200 * time.Millisecond):
+	}
+	s.maybeOpenSetupExperience(ctx)
 }
 
 func (s *Service) maybeOpenSetupExperience(ctx context.Context) {

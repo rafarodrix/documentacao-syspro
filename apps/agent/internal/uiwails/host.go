@@ -52,10 +52,11 @@ type Host struct {
 	ipc             *ipc.Client
 	supportProvider supportSessionProvider
 
-	mu            sync.Mutex
-	runtimeCtx    context.Context
-	currentTarget string
-	started       bool
+	mu              sync.Mutex
+	runtimeCtx      context.Context
+	currentTarget   string
+	started         bool
+	showOnStartup   bool // set to true only when explicitly requested before Wails is ready
 }
 
 func NewHost(logger Logger, ipcClient *ipc.Client, supportProvider supportSessionProvider) *Host {
@@ -64,6 +65,7 @@ func NewHost(logger Logger, ipcClient *ipc.Client, supportProvider supportSessio
 		ipc:             ipcClient,
 		supportProvider: supportProvider,
 		currentTarget:   uistate.TargetSetupExperience,
+		showOnStartup:   false, // start hidden in tray; ui.Service decides when to open
 	}
 }
 
@@ -73,6 +75,7 @@ func (h *Host) Open(ctx context.Context, target string) error {
 	target = normalizeTarget(target)
 	h.mu.Lock()
 	h.currentTarget = target
+	h.showOnStartup = true // ensure it shows when Startup runs if not yet ready
 	runtimeCtx := h.runtimeCtx
 	started := h.started
 	h.mu.Unlock()
@@ -111,9 +114,14 @@ func (h *Host) Startup(runtimeCtx context.Context, api *API) {
 	h.runtimeCtx = runtimeCtx
 	h.started = true
 	target := h.currentTarget
+	show := h.showOnStartup
 	h.mu.Unlock()
 
-	h.showTarget(runtimeCtx, target)
+	// Only show if explicitly requested (e.g. via Open() before Wails was ready).
+	// The ui.Service decides whether to open based on setup completion state.
+	if show {
+		h.showTarget(runtimeCtx, target)
+	}
 	api.startPushLoops(runtimeCtx)
 }
 
