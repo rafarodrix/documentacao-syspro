@@ -230,6 +230,9 @@ export type ProcessBootstrapOutput = {
   serverConfig: string | null;
   targetVersion: string | null;
   defaultPassword: string | null;
+  installerUrl: string | null;
+  installerChecksumSha256: string | null;
+  installerSilentArgs: string | null;
   compliance: BootstrapCompliance;
   flow: {
     stage: "BOOTSTRAPPED";
@@ -289,6 +292,9 @@ export type ProcessSyncOutput = {
     publicKeyHash: string | null;
     serverConfig: string | null;
     targetVersion: string | null;
+    installerUrl: string | null;
+    installerChecksumSha256: string | null;
+    installerSilentArgs: string | null;
   };
   reportedConfig: {
     alias: string | null;

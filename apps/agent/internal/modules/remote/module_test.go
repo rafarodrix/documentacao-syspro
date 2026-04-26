@@ -34,20 +34,20 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 			HostID:        "host-1",
 		},
 		bootstrapResp: &domain.RemoteBootstrapResponse{
-			HostID:         "host-1",
-			CompanyID:      "company-1",
-			CompanyName:    "Trilink",
-			Alias:          "Servidor",
-			RustDeskID:     "123456789",
-			MachineName:    "srv-01",
-			AgentToken:     "agent-token-1",
-			ServerHost:     "relay.example.com",
-			APIHost:        "api.example.com",
-			PublicKey:      "pub-key",
-			PublicKeyHash:  "pub-hash",
-			ServerConfig:   "server-config",
-			TargetVersion:  "1.4.6",
-			DefaultPassword:"123456",
+			HostID:          "host-1",
+			CompanyID:       "company-1",
+			CompanyName:     "Trilink",
+			Alias:           "Servidor",
+			RustDeskID:      "123456789",
+			MachineName:     "srv-01",
+			AgentToken:      "agent-token-1",
+			ServerHost:      "relay.example.com",
+			APIHost:         "api.example.com",
+			PublicKey:       "pub-key",
+			PublicKeyHash:   "pub-hash",
+			ServerConfig:    "server-config",
+			TargetVersion:   "1.4.6",
+			DefaultPassword: "123456",
 		},
 		syncResponses: []*domain.RemoteSyncResponse{
 			{
@@ -73,8 +73,11 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 					PublicKeyHash string `json:"publicKeyHash"`
 					ServerConfig  string `json:"serverConfig"`
 					TargetVersion string `json:"targetVersion"`
+					InstallerURL  string `json:"installerUrl"`
+					InstallerSHA  string `json:"installerChecksumSha256"`
+					InstallerArgs string `json:"installerSilentArgs"`
 				}{
-					ServerHost: "relay.example.com", APIHost: "api.example.com", PublicKey: "pub-key", PublicKeyHash: "pub-hash", ServerConfig: "server-config", TargetVersion: "1.4.6",
+					ServerHost: "relay.example.com", APIHost: "api.example.com", PublicKey: "pub-key", PublicKeyHash: "pub-hash", ServerConfig: "server-config", TargetVersion: "1.4.6", InstallerArgs: "/S",
 				},
 			},
 		},
@@ -249,11 +252,11 @@ func newTestModule(store StateStore, client PortalClient, manager rustDeskContro
 }
 
 type fakePortalClient struct {
-	discoverResp          *domain.RemoteDiscoverResponse
-	bootstrapResp         *domain.RemoteBootstrapResponse
-	syncResponses         []*domain.RemoteSyncResponse
-	ackFailuresRemaining  int
-	ackCount              int
+	discoverResp         *domain.RemoteDiscoverResponse
+	bootstrapResp        *domain.RemoteBootstrapResponse
+	syncResponses        []*domain.RemoteSyncResponse
+	ackFailuresRemaining int
+	ackCount             int
 }
 
 func (f *fakePortalClient) Discover(ctx context.Context, req domain.RemoteDiscoverRequest) (*domain.RemoteDiscoverResponse, error) {

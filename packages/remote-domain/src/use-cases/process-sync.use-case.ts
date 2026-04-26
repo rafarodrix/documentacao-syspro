@@ -276,6 +276,9 @@ export async function processSync(
       publicKeyHash: configProfile.publicKeyHash,
       serverConfig: configProfile.serverConfig,
       targetVersion: configProfile.targetVersion,
+      installerUrl: configProfile.installerUrl ?? null,
+      installerChecksumSha256: configProfile.installerChecksumSha256 ?? null,
+      installerSilentArgs: configProfile.installerSilentArgs ?? null,
     },
     reportedConfig: {
       alias: persisted.host.lastKnownRustDeskAlias,

@@ -21,7 +21,6 @@ import (
 var rustDeskIDPattern = regexp.MustCompile(`\d{6,12}`)
 var rustDeskConfigEntryPattern = regexp.MustCompile(`^\s*([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\r\n#]+))`)
 
-
 type rustDeskDesiredConfig struct {
 	Alias           string
 	ServerHost      string
@@ -31,6 +30,9 @@ type rustDeskDesiredConfig struct {
 	ServerConfig    string
 	TargetVersion   string
 	DefaultPassword string
+	InstallerURL    string
+	InstallerSHA256 string
+	InstallerArgs   string
 }
 
 type rustDeskUpgradeSpec struct {
@@ -278,7 +280,6 @@ func (m *rustDeskManager) getIDFromConfig() string {
 	}
 	return ""
 }
-
 
 func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string {
 	output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("(Get-Item '%s').VersionInfo.ProductVersion | Out-String", escapePowerShellSingleQuoted(exePath)))

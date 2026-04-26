@@ -1,5 +1,16 @@
 import type { RemoteModuleSettings } from "./remote-module-settings.types";
 
+type RemoteDirectoryModuleSettings = RemoteModuleSettings & {
+  rustDeskPublicKeyHash: string | null;
+};
+
+type RemoteHostDetailsModuleSettings = Pick<
+  RemoteModuleSettings,
+  "rustDeskServerHost" | "rustDeskVersion"
+> & {
+  rustDeskPublicKeyHash: string | null;
+};
+
 export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
 export type RemoteModuleSettingsActionSuccess<T = void> = T extends void
@@ -316,14 +327,7 @@ export type RemoteDiscoveredHostItem = {
 
 export type RemotePlatformDirectory = {
   tenantScope: RemoteTenantScope;
-  moduleSettings: {
-    rustDeskServerHost: string;
-    rustDeskServerConfig: string;
-    rustDeskPublicKey: string;
-    rustDeskPublicKeyHash: string | null;
-    rustDeskVersion: string;
-    defaultPassword: string;
-  };
+  moduleSettings: RemoteDirectoryModuleSettings;
   stats: {
     totalHosts: number;
     activeHosts: number;
@@ -453,11 +457,7 @@ export type RemoteHostDetails = {
     agentMetrics: Record<string, unknown> | null;
     agentMetricsAt: string | null;
   };
-  moduleSettings: {
-    rustDeskServerHost: string;
-    rustDeskPublicKeyHash: string | null;
-    rustDeskVersion: string;
-  };
+  moduleSettings: RemoteHostDetailsModuleSettings;
   companyOptions: Array<{
     id: string;
     label: string;

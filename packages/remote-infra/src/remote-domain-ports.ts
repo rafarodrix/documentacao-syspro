@@ -23,18 +23,11 @@ import {
   normalizeRustdeskId,
   resolveRustDeskAlias,
 } from "./rustdesk-helpers";
-// Componentes de configuracao compartilhados (copiados do app-web)
-const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
-
-const DEFAULT_REMOTE_MODULE_SETTINGS = {
-  rustDeskServerHost: "rustdesk.trilinksoftware.com.br",
-  rustDeskServerConfig:
-    "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
-  rustDeskPublicKey:
-    "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
-  rustDeskVersion: "1.4.6",
-  defaultPassword: "Trilink098",
-};
+import {
+  DEFAULT_REMOTE_MODULE_SETTINGS,
+  REMOTE_MODULE_SETTINGS_KEY,
+  remoteModuleSettingsSchema,
+} from "@dosc-syspro/contracts/remote";
 
 function buildInstallToken() {
   return `rhost_${randomBytes(12).toString("hex")}`;
@@ -59,30 +52,14 @@ async function getRemoteModuleSettingsSnapshot() {
     });
 
     if (!setting?.value) {
-      return DEFAULT_REMOTE_MODULE_SETTINGS;
+      return { ...DEFAULT_REMOTE_MODULE_SETTINGS };
     }
 
     const parsed = JSON.parse(setting.value);
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      typeof parsed.rustDeskServerHost === "string" &&
-      typeof parsed.rustDeskServerConfig === "string" &&
-      typeof parsed.rustDeskVersion === "string" &&
-      typeof parsed.defaultPassword === "string"
-    ) {
-      return {
-        rustDeskServerHost: parsed.rustDeskServerHost.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.rustDeskServerHost,
-        rustDeskServerConfig: parsed.rustDeskServerConfig.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.rustDeskServerConfig,
-        rustDeskPublicKey: (parsed.rustDeskPublicKey || "").trim(),
-        rustDeskVersion: parsed.rustDeskVersion.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.rustDeskVersion,
-        defaultPassword: parsed.defaultPassword.trim() || DEFAULT_REMOTE_MODULE_SETTINGS.defaultPassword,
-      };
-    }
-
-    return DEFAULT_REMOTE_MODULE_SETTINGS;
+    const validation = remoteModuleSettingsSchema.safeParse(parsed);
+    return validation.success ? validation.data : { ...DEFAULT_REMOTE_MODULE_SETTINGS };
   } catch {
-    return DEFAULT_REMOTE_MODULE_SETTINGS;
+    return { ...DEFAULT_REMOTE_MODULE_SETTINGS };
   }
 }
 

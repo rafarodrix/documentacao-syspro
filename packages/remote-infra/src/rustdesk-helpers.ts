@@ -6,6 +6,9 @@ export type RustDeskConfigSettings = {
   rustDeskPublicKey: string;
   rustDeskVersion: string;
   defaultPassword: string;
+  rustDeskInstallerUrl: string;
+  rustDeskInstallerSha256: string;
+  rustDeskInstallArgs: string;
 };
 
 export function normalizeRustdeskId(value?: string | null): string | null {
@@ -49,10 +52,22 @@ export function resolveRustDeskAlias(input: {
 export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
   const serverHost = settings.rustDeskServerHost.trim();
   const publicKey = settings.rustDeskPublicKey.trim();
-  const upgradeDownloadUrl = process.env.REMOTE_RUSTDESK_UPGRADE_URL?.trim() || null;
-  const upgradeChecksumSha256 = process.env.REMOTE_RUSTDESK_UPGRADE_SHA256?.trim().toLowerCase() || null;
+  const installerUrl =
+    settings.rustDeskInstallerUrl.trim() ||
+    process.env.REMOTE_RUSTDESK_INSTALLER_URL?.trim() ||
+    process.env.REMOTE_RUSTDESK_UPGRADE_URL?.trim() ||
+    null;
+  const installerChecksumSha256 =
+    settings.rustDeskInstallerSha256.trim().toLowerCase() ||
+    process.env.REMOTE_RUSTDESK_INSTALLER_SHA256?.trim().toLowerCase() ||
+    process.env.REMOTE_RUSTDESK_UPGRADE_SHA256?.trim().toLowerCase() ||
+    null;
+  const installerSilentArgs =
+    settings.rustDeskInstallArgs.trim() ||
+    process.env.REMOTE_RUSTDESK_INSTALL_ARGS?.trim() ||
+    process.env.REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS?.trim() ||
+    "/S";
   const upgradePackageType = process.env.REMOTE_RUSTDESK_UPGRADE_PACKAGE_TYPE?.trim().toLowerCase() || "binary";
-  const upgradeSilentArgs = process.env.REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS?.trim() || "/S";
 
   return {
     serverHost,
@@ -62,10 +77,13 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
     serverConfig: settings.rustDeskServerConfig.trim(),
     targetVersion: settings.rustDeskVersion.trim(),
     defaultPassword: settings.defaultPassword,
-    upgradeDownloadUrl,
-    upgradeChecksumSha256,
+    installerUrl,
+    installerChecksumSha256,
+    installerSilentArgs,
+    upgradeDownloadUrl: installerUrl,
+    upgradeChecksumSha256: installerChecksumSha256,
     upgradePackageType,
-    upgradeSilentArgs,
+    upgradeSilentArgs: installerSilentArgs,
   };
 }
 

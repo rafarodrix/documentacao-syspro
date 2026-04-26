@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  DEFAULT_REMOTE_MODULE_SETTINGS,
   remoteModuleSettingsSchema,
 } from "@dosc-syspro/contracts/remote";
 import {
@@ -63,14 +64,11 @@ type CredentialDraft = {
   expiresDays: string;
 };
 
-const defaultValues: RemoteModuleSettings = {
-  rustDeskServerHost: "rustdesk.trilinksoftware.com.br",
-  rustDeskServerConfig:
-    "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
-  rustDeskPublicKey: "",
-  rustDeskVersion: "1.4.6",
-  defaultPassword: "Trilink098",
-};
+const defaultValues: RemoteModuleSettings = DEFAULT_REMOTE_MODULE_SETTINGS;
+
+function isHttpInstallerSource(value: string) {
+  return /^https?:\/\//i.test(value.trim());
+}
 
 function buildCredentialInitial(firstCompanyId: string): CredentialDraft {
   return {
@@ -129,6 +127,8 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     defaultValues,
     mode: "onChange",
   });
+  const installerSource = form.watch("rustDeskInstallerUrl");
+  const installerUsesHttp = useMemo(() => isHttpInstallerSource(installerSource ?? ""), [installerSource]);
 
   useEffect(() => {
     let isMounted = true;
@@ -402,6 +402,65 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
 
           <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-2">
             Esses parametros definem a versao esperada do RustDesk e a senha padrao aplicada pelo agente no host.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+              <MonitorCog className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Instalador do remoto</CardTitle>
+              <CardDescription>
+                Fonte operacional usada pelo agente para instalar ou atualizar o RustDesk sem depender de `.env` local.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="rustDeskInstallerUrl">URL ou caminho do instalador</Label>
+            <Input
+              id="rustDeskInstallerUrl"
+              placeholder="https://.../rustdesk-x86_64.msi ou \\\\servidor\\share\\rustdesk.msi"
+              {...form.register("rustDeskInstallerUrl")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Aceita HTTP/HTTPS, caminho local ou compartilhamento de rede. Esse valor passa a governar o bootstrap remoto pelo portal.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rustDeskInstallerSha256">SHA256 do instalador</Label>
+            <Input
+              id="rustDeskInstallerSha256"
+              placeholder="64 caracteres hexadecimais"
+              {...form.register("rustDeskInstallerSha256")}
+            />
+            <p className="text-xs text-muted-foreground">
+              {installerUsesHttp
+                ? "Obrigatorio para downloads HTTP/HTTPS."
+                : "Opcional para caminhos locais, mas recomendado para integridade."}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rustDeskInstallArgs">Argumentos silenciosos</Label>
+            <Input
+              id="rustDeskInstallArgs"
+              placeholder="/S ou /qn /norestart"
+              {...form.register("rustDeskInstallArgs")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use `/S` para instaladores EXE ou `/qn /norestart` para MSI quando precisar sobrescrever o padrao.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-2">
+            O agente ainda aceita `REMOTE_RUSTDESK_INSTALLER_*` no ambiente como fallback, mas a origem recomendada passa a ser esta tela.
           </div>
         </CardContent>
       </Card>

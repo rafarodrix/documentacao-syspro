@@ -55,6 +55,9 @@ type remoteState struct {
 	ServerConfig        string    `json:"server_config,omitempty"`
 	TargetVersion       string    `json:"target_version,omitempty"`
 	DefaultPassword     string    `json:"default_password,omitempty"`
+	InstallerURL        string    `json:"installer_url,omitempty"`
+	InstallerChecksum   string    `json:"installer_checksum_sha256,omitempty"`
+	InstallerSilentArgs string    `json:"installer_silent_args,omitempty"`
 	RuntimePassword     string    `json:"runtime_password,omitempty"`
 	RustDeskExecutable  string    `json:"rustdesk_executable,omitempty"`
 	LastConfigAppliedAt time.Time `json:"last_config_applied_at,omitempty"`
@@ -354,6 +357,9 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		ServerConfig:    bootstrapResp.ServerConfig,
 		TargetVersion:   bootstrapResp.TargetVersion,
 		DefaultPassword: bootstrapResp.DefaultPassword,
+		InstallerURL:    bootstrapResp.InstallerURL,
+		InstallerSHA256: bootstrapResp.InstallerChecksum,
+		InstallerArgs:   bootstrapResp.InstallerSilentArgs,
 	})
 	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, true, nil); err != nil {
 		m.logger.Warn("remote bootstrap local apply failed after token issuance", "host_id", st.HostID, "error", err)
@@ -416,13 +422,16 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	st.RebootstrapRequired = false
 	st.LastSyncAt = time.Now().UTC()
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
-		Alias:         syncResp.Alias,
-		ServerHost:    syncResp.ExpectedConfig.ServerHost,
-		APIHost:       syncResp.ExpectedConfig.APIHost,
-		PublicKey:     syncResp.ExpectedConfig.PublicKey,
-		PublicKeyHash: syncResp.ExpectedConfig.PublicKeyHash,
-		ServerConfig:  syncResp.ExpectedConfig.ServerConfig,
-		TargetVersion: syncResp.ExpectedConfig.TargetVersion,
+		Alias:           syncResp.Alias,
+		ServerHost:      syncResp.ExpectedConfig.ServerHost,
+		APIHost:         syncResp.ExpectedConfig.APIHost,
+		PublicKey:       syncResp.ExpectedConfig.PublicKey,
+		PublicKeyHash:   syncResp.ExpectedConfig.PublicKeyHash,
+		ServerConfig:    syncResp.ExpectedConfig.ServerConfig,
+		TargetVersion:   syncResp.ExpectedConfig.TargetVersion,
+		InstallerURL:    syncResp.ExpectedConfig.InstallerURL,
+		InstallerSHA256: syncResp.ExpectedConfig.InstallerSHA,
+		InstallerArgs:   syncResp.ExpectedConfig.InstallerArgs,
 	})
 
 	invalidateToken := false
@@ -592,7 +601,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 }
 
 func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requireInstall, forceApply bool, upgrade *rustDeskUpgradeSpec) error {
-	manager := m.newRustDeskController()
+	manager := m.newRustDeskController(st)
 	if requireInstall || upgrade != nil {
 		exePath, installedNow, err := manager.ensureInstalled(ctx, upgrade)
 		if err != nil {
@@ -671,6 +680,9 @@ func (m *Module) applyPortalConfig(st *remoteState, desired rustDeskDesiredConfi
 	st.ServerConfig = firstNonEmpty(desired.ServerConfig, st.ServerConfig)
 	st.TargetVersion = firstNonEmpty(desired.TargetVersion, st.TargetVersion)
 	st.DefaultPassword = firstNonEmpty(desired.DefaultPassword, st.DefaultPassword)
+	st.InstallerURL = firstNonEmpty(desired.InstallerURL, st.InstallerURL)
+	st.InstallerChecksum = firstNonEmpty(desired.InstallerSHA256, st.InstallerChecksum)
+	st.InstallerSilentArgs = firstNonEmpty(desired.InstallerArgs, st.InstallerSilentArgs)
 }
 
 type aliasCommandPayload struct {
@@ -761,11 +773,19 @@ func (m *Module) loadState(ctx context.Context) remoteState {
 	return st
 }
 
-func (m *Module) newRustDeskController() rustDeskController {
+func (m *Module) newRustDeskController(st *remoteState) rustDeskController {
 	if m.rustDeskFactory != nil {
 		return m.rustDeskFactory()
 	}
-	return newRustDeskManager(m.logger, m.stateDir, m.installerURL, m.installerSHA256, m.installerArgs)
+	installerURL := m.installerURL
+	installerChecksum := m.installerSHA256
+	installerArgs := m.installerArgs
+	if st != nil {
+		installerURL = firstNonEmpty(st.InstallerURL, installerURL)
+		installerChecksum = firstNonEmpty(st.InstallerChecksum, installerChecksum)
+		installerArgs = firstNonEmpty(st.InstallerSilentArgs, installerArgs)
+	}
+	return newRustDeskManager(m.logger, m.stateDir, installerURL, installerChecksum, installerArgs)
 }
 
 func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) runtimePlan {

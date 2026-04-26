@@ -989,6 +989,9 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
         : null,
       rustDeskVersion: moduleSettings.rustDeskVersion,
       defaultPassword: moduleSettings.defaultPassword,
+      rustDeskInstallerUrl: moduleSettings.rustDeskInstallerUrl,
+      rustDeskInstallerSha256: moduleSettings.rustDeskInstallerSha256,
+      rustDeskInstallArgs: moduleSettings.rustDeskInstallArgs,
     },
     stats: {
       totalHosts,

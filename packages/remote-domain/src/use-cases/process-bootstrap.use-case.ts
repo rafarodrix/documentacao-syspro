@@ -101,6 +101,9 @@ export async function processBootstrap(
     serverConfig: configProfile.serverConfig,
     targetVersion: configProfile.targetVersion,
     defaultPassword: configProfile.defaultPassword,
+    installerUrl: configProfile.installerUrl,
+    installerChecksumSha256: configProfile.installerChecksumSha256,
+    installerSilentArgs: configProfile.installerSilentArgs,
     compliance,
     flow: {
       stage: "BOOTSTRAPPED",

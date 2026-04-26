@@ -119,6 +119,9 @@ type RemoteBootstrapResponse struct {
 	ServerConfig        string `json:"serverConfig"`
 	TargetVersion       string `json:"targetVersion"`
 	DefaultPassword     string `json:"defaultPassword"`
+	InstallerURL        string `json:"installerUrl"`
+	InstallerChecksum   string `json:"installerChecksumSha256"`
+	InstallerSilentArgs string `json:"installerSilentArgs"`
 	Compliance          struct {
 		AliasMatch      bool `json:"aliasMatch"`
 		VersionMatch    bool `json:"versionMatch"`
@@ -182,6 +185,9 @@ type RemoteSyncResponse struct {
 		PublicKeyHash string `json:"publicKeyHash"`
 		ServerConfig  string `json:"serverConfig"`
 		TargetVersion string `json:"targetVersion"`
+		InstallerURL  string `json:"installerUrl"`
+		InstallerSHA  string `json:"installerChecksumSha256"`
+		InstallerArgs string `json:"installerSilentArgs"`
 	} `json:"expectedConfig"`
 	ReportedConfig struct {
 		Alias         string `json:"alias"`

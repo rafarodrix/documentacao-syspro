@@ -85,6 +85,9 @@ export type RemoteBootstrapConfigProfile = {
   serverConfig: string | null;
   targetVersion: string | null;
   defaultPassword: string | null;
+  installerUrl: string | null;
+  installerChecksumSha256: string | null;
+  installerSilentArgs: string | null;
 };
 
 export type IssuedAgentToken = {
@@ -187,6 +190,9 @@ export type RemoteSyncConfigProfile = {
   publicKeyHash: string | null;
   serverConfig: string | null;
   targetVersion: string | null;
+  installerUrl?: string | null;
+  installerChecksumSha256?: string | null;
+  installerSilentArgs?: string | null;
   upgradeDownloadUrl?: string | null;
   upgradeChecksumSha256?: string | null;
   upgradePackageType?: string | null;
