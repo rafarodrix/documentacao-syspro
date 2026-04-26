@@ -1,12 +1,16 @@
-# Master Agent Trilink - Arquitetura alvo modular
+# Master Agent Trilink - Arquitetura modular
 
-Atualizado em 2026-04-24.
+Atualizado em 2026-04-26.
+
+## Estado atual vs. plano original
+
+Este documento consolida o que foi planejado em 2026-04-24 com o que foi efetivamente implementado ate 2026-04-26. As secoes marcam claramente o que esta concluido, o que esta em curso e o que ainda e roadmap.
 
 ## Objetivo
 
 Consolidar o `agent` como produto principal da empresa, com identidade visual propria, provisionamento automatico e modulos internos para suporte, acesso remoto e backup.
 
-Diretriz principal:
+Diretrizes mantidas:
 
 - o agente e o ponto central da experiencia local
 - `RustDesk` continua como motor de acesso remoto
@@ -14,155 +18,100 @@ Diretriz principal:
 - o portal governa identidade, politica, tickets, comandos e auditoria
 - a UI do agente nao executa logica critica; ela consome o estado do servico local
 
-## Decisao de arquitetura
+## Decisao de arquitetura - CONCLUIDA
 
-O agente deve ser dividido em duas camadas operacionais:
+A separacao em dois processos foi implementada e esta em producao:
 
-- `agent-service`: executa em background, aplica politicas, integra com RustDesk e rclone, coleta contexto local e sincroniza com o portal
-- `agent-ui`: tray app e janela principal da empresa, exibindo estado, chat, alertas, consentimentos e acoes do usuario
+- `agent-service.exe`: executa em background como LocalSystem. Aplica politicas, integra com RustDesk, coleta contexto local, sincroniza com o portal.
+- `agent-ui.exe`: tray app e janela principal da empresa. Exibe estado, chat de suporte e pipeline de provisionamento. Conecta ao servico via IPC local.
 
-Essa separacao evita acoplamento entre interface e automacao critica. Backup e remoto continuam operando mesmo sem janela aberta.
-
-## Estrutura alvo no monorepo
+## Estrutura de diretorios - CONCLUIDA
 
 ```text
-apps/
-  agent/
-    cmd/
-      agent-service/
-      agent-ui/
+apps/agent/
+  main.go                         <- agent-ui entry point (Wails)
+  cmd/
+    agent/                        <- alias agent-ui
+    agent-service/                <- agent-service entry point
 
-    internal/
-      app/
-        service_bootstrap.go
-        ui_bootstrap.go
-        container.go
+  internal/
+    app/
+      bootstrap.go                <- DI do servico
+      ui_bootstrap.go             <- DI da UI
+      container.go
+      run.go
 
-      domain/
-        device.go
-        desired_state.go
-        current_state.go
-        applied_state.go
-        module_state.go
-        command.go
-        event.go
-        support_contracts.go
-        remote_contracts.go
-        backup_contracts.go
+    domain/                       <- tipos compartilhados
 
-      core/
-        agent/
-        desiredstate/
-        heartbeat/
-        identity/
-        reconcile/
-        registration/
-        commandbus/
-        modulehost/
-        ui_state/
+    core/
+      agent/                      <- coordinator do servico
+      desiredstate/               <- loop de desired state (1 min)
+      heartbeat/                  <- loop de heartbeat (30s)
+      identity/                   <- identidade persistida
+      reconcile/                  <- loop de reconcile (45s)
+      registration/               <- registro idempotente
+      ui_state/                   <- snapshot de estado para UI
 
-      infra/
-        config/
-        http/
-        logging/
-        platform/
-        runtime/
-        storage/
-        telemetry/
-        secrets/
-        ipc/
-        tray/
-        webview/
+    infra/
+      config/                     <- env vars + .env file
+      http/                       <- portal client com retry
+      ipc/                        <- named pipe (server + client)
+      logging/
+      platform/                   <- identidade Windows
+      runtime/                    <- subprocessos
+      storage/                    <- JSON atomico
+      telemetry/                  <- event bus
+      tray/                       <- systray Windows
+      winsvc/                     <- SCM integration
 
-      modules/
-        support/
-        remote/
-        backup/
-        device/
+    modules/
+      remote/                     <- [OPERACIONAL] discover/bootstrap/sync/ack + RustDesk
+      device/                     <- [FUNCIONAL] coleta host info
+      support/                    <- [FUNCIONAL] Chatwoot via IPC
+      backup/                     <- [STUB] pipeline interno nao conectado
+      tunnel/                     <- [STUB] estrutural
 
-      backup/
-        ...
+    backup/                       <- pipeline interno (gbak/compress/upload)
+    ui/                           <- UI service (tray + polls + auto-open)
+    uiwails/                      <- Wails host + runner
 
-      shared/
-        retry/
+  frontend/src/                   <- React + TypeScript
+  deploy/windows-installer/       <- Inno Setup
 ```
 
 ## Modulos oficiais
 
-O agente deve ter modulos internos governados pelo mesmo contrato operacional.
+### 1. `remote` - OPERACIONAL
 
-### 1. `support`
+Fluxo completo em producao:
 
-Responsabilidades:
+- Discover: envia token, recebe bootstrapFlow do portal
+- Bootstrap: instala RustDesk (EXE `/S` ou MSI `/qn`), mata processo auto-lancado (previne tela branca), inicia servico Windows, aplica `--config` e `--password`, reinicia servico
+- Sync: envia snapshot periodico, recebe fila de comandos
+- Ack: confirma execucao de cada comando
+- Comandos: `REAPPLY_ALIAS`, `REAPPLY_CONFIG`, `ROTATE_TOKEN_REQUIRED`, `UPGRADE_CLIENT` (parcial)
 
-- abrir o canal oficial de atendimento
-- exibir status do ticket atual
-- anexar contexto tecnico da maquina na conversa
-- receber alertas e solicitacoes do portal
-- controlar consentimentos do usuario final quando necessario
+Leitura do RustDesk ID: arquivo de config do perfil SYSTEM com fallback para CLI `--get-id`.
 
-Dependencias externas:
+### 2. `support` - FUNCIONAL
 
-- Chatwoot ou chat proprio
-- API de tickets
-- API de eventos/notificacoes
+Implementado via `agent-ui`:
 
-### 2. `remote`
+- SDK Chatwoot carregado dinamicamente na janela de suporte
+- Contexto tecnico (empresa, host, rustdeskId, usuario) sincronizado via IPC no inicio de cada conversa
+- Janela abre via tray ("Abrir suporte") ou via comando remoto
 
-Responsabilidades:
+### 3. `device` - FUNCIONAL
 
-- manter vinculacao da maquina com o portal
-- integrar com RustDesk
-- coletar `rustdeskId`, versao, status do servico e compliance
-- processar comandos remotos do portal
-- iniciar fluxo de suporte remoto pelo canal oficial do agente
+Coleta hostname, SO, usuario logado e versao do agente. Expoe snapshot para o modulo de suporte e para o portal.
 
-Dependencias externas:
+### 4. `backup` - STUB
 
-- RustDesk
-- endpoints `discover/bootstrap/sync/ack`
+O modulo `modules/backup` participa do reconcile como stub. O pipeline interno (`internal/backup`) esta completo em estrutura mas nao esta conectado. Ver `2-agent-backup.md`.
 
-### 3. `backup`
+## Contrato de modulo - PARCIALMENTE IMPLEMENTADO
 
-Responsabilidades:
-
-- executar jobs com `rclone`
-- manter politicas de backup por base/servico
-- registrar historico, falhas, retries e ultimo sucesso
-- reportar saude e resultados ao portal
-
-Dependencias externas:
-
-- `gbak`
-- `7z`
-- `rclone`
-- API de relatorio/telemetria de backup
-
-### 4. `device`
-
-Responsabilidades:
-
-- coletar contexto do host
-- descobrir usuario local ativo
-- capturar hostname, SO, versao do agente e sinais de saude
-- expor um snapshot local para UI, suporte e portal
-
-Dependencias externas:
-
-- APIs do Windows
-- event log, servicos, processos e sinais do sistema conforme rollout
-
-## Contrato unico por modulo
-
-Todos os modulos devem implementar a mesma superficie conceitual:
-
-- `Inspect(ctx)`: le o estado atual local
-- `Plan(desired, current)`: calcula acoes necessarias
-- `Apply(ctx, desired, current)`: executa reconciliacao
-- `Report(ctx)`: monta snapshot resumido para portal/UI
-- `HandleCommand(ctx, command)`: processa comandos direcionados ao modulo
-
-Forma minima sugerida em Go:
+Interface atual em producao:
 
 ```go
 type Module interface {
@@ -170,154 +119,176 @@ type Module interface {
     Inspect(ctx context.Context) (domain.CurrentModuleState, error)
     Plan(desired domain.DesiredState, current domain.CurrentModuleState) []domain.ReconcileAction
     Apply(ctx context.Context, desired domain.DesiredState, current domain.CurrentModuleState) domain.ApplyResult
-    Report(ctx context.Context) (domain.ModuleReport, error)
-    HandleCommand(ctx context.Context, command domain.AgentCommand) domain.CommandResult
 }
 ```
 
-Regra de arquitetura:
+Interface alvo (ainda nao implementada):
 
-- `Inspect/Plan/Apply` servem ao reconcile
-- `Report` serve a UI e ao portal
-- `HandleCommand` serve a fila de comandos remotos e acoes iniciadas no portal
-
-## Provisionamento automatico
-
-Nao deve existir login humano como fluxo principal do agente.
-
-Fluxo oficial:
-
-1. instalador recebe `enrollment token`
-2. `agent-service` registra a maquina automaticamente
-3. portal devolve identidade, modulos habilitados e politicas
-4. agente persiste vinculo local
-5. `agent-ui` abre ja contextualizado com a marca da empresa e estado da maquina
-
-Separacao obrigatoria:
-
-- `device enrollment`: vinculo automatico da maquina
-- `user session context`: usuario do Windows atualmente logado
-- `operator auth`: autenticacao do atendente no portal
-
-O usuario final nao deve precisar autenticar manualmente no agente para usar suporte, remoto ou backup.
-
-## Estado local recomendado
-
-```text
-C:\ProgramData\Trilink\
-  agent\
-    identity.json
-    enrollment.json
-    desired_state.json
-    current_state.json
-    applied_state.json
-    command_queue.json
-    support_state.json
-    remote_state.json
-    backup_state.json
-    device_state.json
-
-  agent-ui\
-    ui_preferences.json
-    window_state.json
-    notifications.json
+```go
+type Module interface {
+    Name() string
+    Inspect(ctx context.Context) (domain.CurrentModuleState, error)
+    Plan(desired domain.DesiredState, current domain.CurrentModuleState) []domain.ReconcileAction
+    Apply(ctx context.Context, desired domain.DesiredState, current domain.CurrentModuleState) domain.ApplyResult
+    Report(ctx context.Context) (domain.ModuleReport, error)         // pendente
+    HandleCommand(ctx context.Context, command domain.AgentCommand) domain.CommandResult  // pendente
+}
 ```
 
-Regra de seguranca:
+Os metodos `Report` e `HandleCommand` existem como conceito mas nao estao formalizados no contrato Go. O remote module processa seus proprios comandos internamente via sync/ack.
 
-- segredos, tokens e credenciais nao devem ficar em JSON plano
-- proteger com DPAPI no Windows
-- `remote_state.json` e referencias de credenciais de backup sao prioridade alta
+## Provisionamento automatico - CONCLUIDO
 
-## IPC local entre servico e UI
+Fluxo em producao:
 
-O `agent-ui` nao deve ler arquivos de estado arbitrariamente como mecanismo principal.
+1. Instalador recebe token pre-configurado no `.env`
+2. `agent-service` registra a maquina automaticamente no primeiro boot
+3. Portal devolve desired state com modulos habilitados e politicas
+4. Remote module instala e configura RustDesk automaticamente
+5. `agent-ui` abre ja contextualizado com empresa e estado da maquina
 
-Modelo recomendado:
+O usuario final nao precisa autenticar manualmente no agente.
 
-- `agent-service` expoe IPC local autenticado
-- `agent-ui` consulta snapshots e envia acoes de usuario
-- arquivos em disco ficam como persistencia e recovery, nao como barramento primario
+## IPC local - CONCLUIDO
 
-Capacidades minimas do IPC:
+Implementado com named pipe autenticado por token.
 
-- `GetAgentSummary`
-- `GetModuleStatus`
-- `OpenSupportConversation`
-- `RequestRemoteSupport`
-- `RequestBackupNow`
-- `AcknowledgeConsent`
-- `ListNotifications`
+Capacidades implementadas:
 
-## API alvo
+| Metodo IPC | Status |
+|------------|--------|
+| `GetSetupStatus` | Concluido |
+| `GetSummary` | Concluido |
+| `ListNotifications` | Concluido |
+| `OpenSupportConversation` | Concluido |
+| `OpenSetupExperience` | Concluido |
+| `SyncSupportConversationContext` | Concluido |
+| `RequestBackupNow` | Pendente |
+| `AcknowledgeConsent` | Pendente |
 
-O `apps/api` deve virar a superficie canonica para governo do agente.
+## Camada de UI - CONCLUIDA
 
-### Dominios principais
+Implementada com Wails v2 (React + TypeScript + WebView2).
 
-- `agent enrollment`
-- `agent desired state`
-- `agent commands`
-- `agent telemetry`
-- `support/tickets`
-- `remote`
-- `backup`
+Comportamento atual da janela:
 
-### Endpoints minimos recomendados
+- `agent-ui` inicia silencioso na bandeja (sem popup automatico)
+- Apos 1.2s, verifica status via IPC: abre janela so se provisionamento esta incompleto
+- Se ja configurado: fica na bandeja, zero interrupcao ao usuario
+- Tray menu: "Status do agente", "Abrir suporte", "Sair"
+- Janela fecha para a bandeja (nao encerra o processo)
 
-Provisionamento:
+Setup screen:
 
-- `POST /api/agents/enroll`
-- `POST /api/agents/activate`
-- `POST /api/agents/heartbeat`
+- Navbar com badge de estado (Ativo / Configurando / Erro)
+- Anel SVG de progresso com percentual
+- Barra de progresso linear
+- Chips de metadados (Empresa, Host, Canal remoto)
+- Timeline de etapas com icone pulsante no step ativo
+- Steps concluidos colapsaveis
 
-Politica e estado:
+Support screen:
 
-- `GET /api/agents/:deviceId/desired-state`
-- `POST /api/agents/:deviceId/report`
-- `POST /api/agents/:deviceId/telemetry`
+- ID remoto RustDesk e senha de acesso
+- Status pill do canal remoto
+- Botao para chat Chatwoot
 
-Comandos:
+## Estado local - CONCLUIDO (parcialmente)
 
-- `GET /api/agents/:deviceId/commands`
-- `POST /api/agents/:deviceId/commands/:commandId/ack`
+Implementado:
 
-Support:
+```text
+C:\ProgramData\Trilink\Agent\
+  .env                            <- configuracao do agente
+  runtime-state\
+    identity.json
+    registration.json
+    heartbeat.json
+    desired_state.json
+    current_state.json
+    reconcile_plan.json
+    apply_results.json
+    applied_state.json
+    remote_state.json             <- ATENCAO: contem agent_token em texto plano
+    logs\
+      *.log
+      rustdesk-msi-install-*.log
+```
 
-- `POST /api/agents/:deviceId/support/session`
-- `POST /api/agents/:deviceId/support/context`
-- `POST /api/agents/:deviceId/tickets`
+Pendente:
 
-Backup:
+```text
+    support_state.json            <- nao criado ainda
+    backup_state.json             <- nao criado ainda
+    device_state.json             <- nao criado ainda
+    command_queue.json            <- nao criado ainda
+```
 
-- `POST /api/agents/:deviceId/backup/jobs`
-- `POST /api/agents/:deviceId/backup/results`
-- `GET /api/agents/:deviceId/backup/policies`
+Regra de seguranca nao cumprida ainda: `remote_state.json` persiste `agent_token` em JSON plano. Proteger com DPAPI e prioridade antes de escala.
 
-Remote:
+## API do portal em uso
 
-- manter `POST /api/remote/agents/discover`
-- manter `POST /api/remote/rustdesk/bootstrap`
-- manter `POST /api/remote/rustdesk/sync`
-- manter `POST /api/remote/rustdesk/ack`
+Endpoints remotos (sempre ativos):
 
-## Desired state alvo
+```
+POST /api/remote/agents/discover
+POST /api/remote/rustdesk/bootstrap
+POST /api/remote/rustdesk/sync
+POST /api/remote/rustdesk/ack
+```
 
-O desired state do agente deve ser modular e orientado a policy.
+Endpoints genericos (opt-in via `PORTAL_AGENT_API_ENABLED=true`):
 
-Exemplo conceitual:
+```
+POST /api/agents/register
+POST /api/agents/heartbeat
+GET  /api/agents/:deviceId/desired-state
+```
 
-```ts
+Endpoints de suporte (planejados, nao ativos ainda):
+
+```
+POST /api/agents/:deviceId/support/session
+POST /api/agents/:deviceId/support/context
+POST /api/agents/:deviceId/tickets
+```
+
+## Desired state atual
+
+Estrutura em producao (simplificada, sem todas as politicas de backup):
+
+```go
+type DesiredState struct {
+    Version string
+    Remote  RemoteDesiredState
+    Backup  BackupDesiredState  // ainda simples
+    // Support, Device, Tunnel: presentes mas basicos
+}
+
+type RemoteDesiredState struct {
+    Enabled           bool
+    ServerConfig      string
+    DefaultPassword   string
+    Alias             string
+    InstallerURL      string
+    InstallerSHA256   string
+    TargetVersion     string
+    DiscoveryToken    string
+    InstallToken      string
+}
+```
+
+O modelo de desired state para backup ainda precisa ser expandido para suportar multiplas politicas. Ver `2-agent-backup.md`.
+
+## Desired state alvo (ainda pendente para backup)
+
+```typescript
 type AgentDesiredState = {
   version: number
   identity: {
     companyId: string
     companyName: string
-    branding: {
-      appName: string
-      logoUrl?: string
-      primaryColor?: string
-    }
+    branding: { appName: string; logoUrl?: string; primaryColor?: string }
   }
   ui: {
     trayEnabled: boolean
@@ -337,7 +308,7 @@ type AgentDesiredState = {
   }
   backup: {
     enabled: boolean
-    policies: BackupPolicy[]
+    policies: BackupPolicy[]  // ainda nao implementado
   }
   device: {
     enabled: boolean
@@ -347,151 +318,150 @@ type AgentDesiredState = {
 }
 ```
 
-## Papel do `apps/web`
+## Papel do portal web
 
-O `web` nao governa o runtime do agente, mas precisa expor interfaces de operacao.
+Telas que o `apps/web` deve expor (ainda pendentes):
 
-Telas recomendadas:
+- Detalhe do dispositivo/agente
+- Status por modulo (remote, backup, device)
+- Timeline operacional do agente
+- Tickets vinculados ao dispositivo
+- Sessoes remotas do dispositivo
+- Historico e politicas de backup
+- Comandos pendentes/executados
 
-- detalhe do dispositivo/agente
-- status por modulo
-- timeline operacional do agente
-- tickets vinculados ao dispositivo
-- sessoes remotas do dispositivo
-- historico e politicas de backup
-- comandos pendentes/executados
-
-Objetos de UI recomendados:
+Componentes sugeridos:
 
 - `AgentCard`
 - `AgentModulesPanel`
 - `AgentCommandTimeline`
 - `AgentRemoteStatusCard`
 - `AgentBackupStatusCard`
-- `AgentSupportCard`
-
-## Papel do `apps/api`
-
-O `api` deve concentrar:
-
-- validacao de enrollment e rotacao de credenciais
-- resolucao do desired state por empresa/dispositivo
-- fila de comandos por modulo
-- consolidacao de inventario e snapshots
-- correlacao entre ticket, dispositivo, sessao remota e backup
-- trilha auditavel de acoes iniciadas no portal e executadas no agente
 
 ## Fluxos oficiais
 
-### 1. Boot do servico
+### 1. Boot do servico - CONCLUIDO
 
 ```text
 service start
   -> load config
-  -> load secrets/state
-  -> ensure enrollment
-  -> start desired state loop
-  -> start heartbeat/report loop
-  -> start command loop
-  -> start reconcile loop
-  -> expose local IPC
+  -> load state (identity, registration, remote_state)
+  -> ensure enrollment/registration
+  -> start desired state loop (1min)
+  -> start heartbeat loop (30s)
+  -> start reconcile loop (45s)
+  -> expose IPC (named pipe)
 ```
 
-### 2. Abertura da UI
+### 2. Abertura da UI - CONCLUIDO
 
 ```text
-user clicks tray
-  -> ui connects to local IPC
-  -> ui requests current summary
-  -> ui renders support/remote/backup/device status
-  -> user action is sent back to service
+agent-ui start
+  -> connect to IPC
+  -> start tray (icone na bandeja)
+  -> after 1.2s: check setup status via IPC
+     -> if incomplete: open setup window
+     -> if complete: stay in tray silently
+  -> user clicks tray "Status do agente" -> open setup window
+  -> user clicks tray "Abrir suporte" -> open support window
 ```
 
-### 3. Suporte oficial
+### 3. Suporte oficial - CONCLUIDO
 
 ```text
 user opens support
-  -> support module requests local device context
-  -> service attaches machine metadata
-  -> portal/ticket receives linked context
-  -> operator can escalate to remote support
+  -> support screen loads Chatwoot SDK
+  -> IPC syncs device context (company, host, rustdeskId, user)
+  -> conversation created with full technical context
+  -> operator can start remote session via RustDesk ID
 ```
 
-### 4. Backup oficial
+### 4. Backup oficial - PENDENTE
 
 ```text
-desired state updated
-  -> backup module maps policies
-  -> queue schedules jobs
+desired state updated (com policies)
+  -> backup module maps policies        <- pendente
+  -> queue schedules jobs               <- pendente
   -> manager executes gbak/compress/upload
-  -> result reported to portal
-  -> ui displays last success/failure
+  -> result reported to portal          <- endpoint pendente
+  -> ui displays last success/failure   <- pendente
 ```
 
-### 5. Remoto oficial
+### 5. Remoto oficial - CONCLUIDO
 
 ```text
 enrolled device
-  -> remote discover/bootstrap/sync
-  -> compliance + command queue
-  -> optional operator starts remote session from portal
-  -> ui shows remote status without depender do chat do RustDesk
+  -> remote discover/bootstrap (install RustDesk automaticamente)
+  -> sync periodico com portal
+  -> compliance check + command queue
+  -> operator starts remote session from portal via RustDesk ID
+  -> ui shows remote status (ID, senha, status do servico)
 ```
 
-## Plano de implementacao por fases
+## Plano de implementacao - estado atual por fase
 
-### Fase 1 - consolidacao do servico
+### Fase 1 - consolidacao do servico - CONCLUIDA
 
-- manter `apps/agent` como base do `agent-service`
-- proteger segredos locais com DPAPI
-- tirar `backup` e `tunnel` do estado de stub
-- introduzir `command loop` generico por modulo
-- introduzir `report` por modulo
+- [x] `agent-service` como base do servico Windows
+- [x] IPC local autenticado
+- [x] Modulo remote operacional
+- [x] Heartbeat e desired state
+- [x] Reconcile modular
+- [ ] Proteger segredos locais com DPAPI
+- [ ] Tirar `backup` do estado de stub
+- [ ] Command loop generico por modulo (`HandleCommand`)
+- [ ] Report por modulo
 
-### Fase 2 - camada de UI
+### Fase 2 - camada de UI - CONCLUIDA
 
-- criar `cmd/agent-ui`
-- criar tray app
-- criar IPC local
-- renderizar status resumido do dispositivo
-- abrir suporte oficial em janela propria da empresa
+- [x] `cmd/agent-ui` com Wails v2
+- [x] Tray app com menu
+- [x] IPC client na UI
+- [x] Setup screen com timeline e progresso
+- [x] Support screen com Chatwoot
+- [x] Auto-open condicional (apenas quando incompleto)
+- [x] Design enterprise (navbar, anel SVG, badges de status)
 
-### Fase 3 - suporte integrado
+### Fase 3 - suporte integrado - CONCLUIDA (parcialmente)
 
-- anexar contexto automatico a tickets/conversa
-- vincular dispositivo ao ticket
-- permitir “solicitar suporte remoto” pelo agente
+- [x] Contexto tecnico anexado automaticamente via IPC
+- [x] Janela de suporte com ID remoto e senha
+- [ ] "Solicitar suporte remoto" diretamente pelo chat do agente
+- [ ] Vincular dispositivo a ticket no portal
 
-### Fase 4 - backup governado por policy
+### Fase 4 - backup governado por policy - PENDENTE
 
-- expandir `BackupDesiredState`
-- ligar `modules/backup` ao pipeline real
-- reportar resultados e historico ao portal
-- exibir estado de backup no `agent-ui`
+- [ ] Expandir `BackupDesiredState` para `Policies []BackupDesiredPolicy`
+- [ ] Ligar `modules/backup` ao pipeline `internal/backup`
+- [ ] Fila duravel de jobs em disco
+- [ ] Report de resultados ao portal
+- [ ] Exibir estado de backup no `agent-ui`
 
-### Fase 5 - operacao unificada no portal
+### Fase 5 - operacao unificada no portal - PENDENTE
 
-- detalhe unico do dispositivo
-- cards de `support`, `remote` e `backup`
-- linha do tempo de comandos e eventos do agente
-- correlacao entre atendimento, remoto e backup
+- [ ] Detalhe unico do dispositivo no `apps/web`
+- [ ] Cards de support, remote e backup
+- [ ] Linha do tempo de comandos e eventos
+- [ ] Correlacao entre atendimento, remoto e backup
 
-## Riscos que nao devem ser ignorados
+## Riscos ativos
 
-- persistir token e senha localmente sem protecao
-- colocar logica critica de backup/remoto dentro da UI
-- depender do chat do RustDesk como canal oficial
-- misturar autenticacao do operador do portal com autenticacao do dispositivo
-- executar backup diretamente no reconcile sem fila e sem scheduler proprio
+| Risco | Status |
+|-------|--------|
+| `agent_token` em JSON plano sem DPAPI | Ativo - prioridade alta |
+| Fila de ACK remoto perdida se servico reiniciar | Ativo - medio |
+| Backup sem fila duravel (jobs perdidos em restart) | Ativo - medio |
+| `UPGRADE_CLIENT` sem implementacao real | Ativo - baixo por ora |
+| Logica critica de backup/remoto fora da UI | Seguido corretamente |
+| Dependencia do chat do RustDesk como canal oficial | Mitigado: UI propria via Chatwoot |
 
-## Decisao final consolidada
+## Decisao final
 
-O agente deve evoluir como plataforma modular local da empresa.
+O agente esta em producao como plataforma modular local.
 
-Modelo final:
-
-- um unico agente
-- multiplos modulos internos
-- um servico de background como executor
-- uma UI propria da empresa como interface
-- um portal central governando estado, comandos, suporte, remoto e backup
+- Um unico agente com dois binarios (service + UI)
+- Multiplos modulos internos com contrato Inspect/Plan/Apply
+- Servico de background como executor (rodando como LocalSystem)
+- UI propria da empresa como interface (Wails v2, design enterprise)
+- Portal central governando estado via desired state e comandos
+- Provisionamento automatico sem intervencao humana
