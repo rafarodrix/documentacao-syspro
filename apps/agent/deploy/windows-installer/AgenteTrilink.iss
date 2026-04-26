@@ -65,9 +65,9 @@ Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir:
 Name: "{group}\Verificar WebView2 Runtime"; Filename: "{cmd}"; Parameters: "/c powershell -ExecutionPolicy Bypass -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; WorkingDir: "{app}"
 Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
 
-; {userstartup}: inicia apenas para o usuario que instalou (nao para todos da maquina)
+; {commonstartup}: inicia para qualquer usuario que fizer logon na maquina
 ; Usa PowerShell direto para suprimir a janela CMD que .cmd abre brevemente
-Name: "{userstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
+Name: "{commonstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
 
 
 [Run]
@@ -96,14 +96,14 @@ Type: filesandordirs; Name: "{commonappdata}\Trilink\Agent\runtime-state"
 // ---------------------------------------------------------------------------
 
 function GenerateGuid: string;
-var
-  Guid: TGUID;
 begin
-  CreateGUID(Guid);
-  Result := GUIDToString(Guid);
-  Result := Copy(Result, 2, Length(Result) - 2);
-  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
-  Result := LowerCase(Result);
+  Result := LowerCase(
+    GetMD5OfString(
+      GetDateTimeString('yyyymmddhhnnsszzz', '-', '-') +
+      IntToStr(Random(MaxInt)) +
+      ExpandConstant('{computername}')
+    )
+  );
 end;
 
 
