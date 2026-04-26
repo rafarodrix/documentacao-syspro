@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
-import type { CompanyListItem } from "@/features/company/domain/model"
+import type { CompanyListItem } from "@/features/company/application/types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord"
 import {
   RegistryEmptyState,

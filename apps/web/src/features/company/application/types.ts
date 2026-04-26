@@ -6,6 +6,7 @@ import type {
   IndicadorIEValue,
   TaxRegimeValue,
 } from "@dosc-syspro/contracts/company";
+
 export type { CompanyOption } from "@dosc-syspro/contracts/company";
 
 export type CompanyValidationErrors = Partial<Record<keyof CreateCompanyInput, string[]>>;

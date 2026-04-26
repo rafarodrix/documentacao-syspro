@@ -3,14 +3,14 @@ import type {
   CompanyEditViewData,
   CompanyListItem,
   CompanyOption,
-} from "@/features/company/domain/model";
+} from "@/features/company/application/types";
 
 export type CompanyListFilters = {
   search?: string;
   status?: string;
 };
 
-export interface CompanyReadRepository {
+export interface CompanyReadContract {
   listCompanies(filters?: CompanyListFilters): Promise<CompanyListItem[]>;
   listCompanyOptions(): Promise<CompanyOption[]>;
   getAdminListView(): Promise<CompanyAdminListViewData | { error: string }>;

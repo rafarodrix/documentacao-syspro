@@ -18,7 +18,7 @@ import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
   CompanyOption,
-} from "@/features/company/domain/model";
+} from "@/features/company/application/types";
 import { CompanyStatus, IndicadorIE } from "@prisma/client";
 import { createCompanyAction, updateCompanyAction } from "@/features/company/application/actions";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";

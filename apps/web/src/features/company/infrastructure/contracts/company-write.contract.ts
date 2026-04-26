@@ -2,9 +2,9 @@ import type { CompanyStatusValue, CreateCompanyInput } from "@dosc-syspro/contra
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
-} from "@/features/company/domain/model";
+} from "@/features/company/application/types";
 
-export interface CompanyWriteRepository {
+export interface CompanyWriteContract {
   lookupCompanyProfileByCnpj(
     cnpj: string,
   ): Promise<CompanyActionResponse<CompanyRegistryLookupResponse>>;
@@ -13,5 +13,3 @@ export interface CompanyWriteRepository {
   updateCompanyStatus(id: string, status: CompanyStatusValue): Promise<CompanyActionResponse>;
   deleteCompany(id: string): Promise<CompanyActionResponse>;
 }
-
-

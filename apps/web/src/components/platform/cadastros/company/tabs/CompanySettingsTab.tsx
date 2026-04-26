@@ -7,7 +7,7 @@ import {
   COMPANY_SERVER_TYPE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { CompanyRemoteConnectionInput } from "@/features/company/domain/model";
+import type { CompanyRemoteConnectionInput } from "@/features/company/application/types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

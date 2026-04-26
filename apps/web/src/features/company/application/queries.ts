@@ -4,7 +4,7 @@ import type {
   CompanyAdminListViewData,
   CompanyEditViewData,
   CompanyOption,
-} from "@/features/company/domain/model";
+} from "@/features/company/application/types";
 
 async function apiRequest(path: string, init?: RequestInit) {
   return callWebApi(`/api${path}`, init);

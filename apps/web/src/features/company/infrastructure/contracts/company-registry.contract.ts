@@ -23,7 +23,7 @@ export type CompanyRegistryProfile = {
   raw?: unknown;
 };
 
-export interface CompanyRegistryGatewayRepository {
+export interface CompanyRegistryGatewayContract {
   isConfigured(): boolean;
   getProviderLabel(): string;
   getProfileByCnpj(cnpj: string): Promise<CompanyRegistryProfile>;

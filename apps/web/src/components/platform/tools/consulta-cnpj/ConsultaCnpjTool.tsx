@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
-import type { CompanyRegistryLookupResponse } from "@/features/company/domain/model";
+import type { CompanyRegistryLookupResponse } from "@/features/company/application/types";
 
 type LookupProfile = NonNullable<CompanyRegistryLookupResponse["profile"]>;
 

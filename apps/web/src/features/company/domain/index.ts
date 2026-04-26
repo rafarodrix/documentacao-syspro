@@ -1,3 +1,1 @@
-﻿export * from './company-segments';
-export * from './model';
-
+export * from "./company-segments";
