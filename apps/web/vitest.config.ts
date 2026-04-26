@@ -43,10 +43,6 @@ export default defineConfig({
       "@dosc-syspro/contracts/documento-config": path.resolve(__dirname, "../../packages/contracts/src/documento/documento-config.types.ts"),
       "@dosc-syspro/contracts/user": path.resolve(__dirname, "../../packages/contracts/src/user/index.ts"),
       "@dosc-syspro/database": path.resolve(__dirname, "../../packages/database/src/index.ts"),
-      "@dosc-syspro/remote-infra": path.resolve(__dirname, "../../packages/remote-infra/src/index.ts"),
-      "@dosc-syspro/remote-infra/remote-session.port": path.resolve(__dirname, "../../packages/remote-infra/src/remote-session.port.ts"),
-      "@dosc-syspro/remote-infra/remote-host-admin.port": path.resolve(__dirname, "../../packages/remote-infra/src/remote-host-admin.port.ts"),
-      "@dosc-syspro/remote-infra/remote-address-book.port": path.resolve(__dirname, "../../packages/remote-infra/src/remote-address-book.port.ts"),
     },
   },
 });
