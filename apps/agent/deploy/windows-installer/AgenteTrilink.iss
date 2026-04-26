@@ -22,7 +22,7 @@ SetupIconFile={#SourceDir}\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatiblecompatible
 PrivilegesRequired=admin
 DisableDirPage=no
 DisableProgramGroupPage=yes
@@ -58,15 +58,16 @@ Source: "{#SourceDir}\README-installer.txt"; DestDir: "{app}"; DestName: "LEIA-M
 Source: "{#SourceDir}\rustdesk\*"; DestDir: "{app}\rustdesk"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 
 [Icons]
-Name: "{group}\Iniciar Interface do Agente"; Filename: "{app}\scripts\start-agent.cmd"; WorkingDir: "{app}"
+Name: "{group}\Iniciar Interface do Agente"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
 Name: "{group}\Parar Interface do Agente"; Filename: "{app}\scripts\stop-agent.cmd"; WorkingDir: "{app}"
 Name: "{group}\Editar configuracao"; Filename: "{app}\scripts\open-config.cmd"; WorkingDir: "{app}"
 Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir: "{app}"
 Name: "{group}\Verificar WebView2 Runtime"; Filename: "{cmd}"; Parameters: "/c powershell -ExecutionPolicy Bypass -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; WorkingDir: "{app}"
-Name: "{autodesktop}\Agente Trilink"; Filename: "{app}\scripts\start-agent.cmd"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
 
-; start-agent.cmd verifica o servico e so entao abre a UI — mais seguro que agent-ui.exe direto
-Name: "{userstartup}\Agente Trilink"; Filename: "{app}\scripts\start-agent.cmd"; WorkingDir: "{app}"
+; {userstartup}: inicia apenas para o usuario que instalou (nao para todos da maquina)
+; Usa PowerShell direto para suprimir a janela CMD que .cmd abre brevemente
+Name: "{userstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
 
 [Run]
 ; 1. Verificar e instalar WebView2 Runtime se ausente (necessario para agent-ui)
@@ -76,12 +77,12 @@ Filename: "{app}\agent-service.exe"; Parameters: "install"; Flags: runhidden; St
 ; 3. Iniciar o servico
 Filename: "{app}\agent-service.exe"; Parameters: "start"; Flags: runhidden; StatusMsg: "Iniciando servico..."
 ; 4. Iniciar a interface (tray) na sessao do usuario atual, opcionalmente
-Filename: "{app}\scripts\start-agent.cmd"; Description: "Iniciar interface do Agente Trilink agora"; Flags: nowait postinstall skipifsilent
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; Description: "Iniciar interface do Agente Trilink agora"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 ; Para e remove o servico antes de deletar os arquivos
-Filename: "{app}\agent-service.exe"; Parameters: "stop"; Flags: runhidden skipifdoesntexist
-Filename: "{app}\agent-service.exe"; Parameters: "uninstall"; Flags: runhidden skipifdoesntexist
+Filename: "{app}\agent-service.exe"; Parameters: "stop"; Flags: runhidden skipifdoesntexist; RunOnceId: "StopTrillinkAgentService"
+Filename: "{app}\agent-service.exe"; Parameters: "uninstall"; Flags: runhidden skipifdoesntexist; RunOnceId: "UninstallTrillinkAgentService"
 
 [UninstallDelete]
 ; Remove o diretorio de estado criado em tempo de execucao (nao rastreado pelo Inno)

@@ -90,8 +90,6 @@ func (s *Service) Run(ctx context.Context) error {
 	s.logger.Info("agent ui starting")
 	defer s.logger.Info("agent ui stopped")
 
-	s.maybeOpenSetupExperience(ctx)
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

@@ -19,9 +19,8 @@ import (
 )
 
 var rustDeskIDPattern = regexp.MustCompile(`\d{7,12}`)
+var rustDeskConfigEntryPattern = regexp.MustCompile(`^\s*([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\r\n#]+))`)
 
-// rustDeskConfigIDPattern matches "id = 'XXXXXXXXX'" or "id = XXXXXXXXX" in TOML config files.
-var rustDeskConfigIDPattern = regexp.MustCompile(`(?m)^id\s*=\s*['"]?(\d{7,12})['"]?`)
 
 type rustDeskDesiredConfig struct {
 	Alias           string
@@ -48,6 +47,7 @@ type rustDeskStatus struct {
 	ServiceStatus  string
 	RustDeskID     string
 	Version        string
+	AccessPassword string
 }
 
 type rustDeskController interface {
@@ -107,6 +107,7 @@ func (m *rustDeskManager) inspect(ctx context.Context) (rustDeskStatus, error) {
 	status.ServiceStatus = m.getServiceStatus(ctx)
 	status.RustDeskID = m.getID(ctx, exePath)
 	status.Version = m.getVersion(ctx, exePath)
+	status.AccessPassword = m.getAccessPassword()
 	return status, nil
 }
 
@@ -204,19 +205,16 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 	// When the agent runs as LocalSystem (Session 0), rustdesk.exe --get-id
 	// often returns empty because RustDesk's CLI IPC only works in interactive
 	// sessions. Reading the TOML config file directly is reliable.
-	if id := m.getIDFromConfigFiles(); id != "" {
+	// Fast path: read config file directly — works in Session 0 (SYSTEM) where
+	// rustdesk.exe --get-id returns empty because RustDesk CLI IPC only works
+	// in interactive sessions.
+	if id := m.getIDFromConfig(); id != "" {
 		return id
 	}
 
 	const maxAttempts = 8
 	waitSeconds := 2
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		// Try config files on every attempt — the file appears once the service
-		// has registered with the relay server (usually within a few seconds).
-		if id := m.getIDFromConfigFiles(); id != "" {
-			return id
-		}
-
 		output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("& '%s' --get-id 2>&1 | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | Out-String", escapePowerShellSingleQuoted(exePath)))
 		if err == nil {
 			if id := normalizeRustDeskID(output); id != "" {
@@ -224,6 +222,12 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 			}
 		} else {
 			m.logger.Warn("rustdesk id capture failed", "attempt", attempt, "max", maxAttempts, "error", err)
+		}
+
+		// Config file appears once the service registers with the relay server.
+		if id := m.getIDFromConfig(); id != "" {
+			m.logger.Info("rustdesk id resolved from config", "attempt", attempt, "id", id)
+			return id
 		}
 
 		if attempt == maxAttempts {
@@ -241,42 +245,15 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 	return ""
 }
 
-// getIDFromConfigFiles reads the RustDesk ID directly from its TOML config
-// files. This works in Session 0 (SYSTEM) where --get-id may return empty.
-func (m *rustDeskManager) getIDFromConfigFiles() string {
-	candidates := []string{
-		// MSI / all-users install: service runs as LocalSystem
-		`C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
-		`C:\Windows\SysWOW64\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
-		// Older RustDesk versions used RustDesk.toml
-		`C:\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
-		`C:\Windows\SysWOW64\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
-		// ProgramData paths used by some installer configurations
-		filepath.Join(os.Getenv("ProgramData"), "RustDesk", "config", "RustDesk2.toml"),
-		filepath.Join(os.Getenv("ProgramData"), "RustDesk", "config", "RustDesk.toml"),
-	}
-	for _, path := range candidates {
-		if strings.TrimSpace(path) == "" {
-			continue
-		}
-		if id := parseRustDeskIDFromConfig(path); id != "" {
+func (m *rustDeskManager) getIDFromConfig() string {
+	for _, path := range rustDeskConfigPaths() {
+		if id := readRustDeskIDFromConfig(path); id != "" {
 			return id
 		}
 	}
 	return ""
 }
 
-func parseRustDeskIDFromConfig(path string) string {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	match := rustDeskConfigIDPattern.FindSubmatch(data)
-	if len(match) < 2 {
-		return ""
-	}
-	return strings.TrimSpace(string(match[1]))
-}
 
 func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string {
 	output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("(Get-Item '%s').VersionInfo.ProductVersion | Out-String", escapePowerShellSingleQuoted(exePath)))
@@ -285,6 +262,16 @@ func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string
 		return ""
 	}
 	return strings.TrimSpace(output)
+}
+
+func (m *rustDeskManager) getAccessPassword() string {
+	defaultPassword := strings.TrimSpace(readPersistedDefaultPassword(filepath.Join(m.stateDir, stateFile)))
+	for _, path := range rustDeskConfigPaths() {
+		if password := readRustDeskPasswordFromConfig(path, defaultPassword); password != "" {
+			return password
+		}
+	}
+	return ""
 }
 
 func (m *rustDeskManager) resolveExecutable() (string, error) {
@@ -517,9 +504,9 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		if logErr != nil {
 			m.logger.Warn("rustdesk installer log path prepare failed", "error", logErr)
 		}
-		msiArgs := []string{"/i", installerPath, "/qn", "/norestart"}
+		msiArgs := buildRustDeskMSIInstallArgs(installerPath, logPath)
 		if logPath != "" {
-			msiArgs = append(msiArgs, "/l*v", logPath)
+			m.logger.Info("rustdesk msi install configured", "launch_tray", false, "log_path", logPath)
 		}
 		cmd := exec.CommandContext(ctx, "msiexec.exe", msiArgs...)
 		output, err := cmd.CombinedOutput()
@@ -614,6 +601,130 @@ func installerFileName(rawURL string) string {
 		name = name[:idx]
 	}
 	return name
+}
+
+func rustDeskConfigPaths() []string {
+	paths := []string{}
+	if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
+		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"))
+		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk.toml"))
+	}
+	paths = append(paths,
+		`C:\Windows\system32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		`C:\Windows\system32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
+		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml`,
+	)
+	return paths
+}
+
+func readRustDeskIDFromConfig(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		match := rustDeskConfigEntryPattern.FindStringSubmatch(line)
+		if len(match) == 0 {
+			continue
+		}
+
+		key := strings.ToLower(strings.TrimSpace(match[1]))
+		if !strings.Contains(key, "id") {
+			continue
+		}
+
+		value := strings.TrimSpace(firstNonEmpty(match[2], match[3], match[4]))
+		value = strings.Trim(value, `"`)
+		if id := normalizeRustDeskID(value); id != "" {
+			return id
+		}
+	}
+
+	return ""
+}
+
+func buildRustDeskMSIInstallArgs(installerPath, logPath string) []string {
+	args := []string{
+		"/i", installerPath,
+		"REBOOT=ReallySuppress",
+		"LAUNCH_TRAY_APP=0",
+		"STARTUPSHORTCUTS=0",
+		"DESKTOPSHORTCUTS=0",
+		"STARTMENUSHORTCUTS=0",
+		"/qn",
+		"/norestart",
+	}
+	if strings.TrimSpace(logPath) != "" {
+		args = append(args, "/l*v", logPath)
+	}
+	return args
+}
+
+func readPersistedDefaultPassword(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	match := regexp.MustCompile(`"default_password"\s*:\s*"([^"]*)"`).FindSubmatch(data)
+	if len(match) != 2 {
+		return ""
+	}
+	return strings.TrimSpace(string(match[1]))
+}
+
+func readRustDeskPasswordFromConfig(path, defaultPassword string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+
+	bestPriority := 0
+	bestValue := ""
+	for _, line := range strings.Split(string(data), "\n") {
+		match := rustDeskConfigEntryPattern.FindStringSubmatch(line)
+		if len(match) == 0 {
+			continue
+		}
+
+		key := strings.ToLower(strings.TrimSpace(match[1]))
+		value := strings.TrimSpace(firstNonEmpty(match[2], match[3], match[4]))
+		value = strings.Trim(value, `"`)
+		priority := rustDeskPasswordPriority(key, value, defaultPassword)
+		if priority <= bestPriority {
+			continue
+		}
+
+		bestPriority = priority
+		bestValue = value
+	}
+
+	return bestValue
+}
+
+func rustDeskPasswordPriority(key, value, defaultPassword string) int {
+	key = strings.ToLower(strings.TrimSpace(key))
+	value = strings.TrimSpace(value)
+	defaultPassword = strings.TrimSpace(defaultPassword)
+	if key == "" || value == "" || !strings.Contains(key, "password") {
+		return 0
+	}
+
+	switch {
+	case strings.Contains(key, "temporary") || strings.Contains(key, "one-time") || strings.Contains(key, "one_time"):
+		return 300
+	case strings.Contains(key, "permanent") || strings.Contains(key, "default") || strings.Contains(key, "preset"):
+		if defaultPassword != "" && strings.EqualFold(value, defaultPassword) {
+			return 0
+		}
+		return 40
+	default:
+		if defaultPassword != "" && strings.EqualFold(value, defaultPassword) {
+			return 0
+		}
+		return 120
+	}
 }
 
 func splitWindowsArgs(raw string) []string {
