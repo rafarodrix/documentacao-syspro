@@ -29,7 +29,6 @@ func (l *Logger) print(level int, label string, msg string, kv ...any) {
 	if level < l.level {
 		return
 	}
-
 	log.Println(append([]any{label, msg}, kv...)...)
 }
 
@@ -37,7 +36,7 @@ func parseLevel(level string) int {
 	switch strings.ToLower(strings.TrimSpace(level)) {
 	case "debug":
 		return levelDebug
-	case "warn":
+	case "warn", "warning":
 		return levelWarn
 	case "error":
 		return levelError

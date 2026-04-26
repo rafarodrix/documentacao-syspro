@@ -21,6 +21,7 @@ import (
 var rustDeskIDPattern = regexp.MustCompile(`\d{7,12}`)
 var rustDeskConfigEntryPattern = regexp.MustCompile(`^\s*([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\r\n#]+))`)
 
+
 type rustDeskDesiredConfig struct {
 	Alias           string
 	ServerHost      string
@@ -200,8 +201,18 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 }
 
 func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
-	const maxAttempts = 8
+	// Fast path: read from config files without spawning a process.
+	// When the agent runs as LocalSystem (Session 0), rustdesk.exe --get-id
+	// often returns empty because RustDesk's CLI IPC only works in interactive
+	// sessions. Reading the TOML config file directly is reliable.
+	// Fast path: read config file directly — works in Session 0 (SYSTEM) where
+	// rustdesk.exe --get-id returns empty because RustDesk CLI IPC only works
+	// in interactive sessions.
+	if id := m.getIDFromConfig(); id != "" {
+		return id
+	}
 
+	const maxAttempts = 8
 	waitSeconds := 2
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("& '%s' --get-id 2>&1 | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | Out-String", escapePowerShellSingleQuoted(exePath)))
@@ -213,6 +224,7 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 			m.logger.Warn("rustdesk id capture failed", "attempt", attempt, "max", maxAttempts, "error", err)
 		}
 
+		// Config file appears once the service registers with the relay server.
 		if id := m.getIDFromConfig(); id != "" {
 			m.logger.Info("rustdesk id resolved from config", "attempt", attempt, "id", id)
 			return id
@@ -241,6 +253,7 @@ func (m *rustDeskManager) getIDFromConfig() string {
 	}
 	return ""
 }
+
 
 func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string {
 	output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("(Get-Item '%s').VersionInfo.ProductVersion | Out-String", escapePowerShellSingleQuoted(exePath)))

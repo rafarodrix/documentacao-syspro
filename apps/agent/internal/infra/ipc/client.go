@@ -50,7 +50,7 @@ func (c *Client) GetSummary(ctx context.Context) (uistate.Summary, error) {
 		return uistate.Summary{}, fmt.Errorf("decode ipc summary: %w", err)
 	}
 
-	c.logger.Info("ipc client fetched summary", "service_status", summary.ServiceStatus)
+	c.logger.Debug("ipc client fetched summary", "service_status", summary.ServiceStatus)
 	return summary, nil
 }
 
@@ -76,7 +76,7 @@ func (c *Client) ListNotifications(ctx context.Context) ([]uistate.Notification,
 		return nil, fmt.Errorf("decode ipc notifications: %w", err)
 	}
 
-	c.logger.Info("ipc client fetched notifications", "count", len(notifications))
+	c.logger.Debug("ipc client fetched notifications", "count", len(notifications))
 	return notifications, nil
 }
 
