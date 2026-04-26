@@ -200,14 +200,17 @@ begin
   DeleteFile(TmpScript);
 end;
 
-// Para o servico RustDesk e desinstala o programa
+// Para o servico RustDesk, encerra o processo e desinstala o programa
 procedure TryUninstallRustDesk;
 var
   RC: Integer;
 begin
-  // Para o servico RustDesk antes de desinstalar
+  // Para o servico Windows antes de encerrar o processo
   Exec('net.exe', 'stop RustDesk', '', SW_HIDE, ewWaitUntilTerminated, RC);
-  Sleep(2000);
+  Sleep(1000);
+  // Encerra forcosamente o processo (cobre instalacoes sem servico e sessoesinterativas)
+  Exec('taskkill.exe', '/IM rustdesk.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
+  Sleep(1000);
   UninstallProgramByName('RustDesk');
 end;
 
