@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -450,7 +450,7 @@
         <div class="agent-support-brand">
           <div class="agent-support-brand-copy">
             <div class="agent-support-kicker">Trilink Support Console</div>
-            <div class="agent-support-title">Suporte corporativo com contexto técnico</div>
+            <div class="agent-support-title">Suporte corporativo com contexto tecnico</div>
           </div>
           <img class="agent-support-logo" id="support-brand-logo" alt="Trilink" />
         </div>
@@ -461,7 +461,7 @@
         <div class="agent-support-overview">
           <div class="agent-overview-card">
             <div class="agent-overview-label">Empresa</div>
-            <div class="agent-overview-value" id="company-overview">Aguardando vínculo</div>
+            <div class="agent-overview-value" id="company-overview">Aguardando vinculo</div>
           </div>
           <div class="agent-overview-card">
             <div class="agent-overview-label">Host</div>
@@ -469,14 +469,14 @@
           </div>
           <div class="agent-overview-card">
             <div class="agent-overview-label">Status remoto</div>
-            <div class="agent-overview-value" id="remote-overview">Em verificação</div>
+            <div class="agent-overview-value" id="remote-overview">Em verificacao</div>
           </div>
         </div>
 
         <div class="agent-support-meta">
-          <span class="agent-support-pill" id="company-pill">Empresa: aguardando vínculo</span>
+          <span class="agent-support-pill" id="company-pill">Empresa: aguardando vinculo</span>
           <span class="agent-support-pill" id="host-pill">Host: preparando contexto</span>
-          <span class="agent-support-pill remote-pending" id="remote-pill">Remoto: verificando configuração</span>
+          <span class="agent-support-pill remote-pending" id="remote-pill">Remoto: verificando configuracao</span>
         </div>
       </div>
 
@@ -484,20 +484,20 @@
         <div class="agent-support-remote-card" id="remote-card">
           <div class="agent-support-remote-head">
             <div class="agent-support-remote-title">Acesso remoto corporativo</div>
-            <div class="agent-support-remote-state" id="remote-state-badge">Em análise</div>
+            <div class="agent-support-remote-state" id="remote-state-badge">Em analise</div>
           </div>
           <div class="agent-support-remote-grid">
             <div class="agent-support-remote-item">
               <div class="agent-support-remote-label">ID remoto</div>
               <div class="agent-support-remote-value-row">
-                <div class="agent-support-remote-value" id="remote-id-value">Aguardando identificação</div>
+                <div class="agent-support-remote-value" id="remote-id-value">Aguardando identificacao</div>
                 <button class="agent-support-remote-copy secondary" id="copy-remote-id" type="button">Copiar</button>
               </div>
             </div>
             <div class="agent-support-remote-item">
               <div class="agent-support-remote-label">Senha de acesso</div>
               <div class="agent-support-remote-value-row">
-                <div class="agent-support-remote-value" id="remote-password-value">Aguardando configuração</div>
+                <div class="agent-support-remote-value" id="remote-password-value">Aguardando configuracao</div>
                 <button class="agent-support-remote-copy secondary" id="copy-remote-password" type="button">Copiar</button>
               </div>
             </div>
@@ -508,17 +508,17 @@
         </div>
 
         <div class="agent-support-alert" id="remote-alert">
-          <div class="agent-support-alert-title" id="remote-alert-title">RustDesk ainda não instalado</div>
+          <div class="agent-support-alert-title" id="remote-alert-title">RustDesk ainda nao instalado</div>
           <div class="agent-support-alert-copy" id="remote-alert-copy">
-            O atendimento pode seguir normalmente, mas o acesso remoto ainda não está disponível nesta máquina.
+            O atendimento pode seguir normalmente, mas o acesso remoto ainda nao esta disponivel nesta maquina.
           </div>
         </div>
 
         <div class="agent-support-stage" id="support-stage">
           <div class="agent-support-stage-content">
-            <div class="agent-support-stage-title">Preparando sessão de atendimento</div>
+            <div class="agent-support-stage-title">Preparando sessao de atendimento</div>
             <div class="agent-support-stage-copy">
-              O agente está carregando o widget de suporte e sincronizando o contexto técnico deste dispositivo.
+              O agente esta carregando o widget de suporte e sincronizando o contexto tecnico deste dispositivo.
             </div>
           </div>
         </div>
@@ -586,7 +586,7 @@
       if (SUPPORT_CONTEXT.remoteAccessPassword) {
         remotePasswordValue.textContent = SUPPORT_CONTEXT.remoteAccessPassword;
       } else if (SUPPORT_CONTEXT.remoteStatus === 'ready' || SUPPORT_CONTEXT.remoteStatus === 'pending') {
-        remotePasswordValue.textContent = 'Senha não carregada';
+        remotePasswordValue.textContent = 'Disponivel no app RustDesk';
       }
 
       var copyText = function (value) {
@@ -623,20 +623,20 @@
 
       if (SUPPORT_CONTEXT.remoteStatus === 'offline') {
         remoteAlert.classList.add('visible');
-        remoteAlertTitle.textContent = 'RustDesk não instalado nesta máquina';
-        remoteAlertCopy.textContent = 'A conversa já pode ser iniciada, mas o operador verá que o módulo remoto ainda não está disponível para este dispositivo.';
-        remoteHint.textContent = 'Assim que o módulo remoto for provisionado, o agente exibirá o ID e a senha de acesso aqui.';
+        remoteAlertTitle.textContent = 'RustDesk nao instalado nesta maquina';
+        remoteAlertCopy.textContent = 'A conversa ja pode ser iniciada, mas o operador vera que o modulo remoto ainda nao esta disponivel para este dispositivo.';
+        remoteHint.textContent = 'Assim que o modulo remoto for provisionado, o agente exibira o ID e a senha de acesso aqui.';
       } else if (SUPPORT_CONTEXT.remoteStatus === 'pending') {
         remoteAlert.classList.add('visible');
-        remoteAlertTitle.textContent = 'Vínculo remoto em preparação';
-        remoteAlertCopy.textContent = 'O agente detectou configuração parcial do remoto. O atendimento segue com contexto técnico e o vínculo será concluído no ciclo de sincronização.';
+        remoteAlertTitle.textContent = 'Vinculo remoto em preparacao';
+        remoteAlertCopy.textContent = 'O agente detectou configuracao parcial do remoto. O atendimento segue com contexto tecnico e o vinculo sera concluido no ciclo de sincronizacao.';
         remoteHint.textContent = SUPPORT_CONTEXT.remoteAccessPassword
-          ? 'O ID e a senha já podem ser informados ao suporte enquanto o vínculo remoto finaliza em segundo plano.'
-          : 'O ID remoto pode aparecer antes da senha final. O agente concluirá a configuração em segundo plano.';
+          ? 'O ID e a senha exibidos pelo RustDesk ja podem ser informados ao suporte enquanto o vinculo remoto finaliza em segundo plano.'
+          : 'O ID remoto ja esta disponivel. Se a senha ainda nao apareceu aqui, abra o RustDesk para consultar a senha temporaria.';
       } else if (SUPPORT_CONTEXT.remoteStatus === 'ready') {
         remoteHint.textContent = SUPPORT_CONTEXT.remoteAccessPassword
           ? 'O cliente pode informar esses dados ao suporte sem abrir o aplicativo do RustDesk.'
-          : 'O ID remoto está pronto. Se a senha ainda não apareceu, o agente deve recebê-la no próximo ciclo de sincronização.';
+          : 'O ID remoto esta pronto. A senha padrao interna nao e exibida aqui; consulte a senha temporaria no app RustDesk.';
       }
 
       window.chatwootSettings = {
@@ -644,10 +644,10 @@
         showUnreadMessagesDialog: false,
         welcomeTitle: 'Suporte Trilink',
         welcomeDescription: SUPPORT_CONTEXT.remoteStatus === 'ready'
-          ? 'Atendimento contextualizado com identificação técnica pronta.'
-          : 'Atendimento contextualizado com diagnóstico inicial do dispositivo.',
+          ? 'Atendimento contextualizado com identificacao tecnica pronta.'
+          : 'Atendimento contextualizado com diagnostico inicial do dispositivo.',
         availableMessage: 'Equipe online para dar continuidade ao atendimento.',
-        unavailableMessage: 'Equipe offline no momento. O contexto técnico desta máquina já foi preparado.'
+        unavailableMessage: 'Equipe offline no momento. O contexto tecnico desta maquina ja foi preparado.'
       };
 
       var applySupportContext = function () {
@@ -694,10 +694,10 @@
       window.addEventListener('chatwoot:ready', function () {
         supportStage.classList.add('hidden');
         statusCopy.innerHTML = SUPPORT_CONTEXT.remoteStatus === 'ready'
-          ? 'Atendimento pronto com contexto técnico e vínculo remoto carregados.'
+          ? 'Atendimento pronto com contexto tecnico e vinculo remoto carregados.'
           : SUPPORT_CONTEXT.remoteStatus === 'offline'
-            ? 'Atendimento pronto com contexto parcial. RustDesk não instalado nesta máquina.'
-            : 'Atendimento pronto com contexto parcial. O vínculo remoto ainda não está disponível nesta máquina.';
+            ? 'Atendimento pronto com contexto parcial. RustDesk nao instalado nesta maquina.'
+            : 'Atendimento pronto com contexto parcial. O vinculo remoto ainda nao esta disponivel nesta maquina.';
         applySupportContext();
       });
 
@@ -709,7 +709,7 @@
       g.src=BASE_URL+"/packs/js/sdk.js";
       g.async = true;
       g.onerror = function () {
-        statusCopy.innerHTML = 'Não foi possível carregar o SDK do atendimento. Verifique acesso ao Chatwoot nesta máquina.';
+        statusCopy.innerHTML = 'Nao foi possivel carregar o SDK do atendimento. Verifique acesso ao Chatwoot nesta maquina.';
         supportStage.classList.remove('hidden');
       };
       s.parentNode.insertBefore(g,s);

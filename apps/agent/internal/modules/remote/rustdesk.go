@@ -19,6 +19,7 @@ import (
 )
 
 var rustDeskIDPattern = regexp.MustCompile(`\d{7,12}`)
+var rustDeskConfigEntryPattern = regexp.MustCompile(`^\s*([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\r\n#]+))`)
 
 type rustDeskDesiredConfig struct {
 	Alias           string
@@ -45,6 +46,7 @@ type rustDeskStatus struct {
 	ServiceStatus  string
 	RustDeskID     string
 	Version        string
+	AccessPassword string
 }
 
 type rustDeskController interface {
@@ -104,6 +106,7 @@ func (m *rustDeskManager) inspect(ctx context.Context) (rustDeskStatus, error) {
 	status.ServiceStatus = m.getServiceStatus(ctx)
 	status.RustDeskID = m.getID(ctx, exePath)
 	status.Version = m.getVersion(ctx, exePath)
+	status.AccessPassword = m.getAccessPassword()
 	return status, nil
 }
 
@@ -232,6 +235,16 @@ func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string
 		return ""
 	}
 	return strings.TrimSpace(output)
+}
+
+func (m *rustDeskManager) getAccessPassword() string {
+	defaultPassword := strings.TrimSpace(readPersistedDefaultPassword(filepath.Join(m.stateDir, stateFile)))
+	for _, path := range rustDeskConfigPaths() {
+		if password := readRustDeskPasswordFromConfig(path, defaultPassword); password != "" {
+			return password
+		}
+	}
+	return ""
 }
 
 func (m *rustDeskManager) resolveExecutable() (string, error) {
@@ -561,6 +574,83 @@ func installerFileName(rawURL string) string {
 		name = name[:idx]
 	}
 	return name
+}
+
+func rustDeskConfigPaths() []string {
+	paths := []string{}
+	if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
+		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"))
+	}
+	paths = append(paths,
+		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml`,
+	)
+	return paths
+}
+
+func readPersistedDefaultPassword(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	match := regexp.MustCompile(`"default_password"\s*:\s*"([^"]*)"`).FindSubmatch(data)
+	if len(match) != 2 {
+		return ""
+	}
+	return strings.TrimSpace(string(match[1]))
+}
+
+func readRustDeskPasswordFromConfig(path, defaultPassword string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+
+	bestPriority := 0
+	bestValue := ""
+	for _, line := range strings.Split(string(data), "\n") {
+		match := rustDeskConfigEntryPattern.FindStringSubmatch(line)
+		if len(match) == 0 {
+			continue
+		}
+
+		key := strings.ToLower(strings.TrimSpace(match[1]))
+		value := strings.TrimSpace(firstNonEmpty(match[2], match[3], match[4]))
+		value = strings.Trim(value, `"`)
+		priority := rustDeskPasswordPriority(key, value, defaultPassword)
+		if priority <= bestPriority {
+			continue
+		}
+
+		bestPriority = priority
+		bestValue = value
+	}
+
+	return bestValue
+}
+
+func rustDeskPasswordPriority(key, value, defaultPassword string) int {
+	key = strings.ToLower(strings.TrimSpace(key))
+	value = strings.TrimSpace(value)
+	defaultPassword = strings.TrimSpace(defaultPassword)
+	if key == "" || value == "" || !strings.Contains(key, "password") {
+		return 0
+	}
+
+	switch {
+	case strings.Contains(key, "temporary") || strings.Contains(key, "one-time") || strings.Contains(key, "one_time"):
+		return 300
+	case strings.Contains(key, "permanent") || strings.Contains(key, "default") || strings.Contains(key, "preset"):
+		if defaultPassword != "" && strings.EqualFold(value, defaultPassword) {
+			return 0
+		}
+		return 40
+	default:
+		if defaultPassword != "" && strings.EqualFold(value, defaultPassword) {
+			return 0
+		}
+		return 120
+	}
 }
 
 func splitWindowsArgs(raw string) []string {
