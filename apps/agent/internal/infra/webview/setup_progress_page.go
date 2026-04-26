@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type SetupProgressConfig struct {
-	IPCBaseURL        string
 	InitialStatusJSON string
-	SupportBaseURL    string
 }
 
 func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, error) {
@@ -326,7 +323,7 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       </div>
       <div class="subtle">
         <span id="step-count"></span>
-        <span id="polling-status">Conectando ao stream de atualizacao</span>
+        <span id="polling-status">Conectando ao bridge nativo</span>
         <span id="last-update"></span>
       </div>
       <div class="steps" id="steps"></div>
@@ -342,7 +339,6 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
     </div>
   </div>
   <script>
-    const ipcBaseUrl = %q;
     let currentStatus = %s;
     const logoLightUrl = %q;
     const logoDarkUrl = %q;
@@ -450,8 +446,6 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
       }
     }
 
-    let evtSource = null;
-    let pollFallbackTimer = null;
     let nativeRefreshTimer = null;
 
     function hasNativeBridge() {
@@ -471,64 +465,18 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
     }
 
     async function refresh() {
-      if (await refreshViaNativeBridge()) return;
-      if (!ipcBaseUrl) return;
-      try {
-        const response = await fetch(ipcBaseUrl + '/setup', { cache: 'no-store' });
-        if (!response.ok) return;
-        const status = await response.json();
-        render(status);
-      } catch (_) {}
-    }
-
-    function schedulePollingFallback() {
-      if (pollFallbackTimer) return;
-      document.getElementById('polling-status').textContent = 'Stream indisponivel, usando polling a cada 5s';
-      pollFallbackTimer = window.setInterval(refresh, 5000);
+      await refreshViaNativeBridge();
     }
 
     function connectSetupEvents() {
-      if (hasNativeBridge()) {
-        document.getElementById('polling-status').textContent = 'Atualizacao nativa ativa';
-        nativeRefreshTimer = window.setInterval(refresh, 2000);
-        refresh();
+      if (!hasNativeBridge()) {
+        document.getElementById('polling-status').textContent = 'Bridge nativa indisponivel';
         return;
       }
 
-      if (!ipcBaseUrl || typeof EventSource === 'undefined') {
-        schedulePollingFallback();
-        return;
-      }
-
-      try {
-        evtSource = new EventSource(ipcBaseUrl + '/events/setup');
-      } catch (_) {
-        schedulePollingFallback();
-        return;
-      }
-
-      evtSource.onopen = () => {
-        document.getElementById('polling-status').textContent = 'Atualizacao em tempo real ativa';
-        if (pollFallbackTimer) {
-          window.clearInterval(pollFallbackTimer);
-          pollFallbackTimer = null;
-        }
-      };
-
-      evtSource.onmessage = (event) => {
-        try {
-          const status = JSON.parse(event.data);
-          render(status);
-        } catch (_) {}
-      };
-
-      evtSource.onerror = () => {
-        if (evtSource) {
-          evtSource.close();
-          evtSource = null;
-        }
-        schedulePollingFallback();
-      };
+      document.getElementById('polling-status').textContent = 'Atualizacao nativa ativa';
+      nativeRefreshTimer = window.setInterval(refresh, 2000);
+      refresh();
     }
 
     document.getElementById('refresh-btn').addEventListener('click', refresh);
@@ -537,7 +485,7 @@ func EnsureSetupProgressPage(stateDir string, cfg SetupProgressConfig) (string, 
   </script>
 </body>
 </html>
-`, strings.TrimSpace(cfg.IPCBaseURL), cfg.InitialStatusJSON, brand.LogoLightURL, brand.LogoDarkURL)
+`, cfg.InitialStatusJSON, brand.LogoLightURL, brand.LogoDarkURL)
 
 	if err := os.WriteFile(pagePath, []byte(content), 0o644); err != nil {
 		return "", fmt.Errorf("write setup progress page: %w", err)

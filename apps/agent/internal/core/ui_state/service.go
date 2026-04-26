@@ -123,7 +123,6 @@ func (s *Service) OpenSupportConversation(ctx context.Context) (ActionResult, er
 
 	chatwootCfg := s.chatwoot
 	chatwootCfg.Context = s.buildSupportContext()
-	chatwootCfg.IPCBaseURL = s.chatwoot.IPCBaseURL
 
 	target, err := webview.EnsureChatwootWidgetPage(s.stateDir, chatwootCfg)
 	if err != nil {
@@ -260,9 +259,7 @@ func (s *Service) OpenSetupExperience(ctx context.Context) (ActionResult, error)
 	}
 
 	target, err := webview.EnsureSetupProgressPage(s.stateDir, webview.SetupProgressConfig{
-		IPCBaseURL:        s.chatwoot.IPCBaseURL,
 		InitialStatusJSON: string(statusJSON),
-		SupportBaseURL:    s.chatwoot.BaseURL,
 	})
 	if err != nil {
 		return ActionResult{

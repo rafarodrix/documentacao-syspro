@@ -12,7 +12,6 @@ type ChatwootConfig struct {
 	BaseURL      string
 	WebsiteToken string
 	Context      SupportContext
-	IPCBaseURL   string
 }
 
 type SupportContext struct {
@@ -39,7 +38,6 @@ type SupportContext struct {
 func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, error) {
 	baseURL := strings.TrimSpace(cfg.BaseURL)
 	websiteToken := strings.TrimSpace(cfg.WebsiteToken)
-	ipcBaseURL := strings.TrimSpace(cfg.IPCBaseURL)
 	if baseURL == "" || websiteToken == "" {
 		return "", fmt.Errorf("chatwoot widget is not configured")
 	}
@@ -297,38 +295,6 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       color: #607282;
     }
 
-    .agent-support-actions {
-      position: absolute;
-      inset: auto 16px 16px 16px;
-      z-index: 4;
-      display: none;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.96);
-      padding: 14px;
-      box-shadow: 0 8px 24px rgba(28, 45, 64, 0.12);
-    }
-
-    .agent-support-actions a,
-    .agent-support-actions button {
-      border: 0;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font-size: 14px;
-      cursor: pointer;
-      text-decoration: none;
-      background: #0f3d66;
-      color: #ffffff;
-    }
-
-    .agent-support-actions a.secondary,
-    .agent-support-actions button.secondary {
-      background: #d9e1e7;
-      color: #24323f;
-    }
-
     .agent-support-stage {
       position: absolute;
       inset: 116px 0 0 0;
@@ -419,22 +385,15 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
         </div>
       </div>
     </div>
-    <div class="agent-support-actions" id="support-actions">
-      <a id="open-browser-link" target="_blank" rel="noreferrer">Abrir no navegador</a>
-      <button class="secondary" onclick="location.reload()">Tentar novamente</button>
-    </div>
   </div>
   <script>
     (function(d,t) {
       var BASE_URL=%q;
       var SUPPORT_CONTEXT=%s;
-      var IPC_BASE_URL=%q;
       var LOGO_LIGHT_URL=%q;
       var LOGO_DARK_URL=%q;
       var statusCopy=d.getElementById('status-copy');
       var supportStage=d.getElementById('support-stage');
-      var supportActions=d.getElementById('support-actions');
-      var openBrowserLink=d.getElementById('open-browser-link');
       var companyPill=d.getElementById('company-pill');
       var hostPill=d.getElementById('host-pill');
       var remotePill=d.getElementById('remote-pill');
@@ -447,7 +406,6 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       var remoteAlertTitle=d.getElementById('remote-alert-title');
       var remoteAlertCopy=d.getElementById('remote-alert-copy');
       var supportBrandLogo=d.getElementById('support-brand-logo');
-      openBrowserLink.href = BASE_URL;
       var preferredLogo = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
         ? (LOGO_LIGHT_URL || LOGO_DARK_URL)
         : (LOGO_DARK_URL || LOGO_LIGHT_URL);
@@ -544,12 +502,6 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
         unavailableMessage: 'Equipe offline no momento. O contexto tecnico desta maquina ja foi preparado.'
       };
 
-      var fallbackTimer = window.setTimeout(function () {
-        statusCopy.innerHTML = 'O host embarcado atual pode nao renderizar o Chatwoot corretamente. Use o navegador como fallback nesta homologacao.';
-        supportStage.classList.remove('hidden');
-        supportActions.style.display = 'flex';
-      }, 5000);
-
       var applySupportContext = function () {
         if (!window.$chatwoot) {
           return;
@@ -566,24 +518,12 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
         if (!normalizedConversationId || syncedConversationIds[normalizedConversationId]) {
           return;
         }
-        if (!IPC_BASE_URL && !hasNativeBridge()) {
+        if (!hasNativeBridge()) {
           return;
         }
 
         syncedConversationIds[normalizedConversationId] = true;
-
-        if (hasNativeBridge()) {
-          window.agentBridge.invoke('sync_support_conversation_context', normalizedConversationId).catch(function () {
-            syncedConversationIds[normalizedConversationId] = false;
-          });
-          return;
-        }
-
-        window.fetch(IPC_BASE_URL + '/actions/support/sync-context', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: normalizedConversationId })
-        }).catch(function () {
+        window.agentBridge.invoke('sync_support_conversation_context', normalizedConversationId).catch(function () {
           syncedConversationIds[normalizedConversationId] = false;
         });
       };
@@ -604,7 +544,6 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       };
 
       window.addEventListener('chatwoot:ready', function () {
-        window.clearTimeout(fallbackTimer);
         supportStage.classList.add('hidden');
         statusCopy.innerHTML = SUPPORT_CONTEXT.remoteStatus === 'ready'
           ? 'Atendimento pronto com contexto tecnico e vinculo remoto carregados.'
@@ -622,10 +561,8 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
       g.src=BASE_URL+"/packs/js/sdk.js";
       g.async = true;
       g.onerror = function () {
-        window.clearTimeout(fallbackTimer);
-        statusCopy.innerHTML = 'Nao foi possivel carregar o SDK do atendimento. Verifique acesso ao Chatwoot ou abra no navegador.';
+        statusCopy.innerHTML = 'Nao foi possivel carregar o SDK do atendimento. Verifique acesso ao Chatwoot nesta maquina.';
         supportStage.classList.remove('hidden');
-        supportActions.style.display = 'flex';
       };
       s.parentNode.insertBefore(g,s);
       g.onload=function(){
@@ -638,7 +575,7 @@ func EnsureChatwootWidgetPage(stateDir string, cfg ChatwootConfig) (string, erro
   </script>
 </body>
 </html>
-`, baseURL, contextJSON, ipcBaseURL, brand.LogoLightURL, brand.LogoDarkURL, websiteToken)
+`, baseURL, contextJSON, brand.LogoLightURL, brand.LogoDarkURL, websiteToken)
 
 	if err := os.WriteFile(pagePath, []byte(content), 0o644); err != nil {
 		return "", fmt.Errorf("write chatwoot widget page: %w", err)
