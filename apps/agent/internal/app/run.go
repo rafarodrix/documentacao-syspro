@@ -40,7 +40,7 @@ func RunServiceDebug() error {
 }
 
 func RunUI() error {
-	loadEnvFile()
+	LoadEnvFile()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -89,6 +89,10 @@ func runServiceLogic(ctx context.Context) error {
 }
 
 func loadEnvFile() {
+	LoadEnvFile()
+}
+
+func LoadEnvFile() {
 	path := config.DefaultEnvFilePath()
 	if err := config.LoadEnvFile(path); err != nil {
 		log.Printf("warn: could not load env file at %s: %v", path, err)

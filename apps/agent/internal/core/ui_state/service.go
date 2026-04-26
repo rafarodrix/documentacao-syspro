@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"trilink/agent/internal/domain"
-	"trilink/agent/internal/infra/webview"
 )
 
 type Summary struct {
@@ -33,6 +32,11 @@ type ActionResult struct {
 	Message  string `json:"message"`
 	Target   string `json:"target,omitempty"`
 }
+
+const (
+	TargetSupportConversation = "agent://support"
+	TargetSetupExperience     = "agent://setup"
+)
 
 type SetupStep struct {
 	Key    string `json:"key"`
@@ -59,6 +63,12 @@ type SupportContextSyncResult struct {
 	Message  string `json:"message"`
 }
 
+type SupportSession struct {
+	BaseURL      string         `json:"base_url"`
+	WebsiteToken string         `json:"website_token"`
+	Context      SupportContext `json:"context"`
+}
+
 type SupportContextPublisher interface {
 	SyncSupportConversationContext(ctx context.Context, conversationID string, supportContext domain.SupportConversationContext) error
 }
@@ -66,7 +76,7 @@ type SupportContextPublisher interface {
 // Service is the future state composer for tray/window rendering.
 type Service struct {
 	stateDir         string
-	chatwoot         webview.ChatwootConfig
+	chatwoot         ChatwootConfig
 	agentVersion     string
 	agentEnvironment string
 	publisher        SupportContextPublisher
@@ -74,7 +84,7 @@ type Service struct {
 
 func NewService(
 	stateDir string,
-	chatwoot webview.ChatwootConfig,
+	chatwoot ChatwootConfig,
 	agentVersion,
 	agentEnvironment string,
 	publisher SupportContextPublisher,
@@ -121,21 +131,24 @@ func (s *Service) ListNotifications(ctx context.Context) ([]Notification, error)
 func (s *Service) OpenSupportConversation(ctx context.Context) (ActionResult, error) {
 	_ = ctx
 
-	chatwootCfg := s.chatwoot
-	chatwootCfg.Context = s.buildSupportContext()
-
-	target, err := webview.EnsureChatwootWidgetPage(s.stateDir, chatwootCfg)
+	session, err := s.SupportSession(ctx)
 	if err != nil {
 		return ActionResult{
 			Accepted: false,
 			Message:  "support conversation request rejected",
 		}, err
 	}
+	if session.BaseURL == "" || session.WebsiteToken == "" {
+		return ActionResult{
+			Accepted: false,
+			Message:  "support conversation request rejected",
+		}, fmt.Errorf("chatwoot widget is not configured")
+	}
 
 	return ActionResult{
 		Accepted: true,
 		Message:  "support conversation request accepted",
-		Target:   target,
+		Target:   TargetSupportConversation,
 	}, nil
 }
 
@@ -242,26 +255,7 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 }
 
 func (s *Service) OpenSetupExperience(ctx context.Context) (ActionResult, error) {
-	status, err := s.SetupStatus(ctx)
-	if err != nil {
-		return ActionResult{
-			Accepted: false,
-			Message:  "setup experience request rejected",
-		}, err
-	}
-
-	statusJSON, err := json.Marshal(status)
-	if err != nil {
-		return ActionResult{
-			Accepted: false,
-			Message:  "setup experience request rejected",
-		}, fmt.Errorf("marshal setup status: %w", err)
-	}
-
-	target, err := webview.EnsureSetupProgressPage(s.stateDir, webview.SetupProgressConfig{
-		InitialStatusJSON: string(statusJSON),
-	})
-	if err != nil {
+	if _, err := s.SetupStatus(ctx); err != nil {
 		return ActionResult{
 			Accepted: false,
 			Message:  "setup experience request rejected",
@@ -271,7 +265,23 @@ func (s *Service) OpenSetupExperience(ctx context.Context) (ActionResult, error)
 	return ActionResult{
 		Accepted: true,
 		Message:  "setup experience request accepted",
-		Target:   target,
+		Target:   TargetSetupExperience,
+	}, nil
+}
+
+func (s *Service) SupportSession(ctx context.Context) (SupportSession, error) {
+	_ = ctx
+
+	baseURL := strings.TrimSpace(s.chatwoot.BaseURL)
+	websiteToken := strings.TrimSpace(s.chatwoot.WebsiteToken)
+	if baseURL == "" || websiteToken == "" {
+		return SupportSession{}, fmt.Errorf("chatwoot widget is not configured")
+	}
+
+	return SupportSession{
+		BaseURL:      baseURL,
+		WebsiteToken: websiteToken,
+		Context:      s.buildSupportContext(),
 	}, nil
 }
 
@@ -339,8 +349,8 @@ type persistedRemoteState struct {
 	LastSyncAt          time.Time `json:"last_sync_at"`
 }
 
-func (s *Service) buildSupportContext() webview.SupportContext {
-	context := webview.SupportContext{
+func (s *Service) buildSupportContext() SupportContext {
+	context := SupportContext{
 		LocalUsername:    currentLocalUsername(),
 		AgentVersion:     s.agentVersion,
 		AgentEnvironment: s.agentEnvironment,
@@ -371,7 +381,7 @@ func (s *Service) buildSupportContext() webview.SupportContext {
 	return context
 }
 
-func resolveCompanyDisplayName(context webview.SupportContext) string {
+func resolveCompanyDisplayName(context SupportContext) string {
 	switch {
 	case context.CompanyDisplayName != "":
 		return context.CompanyDisplayName
@@ -384,7 +394,7 @@ func resolveCompanyDisplayName(context webview.SupportContext) string {
 	}
 }
 
-func resolveContactName(context webview.SupportContext) string {
+func resolveContactName(context SupportContext) string {
 	switch {
 	case context.LocalUsername != "":
 		return context.LocalUsername
@@ -397,7 +407,7 @@ func resolveContactName(context webview.SupportContext) string {
 	}
 }
 
-func buildContextDescription(context webview.SupportContext) string {
+func buildContextDescription(context SupportContext) string {
 	lines := []string{
 		"Atendimento iniciado pelo agente da Trilink.",
 	}
@@ -427,7 +437,7 @@ func buildContextDescription(context webview.SupportContext) string {
 	return strings.Join(lines, "\n")
 }
 
-func resolveRemoteStatus(context webview.SupportContext) (string, string) {
+func resolveRemoteStatus(context SupportContext) (string, string) {
 	switch {
 	case context.RustDeskID != "" && (context.HostID != "" || context.HostAlias != ""):
 		return "ready", "identificacao remota pronta"
@@ -440,7 +450,7 @@ func resolveRemoteStatus(context webview.SupportContext) (string, string) {
 	}
 }
 
-func buildConversationTags(context webview.SupportContext) []string {
+func buildConversationTags(context SupportContext) []string {
 	tags := []string{"agent-desktop"}
 
 	switch context.RemoteStatus {
