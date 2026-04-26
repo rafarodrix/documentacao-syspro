@@ -38,6 +38,7 @@ export function UserProfile({
   const handleLogout = async () => {
     await authClient.signOut()
     router.push("/login")
+    router.refresh()
   }
 
   const initials = user.name

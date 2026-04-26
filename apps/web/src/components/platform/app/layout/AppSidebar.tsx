@@ -213,6 +213,7 @@ function SidebarFooter({
   const handleLogout = async () => {
     await authClient.signOut()
     router.push("/login")
+    router.refresh()
   }
 
   return (
