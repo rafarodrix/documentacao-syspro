@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-var rustDeskIDPattern = regexp.MustCompile(`\d{7,12}`)
+var rustDeskIDPattern = regexp.MustCompile(`\d{6,12}`)
 var rustDeskConfigEntryPattern = regexp.MustCompile(`^\s*([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\r\n#]+))`)
 
 
@@ -182,7 +182,19 @@ func (m *rustDeskManager) ensureServiceRunning(ctx context.Context, exePath stri
 		return status, fmt.Errorf("start rustdesk service: %w", err)
 	}
 
-	time.Sleep(2 * time.Second)
+	// Poll until the service reports "running" or the deadline expires.
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		current := m.getServiceStatus(ctx)
+		if current == "running" {
+			return current, nil
+		}
+		select {
+		case <-ctx.Done():
+			return current, nil
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
 	return m.getServiceStatus(ctx), nil
 }
 
@@ -201,10 +213,6 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 }
 
 func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
-	// Fast path: read from config files without spawning a process.
-	// When the agent runs as LocalSystem (Session 0), rustdesk.exe --get-id
-	// often returns empty because RustDesk's CLI IPC only works in interactive
-	// sessions. Reading the TOML config file directly is reliable.
 	// Fast path: read config file directly — works in Session 0 (SYSTEM) where
 	// rustdesk.exe --get-id returns empty because RustDesk CLI IPC only works
 	// in interactive sessions.
@@ -239,6 +247,9 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 		case <-ctx.Done():
 			return ""
 		case <-time.After(time.Duration(waitSeconds) * time.Second):
+		}
+		if waitSeconds < 16 {
+			waitSeconds *= 2
 		}
 	}
 
@@ -488,7 +499,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 	switch ext {
 	case ".msi":
 		if elevated, err := m.isRunningElevated(ctx); err != nil {
-			m.logger.Warn("rustdesk elevation check failed", "error", err)
+			return fmt.Errorf("run msi installer: nao foi possivel verificar privilegios de administrador: %w", err)
 		} else if !elevated {
 			return fmt.Errorf("run msi installer: agente nao esta rodando com privilegios de administrador; configure o servico do agente para rodar como SYSTEM ou Administrador")
 		}
