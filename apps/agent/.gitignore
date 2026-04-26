@@ -1,0 +1,4 @@
+# Go build artifacts
+agent-service
+agent-ui
+*.exe
