@@ -1,33 +1,65 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import {
-  createContractSchema,
-  updateContractSchema,
-  CreateContractOutput,
-  UpdateContractOutput,
-  DEFAULT_CONTRACT_TAX_RATE,
-} from "@/features/contracts/application/contract-schema";
+import { headers } from "next/headers";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { SETTING_KEYS } from "@dosc-syspro/contracts/settings";
-import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
-import { revalidateContractsViews } from "@/lib/cache-invalidation";
 import {
-  serializeContractBlockReason,
-} from "@dosc-syspro/core";
+  batchReadjustContractsSchema,
+  createContractSchema,
+  DEFAULT_CONTRACT_TAX_RATE,
+  type ContractStatusValue,
+  type CreateContractOutput,
+  type UpdateContractOutput,
+  updateContractSchema,
+} from "@dosc-syspro/contracts/contract";
+import { SYSTEM_ROLES } from "@dosc-syspro/core";
 import type { ContractBlockReason } from "@dosc-syspro/core";
-import { getSystemParamsAction } from "@/features/contracts/application/queries";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { revalidateContractsViews } from "@/lib/cache-invalidation";
 import type { ContractActionResponse } from "@/features/contracts/domain/model";
 
-const WRITE_ROLES: Role[] = [Role.ADMIN];
-const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
-const BATCH_CHUNK_SIZE = 50;
-const BATCH_CHUNK_MAX_RETRIES = 3;
+async function apiRequest(path: string, init?: RequestInit) {
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
+
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: withInternalApiHeaders({
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+      ...(init?.headers ?? {}),
+    }),
+    cache: "no-store",
+  });
+}
+
+async function parseActionResponse<T = void>(
+  response: Response,
+  fallbackMessage: string,
+): Promise<ContractActionResponse<T>> {
+  try {
+    const payload = (await response.json()) as Partial<ContractActionResponse<T>>;
+    if (response.ok && payload.success) {
+      return payload as ContractActionResponse<T>;
+    }
+
+    if (payload.success === false && "error" in payload && typeof payload.error === "string") {
+      return { success: false, error: payload.error };
+    }
+
+    return { success: false, error: fallbackMessage };
+  } catch {
+    return { success: false, error: fallbackMessage };
+  }
+}
+
+function hasContractWriteAccess(role?: string | null) {
+  return role === "ADMIN" && SYSTEM_ROLES.includes(role);
+}
 
 export async function createContractAction(data: CreateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
 
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session || !hasContractWriteAccess(session.role)) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -37,58 +69,21 @@ export async function createContractAction(data: CreateContractOutput): Promise<
   }
 
   try {
-    let finalMinimumWage = data.minimumWage;
+    const response = await apiRequest("/settings/contracts", {
+      method: "POST",
+      body: JSON.stringify({
+        ...validation.data,
+        minimumWage: validation.data.minimumWage > 0 ? validation.data.minimumWage : 1412,
+        taxRate: validation.data.allowTaxOverride ? validation.data.taxRate : DEFAULT_CONTRACT_TAX_RATE,
+      }),
+    });
 
-    if (!finalMinimumWage || finalMinimumWage <= 0) {
-      const systemParams = await getSystemParamsAction();
-      if (systemParams.success && systemParams.data?.minimumWage) {
-        finalMinimumWage = systemParams.data.minimumWage;
-      } else {
-        finalMinimumWage = 1412;
-      }
+    const result = await parseActionResponse(response, "Erro interno ao salvar contrato.");
+    if (result.success) {
+      revalidateContractsViews();
     }
 
-    const company = await prisma.company.findUnique({
-      where: { id: data.companyId },
-      select: { cnpj: true },
-    });
-
-    if (!company) {
-      return { success: false, error: "Empresa nao encontrada." };
-    }
-
-    await prisma.contract.create({
-      data: {
-        companyId: data.companyId,
-        percentage: data.percentage,
-        minimumWage: finalMinimumWage,
-        taxRate: data.allowTaxOverride ? data.taxRate : DEFAULT_CONTRACT_TAX_RATE,
-        programmerRate: data.programmerRate,
-        status: data.status,
-        startDate: data.startDate ? new Date(data.startDate) : new Date(),
-        endDate: data.endDate ? new Date(data.endDate) : null,
-        contractNumber: company.cnpj,
-        notes: data.notes?.trim() || null,
-      },
-    });
-
-    await prisma.company.update({
-      where: { id: data.companyId },
-      data: { status: CompanyStatus.ACTIVE, deletedAt: null, observacoes: null },
-    });
-
-    await prisma.user.updateMany({
-      where: {
-        deletedAt: null,
-        role: { in: CLIENT_ROLES },
-        memberships: { some: { companyId: data.companyId } },
-      },
-      data: { isActive: true },
-    });
-
-    revalidateContractsViews();
-
-    return { success: true, message: "Contrato criado com sucesso!" };
+    return result;
   } catch (error) {
     console.error("Erro ao criar contrato:", error);
     return { success: false, error: "Erro interno ao salvar contrato." };
@@ -97,7 +92,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
 
 export async function updateContractAction(data: UpdateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session || !hasContractWriteAccess(session.role)) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -108,96 +103,52 @@ export async function updateContractAction(data: UpdateContractOutput): Promise<
 
   try {
     const parsed = validation.data;
-
-    const company = await prisma.company.findUnique({
-      where: { id: parsed.companyId },
-      select: { cnpj: true },
+    const response = await apiRequest(`/settings/contracts/${encodeURIComponent(parsed.id)}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        ...parsed,
+        taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
+      }),
     });
 
-    if (!company) {
-      return { success: false, error: "Empresa nao encontrada." };
+    const result = await parseActionResponse(response, "Erro ao atualizar contrato.");
+    if (result.success) {
+      revalidateContractsViews();
     }
 
-    await prisma.contract.update({
-      where: { id: parsed.id },
-      data: {
-        percentage: parsed.percentage,
-        minimumWage: parsed.minimumWage,
-        taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
-        programmerRate: parsed.programmerRate,
-        status: parsed.status,
-        startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
-        endDate: parsed.endDate ? new Date(parsed.endDate) : null,
-        contractNumber: company.cnpj,
-        notes: parsed.notes?.trim() || null,
-      },
-    });
-
-    revalidateContractsViews();
-
-    return { success: true, message: "Contrato atualizado com sucesso." };
+    return result;
   } catch (error) {
     console.error("Erro ao atualizar contrato:", error);
     return { success: false, error: "Erro ao atualizar contrato." };
   }
 }
 
-export async function batchReadjustContractsAction(newMinimumWage: number): Promise<ContractActionResponse<{ affected: number }>> {
+export async function batchReadjustContractsAction(
+  newMinimumWage: number,
+): Promise<ContractActionResponse<{ affected: number }>> {
   const session = await getProtectedSession();
 
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session || !hasContractWriteAccess(session.role)) {
     return { success: false, error: "Permissao negada. Apenas administradores podem reajustar contratos." };
   }
 
-  if (!newMinimumWage || newMinimumWage <= 0) {
+  const validation = batchReadjustContractsSchema.safeParse({ minimumWage: newMinimumWage });
+  if (!validation.success) {
     return { success: false, error: "Valor do novo salario minimo invalido." };
   }
 
   try {
-    const activeContractIds = await prisma.contract.findMany({
-      where: {
-        status: ContractStatus.ACTIVE,
-      },
-      select: { id: true },
+    const response = await apiRequest("/settings/contracts/batch-readjust", {
+      method: "POST",
+      body: JSON.stringify(validation.data),
     });
 
-    let affected = 0;
-    for (let i = 0; i < activeContractIds.length; i += BATCH_CHUNK_SIZE) {
-      const chunkIds = activeContractIds.slice(i, i + BATCH_CHUNK_SIZE).map((item) => item.id);
-      if (!chunkIds.length) continue;
-
-      let attempt = 1;
-      for (;;) {
-        try {
-          const result = await prisma.contract.updateMany({
-            where: {
-              id: { in: chunkIds },
-              status: ContractStatus.ACTIVE,
-            },
-            data: {
-              minimumWage: newMinimumWage,
-              updatedAt: new Date(),
-            },
-          });
-          affected += result.count;
-          break;
-        } catch (error) {
-          if (attempt >= BATCH_CHUNK_MAX_RETRIES) throw error;
-          await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
-          attempt += 1;
-        }
-      }
+    const result = await parseActionResponse<{ affected: number }>(response, "Erro ao aplicar reajuste em massa.");
+    if (result.success) {
+      revalidateContractsViews(false);
     }
 
-    await prisma.systemSetting.upsert({
-      where: { key: SETTING_KEYS.MIN_WAGE },
-      update: { value: String(newMinimumWage) },
-      create: { key: SETTING_KEYS.MIN_WAGE, value: String(newMinimumWage), description: "Salario minimo base" },
-    });
-
-    revalidateContractsViews(false);
-
-    return { success: true, data: { affected } };
+    return result;
   } catch (error) {
     console.error("Erro ao reajustar contratos:", error);
     return { success: false, error: "Erro ao aplicar reajuste em massa." };
@@ -206,91 +157,33 @@ export async function batchReadjustContractsAction(newMinimumWage: number): Prom
 
 export async function updateContractStatusAction(
   contractId: string,
-  status: ContractStatus,
+  status: ContractStatusValue,
   reason?: ContractBlockReason | null,
   details?: string | null,
 ): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session || !hasContractWriteAccess(session.role)) {
     return { success: false, error: "Permissao negada." };
   }
 
   try {
-    const contract = await prisma.contract.findUnique({
-      where: { id: contractId },
-      select: { id: true, companyId: true, status: true },
+    const response = await apiRequest(`/settings/contracts/${encodeURIComponent(contractId)}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status,
+        reason: reason ?? null,
+        details: details ?? null,
+      }),
     });
 
-    if (!contract) {
-      return { success: false, error: "Contrato nao encontrado." };
+    const result = await parseActionResponse(response, "Erro ao atualizar status do contrato.");
+    if (result.success) {
+      revalidateContractsViews();
     }
 
-    const isDeactivating = status !== ContractStatus.ACTIVE;
-
-    await prisma.$transaction(async (tx) => {
-      await tx.contract.update({
-        where: { id: contractId },
-        data: {
-          status,
-        },
-      });
-
-      const activeContracts = await tx.contract.count({
-        where: {
-          companyId: contract.companyId,
-          status: ContractStatus.ACTIVE,
-          id: { not: contractId },
-        },
-      });
-
-      if (isDeactivating && activeContracts === 0) {
-        const blockReason = reason ? serializeContractBlockReason(reason, details ?? undefined) : null;
-
-        await tx.company.update({
-          where: { id: contract.companyId },
-          data: {
-            status: CompanyStatus.SUSPENDED,
-            observacoes: blockReason,
-          },
-        });
-
-        await tx.user.updateMany({
-          where: {
-            deletedAt: null,
-            role: { in: CLIENT_ROLES },
-            memberships: { some: { companyId: contract.companyId } },
-          },
-          data: { isActive: false },
-        });
-      }
-
-      if (!isDeactivating) {
-        await tx.company.update({
-          where: { id: contract.companyId },
-          data: {
-            status: CompanyStatus.ACTIVE,
-            deletedAt: null,
-            observacoes: null,
-          },
-        });
-
-        await tx.user.updateMany({
-          where: {
-            deletedAt: null,
-            role: { in: CLIENT_ROLES },
-            memberships: { some: { companyId: contract.companyId } },
-          },
-          data: { isActive: true },
-        });
-      }
-    });
-
-    revalidateContractsViews();
-
-    return { success: true, message: "Status do contrato atualizado." };
+    return result;
   } catch (error) {
     console.error("Erro ao atualizar status do contrato:", error);
     return { success: false, error: "Erro ao atualizar status do contrato." };
   }
 }
-

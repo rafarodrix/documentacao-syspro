@@ -30,6 +30,11 @@ export class UsersController {
     return this.usersService.getChatwootSsoLinkForCurrentUser(req.headers);
   }
 
+  @Get('me/profile')
+  getCurrentProfile(@Req() req: Request) {
+    return this.usersService.getCurrentProfile(req.headers);
+  }
+
   @Get(':id')
   findOne(@Req() req: Request, @Param('id') id: string) {
     return this.usersService.findOne(id, req.headers);

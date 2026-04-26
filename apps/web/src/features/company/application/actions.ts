@@ -1,8 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { CompanyStatus } from "@prisma/client";
-import type { CreateCompanyInput, CreateCompanyOutput } from "@dosc-syspro/contracts/company";
+import type { CompanyStatusValue, CreateCompanyInput, CreateCompanyOutput } from "@dosc-syspro/contracts/company";
 import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
@@ -96,7 +95,7 @@ export async function updateCompanyAction(
   }
 }
 
-export async function updateCompanyStatusAction(id: string, status: CompanyStatus): Promise<ActionResponse> {
+export async function updateCompanyStatusAction(id: string, status: CompanyStatusValue): Promise<ActionResponse> {
   try {
     const response = await apiRequest(`/companies/${encodeURIComponent(id)}/status`, {
       method: "PATCH",

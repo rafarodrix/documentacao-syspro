@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ContractStatus } from "@prisma/client";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/model";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -131,7 +130,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         startTransition(async () => {
             const result = await updateContractStatusAction(
                 suspendTarget.id,
-                ContractStatus.SUSPENDED,
+                "SUSPENDED",
                 blockReason,
                 blockReasonDetails,
             );
@@ -152,11 +151,11 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
 
     const handleActivate = (contractId: string) => {
         startTransition(async () => {
-            const result = await updateContractStatusAction(contractId, ContractStatus.ACTIVE);
+            const result = await updateContractStatusAction(contractId, "ACTIVE");
             if (result.success) {
                 toast.success(result.message ?? "Contrato ativado com sucesso.");
                 setItems((prev) => prev.map((contract) => (
-                    contract.id === contractId ? { ...contract, status: ContractStatus.ACTIVE } : contract
+                    contract.id === contractId ? { ...contract, status: "ACTIVE" } : contract
                 )));
                 return;
             }
@@ -439,7 +438,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                     const taxDed = gross * (taxRate / 100);
                                     const progDed = gross * ((programmerRate || 0) / 100);
                                     const net = gross - taxDed - progDed;
-                                    const isActive = contract.status === ContractStatus.ACTIVE;
+                                    const isActive = contract.status === "ACTIVE";
 
                                     return (
                                         <TableRow

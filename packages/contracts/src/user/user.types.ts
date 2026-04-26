@@ -9,6 +9,7 @@ export const USER_ROLE_VALUES = [
 ] as const;
 
 export const userRoleSchema = z.enum(USER_ROLE_VALUES);
+export type UserRoleValue = z.infer<typeof userRoleSchema>;
 
 export const createUserSchema = z.object({
   name: z.string().min(3, "O nome deve ter no minimo 3 caracteres").trim(),

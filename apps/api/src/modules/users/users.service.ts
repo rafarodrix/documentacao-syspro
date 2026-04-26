@@ -571,6 +571,35 @@ export class UsersService {
     return { url, mode: 'sso' };
   }
 
+  async getCurrentProfile(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: requester.userId },
+      select: {
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario nao encontrado.');
+    }
+
+    return {
+      success: true,
+      data: {
+        name: user.name || 'Usuario',
+        email: user.email,
+        image: user.image ?? null,
+        role: user.role,
+        twoFactorEnabled: true,
+      },
+    };
+  }
+
   private isChatwootNonPermissibleResourceError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error ?? '');
     return message.includes('Non permissible resource') || message.includes(': 401 -') || message.includes(': 403 -');

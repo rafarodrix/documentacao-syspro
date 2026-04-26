@@ -1,9 +1,13 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { headers } from "next/headers";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { SETTING_KEYS } from "@dosc-syspro/contracts/settings";
-import { CompanyStatus, ContractStatus, Role } from "@prisma/client";
+import {
+  contractsAdminViewSchema,
+  contractSuspendImpactSchema,
+  contractSystemParamsSchema,
+} from "@dosc-syspro/contracts/contract";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import type {
   ContractActionResponse,
   ContractListItem,
@@ -12,20 +16,34 @@ import type {
   ContractSystemParams,
 } from "@/features/contracts/domain/model";
 
-const WRITE_ROLES: Role[] = [Role.ADMIN];
-const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
+async function apiRequest(path: string, init?: RequestInit) {
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
+
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: withInternalApiHeaders({
+      ...(cookie ? { cookie } : {}),
+      ...(init?.headers ?? {}),
+    }),
+    cache: "no-store",
+  });
+}
 
 export async function getSystemParamsAction(): Promise<ContractActionResponse<ContractSystemParams>> {
   const session = await getProtectedSession();
   if (!session) return { success: false, error: "Nao autorizado." };
 
   try {
-    const setting = await prisma.systemSetting.findUnique({
-      where: { key: SETTING_KEYS.MIN_WAGE },
-    });
+    const response = await apiRequest("/settings/contracts/system-params");
+    const payload = await response.json().catch(() => null);
+    const parsed = contractSystemParamsSchema.safeParse(payload?.data);
 
-    const currentWage = setting ? Number(setting.value) : 1412;
-    return { success: true, data: { minimumWage: currentWage } };
+    if (!response.ok || !parsed.success) {
+      return { success: false, error: "Erro ao carregar parametros." };
+    }
+
+    return { success: true, data: parsed.data };
   } catch (error) {
     console.error("Erro ao buscar parametros do sistema:", error);
     return { success: false, error: "Erro ao carregar parametros." };
@@ -34,105 +52,38 @@ export async function getSystemParamsAction(): Promise<ContractActionResponse<Co
 
 export async function getContractsAction(): Promise<ContractActionResponse<ContractListItem[]>> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) return { success: false, error: "Nao autorizado." };
+  if (!session) return { success: false, error: "Nao autorizado." };
 
   try {
-    const contracts = await prisma.contract.findMany({
-      select: {
-        id: true,
-        companyId: true,
-        percentage: true,
-        minimumWage: true,
-        taxRate: true,
-        programmerRate: true,
-        contractNumber: true,
-        notes: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-        createdAt: true,
-        updatedAt: true,
-        company: {
-          select: {
-            id: true,
-            razaoSocial: true,
-            cnpj: true,
-          },
-        },
-      },
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    });
-    const data: ContractListItem[] = contracts.map((contract) => ({
-      ...contract,
-      percentage: Number(contract.percentage),
-      minimumWage: Number(contract.minimumWage),
-      taxRate: Number(contract.taxRate),
-      programmerRate: Number(contract.programmerRate),
-    }));
-    return {
-      success: true,
-      data,
-    };
+    const adminView = await getContractsAdminViewData();
+    return { success: true, data: adminView.contracts };
   } catch (error) {
     console.error("Erro ao buscar contratos:", error);
     return { success: false, error: "Erro ao carregar contratos." };
   }
 }
 
-export async function getContractSuspendImpactAction(contractId: string): Promise<ContractActionResponse<ContractSuspendImpact>> {
+export async function getContractSuspendImpactAction(
+  contractId: string,
+): Promise<ContractActionResponse<ContractSuspendImpact>> {
   const session = await getProtectedSession();
-  if (!session || !WRITE_ROLES.includes(session.role)) {
+  if (!session) {
     return { success: false, error: "Permissao negada." };
   }
 
   try {
-    const contract = await prisma.contract.findUnique({
-      where: { id: contractId },
-      select: {
-        id: true,
-        companyId: true,
-        status: true,
-        company: {
-          select: {
-            razaoSocial: true,
-          },
-        },
-      },
-    });
+    const response = await apiRequest(`/settings/contracts/${encodeURIComponent(contractId)}/suspend-impact`);
+    const payload = await response.json().catch(() => null);
+    const parsed = contractSuspendImpactSchema.safeParse(payload?.data);
 
-    if (!contract) {
-      return { success: false, error: "Contrato nao encontrado." };
+    if (!response.ok || !parsed.success) {
+      return {
+        success: false,
+        error: typeof payload?.error === "string" ? payload.error : "Erro ao consultar impacto.",
+      };
     }
 
-    const activeContracts = await prisma.contract.count({
-      where: {
-        companyId: contract.companyId,
-        status: ContractStatus.ACTIVE,
-        id: { not: contractId },
-      },
-    });
-
-    const totalLinkedUsers = await prisma.membership.count({
-      where: { companyId: contract.companyId },
-    });
-
-    const blockedUsersCount = await prisma.user.count({
-      where: {
-        deletedAt: null,
-        role: { in: CLIENT_ROLES },
-        memberships: { some: { companyId: contract.companyId } },
-      },
-    });
-
-    return {
-      success: true,
-      data: {
-        companyName: contract.company.razaoSocial,
-        willBlockCompany: activeContracts === 0,
-        blockedUsersCount,
-        totalLinkedUsers,
-      },
-    };
+    return { success: true, data: parsed.data };
   } catch (error) {
     console.error("Erro ao consultar impacto de suspensao do contrato:", error);
     return { success: false, error: "Erro ao consultar impacto." };
@@ -140,17 +91,17 @@ export async function getContractSuspendImpactAction(contractId: string): Promis
 }
 
 export async function getContractsAdminViewData(): Promise<ContractsAdminViewData> {
-  const [contractsRes, companies] = await Promise.all([
-    getContractsAction(),
-    prisma.company.findMany({
-      where: { deletedAt: null, status: { not: CompanyStatus.INACTIVE } },
-      orderBy: { razaoSocial: "asc" },
-      select: { id: true, razaoSocial: true, cnpj: true },
-    }),
-  ]);
+  try {
+    const response = await apiRequest("/settings/contracts/admin-view");
+    const payload = await response.json().catch(() => null);
+    const parsed = contractsAdminViewSchema.safeParse(payload?.data);
 
-  return {
-    contracts: contractsRes.success && contractsRes.data ? contractsRes.data : [],
-    companies,
-  };
+    if (!response.ok || !parsed.success) {
+      return { contracts: [], companies: [] };
+    }
+
+    return parsed.data;
+  } catch {
+    return { contracts: [], companies: [] };
+  }
 }

@@ -19,6 +19,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReleasesModule } from './modules/releases/releases.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { AgentsModule } from './modules/agents/agents.module';
+import { DocumentosModule } from './modules/documentos/documentos.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AgentsModule } from './modules/agents/agents.module';
     ReleasesModule,
     CrmModule,
     AgentsModule,
+    DocumentosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

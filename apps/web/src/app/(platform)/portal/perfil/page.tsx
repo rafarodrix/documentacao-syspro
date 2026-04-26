@@ -1,19 +1,22 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import { UserProfileSettings } from "@/components/platform/shared/UserProfileSettings";
+import { headers } from "next/headers";
 
 export default async function AdminProfilePage() {
   const session = await requireSession();
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.email },
-    select: {
-      name: true,
-      email: true,
-      image: true,
-      role: true,
-    },
-  });
+  const response = await fetch(`${getBackendApiBaseUrl()}/users/me/profile`, {
+    headers: withInternalApiHeaders({
+      ...(cookie ? { cookie } : {}),
+    }),
+    cache: "no-store",
+  }).catch(() => null);
+
+  const payload = response ? await response.json().catch(() => null) : null;
+  const user = response?.ok ? payload?.data : null;
 
   const userData = {
     name: user?.name || session.name || "Usuario",

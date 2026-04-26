@@ -1,4 +1,10 @@
-import type { ContractStatus } from "@prisma/client";
+import type {
+  ContractCompanyOption as SharedContractCompanyOption,
+  ContractListItem as SharedContractListItem,
+  ContractSuspendImpact as SharedContractSuspendImpact,
+  ContractSystemParams as SharedContractSystemParams,
+  ContractsAdminView as SharedContractsAdminView,
+} from "@dosc-syspro/contracts/contract";
 
 export type ContractActionSuccess<T = void> = T extends void
   ? {
@@ -18,45 +24,8 @@ export type ContractActionFailure = {
 
 export type ContractActionResponse<T = void> = ContractActionSuccess<T> | ContractActionFailure;
 
-export interface ContractCompanyOption {
-  id: string;
-  razaoSocial: string;
-  cnpj: string;
-}
-
-export interface ContractSuspendImpact {
-  companyName: string;
-  willBlockCompany: boolean;
-  blockedUsersCount: number;
-  totalLinkedUsers: number;
-}
-
-export interface ContractListItem {
-  id: string;
-  companyId: string;
-  percentage: number | string;
-  minimumWage: number | string;
-  taxRate: number | string;
-  programmerRate: number | string;
-  contractNumber?: string | null;
-  notes?: string | null;
-  status: ContractStatus;
-  startDate: string | Date;
-  endDate?: string | Date | null;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  company: {
-    id: string;
-    razaoSocial: string;
-    cnpj: string;
-  };
-}
-
-export interface ContractsAdminViewData {
-  contracts: ContractListItem[];
-  companies: ContractCompanyOption[];
-}
-
-export interface ContractSystemParams {
-  minimumWage: number;
-}
+export type ContractCompanyOption = SharedContractCompanyOption;
+export type ContractSuspendImpact = SharedContractSuspendImpact;
+export type ContractListItem = SharedContractListItem;
+export type ContractsAdminViewData = SharedContractsAdminView;
+export type ContractSystemParams = SharedContractSystemParams;

@@ -1,5 +1,5 @@
-import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req, Logger } from '@nestjs/common';
-import { CompanyStatus } from '@prisma/client';
+import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req, Logger, Patch, ForbiddenException } from '@nestjs/common';
+import { CompanyStatus, ContractStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConnectionsService } from './integration-connections.service';
 import {
@@ -24,6 +24,7 @@ import {
 } from '@dosc-syspro/contracts/remote';
 import {
   type SettingsContractsAdminView,
+  SETTING_KEYS,
   settingsSchema,
   settingsAccessProfileUpsertSchema,
   settingsPermissionsMatrixVisibilityUpdateSchema,
@@ -31,6 +32,15 @@ import {
   type SettingsInput,
   type SettingsOutput,
 } from '@dosc-syspro/contracts/settings';
+import {
+  batchReadjustContractsSchema,
+  createContractSchema,
+  contractStatusSchema,
+  DEFAULT_CONTRACT_TAX_RATE,
+  type ContractStatusValue,
+  type UpdateContractOutput,
+  updateContractSchema,
+} from '@dosc-syspro/contracts/contract';
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   ticketModuleSettingsSchema,
@@ -45,6 +55,7 @@ import { TicketsService } from '../tickets/tickets.service';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 import { IntegrationContextService } from './integration-context.service';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
+import { serializeContractBlockReason, type ContractBlockReason } from '@dosc-syspro/core';
 
 @Controller('settings')
 export class SettingsController {
@@ -766,6 +777,23 @@ export class SettingsController {
     return { success: true, data };
   }
 
+  @Get('contracts/system-params')
+  async getContractSystemParams(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'contracts:view');
+
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: SETTING_KEYS.MIN_WAGE },
+      select: { value: true },
+    });
+
+    return {
+      success: true,
+      data: {
+        minimumWage: setting?.value ? Number(setting.value) : 1412,
+      },
+    };
+  }
+
   @Get('contracts/admin-view')
   async getContractsAdminView(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'contracts:view');
@@ -824,6 +852,260 @@ export class SettingsController {
     };
 
     return { success: true, data };
+  }
+
+  @Get('contracts/:id/suspend-impact')
+  async getContractSuspendImpact(@Req() req: Request, @Param('id') id: string) {
+    await this.authorizationService.assertPermission(req.headers, 'contracts:view');
+
+    const contract = await this.prisma.contract.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        companyId: true,
+        company: {
+          select: {
+            razaoSocial: true,
+          },
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato nao encontrado.');
+    }
+
+    const [activeContracts, totalLinkedUsers, blockedUsersCount] = await Promise.all([
+      this.prisma.contract.count({
+        where: {
+          companyId: contract.companyId,
+          status: ContractStatus.ACTIVE,
+          id: { not: id },
+        },
+      }),
+      this.prisma.membership.count({
+        where: { companyId: contract.companyId },
+      }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+          memberships: { some: { companyId: contract.companyId } },
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        companyName: contract.company.razaoSocial,
+        willBlockCompany: activeContracts === 0,
+        blockedUsersCount,
+        totalLinkedUsers,
+      },
+    };
+  }
+
+  @Post('contracts')
+  async createContract(@Req() req: Request, @Body() body: unknown) {
+    await this.assertContractsWriteAccess(req.headers);
+    const parsed = createContractSchema.parse(body);
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: parsed.companyId },
+      select: { cnpj: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Empresa nao encontrada.');
+    }
+
+    await this.prisma.contract.create({
+      data: {
+        companyId: parsed.companyId,
+        percentage: parsed.percentage,
+        minimumWage: parsed.minimumWage,
+        taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
+        programmerRate: parsed.programmerRate,
+        status: parsed.status,
+        startDate: parsed.startDate ? new Date(parsed.startDate) : new Date(),
+        endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+        contractNumber: company.cnpj,
+        notes: parsed.notes?.trim() || null,
+      },
+    });
+
+    await this.prisma.company.update({
+      where: { id: parsed.companyId },
+      data: { status: CompanyStatus.ACTIVE, deletedAt: null, observacoes: null },
+    });
+
+    await this.prisma.user.updateMany({
+      where: {
+        deletedAt: null,
+        role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+        memberships: { some: { companyId: parsed.companyId } },
+      },
+      data: { isActive: true },
+    });
+
+    return { success: true, message: 'Contrato criado com sucesso!' };
+  }
+
+  @Put('contracts/:id')
+  async updateContract(@Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
+    await this.assertContractsWriteAccess(req.headers);
+    const parsed = updateContractSchema.parse({ ...(body as object), id }) as UpdateContractOutput;
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: parsed.companyId },
+      select: { cnpj: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Empresa nao encontrada.');
+    }
+
+    await this.prisma.contract.update({
+      where: { id: parsed.id },
+      data: {
+        percentage: parsed.percentage,
+        minimumWage: parsed.minimumWage,
+        taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
+        programmerRate: parsed.programmerRate,
+        status: parsed.status,
+        startDate: parsed.startDate ? new Date(parsed.startDate) : undefined,
+        endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+        contractNumber: company.cnpj,
+        notes: parsed.notes?.trim() || null,
+      },
+    });
+
+    return { success: true, message: 'Contrato atualizado com sucesso.' };
+  }
+
+  @Post('contracts/batch-readjust')
+  async batchReadjustContracts(@Req() req: Request, @Body() body: unknown) {
+    await this.assertContractsWriteAccess(req.headers);
+    const parsed = batchReadjustContractsSchema.parse(body);
+
+    const activeContractIds = await this.prisma.contract.findMany({
+      where: { status: ContractStatus.ACTIVE },
+      select: { id: true },
+    });
+
+    let affected = 0;
+    for (let i = 0; i < activeContractIds.length; i += 50) {
+      const chunkIds = activeContractIds.slice(i, i + 50).map((item) => item.id);
+      if (!chunkIds.length) continue;
+
+      const result = await this.prisma.contract.updateMany({
+        where: {
+          id: { in: chunkIds },
+          status: ContractStatus.ACTIVE,
+        },
+        data: {
+          minimumWage: parsed.minimumWage,
+          updatedAt: new Date(),
+        },
+      });
+
+      affected += result.count;
+    }
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: SETTING_KEYS.MIN_WAGE },
+      update: { value: String(parsed.minimumWage) },
+      create: {
+        key: SETTING_KEYS.MIN_WAGE,
+        value: String(parsed.minimumWage),
+        description: 'Salario minimo base',
+      },
+    });
+
+    return { success: true, data: { affected } };
+  }
+
+  @Patch('contracts/:id/status')
+  async updateContractStatus(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { status?: ContractStatusValue; reason?: ContractBlockReason | null; details?: string | null },
+  ) {
+    await this.assertContractsWriteAccess(req.headers);
+    const parsedStatus = contractStatusSchema.safeParse(body?.status);
+    if (!parsedStatus.success) {
+      throw new ForbiddenException('Status do contrato invalido.');
+    }
+
+    const contract = await this.prisma.contract.findUnique({
+      where: { id },
+      select: { id: true, companyId: true },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato nao encontrado.');
+    }
+
+    const isDeactivating = parsedStatus.data !== 'ACTIVE';
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.contract.update({
+        where: { id },
+        data: { status: parsedStatus.data },
+      });
+
+      const activeContracts = await tx.contract.count({
+        where: {
+          companyId: contract.companyId,
+          status: ContractStatus.ACTIVE,
+          id: { not: id },
+        },
+      });
+
+      if (isDeactivating && activeContracts === 0) {
+        const blockReason = body?.reason ? serializeContractBlockReason(body.reason, body.details ?? undefined) : null;
+
+        await tx.company.update({
+          where: { id: contract.companyId },
+          data: {
+            status: CompanyStatus.SUSPENDED,
+            observacoes: blockReason,
+          },
+        });
+
+        await tx.user.updateMany({
+          where: {
+            deletedAt: null,
+            role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+            memberships: { some: { companyId: contract.companyId } },
+          },
+          data: { isActive: false },
+        });
+      }
+
+      if (!isDeactivating) {
+        await tx.company.update({
+          where: { id: contract.companyId },
+          data: {
+            status: CompanyStatus.ACTIVE,
+            deletedAt: null,
+            observacoes: null,
+          },
+        });
+
+        await tx.user.updateMany({
+          where: {
+            deletedAt: null,
+            role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+            memberships: { some: { companyId: contract.companyId } },
+          },
+          data: { isActive: true },
+        });
+      }
+    });
+
+    return { success: true, message: 'Status do contrato atualizado.' };
   }
 
   @Get('remote/admin-view')
@@ -1280,6 +1562,14 @@ export class SettingsController {
   private readOptionalString(value: unknown): string | null {
     const normalized = String(value ?? '').trim();
     return normalized || null;
+  }
+
+  private async assertContractsWriteAccess(rawHeaders: Request['headers']) {
+    await this.authorizationService.assertPermission(rawHeaders, 'contracts:edit');
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    if (requester.role !== Role.ADMIN) {
+      throw new ForbiddenException('Permissao negada.');
+    }
   }
 
   private async readStoredChatwootBehaviorSettings() {

@@ -1,16 +1,35 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { headers } from "next/headers";
 import { type DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts/documento";
+import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/model";
 import { revalidateDocumentosViews } from "@/lib/cache-invalidation";
 
+async function apiRequest(path: string, init?: RequestInit) {
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
+
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: withInternalApiHeaders({
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+      ...(init?.headers ?? {}),
+    }),
+    cache: "no-store",
+  });
+}
+
 export async function getDocumentos(): Promise<DocumentosListResponse> {
   try {
-    const docs = await prisma.documentoConfig.findMany({
-      orderBy: { updatedAt: "desc" },
-    });
-    return { success: true, data: docs };
+    const response = await apiRequest("/documentos");
+    const payload = (await response.json().catch(() => null)) as DocumentosListResponse | null;
+    if (!response.ok || !payload?.success) {
+      return { success: false, error: payload?.success === false ? payload.error : "Falha ao carregar dados." };
+    }
+
+    return payload;
   } catch (error) {
     console.error("Erro ao buscar documentos:", error);
     return { success: false, error: "Falha ao carregar dados." };
@@ -24,51 +43,38 @@ export async function saveDocumento(data: DocumentoFormValues): Promise<Document
     return { success: false, error: "Dados invalidos." };
   }
 
-  const {
-    id,
-    emitente,
-    maximoItens,
-    atualizaComercial,
-    processamentoEtapa,
-    ...payload
-  } = validation.data;
-
-  void emitente;
-  void maximoItens;
-  void atualizaComercial;
-  void processamentoEtapa;
-
   try {
-    if (id && id.length > 10) {
-      await prisma.documentoConfig.update({
-        where: { id },
-        data: {
-          ...payload,
-          comportamentos: payload.comportamentos || [],
-        },
-      });
-    } else {
-      await prisma.documentoConfig.create({
-        data: {
-          ...payload,
-          comportamentos: payload.comportamentos || [],
-        },
-      });
+    const response = await apiRequest("/documentos", {
+      method: "POST",
+      body: JSON.stringify(validation.data),
+    });
+
+    const payload = (await response.json().catch(() => null)) as DocumentoActionResponse | null;
+    if (!response.ok || !payload?.success) {
+      return { success: false, error: payload?.success === false ? payload.error : "Erro interno ao persistir dados." };
     }
 
     revalidateDocumentosViews();
-    return { success: true };
+    return payload;
   } catch (error) {
-    console.error("Erro critico ao salvar no Prisma:", error);
+    console.error("Erro ao salvar documento:", error);
     return { success: false, error: "Erro interno ao persistir dados." };
   }
 }
 
 export async function deleteDocumento(id: string): Promise<DocumentoActionResponse> {
   try {
-    await prisma.documentoConfig.delete({ where: { id } });
+    const response = await apiRequest(`/documentos/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+
+    const payload = (await response.json().catch(() => null)) as DocumentoActionResponse | null;
+    if (!response.ok || !payload?.success) {
+      return { success: false, error: payload?.success === false ? payload.error : "Erro ao excluir registro." };
+    }
+
     revalidateDocumentosViews();
-    return { success: true };
+    return payload;
   } catch (error) {
     console.error("Erro ao excluir:", error);
     return { success: false, error: "Erro ao excluir registro." };

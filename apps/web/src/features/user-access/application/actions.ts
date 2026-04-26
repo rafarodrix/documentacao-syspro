@@ -1,9 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createUserSchema, updateUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
+import { createUserSchema, updateUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { Role } from "@prisma/client";
 import { z } from "zod";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
@@ -86,7 +85,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
   if (!session) return { success: false, message: "Permissao negada." };
 
   const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  const isClientManager = session.role === "CLIENTE_ADMIN";
   if (!isSystemRole && !isClientManager) return { success: false, message: "Permissao negada." };
 
   const validation = createUserSchema.safeParse(data);
@@ -123,7 +122,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
         email: validation.data.email,
         password: validation.data.password || data.password,
         name: validation.data.name,
-        role: validation.data.role as Role,
+        role: validation.data.role as UserRoleValue,
         contactId: validation.data.contactId || null,
       }),
     });
@@ -145,7 +144,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
   if (!session) return { success: false, message: "Acesso negado." };
 
   const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  const isClientManager = session.role === "CLIENTE_ADMIN";
   if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
 
   const updateValidation = updateUserSchema.safeParse(data);
@@ -183,7 +182,7 @@ export async function deleteUserAction(id: string): Promise<UserAccessActionResp
   if (!session || id === session.userId) return { success: false, message: "Operacao invalida." };
 
   const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  const isClientManager = session.role === "CLIENTE_ADMIN";
   if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
 
   try {
@@ -208,7 +207,7 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
   if (!session) return { success: false, message: "Acesso negado." };
 
   const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === Role.CLIENTE_ADMIN;
+  const isClientManager = session.role === "CLIENTE_ADMIN";
   if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
 
   try {
