@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Terminal, ShieldCheck, Zap, CheckCircle2, ArrowLeft, type LucideIcon } from "lucide-react";
+import { ShieldCheck, Zap, CheckCircle2, ArrowLeft, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AuthLayoutWrapperProps {
@@ -46,8 +47,13 @@ export function AuthLayoutWrapper({
 
                     {/* Cabeçalho */}
                     <div className="flex flex-col space-y-2 text-center">
-                        <div className="mx-auto mb-6 h-12 w-12 rounded-xl bg-linear-to-tr from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-                            <Terminal className="h-6 w-6 text-primary-foreground" />
+                        <div className="mx-auto mb-6 flex items-center justify-center">
+                            <div className="relative h-10 w-44 dark:hidden">
+                                <Image src="/img/logo/logo-escura.png" alt="Trilink Software" fill priority className="object-contain" sizes="176px" />
+                            </div>
+                            <div className="relative hidden h-10 w-44 dark:block">
+                                <Image src="/img/logo/logo-clara.png" alt="Trilink Software" fill priority className="object-contain" sizes="176px" />
+                            </div>
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
                         <p className="text-muted-foreground text-sm">
@@ -72,12 +78,11 @@ export function AuthLayoutWrapper({
                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
                 </div>
 
-                {/* Logo */}
-                <div className="relative z-10 flex items-center gap-3 animate-in fade-in slide-in-from-top-8 duration-1000">
-                    <div className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur border border-white/10 flex items-center justify-center">
-                        <Terminal className="h-5 w-5 text-white" />
+                {/* Logo — fundo sempre escuro, usa logo-clara */}
+                <div className="relative z-10 animate-in fade-in slide-in-from-top-8 duration-1000">
+                    <div className="relative h-9 w-40">
+                        <Image src="/img/logo/logo-clara.png" alt="Trilink Software" fill priority className="object-contain object-left" sizes="160px" />
                     </div>
-                    <span className="text-lg font-semibold tracking-wide">Trilink Software</span>
                 </div>
 
                 {/* Features */}
