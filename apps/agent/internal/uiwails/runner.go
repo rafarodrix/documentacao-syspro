@@ -16,6 +16,7 @@ type serviceRunner interface {
 
 func RunApp(ctx context.Context, service serviceRunner, host *Host, assets fs.FS, icon []byte) error {
 	api := NewAPI(host.logger, host, host.ipc, host.supportProvider)
+	_ = icon
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -35,7 +36,6 @@ func RunApp(ctx context.Context, service serviceRunner, host *Host, assets fs.FS
 		StartHidden:       true,
 		HideWindowOnClose: true,
 		DisableResize:     true,
-		Icon:              icon,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
