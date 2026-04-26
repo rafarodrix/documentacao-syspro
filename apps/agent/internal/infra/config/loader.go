@@ -14,7 +14,7 @@ func Load() (Config, error) {
 		Portal: PortalConfig{
 			BaseURL:         getEnvAny([]string{"PORTAL_BASE_URL", "PORTAL_API_BASE_URL"}, "http://localhost:3000"),
 			APIKey:          getEnvAny([]string{"PORTAL_API_KEY", "INTERNAL_API_KEY"}, ""),
-			AgentAPIEnabled: getEnvBool("PORTAL_AGENT_API_ENABLED", false),
+			AgentAPIEnabled: getEnvBool("PORTAL_AGENT_API_ENABLED", true),
 		},
 		Paths: PathsConfig{
 			StateDir: getStateDir(),

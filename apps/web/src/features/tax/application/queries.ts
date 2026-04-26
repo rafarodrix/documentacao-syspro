@@ -11,7 +11,7 @@ import {
   fetchTaxCredPresumidoViewGateway,
   fetchTaxNcmViewGateway,
   fetchTaxRulesViewGateway,
-} from "@/features/tax/infrastructure/tax.gateway";
+} from "@/features/tax/infrastructure/gateways/tax.gateway";
 
 export async function getTaxClassificationListViewData(): Promise<TaxClassificationListViewData> {
   return fetchTaxClassificationListViewGateway();

@@ -1,5 +1,5 @@
 import type { RemoteTenantScope } from "@/features/remote/domain/model";
-import { fetchRemoteEfficiencyMetricsGateway } from "@/features/remote/infrastructure/remote-admin.gateway";
+import { fetchRemoteEfficiencyMetricsGateway } from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
 
 export interface EfficiencyMetrics {
   averageTimeToRemoteSeconds: number | null;

@@ -1,5 +1,5 @@
 import { REMOTE_AGENT_ACK_REASON_LABELS, type RemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
-import type { RemoteMachineProfile } from "@/features/remote/domain/model";
+import type { RemoteMachineProfile } from "@dosc-syspro/contracts/remote";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 
 export const COMPANY_SERVER_TYPE_LABEL: Record<"SYSPRO_SERVER" | "IIS", string> = {
