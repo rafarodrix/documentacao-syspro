@@ -28,6 +28,7 @@
   "dependencies": {
     "@dosc-syspro/application": "file:../../packages/application",
     "@dosc-syspro/config": "file:../../packages/config",
+    "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/remote-infra": "file:../../packages/remote-infra",
     "@dosc-syspro/shared": "file:../../packages/shared",
     "@hookform/resolvers": "^5.2.2",

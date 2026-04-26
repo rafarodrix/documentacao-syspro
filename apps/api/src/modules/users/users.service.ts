@@ -23,16 +23,7 @@ import {
   type UserAccessListItem,
   type UserEmailAvailabilityResult,
 } from '@dosc-syspro/contracts/user';
-
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
-const CLIENT_ROLES: Role[] = [Role.CLIENTE_ADMIN, Role.CLIENTE_USER];
-const ROLE_LABELS: Record<Role, string> = {
-  [Role.ADMIN]: 'Admin',
-  [Role.DEVELOPER]: 'Desenvolvedor',
-  [Role.SUPORTE]: 'Suporte',
-  [Role.CLIENTE_ADMIN]: 'Gestor da Unidade',
-  [Role.CLIENTE_USER]: 'Usuario',
-};
+import { SYSTEM_ROLES, CLIENT_ROLES, ROLE_LABELS } from '@dosc-syspro/core';
 
 @Injectable()
 export class UsersService {

@@ -11,6 +11,7 @@ export type { ContractBlockReason } from "./config/contract-blocking";
 export {
   APP_ROLES,
   SYSTEM_ROLES,
+  CLIENT_ROLES,
   CADASTRO_MANAGER_ROLES,
   CADASTROS_ROUTE_RULES,
   DOCS_ROUTE_RULES,
