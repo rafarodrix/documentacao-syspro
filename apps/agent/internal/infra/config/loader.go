@@ -81,6 +81,57 @@ func getEnvBool(key string, fallback bool) bool {
 	}
 }
 
+// DefaultEnvFilePath returns the canonical .env path for the current OS.
+// On Windows this is %ProgramData%\Trilink\Agent\.env, readable by SYSTEM and users.
+func DefaultEnvFilePath() string {
+	if runtime.GOOS == "windows" {
+		programData := os.Getenv("ProgramData")
+		if programData == "" {
+			programData = `C:\ProgramData`
+		}
+		return filepath.Join(programData, "Trilink", "Agent", ".env")
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		return filepath.Join(home, ".trilink", "agent", ".env")
+	}
+	return filepath.Join(".", ".env")
+}
+
+// LoadEnvFile reads a .env file and populates os environment variables.
+// Existing env vars are not overwritten (explicit env takes precedence over file).
+// Missing file is silently ignored.
+func LoadEnvFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("read env file %s: %w", path, err)
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		idx := strings.IndexByte(line, '=')
+		if idx < 1 {
+			continue
+		}
+		key := strings.TrimSpace(line[:idx])
+		value := strings.TrimSpace(line[idx+1:])
+		if len(value) >= 2 &&
+			((value[0] == '"' && value[len(value)-1] == '"') ||
+				(value[0] == '\'' && value[len(value)-1] == '\'')) {
+			value = value[1 : len(value)-1]
+		}
+		if key != "" && os.Getenv(key) == "" {
+			_ = os.Setenv(key, value)
+		}
+	}
+	return nil
+}
+
 func getStateDir() string {
 	if value := strings.TrimSpace(os.Getenv("AGENT_STATE_DIR")); value != "" {
 		return value
