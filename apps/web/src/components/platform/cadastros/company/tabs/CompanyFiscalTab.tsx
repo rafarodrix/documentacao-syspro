@@ -7,7 +7,8 @@ import type { CompanyOption } from "@/features/company/domain/model";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Users2, ListTree } from "lucide-react";
+import { Building2, FileText, Users2, ListTree } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface CompanyFiscalTabProps {
   companies: CompanyOption[];
@@ -27,7 +28,8 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
   return (
     <div className="space-y-6">
       {/* Regime e inscricoes */}
-      <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardContent className="space-y-4 p-4 md:p-5">
         <div className="flex items-center gap-2 mb-1">
           <div className="p-1.5 rounded-md bg-primary/10">
             <FileText className="h-4 w-4 text-primary" />
@@ -162,7 +164,8 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
             </FormItem>
           )}
         />
-      </div>
+        </CardContent>
+      </Card>
 
       {/* CNAEs Secundarios (readonly — preenchido via CNPJ) */}
       <div className={READONLY_BLOCK_CLASS}>
@@ -220,12 +223,18 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
       </div>
 
       {/* Estrutura empresarial */}
-      <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Estrutura empresarial</p>
-          <p className="text-xs text-muted-foreground">
-            Hierarquia da empresa no grupo e escritorio contabil vinculado.
-          </p>
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardContent className="space-y-4 p-4 md:p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="p-1.5 rounded-md bg-primary/10">
+            <Building2 className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Estrutura empresarial</p>
+            <p className="text-xs text-muted-foreground">
+              Hierarquia da empresa no grupo e escritorio contabil vinculado.
+            </p>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -285,7 +294,8 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
             )}
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -5,8 +5,10 @@ import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
+import type { CompanyOption } from "@dosc-syspro/contracts/company";
+import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import type { Role as PrismaRole } from "@prisma/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +22,17 @@ import {
   AlertCircle,
   Building2,
   Check,
+  CheckCircle2,
   ChevronsUpDown,
+  CircleDot,
   Link2,
   Loader2,
   Mail,
   Phone,
   Search,
+  ShieldCheck,
   UserRound,
+  type LucideIcon,
 } from "lucide-react";
 
 const ROLE = {
@@ -37,29 +43,12 @@ const ROLE = {
   CLIENTE_USER: "CLIENTE_USER",
 } as const;
 
-type ContactOption = {
-  id: string;
-  name: string;
-  whatsapp?: string | null;
-  email?: string | null;
-  companyId?: string | null;
-  companyIds?: string[];
-  company?: {
-    id: string;
-    razaoSocial: string;
-    nomeFantasia?: string | null;
-  } | null;
-  companies?: Array<{
-    id: string;
-    razaoSocial: string;
-    nomeFantasia?: string | null;
-  }>;
-};
-
-type CompanyOption = {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia: string | null;
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Admin",
+  DEVELOPER: "Dev",
+  SUPORTE: "Suporte",
+  CLIENTE_ADMIN: "Gestor",
+  CLIENTE_USER: "Usuario",
 };
 
 export interface CreateUserPageFormProps {
@@ -342,6 +331,13 @@ export function CreateUserPageForm({
 
   const hasErrors = Object.keys(errors).length > 0;
 
+  const readinessItems = [
+    { label: "Nome", done: String(watchedName ?? "").trim().length >= 3 },
+    { label: "Email", done: Boolean(watchedEmail && isValidEmailFormat(String(watchedEmail))) },
+    { label: "Contato", done: Boolean(selectedContactId) },
+    { label: "Nivel de acesso", done: Boolean(selectedRole) },
+  ];
+
   const title =
     mode === "edit"
       ? "Editar usuario"
@@ -390,12 +386,41 @@ export function CreateUserPageForm({
             </>
           }
         >
-          <div className="space-y-6">
-            <Card className="border-border/60 bg-card/95">
-              <CardHeader>
-                <CardTitle className="text-base">Contato e credenciais</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+            <section className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-3">
+                <SummaryCard
+                  title="Identidade"
+                  value={String(watchedName ?? "").trim().length >= 3 ? "Ok" : "Pendente"}
+                  icon={UserRound}
+                  tone={String(watchedName ?? "").trim().length >= 3 ? "success" : "neutral"}
+                />
+                <SummaryCard
+                  title="Nivel de acesso"
+                  value={ROLE_LABELS[selectedRole] ?? "Pendente"}
+                  icon={ShieldCheck}
+                  tone={selectedRole ? "info" : "neutral"}
+                />
+                <SummaryCard
+                  title="Contato"
+                  value={selectedContactId ? "Vinculado" : "Pendente"}
+                  icon={Link2}
+                  tone={selectedContactId ? "success" : "neutral"}
+                />
+              </div>
+
+              <Card className="border-border/60 bg-card shadow-sm">
+                <CardContent className="space-y-5 p-4 md:p-5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-primary/10">
+                      <UserRound className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Contato e credenciais</p>
+                      <p className="text-xs text-muted-foreground">O usuario herda identidade e empresas do contato vinculado.</p>
+                    </div>
+                  </div>
+
                 <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
                   <div className="flex items-center gap-2">
                     <Link2 className="h-4 w-4 text-primary/70" />
@@ -528,8 +553,63 @@ export function CreateUserPageForm({
                     </FormItem>
                   )}
                 />
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </section>
+
+            <aside className="space-y-5">
+              <Card className="border-border/60 bg-card shadow-sm">
+                <CardContent className="space-y-4 p-4 md:p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      <UserRound className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Resumo do usuario</p>
+                      <p className="text-xs text-muted-foreground">Conferencia rapida antes de salvar.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {readinessItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs"
+                      >
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 font-medium",
+                            item.done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                          )}
+                        >
+                          {item.done ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <CircleDot className="h-3.5 w-3.5" />
+                          )}
+                          {item.done ? "Ok" : "Pendente"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs">
+                    <div className="space-y-3">
+                      <SummaryLine icon={UserRound} label="Nome" value={String(watchedName ?? "") || "Nao informado"} />
+                      <SummaryLine icon={Mail} label="Email" value={String(watchedEmail ?? "") || "Nao informado"} />
+                      <SummaryLine icon={ShieldCheck} label="Nivel" value={ROLE_LABELS[selectedRole] ?? "Nao definido"} />
+                      <SummaryLine icon={Link2} label="Contato" value={selectedContact?.name || "Nao vinculado"} />
+                      <SummaryLine icon={Building2} label="Empresa" value={selectedCompanyNames || "Sem empresa"} />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Use o botao fixo no rodape para salvar. O contato vinculado define as empresas acessiveis pelo usuario.
+                  </p>
+                </CardContent>
+              </Card>
+            </aside>
           </div>
         </RegistryFormScaffold>
       </form>
@@ -669,5 +749,61 @@ function ContactPicker({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function SummaryCard({
+  title,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: string;
+  icon: LucideIcon;
+  tone: "info" | "success" | "neutral";
+}) {
+  const toneClass = {
+    info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    neutral: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
+  }[tone];
+
+  return (
+    <Card className="border-border/60 bg-card shadow-sm">
+      <CardContent className="flex items-start justify-between gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {title}
+          </p>
+          <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
+        </div>
+        <div className={cn("flex h-9 w-9 items-center justify-center rounded-md", toneClass)}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryLine({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-2">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="truncate text-xs font-medium text-foreground">{value}</p>
+      </div>
+    </div>
   );
 }

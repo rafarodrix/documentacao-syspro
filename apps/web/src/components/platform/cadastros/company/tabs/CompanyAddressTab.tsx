@@ -5,6 +5,7 @@ import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, Search } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface CompanyAddressTabProps {
   isLoadingCep: boolean;
@@ -16,8 +17,8 @@ export function CompanyAddressTab({ isLoadingCep, onCepChange }: CompanyAddressT
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
+    <Card className="border-border/60 bg-card shadow-sm">
+      <CardContent className="space-y-4 p-4 md:p-5">
         <div className="flex items-center gap-2 mb-1">
           <div className="p-1.5 rounded-md bg-primary/10">
             <MapPin className="h-4 w-4 text-primary" />
@@ -166,7 +167,7 @@ export function CompanyAddressTab({ isLoadingCep, onCepChange }: CompanyAddressT
             )}
           />
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Server, Network, Plus, Trash2, Info } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const REMOTE_CONNECTION_LABEL: Record<CompanyRemoteConnectionInput["type"], string> = {
@@ -36,7 +37,8 @@ export function CompanySettingsTab() {
   return (
     <div className="space-y-6">
       {/* Servidor SYSPRO */}
-      <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardContent className="space-y-4 p-4 md:p-5">
         <div className="flex items-center gap-2 mb-1">
           <div className="p-1.5 rounded-md bg-primary/10">
             <Server className="h-4 w-4 text-primary" />
@@ -177,10 +179,12 @@ export function CompanySettingsTab() {
             <code className="font-mono font-semibold text-foreground px-1">HTTP</code>.
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Conexoes remotas */}
-      <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardContent className="space-y-4 p-4 md:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10">
@@ -275,7 +279,8 @@ export function CompanySettingsTab() {
             ))}
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

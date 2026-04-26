@@ -1,5 +1,6 @@
 import type { CompanySegment, CompanyStatus, IndicadorIE, TaxRegime } from "@prisma/client";
-import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
+import type { CreateCompanyInput, CompanyOption } from "@dosc-syspro/contracts/company";
+export type { CompanyOption } from "@dosc-syspro/contracts/company";
 
 export type CompanyValidationErrors = Partial<Record<keyof CreateCompanyInput, string[]>>;
 
@@ -58,12 +59,6 @@ export type CompanyRegistryLookupResponse = {
     };
   };
 };
-
-export interface CompanyOption {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia: string | null;
-}
 
 export interface CompanyAddressView {
   description?: string | null;
