@@ -355,7 +355,6 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		TargetVersion:   bootstrapResp.TargetVersion,
 		DefaultPassword: bootstrapResp.DefaultPassword,
 	})
-	_ = m.saveState(ctx, st)
 	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, true, nil); err != nil {
 		m.logger.Warn("remote bootstrap local apply failed after token issuance", "host_id", st.HostID, "error", err)
 		return m.fail("bootstrap rustdesk apply failed", err)
@@ -399,6 +398,10 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		ServiceStatus:  firstNonEmpty(st.ServiceStatus, "unknown"),
 	})
 	if err != nil {
+		m.logger.Warn("remote sync failed, invalidating agent token and requiring rebootstrap",
+			"host_id", st.HostID,
+			"error", err,
+		)
 		st.AgentToken = ""
 		st.RebootstrapRequired = true
 		_ = m.saveState(ctx, st)

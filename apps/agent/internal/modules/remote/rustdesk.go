@@ -159,6 +159,17 @@ func (m *rustDeskManager) ensureInstalled(ctx context.Context, upgrade *rustDesk
 		return "", false, fmt.Errorf("rustdesk installation completed but executable was not found")
 	}
 
+	if upgrade != nil && strings.TrimSpace(upgrade.TargetVersion) != "" {
+		installedVersion := m.getVersion(ctx, exePath)
+		if strings.TrimSpace(installedVersion) == "" {
+			m.logger.Warn("rustdesk post-install version check inconclusive: could not read installed version", "target_version", upgrade.TargetVersion)
+		} else if !strings.EqualFold(strings.TrimSpace(installedVersion), strings.TrimSpace(upgrade.TargetVersion)) {
+			m.logger.Warn("rustdesk post-install version mismatch", "installed", strings.TrimSpace(installedVersion), "target", upgrade.TargetVersion)
+		} else {
+			m.logger.Info("rustdesk post-install version verified", "version", strings.TrimSpace(installedVersion))
+		}
+	}
+
 	return exePath, true, nil
 }
 
@@ -325,6 +336,10 @@ func (m *rustDeskManager) getServiceStatus(ctx context.Context) string {
 func (m *rustDeskManager) downloadInstaller(ctx context.Context, rawURL, checksum string) (string, error) {
 	if localPath, ok := m.resolveLocalInstallerPath(rawURL); ok {
 		return m.prepareLocalInstaller(localPath, checksum)
+	}
+
+	if strings.TrimSpace(checksum) == "" {
+		return "", fmt.Errorf("checksum SHA256 e obrigatorio para downloads HTTP — configure RUSTDESK_INSTALLER_SHA256")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
@@ -505,7 +520,16 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		}
 
 		_ = m.runPowerShell(ctx, "Stop-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
-		time.Sleep(2 * time.Second)
+		stopDeadline := time.Now().Add(10 * time.Second)
+		for time.Now().Before(stopDeadline) {
+			if s := m.getServiceStatus(ctx); s == "stopped" || s == "missing" {
+				break
+			}
+			select {
+			case <-ctx.Done():
+			case <-time.After(500 * time.Millisecond):
+			}
+		}
 
 		if pending, _ := m.isRebootPending(ctx); pending {
 			m.logger.Warn("system has a pending reboot; msi installation may fail — consider rebooting first")
@@ -519,7 +543,9 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		if logPath != "" {
 			m.logger.Info("rustdesk msi install configured", "launch_tray", false, "log_path", logPath)
 		}
-		output, err := m.runMSIInstaller(ctx, msiArgs)
+		msiCtx, msiCancel := context.WithTimeout(ctx, 10*time.Minute)
+		output, err := m.runMSIInstaller(msiCtx, msiArgs)
+		msiCancel()
 		if err != nil {
 			return classifyInstallerError("run msi installer", err, output, logPath)
 		}
