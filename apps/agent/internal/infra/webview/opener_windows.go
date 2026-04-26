@@ -10,8 +10,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
+	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
+	"golang.org/x/sys/windows"
 )
 
 type Logger interface {
@@ -27,6 +30,20 @@ type Opener struct {
 	stateDir string
 	bridge   NativeBridge
 }
+
+var (
+	user32ProcSetForegroundWindow = windows.NewLazySystemDLL("user32.dll").NewProc("SetForegroundWindow")
+	user32ProcBringWindowToTop    = windows.NewLazySystemDLL("user32.dll").NewProc("BringWindowToTop")
+	user32ProcShowWindow          = windows.NewLazySystemDLL("user32.dll").NewProc("ShowWindow")
+	user32ProcSetWindowPos        = windows.NewLazySystemDLL("user32.dll").NewProc("SetWindowPos")
+)
+
+const (
+	swRestore     = 9
+	swpNoSize     = 0x0001
+	swpNoMove     = 0x0002
+	swpShowWindow = 0x0040
+)
 
 func NewOpener(logger Logger, stateDir string, bridge NativeBridge) *Opener {
 	return &Opener{
@@ -92,6 +109,13 @@ func (o *Opener) openWithWebView2(ctx context.Context, target string) error {
 	w.Navigate(navigateTarget)
 
 	go func() {
+		time.Sleep(180 * time.Millisecond)
+		w.Dispatch(func() {
+			promoteWindow(w.Window())
+		})
+	}()
+
+	go func() {
 		<-ctx.Done()
 		w.Terminate()
 	}()
@@ -119,9 +143,9 @@ func resolveWindowTitle(target string) string {
 func resolveWindowSize(target string) (int, int) {
 	base := strings.ToLower(filepath.Base(target))
 	if strings.Contains(base, "setup") {
-		return 480, 760
+		return 430, 640
 	}
-	return 420, 760
+	return 400, 560
 }
 
 func toWebViewTarget(target string) (string, error) {
@@ -139,4 +163,20 @@ func toWebViewTarget(target string) (string, error) {
 		Path:   filepath.ToSlash(absTarget),
 	}
 	return u.String(), nil
+}
+
+func promoteWindow(handle unsafe.Pointer) {
+	if handle == nil {
+		return
+	}
+
+	hwnd := uintptr(handle)
+	topMost := ^uintptr(0)
+	notTopMost := ^uintptr(1)
+
+	_, _, _ = user32ProcShowWindow.Call(hwnd, uintptr(swRestore))
+	_, _, _ = user32ProcSetWindowPos.Call(hwnd, topMost, 0, 0, 0, 0, uintptr(swpNoMove|swpNoSize|swpShowWindow))
+	_, _, _ = user32ProcSetWindowPos.Call(hwnd, notTopMost, 0, 0, 0, 0, uintptr(swpNoMove|swpNoSize|swpShowWindow))
+	_, _, _ = user32ProcBringWindowToTop.Call(hwnd)
+	_, _, _ = user32ProcSetForegroundWindow.Call(hwnd)
 }

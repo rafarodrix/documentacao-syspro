@@ -55,6 +55,7 @@ type remoteState struct {
 	ServerConfig        string    `json:"server_config,omitempty"`
 	TargetVersion       string    `json:"target_version,omitempty"`
 	DefaultPassword     string    `json:"default_password,omitempty"`
+	RuntimePassword     string    `json:"runtime_password,omitempty"`
 	RustDeskExecutable  string    `json:"rustdesk_executable,omitempty"`
 	LastConfigAppliedAt time.Time `json:"last_config_applied_at,omitempty"`
 	LastAppliedHash     string    `json:"last_applied_hash,omitempty"`
@@ -643,6 +644,7 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 	st.ServiceStatus = firstNonEmpty(status.ServiceStatus, st.ServiceStatus)
 	st.RustDeskID = firstNonEmpty(status.RustDeskID, st.RustDeskID)
 	st.CurrentVersion = firstNonEmpty(status.Version, st.CurrentVersion)
+	st.RuntimePassword = strings.TrimSpace(status.AccessPassword)
 	if st.MachineName == "" {
 		st.MachineName = currentHostname()
 	}

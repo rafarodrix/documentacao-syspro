@@ -330,6 +330,7 @@ type persistedRemoteState struct {
 	Alias               string    `json:"alias"`
 	RustDeskID          string    `json:"rustdesk_id"`
 	DefaultPassword     string    `json:"default_password"`
+	RuntimePassword     string    `json:"runtime_password"`
 	MachineName         string    `json:"machine_name"`
 	CurrentVersion      string    `json:"current_version"`
 	RustDeskExecutable  string    `json:"rustdesk_executable"`
@@ -357,7 +358,7 @@ func (s *Service) buildSupportContext() webview.SupportContext {
 		context.HostID = strings.TrimSpace(remoteState.HostID)
 		context.HostAlias = strings.TrimSpace(remoteState.Alias)
 		context.RustDeskID = strings.TrimSpace(remoteState.RustDeskID)
-		context.RemoteAccessPassword = strings.TrimSpace(remoteState.DefaultPassword)
+		context.RemoteAccessPassword = strings.TrimSpace(remoteState.RuntimePassword)
 		context.MachineName = strings.TrimSpace(remoteState.MachineName)
 	}
 
