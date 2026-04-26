@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -455,17 +456,20 @@ export function CreateUserPageForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nivel de acesso</FormLabel>
-                        <select
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                          onChange={(event) => field.onChange(event.target.value)}
-                          value={field.value}
-                        >
-                          {roleItems.map((item) => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Selecione o nivel de acesso" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {roleItems.map((item) => (
+                              <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

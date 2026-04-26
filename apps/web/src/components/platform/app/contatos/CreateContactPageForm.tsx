@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useMemo, useState } from "react";
+import { useForm, useWatch, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
 import {
   Briefcase,
   Building2,
@@ -24,8 +27,8 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { RegistryFormScaffold } from "@/components/platform/shared/RegistryFormScaffold";
@@ -37,25 +40,12 @@ type CompanyOption = {
   nomeFantasia?: string | null;
 };
 
-type ContactInitialData = {
-  name: string;
-  email: string;
-  phone: string;
-  cpf: string;
-  jobTitle: string;
-  whatsapp: string;
-  notes: string;
-  companyIds: string[];
-};
-
-type ContactTextField = Exclude<keyof ContactInitialData, "companyIds">;
-
 type Props = {
   companies: CompanyOption[];
   backHref: string;
   mode?: "create" | "edit";
   contactId?: string;
-  initialData?: Partial<ContactInitialData>;
+  initialData?: Partial<CreateContactInput>;
 };
 
 function normalizeDigits(value: string) {
@@ -65,7 +55,7 @@ function normalizeDigits(value: string) {
 function normalizeSearch(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .trim();
 }
@@ -114,10 +104,6 @@ function isValidCpf(value: string) {
   return normalizeDigits(value).length === 11;
 }
 
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
 function getCompanyLabel(company: CompanyOption) {
   return company.nomeFantasia || company.razaoSocial;
 }
@@ -131,99 +117,102 @@ export function CreateContactPageForm({
 }: Props) {
   const router = useRouter();
   const isEdit = mode === "edit";
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [companyQuery, setCompanyQuery] = useState("");
-  const [form, setForm] = useState<ContactInitialData>({
-    name: initialData?.name ?? "",
-    email: initialData?.email ?? "",
-    phone: initialData?.phone ?? "",
-    cpf: initialData?.cpf ? formatCpf(initialData.cpf) : "",
-    jobTitle: initialData?.jobTitle ?? "",
-    whatsapp: initialData?.whatsapp ?? "",
-    notes: initialData?.notes ?? "",
-    companyIds: initialData?.companyIds ?? ([] as string[]),
+
+  const form = useForm<CreateContactInput>({
+    resolver: zodResolver(createContactSchema),
+    defaultValues: {
+      name: initialData?.name ?? "",
+      email: initialData?.email ?? "",
+      phone: initialData?.phone ?? "",
+      cpf: initialData?.cpf ? formatCpf(initialData.cpf) : "",
+      jobTitle: initialData?.jobTitle ?? "",
+      whatsapp: initialData?.whatsapp ?? "",
+      notes: initialData?.notes ?? "",
+      companyIds: initialData?.companyIds ?? [],
+    },
+    mode: "onTouched",
   });
 
+  const { isSubmitting } = form.formState;
+  const watchedName = useWatch({ control: form.control, name: "name" });
+  const watchedEmail = useWatch({ control: form.control, name: "email" });
+  const watchedPhone = useWatch({ control: form.control, name: "phone" });
+  const watchedWhatsapp = useWatch({ control: form.control, name: "whatsapp" });
+  const watchedCompanyIds = useWatch({ control: form.control, name: "companyIds" });
+
   const selectedCompanies = useMemo(
-    () => form.companyIds.map((companyId) => companies.find((item) => item.id === companyId)).filter(Boolean) as CompanyOption[],
-    [companies, form.companyIds],
+    () =>
+      (watchedCompanyIds ?? [])
+        .map((id) => companies.find((item) => item.id === id))
+        .filter(Boolean) as CompanyOption[],
+    [companies, watchedCompanyIds],
   );
 
   const filteredCompanies = useMemo(() => {
     const term = normalizeSearch(companyQuery);
     const source = term
-      ? companies.filter((company) => normalizeSearch(`${company.nomeFantasia || ""} ${company.razaoSocial}`).includes(term))
+      ? companies.filter((company) =>
+          normalizeSearch(`${company.nomeFantasia || ""} ${company.razaoSocial}`).includes(term),
+        )
       : companies;
 
     return source
       .slice()
-      .sort((a, b) => getCompanyLabel(a).localeCompare(getCompanyLabel(b), "pt-BR", { sensitivity: "base", numeric: true }))
+      .sort((a, b) =>
+        getCompanyLabel(a).localeCompare(getCompanyLabel(b), "pt-BR", {
+          sensitivity: "base",
+          numeric: true,
+        }),
+      )
       .slice(0, 30);
   }, [companies, companyQuery]);
 
-  const activeChannelCount = [form.email, form.phone, form.whatsapp].filter((value) => value.trim()).length;
+  const activeChannelCount = [watchedEmail, watchedPhone, watchedWhatsapp].filter((v) =>
+    v?.trim(),
+  ).length;
+
   const formId = isEdit && contactId ? `contact-form-${contactId}` : "contact-form-create";
+
   const readinessItems = [
-    { label: "Nome", done: Boolean(form.name.trim()) },
+    { label: "Nome", done: Boolean(watchedName?.trim()) },
     { label: "Canal", done: activeChannelCount > 0 },
-    { label: "Empresas", done: form.companyIds.length > 0 },
+    { label: "Empresas", done: (watchedCompanyIds?.length ?? 0) > 0 },
   ];
   const completedItems = readinessItems.filter((item) => item.done).length;
   const progressPct = Math.round((completedItems / readinessItems.length) * 100);
-  const canSubmit = Boolean(form.name.trim()) && !isSubmitting;
+  const canSubmit = Boolean(watchedName?.trim()) && !isSubmitting;
 
-  function updateField(field: ContactTextField, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
+  async function onSubmit(data: CreateContactInput) {
+    const phone = data.phone?.trim() ?? "";
+    const whatsapp = data.whatsapp?.trim() ?? "";
+    const cpf = data.cpf?.trim() ?? "";
 
-  function toggleCompany(companyId: string) {
-    setForm((current) => ({
-      ...current,
-      companyIds: current.companyIds.includes(companyId)
-        ? current.companyIds.filter((id) => id !== companyId)
-        : [...current.companyIds, companyId],
-    }));
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!form.name.trim()) {
-      toast.error("Informe o nome do contato.");
-      return;
-    }
-
-    if (form.email.trim() && !isValidEmail(form.email)) {
-      toast.error("Informe um e-mail valido.");
-      return;
-    }
-
-    if (form.whatsapp.trim() && !isValidWhatsapp(form.whatsapp)) {
-      toast.error("Informe o WhatsApp com DDI e DDD. Ex.: +55 (34) 99771-3731.");
-      return;
-    }
-
-    if (form.phone.trim() && !isValidPhone(form.phone)) {
+    if (phone && !isValidPhone(phone)) {
       toast.error("Informe o telefone com DDD. Ex.: (34) 3333-4444.");
       return;
     }
 
-    if (form.cpf.trim() && !isValidCpf(form.cpf)) {
+    if (whatsapp && !isValidWhatsapp(whatsapp)) {
+      toast.error("Informe o WhatsApp com DDI e DDD. Ex.: +55 (34) 99771-3731.");
+      return;
+    }
+
+    if (cpf && !isValidCpf(cpf)) {
       toast.error("Informe o CPF com 11 digitos.");
       return;
     }
 
-    setIsSubmitting(true);
     try {
       const payload = {
-        name: form.name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        cpf: normalizeDigits(form.cpf) || null,
-        jobTitle: form.jobTitle.trim() || null,
-        whatsapp: form.whatsapp.trim() || null,
-        notes: form.notes.trim() || null,
-        companyIds: form.companyIds,
+        name: data.name.trim(),
+        email: data.email?.trim() || null,
+        phone: phone || null,
+        cpf: normalizeDigits(cpf) || null,
+        jobTitle: data.jobTitle?.trim() || null,
+        whatsapp: whatsapp || null,
+        notes: data.notes?.trim() || null,
+        companyIds: data.companyIds ?? [],
       };
 
       const url = isEdit && contactId ? `/api/contacts/${contactId}` : "/api/contacts";
@@ -235,8 +224,11 @@ export function CreateContactPageForm({
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        toast.error(data?.message || (isEdit ? "Erro ao atualizar contato." : "Erro ao cadastrar contato."));
+        const responseData = await response.json().catch(() => null);
+        toast.error(
+          responseData?.message ||
+            (isEdit ? "Erro ao atualizar contato." : "Erro ao cadastrar contato."),
+        );
         return;
       }
 
@@ -245,252 +237,365 @@ export function CreateContactPageForm({
       router.refresh();
     } catch {
       toast.error("Erro na comunicacao com o servidor.");
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
   return (
-    <form id={formId} onSubmit={handleSubmit} noValidate>
-      <RegistryFormScaffold
-        formId={formId}
-        title={isEdit ? "Editar contato" : "Novo contato"}
-        description={
-          isEdit
-            ? "Atualize identidade, canais e vinculos empresariais do contato."
-            : "Cadastre a pessoa e vincule empresas para atendimento e relacionamento."
-        }
-        onBack={() => router.push(backHref)}
-        progressLabel="Preenchimento"
-        progressValue={progressPct}
-        submitLabel={isEdit ? "Salvar alteracoes" : "Salvar contato"}
-        isSubmitting={isSubmitting}
-        canSubmit={canSubmit}
-        footerLeft={
-          <div className="flex flex-wrap gap-2">
-            {readinessItems.map((item) => (
-              <Badge
-                key={item.label}
-                variant="outline"
-                className={cn(
-                  "gap-1 text-[11px] font-medium",
-                  item.done
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    : "border-border/60 text-muted-foreground",
-                )}
-              >
-                {item.done ? <CheckCircle2 className="h-3 w-3" /> : <CircleDot className="h-3 w-3" />}
-                {item.label}
-              </Badge>
-            ))}
-          </div>
-        }
-      >
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
-        <section className="space-y-5">
-          <div className="grid gap-3 md:grid-cols-3">
-            <SummaryCard title="Identidade" value={form.name.trim() ? "Ok" : "Pendente"} icon={UserRound} tone={form.name.trim() ? "success" : "neutral"} />
-            <SummaryCard title="Canais ativos" value={String(activeChannelCount)} icon={Smartphone} tone={activeChannelCount > 0 ? "info" : "neutral"} />
-            <SummaryCard title="Empresas" value={String(form.companyIds.length)} icon={Building2} tone={form.companyIds.length > 0 ? "success" : "neutral"} />
-          </div>
-
-          <Card className="border-border/60 bg-card shadow-sm">
-            <CardContent className="space-y-5 p-4 md:p-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Nome" htmlFor="contact-name" required>
-                  <Input
-                    id="contact-name"
-                    value={form.name}
-                    onChange={(event) => updateField("name", event.target.value)}
-                    placeholder="Nome completo"
-                    className="h-10 border-border/60 bg-background"
-                  />
-                </Field>
-
-                <Field label="Email" htmlFor="contact-email">
-                  <Input
-                    id="contact-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => updateField("email", event.target.value)}
-                    placeholder="contato@empresa.com"
-                    className="h-10 border-border/60 bg-background"
-                  />
-                </Field>
-
-                <Field label="Cargo" htmlFor="contact-job-title">
-                  <Input
-                    id="contact-job-title"
-                    value={form.jobTitle}
-                    onChange={(event) => updateField("jobTitle", event.target.value)}
-                    placeholder="Cargo ou funcao"
-                    className="h-10 border-border/60 bg-background"
-                  />
-                </Field>
-
-                <Field label="CPF" htmlFor="contact-cpf">
-                  <Input
-                    id="contact-cpf"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={form.cpf}
-                    onChange={(event) => updateField("cpf", formatCpf(event.target.value))}
-                    placeholder="000.000.000-00"
-                    className="h-10 border-border/60 bg-background"
-                  />
-                </Field>
-
-                <Field label="Telefone" htmlFor="contact-phone" hint="Use DDD. Ex.: (34) 3333-4444.">
-                  <Input
-                    id="contact-phone"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    value={form.phone}
-                    onChange={(event) => updateField("phone", formatPhone(event.target.value))}
-                    placeholder="(00) 0000-0000"
-                    className="h-10 border-border/60 bg-background"
-                  />
-                </Field>
-
-                <Field label="WhatsApp" htmlFor="contact-whatsapp" hint="Use DDI e DDD. Ex.: +55 (34) 99771-3731.">
-                  <Input
-                    id="contact-whatsapp"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    value={form.whatsapp}
-                    onChange={(event) => updateField("whatsapp", formatWhatsapp(event.target.value))}
-                    placeholder="+55 (34) 99771-3731"
-                    className="h-10 border-border/60 bg-background"
-                  />
-                </Field>
-              </div>
-
-              <Field label="Observacoes" htmlFor="contact-notes">
-                <Textarea
-                  id="contact-notes"
-                  rows={5}
-                  value={form.notes}
-                  onChange={(event) => updateField("notes", event.target.value)}
-                  placeholder="Preferencias, horarios, area responsavel ou observacoes comerciais."
-                  className="resize-none border-border/60 bg-background"
-                />
-              </Field>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60 bg-card shadow-sm">
-            <CardContent className="space-y-4 p-4 md:p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold text-foreground">Empresas vinculadas</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
-                </div>
-                <Badge variant="outline" className="w-fit rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
-                  {form.companyIds.length} selecionada(s)
+    <Form {...form}>
+      <form id={formId} onSubmit={form.handleSubmit(onSubmit)} noValidate>
+        <RegistryFormScaffold
+          formId={formId}
+          title={isEdit ? "Editar contato" : "Novo contato"}
+          description={
+            isEdit
+              ? "Atualize identidade, canais e vinculos empresariais do contato."
+              : "Cadastre a pessoa e vincule empresas para atendimento e relacionamento."
+          }
+          onBack={() => router.push(backHref)}
+          progressLabel="Preenchimento"
+          progressValue={progressPct}
+          submitLabel={isEdit ? "Salvar alteracoes" : "Salvar contato"}
+          isSubmitting={isSubmitting}
+          canSubmit={canSubmit}
+          footerLeft={
+            <div className="flex flex-wrap gap-2">
+              {readinessItems.map((item) => (
+                <Badge
+                  key={item.label}
+                  variant="outline"
+                  className={cn(
+                    "gap-1 text-[11px] font-medium",
+                    item.done
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      : "border-border/60 text-muted-foreground",
+                  )}
+                >
+                  {item.done ? <CheckCircle2 className="h-3 w-3" /> : <CircleDot className="h-3 w-3" />}
+                  {item.label}
                 </Badge>
-              </div>
-
-              <div className="relative">
-                <CompanyMultiPicker
-                  selectedIds={form.companyIds}
-                  options={filteredCompanies}
-                  query={companyQuery}
-                  onQueryChange={setCompanyQuery}
-                  onToggle={toggleCompany}
+              ))}
+            </div>
+          }
+        >
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+            <section className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-3">
+                <SummaryCard
+                  title="Identidade"
+                  value={watchedName?.trim() ? "Ok" : "Pendente"}
+                  icon={UserRound}
+                  tone={watchedName?.trim() ? "success" : "neutral"}
+                />
+                <SummaryCard
+                  title="Canais ativos"
+                  value={String(activeChannelCount)}
+                  icon={Smartphone}
+                  tone={activeChannelCount > 0 ? "info" : "neutral"}
+                />
+                <SummaryCard
+                  title="Empresas"
+                  value={String(watchedCompanyIds?.length ?? 0)}
+                  icon={Building2}
+                  tone={(watchedCompanyIds?.length ?? 0) > 0 ? "success" : "neutral"}
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {selectedCompanies.length === 0 ? (
-                  <span className="rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">Nenhuma empresa vinculada.</span>
-                ) : (
-                  selectedCompanies.map((company) => (
-                    <button
-                      key={company.id}
-                      type="button"
-                      onClick={() => toggleCompany(company.id)}
-                      className="inline-flex max-w-full items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground hover:bg-muted"
-                    >
-                      <span className="truncate">{getCompanyLabel(company)}</span>
-                      <X className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    </button>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+              <Card className="border-border/60 bg-card shadow-sm">
+                <CardContent className="space-y-5 p-4 md:p-5">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Nome <span className="text-destructive">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Nome completo"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-        <aside className="space-y-5">
-          <Card className="border-border/60 bg-card shadow-sm">
-            <CardContent className="space-y-4 p-4 md:p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-foreground">Resumo do contato</h2>
-                  <p className="text-xs text-muted-foreground">Conferencia rapida antes de salvar.</p>
-                </div>
-              </div>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="contato@empresa.com"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-              <div className="space-y-2">
-                {readinessItems.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span className={cn("inline-flex items-center gap-1 font-medium", item.done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                      {item.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <CircleDot className="h-3.5 w-3.5" />}
-                      {item.done ? "Ok" : "Pendente"}
-                    </span>
+                    <FormField
+                      control={form.control}
+                      name="jobTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cargo</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Cargo ou funcao"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="cpf"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CPF</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="numeric"
+                              autoComplete="off"
+                              onChange={(e) => field.onChange(formatCpf(e.target.value))}
+                              placeholder="000.000.000-00"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="numeric"
+                              autoComplete="tel"
+                              onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                              placeholder="(00) 0000-0000"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <p className="text-[11px] text-muted-foreground">Use DDD. Ex.: (34) 3333-4444.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="whatsapp"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>WhatsApp</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="numeric"
+                              autoComplete="tel"
+                              onChange={(e) => field.onChange(formatWhatsapp(e.target.value))}
+                              placeholder="+55 (34) 99771-3731"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <p className="text-[11px] text-muted-foreground">
+                            Use DDI e DDD. Ex.: +55 (34) 99771-3731.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                ))}
-              </div>
 
-              <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs">
-                <div className="space-y-3">
-                  <SummaryLine icon={UserRound} label="Nome" value={form.name || "Nao informado"} />
-                  <SummaryLine icon={Briefcase} label="Cargo" value={form.jobTitle || "Nao informado"} />
-                  <SummaryLine icon={Fingerprint} label="CPF" value={form.cpf || "Nao informado"} />
-                  <SummaryLine icon={Mail} label="Email" value={form.email || "Nao informado"} />
-                  <SummaryLine icon={Phone} label="Telefone" value={form.phone || "Nao informado"} />
-                  <SummaryLine icon={Smartphone} label="WhatsApp" value={form.whatsapp || "Nao informado"} />
-                </div>
-              </div>
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observacoes</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            rows={5}
+                            placeholder="Preferencias, horarios, area responsavel ou observacoes comerciais."
+                            className="resize-none border-border/60 bg-background"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-              <p className="text-xs text-muted-foreground">
-                Use o botao fixo no rodape para salvar. O vinculo com empresa libera o contato para usuario e atendimento.
-              </p>
-            </CardContent>
-          </Card>
-        </aside>
-        </div>
-      </RegistryFormScaffold>
-    </form>
-  );
-}
+              <Card className="border-border/60 bg-card shadow-sm">
+                <CardContent className="space-y-4 p-4 md:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">Empresas vinculadas</h2>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        O contato pode pertencer a uma ou mais empresas.
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="w-fit rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+                    >
+                      {watchedCompanyIds?.length ?? 0} selecionada(s)
+                    </Badge>
+                  </div>
 
-function Field({
-  label,
-  htmlFor,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint?: string;
-  required?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={htmlFor}>
-        {label}
-        {required ? <span className="ml-1 text-destructive">*</span> : null}
-      </Label>
-      {children}
-      {hint ? <p className="text-[11px] text-muted-foreground">{hint}</p> : null}
-    </div>
+                  <Controller
+                    control={form.control}
+                    name="companyIds"
+                    render={({ field }) => (
+                      <>
+                        <CompanyMultiPicker
+                          selectedIds={field.value ?? []}
+                          options={filteredCompanies}
+                          query={companyQuery}
+                          onQueryChange={setCompanyQuery}
+                          onToggle={(companyId) => {
+                            const current = field.value ?? [];
+                            field.onChange(
+                              current.includes(companyId)
+                                ? current.filter((id) => id !== companyId)
+                                : [...current, companyId],
+                            );
+                          }}
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          {selectedCompanies.length === 0 ? (
+                            <span className="rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                              Nenhuma empresa vinculada.
+                            </span>
+                          ) : (
+                            selectedCompanies.map((company) => (
+                              <button
+                                key={company.id}
+                                type="button"
+                                onClick={() => {
+                                  const current = field.value ?? [];
+                                  field.onChange(current.filter((id) => id !== company.id));
+                                }}
+                                className="inline-flex max-w-full items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+                              >
+                                <span className="truncate">{getCompanyLabel(company)}</span>
+                                <X className="h-3 w-3 shrink-0 text-muted-foreground" />
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </section>
+
+            <aside className="space-y-5">
+              <Card className="border-border/60 bg-card shadow-sm">
+                <CardContent className="space-y-4 p-4 md:p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">Resumo do contato</h2>
+                      <p className="text-xs text-muted-foreground">Conferencia rapida antes de salvar.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {readinessItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs"
+                      >
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 font-medium",
+                            item.done
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {item.done ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <CircleDot className="h-3.5 w-3.5" />
+                          )}
+                          {item.done ? "Ok" : "Pendente"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-md border border-border/50 bg-muted/10 p-3 text-xs">
+                    <div className="space-y-3">
+                      <SummaryLine icon={UserRound} label="Nome" value={watchedName || "Nao informado"} />
+                      <SummaryLine
+                        icon={Briefcase}
+                        label="Cargo"
+                        value={form.watch("jobTitle") || "Nao informado"}
+                      />
+                      <SummaryLine
+                        icon={Fingerprint}
+                        label="CPF"
+                        value={form.watch("cpf") || "Nao informado"}
+                      />
+                      <SummaryLine
+                        icon={Mail}
+                        label="Email"
+                        value={watchedEmail || "Nao informado"}
+                      />
+                      <SummaryLine
+                        icon={Phone}
+                        label="Telefone"
+                        value={watchedPhone || "Nao informado"}
+                      />
+                      <SummaryLine
+                        icon={Smartphone}
+                        label="WhatsApp"
+                        value={watchedWhatsapp || "Nao informado"}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Use o botao fixo no rodape para salvar. O vinculo com empresa libera o contato
+                    para usuario e atendimento.
+                  </p>
+                </CardContent>
+              </Card>
+            </aside>
+          </div>
+        </RegistryFormScaffold>
+      </form>
+    </Form>
   );
 }
 
@@ -515,7 +620,9 @@ function SummaryCard({
     <Card className="border-border/60 bg-card shadow-sm">
       <CardContent className="flex items-start justify-between gap-3 p-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {title}
+          </p>
           <p className="mt-3 text-2xl font-semibold text-foreground">{value}</p>
         </div>
         <div className={cn("flex h-9 w-9 items-center justify-center rounded-md", toneClass)}>
@@ -557,7 +664,9 @@ function CompanyMultiPicker({
         >
           <div className="min-w-0 text-left">
             <span className="block truncate text-sm font-medium text-foreground">
-              {selectedIds.length > 0 ? `${selectedIds.length} empresa(s) vinculada(s)` : "Selecionar empresas"}
+              {selectedIds.length > 0
+                ? `${selectedIds.length} empresa(s) vinculada(s)`
+                : "Selecionar empresas"}
             </span>
             <span className="block truncate text-xs text-muted-foreground">
               Busque e vincule sem precisar rolar a pagina inteira
@@ -604,9 +713,13 @@ function CompanyMultiPicker({
                   )}
                 >
                   <div className="min-w-0">
-                    <span className="block truncate text-sm font-medium text-foreground">{getCompanyLabel(company)}</span>
+                    <span className="block truncate text-sm font-medium text-foreground">
+                      {getCompanyLabel(company)}
+                    </span>
                     {company.nomeFantasia ? (
-                      <span className="block truncate text-[11px] text-muted-foreground">{company.razaoSocial}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {company.razaoSocial}
+                      </span>
                     ) : null}
                   </div>
                   <div className="shrink-0">
@@ -642,7 +755,9 @@ function SummaryLine({
     <div className="flex min-w-0 items-start gap-2">
       <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
         <p className="truncate text-xs font-medium text-foreground">{value}</p>
       </div>
     </div>

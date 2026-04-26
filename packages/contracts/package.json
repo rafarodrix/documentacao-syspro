@@ -21,6 +21,7 @@
     "./ticket": "./src/ticket/index.ts",
     "./address": "./src/shared/address.types.ts",
     "./company": "./src/company/index.ts",
+    "./contact": "./src/contact/index.ts",
     "./documento": "./src/documento/documento.types.ts",
     "./documento-config": "./src/documento/documento-config.types.ts",
     "./user": "./src/user/index.ts"
