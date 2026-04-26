@@ -2,6 +2,7 @@ package ipc
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"net"
@@ -78,6 +79,9 @@ func (s *Server) Start(ctx context.Context) error {
 	mainServer := &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	mainListener, err := listenIPC(s.addr)
 	if err != nil {
@@ -227,7 +231,7 @@ func (s *Server) withAuth(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		if s.token != "" && r.Header.Get("X-IPC-Token") != s.token {
+		if s.token != "" && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-IPC-Token")), []byte(s.token)) != 1 {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}

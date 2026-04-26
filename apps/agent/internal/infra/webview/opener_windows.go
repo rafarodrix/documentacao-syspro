@@ -144,7 +144,10 @@ func (o *Opener) openWithWebView2(ctx context.Context, target string, key string
 	openWindows.setHandle(key, w.Window())
 
 	if err := w.Bind("agent_native_invoke", func(action string, payload string) (string, error) {
-		return o.invokeBridge(action, payload)
+		if o.bridge == nil {
+			return "", fmt.Errorf("bridge unavailable")
+		}
+		return o.bridge.Invoke(ctx, strings.TrimSpace(action), strings.TrimSpace(payload))
 	}); err != nil {
 		return fmt.Errorf("bind webview bridge: %w", err)
 	}
@@ -174,13 +177,6 @@ func (o *Opener) openWithWebView2(ctx context.Context, target string, key string
 	o.logger.Info("opening ui target with webview2", "target", navigateTarget, "title", windowTitle)
 	w.Run()
 	return nil
-}
-
-func (o *Opener) invokeBridge(action string, payload string) (string, error) {
-	if o.bridge == nil {
-		return "", fmt.Errorf("bridge unavailable")
-	}
-	return o.bridge.Invoke(context.Background(), strings.TrimSpace(action), strings.TrimSpace(payload))
 }
 
 func resolveWindowTitle(target string) string {

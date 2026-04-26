@@ -347,6 +347,7 @@
       font-size: 13px;
       line-height: 1.6;
       font-weight: 600;
+      white-space: pre-wrap;
     }
 
     .error.visible {
@@ -676,6 +677,7 @@
   </div>
   <script>
     let currentStatus = __INITIAL_STATUS_JSON__;
+    let lastStatusJSON = JSON.stringify(currentStatus);
     const logoLightUrl = __LOGO_LIGHT_URL__;
     const logoDarkUrl = __LOGO_DARK_URL__;
 
@@ -696,6 +698,9 @@
     }
 
     function render(status) {
+      const incomingJSON = JSON.stringify(status);
+      const dataChanged = incomingJSON !== lastStatusJSON;
+      lastStatusJSON = incomingJSON;
       currentStatus = status;
       const preferredLogo = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
         ? (logoLightUrl || logoDarkUrl)
@@ -716,7 +721,9 @@
       document.getElementById('percent').textContent = progressPct + '%';
       document.getElementById('hero-progress').textContent = progressPct + '%';
       document.getElementById('bar-fill').style.width = progressPct + '%';
-      document.getElementById('last-update').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (dataChanged) {
+        document.getElementById('last-update').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
 
       const meta = document.getElementById('meta');
       meta.innerHTML = '';
