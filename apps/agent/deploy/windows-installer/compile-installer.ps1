@@ -31,6 +31,8 @@ Write-Host "Montando pacote de staging..."
 & powershell -ExecutionPolicy Bypass -File $packScript
 
 $candidates = @(
+  "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
+  "C:\Program Files\Inno Setup 7\ISCC.exe",
   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
   "C:\Program Files\Inno Setup 6\ISCC.exe",
   "C:\Program Files (x86)\Inno Setup 5\ISCC.exe",
