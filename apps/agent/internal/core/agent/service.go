@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -67,10 +66,6 @@ func (s *Service) Run(ctx context.Context) error {
 	})
 
 	g.Go(func() error {
-		return s.runHealthLoop(ctx)
-	})
-
-	g.Go(func() error {
 		return s.reconcile.Start(ctx)
 	})
 
@@ -81,19 +76,4 @@ func (s *Service) Run(ctx context.Context) error {
 
 	s.logger.Info("agent stopped")
 	return nil
-}
-
-func (s *Service) runHealthLoop(ctx context.Context) error {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			s.logger.Info("health loop stopped")
-			return nil
-		case <-ticker.C:
-			s.logger.Debug("health loop tick")
-		}
-	}
 }

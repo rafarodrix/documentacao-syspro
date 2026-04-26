@@ -78,10 +78,18 @@ func (s *Service) reconcileOnce(ctx context.Context) error {
 		return nil
 	}
 
-	s.logger.Info("reconcile plan generated",
-		"desired_version", desired.Version,
-		"actions", len(plan.Actions),
-	)
+	trivial := allActionsOfType(plan.Actions, "sync_cycle")
+	if trivial {
+		s.logger.Debug("reconcile plan generated",
+			"desired_version", desired.Version,
+			"actions", len(plan.Actions),
+		)
+	} else {
+		s.logger.Info("reconcile plan generated",
+			"desired_version", desired.Version,
+			"actions", len(plan.Actions),
+		)
+	}
 
 	results := s.applyPlan(ctx, desired, current)
 
@@ -90,17 +98,19 @@ func (s *Service) reconcileOnce(ctx context.Context) error {
 	applied := buildAppliedState(desired, current, results)
 	_ = s.store.SaveJSON(ctx, "applied_state.json", applied)
 
-	_ = s.events.Publish(ctx, domain.TelemetryEvent{
-		Type:       "reconcile_applied",
-		Severity:   "info",
-		Module:     "reconcile",
-		Message:    "reconcile applied",
-		OccurredAt: time.Now().UTC(),
-		Metadata: map[string]any{
-			"desired_version": desired.Version,
-			"actions":         len(plan.Actions),
-		},
-	})
+	if !trivial {
+		_ = s.events.Publish(ctx, domain.TelemetryEvent{
+			Type:       "reconcile_applied",
+			Severity:   "info",
+			Module:     "reconcile",
+			Message:    "reconcile applied",
+			OccurredAt: time.Now().UTC(),
+			Metadata: map[string]any{
+				"desired_version": desired.Version,
+				"actions":         len(plan.Actions),
+			},
+		})
+	}
 
 	return nil
 }
@@ -169,6 +179,18 @@ func (s *Service) applyPlan(
 	}
 
 	return results
+}
+
+func allActionsOfType(actions []domain.ReconcileAction, actionType string) bool {
+	if len(actions) == 0 {
+		return false
+	}
+	for _, a := range actions {
+		if a.Type != actionType {
+			return false
+		}
+	}
+	return true
 }
 
 func buildAppliedState(
