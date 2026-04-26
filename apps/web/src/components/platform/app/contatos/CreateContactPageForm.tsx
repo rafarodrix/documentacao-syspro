@@ -7,11 +7,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Building2,
   Check,
   ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
   Search,
+  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
@@ -259,7 +263,12 @@ export function CreateContactPageForm({
       <form id={formId} onSubmit={form.handleSubmit(onSubmit)} noValidate>
         <RegistryFormScaffold
           formId={formId}
-          title={isEdit ? "Editar contato" : "Novo contato"}
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary/70" />
+              {isEdit ? "Editar contato" : "Novo contato"}
+            </span>
+          }
           description={`${SECTIONS.find((section) => section.id === currentSection)?.title} - ${SECTIONS.find((section) => section.id === currentSection)?.description}`}
           onBack={() => router.push(backHref)}
           sections={SECTIONS}
@@ -279,187 +288,221 @@ export function CreateContactPageForm({
               </Badge>
             ) : null
           }
+          footerCenter={
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentSection(SECTIONS[currentIndex - 1].id)}
+                className="gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={currentIndex === SECTIONS.length - 1}
+                onClick={() => setCurrentSection(SECTIONS[currentIndex + 1].id)}
+                className="gap-1"
+              >
+                Proximo
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </>
+          }
         >
-          <div className="space-y-5">
-            {currentSection === "geral" ? (
-              <section className="space-y-5">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-md bg-primary/10 p-1.5">
-                    <UserRound className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Dados do contato</p>
-                    <p className="text-xs text-muted-foreground">Identidade, canais e documentos.</p>
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Nome <span className="text-destructive">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Nome completo"
-                            className="h-10 border-border/60 bg-background"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="email"
-                            placeholder="contato@empresa.com"
-                            className="h-10 border-border/60 bg-background"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="jobTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cargo</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Cargo ou funcao"
-                            className="h-10 border-border/60 bg-background"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="cpf"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CPF</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            inputMode="numeric"
-                            autoComplete="off"
-                            onChange={(e) => field.onChange(formatCpf(e.target.value))}
-                            placeholder="000.000.000-00"
-                            className="h-10 border-border/60 bg-background"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            inputMode="numeric"
-                            autoComplete="tel"
-                            onChange={(e) => field.onChange(formatPhone(e.target.value))}
-                            placeholder="(00) 0000-0000"
-                            className="h-10 border-border/60 bg-background"
-                          />
-                        </FormControl>
-                        <p className="text-[11px] text-muted-foreground">Use DDD. Ex.: (34) 3333-4444.</p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="whatsapp"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>WhatsApp</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            inputMode="numeric"
-                            autoComplete="tel"
-                            onChange={(e) => field.onChange(formatWhatsapp(e.target.value))}
-                            placeholder="+55 (34) 99771-3731"
-                            className="h-10 border-border/60 bg-background"
-                          />
-                        </FormControl>
-                        <p className="text-[11px] text-muted-foreground">
-                          Use DDI e DDD. Ex.: +55 (34) 99771-3731.
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observacoes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          rows={5}
-                          placeholder="Preferencias, horarios, area responsavel ou observacoes comerciais."
-                          className="resize-none border-border/60 bg-background"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </section>
-            ) : null}
-
-            {currentSection === "empresas" ? (
-              <section className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={currentSection}
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="space-y-5"
+            >
+              {currentSection === "geral" ? (
+                <section className="space-y-5">
                   <div className="flex items-center gap-2">
                     <div className="rounded-md bg-primary/10 p-1.5">
-                      <Building2 className="h-4 w-4 text-primary" />
+                      <UserRound className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Empresas vinculadas</p>
-                      <p className="text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
+                      <p className="text-sm font-semibold text-foreground">Dados do contato</p>
+                      <p className="text-xs text-muted-foreground">Identidade, canais e documentos.</p>
                     </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="w-fit rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
-                  >
-                    {watchedCompanyIds?.length ?? 0} selecionada(s)
-                  </Badge>
-                </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Nome <span className="text-destructive">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Nome completo"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <Controller
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="contato@empresa.com"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="jobTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cargo</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Cargo ou funcao"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="cpf"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CPF</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="numeric"
+                              autoComplete="off"
+                              onChange={(e) => field.onChange(formatCpf(e.target.value))}
+                              placeholder="000.000.000-00"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefone</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="numeric"
+                              autoComplete="tel"
+                              onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                              placeholder="(00) 0000-0000"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <p className="text-[11px] text-muted-foreground">Use DDD. Ex.: (34) 3333-4444.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="whatsapp"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>WhatsApp</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              inputMode="numeric"
+                              autoComplete="tel"
+                              onChange={(e) => field.onChange(formatWhatsapp(e.target.value))}
+                              placeholder="+55 (34) 99771-3731"
+                              className="h-10 border-border/60 bg-background"
+                            />
+                          </FormControl>
+                          <p className="text-[11px] text-muted-foreground">
+                            Use DDI e DDD. Ex.: +55 (34) 99771-3731.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observacoes</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            rows={5}
+                            placeholder="Preferencias, horarios, area responsavel ou observacoes comerciais."
+                            className="resize-none border-border/60 bg-background"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </section>
+              ) : null}
+
+              {currentSection === "empresas" ? (
+                <section className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-md bg-primary/10 p-1.5">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Empresas vinculadas</p>
+                        <p className="text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="w-fit rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+                    >
+                      {watchedCompanyIds?.length ?? 0} selecionada(s)
+                    </Badge>
+                  </div>
+
+                  <Controller
                   control={form.control}
                   name="companyIds"
                   render={({ field }) => (
@@ -504,9 +547,10 @@ export function CreateContactPageForm({
                     </>
                   )}
                 />
-              </section>
-            ) : null}
-          </div>
+                </section>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
         </RegistryFormScaffold>
       </form>
     </Form>

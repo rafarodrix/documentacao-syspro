@@ -9,6 +9,7 @@ import { createUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/u
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import type { Role as PrismaRole } from "@prisma/client";
+import { AnimatePresence, motion } from "framer-motion";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +24,15 @@ import {
   Building2,
   Check,
   ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
   Link2,
   Loader2,
   Mail,
   Phone,
   Search,
   ShieldCheck,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 
@@ -387,7 +391,12 @@ export function CreateUserPageForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <RegistryFormScaffold
-          title={title}
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary/70" />
+              {title}
+            </span>
+          }
           description={`${SECTIONS.find((section) => section.id === currentSection)?.title} - ${SECTIONS.find((section) => section.id === currentSection)?.description}`}
           onBack={() => router.push(backHref)}
           sections={SECTIONS}
@@ -422,161 +431,196 @@ export function CreateUserPageForm({
               ) : null}
             </>
           }
+          footerCenter={
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentSection(SECTIONS[currentIndex - 1].id)}
+                className="gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={currentIndex === SECTIONS.length - 1}
+                onClick={() => setCurrentSection(SECTIONS[currentIndex + 1].id)}
+                className="gap-1"
+              >
+                Proximo
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </>
+          }
         >
-          <div className="space-y-5">
-            {currentSection === "geral" ? (
-              <section className="space-y-5">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-md bg-primary/10 p-1.5">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={currentSection}
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="space-y-5"
+            >
+              {currentSection === "geral" ? (
+                <section className="space-y-5">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-md bg-primary/10 p-1.5">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Perfil e credenciais</p>
+                      <p className="text-xs text-muted-foreground">Defina acesso, e-mail e identificacao do usuario.</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Perfil e credenciais</p>
-                    <p className="text-xs text-muted-foreground">Defina acesso, e-mail e identificacao do usuario.</p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nivel de acesso</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nivel de acesso</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-10">
+                                <SelectValue placeholder="Selecione o nivel de acesso" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {roleItems.map((item) => (
+                                <SelectItem key={item.value} value={item.value}>
+                                  {item.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail de acesso</FormLabel>
                           <FormControl>
-                            <SelectTrigger className="h-10">
-                              <SelectValue placeholder="Selecione o nivel de acesso" />
-                            </SelectTrigger>
+                            <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
                           </FormControl>
-                          <SelectContent>
-                            {roleItems.map((item) => (
-                              <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          {mode !== "edit" && emailAvailability.status === "checking" ? (
+                            <p className="text-[11px] text-muted-foreground">Verificando disponibilidade do e-mail...</p>
+                          ) : null}
+                          {mode !== "edit" && emailAvailability.status === "available" ? (
+                            <p className="text-[11px] text-emerald-600">E-mail disponivel para cadastro.</p>
+                          ) : null}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>E-mail de acesso</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="usuario@empresa.com" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
-                        {mode !== "edit" && emailAvailability.status === "checking" ? (
-                          <p className="text-[11px] text-muted-foreground">Verificando disponibilidade do e-mail...</p>
-                        ) : null}
-                        {mode !== "edit" && emailAvailability.status === "available" ? (
-                          <p className="text-[11px] text-emerald-600">E-mail disponivel para cadastro.</p>
-                        ) : null}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {mode === "create" && (
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha de acesso</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Minimo 6 caracteres" {...field} value={toInputValue(field.value)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome exibido</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
-                      </FormControl>
-                      <p className="text-[11px] text-muted-foreground">
-                        Esse nome identifica o acesso no portal. Telefone, CPF e cargo ficam no cadastro do contato.
-                      </p>
-                      <FormMessage />
-                    </FormItem>
+                  {mode === "create" && (
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Senha de acesso</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Minimo 6 caracteres" {...field} value={toInputValue(field.value)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-              </section>
-            ) : null}
 
-            {currentSection === "vinculo" ? (
-              <section className="space-y-5">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-md bg-primary/10 p-1.5">
-                    <UserRound className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Contato principal</p>
-                    <p className="text-xs text-muted-foreground">O usuario herda identidade e empresas do contato vinculado.</p>
-                  </div>
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="contactId"
-                  render={({ field }) => {
-                    return (
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Contato</FormLabel>
+                        <FormLabel>Nome exibido</FormLabel>
                         <FormControl>
-                          <ContactPicker
-                            value={toInputValue(field.value)}
-                            options={contactOptions}
-                            loading={loadingContacts}
-                            searchValue={contactSearch}
-                            onSearchChange={setContactSearch}
-                            onChange={field.onChange}
-                            placeholder="Selecione um contato"
-                          />
+                          <Input placeholder="Nome completo" {...field} value={toInputValue(field.value)} />
                         </FormControl>
+                        <p className="text-[11px] text-muted-foreground">
+                          Esse nome identifica o acesso no portal. Telefone, CPF e cargo ficam no cadastro do contato.
+                        </p>
                         <FormMessage />
                       </FormItem>
-                    );
-                  }}
-                />
+                    )}
+                  />
+                </section>
+              ) : null}
 
-                {selectedContact ? (
-                  <div className="grid gap-2 rounded-md border border-border/50 bg-background/80 p-3 text-xs text-muted-foreground md:grid-cols-2">
-                    <div>
-                      <span className="font-medium text-foreground">Contato:</span> {selectedContact.name}
+              {currentSection === "vinculo" ? (
+                <section className="space-y-5">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-md bg-primary/10 p-1.5">
+                      <UserRound className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <span className="font-medium text-foreground">WhatsApp / Email:</span>{" "}
-                      {selectedContact.whatsapp || selectedContact.email || "Nao informado"}
-                    </div>
-                    <div className="md:col-span-2 inline-flex items-center gap-1.5">
-                      <Building2 className="h-3.5 w-3.5" />
-                      <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
-                      {selectedCompanyNames || "Sem empresa vinculada"}
+                      <p className="text-sm font-semibold text-foreground">Contato principal</p>
+                      <p className="text-xs text-muted-foreground">O usuario herda identidade e empresas do contato vinculado.</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-                    Nenhum contato vinculado.
-                  </div>
-                )}
-              </section>
-            ) : null}
-          </div>
+
+                  <FormField
+                    control={form.control}
+                    name="contactId"
+                    render={({ field }) => {
+                      return (
+                        <FormItem>
+                          <FormLabel>Contato</FormLabel>
+                          <FormControl>
+                            <ContactPicker
+                              value={toInputValue(field.value)}
+                              options={contactOptions}
+                              loading={loadingContacts}
+                              searchValue={contactSearch}
+                              onSearchChange={setContactSearch}
+                              onChange={field.onChange}
+                              placeholder="Selecione um contato"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+
+                  {selectedContact ? (
+                    <div className="grid gap-2 rounded-md border border-border/50 bg-background/80 p-3 text-xs text-muted-foreground md:grid-cols-2">
+                      <div>
+                        <span className="font-medium text-foreground">Contato:</span> {selectedContact.name}
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">WhatsApp / Email:</span>{" "}
+                        {selectedContact.whatsapp || selectedContact.email || "Nao informado"}
+                      </div>
+                      <div className="md:col-span-2 inline-flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5" />
+                        <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
+                        {selectedCompanyNames || "Sem empresa vinculada"}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+                      Nenhum contato vinculado.
+                    </div>
+                  )}
+                </section>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
         </RegistryFormScaffold>
       </form>
     </Form>
