@@ -213,6 +213,11 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 			m.logger.Warn("rustdesk id capture failed", "attempt", attempt, "max", maxAttempts, "error", err)
 		}
 
+		if id := m.getIDFromConfig(); id != "" {
+			m.logger.Info("rustdesk id resolved from config", "attempt", attempt, "id", id)
+			return id
+		}
+
 		if attempt == maxAttempts {
 			break
 		}
@@ -225,6 +230,15 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 		}
 	}
 
+	return ""
+}
+
+func (m *rustDeskManager) getIDFromConfig() string {
+	for _, path := range rustDeskConfigPaths() {
+		if id := readRustDeskIDFromConfig(path); id != "" {
+			return id
+		}
+	}
 	return ""
 }
 
@@ -477,9 +491,9 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		if logErr != nil {
 			m.logger.Warn("rustdesk installer log path prepare failed", "error", logErr)
 		}
-		msiArgs := []string{"/i", installerPath, "/qn", "/norestart"}
+		msiArgs := buildRustDeskMSIInstallArgs(installerPath, logPath)
 		if logPath != "" {
-			msiArgs = append(msiArgs, "/l*v", logPath)
+			m.logger.Info("rustdesk msi install configured", "launch_tray", false, "log_path", logPath)
 		}
 		cmd := exec.CommandContext(ctx, "msiexec.exe", msiArgs...)
 		output, err := cmd.CombinedOutput()
@@ -580,12 +594,56 @@ func rustDeskConfigPaths() []string {
 	paths := []string{}
 	if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
 		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"))
+		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk.toml"))
 	}
 	paths = append(paths,
+		`C:\Windows\system32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		`C:\Windows\system32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
 		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
 		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml`,
 	)
 	return paths
+}
+
+func readRustDeskIDFromConfig(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		match := rustDeskConfigEntryPattern.FindStringSubmatch(line)
+		if len(match) == 0 {
+			continue
+		}
+
+		key := strings.ToLower(strings.TrimSpace(match[1]))
+		if !strings.Contains(key, "id") {
+			continue
+		}
+
+		value := strings.TrimSpace(firstNonEmpty(match[2], match[3], match[4]))
+		value = strings.Trim(value, `"`)
+		if id := normalizeRustDeskID(value); id != "" {
+			return id
+		}
+	}
+
+	return ""
+}
+
+func buildRustDeskMSIInstallArgs(installerPath, logPath string) []string {
+	args := []string{
+		"/i", installerPath,
+		"REBOOT=ReallySuppress",
+		"LAUNCH_TRAY_APP=",
+		"/qn",
+		"/norestart",
+	}
+	if strings.TrimSpace(logPath) != "" {
+		args = append(args, "/l*v", logPath)
+	}
+	return args
 }
 
 func readPersistedDefaultPassword(path string) string {

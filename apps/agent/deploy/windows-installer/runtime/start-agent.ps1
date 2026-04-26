@@ -18,14 +18,77 @@ function Test-IsAdministrator {
   return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Ensure-ServiceConfig {
+function Initialize-ServiceConfig {
   New-Item -ItemType Directory -Force -Path $dataRoot | Out-Null
   if ((Test-Path $sourceEnv) -and -not (Test-Path $targetEnv)) {
     Copy-Item -LiteralPath $sourceEnv -Destination $targetEnv -Force
   }
 }
 
-function Ensure-ServiceInstalledAndRunning {
+function Get-EnvValueFromFile {
+  param(
+    [string]$Path,
+    [string]$Key
+  )
+
+  if (-not (Test-Path $Path)) {
+    return $null
+  }
+
+  foreach ($line in Get-Content -Path $Path -ErrorAction SilentlyContinue) {
+    if ($line -match '^\s*#') {
+      continue
+    }
+
+    $parts = $line -split '=', 2
+    if ($parts.Count -ne 2) {
+      continue
+    }
+
+    if ($parts[0].Trim() -eq $Key) {
+      return $parts[1].Trim().Trim("'`"")
+    }
+  }
+
+  return $null
+}
+
+function Wait-AgentIPCReady {
+  $ipcAddress = Get-EnvValueFromFile -Path $targetEnv -Key "AGENT_IPC_ADDRESS"
+  if ([string]::IsNullOrWhiteSpace($ipcAddress)) {
+    $ipcAddress = "\\.\pipe\trilink-agent-ipc"
+  }
+
+  if ($ipcAddress -notlike "\\.\pipe\*") {
+    Start-Sleep -Seconds 3
+    return
+  }
+
+  $pipeName = $ipcAddress.Substring("\\.\pipe\".Length)
+  for ($attempt = 1; $attempt -le 20; $attempt++) {
+    try {
+      $pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", $pipeName, [System.IO.Pipes.PipeDirection]::InOut)
+      try {
+        $pipe.Connect(500)
+        if ($pipe.IsConnected) {
+          $pipe.Dispose()
+          return
+        }
+      } finally {
+        if ($null -ne $pipe) {
+          $pipe.Dispose()
+        }
+      }
+    } catch {
+    }
+
+    Start-Sleep -Milliseconds 500
+  }
+
+  Start-Sleep -Seconds 2
+}
+
+function Start-AgentServiceRuntime {
   $svc = Get-Service -Name "TrillinkAgent" -ErrorAction SilentlyContinue
   if (-not $svc) {
     & $serviceExe install
@@ -38,13 +101,23 @@ function Ensure-ServiceInstalledAndRunning {
 
   if ($svc.Status -ne "Running") {
     & $serviceExe start
-    Start-Sleep -Milliseconds 1000
   }
+
+  for ($attempt = 1; $attempt -le 15; $attempt++) {
+    $svc = Get-Service -Name "TrillinkAgent" -ErrorAction SilentlyContinue
+    if ($svc -and $svc.Status -eq "Running") {
+      Wait-AgentIPCReady
+      return
+    }
+    Start-Sleep -Seconds 1
+  }
+
+  throw "Servico TrillinkAgent nao entrou em estado Running a tempo."
 }
 
 if ($BootstrapServiceOnly) {
-  Ensure-ServiceConfig
-  Ensure-ServiceInstalledAndRunning
+  Initialize-ServiceConfig
+  Start-AgentServiceRuntime
   exit 0
 }
 
@@ -57,8 +130,8 @@ if (-not $svc -or $svc.Status -ne "Running") {
       "-BootstrapServiceOnly"
     )
   } else {
-    Ensure-ServiceConfig
-    Ensure-ServiceInstalledAndRunning
+    Initialize-ServiceConfig
+    Start-AgentServiceRuntime
   }
 }
 

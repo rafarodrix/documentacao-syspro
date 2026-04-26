@@ -17,7 +17,7 @@ SetupIconFile={#SourceDir}\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 DisableDirPage=no
 DisableProgramGroupPage=yes
@@ -49,15 +49,15 @@ Source: "{#SourceDir}\README-installer.txt"; DestDir: "{app}"; DestName: "LEIA-M
 Source: "{#SourceDir}\rustdesk\*"; DestDir: "{app}\rustdesk"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 
 [Icons]
-Name: "{group}\Iniciar Interface do Agente"; Filename: "{app}\scripts\start-agent.cmd"; WorkingDir: "{app}"
+Name: "{group}\Iniciar Interface do Agente"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
 Name: "{group}\Parar Interface do Agente"; Filename: "{app}\scripts\stop-agent.cmd"; WorkingDir: "{app}"
 Name: "{group}\Editar configuracao"; Filename: "{app}\scripts\open-config.cmd"; WorkingDir: "{app}"
 Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir: "{app}"
 Name: "{group}\Verificar WebView2 Runtime"; Filename: "{cmd}"; Parameters: "/c powershell -ExecutionPolicy Bypass -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; WorkingDir: "{app}"
-Name: "{autodesktop}\Agente Trilink"; Filename: "{app}\scripts\start-agent.cmd"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
 
-; agent-ui starts in user session at logon (not the service — that starts automatically with Windows)
-Name: "{commonstartup}\Agente Trilink UI"; Filename: "{app}\agent-ui.exe"; WorkingDir: "{app}"
+; start-agent.cmd ensures the service and IPC are ready before opening the UI
+Name: "{commonstartup}\Agente Trilink UI"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
 
 [Run]
 ; 1. Copiar .env para ProgramData (local lido pelo servico como SYSTEM)
@@ -66,78 +66,10 @@ Filename: "{cmd}"; Parameters: "/c if not exist ""{commonappdata}\Trilink\Agent\
 Filename: "{app}\agent-service.exe"; Parameters: "install"; Flags: runhidden; StatusMsg: "Registrando servico Windows..."
 ; 3. Iniciar o servico
 Filename: "{app}\agent-service.exe"; Parameters: "start"; Flags: runhidden; StatusMsg: "Iniciando servico..."
-; 4. Iniciar a interface (tray) na sessao do usuario atual, opcionally
-Filename: "{app}\agent-ui.exe"; Description: "Iniciar interface do Agente Trilink agora"; Flags: nowait postinstall skipifsilent
+; 4. Iniciar a interface (tray) passando pelo launcher, que espera o IPC ficar pronto
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; Description: "Iniciar interface do Agente Trilink agora"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 ; Parar e remover servico antes de deletar arquivos
-Filename: "{app}\agent-service.exe"; Parameters: "stop"; Flags: runhidden skipifdoesntexist
-Filename: "{app}\agent-service.exe"; Parameters: "uninstall"; Flags: runhidden skipifdoesntexist
-
-[Code]
-
-// Gera um GUID no formato sem hifens para usar como IPC token
-function GenerateGuid: string;
-var
-  Guid: TGUID;
-begin
-  CreateGUID(Guid);
-  Result := GUIDToString(Guid);
-  // Remove { } e -
-  Result := Copy(Result, 2, Length(Result) - 2);
-  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
-  Result := LowerCase(Result);
-end;
-
-// Injeta AGENT_IPC_TOKEN no arquivo .env se a chave nao existir ainda
-procedure InjectIPCToken(EnvPath: string);
-var
-  Lines: TStringList;
-  i: Integer;
-  HasToken: Boolean;
-  Token: string;
-begin
-  HasToken := False;
-  Lines := TStringList.Create;
-  try
-    if FileExists(EnvPath) then
-      Lines.LoadFromFile(EnvPath);
-
-    for i := 0 to Lines.Count - 1 do
-    begin
-      if Pos('AGENT_IPC_TOKEN=', Lines[i]) = 1 then
-      begin
-        HasToken := True;
-        Break;
-      end;
-    end;
-
-    if not HasToken then
-    begin
-      Token := GenerateGuid();
-      Lines.Add('AGENT_IPC_TOKEN=' + Token);
-      Lines.SaveToFile(EnvPath);
-    end;
-  finally
-    Lines.Free;
-  end;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  EnvInApp: string;
-  EnvInData: string;
-begin
-  if CurStep = ssPostInstall then
-  begin
-    // Injetar token no .env do diretorio do app (fonte)
-    EnvInApp := ExpandConstant('{app}\config\.env');
-    if FileExists(EnvInApp) then
-      InjectIPCToken(EnvInApp);
-
-    // Injetar no .env do ProgramData (lido pelo servico)
-    EnvInData := ExpandConstant('{commonappdata}\Trilink\Agent\.env');
-    if FileExists(EnvInData) then
-      InjectIPCToken(EnvInData);
-  end;
-end;
+Filename: "{app}\agent-service.exe"; Parameters: "stop"; Flags: runhidden skipifdoesntexist; RunOnceId: "StopTrillinkAgentService"
+Filename: "{app}\agent-service.exe"; Parameters: "uninstall"; Flags: runhidden skipifdoesntexist; RunOnceId: "UninstallTrillinkAgentService"
