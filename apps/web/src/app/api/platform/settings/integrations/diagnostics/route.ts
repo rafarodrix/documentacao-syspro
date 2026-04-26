@@ -1,13 +1,8 @@
-import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
 
-import { fetchIntegrationDiagnosticsGateway } from "@/features/settings/infrastructure/gateways/settings.gateway";
-
-export async function GET() {
-  try {
-    const response = await fetchIntegrationDiagnosticsGateway();
-    return NextResponse.json(response, { status: response.success ? 200 : 400 });
-  } catch (error) {
-    console.error("integration diagnostics GET route error:", error);
-    return NextResponse.json({ success: false, error: "Falha ao carregar diagnostico das integracoes." }, { status: 500 });
-  }
+export async function GET(request: NextRequest) {
+  return proxyToBackend(request, {
+    path: "/settings/integrations/diagnostics",
+  });
 }

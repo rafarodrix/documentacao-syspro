@@ -3,12 +3,6 @@ import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
 
 export async function GET(request: NextRequest) {
   return proxyToBackend(request, {
-    path: "/settings/chatwoot/behavior",
-  });
-}
-
-export async function PUT(request: NextRequest) {
-  return proxyToBackend(request, {
-    path: "/settings/chatwoot/behavior",
+    path: "/settings/remote/admin-view",
   });
 }

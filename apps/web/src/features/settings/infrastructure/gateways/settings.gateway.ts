@@ -31,7 +31,7 @@ import {
   type SettingsOutput,
 } from "@dosc-syspro/contracts/settings";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 
 type SettingsGatewayResponse<T> = {
   success: boolean;
@@ -39,6 +39,11 @@ type SettingsGatewayResponse<T> = {
   error?: string;
   message?: string;
 };
+
+async function callSettingsApi<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await callWebApi(`/api/platform/settings${path}`, init);
+  return response.json() as Promise<T>;
+}
 
 export type IntegrationDiagnosticsResponse = {
   success: boolean;
@@ -66,7 +71,7 @@ export type IntegrationDiagnosticsResponse = {
 };
 
 export async function fetchGeneralSettingsGateway(): Promise<SettingsGatewayResponse<SettingsOutput>> {
-  const response = await callBackendApi<SettingsGatewayResponse<SettingsOutput>>("settings", "/general");
+  const response = await callSettingsApi<SettingsGatewayResponse<SettingsOutput>>("/general");
   if (response.data) {
     response.data = settingsSchema.parse(response.data);
   }
@@ -77,7 +82,7 @@ export async function updateGeneralSettingsGateway(
   input: SettingsOutput,
 ): Promise<SettingsGatewayResponse<void>> {
   const payload = settingsSchema.parse(input);
-  return callBackendApi<SettingsGatewayResponse<void>>("settings", "/general", {
+  return callSettingsApi<SettingsGatewayResponse<void>>("/general", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -85,7 +90,7 @@ export async function updateGeneralSettingsGateway(
 }
 
 export async function fetchSefazRoutesGateway(): Promise<SettingsGatewayResponse<SefazRoutesInput>> {
-  const response = await callBackendApi<SettingsGatewayResponse<SefazRoutesInput>>("settings", "/sefaz-routes");
+  const response = await callSettingsApi<SettingsGatewayResponse<SefazRoutesInput>>("/sefaz-routes");
   if (response.data) {
     response.data = sefazRoutesSchema.parse(response.data);
   }
@@ -96,7 +101,7 @@ export async function updateSefazRoutesGateway(
   input: SefazRoutesInput,
 ): Promise<SettingsGatewayResponse<void>> {
   const payload = sefazRoutesSchema.parse(input);
-  return callBackendApi<SettingsGatewayResponse<void>>("settings", "/sefaz-routes", {
+  return callSettingsApi<SettingsGatewayResponse<void>>("/sefaz-routes", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -104,32 +109,32 @@ export async function updateSefazRoutesGateway(
 }
 
 export async function runSefazCheckGateway(): Promise<SettingsGatewayResponse<{ count: number }>> {
-  return callBackendApi<SettingsGatewayResponse<{ count: number }>>("settings", "/sefaz/check", {
+  return callSettingsApi<SettingsGatewayResponse<{ count: number }>>("/sefaz/check", {
     method: "POST",
   });
 }
 
 export async function fetchSettingsContractsAdminViewGateway(): Promise<SettingsContractsAdminViewResponse> {
   return settingsContractsAdminViewResponseSchema.parse(
-    await callBackendApi<SettingsContractsAdminViewResponse>("settings", "/contracts/admin-view"),
+    await callSettingsApi<SettingsContractsAdminViewResponse>("/contracts/admin-view"),
   );
 }
 
 export async function fetchSettingsRemoteAdminViewGateway(): Promise<SettingsRemoteAdminViewResponse> {
   return settingsRemoteAdminViewResponseSchema.parse(
-    await callBackendApi<SettingsRemoteAdminViewResponse>("settings", "/remote/admin-view"),
+    await callSettingsApi<SettingsRemoteAdminViewResponse>("/remote/admin-view"),
   );
 }
 
 export async function fetchSettingsAuthorizationContextGateway(): Promise<SettingsAuthorizationContextResponse> {
   return settingsAuthorizationContextResponseSchema.parse(
-    await callBackendApi<SettingsAuthorizationContextResponse>("settings", "/authorization/context"),
+    await callSettingsApi<SettingsAuthorizationContextResponse>("/authorization/context"),
   );
 }
 
 export async function fetchRemoteModuleSettingsGateway(): Promise<RemoteModuleSettingsResponse> {
   return remoteModuleSettingsResponseSchema.parse(
-    await callBackendApi<RemoteModuleSettingsResponse>("settings", "/remote/module-settings"),
+    await callSettingsApi<RemoteModuleSettingsResponse>("/remote/module-settings"),
   );
 }
 
@@ -138,7 +143,7 @@ export async function updateRemoteModuleSettingsGateway(
 ): Promise<RemoteModuleSettingsResponse> {
   const payload = remoteModuleSettingsSchema.parse(input);
   return remoteModuleSettingsResponseSchema.parse(
-    await callBackendApi<RemoteModuleSettingsResponse>("settings", "/remote/module-settings", {
+    await callSettingsApi<RemoteModuleSettingsResponse>("/remote/module-settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -148,13 +153,13 @@ export async function updateRemoteModuleSettingsGateway(
 
 export async function fetchPlatformNotificationsGateway(): Promise<PlatformNotificationsResponse> {
   return platformNotificationsResponseSchema.parse(
-    await callBackendApi<PlatformNotificationsResponse>("settings", "/platform-notifications"),
+    await callWebApi("/api/platform/notifications").then((res) => res.json() as Promise<PlatformNotificationsResponse>),
   );
 }
 
 export async function fetchTicketModuleSettingsGateway(): Promise<TicketModuleSettingsResponse> {
   return ticketModuleSettingsResponseSchema.parse(
-    await callBackendApi<TicketModuleSettingsResponse>("settings", "/tickets"),
+    await callSettingsApi<TicketModuleSettingsResponse>("/tickets"),
   );
 }
 
@@ -163,7 +168,7 @@ export async function updateTicketModuleSettingsGateway(
 ): Promise<TicketModuleSettingsResponse> {
   const payload = ticketModuleSettingsSchema.parse(input);
   return ticketModuleSettingsResponseSchema.parse(
-    await callBackendApi<TicketModuleSettingsResponse>("settings", "/tickets", {
+    await callSettingsApi<TicketModuleSettingsResponse>("/tickets", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -172,12 +177,12 @@ export async function updateTicketModuleSettingsGateway(
 }
 
 export async function fetchIntegrationDiagnosticsGateway(): Promise<IntegrationDiagnosticsResponse> {
-  return callBackendApi<IntegrationDiagnosticsResponse>("settings", "/integrations/diagnostics");
+  return callSettingsApi<IntegrationDiagnosticsResponse>("/integrations/diagnostics");
 }
 
 export async function fetchChatwootBehaviorSettingsGateway(): Promise<ChatwootBehaviorSettingsResponse> {
   return chatwootBehaviorSettingsResponseSchema.parse(
-    await callBackendApi<ChatwootBehaviorSettingsResponse>("settings", "/chatwoot/behavior"),
+    await callSettingsApi<ChatwootBehaviorSettingsResponse>("/chatwoot/behavior"),
   );
 }
 
@@ -186,7 +191,7 @@ export async function updateChatwootBehaviorSettingsGateway(
 ): Promise<ChatwootBehaviorSettingsResponse> {
   const payload = chatwootBehaviorSettingsSchema.parse(input);
   return chatwootBehaviorSettingsResponseSchema.parse(
-    await callBackendApi<ChatwootBehaviorSettingsResponse>("settings", "/chatwoot/behavior", {
+    await callSettingsApi<ChatwootBehaviorSettingsResponse>("/chatwoot/behavior", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

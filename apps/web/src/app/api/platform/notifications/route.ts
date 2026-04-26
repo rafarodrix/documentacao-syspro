@@ -1,14 +1,10 @@
-import { NextResponse } from "next/server";
-import { getPlatformNotifications } from "@/features/settings/application/platform-notifications";
+import type { NextRequest } from "next/server";
+import { proxyToBackend } from "@/app/api/_shared/backend-proxy";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const data = await getPlatformNotifications();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Erro ao carregar notificacoes da plataforma via backend:", error);
-    return NextResponse.json({ error: "Falha ao carregar notificacoes." }, { status: 500 });
-  }
+export async function GET(request: NextRequest) {
+  return proxyToBackend(request, {
+    path: "/settings/platform-notifications",
+  });
 }
