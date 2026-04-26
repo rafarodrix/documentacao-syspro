@@ -145,7 +145,7 @@ func resolveWindowSize(target string) (int, int) {
 	if strings.Contains(base, "setup") {
 		return 430, 640
 	}
-	return 390, 620
+	return 400, 560
 }
 
 func toWebViewTarget(target string) (string, error) {

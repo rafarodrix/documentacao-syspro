@@ -77,7 +77,7 @@
     .agent-support-header {
       position: relative;
       z-index: 2;
-      padding: 20px 20px 14px;
+      padding: 18px 18px 12px;
       background:
         linear-gradient(135deg, rgba(16, 63, 105, 0.06), rgba(25, 111, 180, 0.01)),
         linear-gradient(180deg, #fcfdfe 0%, #f4f8fb 100%);
@@ -125,8 +125,8 @@
     }
 
     .agent-support-title {
-      margin-top: 12px;
-      font-size: 24px;
+      margin-top: 10px;
+      font-size: 21px;
       font-weight: 850;
       line-height: 1.08;
       letter-spacing: -0.03em;
@@ -147,25 +147,25 @@
     .agent-support-copy {
       position: relative;
       z-index: 1;
-      margin-top: 8px;
+      margin-top: 6px;
       text-align: left;
-      line-height: 1.6;
+      line-height: 1.5;
       color: var(--muted);
-      font-size: 13px;
-      max-width: 360px;
+      font-size: 12px;
+      max-width: 320px;
     }
 
     .agent-support-overview {
       position: relative;
       z-index: 1;
-      margin-top: 16px;
+      margin-top: 14px;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .agent-overview-card {
-      padding: 14px;
+      padding: 12px;
       border-radius: var(--radius-md);
       background: rgba(255,255,255,0.86);
       border: 1px solid rgba(216, 225, 233, 0.96);
@@ -180,8 +180,8 @@
     }
 
     .agent-overview-value {
-      margin-top: 8px;
-      font-size: 14px;
+      margin-top: 6px;
+      font-size: 13px;
       line-height: 1.4;
       font-weight: 800;
       color: var(--text);
@@ -189,22 +189,22 @@
     }
 
     .agent-support-meta {
-      margin-top: 12px;
+      margin-top: 10px;
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       justify-content: flex-start;
     }
 
     .agent-support-pill {
       display: inline-flex;
       align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
+      min-height: 26px;
+      padding: 0 10px;
       border-radius: 999px;
       background: #e9f0f5;
       color: #28435a;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       line-height: 1;
     }
@@ -226,34 +226,39 @@
 
     .agent-support-body {
       position: absolute;
-      inset: 320px 0 0 0;
-      padding: 18px 20px 20px;
-      overflow: hidden;
+      inset: 254px 0 0 0;
+      padding: 14px 18px 18px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .agent-support-remote-card {
       position: relative;
       z-index: 2;
-      margin-bottom: 14px;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
-      padding: 16px;
+      gap: 10px;
+      padding: 14px;
       border-radius: var(--radius-lg);
       background: linear-gradient(180deg, #ffffff 0%, var(--panel-soft) 100%);
       border: 1px solid var(--line);
+      flex: 1 1 auto;
+      align-content: start;
+      min-height: 0;
     }
 
     .agent-support-remote-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
 
     .agent-support-remote-title {
       text-align: left;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 800;
       color: var(--subtle);
       text-transform: uppercase;
@@ -263,12 +268,12 @@
     .agent-support-remote-state {
       display: inline-flex;
       align-items: center;
-      min-height: 28px;
-      padding: 0 12px;
+      min-height: 26px;
+      padding: 0 10px;
       border-radius: 999px;
       background: var(--brand-soft);
       color: var(--brand);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 800;
       letter-spacing: .08em;
       text-transform: uppercase;
@@ -277,19 +282,19 @@
     .agent-support-remote-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .agent-support-remote-item {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       text-align: left;
       min-width: 0;
     }
 
     .agent-support-remote-label {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--subtle);
       font-weight: 700;
       text-transform: uppercase;
@@ -308,13 +313,13 @@
       min-width: 0;
       display: inline-flex;
       align-items: center;
-      min-height: 42px;
-      padding: 0 14px;
+      min-height: 40px;
+      padding: 0 12px;
       border-radius: 14px;
       background: #ffffff;
       border: 1px solid var(--line-strong);
       color: var(--text);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       font-family: Consolas, "Courier New", monospace;
       overflow: hidden;
@@ -326,13 +331,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 42px;
-      height: 42px;
+      min-width: 40px;
+      height: 40px;
       border-radius: 14px;
       border: 0;
       background: linear-gradient(180deg, var(--brand) 0%, #144f83 100%);
       color: #ffffff;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 12px 22px rgba(16, 63, 105, 0.18);
@@ -347,15 +352,14 @@
     .agent-support-remote-hint {
       text-align: left;
       font-size: 12px;
-      line-height: 1.6;
+      line-height: 1.55;
       color: var(--muted);
     }
 
     .agent-support-alert {
-      margin-bottom: 14px;
       display: none;
       border-radius: var(--radius-md);
-      padding: 14px 16px;
+      padding: 12px 14px;
       text-align: left;
       background: var(--warn-soft);
       border: 1px solid rgba(148, 97, 17, 0.16);
@@ -367,7 +371,7 @@
     }
 
     .agent-support-alert-title {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 800;
       margin-bottom: 6px;
       text-transform: uppercase;
@@ -376,41 +380,40 @@
 
     .agent-support-alert-copy {
       font-size: 12px;
-      line-height: 1.6;
+      line-height: 1.55;
       font-weight: 600;
     }
 
     .agent-support-stage {
-      position: absolute;
-      inset: auto 20px 20px 20px;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 104px;
-      padding: 18px;
+      min-height: 72px;
+      padding: 14px 16px;
       border-radius: var(--radius-lg);
       background: linear-gradient(180deg, rgba(16, 63, 105, 0.06), rgba(25, 111, 180, 0.03));
       border: 1px dashed rgba(16, 63, 105, 0.18);
       color: #3c4d5e;
       z-index: 1;
-      pointer-events: none;
     }
 
     .agent-support-stage-content {
-      max-width: 320px;
+      max-width: none;
+      width: 100%;
     }
 
     .agent-support-stage-title {
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 800;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       letter-spacing: -0.02em;
     }
 
     .agent-support-stage-copy {
-      line-height: 1.6;
+      line-height: 1.5;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .agent-support-stage.hidden {
@@ -432,7 +435,7 @@
       }
 
       .agent-support-body {
-        inset: 444px 0 0 0;
+        inset: 396px 0 0 0;
       }
 
       .agent-support-remote-grid {
