@@ -3,6 +3,12 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { getBackendApiBaseUrl } from "@/lib/backend-api";
 
+/**
+ * Proxy dedicado de auth.
+ *
+ * Auth precisa preservar melhor o comportamento bruto do upstream e responder
+ * OPTIONS/CORS manualmente. Por isso esse fluxo nao usa `proxyToBackend`.
+ */
 type AuthProxyContext = {
   params: Promise<{ all?: string[] }>;
 };

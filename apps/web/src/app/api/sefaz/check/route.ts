@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { createRequestLogger } from "@dosc-syspro/shared/logger";
 import { executeSefazCheck, isSefazCheckAuthorized } from "@/features/settings/application/sefaz-check";
 
+/**
+ * Entrada publica/externa do check SEFAZ.
+ *
+ * Continua separada de `/api/platform/settings/sefaz/check/internal` porque
+ * aqui existe validacao por segredo para chamadas vindas de cron/webhook.
+ * Depois da autorizacao, a execucao real segue pelo fluxo interno padronizado.
+ */
 async function handleSefazCheck(request: Request) {
   const { logger, responseHeaders, correlationId } = createRequestLogger(request, {
     area: "api",
