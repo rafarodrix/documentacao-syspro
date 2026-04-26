@@ -31,8 +31,8 @@ function App() {
 
   useEffect(() => {
     void Promise.all([
-      GetSetupStatus().then(setSetupStatus).catch(() => undefined),
-      ListNotifications().then(setNotifications).catch(() => undefined),
+      GetSetupStatus().then(setSetupStatus).catch((err) => console.error("GetSetupStatus failed:", err)),
+      ListNotifications().then(setNotifications).catch((err) => console.error("ListNotifications failed:", err)),
     ]);
 
     const unsubscribers = [
@@ -47,7 +47,7 @@ function App() {
             .then((session) => {
               setSupportSession(session);
             })
-            .catch(() => undefined);
+            .catch((err) => console.error("GetSupportSession failed:", err));
         }
       }),
       EventsOn("agent:setup-status", (payload: uistate.SetupStatus) => {

@@ -81,6 +81,10 @@ func (m *Module) enqueueAck(ctx context.Context, ack pendingAck) {
 	queue := m.loadPendingAcks(ctx)
 	queue = append(queue, ack)
 	if len(queue) > maxQueueItems {
+		dropped := queue[:len(queue)-maxQueueItems]
+		for _, d := range dropped {
+			m.logger.Warn("pending ack queue full, oldest entry discarded", "command_id", d.CommandID, "enqueued_at", d.EnqueuedAt)
+		}
 		queue = queue[len(queue)-maxQueueItems:]
 	}
 	m.savePendingAcks(ctx, queue)

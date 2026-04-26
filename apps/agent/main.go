@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"trilink/agent/assets"
 	"trilink/agent/internal/app"
 	"trilink/agent/internal/uiwails"
 )
@@ -24,7 +25,7 @@ func main() {
 		log.Fatal("agent ui container is not initialized")
 	}
 
-	if err := uiwails.RunApp(ctx, container.AgentUI, container.UIHost, frontendAssets); err != nil {
+	if err := uiwails.RunApp(ctx, container.AgentUI, container.UIHost, frontendAssets, assets.IconICO); err != nil {
 		log.Fatal(err)
 	}
 }
