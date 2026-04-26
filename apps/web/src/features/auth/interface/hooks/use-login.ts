@@ -51,14 +51,17 @@ export function useLogin() {
 
     if (urlCallback) {
       router.push(urlCallback)
+      router.refresh()
       return
     }
 
     try {
       await authClient.getSession()
       router.push("/portal")
+      router.refresh()
     } catch {
       router.push("/portal")
+      router.refresh()
     }
   }
 
