@@ -396,7 +396,7 @@ func resolveCompanyDisplayName(context SupportContext) string {
 
 func resolveDisplayedRustDeskPassword(remoteState persistedRemoteState) string {
 	defaultPassword := strings.TrimSpace(remoteState.DefaultPassword)
-	if defaultPassword != "" {
+	if looksLikeDisplayedRustDeskPassword(defaultPassword) {
 		return defaultPassword
 	}
 

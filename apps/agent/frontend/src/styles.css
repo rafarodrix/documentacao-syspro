@@ -44,26 +44,28 @@ body,
 }
 
 body {
-  padding: 12px;
+  padding: 0;
 }
 
 .shell {
   width: 100%;
   height: 100%;
-  padding: 8px;
-  border-radius: 30px;
+  padding: 0;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 0;
   backdrop-filter: blur(18px);
+  overflow: hidden;
 }
 
 .panel {
   width: 100%;
   height: 100%;
-  overflow: auto;
-  border-radius: var(--radius-xl);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 0;
   background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-  border: 1px solid rgba(221, 230, 237, 0.95);
+  border: 0;
   box-shadow: var(--shadow);
 }
 
@@ -74,6 +76,7 @@ body {
     linear-gradient(135deg, rgba(16, 63, 105, 0.06), rgba(26, 111, 180, 0.01)),
     linear-gradient(180deg, #fdfefe 0%, #f4f8fb 100%);
   border-bottom: 1px solid var(--line);
+  overflow: hidden;
 }
 
 .hero::after {
@@ -246,36 +249,15 @@ h1 {
 }
 
 .focus-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: center;
+  display: block;
 }
 
 .focus-detail,
-.support-note,
 .notification span {
   margin-top: 8px;
   font-size: 13px;
   line-height: 1.6;
   color: var(--muted);
-}
-
-.focus-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 110px;
-  min-height: 92px;
-  padding: 12px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(16, 63, 105, 0.1), rgba(26, 111, 180, 0.16));
-  color: var(--brand);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  text-align: center;
 }
 
 .steps {
@@ -419,7 +401,33 @@ button {
 .support-panel .card-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+}
+
+.route-support .hero {
+  padding: 18px 18px 14px;
+}
+
+.route-support h1 {
+  margin: 10px 0 6px;
+  font-size: 26px;
+}
+
+.route-support .summary {
+  max-width: none;
+  line-height: 1.5;
+}
+
+.route-support .section {
+  padding: 14px 18px 0;
+}
+
+.route-support .card-body {
+  padding: 14px;
+}
+
+.route-support .card.soft {
+  border-radius: 18px;
 }
 
 .support-grid-values {
@@ -431,7 +439,7 @@ button {
 .support-value {
   display: flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 36px;
   margin-top: 6px;
   padding: 0 12px;
   border-radius: 14px;
@@ -440,6 +448,12 @@ button {
   font-size: 13px;
   font-weight: 800;
   font-family: Consolas, "Courier New", monospace;
+}
+
+.route-support .support-value {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .support-status {
@@ -462,11 +476,12 @@ button {
   color: var(--err);
 }
 
-.support-stage {
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgba(16, 63, 105, 0.06), rgba(26, 111, 180, 0.03));
-  border: 1px dashed rgba(16, 63, 105, 0.18);
+.support-actions {
+  margin-top: 2px;
+}
+
+.route-support .actions.compact {
+  margin-top: 4px;
 }
 
 .notifications {
@@ -497,15 +512,6 @@ button {
 }
 
 @media (max-width: 560px) {
-  body {
-    padding: 8px;
-  }
-
-  .shell {
-    padding: 6px;
-    border-radius: 24px;
-  }
-
   .hero-grid,
   .support-grid-values,
   .focus-card,
@@ -515,5 +521,13 @@ button {
 
   .step-status {
     justify-self: start;
+  }
+
+  .hero,
+  .section,
+  .steps-section,
+  .actions {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

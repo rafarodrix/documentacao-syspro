@@ -26,12 +26,7 @@ function App() {
   const [setupStatus, setSetupStatus] = useState<uistate.SetupStatus>(defaultSetupStatus);
   const [supportSession, setSupportSession] = useState<uistate.SupportSession | null>(null);
   const [, setNotifications] = useState<Array<uistate.Notification>>([]);
-  const [supportStage, setSupportStage] = useState("Preparando atendimento");
-  const [supportStageCopy, setSupportStageCopy] = useState(
-    "O canal oficial da Trilink esta sendo preparado nesta janela.",
-  );
   const [chatwootReady, setChatwootReady] = useState(false);
-  const [chatwootVisible, setChatwootVisible] = useState(false);
   const syncedConversationIds = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -47,15 +42,10 @@ function App() {
 
         if (nextRoute === "agent://support") {
           setChatwootReady(false);
-          setChatwootVisible(false);
 
           void GetSupportSession()
             .then((session) => {
               setSupportSession(session);
-              setSupportStage("Preparando atendimento");
-              setSupportStageCopy(
-                "O canal oficial da Trilink esta pronto nesta janela. Abra o atendimento somente quando quiser iniciar a conversa.",
-              );
             })
             .catch(() => undefined);
         }
@@ -87,11 +77,8 @@ function App() {
         return;
       }
 
+      hideChatwootBubble();
       setChatwootReady(true);
-      setSupportStage("Atendimento pronto");
-      setSupportStageCopy(
-        "O canal de atendimento ja esta carregado. Clique em Abrir atendimento quando quiser exibir o widget.",
-      );
     };
 
     const onMessage = (event: Event) => {
@@ -119,7 +106,7 @@ function App() {
     window.addEventListener("chatwoot:on-message", onMessage);
 
     (window as unknown as { chatwootSettings?: Record<string, unknown> }).chatwootSettings = {
-      hideMessageBubble: false,
+      hideMessageBubble: true,
       showUnreadMessagesDialog: false,
       welcomeTitle: "Suporte Trilink",
       welcomeDescription: "Canal oficial da Trilink com contexto tecnico do dispositivo.",
@@ -151,10 +138,7 @@ function App() {
           return;
         }
 
-        setSupportStage("Falha ao carregar o atendimento");
-        setSupportStageCopy(
-          "O SDK do Chatwoot nao carregou nesta maquina. Revise conectividade, politica de rede e acesso ao dominio do suporte.",
-        );
+        setChatwootReady(false);
       };
       document.body.appendChild(script);
     }
@@ -175,13 +159,9 @@ function App() {
       {route === "agent://support" ? (
         <SupportScreen
           session={supportSession}
-          stage={supportStage}
-          stageCopy={supportStageCopy}
           chatwootReady={chatwootReady}
-          chatwootVisible={chatwootVisible}
           onOpenSupport={() => {
             if (chatwootReady && openChatwoot()) {
-              setChatwootVisible(true);
               return;
             }
             void OpenSupportConversation();
@@ -217,10 +197,6 @@ function SetupScreen(props: {
         <p className="summary">{status.summary}</p>
         <div className="hero-grid">
           <div className="hero-stat">
-            <span className="hero-stat-label">Etapa</span>
-            <strong>{status.stage}</strong>
-          </div>
-          <div className="hero-stat">
             <span className="hero-stat-label">Progresso</span>
             <strong className="brand">{status.progress_pct}%</strong>
           </div>
@@ -230,6 +206,10 @@ function SetupScreen(props: {
               {completedSteps.length}/{status.steps.length}
             </strong>
           </div>
+          <div className="hero-stat">
+            <span className="hero-stat-label">Canal remoto</span>
+            <strong>{status.rustdesk_id ? "Conectado" : "Em preparo"}</strong>
+          </div>
         </div>
       </section>
 
@@ -238,8 +218,8 @@ function SetupScreen(props: {
           <div className="card-body">
             <div className="progress-head">
               <div>
-                <div className="progress-label">Fase operacional</div>
-                <div className="stage">{status.stage}</div>
+                <div className="progress-label">Visao operacional</div>
+                <div className="stage">{focusStep?.label ?? status.stage}</div>
               </div>
               <div className="percent">{status.progress_pct}%</div>
             </div>
@@ -260,12 +240,9 @@ function SetupScreen(props: {
         <div className="card">
           <div className="card-body focus-card">
             <div>
-              <div className="progress-label">Etapa em execucao</div>
+              <div className="progress-label">Detalhe atual</div>
               <div className="focus-title">{focusStep?.label ?? "Inicializando"}</div>
               <div className="focus-detail">{focusStep?.detail ?? "Preparando contexto inicial do agente."}</div>
-            </div>
-            <div className="focus-badge">
-              {focusStep?.status === "error" ? "Atencao" : focusStep?.status === "complete" ? "Concluido" : "Em curso"}
             </div>
           </div>
         </div>
@@ -316,21 +293,18 @@ function SetupScreen(props: {
 
 function SupportScreen(props: {
   session: uistate.SupportSession | null;
-  stage: string;
-  stageCopy: string;
   chatwootReady: boolean;
-  chatwootVisible: boolean;
   onOpenSupport: () => void;
 }) {
-  const { session, stage, stageCopy, chatwootReady, chatwootVisible, onOpenSupport } = props;
+  const { session, chatwootReady, onOpenSupport } = props;
   const context = session?.context;
 
   return (
     <main className="panel support-panel">
       <section className="hero support-hero">
-        <div className="eyebrow">Trilink Support Console</div>
-        <h1>Suporte corporativo</h1>
-        <p className="summary">Canal oficial da Trilink com contexto tecnico do dispositivo.</p>
+        <div className="eyebrow">Atendimento oficial</div>
+        <h1>Chat Trilink</h1>
+        <p className="summary">Atendimento da Trilink via chat com contexto tecnico do dispositivo.</p>
       </section>
 
       <section className="section">
@@ -353,26 +327,16 @@ function SupportScreen(props: {
                 <div className="support-value">
                   {context?.remoteAccessPassword ??
                     (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
-                      ? "Disponivel no app RustDesk"
+                      ? "Disponivel no aplicativo RustDesk"
                       : "Aguardando configuracao")}
                 </div>
               </div>
             </div>
 
-            <div className="support-stage">
-              <div className="focus-title">{stage}</div>
-              <div className="focus-detail">{stageCopy}</div>
-              <div className="actions compact">
-                <button type="button" onClick={onOpenSupport}>
-                  {chatwootReady ? "Abrir atendimento" : "Tentar novamente"}
-                </button>
-              </div>
-            </div>
-
-            <div className="support-note">
-              {chatwootVisible
-                ? "Atendimento aberto nesta janela."
-                : "O widget permanece fechado ate o usuario clicar em Abrir atendimento."}
+            <div className="actions compact support-actions">
+              <button type="button" onClick={onOpenSupport}>
+                {chatwootReady ? "Abrir atendimento" : "Tentar novamente"}
+              </button>
             </div>
           </div>
         </div>
@@ -398,10 +362,22 @@ function openChatwoot() {
 
   try {
     chatwoot.toggle?.("open");
-    chatwoot.toggleBubbleVisibility?.("show");
+    chatwoot.toggleBubbleVisibility?.("hide");
     return true;
   } catch {
     return false;
+  }
+}
+
+function hideChatwootBubble() {
+  const chatwoot = (window as unknown as {
+    $chatwoot?: { toggleBubbleVisibility?: (mode: string) => void };
+  }).$chatwoot;
+
+  try {
+    chatwoot?.toggleBubbleVisibility?.("hide");
+  } catch {
+    // ignore widget visibility failures; support remains available via button
   }
 }
 
