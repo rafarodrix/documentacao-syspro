@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -29,6 +30,44 @@ type Opener struct {
 	logger   Logger
 	stateDir string
 	bridge   NativeBridge
+}
+
+// windowTracker prevents duplicate WebView2 windows for the same target.
+// acquireOrPromote is the single lock operation: if the key is already tracked
+// it brings the existing window to the front and returns false (caller must NOT
+// open a new window); if the key is free it reserves it and returns true.
+type windowTracker struct {
+	mu      sync.Mutex
+	handles map[string]unsafe.Pointer // key → HWND (nil while window is initialising)
+}
+
+var openWindows = &windowTracker{handles: make(map[string]unsafe.Pointer)}
+
+func (t *windowTracker) acquireOrPromote(key string) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if handle, exists := t.handles[key]; exists {
+		if handle != nil {
+			go promoteWindow(handle)
+		}
+		return false
+	}
+	t.handles[key] = nil
+	return true
+}
+
+func (t *windowTracker) setHandle(key string, handle unsafe.Pointer) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if _, exists := t.handles[key]; exists {
+		t.handles[key] = handle
+	}
+}
+
+func (t *windowTracker) release(key string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.handles, key)
 }
 
 var (
@@ -53,16 +92,26 @@ func NewOpener(logger Logger, stateDir string, bridge NativeBridge) *Opener {
 	}
 }
 
+func windowKey(target string) string {
+	return strings.ToLower(filepath.Base(target))
+}
+
 func (o *Opener) Open(ctx context.Context, target string) error {
+	key := windowKey(target)
+	if !openWindows.acquireOrPromote(key) {
+		o.logger.Info("webview2 window already open, brought to front", "target", target)
+		return nil
+	}
 	go func() {
-		if err := o.openWithWebView2(ctx, target); err != nil {
+		defer openWindows.release(key)
+		if err := o.openWithWebView2(ctx, target, key); err != nil {
 			o.logger.Info("webview2 open failed", "target", target, "error", err)
 		}
 	}()
 	return nil
 }
 
-func (o *Opener) openWithWebView2(ctx context.Context, target string) error {
+func (o *Opener) openWithWebView2(ctx context.Context, target string, key string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -91,6 +140,8 @@ func (o *Opener) openWithWebView2(ctx context.Context, target string) error {
 		return fmt.Errorf("webview2 runtime unavailable")
 	}
 	defer w.Destroy()
+
+	openWindows.setHandle(key, w.Window())
 
 	if err := w.Bind("agent_native_invoke", func(action string, payload string) (string, error) {
 		return o.invokeBridge(action, payload)

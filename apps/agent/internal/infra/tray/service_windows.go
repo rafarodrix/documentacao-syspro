@@ -14,6 +14,7 @@ import (
 )
 
 type Logger interface {
+	Debug(msg string, kv ...any)
 	Info(msg string, kv ...any)
 }
 
@@ -30,9 +31,10 @@ type Service struct {
 	stateDir string
 	actions  chan Action
 
-	mu             sync.Mutex
-	currentSummary uistate.Summary
-	ready          bool
+	mu                   sync.Mutex
+	currentSummary       uistate.Summary
+	currentNotifications []uistate.Notification
+	ready                bool
 }
 
 func NewService(logger Logger, stateDir string) *Service {
@@ -121,11 +123,19 @@ func (s *Service) UpdateSummary(summary uistate.Summary) {
 	if ready {
 		systray.SetTooltip(s.tooltipText())
 	}
-	s.logger.Info("tray summary updated", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
+	s.logger.Debug("tray summary updated", "service_status", summary.ServiceStatus, "user_visible", summary.UserVisible)
 }
 
 func (s *Service) ShowNotifications(notifications []uistate.Notification) {
-	s.logger.Info("tray notifications updated", "count", len(notifications))
+	s.mu.Lock()
+	s.currentNotifications = notifications
+	ready := s.ready
+	s.mu.Unlock()
+
+	if ready {
+		systray.SetTooltip(s.tooltipText())
+	}
+	s.logger.Debug("tray notifications updated", "count", len(notifications))
 }
 
 func (s *Service) SupportActionReady(result uistate.ActionResult) {
@@ -145,5 +155,23 @@ func (s *Service) tooltipText() string {
 		visibility = "visivel"
 	}
 
-	return fmt.Sprintf("Trilink Agent\nServico: %s\nUI: %s", s.currentSummary.ServiceStatus, visibility)
+	text := fmt.Sprintf("Trilink Agent\nServico: %s\nUI: %s", s.currentSummary.ServiceStatus, visibility)
+
+	warns, errs := 0, 0
+	for _, n := range s.currentNotifications {
+		switch n.Severity {
+		case "error":
+			errs++
+		case "warn", "warning":
+			warns++
+		}
+	}
+	switch {
+	case errs > 0:
+		text += fmt.Sprintf("\n! %d erro(s)", errs)
+	case warns > 0:
+		text += fmt.Sprintf("\n! %d aviso(s)", warns)
+	}
+
+	return text
 }
