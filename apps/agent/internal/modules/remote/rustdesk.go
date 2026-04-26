@@ -447,8 +447,18 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 	ext := strings.ToLower(filepath.Ext(installerPath))
 	switch ext {
 	case ".msi":
+		if elevated, err := m.isRunningElevated(ctx); err != nil {
+			m.logger.Warn("rustdesk elevation check failed", "error", err)
+		} else if !elevated {
+			return fmt.Errorf("run msi installer: agente nao esta rodando com privilegios de administrador; configure o servico do agente para rodar como SYSTEM ou Administrador")
+		}
+
 		_ = m.runPowerShell(ctx, "Stop-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
 		time.Sleep(2 * time.Second)
+
+		if pending, _ := m.isRebootPending(ctx); pending {
+			m.logger.Warn("system has a pending reboot; msi installation may fail — consider rebooting first")
+		}
 
 		logPath, logErr := m.prepareInstallerLogPath("rustdesk-msi-install")
 		if logErr != nil {
@@ -480,11 +490,25 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 
 func classifyInstallerError(prefix string, err error, output []byte, logPath string) error {
 	message := strings.TrimSpace(string(output))
+
+	// msiexec /qn does not write errors to stdout; check the log file for known failure codes.
+	if logPath != "" {
+		if logContent, readErr := os.ReadFile(logPath); readErr == nil {
+			logText := string(logContent)
+			if strings.Contains(logText, "Error 1925") || strings.Contains(logText, "sufficient privileges") {
+				return fmt.Errorf("%s: privilegios de administrador necessarios — configure o servico do agente como SYSTEM ou Administrador (installer log: %s)", prefix, logPath)
+			}
+			if strings.Contains(logText, "MsiSystemRebootPending") {
+				return fmt.Errorf("%s: instalacao bloqueada por reinicializacao pendente do sistema — reinicie a maquina e tente novamente (installer log: %s)", prefix, logPath)
+			}
+		}
+	}
+
 	if strings.Contains(strings.ToLower(message), "error 1925") || strings.Contains(strings.ToLower(message), "sufficient privileges") {
 		if logPath != "" {
-			return fmt.Errorf("%s: rustdesk installation requires administrative privileges (installer log: %s)", prefix, logPath)
+			return fmt.Errorf("%s: privilegios de administrador necessarios (installer log: %s)", prefix, logPath)
 		}
-		return fmt.Errorf("%s: rustdesk installation requires administrative privileges", prefix)
+		return fmt.Errorf("%s: privilegios de administrador necessarios", prefix)
 	}
 	if logPath != "" {
 		return fmt.Errorf("%s: %w: %s (installer log: %s)", prefix, err, message, logPath)
@@ -556,4 +580,31 @@ func joinPowerShellArgs(args []string) string {
 
 func escapePowerShellSingleQuoted(value string) string {
 	return strings.ReplaceAll(value, "'", "''")
+}
+
+func (m *rustDeskManager) isRunningElevated(ctx context.Context) (bool, error) {
+	if runtime.GOOS != "windows" {
+		return true, nil
+	}
+	out, err := m.runPowerShellOutput(ctx, "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)")
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(strings.ToLower(out)) == "true", nil
+}
+
+func (m *rustDeskManager) isRebootPending(ctx context.Context) (bool, error) {
+	if runtime.GOOS != "windows" {
+		return false, nil
+	}
+	out, err := m.runPowerShellOutput(ctx, `
+		$pending = $false
+		if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { $pending = $true }
+		if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue) -ne $null) { $pending = $true }
+		$pending
+	`)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(strings.ToLower(out)) == "true", nil
 }
