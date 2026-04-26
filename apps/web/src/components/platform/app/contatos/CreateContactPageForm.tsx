@@ -297,6 +297,15 @@ export function CreateContactPageForm({
 
               <Card className="border-border/60 bg-card shadow-sm">
                 <CardContent className="space-y-5 p-4 md:p-5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-primary/10">
+                      <UserRound className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Dados do contato</p>
+                      <p className="text-xs text-muted-foreground">Identidade, canais e documentos.</p>
+                    </div>
+                  </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -446,12 +455,15 @@ export function CreateContactPageForm({
 
               <Card className="border-border/60 bg-card shadow-sm">
                 <CardContent className="space-y-4 p-4 md:p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h2 className="text-sm font-semibold text-foreground">Empresas vinculadas</h2>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        O contato pode pertencer a uma ou mais empresas.
-                      </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Empresas vinculadas</p>
+                        <p className="text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
+                      </div>
                     </div>
                     <Badge
                       variant="outline"

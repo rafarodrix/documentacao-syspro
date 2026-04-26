@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Sparkles, Building2 } from "lucide-react";
+import { ClipboardList, Loader2, Search, Sparkles, Building2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
 import { formatCNPJ } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -41,12 +42,13 @@ export function CompanyIdentificationTab({
   return (
     <div className="space-y-6">
       {/* Banner CNPJ highlight */}
-      <div className={cn(
-        "rounded-xl border p-4 transition-all duration-500",
+      <Card className={cn(
+        "border transition-all duration-500",
         justImported
           ? "border-primary/40 bg-primary/5 shadow-[0_0_24px_0_hsl(var(--primary)/0.12)]"
-          : "border-border/60 bg-muted/10",
+          : "border-border/60 bg-card shadow-sm",
       )}>
+      <CardContent className="space-y-4 p-4 md:p-5">
         <div className="flex items-center gap-2 mb-3">
           <div className="p-1.5 rounded-md bg-primary/10">
             <Building2 className="h-4 w-4 text-primary" />
@@ -163,11 +165,21 @@ export function CompanyIdentificationTab({
             )}
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Dados cadastrais */}
-      <div className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
-        <p className="text-sm font-semibold text-foreground">Dados cadastrais</p>
+      <Card className="border-border/60 bg-card shadow-sm">
+        <CardContent className="space-y-4 p-4 md:p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="p-1.5 rounded-md bg-primary/10">
+            <ClipboardList className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Dados cadastrais</p>
+            <p className="text-xs text-muted-foreground">Razao social, nome fantasia e informacoes de registro.</p>
+          </div>
+        </div>
 
         <FormField
           control={form.control}
@@ -316,7 +328,8 @@ export function CompanyIdentificationTab({
             )}
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

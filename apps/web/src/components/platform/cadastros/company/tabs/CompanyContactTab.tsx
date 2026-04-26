@@ -6,6 +6,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatPhone } from "@/lib/formatters";
 
 export function CompanyContactTab() {
@@ -13,7 +14,8 @@ export function CompanyContactTab() {
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
 
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-4">
+    <Card className="border-border/60 bg-card shadow-sm">
+      <CardContent className="space-y-4 p-4 md:p-5">
       <div className="flex items-center gap-2 mb-1">
         <div className="p-1.5 rounded-md bg-primary/10">
           <Phone className="h-4 w-4 text-primary" />
@@ -116,6 +118,7 @@ export function CompanyContactTab() {
           </FormItem>
         )}
       />
-    </div>
+      </CardContent>
+    </Card>
   );
 }
