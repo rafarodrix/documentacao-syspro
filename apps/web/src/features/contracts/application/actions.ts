@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import {
   batchReadjustContractsSchema,
@@ -13,23 +12,12 @@ import {
 } from "@dosc-syspro/contracts/contract";
 import { SYSTEM_ROLES } from "@dosc-syspro/core";
 import type { ContractBlockReason } from "@dosc-syspro/core";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 import { revalidateContractsViews } from "@/lib/cache-invalidation";
 import type { ContractActionResponse } from "@/features/contracts/domain/model";
 
 async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: withInternalApiHeaders({
-      "content-type": "application/json",
-      ...(cookie ? { cookie } : {}),
-      ...(init?.headers ?? {}),
-    }),
-    cache: "no-store",
-  });
+  return callWebApi(`/api${path}`, init);
 }
 
 async function parseActionResponse<T = void>(
@@ -69,7 +57,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
   }
 
   try {
-    const response = await apiRequest("/settings/contracts", {
+    const response = await apiRequest("/platform/contracts", {
       method: "POST",
       body: JSON.stringify({
         ...validation.data,
@@ -103,7 +91,7 @@ export async function updateContractAction(data: UpdateContractOutput): Promise<
 
   try {
     const parsed = validation.data;
-    const response = await apiRequest(`/settings/contracts/${encodeURIComponent(parsed.id)}`, {
+    const response = await apiRequest(`/platform/contracts/${encodeURIComponent(parsed.id)}`, {
       method: "PUT",
       body: JSON.stringify({
         ...parsed,
@@ -138,7 +126,7 @@ export async function batchReadjustContractsAction(
   }
 
   try {
-    const response = await apiRequest("/settings/contracts/batch-readjust", {
+    const response = await apiRequest("/platform/contracts/batch-readjust", {
       method: "POST",
       body: JSON.stringify(validation.data),
     });
@@ -167,7 +155,7 @@ export async function updateContractStatusAction(
   }
 
   try {
-    const response = await apiRequest(`/settings/contracts/${encodeURIComponent(contractId)}/status`, {
+    const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}/status`, {
       method: "PATCH",
       body: JSON.stringify({
         status,

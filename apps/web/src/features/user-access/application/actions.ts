@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { createUserSchema, updateUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { z } from "zod";
@@ -10,7 +9,7 @@ import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/model";
 import { SYSTEM_ROLES } from "@/features/user-access/domain/constants";
 import { handleActionError } from "@dosc-syspro/shared/action-error-handler";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 
 interface GetUsersParams {
   search?: string;
@@ -40,17 +39,7 @@ function toApiErrorMessage(payload: unknown, fallback: string): string {
 }
 
 async function callApi(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: withInternalApiHeaders({
-      ...(cookie ? { cookie } : {}),
-      ...(init?.headers ?? {}),
-    }),
-    cache: "no-store",
-  });
+  return callWebApi(`/api${path}`, init);
 }
 
 export async function getUsersAction(filters?: GetUsersParams) {

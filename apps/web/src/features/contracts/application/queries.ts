@@ -1,13 +1,12 @@
 "use server";
 
-import { headers } from "next/headers";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import {
   contractsAdminViewSchema,
   contractSuspendImpactSchema,
   contractSystemParamsSchema,
 } from "@dosc-syspro/contracts/contract";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 import type {
   ContractActionResponse,
   ContractListItem,
@@ -17,17 +16,7 @@ import type {
 } from "@/features/contracts/domain/model";
 
 async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: withInternalApiHeaders({
-      ...(cookie ? { cookie } : {}),
-      ...(init?.headers ?? {}),
-    }),
-    cache: "no-store",
-  });
+  return callWebApi(`/api${path}`, init);
 }
 
 export async function getSystemParamsAction(): Promise<ContractActionResponse<ContractSystemParams>> {
@@ -35,7 +24,7 @@ export async function getSystemParamsAction(): Promise<ContractActionResponse<Co
   if (!session) return { success: false, error: "Nao autorizado." };
 
   try {
-    const response = await apiRequest("/settings/contracts/system-params");
+    const response = await apiRequest("/platform/contracts/system-params");
     const payload = await response.json().catch(() => null);
     const parsed = contractSystemParamsSchema.safeParse(payload?.data);
 
@@ -72,7 +61,7 @@ export async function getContractSuspendImpactAction(
   }
 
   try {
-    const response = await apiRequest(`/settings/contracts/${encodeURIComponent(contractId)}/suspend-impact`);
+    const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}/suspend-impact`);
     const payload = await response.json().catch(() => null);
     const parsed = contractSuspendImpactSchema.safeParse(payload?.data);
 
@@ -92,7 +81,7 @@ export async function getContractSuspendImpactAction(
 
 export async function getContractsAdminViewData(): Promise<ContractsAdminViewData> {
   try {
-    const response = await apiRequest("/settings/contracts/admin-view");
+    const response = await apiRequest("/platform/contracts/admin-view");
     const payload = await response.json().catch(() => null);
     const parsed = contractsAdminViewSchema.safeParse(payload?.data);
 

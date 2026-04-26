@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
-import { headers } from "next/headers";
+import { callWebApi } from "@/lib/web-api";
 import type {
   CompanyAdminListViewData,
   CompanyEditViewData,
@@ -8,17 +7,7 @@ import type {
 } from "@/features/company/domain/model";
 
 async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: withInternalApiHeaders({
-      ...(cookie ? { cookie } : {}),
-      ...(init?.headers ?? {}),
-    }),
-    cache: "no-store",
-  });
+  return callWebApi(`/api${path}`, init);
 }
 
 export async function getCompaniesQuery(filters?: {

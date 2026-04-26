@@ -5,24 +5,13 @@ import type {
   UserAccessEditViewData,
   UserAccessListItem,
 } from "@dosc-syspro/contracts/user";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
-import { headers } from "next/headers";
+import { callWebApi } from "@/lib/web-api";
 
 
 type ActionError = { error: string };
 
 async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: withInternalApiHeaders({
-      ...(cookie ? { cookie } : {}),
-      ...(init?.headers ?? {}),
-    }),
-    cache: "no-store",
-  });
+  return callWebApi(`/api${path}`, init);
 }
 
 export async function getUsersAdminViewData(): Promise<

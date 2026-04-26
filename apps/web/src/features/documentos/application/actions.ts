@@ -1,24 +1,12 @@
 "use server";
 
-import { headers } from "next/headers";
 import { type DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts/documento";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/model";
 import { revalidateDocumentosViews } from "@/lib/cache-invalidation";
 
 async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: withInternalApiHeaders({
-      "content-type": "application/json",
-      ...(cookie ? { cookie } : {}),
-      ...(init?.headers ?? {}),
-    }),
-    cache: "no-store",
-  });
+  return callWebApi(`/api${path}`, init);
 }
 
 export async function getDocumentos(): Promise<DocumentosListResponse> {

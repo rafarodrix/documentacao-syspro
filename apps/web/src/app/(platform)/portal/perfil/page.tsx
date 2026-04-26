@@ -1,19 +1,10 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
 import { UserProfileSettings } from "@/components/platform/shared/UserProfileSettings";
-import { headers } from "next/headers";
+import { callWebApi } from "@/lib/web-api";
 
 export default async function AdminProfilePage() {
   const session = await requireSession();
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-
-  const response = await fetch(`${getBackendApiBaseUrl()}/users/me/profile`, {
-    headers: withInternalApiHeaders({
-      ...(cookie ? { cookie } : {}),
-    }),
-    cache: "no-store",
-  }).catch(() => null);
+  const response = await callWebApi("/api/users/me/profile").catch(() => null);
 
   const payload = response ? await response.json().catch(() => null) : null;
   const user = response?.ok ? payload?.data : null;
