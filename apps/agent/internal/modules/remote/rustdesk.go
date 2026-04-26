@@ -508,8 +508,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		if logPath != "" {
 			m.logger.Info("rustdesk msi install configured", "launch_tray", false, "log_path", logPath)
 		}
-		cmd := exec.CommandContext(ctx, "msiexec.exe", msiArgs...)
-		output, err := cmd.CombinedOutput()
+		output, err := m.runMSIInstaller(ctx, msiArgs)
 		if err != nil {
 			return classifyInstallerError("run msi installer", err, output, logPath)
 		}
@@ -570,6 +569,20 @@ func (m *rustDeskManager) runRustDeskCommand(ctx context.Context, exePath string
 	command := fmt.Sprintf("& '%s' %s | Out-String", escapePowerShellSingleQuoted(exePath), joinPowerShellArgs(args))
 	_, err := m.runPowerShellOutput(ctx, command)
 	return err
+}
+
+func (m *rustDeskManager) runMSIInstaller(ctx context.Context, args []string) ([]byte, error) {
+	script := fmt.Sprintf(
+		"$p = Start-Process -FilePath 'msiexec.exe' -ArgumentList @(%s) -WindowStyle Hidden -Wait -PassThru; exit $p.ExitCode",
+		joinPowerShellStringArray(args),
+	)
+
+	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return output, err
+	}
+	return output, nil
 }
 
 func (m *rustDeskManager) runPowerShell(ctx context.Context, script string) error {
@@ -740,6 +753,14 @@ func joinPowerShellArgs(args []string) string {
 		escaped = append(escaped, fmt.Sprintf("'%s'", escapePowerShellSingleQuoted(arg)))
 	}
 	return strings.Join(escaped, " ")
+}
+
+func joinPowerShellStringArray(args []string) string {
+	escaped := make([]string, 0, len(args))
+	for _, arg := range args {
+		escaped = append(escaped, fmt.Sprintf("'%s'", escapePowerShellSingleQuoted(arg)))
+	}
+	return strings.Join(escaped, ", ")
 }
 
 func escapePowerShellSingleQuoted(value string) string {

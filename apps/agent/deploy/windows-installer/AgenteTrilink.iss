@@ -22,7 +22,7 @@ SetupIconFile={#SourceDir}\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesInstallIn64BitMode=x64compatiblecompatible
+ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 DisableDirPage=no
 DisableProgramGroupPage=yes
@@ -69,6 +69,7 @@ Name: "{autodesktop}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\po
 ; Usa PowerShell direto para suprimir a janela CMD que .cmd abre brevemente
 Name: "{userstartup}\Agente Trilink"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\scripts\start-agent.ps1"""; WorkingDir: "{app}"
 
+
 [Run]
 ; 1. Verificar e instalar WebView2 Runtime se ausente (necessario para agent-ui)
 Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; Flags: runhidden; StatusMsg: "Verificando WebView2 Runtime..."
@@ -105,6 +106,7 @@ begin
   Result := LowerCase(Result);
 end;
 
+
 procedure StopServiceViaSCM(SvcName: string);
 var
   RC: Integer;
@@ -115,7 +117,7 @@ end;
 procedure CopyFileIfMissing(Src, Dst: string);
 begin
   if not FileExists(Dst) and FileExists(Src) then
-    FileCopy(Src, Dst, False);
+    CopyFile(Src, Dst, False);
 end;
 
 procedure InjectIPCToken(EnvPath: string);
@@ -215,10 +217,12 @@ end;
 
 // Para servicos ANTES de copiar arquivos — evita "file in use" em upgrades
 function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  RC: Integer;
 begin
   Result := '';
   // Encerra a UI se estiver rodando (complementa CloseApplications=yes)
-  Exec('taskkill.exe', '/IM agent-ui.exe /F', '', SW_HIDE, ewWaitUntilTerminated, NeedsRestart);
+  Exec('taskkill.exe', '/IM agent-ui.exe /F', '', SW_HIDE, ewWaitUntilTerminated, RC);
   StopServiceViaSCM('{#ServiceName}');
   Sleep(2000);
 end;

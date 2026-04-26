@@ -95,6 +95,14 @@ func (s *Service) reconcileOnce(ctx context.Context) error {
 
 	_ = s.store.SaveJSON(ctx, "apply_results.json", results)
 
+	updatedCurrent, inspectErr := s.inspectCurrentState(ctx)
+	if inspectErr != nil {
+		s.logger.Error("reconcile post-apply inspect failed", "error", inspectErr)
+	} else {
+		current = updatedCurrent
+		_ = s.store.SaveJSON(ctx, "current_state.json", current)
+	}
+
 	applied := buildAppliedState(desired, current, results)
 	_ = s.store.SaveJSON(ctx, "applied_state.json", applied)
 

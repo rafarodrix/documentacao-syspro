@@ -188,7 +188,7 @@ func (s *Service) SetupStatus(ctx context.Context) (SetupStatus, error) {
 		buildStep(
 			"sync",
 			"Remoto operacional",
-			remoteState.AgentToken != "" && !remoteState.RebootstrapRequired && !remoteState.LastSyncAt.IsZero() && current.Remote.Status == domain.ModuleStatusReady,
+			isRemoteOperational(remoteState, current),
 			deriveSyncError(remoteResult),
 			deriveSyncDetail(remoteState, current),
 		),
@@ -601,11 +601,15 @@ func deriveSyncError(result *domain.ApplyResult) string {
 
 func deriveSyncDetail(st persistedRemoteState, current domain.CurrentState) string {
 	switch {
-	case !st.LastSyncAt.IsZero() && current.Remote.Status == domain.ModuleStatusReady:
+	case isRemoteOperational(st, current):
 		return "Configuracao remota sincronizada e operacional."
 	case st.AgentToken != "":
 		return "Credencial remota emitida; aguardando sincronizacao final."
 	default:
 		return "Aguardando bootstrap e sync autenticado do remoto."
 	}
+}
+
+func isRemoteOperational(st persistedRemoteState, current domain.CurrentState) bool {
+	return !st.LastSyncAt.IsZero() && !st.RebootstrapRequired && current.Remote.Status == domain.ModuleStatusReady
 }
