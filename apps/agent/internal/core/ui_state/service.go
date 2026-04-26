@@ -408,33 +408,11 @@ func resolveContactName(context SupportContext) string {
 }
 
 func buildContextDescription(context SupportContext) string {
-	lines := []string{
-		"Atendimento iniciado pelo agente da Trilink.",
-	}
-
 	if context.RemoteStatusText != "" {
-		lines = append(lines, "Estado remoto: "+context.RemoteStatusText)
-	}
-	if context.CompanyID != "" {
-		lines = append(lines, "Empresa vinculada: "+context.CompanyID)
-	}
-	if context.HostAlias != "" {
-		lines = append(lines, "Host vinculado: "+context.HostAlias)
-	}
-	if context.RustDeskID != "" {
-		lines = append(lines, "RustDesk ID: "+context.RustDeskID)
-	}
-	if context.Hostname != "" {
-		lines = append(lines, "Hostname: "+context.Hostname)
-	}
-	if context.LocalUsername != "" {
-		lines = append(lines, "Usuario local: "+context.LocalUsername)
-	}
-	if context.AgentVersion != "" {
-		lines = append(lines, "Agente: "+context.AgentVersion)
+		return "Atendimento iniciado pelo agente da Trilink. Estado remoto: " + context.RemoteStatusText + "."
 	}
 
-	return strings.Join(lines, "\n")
+	return "Atendimento iniciado pelo agente da Trilink."
 }
 
 func resolveRemoteStatus(context SupportContext) (string, string) {
