@@ -2,18 +2,17 @@
  * Gateway para envio de mensagens WhatsApp via apps/api.
  * O apps/web nao deve acessar Evolution API diretamente.
  */
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 
 export class EvolutionWhatsAppGateway {
   async sendTextMessage(to: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      const response = await fetch(`${getBackendApiBaseUrl()}/integrations/evolution/messages/send`, {
+      const response = await callWebApi("/api/platform/integrations/evolution/messages/send", {
         method: "POST",
-        headers: withInternalApiHeaders({
+        headers: {
           "Content-Type": "application/json",
-        }),
+        },
         body: JSON.stringify({ to, text }),
-        cache: "no-store",
       });
 
       const payload = await response.json().catch(() => ({}));

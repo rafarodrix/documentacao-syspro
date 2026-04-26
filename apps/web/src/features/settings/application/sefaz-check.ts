@@ -1,7 +1,7 @@
 import "server-only";
 
 import { isValidSecretToken } from "@dosc-syspro/shared/request-auth";
-import { getBackendApiBaseUrl, withInternalApiHeaders } from "@/lib/backend-api";
+import { callWebApi } from "@/lib/web-api";
 
 export function isSefazCheckAuthorized(request: Request): boolean {
   const expected = process.env.SEFAZ_CHECK_SECRET ?? process.env.REVALIDATE_SECRET;
@@ -14,12 +14,11 @@ export function isSefazCheckAuthorized(request: Request): boolean {
 }
 
 export async function executeSefazCheck(correlationId: string) {
-  const response = await fetch(`${getBackendApiBaseUrl()}/settings/sefaz/check/internal`, {
+  const response = await callWebApi("/api/platform/settings/sefaz/check/internal", {
     method: "POST",
-    headers: withInternalApiHeaders({
+    headers: {
       "x-correlation-id": correlationId,
-    }),
-    cache: "no-store",
+    },
   });
 
   const body = await response.json();

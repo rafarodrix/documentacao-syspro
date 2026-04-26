@@ -1,9 +1,9 @@
 import { dashboardResponseSchema, type DashboardView } from "@dosc-syspro/contracts/dashboard";
-import { callBackendApi } from "@/lib/backend-api-client";
+import { callWebApi } from "@/lib/web-api";
 
 export async function getDashboardData(): Promise<DashboardView> {
   const response = dashboardResponseSchema.parse(
-    await callBackendApi("dashboard", ""),
+    await callWebApi("/api/dashboard").then((res) => res.json()),
   );
 
   if (!response.success || !response.data) {
