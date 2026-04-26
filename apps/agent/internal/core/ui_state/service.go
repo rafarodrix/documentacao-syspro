@@ -368,7 +368,7 @@ func (s *Service) buildSupportContext() SupportContext {
 		context.HostID = strings.TrimSpace(remoteState.HostID)
 		context.HostAlias = strings.TrimSpace(remoteState.Alias)
 		context.RustDeskID = strings.TrimSpace(remoteState.RustDeskID)
-		context.RemoteAccessPassword = strings.TrimSpace(remoteState.RuntimePassword)
+		context.RemoteAccessPassword = resolveDisplayedRustDeskPassword(remoteState)
 		context.MachineName = strings.TrimSpace(remoteState.MachineName)
 	}
 
@@ -392,6 +392,36 @@ func resolveCompanyDisplayName(context SupportContext) string {
 	default:
 		return "Cliente Trilink"
 	}
+}
+
+func resolveDisplayedRustDeskPassword(remoteState persistedRemoteState) string {
+	defaultPassword := strings.TrimSpace(remoteState.DefaultPassword)
+	if defaultPassword != "" {
+		return defaultPassword
+	}
+
+	runtimePassword := strings.TrimSpace(remoteState.RuntimePassword)
+	if looksLikeDisplayedRustDeskPassword(runtimePassword) {
+		return runtimePassword
+	}
+
+	return ""
+}
+
+func looksLikeDisplayedRustDeskPassword(value string) bool {
+	if value == "" {
+		return false
+	}
+	if strings.ContainsAny(value, "/+=") {
+		return false
+	}
+	if strings.ContainsAny(value, " \t\r\n") {
+		return false
+	}
+	if len(value) < 4 || len(value) > 16 {
+		return false
+	}
+	return true
 }
 
 func resolveContactName(context SupportContext) string {
