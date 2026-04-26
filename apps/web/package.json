@@ -28,6 +28,8 @@
   "dependencies": {
     "@dosc-syspro/application": "file:../../packages/application",
     "@dosc-syspro/config": "file:../../packages/config",
+    "@dosc-syspro/contracts": "file:../../packages/contracts",
+    "@dosc-syspro/core": "file:../../packages/core",
     "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/shared": "file:../../packages/shared",
     "@hookform/resolvers": "^5.2.2",
