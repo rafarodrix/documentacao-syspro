@@ -5,238 +5,441 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Trilink Support</title>
   <style>
+    :root {
+      --bg-top: #eef3f8;
+      --bg-bottom: #e4ebf1;
+      --panel: #ffffff;
+      --panel-soft: #f7fafc;
+      --line: #d8e1e9;
+      --line-strong: #c4d1dd;
+      --text: #172636;
+      --muted: #647589;
+      --subtle: #7f90a2;
+      --brand: #103f69;
+      --brand-2: #196fb4;
+      --brand-soft: #e4eef7;
+      --ok: #0d7046;
+      --ok-soft: #e8f7ef;
+      --warn: #946111;
+      --warn-soft: #fff4de;
+      --err: #a2353a;
+      --err-soft: #fbe9ea;
+      --shadow: 0 24px 54px rgba(18, 35, 54, 0.15);
+      --radius-xl: 26px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #eef2f5;
-      font-family: Segoe UI, sans-serif;
+      font-family: "Segoe UI", "Inter", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(25, 111, 180, 0.12), transparent 28%),
+        radial-gradient(circle at top left, rgba(16, 63, 105, 0.08), transparent 24%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
     }
+
+    body {
+      padding: 12px;
+    }
+
     .agent-support-shell {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-end;
       width: 100%;
       height: 100%;
-      color: #24323f;
-      letter-spacing: 0.02em;
-      text-align: center;
-      padding: 10px;
-      box-sizing: border-box;
+      padding: 8px;
+      border-radius: 32px;
+      background: rgba(255,255,255,0.70);
+      border: 1px solid rgba(255,255,255,0.78);
+      backdrop-filter: blur(18px);
     }
+
     .agent-support-panel {
       position: relative;
       width: 100%;
       height: 100%;
-      border-radius: 22px;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      box-shadow: 0 16px 40px rgba(28, 45, 64, 0.18);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      border: 1px solid rgba(221, 230, 237, 0.95);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
+
     .agent-support-header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      position: relative;
       z-index: 2;
-      padding: 16px 16px 10px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.82) 100%);
-      backdrop-filter: blur(8px);
+      padding: 20px 20px 14px;
+      background:
+        linear-gradient(135deg, rgba(16, 63, 105, 0.06), rgba(25, 111, 180, 0.01)),
+        linear-gradient(180deg, #fcfdfe 0%, #f4f8fb 100%);
+      border-bottom: 1px solid var(--line);
     }
-    .agent-support-title {
-      font-size: 17px;
-      font-weight: 700;
-      text-align: left;
+
+    .agent-support-header::after {
+      content: "";
+      position: absolute;
+      right: -54px;
+      top: -52px;
+      width: 170px;
+      height: 170px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(25,111,180,0.16), transparent 68%);
+      pointer-events: none;
     }
+
     .agent-support-brand {
+      position: relative;
+      z-index: 1;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
     }
+
+    .agent-support-brand-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .agent-support-kicker {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(16, 63, 105, 0.08);
+      color: var(--brand);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .agent-support-title {
+      margin-top: 12px;
+      font-size: 24px;
+      font-weight: 850;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      text-align: left;
+    }
+
     .agent-support-logo {
-      height: 28px;
+      position: relative;
+      z-index: 1;
+      height: 30px;
       width: auto;
       object-fit: contain;
     }
+
     .agent-support-copy {
-      margin-top: 6px;
+      position: relative;
+      z-index: 1;
+      margin-top: 8px;
       text-align: left;
-      line-height: 1.45;
-      color: #4e5d6b;
+      line-height: 1.6;
+      color: var(--muted);
       font-size: 13px;
+      max-width: 360px;
     }
+
+    .agent-support-overview {
+      position: relative;
+      z-index: 1;
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .agent-overview-card {
+      padding: 14px;
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(216, 225, 233, 0.96);
+    }
+
+    .agent-overview-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+
+    .agent-overview-value {
+      margin-top: 8px;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 800;
+      color: var(--text);
+      word-break: break-word;
+    }
+
     .agent-support-meta {
-      margin-top: 10px;
+      margin-top: 12px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       justify-content: flex-start;
     }
-    .agent-support-meta.primary {
-      margin-top: 12px;
-    }
+
     .agent-support-pill {
       display: inline-flex;
       align-items: center;
-      min-height: 28px;
-      padding: 0 10px;
+      min-height: 30px;
+      padding: 0 12px;
       border-radius: 999px;
       background: #e9f0f5;
       color: #28435a;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       line-height: 1;
     }
+
     .agent-support-pill.remote-ready {
-      background: #e6f7ee;
-      color: #0b6b41;
+      background: var(--ok-soft);
+      color: var(--ok);
     }
+
     .agent-support-pill.remote-pending {
-      background: #fff3df;
-      color: #8a5a0a;
+      background: var(--warn-soft);
+      color: var(--warn);
     }
+
     .agent-support-pill.remote-offline {
-      background: #f7e8e8;
-      color: #9b2d30;
+      background: var(--err-soft);
+      color: var(--err);
     }
-    .agent-support-alert {
-      margin-top: 12px;
-      display: none;
-      border-radius: 16px;
-      padding: 12px 14px;
-      text-align: left;
-      background: #fff4e8;
-      border: 1px solid #f3cfab;
-      color: #714b12;
-      box-shadow: 0 8px 18px rgba(140, 84, 17, 0.08);
+
+    .agent-support-body {
+      position: absolute;
+      inset: 320px 0 0 0;
+      padding: 18px 20px 20px;
+      overflow: hidden;
     }
-    .agent-support-alert.visible {
-      display: block;
-    }
-    .agent-support-alert-title {
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-    .agent-support-alert-copy {
-      font-size: 12px;
-      line-height: 1.5;
-    }
+
     .agent-support-remote-card {
-      margin-top: 12px;
+      position: relative;
+      z-index: 2;
+      margin-bottom: 14px;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 10px;
-      padding: 12px;
-      border-radius: 18px;
-      background: #f3f7fa;
-      border: 1px solid #dbe5ec;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, #ffffff 0%, var(--panel-soft) 100%);
+      border: 1px solid var(--line);
     }
+
+    .agent-support-remote-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .agent-support-remote-title {
       text-align: left;
-      font-size: 12px;
-      font-weight: 700;
-      color: #415364;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--subtle);
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
+
+    .agent-support-remote-state {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: var(--brand-soft);
+      color: var(--brand);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
     .agent-support-remote-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
+
     .agent-support-remote-item {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       text-align: left;
       min-width: 0;
     }
+
     .agent-support-remote-label {
       font-size: 11px;
-      color: #607282;
-      font-weight: 600;
+      color: var(--subtle);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
     }
+
     .agent-support-remote-value-row {
       display: flex;
       align-items: center;
       gap: 8px;
       min-width: 0;
     }
+
     .agent-support-remote-value {
       flex: 1;
       min-width: 0;
       display: inline-flex;
       align-items: center;
-      min-height: 38px;
-      padding: 0 12px;
-      border-radius: 12px;
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 14px;
       background: #ffffff;
-      border: 1px solid #d3dee7;
-      color: #24323f;
+      border: 1px solid var(--line-strong);
+      color: var(--text);
       font-size: 14px;
-      font-weight: 700;
-      font-family: Consolas, 'Courier New', monospace;
+      font-weight: 800;
+      font-family: Consolas, "Courier New", monospace;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
     }
+
     .agent-support-remote-copy {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 38px;
-      height: 38px;
-      border-radius: 12px;
+      min-width: 42px;
+      height: 42px;
+      border-radius: 14px;
       border: 0;
-      background: #0f3d66;
+      background: linear-gradient(180deg, var(--brand) 0%, #144f83 100%);
       color: #ffffff;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
+      box-shadow: 0 12px 22px rgba(16, 63, 105, 0.18);
     }
+
     .agent-support-remote-copy.secondary {
-      background: #d9e1e7;
-      color: #24323f;
+      background: #dce4ea;
+      color: var(--text);
+      box-shadow: none;
     }
+
     .agent-support-remote-hint {
       text-align: left;
-      font-size: 11px;
-      line-height: 1.5;
-      color: #607282;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--muted);
     }
+
+    .agent-support-alert {
+      margin-bottom: 14px;
+      display: none;
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      text-align: left;
+      background: var(--warn-soft);
+      border: 1px solid rgba(148, 97, 17, 0.16);
+      color: #7a5313;
+    }
+
+    .agent-support-alert.visible {
+      display: block;
+    }
+
+    .agent-support-alert-title {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .agent-support-alert-copy {
+      font-size: 12px;
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
     .agent-support-stage {
       position: absolute;
-      inset: 116px 0 0 0;
+      inset: auto 20px 20px 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      box-sizing: border-box;
+      min-height: 104px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(16, 63, 105, 0.06), rgba(25, 111, 180, 0.03));
+      border: 1px dashed rgba(16, 63, 105, 0.18);
       color: #3c4d5e;
       z-index: 1;
       pointer-events: none;
     }
+
     .agent-support-stage-content {
-      max-width: 280px;
+      max-width: 320px;
     }
+
     .agent-support-stage-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 10px;
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
     }
+
     .agent-support-stage-copy {
-      line-height: 1.55;
-      color: #607282;
+      line-height: 1.6;
+      color: var(--muted);
       font-size: 13px;
     }
+
     .agent-support-stage.hidden {
       display: none;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 8px;
+      }
+
+      .agent-support-shell {
+        padding: 6px;
+        border-radius: 24px;
+      }
+
+      .agent-support-overview {
+        grid-template-columns: 1fr;
+      }
+
+      .agent-support-body {
+        inset: 444px 0 0 0;
+      }
+
+      .agent-support-remote-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .agent-support-remote-head {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -245,33 +448,56 @@
     <div class="agent-support-panel">
       <div class="agent-support-header">
         <div class="agent-support-brand">
-          <div class="agent-support-title">Suporte Trilink</div>
+          <div class="agent-support-brand-copy">
+            <div class="agent-support-kicker">Trilink Support Console</div>
+            <div class="agent-support-title">Suporte corporativo com contexto técnico</div>
+          </div>
           <img class="agent-support-logo" id="support-brand-logo" alt="Trilink" />
         </div>
         <div class="agent-support-copy" id="status-copy">
           Estamos iniciando o canal oficial de atendimento.
         </div>
-        <div class="agent-support-meta primary">
-          <span class="agent-support-pill" id="company-pill">Empresa: aguardando vinculo</span>
-          <span class="agent-support-pill" id="host-pill">Host: preparando contexto</span>
+
+        <div class="agent-support-overview">
+          <div class="agent-overview-card">
+            <div class="agent-overview-label">Empresa</div>
+            <div class="agent-overview-value" id="company-overview">Aguardando vínculo</div>
+          </div>
+          <div class="agent-overview-card">
+            <div class="agent-overview-label">Host</div>
+            <div class="agent-overview-value" id="host-overview">Preparando contexto</div>
+          </div>
+          <div class="agent-overview-card">
+            <div class="agent-overview-label">Status remoto</div>
+            <div class="agent-overview-value" id="remote-overview">Em verificação</div>
+          </div>
         </div>
+
         <div class="agent-support-meta">
-          <span class="agent-support-pill remote-pending" id="remote-pill">Remoto: verificando configuracao</span>
+          <span class="agent-support-pill" id="company-pill">Empresa: aguardando vínculo</span>
+          <span class="agent-support-pill" id="host-pill">Host: preparando contexto</span>
+          <span class="agent-support-pill remote-pending" id="remote-pill">Remoto: verificando configuração</span>
         </div>
+      </div>
+
+      <div class="agent-support-body">
         <div class="agent-support-remote-card" id="remote-card">
-          <div class="agent-support-remote-title">Acesso remoto</div>
+          <div class="agent-support-remote-head">
+            <div class="agent-support-remote-title">Acesso remoto corporativo</div>
+            <div class="agent-support-remote-state" id="remote-state-badge">Em análise</div>
+          </div>
           <div class="agent-support-remote-grid">
             <div class="agent-support-remote-item">
               <div class="agent-support-remote-label">ID remoto</div>
               <div class="agent-support-remote-value-row">
-                <div class="agent-support-remote-value" id="remote-id-value">Aguardando identificacao</div>
+                <div class="agent-support-remote-value" id="remote-id-value">Aguardando identificação</div>
                 <button class="agent-support-remote-copy secondary" id="copy-remote-id" type="button">Copiar</button>
               </div>
             </div>
             <div class="agent-support-remote-item">
               <div class="agent-support-remote-label">Senha de acesso</div>
               <div class="agent-support-remote-value-row">
-                <div class="agent-support-remote-value" id="remote-password-value">Aguardando configuracao</div>
+                <div class="agent-support-remote-value" id="remote-password-value">Aguardando configuração</div>
                 <button class="agent-support-remote-copy secondary" id="copy-remote-password" type="button">Copiar</button>
               </div>
             </div>
@@ -280,18 +506,20 @@
             O cliente pode informar esses dados ao suporte sem abrir o aplicativo do RustDesk.
           </div>
         </div>
+
         <div class="agent-support-alert" id="remote-alert">
-          <div class="agent-support-alert-title" id="remote-alert-title">RustDesk ainda nao instalado</div>
+          <div class="agent-support-alert-title" id="remote-alert-title">RustDesk ainda não instalado</div>
           <div class="agent-support-alert-copy" id="remote-alert-copy">
-            O atendimento pode seguir normalmente, mas o acesso remoto ainda nao esta disponivel nesta maquina.
+            O atendimento pode seguir normalmente, mas o acesso remoto ainda não está disponível nesta máquina.
           </div>
         </div>
-      </div>
-      <div class="agent-support-stage" id="support-stage">
-        <div class="agent-support-stage-content">
-          <div class="agent-support-stage-title">Carregando atendimento...</div>
-          <div class="agent-support-stage-copy">
-            O agente ja esta preparando o contexto do dispositivo e do vinculo remoto para o suporte.
+
+        <div class="agent-support-stage" id="support-stage">
+          <div class="agent-support-stage-content">
+            <div class="agent-support-stage-title">Preparando sessão de atendimento</div>
+            <div class="agent-support-stage-copy">
+              O agente está carregando o widget de suporte e sincronizando o contexto técnico deste dispositivo.
+            </div>
           </div>
         </div>
       </div>
@@ -308,6 +536,10 @@
       var companyPill=d.getElementById('company-pill');
       var hostPill=d.getElementById('host-pill');
       var remotePill=d.getElementById('remote-pill');
+      var companyOverview=d.getElementById('company-overview');
+      var hostOverview=d.getElementById('host-overview');
+      var remoteOverview=d.getElementById('remote-overview');
+      var remoteStateBadge=d.getElementById('remote-state-badge');
       var remoteIdValue=d.getElementById('remote-id-value');
       var remotePasswordValue=d.getElementById('remote-password-value');
       var remoteHint=d.getElementById('remote-hint');
@@ -328,12 +560,17 @@
 
       if (SUPPORT_CONTEXT.companyDisplayName) {
         companyPill.textContent = 'Empresa: ' + SUPPORT_CONTEXT.companyDisplayName;
+        companyOverview.textContent = SUPPORT_CONTEXT.companyDisplayName;
       }
       if (SUPPORT_CONTEXT.hostAlias || SUPPORT_CONTEXT.machineName || SUPPORT_CONTEXT.hostname) {
-        hostPill.textContent = 'Host: ' + (SUPPORT_CONTEXT.hostAlias || SUPPORT_CONTEXT.machineName || SUPPORT_CONTEXT.hostname);
+        var hostName = SUPPORT_CONTEXT.hostAlias || SUPPORT_CONTEXT.machineName || SUPPORT_CONTEXT.hostname;
+        hostPill.textContent = 'Host: ' + hostName;
+        hostOverview.textContent = hostName;
       }
       if (SUPPORT_CONTEXT.remoteStatusText) {
         remotePill.textContent = 'Remoto: ' + SUPPORT_CONTEXT.remoteStatusText;
+        remoteOverview.textContent = SUPPORT_CONTEXT.remoteStatusText;
+        remoteStateBadge.textContent = SUPPORT_CONTEXT.remoteStatusText;
         remotePill.className = 'agent-support-pill ' + (
           SUPPORT_CONTEXT.remoteStatus === 'ready'
             ? 'remote-ready'
@@ -349,7 +586,7 @@
       if (SUPPORT_CONTEXT.remoteAccessPassword) {
         remotePasswordValue.textContent = SUPPORT_CONTEXT.remoteAccessPassword;
       } else if (SUPPORT_CONTEXT.remoteStatus === 'ready' || SUPPORT_CONTEXT.remoteStatus === 'pending') {
-        remotePasswordValue.textContent = 'Senha nao carregada';
+        remotePasswordValue.textContent = 'Senha não carregada';
       }
 
       var copyText = function (value) {
@@ -386,20 +623,20 @@
 
       if (SUPPORT_CONTEXT.remoteStatus === 'offline') {
         remoteAlert.classList.add('visible');
-        remoteAlertTitle.textContent = 'RustDesk nao instalado nesta maquina';
-        remoteAlertCopy.textContent = 'A conversa ja pode ser iniciada, mas o operador vera que o modulo remoto ainda nao esta disponivel para este dispositivo.';
-        remoteHint.textContent = 'Assim que o modulo remoto for provisionado, o agente exibira o ID e a senha de acesso aqui.';
+        remoteAlertTitle.textContent = 'RustDesk não instalado nesta máquina';
+        remoteAlertCopy.textContent = 'A conversa já pode ser iniciada, mas o operador verá que o módulo remoto ainda não está disponível para este dispositivo.';
+        remoteHint.textContent = 'Assim que o módulo remoto for provisionado, o agente exibirá o ID e a senha de acesso aqui.';
       } else if (SUPPORT_CONTEXT.remoteStatus === 'pending') {
         remoteAlert.classList.add('visible');
-        remoteAlertTitle.textContent = 'Vinculo remoto em preparacao';
-        remoteAlertCopy.textContent = 'O agente detectou configuracao parcial do remoto. O atendimento segue com contexto tecnico e o vinculo sera concluido no ciclo de sincronizacao.';
+        remoteAlertTitle.textContent = 'Vínculo remoto em preparação';
+        remoteAlertCopy.textContent = 'O agente detectou configuração parcial do remoto. O atendimento segue com contexto técnico e o vínculo será concluído no ciclo de sincronização.';
         remoteHint.textContent = SUPPORT_CONTEXT.remoteAccessPassword
-          ? 'O ID e a senha ja podem ser informados ao suporte enquanto o vinculo remoto finaliza em segundo plano.'
-          : 'O ID remoto pode aparecer antes da senha final. O agente concluira a configuracao em segundo plano.';
+          ? 'O ID e a senha já podem ser informados ao suporte enquanto o vínculo remoto finaliza em segundo plano.'
+          : 'O ID remoto pode aparecer antes da senha final. O agente concluirá a configuração em segundo plano.';
       } else if (SUPPORT_CONTEXT.remoteStatus === 'ready') {
         remoteHint.textContent = SUPPORT_CONTEXT.remoteAccessPassword
           ? 'O cliente pode informar esses dados ao suporte sem abrir o aplicativo do RustDesk.'
-          : 'O ID remoto esta pronto. Se a senha ainda nao apareceu, o agente deve recebe-la no proximo ciclo de sincronizacao.';
+          : 'O ID remoto está pronto. Se a senha ainda não apareceu, o agente deve recebê-la no próximo ciclo de sincronização.';
       }
 
       window.chatwootSettings = {
@@ -407,10 +644,10 @@
         showUnreadMessagesDialog: false,
         welcomeTitle: 'Suporte Trilink',
         welcomeDescription: SUPPORT_CONTEXT.remoteStatus === 'ready'
-          ? 'Atendimento contextualizado com identificacao tecnica pronta.'
-          : 'Atendimento contextualizado com diagnostico inicial do dispositivo.',
+          ? 'Atendimento contextualizado com identificação técnica pronta.'
+          : 'Atendimento contextualizado com diagnóstico inicial do dispositivo.',
         availableMessage: 'Equipe online para dar continuidade ao atendimento.',
-        unavailableMessage: 'Equipe offline no momento. O contexto tecnico desta maquina ja foi preparado.'
+        unavailableMessage: 'Equipe offline no momento. O contexto técnico desta máquina já foi preparado.'
       };
 
       var applySupportContext = function () {
@@ -457,10 +694,10 @@
       window.addEventListener('chatwoot:ready', function () {
         supportStage.classList.add('hidden');
         statusCopy.innerHTML = SUPPORT_CONTEXT.remoteStatus === 'ready'
-          ? 'Atendimento pronto com contexto tecnico e vinculo remoto carregados.'
+          ? 'Atendimento pronto com contexto técnico e vínculo remoto carregados.'
           : SUPPORT_CONTEXT.remoteStatus === 'offline'
-            ? 'Atendimento pronto com contexto parcial. RustDesk nao instalado nesta maquina.'
-            : 'Atendimento pronto com contexto parcial. O vinculo remoto ainda nao esta disponivel nesta maquina.';
+            ? 'Atendimento pronto com contexto parcial. RustDesk não instalado nesta máquina.'
+            : 'Atendimento pronto com contexto parcial. O vínculo remoto ainda não está disponível nesta máquina.';
         applySupportContext();
       });
 
@@ -472,7 +709,7 @@
       g.src=BASE_URL+"/packs/js/sdk.js";
       g.async = true;
       g.onerror = function () {
-        statusCopy.innerHTML = 'Nao foi possivel carregar o SDK do atendimento. Verifique acesso ao Chatwoot nesta maquina.';
+        statusCopy.innerHTML = 'Não foi possível carregar o SDK do atendimento. Verifique acesso ao Chatwoot nesta máquina.';
         supportStage.classList.remove('hidden');
       };
       s.parentNode.insertBefore(g,s);
