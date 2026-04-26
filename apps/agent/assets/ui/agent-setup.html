@@ -790,6 +790,7 @@
     }
 
     let nativeRefreshTimer = null;
+    let refreshInFlight = false;
 
     function hasNativeBridge() {
       return !!(window.agentBridge && window.agentBridge.available && typeof window.agentBridge.invoke === 'function');
@@ -808,7 +809,15 @@
     }
 
     async function refresh() {
-      await refreshViaNativeBridge();
+      if (refreshInFlight) return;
+      if (document.hidden) return;
+
+      refreshInFlight = true;
+      try {
+        await refreshViaNativeBridge();
+      } finally {
+        refreshInFlight = false;
+      }
     }
 
     function connectSetupEvents() {
@@ -818,11 +827,25 @@
       }
 
       document.getElementById('polling-status').textContent = 'Bridge nativa ativa';
-      nativeRefreshTimer = window.setInterval(refresh, 2000);
+      if (nativeRefreshTimer) {
+        window.clearInterval(nativeRefreshTimer);
+      }
+      nativeRefreshTimer = window.setInterval(refresh, 5000);
       refresh();
     }
 
     document.getElementById('refresh-btn').addEventListener('click', refresh);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        refresh();
+      }
+    });
+    window.addEventListener('beforeunload', () => {
+      if (nativeRefreshTimer) {
+        window.clearInterval(nativeRefreshTimer);
+        nativeRefreshTimer = null;
+      }
+    });
     render(currentStatus);
     connectSetupEvents();
   </script>

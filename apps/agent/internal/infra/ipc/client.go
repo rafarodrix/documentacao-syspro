@@ -102,7 +102,7 @@ func (c *Client) GetSetupStatus(ctx context.Context) (uistate.SetupStatus, error
 		return uistate.SetupStatus{}, fmt.Errorf("decode ipc setup: %w", err)
 	}
 
-	c.logger.Info("ipc client fetched setup", "stage", status.Stage, "progress_pct", status.ProgressPct, "complete", status.Complete)
+	c.logger.Debug("ipc client fetched setup", "stage", status.Stage, "progress_pct", status.ProgressPct, "complete", status.Complete)
 	return status, nil
 }
 
