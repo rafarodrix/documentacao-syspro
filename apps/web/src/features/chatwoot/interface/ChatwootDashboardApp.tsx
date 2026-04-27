@@ -97,6 +97,16 @@ function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
+function normalizeCompanySearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}\s|/-]/gu, " ")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getCompanyLabel(company: CompanyOption | null | undefined) {
   return company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || "Empresa sem nome";
 }
@@ -179,6 +189,7 @@ export function ChatwootDashboardApp() {
   const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
   const [isLoadingCompanyOptions, setIsLoadingCompanyOptions] = useState(false);
   const [companyOptionsError, setCompanyOptionsError] = useState<string | null>(null);
+  const [hasLoadedCompanyOptions, setHasLoadedCompanyOptions] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [portalContactMatch, setPortalContactMatch] = useState<ContactLookupEntry | null>(null);
   const [isLoadingPortalContact, setIsLoadingPortalContact] = useState(false);
@@ -317,11 +328,11 @@ export function ChatwootDashboardApp() {
     return companyHosts.find((host) => host.id === resolved.hostId) ?? companyHosts[0];
   }, [companyHosts, resolved.hostId]);
   const filteredCompanyOptions = useMemo(() => {
-    const q = companySearchTerm.trim().toLowerCase();
+    const q = normalizeCompanySearch(companySearchTerm);
     if (!q) return companyOptions.slice(0, 8);
     return companyOptions
       .filter((company) => {
-        const haystack = `${company.nomeFantasia || ""} ${company.razaoSocial || ""}`.toLowerCase();
+        const haystack = normalizeCompanySearch(`${company.nomeFantasia || ""} ${company.razaoSocial || ""}`);
         return haystack.includes(q);
       })
       .slice(0, 8);
@@ -448,14 +459,14 @@ export function ChatwootDashboardApp() {
       setIsLoadingCompanyOptions(false);
       return;
     }
+    if (hasLoadedCompanyOptions) return;
 
     const controller = new AbortController();
     async function loadCompanyOptions() {
       try {
         setIsLoadingCompanyOptions(true);
         setCompanyOptionsError(null);
-        const params = new URLSearchParams({ q: trimmedCompanySearchTerm });
-        const response = await fetch(`/api/companies/search?${params.toString()}`, {
+        const response = await fetch("/api/companies/options", {
           method: "GET",
           cache: "no-store",
           signal: controller.signal,
@@ -471,6 +482,7 @@ export function ChatwootDashboardApp() {
         }
         const json = (await response.json()) as CompanyOption[];
         setCompanyOptions(Array.isArray(json) ? json : []);
+        setHasLoadedCompanyOptions(true);
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
         setCompanyOptions([]);
@@ -482,7 +494,7 @@ export function ChatwootDashboardApp() {
 
     void loadCompanyOptions();
     return () => controller.abort();
-  }, [resolved.companyId, shouldSearchCompanies, trimmedCompanySearchTerm]);
+  }, [hasLoadedCompanyOptions, resolved.companyId, shouldSearchCompanies]);
 
   useEffect(() => {
     if (resolved.companyId) {
