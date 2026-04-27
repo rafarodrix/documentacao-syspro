@@ -199,16 +199,23 @@ function App() {
       {/* Shared top navbar */}
       <nav className="navbar">
         <div className="navbar-brand">
-          <span className="navbar-dot" />
-          <span className="navbar-name">Trilink</span>
+          <img
+            src="/brand/logo-clara.png"
+            alt="Trilink"
+            className="navbar-logo"
+            draggable={false}
+          />
           <span className="navbar-divider" />
           <span className="navbar-product">Enterprise Agent</span>
         </div>
         <div className={`navbar-badge state-${overallState}`}>
-          {overallState === "complete" && "Ativo"}
-          {overallState === "error" && "Erro"}
-          {overallState === "running" && "Configurando"}
-          {overallState === "idle" && "Iniciando"}
+          <span className={`navbar-badge-dot state-${overallState}`} />
+          <span>
+            {overallState === "complete" && "Ativo"}
+            {overallState === "error" && "Erro"}
+            {overallState === "running" && "Configurando"}
+            {overallState === "idle" && "Iniciando"}
+          </span>
         </div>
       </nav>
 
@@ -429,24 +436,36 @@ function SupportScreen(props: {
   return (
     <main className="panel support-panel">
       <section className="support-hero">
-        <div>
-          <div className="support-hero-label">Atendimento oficial</div>
-          <div className="support-hero-title">Suporte Trilink</div>
+        <div className="support-hero-text">
+          <div className="support-hero-eyebrow">
+            <span className="support-hero-eyebrow-dot" />
+            Atendimento corporativo
+          </div>
+          <div className="support-hero-title">Central de Suporte</div>
           <div className="support-hero-subtitle">
-            Acesso remoto governado pelo agente com contexto tecnico sincronizado.
+            Acesso remoto governado pelo agente com contexto tecnico sincronizado em tempo real.
           </div>
         </div>
         <button type="button" className="btn-ghost btn-ghost-wide" onClick={onOpenSetup} title="Voltar ao status do agente">
           <StatusIcon />
-          <span>Voltar</span>
+          <span>Status</span>
         </button>
       </section>
 
       <section className="support-body">
         <div className="support-card">
           <div className="support-card-head">
-            <span className="support-card-label">Acesso remoto corporativo</span>
+            <div className="support-card-head-left">
+              <span className="support-card-icon">
+                <RemoteIcon />
+              </span>
+              <div>
+                <div className="support-card-label">Acesso remoto</div>
+                <div className="support-card-sub">Sessao tecnica autorizada</div>
+              </div>
+            </div>
             <span className={`support-status-pill ${context?.remoteStatus ?? "pending"}`}>
+              <span className="support-status-pill-dot" />
               {context?.remoteStatusText ?? "Em analise"}
             </span>
           </div>
@@ -481,8 +500,16 @@ function SupportScreen(props: {
             onClick={onOpenSupport}
             disabled={chatwootLoading}
           >
-            {buttonLabel}
+            {chatwootLoading && <span className="btn-spinner" />}
+            <span>{buttonLabel}</span>
           </button>
+        </div>
+
+        <div className="support-trust">
+          <ShieldIcon />
+          <span>
+            Conexao protegida e auditada pela plataforma Trilink.
+          </span>
         </div>
       </section>
     </main>
@@ -519,6 +546,26 @@ function CopiedIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
       <path d="M2 7l3 3 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RemoteIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="3" width="12" height="8.5" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.5 14h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M8 11.5V14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="8" cy="7.25" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 1.5 2 3.5v3.2c0 3 2.1 5.4 5 5.8 2.9-.4 5-2.8 5-5.8V3.5L7 1.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="m5.2 7.2 1.4 1.4 2.6-2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
