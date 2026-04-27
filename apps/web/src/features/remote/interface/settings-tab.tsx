@@ -22,7 +22,7 @@ export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettings
           </TabsTrigger>
           <TabsTrigger value="tunnel" className="gap-2 px-4 py-2">
             <Waypoints className="h-4 w-4" />
-            Tunel
+            Túnel
           </TabsTrigger>
         </TabsList>
 
@@ -33,17 +33,18 @@ export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettings
         <TabsContent value="backup" className="space-y-4">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Modulo Backup</CardTitle>
+              <CardTitle className="text-lg">Módulo Backup</CardTitle>
               <CardDescription>
-                Esta subaba vai receber as configuracoes globais do modulo de backup do Agente Trilink.
+                Configurações globais do módulo de backup do Agente Trilink.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
-                O agente ja possui modulo de backup no runtime, mas esta tela ainda nao expõe politicas, destinos e janelas operacionais.
-              </div>
-              <div className="rounded-lg border border-dashed border-border/60 bg-background/40 p-4">
-                Proximo corte recomendado: storage provider, retention, cronela de execucao e observabilidade de jobs.
+            <CardContent>
+              <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-6 text-center">
+                <DatabaseBackup className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium text-foreground">Em desenvolvimento</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  As configurações de políticas, destinos e janelas operacionais de backup estarão disponíveis em breve.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -52,17 +53,18 @@ export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettings
         <TabsContent value="tunnel" className="space-y-4">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-lg">Modulo Tunel</CardTitle>
+              <CardTitle className="text-lg">Módulo Túnel</CardTitle>
               <CardDescription>
-                Esta subaba vai concentrar os parametros globais do tunel do Agente Trilink.
+                Parâmetros globais do módulo de túnel do Agente Trilink.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
-                O modulo existe no agente, mas a governanca de produto ainda nao esta modelada nesta area administrativa.
-              </div>
-              <div className="rounded-lg border border-dashed border-border/60 bg-background/40 p-4">
-                Proximo corte recomendado: endpoint, credenciais, politicas de exposicao e regras de auditoria.
+            <CardContent>
+              <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-6 text-center">
+                <Waypoints className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium text-foreground">Em desenvolvimento</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  As configurações de endpoint, credenciais e políticas de exposição do túnel estarão disponíveis em breve.
+                </p>
               </div>
             </CardContent>
           </Card>
