@@ -145,7 +145,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           toast.error(result.error);
         }
       } catch {
-        toast.error("Erro ao carregar configuracoes do Agente Trilink.");
+        toast.error("Erro ao carregar configurações do Agente Trilink.");
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -292,7 +292,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
 
   function resolveExpiryBadge(credential: AddressBookCredentialItem) {
     if (!credential.expiresAt) {
-      return { label: "Sem expiracao", className: "border-border/60 bg-background/70 text-foreground" };
+      return { label: "Sem expiração", className: "border-border/60 bg-background/70 text-foreground" };
     }
     const expires = new Date(credential.expiresAt);
     const now = new Date();
@@ -303,7 +303,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     if (hoursLeft <= 48) {
       return { label: "Expira em breve", className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300" };
     }
-    return { label: "Valida", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" };
+    return { label: "Válida", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" };
   }
 
   const onSubmit: SubmitHandler<RemoteModuleSettingsFormValues> = async (data) => {
@@ -318,7 +318,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           toast.error(result.error);
         }
       } catch {
-        toast.error("Erro ao salvar configuracoes. Verifique os campos e tente novamente.");
+        toast.error("Erro ao salvar configurações. Verifique os campos e tente novamente.");
       }
     });
   };
@@ -328,7 +328,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
       <div className="flex h-56 items-center justify-center rounded-xl border border-dashed bg-muted/10">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm">Carregando configuracoes do Agente Trilink...</p>
+          <p className="text-sm">Carregando configurações do Agente Trilink...</p>
         </div>
       </div>
     );
@@ -345,7 +345,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div>
               <CardTitle className="text-lg">Motor remoto</CardTitle>
               <CardDescription>
-                Parametros globais usados pelo Agente Trilink para convergir o RustDesk no host gerenciado.
+                Parâmetros globais usados pelo Agente Trilink para convergir o RustDesk no host gerenciado.
               </CardDescription>
             </div>
           </div>
@@ -354,7 +354,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div className="space-y-2">
             <Label htmlFor="rustDeskServerHost">Host do servidor</Label>
             <Input id="rustDeskServerHost" placeholder="rustdesk.trilinksoftware.com.br" {...form.register("rustDeskServerHost")} />
-            <p className="text-xs text-muted-foreground">Host principal aplicado pelo agente no bootstrap e na convergencia remota.</p>
+            <p className="text-xs text-muted-foreground">Host principal aplicado pelo agente no bootstrap e na convergência remota.</p>
           </div>
 
           <div className="space-y-2">
@@ -385,40 +385,40 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div>
               <CardTitle className="text-lg">Padrao operacional</CardTitle>
               <CardDescription>
-                Parametros realmente aplicados pelo Agente Trilink na convergencia do modulo remoto.
+                Parâmetros realmente aplicados pelo Agente Trilink na convergência do módulo remoto.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="rustDeskVersion">Versao alvo</Label>
+            <Label htmlFor="rustDeskVersion">Versão alvo</Label>
             <Input id="rustDeskVersion" placeholder="1.4.6" {...form.register("rustDeskVersion")} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="defaultPassword">Senha padrao</Label>
+            <Label htmlFor="defaultPassword">Senha padrão</Label>
             <Input id="defaultPassword" {...form.register("defaultPassword")} />
           </div>
 
           <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-2">
-            Esses parametros definem a versao esperada do RustDesk e a senha padrao aplicada pelo agente no host.
+            Esses parâmetros definem a versão esperada do RustDesk e a senha padrão aplicada pelo agente no host.
           </div>
 
           <div className="rounded-lg border border-border/50 bg-muted/10 p-4 md:col-span-2">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Instalacao automatica</p>
-                  <p className="text-xs text-muted-foreground">Permite instalar o RustDesk automaticamente quando o host ainda nao tiver cliente.</p>
+                  <p className="text-sm font-medium text-foreground">Instalação automática</p>
+                  <p className="text-xs text-muted-foreground">Permite instalar o RustDesk automaticamente quando o host ainda não tiver cliente.</p>
                 </div>
                 <Switch checked={form.watch("rustDeskAutoInstall")} onCheckedChange={(checked) => form.setValue("rustDeskAutoInstall", checked, { shouldDirty: true })} />
               </div>
 
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Upgrade automatico</p>
-                  <p className="text-xs text-muted-foreground">Permite disparar upgrade quando a versao reportada divergir da versao alvo configurada no portal.</p>
+                  <p className="text-sm font-medium text-foreground">Upgrade automático</p>
+                  <p className="text-xs text-muted-foreground">Permite disparar upgrade quando a versão reportada divergir da versão alvo configurada no portal.</p>
                 </div>
                 <Switch checked={form.watch("rustDeskAutoUpgrade")} onCheckedChange={(checked) => form.setValue("rustDeskAutoUpgrade", checked, { shouldDirty: true })} />
               </div>
@@ -498,7 +498,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               {...form.register("rustDeskInstallArgs")}
             />
             <p className="text-xs text-muted-foreground">
-              Use `/S` para instaladores EXE ou `/qn /norestart` para MSI quando precisar sobrescrever o padrao.
+              Use `/S` para instaladores EXE ou `/qn /norestart` para MSI quando precisar sobrescrever o padrão.
             </p>
           </div>
 
@@ -506,8 +506,8 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <div className="grid gap-4 md:grid-cols-2">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Reiniciar servico apos aplicar configuracao</p>
-                  <p className="text-xs text-muted-foreground">Reinicia o servico do RustDesk depois de aplicar alias, servidor, chave e senha para convergencia imediata.</p>
+                  <p className="text-sm font-medium text-foreground">Reiniciar serviço após aplicar configuração</p>
+                  <p className="text-xs text-muted-foreground">Reinicia o serviço do RustDesk depois de aplicar alias, servidor, chave e senha para convergência imediata.</p>
                 </div>
                 <Switch checked={form.watch("rustDeskRestartServiceAfterApply")} onCheckedChange={(checked) => form.setValue("rustDeskRestartServiceAfterApply", checked, { shouldDirty: true })} />
               </div>
@@ -532,9 +532,9 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Politicas premium do cliente</CardTitle>
+              <CardTitle className="text-lg">Políticas premium do cliente</CardTitle>
               <CardDescription>
-                Endurecimento do RustDesk para hosts gerenciados, com foco em suporte assistido, resiliencia do servico e compatibilidade no Windows.
+                Endurecimento do RustDesk para hosts gerenciados, com foco em suporte assistido, resiliência do serviço e compatibilidade no Windows.
               </CardDescription>
             </div>
           </div>
@@ -542,16 +542,16 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Permitir configuracao remota pela UI</p>
-              <p className="text-xs text-muted-foreground">Quando desligado, dificulta alteracoes operacionais feitas pela interface do proprio RustDesk.</p>
+              <p className="text-sm font-medium text-foreground">Permitir configuração remota pela UI</p>
+              <p className="text-xs text-muted-foreground">Quando desligado, dificulta alterações operacionais feitas pela interface do próprio RustDesk.</p>
             </div>
             <Switch checked={form.watch("rustDeskAllowRemoteConfigModification")} onCheckedChange={(checked) => form.setValue("rustDeskAllowRemoteConfigModification", checked, { shouldDirty: true })} />
           </div>
 
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Permitir renderizacao D3D</p>
-              <p className="text-xs text-muted-foreground">Knob de compatibilidade para cenarios de tela branca, especialmente em Windows 10 e GPUs problematicas.</p>
+              <p className="text-sm font-medium text-foreground">Permitir renderização D3D</p>
+              <p className="text-xs text-muted-foreground">Knob de compatibilidade para cenários de tela branca, especialmente em Windows 10 e GPUs problemáticas.</p>
             </div>
             <Switch checked={form.watch("rustDeskAllowD3DRender")} onCheckedChange={(checked) => form.setValue("rustDeskAllowD3DRender", checked, { shouldDirty: true })} />
           </div>
@@ -559,13 +559,13 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4 md:col-span-2">
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">Preferir captura DirectX</p>
-              <p className="text-xs text-muted-foreground">Mantem a captura DirectX habilitada no host controlado, recomendada como padrao salvo incompatibilidade conhecida.</p>
+              <p className="text-xs text-muted-foreground">Mantém a captura DirectX habilitada no host controlado, recomendada como padrão salvo incompatibilidade conhecida.</p>
             </div>
             <Switch checked={form.watch("rustDeskEnableDirectXCapture")} onCheckedChange={(checked) => form.setValue("rustDeskEnableDirectXCapture", checked, { shouldDirty: true })} />
           </div>
 
           <div className="rounded-lg border border-border/50 bg-muted/10 p-4 text-xs text-muted-foreground md:col-span-2">
-            Em hosts gerenciados, o tray nativo do RustDesk e a acao de parar o servico sao tratados como politica fixa do produto. A operacao usa o Agent Trilink como experiencia principal.
+            Em hosts gerenciados, o tray nativo do RustDesk e a ação de parar o serviço são tratados como política fixa do produto. A operação usa o Agente Trilink como experiência principal.
           </div>
         </CardContent>
       </Card>
@@ -576,7 +576,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div>
             <p className="font-medium">Segredo de descoberta</p>
             <p className="mt-1 text-xs text-amber-700/90 dark:text-amber-200/80">
-              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas a governanca global do modulo remoto dentro do Agente Trilink.
+              O `REMOTE_DISCOVERY_TOKEN` continua vindo do ambiente. Esta tela controla apenas a governança global do módulo remoto dentro do Agente Trilink.
             </p>
           </div>
         </div>
@@ -589,9 +589,9 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               <KeyRound className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Credenciais do catalogo remoto</CardTitle>
+              <CardTitle className="text-lg">Credenciais do catálogo remoto</CardTitle>
               <CardDescription>
-                Credenciais autenticadas para integracoes que consomem o catalogo remoto publicado pelo portal.
+                Credenciais autenticadas para integrações que consomem o catálogo remoto publicado pelo portal.
               </CardDescription>
             </div>
           </div>
@@ -603,7 +603,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    Copie o token agora ({latestIssuedToken.preview}) - ele nao sera exibido novamente.
+                    Copie o token agora ({latestIssuedToken.preview}) — ele não será exibido novamente.
                   </p>
                   <p className="mt-2 break-all rounded-md bg-amber-500/10 p-2 font-mono text-xs text-amber-800 dark:text-amber-100">
                     {latestIssuedToken.token}
@@ -683,7 +683,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                 min={1}
                 value={credentialDraft.expiresDays}
                 onChange={(event) => setCredentialDraft({ expiresDays: event.target.value })}
-                placeholder="Sem expiracao"
+                placeholder="Sem expiração"
               />
             </div>
             {credentialDraft.scope === "COMPANY" ? (
@@ -799,7 +799,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                             </div>
                           ) : null}
                           <div>
-                            <dt className="text-muted-foreground">Ultimo uso</dt>
+                            <dt className="text-muted-foreground">Último uso</dt>
                             <dd className="text-foreground">{formatDateTime(credential.lastUsedAt)}</dd>
                           </div>
                           {credential.expiresAt ? (
@@ -850,14 +850,14 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                             <AlertDialogHeader>
                               <AlertDialogTitle>Rotacionar credencial?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                A credencial <strong>{credential.label}</strong> tera o token atual invalidado imediatamente
-                                e um novo token sera emitido.
+                                A credencial <strong>{credential.label}</strong> terá o token atual invalidado imediatamente
+                                e um novo token será emitido.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction onClick={() => handleRotateCredential(credential.id)}>
-                                Confirmar rotacao
+                                Confirmar rotação
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -880,8 +880,8 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                             <AlertDialogHeader>
                               <AlertDialogTitle>Revogar credencial?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                A credencial <strong>{credential.label}</strong> sera revogada permanentemente e as integracoes
-                                que usam esse token vao falhar ate nova emissao.
+                                A credencial <strong>{credential.label}</strong> será revogada permanentemente e as integrações
+                                que usam esse token vão falhar até nova emissão.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -940,7 +940,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           ) : (
             <>
               <Save className="mr-2 h-4 w-4" />
-              Salvar configuracoes
+              Salvar configurações
             </>
           )}
         </Button>

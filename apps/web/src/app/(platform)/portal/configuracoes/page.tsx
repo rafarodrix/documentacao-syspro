@@ -57,10 +57,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                     <Sliders className="h-8 w-8 text-primary/80" />
-                    Configuracoes
+                    Configurações
                 </h1>
                 <p className="text-muted-foreground text-lg max-w-2xl">
-                    Gerencie parametros globais do sistema. Nesta pagina, a aba Agente Trilink cobre a governanca global dos modulos do agente; a operacao de hosts e sessoes continua na Plataforma Remota.
+                    Gerencie parâmetros globais do sistema. A aba Agente Trilink cobre a governança global dos módulos do agente; a operação de hosts e sessões continua na Plataforma Remota.
                 </p>
             </div>
 
@@ -79,7 +79,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                         <TabsTrigger value="integrations" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Plug className="h-4 w-4" />
-                            <span className="font-medium">Integracoes</span>
+                            <span className="font-medium">Integrações</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="access" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
@@ -89,7 +89,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                         <TabsTrigger value="tax" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Landmark className="h-4 w-4" />
-                            <span className="font-medium">Fiscal & Tributario</span>
+                            <span className="font-medium">Fiscal & Tributário</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="sefaz" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
@@ -117,7 +117,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                             <RemoteAccessSettingsTab companyOptions={remoteAdminView.companyOptions} />
                         ) : (
                             <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-6 text-sm text-muted-foreground">
-                                Nao foi possivel carregar as configuracoes globais do modulo remoto nesta requisicao.
+                                Não foi possível carregar as configurações globais do módulo remoto.
                             </div>
                         )}
                     </div>
@@ -137,7 +137,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
                 <TabsContent value="tax" className="space-y-4 focus-visible:ring-0 outline-none">
                     <div className="max-w-6xl">
-                        <h3 className="mb-4 text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
+                        <h3 className="mb-4 text-lg font-medium">Sincronização de Tabelas Fiscais</h3>
                         <TaxSyncStatusBar />
 
                         <Tabs defaultValue="class-trib" className="space-y-4">
