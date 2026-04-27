@@ -36,6 +36,11 @@ import {
   serializeTicketListResponse,
 } from './ticket-contract.mapper';
 import { AuthorizationService } from '../authorization/authorization.service';
+import {
+  buildTicketCustomerOptionCompanySearchWhere,
+  buildTicketCustomerOptionContactSearchWhere,
+  buildTicketSearchWhere,
+} from '../shared/search/domain-search';
 import { TicketHistoryService } from './ticket-history.service';
 import { TicketNotificationService } from './ticket-notification.service';
 
@@ -341,23 +346,14 @@ export class TicketsService {
       throw new ForbiddenException('Nao autorizado a consultar empresas para tickets.');
     }
 
-    const q = (input.q || '').trim().toLowerCase();
+    const q = (input.q || '').trim();
     const rawLimit = Number(input.limit || 15);
     const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(30, Math.trunc(rawLimit))) : 15;
-    const cnpjQuery = q.replace(/\D/g, '');
 
     const companyRows = await this.prisma.company.findMany({
       where: {
         deletedAt: null,
-        ...(q
-          ? {
-              OR: [
-                { nomeFantasia: { contains: q, mode: 'insensitive' } },
-                { razaoSocial: { contains: q, mode: 'insensitive' } },
-                ...(cnpjQuery ? [{ cnpj: { contains: cnpjQuery, mode: 'insensitive' as const } }] : []),
-              ],
-            }
-          : {}),
+        ...buildTicketCustomerOptionCompanySearchWhere(q),
       },
       orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
       select: {
@@ -378,27 +374,7 @@ export class TicketsService {
             company: { deletedAt: null },
           },
         },
-        ...(q
-          ? {
-              OR: [
-                { email: { contains: q, mode: 'insensitive' } },
-                { name: { contains: q, mode: 'insensitive' } },
-                {
-                  companyLinks: {
-                    some: {
-                      company: {
-                        deletedAt: null,
-                        OR: [
-                          { nomeFantasia: { contains: q, mode: 'insensitive' } },
-                          { razaoSocial: { contains: q, mode: 'insensitive' } },
-                        ],
-                      },
-                    },
-                  },
-                },
-              ],
-            }
-          : {}),
+        ...buildTicketCustomerOptionContactSearchWhere(q),
       },
       orderBy: [{ name: 'asc' }, { email: 'asc' }],
       select: {
@@ -486,15 +462,7 @@ export class TicketsService {
     }
 
     if (input.search?.trim()) {
-      const search = input.search.trim();
-      baseWhere.OR = [
-        { subject: { contains: search, mode: 'insensitive' } },
-        { ticketNumber: { contains: search, mode: 'insensitive' } },
-        { companyContact: { name: { contains: search, mode: 'insensitive' } } },
-        { companyContact: { email: { contains: search, mode: 'insensitive' } } },
-        { company: { nomeFantasia: { contains: search, mode: 'insensitive' } } },
-        { company: { razaoSocial: { contains: search, mode: 'insensitive' } } },
-      ];
+      Object.assign(baseWhere, buildTicketSearchWhere(input.search));
     }
 
     const where: Prisma.ConversationWhereInput = { ...baseWhere };

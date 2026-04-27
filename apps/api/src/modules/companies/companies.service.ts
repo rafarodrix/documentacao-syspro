@@ -10,6 +10,7 @@ import {
 } from '@dosc-syspro/contracts/company';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { buildCompanySearchWhere } from '../shared/search/domain-search';
 import { ContactsService } from '../contacts/contacts.service';
 const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'brasilapi';
 const COMPANY_REGISTRY_AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
@@ -237,11 +238,7 @@ export class CompaniesService {
       where: {
         deletedAt: null,
         ...(!accessScope.isGlobal ? { id: { in: accessScope.companyIds } } : {}),
-        OR: [
-          { razaoSocial: { contains: q, mode: 'insensitive' } },
-          { nomeFantasia: { contains: q, mode: 'insensitive' } },
-          { cnpj: { contains: q.replace(/\D/g, '') } },
-        ],
+        ...buildCompanySearchWhere(q),
       },
       take: 10,
       orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
@@ -262,12 +259,7 @@ export class CompaniesService {
     const where: any = { deletedAt: null };
 
     if (filters?.search?.trim()) {
-      const search = filters.search.trim();
-      where.OR = [
-        { razaoSocial: { contains: search, mode: 'insensitive' } },
-        { nomeFantasia: { contains: search, mode: 'insensitive' } },
-        { cnpj: { contains: search.replace(/\D/g, '') } },
-      ];
+      Object.assign(where, buildCompanySearchWhere(filters.search));
     }
 
     if (filters?.status && filters.status !== 'ALL') {

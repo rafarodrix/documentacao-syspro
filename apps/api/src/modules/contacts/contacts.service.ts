@@ -8,6 +8,7 @@ import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { buildContactSearchWhere } from '../shared/search/domain-search';
 
 type CreateContactInput = {
   name: string;
@@ -66,7 +67,6 @@ export class ContactsService {
     }
 
     const q = input.q?.trim();
-    const qDigits = q?.replace(/\D/g, '') ?? '';
     const where: any = {
       status: { not: CompanyContactStatus.ARCHIVED },
     };
@@ -82,16 +82,7 @@ export class ContactsService {
     }
 
     if (q) {
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } },
-        { phone: { contains: q, mode: 'insensitive' } },
-        ...(qDigits ? [{ cpf: { contains: qDigits, mode: 'insensitive' } }] : []),
-        { jobTitle: { contains: q, mode: 'insensitive' } },
-        { whatsapp: { contains: q, mode: 'insensitive' } },
-        { companyLinks: { some: { company: { razaoSocial: { contains: q, mode: 'insensitive' } } } } },
-        { companyLinks: { some: { company: { nomeFantasia: { contains: q, mode: 'insensitive' } } } } },
-      ];
+      Object.assign(where, buildContactSearchWhere(q));
     }
 
     const page = this.parsePage(input.page);
