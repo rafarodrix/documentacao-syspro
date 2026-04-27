@@ -22,6 +22,7 @@ function isPublicPath(pathname: string): boolean {
 
   return (
     publicRoutes.includes(pathname) ||
+    pathname.startsWith("/chatwoot/app") ||
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/search") ||
