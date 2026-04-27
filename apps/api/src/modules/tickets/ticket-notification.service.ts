@@ -81,17 +81,21 @@ export class TicketNotificationService {
     const companyCnpj = this.formatCnpj(company?.cnpj);
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const categoryLabel = this.ticketHistoryService.resolveCategoryLabel(input.settings, input.category);
+    const teamLabel = this.ticketHistoryService.formatTicketTeamLabel(input.team);
+    const resourceLines = [
+      input.databaseUrl ? `Base de Dados: ${input.databaseUrl}` : undefined,
+      input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
+      ticketUrl ? `Link: ${ticketUrl}` : undefined,
+    ].filter(Boolean);
     const message = [
       '[Tickets] Abertura',
       `Ticket: ${input.ticketNumber}`,
-      `Empresa: ${companyName}`,
+      'Status: Abertura',
+      categoryLabel ? `Setor: ${teamLabel} | Categoria: ${categoryLabel}` : `Setor: ${teamLabel}`,
+      `Empresa: ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
+      '',
       `Titulo: ${input.title}`,
-      `Fila: ${this.ticketHistoryService.formatTicketTeamLabel(input.team)}`,
-      categoryLabel ? `Categoria: ${categoryLabel}` : undefined,
-      companyCnpj ? `CNPJ: ${companyCnpj}` : undefined,
-      input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
-      input.databaseUrl ? `Base: ${input.databaseUrl}` : undefined,
-      ticketUrl ? `Link: ${ticketUrl}` : undefined,
+      ...(resourceLines.length ? ['', 'Recursos para Analise', ...resourceLines] : []),
     ]
       .filter(Boolean)
       .join('\n');
