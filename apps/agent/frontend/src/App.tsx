@@ -568,18 +568,27 @@ function identifyChatwootContact(context: uistate.SupportContext | undefined) {
   const chatwoot = (window as unknown as {
     $chatwoot?: {
       setUser?: (identifier: string, attributes: Record<string, string>) => void;
-      setLabel?: (label: string) => void;
     };
   }).$chatwoot;
 
   if (!chatwoot?.setUser) return;
 
+  // Usa deviceId como identificador estável e único por instalação.
+  // O nome do contato representa a máquina (hostAlias > machineName > hostname),
+  // não o usuário logado — assim cada instalação tem um contato permanente no Chatwoot.
   const identifier = context.deviceId || context.hostname || context.machineName || "";
   if (!identifier) return;
 
+  const name =
+    context.hostAlias ||
+    context.machineName ||
+    context.hostname ||
+    context.contactName ||
+    identifier;
+
   try {
     chatwoot.setUser(identifier, {
-      name: context.contactName || context.localUsername || context.machineName || identifier,
+      name,
       company_name: context.companyDisplayName || "",
       description: context.description || "",
     });
