@@ -39,12 +39,12 @@ export function HostAgentTab({
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle className="text-lg">Fluxo operacional do agente</CardTitle>
-        <CardDescription>Recorte operacional detalhado da telemetria, health, conectividade e execucao local.</CardDescription>
+        <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
+        <CardDescription>Diagnóstico operacional: telemetria, saúde, conectividade e execução de comandos.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Resumo operacional</p>
+          <p className="text-sm font-medium text-foreground">Resumo do agente</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
@@ -74,11 +74,11 @@ export function HostAgentTab({
 
         <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
           <summary className="cursor-pointer text-sm font-medium text-foreground">
-            Avancado (telemetria, comandos e diagnostico)
+            Diagnóstico avançado
           </summary>
           <div className="mt-4 space-y-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-sm font-medium text-foreground">Saude do agente</p>
+              <p className="text-sm font-medium text-foreground">Saúde do agente</p>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Status atual</p>
@@ -90,7 +90,7 @@ export function HostAgentTab({
                   </div>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado de Auto-cura</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Auto-recuperação</p>
                   <div className="mt-2 flex h-9 items-center" title={autoHealStatusIcon.label}>
                     <AutoHealStatusIcon
                       className={cn("h-6 w-6", autoHealStatusIcon.tone)}
@@ -128,11 +128,11 @@ export function HostAgentTab({
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultima descoberta</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Última descoberta</p>
                   <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastDiscoverAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo sync</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Último sync</p>
                   <p className="mt-2 text-sm text-foreground">{formatDateTime(details.agentHealth.lastSyncAt)}</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
@@ -153,7 +153,7 @@ export function HostAgentTab({
               </div>
 
               <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-4">
-                <p className="text-sm font-medium text-foreground">Saude do contrato Agente para Portal</p>
+                <p className="text-sm font-medium text-foreground">Compatibilidade do protocolo agente-portal</p>
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
                   <div className="rounded-lg border border-border/40 bg-background/50 p-3">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Discover schema</p>
@@ -184,20 +184,13 @@ export function HostAgentTab({
                   </div>
                 </div>
                 <div className="mt-3 rounded-lg border border-border/40 bg-background/50 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ultimo erro de validacao</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Último erro de validação</p>
                   <p className="mt-1 break-all text-xs text-foreground">
                     {contractValidationError ?? "Sem erro de validacao detectado no ultimo ciclo."}
                   </p>
                 </div>
               </div>
             </div>
-
-            <details className="rounded-lg border border-border/40 bg-background/40 p-3">
-              <summary className="cursor-pointer text-sm font-medium text-foreground">Metricas do agente (raw)</summary>
-              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-                {JSON.stringify(agentMetrics ?? { status: "Sem leitura" }, null, 2)}
-              </pre>
-            </details>
 
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
@@ -226,14 +219,14 @@ export function HostAgentTab({
 
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
               <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                Compliance e convergencia do modulo remoto
+                Conformidade do módulo remoto
               </summary>
               <div className="mt-4 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Compliance do modulo remoto</p>
+                    <p className="text-sm font-medium text-foreground">Conformidade do módulo remoto</p>
                     <p className="text-sm text-muted-foreground">
-                      O portal compara o que espera do host com o que o agente reportou no ultimo `sync`.
+                      O portal compara o que espera do host com o que o agente reportou no último sync.
                     </p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
@@ -269,14 +262,14 @@ export function HostAgentTab({
 
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4" open>
               <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                Fila de acoes e telemetria de execucao
+                Fila de ações e execução
               </summary>
               <div className="mt-4 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Fila de acoes do agente</p>
+                    <p className="text-sm font-medium text-foreground">Fila de ações do agente</p>
                     <p className="text-sm text-muted-foreground">
-                      Comandos emitidos pelo portal com retorno de ACK, resultado e telemetria de execucao.
+                      Comandos emitidos pelo portal com retorno de confirmação, resultado e telemetria de execução.
                     </p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
@@ -347,38 +340,38 @@ export function HostAgentTab({
 
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
               <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                Observabilidade operacional do host
+                Métricas de confiabilidade
               </summary>
               <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 24h</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 24h</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window24h}%</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 7d</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 7 dias</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window7d}%</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Taxa de sucesso 30d</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 30 dias</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window30d}%</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ACK pendente</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ações pendentes</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{ackQueueMetrics.pending}</p>
-                  <p className="text-xs text-muted-foreground">PENDING/DELIVERED aguardando retorno final</p>
+                  <p className="text-xs text-muted-foreground">Aguardando confirmação do agente</p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ACK reprocessado</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tentativas extras</p>
                   <p className="mt-1 text-2xl font-semibold text-foreground">{ackQueueMetrics.reprocessed}</p>
-                  <p className="text-xs text-muted-foreground">Comandos com mais de 1 tentativa</p>
+                  <p className="text-xs text-muted-foreground">Ações com mais de 1 tentativa</p>
                 </div>
               </div>
 
               <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Timeline operacional do host</p>
-                    <p className="text-sm text-muted-foreground">Historico de criacao, entrega, execucao e falha por comando.</p>
+                    <p className="text-sm font-medium text-foreground">Linha do tempo de ações</p>
+                    <p className="text-sm text-muted-foreground">Histórico de criação, entrega, execução e falha por ação.</p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
                     {details.commandTimeline.length} evento(s)
@@ -409,7 +402,7 @@ export function HostAgentTab({
             {hasPendingInstallGuide ? (
               <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
                 <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                  Resumo de prontidao operacional
+                  Checklist de prontidão
                 </summary>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {details.installGuide.map((step: any) => (
@@ -426,7 +419,7 @@ export function HostAgentTab({
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
-                  <span>Consulte o playbook tecnico para execucao assistida do fluxo de vinculacao e heartbeat.</span>
+                  <span>Consulte o guia técnico para execução assistida do fluxo de vínculo e heartbeat.</span>
                 </div>
               </details>
             ) : null}

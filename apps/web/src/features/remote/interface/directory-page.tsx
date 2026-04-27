@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  ArrowUpRight,
   Copy,
   ExternalLink,
   Monitor,
@@ -83,14 +82,14 @@ const QUICK_DESCRIPTION_TEMPLATES = [
   "ERP matriz / servidor fiscal",
   "Servidor principal do cliente",
   "Terminal de suporte financeiro",
-  "Estacao do faturamento",
-  "Servidor de aplicacao",
+  "Estação do faturamento",
+  "Servidor de aplicação",
   "PDV / caixa operacional",
 ];
 
 const QUICK_ENVIRONMENT_TEMPLATES = [
-  "Producao",
-  "Homologacao",
+  "Produção",
+  "Homologação",
   "Servidor",
   "Matriz",
   "Filial",
@@ -99,7 +98,7 @@ const QUICK_ENVIRONMENT_TEMPLATES = [
 
 function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
   if (status === "ACTIVE") return "Ativo";
-  if (status === "MAINTENANCE") return "Manutencao";
+  if (status === "MAINTENANCE") return "Manutenção";
   return "Inativo";
 }
 
@@ -156,16 +155,6 @@ function formatHeartbeatTime(value: string | null, hasHydrated: boolean) {
   return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function getOperationalStateFilter(item: DirectoryItem) {
-  if (item.productStatus === "ATTENTION_REQUIRED") return "attention_required" as const;
-  if (item.productStatus === "AWAITING_LINK" || item.productStatus === "PROVISIONING_REMOTE") {
-    return "provisioning" as const;
-  }
-  if (item.productStatus === "REMOTE_READY") return "ready" as const;
-  if (item.productStatus === "IN_SERVICE") return "in_service" as const;
-  return "other" as const;
-}
-
 async function copyTextWithFallback(value: string) {
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
@@ -204,7 +193,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
-  const [operationalFilter, setOperationalFilter] = useState<"all" | "attention_required" | "provisioning" | "ready" | "in_service">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
@@ -215,6 +203,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showPendingItems, setShowPendingItems] = useState(false);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
   useEffect(() => {
@@ -228,19 +217,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
     return values.sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [directory.items]);
-  const commandObservability = directory.commandObservability;
 
   async function handleCopyRustDeskId(value: string | null) {
     if (!value) {
-      toast.error("RustDesk ID nao configurado.");
+      toast.error("ID remoto não configurado.");
       return;
     }
 
     try {
       await copyTextWithFallback(value);
-      toast.success("RustDesk ID copiado.");
+      toast.success("ID remoto copiado.");
     } catch {
-      toast.error("Falha ao copiar RustDesk ID.");
+      toast.error("Falha ao copiar o ID remoto.");
     }
   }
 
@@ -248,13 +236,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     if (isCreatingQuickHost) return;
 
     if (!quickCompanyId || !quickHostName.trim() || !quickRustdeskId.trim() || !quickDescription.trim()) {
-      toast.error("Selecione a empresa e informe nome do host, RustDesk ID e descricao.");
+      toast.error("Selecione a empresa e informe nome do host, ID remoto e descrição.");
       return;
     }
 
     const rustdeskId = normalizeRustDeskId(quickRustdeskId);
     if (!rustdeskId.isValid || !rustdeskId.normalized) {
-      toast.error("RustDesk ID invalido. Informe apenas numeros com 7 a 12 digitos.");
+      toast.error("ID remoto inválido. Informe apenas números com 7 a 12 dígitos.");
       return;
     }
 
@@ -301,7 +289,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     const name = (pendingNameById[id] ?? fallbackName ?? "").trim();
 
     if (!companyId || !name) {
-      toast.error("Selecione a empresa e informe o nome do host.");
+      toast.error("Selecione a empresa e informe o nome do host para vincular.");
       return;
     }
 
@@ -318,18 +306,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     try {
       await tryLink();
 
-      toast.success("Maquina vinculada e convertida em host.");
+      toast.success("Máquina vinculada e convertida em host.");
       startTransition(() => router.refresh());
     } catch (error) {
       if (
         error instanceof RemoteApiClientError &&
         (error.httpStatus === 429 || error.code === "RATE_LIMITED")
       ) {
-        toast("Limite temporario na triagem. Nova tentativa automatica em 5 segundos.");
+        toast("Limite temporário. Nova tentativa automática em 5 segundos.");
         await delay(5000);
         try {
           await tryLink();
-          toast.success("Maquina vinculada e convertida em host.");
+          toast.success("Máquina vinculada e convertida em host.");
           startTransition(() => router.refresh());
           return;
         } catch (retryError) {
@@ -375,10 +363,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         (agentFilter === "ready" && item.productStatus === "REMOTE_READY") ||
         (agentFilter === "attention" && item.productStatus === "ATTENTION_REQUIRED") ||
         (agentFilter === "in_service" && item.productStatus === "IN_SERVICE");
-      const operationalState = getOperationalStateFilter(item);
-      const matchesOperational = operationalFilter === "all" || operationalState === operationalFilter;
 
-      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent && matchesOperational;
+      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
     });
   }, [agentFilter, directory.items, environmentFilter, heartbeatFilter, operationalFilter, searchTerm, statusFilter]);
 
@@ -429,34 +415,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
     return { online, stale, offline, rebootPending };
   }, [filteredItems, hasHydrated]);
-  const operationalObservability = useMemo(() => {
-    const hostsWithBootstrapRate = filteredItems.filter((item) => typeof item.bootstrapRate24hPct === "number");
-    const bootstrapRateAvg = hostsWithBootstrapRate.length
-      ? Math.round(
-          (hostsWithBootstrapRate.reduce((sum, item) => sum + (item.bootstrapRate24hPct ?? 0), 0) / hostsWithBootstrapRate.length) * 10
-        ) / 10
-      : null;
-
-    const pendingAckQueueTotal = filteredItems.reduce((sum, item) => sum + (item.pendingAckQueueSize ?? 0), 0);
-    const ackQueueFlushFailedTotal = filteredItems.reduce((sum, item) => sum + (item.ackQueueFlushFailed ?? 0), 0);
-    const hostsWithContractError = filteredItems.filter((item) => !!item.contractErrorCode);
-    const contractErrorTop = hostsWithContractError.reduce<Record<string, number>>((acc, item) => {
-      const key = item.contractErrorCode ?? "UNKNOWN";
-      acc[key] = (acc[key] ?? 0) + 1;
-      return acc;
-    }, {});
-    const contractErrorTopEntry = Object.entries(contractErrorTop).sort((a, b) => b[1] - a[1])[0] ?? null;
-
-    return {
-      bootstrapRateAvg,
-      pendingAckQueueTotal,
-      ackQueueFlushFailedTotal,
-      contractErrorHosts: hostsWithContractError.length,
-      contractErrorTopCode: contractErrorTopEntry?.[0] ?? null,
-      contractErrorTopCount: contractErrorTopEntry?.[1] ?? 0,
-    };
-  }, [filteredItems]);
-
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -466,7 +424,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
             Plataforma Remota
           </h1>
           <p className="text-sm text-muted-foreground">
-            Gestao centralizada de hosts e conectividade RustDesk.
+            Gestão centralizada de hosts e conectividade remota.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -482,7 +440,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <DialogHeader>
                   <DialogTitle>Adicionar host manualmente</DialogTitle>
                   <DialogDescription>
-                    Cadastro assistido para criar um host operacional com empresa pesquisavel, identidade do RustDesk e contexto tecnico claro.
+                    Cadastro assistido para criar um host operacional com empresa pesquisável, identidade do acesso remoto e contexto técnico claro.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -496,7 +454,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         onChange={setQuickCompanyId}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Pesquise por razao social, nome fantasia ou codigo operacional para localizar a empresa com mais rapidez.
+                        Pesquise por razão social, nome fantasia ou código operacional para localizar a empresa.
                       </p>
                     </div>
 
@@ -523,7 +481,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     <div className="space-y-2">
                       <Label>RustDesk ID</Label>
                       <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
-                      <p className="text-xs text-muted-foreground">Informe apenas numeros. O portal valida IDs com 7 a 12 digitos.</p>
+                      <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
                     </div>
 
                     <div className="space-y-2">
@@ -545,16 +503,16 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   <div className="rounded-lg border border-border/50 bg-muted/10 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
                     <div className="mt-2 grid gap-2 text-sm text-foreground md:grid-cols-2">
-                      <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Nao selecionada"}</p>
-                      <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}</p>
-                      <p><span className="text-muted-foreground">Ambiente:</span> {quickEnvironment.trim() || "Nao informado"}</p>
-                      <p><span className="text-muted-foreground">RustDesk ID:</span> {quickRustdeskId.trim() || "Nao informado"}</p>
+                      <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Não selecionada"}</p>
+                      <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Não informado"}</p>
+                      <p><span className="text-muted-foreground">Ambiente:</span> {quickEnvironment.trim() || "Não informado"}</p>
+                      <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Não informado"}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs text-muted-foreground">
-                      Para maquinas sem empresa definida no momento da instalacao, prefira o fluxo de descoberta automatica. Elas aparecem em <strong>Novas Descobertas</strong> e podem ser vinculadas depois.
+                      Para máquinas sem empresa definida no momento da instalação, prefira o fluxo de descoberta automática. Elas aparecem em <strong>Máquinas aguardando vínculo</strong> e podem ser vinculadas depois.
                     </p>
                     <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
                       {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -580,7 +538,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <p className="text-3xl font-bold tracking-tight text-foreground">{directoryStats.ready}</p>
               <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Online</p>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">ID e heartbeat 100% operacionais</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Conexão e heartbeat operacionais</p>
           </CardContent>
           <div className="absolute top-0 right-0 p-3 opacity-10">
             <ShieldCheck className="h-12 w-12" />
@@ -638,7 +596,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <p className="text-3xl font-bold tracking-tight text-amber-800 dark:text-amber-100">{directory.stats.pendingDiscovery}</p>
                 <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Pendentes</p>
               </div>
-              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400/80">Aguardando vinculacao inicial</p>
+              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400/80">Aguardando vínculo inicial</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Plus className="h-12 w-12" />
@@ -657,7 +615,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <p className="text-3xl font-bold tracking-tight text-foreground">{directoryStats.pendingSetup}</p>
                 <p className="text-xs font-medium text-rose-600 dark:text-rose-400">Setup</p>
               </div>
-              <p className="mt-1 text-[11px] text-muted-foreground">Hosts sem bootstrap completo</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Hosts sem configuração completa</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-10">
               <Wrench className="h-12 w-12" />
@@ -665,69 +623,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </Card>
         )}
       </div>
-
-      <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
-        <summary className="cursor-pointer text-sm font-medium text-foreground">
-          Observabilidade operacional (colapsado por padrao)
-        </summary>
-        <div className="mt-4 space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fila de comandos</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.pendingTotal}</p>
-              <p className="text-[11px] text-muted-foreground">{commandObservability.pendingHosts} host(s) com backlog</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Falhas 24h</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.failedLast24h}</p>
-              <p className="text-[11px] text-muted-foreground">Comandos encerrados com erro</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 24h</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{commandObservability.successRates.window24h}%</p>
-              <p className="text-[11px] text-muted-foreground">Acks em relacao a entregas</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia 24h</p>
-              <p className="mt-1 text-sm text-foreground">
-                sync direto: {commandObservability.orchestrationMix.window24h.syncTokenFirst}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                discover/bootstrap: {commandObservability.orchestrationMix.window24h.discoverBootstrap}
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">% bootstrap/ciclo 24h</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">
-                {operationalObservability.bootstrapRateAvg === null ? "Sem leitura" : `${operationalObservability.bootstrapRateAvg}%`}
-              </p>
-              <p className="text-[11px] text-muted-foreground">Media entre hosts filtrados com telemetria</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">pendingAckQueue</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{operationalObservability.pendingAckQueueTotal}</p>
-              <p className="text-[11px] text-muted-foreground">Total em fila local pendente de flush</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ackQueueFlush.failed</p>
-              <p className="mt-1 text-2xl font-semibold text-foreground">{operationalObservability.ackQueueFlushFailedTotal}</p>
-              <p className="text-[11px] text-muted-foreground">Falhas de flush observadas no ultimo ciclo</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">lastContractErrorCode</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {operationalObservability.contractErrorTopCode ?? "Sem erro"}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {operationalObservability.contractErrorHosts} host(s) com degradacao
-                {operationalObservability.contractErrorTopCode ? ` | ${operationalObservability.contractErrorTopCount} ocorrencias` : ""}
-              </p>
-            </div>
-          </div>
-        </div>
-      </details>
 
       <Card className="border-border/50 overflow-hidden">
         <CardContent className="space-y-4 p-5 sm:p-6">
@@ -738,7 +633,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 <Input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Pesquisar por empresa, host, IP, RustDesk ID ou ticket..."
+                  placeholder="Pesquisar por empresa, host, IP, ID remoto ou ticket..."
                   className="h-10 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
                 />
               </div>
@@ -751,7 +646,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               >
                 <Filter className="h-4 w-4" />
               </Button>
-              {(searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all" || operationalFilter !== "all") && (
+              {(searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -762,7 +657,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     setEnvironmentFilter("all");
                     setHeartbeatFilter("all");
                     setAgentFilter("all");
-                    setOperationalFilter("all");
                   }}
                 >
                   <X className="mr-2 h-3.5 w-3.5" />
@@ -773,7 +667,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
             {showFilters && (
               <Card className="border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Status</Label>
                     <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
@@ -783,7 +677,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="ACTIVE">Ativo</SelectItem>
-                        <SelectItem value="MAINTENANCE">Manutencao</SelectItem>
+                        <SelectItem value="MAINTENANCE">Manutenção</SelectItem>
                         <SelectItem value="INACTIVE">Inativo</SelectItem>
                       </SelectContent>
                     </Select>
@@ -820,33 +714,17 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Agente</Label>
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Estado</Label>
                     <Select value={agentFilter} onValueChange={(value) => setAgentFilter(value as typeof agentFilter)}>
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Agente" />
+                        <SelectValue placeholder="Estado" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Qualquer</SelectItem>
-                        <SelectItem value="awaiting_link">Aguardando vinculo</SelectItem>
+                        <SelectItem value="awaiting_link">Aguardando vínculo</SelectItem>
                         <SelectItem value="provisioning">Provisionando</SelectItem>
                         <SelectItem value="ready">Remoto pronto</SelectItem>
-                        <SelectItem value="attention">Atencao</SelectItem>
-                        <SelectItem value="in_service">Em atendimento</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Operação</Label>
-                    <Select value={operationalFilter} onValueChange={(value) => setOperationalFilter(value as typeof operationalFilter)}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Operacao" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Qualquer</SelectItem>
-                        <SelectItem value="provisioning">Provisionando</SelectItem>
-                        <SelectItem value="ready">Remoto pronto</SelectItem>
-                        <SelectItem value="attention_required">Atencao</SelectItem>
+                        <SelectItem value="attention">Atenção técnica</SelectItem>
                         <SelectItem value="in_service">Em atendimento</SelectItem>
                       </SelectContent>
                     </Select>
@@ -873,7 +751,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               )}
               {canCreateHosts && activePendingCount > 0 && (
                 <Badge variant="outline" className="h-6 border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                  {activePendingCount} em triagem
+                  {activePendingCount} aguardando vínculo
                 </Badge>
               )}
             </div>
@@ -881,14 +759,27 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
 
           {canCreateHosts && filteredPendingItems.length ? (
-            <details className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4" open={false}>
-              <summary className="cursor-pointer text-sm font-semibold text-foreground">Maquinas pendentes de vinculacao</summary>
-              <div className="mt-3 space-y-3">
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between p-4 text-left"
+                onClick={() => setShowPendingItems((prev) => !prev)}
+              >
+                <span className="text-sm font-semibold text-foreground">
+                  Máquinas aguardando vínculo
+                  <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+                    {filteredPendingItems.length}
+                  </span>
+                </span>
+                <X className={`h-4 w-4 text-muted-foreground transition-transform ${showPendingItems ? "" : "rotate-45"}`} />
+              </button>
+              {showPendingItems && (
+              <div className="space-y-3 px-4 pb-4">
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <p className="text-sm font-medium text-foreground">Triagem inicial do agente</p>
+                <p className="text-sm font-medium text-foreground">Triagem inicial</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Estas maquinas ja foram descobertas pelo agente, mas ainda nao receberam vinculo empresarial.
-                  Enquanto permanecerem aqui, o agente nao instala nem configura o RustDesk. O fluxo correto e: descoberta, vinculo, bootstrap, instalacao/configuracao do remoto.
+                  Estas máquinas já foram descobertas pelo agente, mas ainda não receberam vínculo empresarial.
+                  Enquanto permanecerem aqui, o agente não instala nem configura o acesso remoto. O fluxo correto é: descoberta → vínculo → bootstrap → instalação do remoto.
                 </p>
               </div>
 
@@ -929,20 +820,20 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       <div>
                         <p className="text-lg font-semibold text-foreground">{item.machineName ?? "Maquina sem nome"}</p>
                         <p className="text-xs text-muted-foreground">
-                          RustDesk ID: {item.rustdeskId ?? "Nao informado"}
+                          ID remoto: {item.rustdeskId ?? "Não informado"}
                           {item.agentVersion ? ` | Agente: ${item.agentVersion}` : ""}
                           {item.lastHeartbeatAt ? ` | Heartbeat: ${formatHeartbeatDateTime(item.lastHeartbeatAt, hasHydrated)}` : ""}
                         </p>
                       </div>
                       {item.installationCompanies.length ? (
                         <p className="text-sm text-muted-foreground">
-                          Instalacoes detectadas: {item.installationCompanies.join(" | ")}
+                          Instalações detectadas: {item.installationCompanies.join(" | ")}
                         </p>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Nenhuma instalacao detectada ainda no heartbeat.</p>
+                        <p className="text-sm text-muted-foreground">Nenhuma instalação detectada ainda no heartbeat.</p>
                       )}
                       <div className="rounded-lg border border-border/40 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-                        Proximo passo: vincular a maquina a uma empresa/host. So depois disso o agente recebe bootstrap e habilita o remoto.
+                        Próximo passo: vincular a máquina a uma empresa. Só depois disso o agente recebe bootstrap e habilita o remoto.
                       </div>
                     </div>
 
@@ -977,7 +868,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                 </div>
               ))}
               </div>
-            </details>
+              )}
+            </div>
           ) : null}
 
           {filteredItems.length ? (
@@ -1057,7 +949,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       </div>
 
                       <div className="lg:px-4">
-                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">ID RustDesk</p>
+                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">ID Remoto</p>
                         <div className="relative group/id">
                           <code className="block w-full rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-sm font-mono tracking-tight text-foreground/80 transition-all group-hover/id:border-primary/20 group-hover/id:bg-muted/30">
                             {item.rustdeskId ?? "---"}
@@ -1123,8 +1015,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           ) : !filteredPendingItems.length ? (
             <p className="text-sm text-muted-foreground">
               {searchTerm
-                ? `Nenhum host deste modulo corresponde a "${searchTerm}".`
-                : "Nenhum host remoto operacional configurado no seu escopo."}
+                ? `Nenhum host corresponde a "${searchTerm}".`
+                : "Nenhum host remoto configurado no seu escopo."}
             </p>
           ) : null}
         </CardContent>

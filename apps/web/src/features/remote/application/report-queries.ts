@@ -8,6 +8,7 @@ export interface EfficiencyMetrics {
   totalTicketsWithRemote: number;
   sessions: Array<{
     sessionId: string;
+    hostId?: string;
     ticketNumber: string | null;
     hostName: string;
     companyName: string;
