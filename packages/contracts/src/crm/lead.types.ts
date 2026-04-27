@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
 
 export const CRM_LEAD_STAGE_VALUES = [
   "LEAD",
@@ -99,7 +100,7 @@ export const crmLeadUpdateSchema = crmLeadMutableFieldsSchema.partial().refine(
   { message: "Informe ao menos um campo para atualizar." },
 );
 
-export const crmLeadListFiltersSchema = z.object({
+export const crmLeadListFiltersSchema = paginationQuerySchema.extend({
   q: z.string().trim().optional(),
   stage: crmLeadStageSchema.optional(),
   source: crmLeadSourceSchema.optional(),
@@ -109,6 +110,7 @@ export const crmLeadListFiltersSchema = z.object({
 export const crmLeadListResponseSchema = z.object({
   success: z.boolean(),
   data: z.array(crmLeadSchema),
+  pagination: paginationMetaSchema.optional(),
   error: z.string().optional(),
   message: z.string().optional(),
 });

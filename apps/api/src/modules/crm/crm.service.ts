@@ -13,6 +13,7 @@ import {
   type CrmLeadCreateInput,
   type CrmLeadUpdateInput,
 } from '@dosc-syspro/contracts/crm';
+import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 
@@ -50,6 +51,9 @@ export class CrmService {
     await this.assertSystemAccess(rawHeaders);
     const filters = crmLeadListFiltersSchema.parse(input);
     const where: any = {};
+    const wantsPagination = filters.page !== undefined || filters.pageSize !== undefined;
+    const page = this.parsePage(filters.page);
+    const pageSize = this.parsePageSize(filters.pageSize);
 
     if (filters.q) {
       where.OR = [
@@ -64,15 +68,20 @@ export class CrmService {
     if (filters.source) where.source = filters.source;
     if (filters.ownerUserId) where.ownerUserId = filters.ownerUserId;
 
-    const leads = await (this.prisma as any).crmLead.findMany({
-      where,
-      include: this.leadInclude(),
-      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-    });
+    const [leads, total] = await Promise.all([
+      (this.prisma as any).crmLead.findMany({
+        where,
+        include: this.leadInclude(),
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+        ...(wantsPagination ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      wantsPagination ? (this.prisma as any).crmLead.count({ where }) : Promise.resolve(0),
+    ]);
 
     return {
       success: true,
       data: leads.map((lead: any) => this.serializeLead(lead)),
+      ...(wantsPagination ? { pagination: buildPaginationMeta({ page, pageSize, total }) } : {}),
     };
   }
 
@@ -317,6 +326,16 @@ export class CrmService {
   private normalizeDocument(value?: string | null) {
     const digits = String(value ?? '').replace(/\D/g, '');
     return digits || null;
+  }
+
+  private parsePage(value?: string): number {
+    const parsed = Number.parseInt(value || '1', 10);
+    return Math.max(1, Number.isNaN(parsed) ? 1 : parsed);
+  }
+
+  private parsePageSize(value?: string): number {
+    const parsed = Number.parseInt(value || '100', 10);
+    return Math.min(200, Math.max(1, Number.isNaN(parsed) ? 100 : parsed));
   }
 
   private normalizeState(value?: string | null) {

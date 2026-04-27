@@ -6,13 +6,18 @@ import { fetchCrmLeadByIdGateway, fetchCrmLeadsGateway } from "@/features/crm/in
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   try {
-    const response = await fetchCrmLeadsGateway();
+    const params = new URLSearchParams({
+      page: "1",
+      pageSize: "100",
+    });
+    const response = await fetchCrmLeadsGateway(params);
     return {
       leads: response.success ? response.data : [],
+      pagination: response.success ? (response.pagination ?? null) : null,
     };
   } catch (error) {
     console.error("Erro ao carregar leads do CRM:", error);
-    return { leads: [] };
+    return { leads: [], pagination: null };
   }
 }
 

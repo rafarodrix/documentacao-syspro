@@ -13,8 +13,10 @@ export class CrmController {
     @Query('stage') stage?: string,
     @Query('source') source?: string,
     @Query('ownerUserId') ownerUserId?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.crmService.listLeads({ q, stage, source, ownerUserId }, req.headers);
+    return this.crmService.listLeads({ q, stage, source, ownerUserId, page, pageSize }, req.headers);
   }
 
   @Get('/support-data')

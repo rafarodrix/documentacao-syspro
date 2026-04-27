@@ -276,6 +276,12 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
     { value: "NO_NEXT_STEP" as const, label: "Sem proximo passo", count: searchedLeads.filter((lead) => !getLeadAttentionState(lead).hasNextStep && !getLeadAttentionState(lead).isClosed).length },
     { value: "DUE_SOON" as const, label: "Fechando em breve", count: searchedLeads.filter((lead) => getLeadAttentionState(lead).isDueSoon).length },
   ];
+  const paginationSummary =
+    data.pagination && data.pagination.total > data.leads.length
+      ? `Exibindo ${data.leads.length} de ${data.pagination.total} leads`
+      : data.pagination
+        ? `${data.pagination.total} leads`
+        : `${filteredLeads.length} leads`;
 
   async function persistLeadUpdate(
     leadId: string,
@@ -392,6 +398,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           searchPlaceholder="Buscar empresa, titulo, contato ou proximo passo..."
           onSearchChange={setSearch}
           onClearSearch={() => setSearch("")}
+          resultLabel={paginationSummary}
           filters={
             <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
               <RegistryFilterGroup value={statusFilter} onChange={setStatusFilter} options={stageSummaryFilters} />

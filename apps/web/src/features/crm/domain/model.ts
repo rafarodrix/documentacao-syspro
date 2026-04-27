@@ -1,7 +1,9 @@
 import type { CrmLead, CrmLeadSource, CrmLeadStage } from "@dosc-syspro/contracts/crm";
+import type { PaginationMeta } from "@dosc-syspro/contracts";
 
 export type LeadDashboardData = {
   leads: CrmLead[];
+  pagination: PaginationMeta | null;
 };
 
 export const CRM_ACTIVE_STAGE_ORDER: CrmLeadStage[] = ["LEAD", "MQL", "SQL", "PROPOSAL", "NEGOTIATION"];
