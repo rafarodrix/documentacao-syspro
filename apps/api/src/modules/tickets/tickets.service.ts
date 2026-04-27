@@ -683,6 +683,7 @@ export class TicketsService {
         id: true,
         ticketNumber: true,
         status: true,
+        priority: true,
         companyId: true,
         assignedUserId: true,
         subject: true,
@@ -737,6 +738,7 @@ export class TicketsService {
     const effectiveReleaseModule =
       releaseModule || exists.releaseModule?.trim() || readReleaseMetadataString(existingMetadata, 'module');
     const handoffNote = input.note?.trim();
+    const requesterDisplayName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
@@ -995,7 +997,57 @@ export class TicketsService {
         });
       }
 
-      if (requestedTeam && requestedTeam !== previousTeam) {
+      const nextTeam =
+        typeof currentMetadata.currentTeam === 'string' && currentMetadata.currentTeam.trim()
+          ? currentMetadata.currentTeam.trim().toUpperCase()
+          : previousTeam;
+      const nextStatus = (requestedStatus ?? exists.status) as TicketStatus;
+      const nextCategory =
+        typeof currentMetadata.category === 'string' && currentMetadata.category.trim()
+          ? currentMetadata.category.trim()
+          : null;
+      const nextPriority = (data.priority as TicketPriority | undefined) ?? exists.priority;
+      const previousCategory =
+        typeof existingMetadata.category === 'string' && existingMetadata.category.trim()
+          ? existingMetadata.category.trim()
+          : null;
+      const previousSupportOwnerName = this.readMetadataString(existingMetadata, 'supportOwnerName');
+      const nextSupportOwnerName = this.readMetadataString(currentMetadata, 'supportOwnerName');
+      const previousDevelopmentOwnerName = this.readMetadataString(existingMetadata, 'developmentOwnerName');
+      const nextDevelopmentOwnerName = this.readMetadataString(currentMetadata, 'developmentOwnerName');
+      const historyLines: string[] = [];
+
+      if (previousTeam !== nextTeam) {
+        historyLines.push(`Equipe: ${this.formatTicketTeamLabel(previousTeam)} -> ${this.formatTicketTeamLabel(nextTeam)}`);
+      }
+
+      if (exists.status !== nextStatus) {
+        historyLines.push(`Estagio: ${this.formatTicketStatusLabel(exists.status)} -> ${this.formatTicketStatusLabel(nextStatus)}`);
+      }
+
+      if (previousCategory !== nextCategory) {
+        historyLines.push(
+          `Categoria: ${this.resolveCategoryLabel(settings, previousCategory) || 'Nao definida'} -> ${this.resolveCategoryLabel(settings, nextCategory) || 'Nao definida'}`,
+        );
+      }
+
+      if (exists.priority !== nextPriority) {
+        historyLines.push(`Prioridade: ${this.formatTicketPriorityLabel(settings, exists.priority)} -> ${this.formatTicketPriorityLabel(settings, nextPriority)}`);
+      }
+
+      if (previousSupportOwnerName !== nextSupportOwnerName) {
+        historyLines.push(`Analista: ${previousSupportOwnerName || 'Nao definido'} -> ${nextSupportOwnerName || 'Nao definido'}`);
+      }
+
+      if (previousDevelopmentOwnerName !== nextDevelopmentOwnerName) {
+        historyLines.push(`Desenvolvedor: ${previousDevelopmentOwnerName || 'Nao definido'} -> ${nextDevelopmentOwnerName || 'Nao definido'}`);
+      }
+
+      if (historyLines.length > 0 || handoffNote) {
+        const bodyLines = [`${requesterDisplayName} alterou o ticket.`];
+        for (const line of historyLines) bodyLines.push(line);
+        if (handoffNote) bodyLines.push(`Contexto: ${handoffNote}`);
+
         await tx.conversationMessage.create({
           data: {
             conversationId: id,
@@ -1003,13 +1055,12 @@ export class TicketsService {
             type: TicketMessageType.SYSTEM_EVENT,
             authorKind: TicketParticipantKind.USER,
             authorUserId: requester.userId,
-            body: `Transferido para a fila **${requestedTeam}**.${handoffNote ? `\n\nNota: ${handoffNote}` : ''}`,
+            body: bodyLines.join('\n'),
             status: TicketMessageStatus.SENT,
             sentAt: new Date(),
           },
         });
       }
-
     });
 
     if (exists.status !== requestedStatus && requestedStatus === TicketStatus.TESTING) {
@@ -1524,6 +1575,33 @@ export class TicketsService {
     if (!normalizedCategory) return null;
 
     return settings.categories.find((item) => item.value === normalizedCategory)?.label || normalizedCategory;
+  }
+
+  private formatTicketTeamLabel(team?: string | null): string {
+    if (team === 'DESENVOLVIMENTO') return 'Desenvolvimento';
+    if (team === 'SUPORTE') return 'Suporte';
+    return 'Nao definida';
+  }
+
+  private formatTicketPriorityLabel(settings: TicketModuleSettings, priority?: TicketPriority | null): string {
+    if (!priority) return 'Nao definida';
+
+    const configured = settings.priorities.find((item) => {
+      const value = `${item.id} ${item.value} ${item.label}`.toLowerCase();
+      if (priority === TicketPriority.CRITICAL) {
+        return value.includes('critical') || value.includes('urgent') || value.includes('alta') || value.includes('high') || item.id === '3';
+      }
+      if (priority === TicketPriority.HIGH) return value.includes('high') || value.includes('alta') || item.id === '3';
+      if (priority === TicketPriority.LOW) return value.includes('low') || value.includes('baixa') || item.id === '1';
+      return value.includes('normal') || item.id === '2';
+    });
+
+    return configured?.label || priority;
+  }
+
+  private readMetadataString(metadata: Record<string, unknown>, key: string): string | null {
+    const value = metadata[key];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
 
   private formatTicketStatusLabel(status: TicketStatus): string {
