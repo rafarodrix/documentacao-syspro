@@ -101,28 +101,33 @@ type RemoteBootstrapRequest struct {
 }
 
 type RemoteBootstrapResponse struct {
-	ContractVersion     string `json:"contractVersion"`
-	BootstrapMode       string `json:"bootstrapMode"`
-	HostID              string `json:"hostId"`
-	CompanyID           string `json:"companyId"`
-	CompanyName         string `json:"companyName,omitempty"`
-	Alias               string `json:"alias"`
-	RustDeskID          string `json:"rustdeskId"`
-	MachineName         string `json:"machineName"`
-	AgentToken          string `json:"agentToken"`
-	AgentTokenIssuedAt  string `json:"agentTokenIssuedAt"`
-	AgentTokenExpiresAt string `json:"agentTokenExpiresAt"`
-	ServerHost          string `json:"serverHost"`
-	APIHost             string `json:"apiHost"`
-	PublicKey           string `json:"publicKey"`
-	PublicKeyHash       string `json:"publicKeyHash"`
-	ServerConfig        string `json:"serverConfig"`
-	TargetVersion       string `json:"targetVersion"`
-	DefaultPassword     string `json:"defaultPassword"`
-	InstallerURL        string `json:"installerUrl"`
-	InstallerChecksum   string `json:"installerChecksumSha256"`
-	InstallerSilentArgs string `json:"installerSilentArgs"`
-	Compliance          struct {
+	ContractVersion          string `json:"contractVersion"`
+	BootstrapMode            string `json:"bootstrapMode"`
+	HostID                   string `json:"hostId"`
+	CompanyID                string `json:"companyId"`
+	CompanyName              string `json:"companyName,omitempty"`
+	Alias                    string `json:"alias"`
+	RustDeskID               string `json:"rustdeskId"`
+	MachineName              string `json:"machineName"`
+	AgentToken               string `json:"agentToken"`
+	AgentTokenIssuedAt       string `json:"agentTokenIssuedAt"`
+	AgentTokenExpiresAt      string `json:"agentTokenExpiresAt"`
+	ServerHost               string `json:"serverHost"`
+	APIHost                  string `json:"apiHost"`
+	PublicKey                string `json:"publicKey"`
+	PublicKeyHash            string `json:"publicKeyHash"`
+	ServerConfig             string `json:"serverConfig"`
+	TargetVersion            string `json:"targetVersion"`
+	DefaultPassword          string `json:"defaultPassword"`
+	AutoInstall              bool   `json:"autoInstall"`
+	AutoUpgrade              bool   `json:"autoUpgrade"`
+	InstallerURL             string `json:"installerUrl"`
+	InstallerChecksum        string `json:"installerChecksumSha256"`
+	InstallerPackageType     string `json:"installerPackageType"`
+	InstallerSilentArgs      string `json:"installerSilentArgs"`
+	RestartServiceAfterApply bool   `json:"restartServiceAfterApply"`
+	SuppressTrayShortcuts    bool   `json:"suppressTrayShortcuts"`
+	Compliance               struct {
 		AliasMatch      bool `json:"aliasMatch"`
 		VersionMatch    bool `json:"versionMatch"`
 		ServerHostMatch bool `json:"serverHostMatch"`
@@ -179,15 +184,20 @@ type RemoteSyncResponse struct {
 	AgentTokenLastUsedAt string `json:"agentTokenLastUsedAt"`
 	AgentTokenExpiresAt  string `json:"agentTokenExpiresAt"`
 	ExpectedConfig       struct {
-		ServerHost    string `json:"serverHost"`
-		APIHost       string `json:"apiHost"`
-		PublicKey     string `json:"publicKey"`
-		PublicKeyHash string `json:"publicKeyHash"`
-		ServerConfig  string `json:"serverConfig"`
-		TargetVersion string `json:"targetVersion"`
-		InstallerURL  string `json:"installerUrl"`
-		InstallerSHA  string `json:"installerChecksumSha256"`
-		InstallerArgs string `json:"installerSilentArgs"`
+		ServerHost               string `json:"serverHost"`
+		APIHost                  string `json:"apiHost"`
+		PublicKey                string `json:"publicKey"`
+		PublicKeyHash            string `json:"publicKeyHash"`
+		ServerConfig             string `json:"serverConfig"`
+		TargetVersion            string `json:"targetVersion"`
+		AutoInstall              bool   `json:"autoInstall"`
+		AutoUpgrade              bool   `json:"autoUpgrade"`
+		InstallerURL             string `json:"installerUrl"`
+		InstallerSHA             string `json:"installerChecksumSha256"`
+		InstallerPackageType     string `json:"installerPackageType"`
+		InstallerArgs            string `json:"installerSilentArgs"`
+		RestartServiceAfterApply bool   `json:"restartServiceAfterApply"`
+		SuppressTrayShortcuts    bool   `json:"suppressTrayShortcuts"`
 	} `json:"expectedConfig"`
 	ReportedConfig struct {
 		Alias         string `json:"alias"`

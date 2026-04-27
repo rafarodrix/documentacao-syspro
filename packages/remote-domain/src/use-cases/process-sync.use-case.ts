@@ -161,29 +161,33 @@ export async function processSync(
   const warnings: string[] = [];
 
   if (!compliance.versionMatch) {
-    const hasUpgradeMetadata =
-      !!configProfile.upgradeDownloadUrl &&
-      !!configProfile.upgradeChecksumSha256;
-
-    if (!hasUpgradeMetadata) {
-      warnings.push("SYNC_UPGRADE_METADATA_MISSING");
-      await deps.port.logWarning("remote.domain.sync.upgrade_metadata_missing", {
-        hostId: context.hostId,
-        targetVersion: configProfile.targetVersion,
-      });
+    if (!configProfile.autoUpgrade) {
+      warnings.push("SYNC_AUTO_UPGRADE_DISABLED");
     } else {
-      directives.push({
-        action: "upgrade_client",
-        reason: "Versao reportada do cliente diverge da versao alvo configurada no portal.",
-        payload: {
+      const hasUpgradeMetadata =
+        !!configProfile.upgradeDownloadUrl &&
+        !!configProfile.upgradeChecksumSha256;
+
+      if (!hasUpgradeMetadata) {
+        warnings.push("SYNC_UPGRADE_METADATA_MISSING");
+        await deps.port.logWarning("remote.domain.sync.upgrade_metadata_missing", {
+          hostId: context.hostId,
           targetVersion: configProfile.targetVersion,
-          reportedVersion: input.currentVersion ?? null,
-          downloadUrl: configProfile.upgradeDownloadUrl,
-          checksumSha256: configProfile.upgradeChecksumSha256,
-          packageType: configProfile.upgradePackageType ?? "binary",
-          silentArgs: configProfile.upgradeSilentArgs ?? "/S",
-        },
-      });
+        });
+      } else {
+        directives.push({
+          action: "upgrade_client",
+          reason: "Versao reportada do cliente diverge da versao alvo configurada no portal.",
+          payload: {
+            targetVersion: configProfile.targetVersion,
+            reportedVersion: input.currentVersion ?? null,
+            downloadUrl: configProfile.upgradeDownloadUrl,
+            checksumSha256: configProfile.upgradeChecksumSha256,
+            packageType: configProfile.upgradePackageType ?? "binary",
+            silentArgs: configProfile.upgradeSilentArgs ?? "/S",
+          },
+        });
+      }
     }
   }
 
@@ -276,9 +280,14 @@ export async function processSync(
       publicKeyHash: configProfile.publicKeyHash,
       serverConfig: configProfile.serverConfig,
       targetVersion: configProfile.targetVersion,
+      autoInstall: configProfile.autoInstall,
+      autoUpgrade: configProfile.autoUpgrade,
       installerUrl: configProfile.installerUrl ?? null,
       installerChecksumSha256: configProfile.installerChecksumSha256 ?? null,
+      installerPackageType: configProfile.installerPackageType ?? null,
       installerSilentArgs: configProfile.installerSilentArgs ?? null,
+      restartServiceAfterApply: configProfile.restartServiceAfterApply,
+      suppressTrayShortcuts: configProfile.suppressTrayShortcuts,
     },
     reportedConfig: {
       alias: persisted.host.lastKnownRustDeskAlias,

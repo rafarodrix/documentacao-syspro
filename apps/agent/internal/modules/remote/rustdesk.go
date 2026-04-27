@@ -22,17 +22,22 @@ var rustDeskIDPattern = regexp.MustCompile(`\d{6,12}`)
 var rustDeskConfigEntryPattern = regexp.MustCompile(`^\s*([A-Za-z0-9._-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\r\n#]+))`)
 
 type rustDeskDesiredConfig struct {
-	Alias           string
-	ServerHost      string
-	APIHost         string
-	PublicKey       string
-	PublicKeyHash   string
-	ServerConfig    string
-	TargetVersion   string
-	DefaultPassword string
-	InstallerURL    string
-	InstallerSHA256 string
-	InstallerArgs   string
+	Alias                    string
+	ServerHost               string
+	APIHost                  string
+	PublicKey                string
+	PublicKeyHash            string
+	ServerConfig             string
+	TargetVersion            string
+	DefaultPassword          string
+	AutoInstall              bool
+	AutoUpgrade              bool
+	InstallerURL             string
+	InstallerSHA256          string
+	InstallerPackageType     string
+	InstallerArgs            string
+	RestartServiceAfterApply bool
+	SuppressTrayShortcuts    bool
 }
 
 type rustDeskUpgradeSpec struct {
@@ -60,19 +65,23 @@ type rustDeskController interface {
 }
 
 type rustDeskManager struct {
-	logger          Logger
-	stateDir        string
-	installerURL    string
-	installerSHA256 string
-	installerArgs   string
-	httpClient      *http.Client
+	logger                   Logger
+	stateDir                 string
+	installerURL             string
+	installerSHA256          string
+	installerPackageType     string
+	installerArgs            string
+	restartServiceAfterApply bool
+	suppressTrayShortcuts    bool
+	httpClient               *http.Client
 }
 
-func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, installerArgs string) *rustDeskManager {
+func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, installerPackageType, installerArgs string, restartServiceAfterApply, suppressTrayShortcuts bool) *rustDeskManager {
+	packageType := resolveInstallerPackageType(strings.TrimSpace(installerURL), installerPackageType)
 	args := strings.TrimSpace(installerArgs)
 	if args == "" {
-		switch strings.ToLower(filepath.Ext(strings.TrimSpace(installerURL))) {
-		case ".msi":
+		switch packageType {
+		case "msi":
 			args = "/qn /norestart"
 		default:
 			args = "/S"
@@ -80,11 +89,14 @@ func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, 
 	}
 
 	return &rustDeskManager{
-		logger:          logger,
-		stateDir:        stateDir,
-		installerURL:    strings.TrimSpace(installerURL),
-		installerSHA256: strings.TrimSpace(installerSHA256),
-		installerArgs:   args,
+		logger:                   logger,
+		stateDir:                 stateDir,
+		installerURL:             strings.TrimSpace(installerURL),
+		installerSHA256:          strings.TrimSpace(installerSHA256),
+		installerPackageType:     packageType,
+		installerArgs:            args,
+		restartServiceAfterApply: restartServiceAfterApply,
+		suppressTrayShortcuts:    suppressTrayShortcuts,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Minute,
 		},
@@ -132,7 +144,7 @@ func (m *rustDeskManager) ensureInstalled(ctx context.Context, upgrade *rustDesk
 		}
 		if strings.TrimSpace(upgrade.SilentArgs) != "" {
 			silentArgs = strings.TrimSpace(upgrade.SilentArgs)
-		} else if strings.ToLower(filepath.Ext(downloadURL)) == ".msi" {
+		} else if resolveInstallerPackageType(downloadURL, upgrade.PackageType) == "msi" {
 			silentArgs = "/qn /norestart"
 		}
 	}
@@ -149,7 +161,11 @@ func (m *rustDeskManager) ensureInstalled(ctx context.Context, upgrade *rustDesk
 		return "", false, err
 	}
 
-	if err := m.runInstaller(ctx, installerPath, silentArgs); err != nil {
+	packageType := m.installerPackageType
+	if upgrade != nil && strings.TrimSpace(upgrade.PackageType) != "" {
+		packageType = strings.TrimSpace(upgrade.PackageType)
+	}
+	if err := m.runInstaller(ctx, installerPath, silentArgs, packageType); err != nil {
 		return "", false, err
 	}
 
@@ -222,9 +238,14 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 			return fmt.Errorf("apply rustdesk password: %w", err)
 		}
 	}
+	if err := m.ensureVerificationMethodUsesBothPasswords(); err != nil {
+		return fmt.Errorf("apply rustdesk verification method: %w", err)
+	}
 	// Restart the service so it picks up the new config cleanly.  This also
 	// eliminates any residual white-screen state from a previous launch.
-	_ = m.runPowerShell(ctx, "Restart-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
+	if desired.RestartServiceAfterApply {
+		_ = m.runPowerShell(ctx, "Restart-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
+	}
 	return nil
 }
 
@@ -512,11 +533,10 @@ func sameFile(a, b string) bool {
 	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }
 
-func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silentArgs string) error {
+func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silentArgs, configuredPackageType string) error {
 	args := splitWindowsArgs(silentArgs)
-	ext := strings.ToLower(filepath.Ext(installerPath))
-	switch ext {
-	case ".msi":
+	switch resolveInstallerPackageType(installerPath, configuredPackageType) {
+	case "msi":
 		if elevated, err := m.isRunningElevated(ctx); err != nil {
 			return fmt.Errorf("run msi installer: nao foi possivel verificar privilegios de administrador: %w", err)
 		} else if !elevated {
@@ -543,7 +563,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		if logErr != nil {
 			m.logger.Warn("rustdesk installer log path prepare failed", "error", logErr)
 		}
-		msiArgs := buildRustDeskMSIInstallArgs(installerPath, logPath)
+		msiArgs := buildRustDeskMSIInstallArgs(installerPath, logPath, m.suppressTrayShortcuts)
 		if logPath != "" {
 			m.logger.Info("rustdesk msi install configured", "launch_tray", false, "log_path", logPath)
 		}
@@ -566,8 +586,10 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		}
 		// Kill any GUI/tray the EXE installer auto-launched; prevents the white
 		// screen the user would see if RustDesk opens before config is applied.
-		_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
-		time.Sleep(2 * time.Second)
+		if m.suppressTrayShortcuts {
+			_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
+			time.Sleep(2 * time.Second)
+		}
 	}
 	return nil
 }
@@ -703,16 +725,49 @@ func readRustDeskIDFromConfig(path string) string {
 	return ""
 }
 
-func buildRustDeskMSIInstallArgs(installerPath, logPath string) []string {
+func (m *rustDeskManager) ensureVerificationMethodUsesBothPasswords() error {
+	var updated int
+	var lastErr error
+
+	for _, path := range rustDeskConfigPaths() {
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			lastErr = err
+			continue
+		}
+
+		if err := upsertRustDeskConfigValue(path, "verification-method", "use-both-passwords"); err != nil {
+			lastErr = err
+			continue
+		}
+		updated++
+	}
+
+	if updated > 0 {
+		return nil
+	}
+	if lastErr != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func buildRustDeskMSIInstallArgs(installerPath, logPath string, suppressTrayShortcuts bool) []string {
 	args := []string{
 		"/i", installerPath,
 		"REBOOT=ReallySuppress",
-		"LAUNCH_TRAY_APP=0",
-		"STARTUPSHORTCUTS=0",
-		"DESKTOPSHORTCUTS=0",
-		"STARTMENUSHORTCUTS=0",
 		"/qn",
 		"/norestart",
+	}
+	if suppressTrayShortcuts {
+		args = append(args,
+			"LAUNCH_TRAY_APP=0",
+			"STARTUPSHORTCUTS=0",
+			"DESKTOPSHORTCUTS=0",
+			"STARTMENUSHORTCUTS=0",
+		)
 	}
 	if strings.TrimSpace(logPath) != "" {
 		args = append(args, "/l*v", logPath)
@@ -730,6 +785,38 @@ func readPersistedDefaultPassword(path string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(match[1]))
+}
+
+func upsertRustDeskConfigValue(path, key, value string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read rustdesk config: %w", err)
+	}
+
+	lines := strings.Split(string(data), "\n")
+	updated := false
+	for i, line := range lines {
+		match := rustDeskConfigEntryPattern.FindStringSubmatch(line)
+		if len(match) == 0 {
+			continue
+		}
+		currentKey := strings.TrimSpace(match[1])
+		if !strings.EqualFold(currentKey, key) {
+			continue
+		}
+		lines[i] = fmt.Sprintf("%s = '%s'", currentKey, value)
+		updated = true
+	}
+
+	if !updated {
+		lines = append(lines, fmt.Sprintf("%s = '%s'", key, value))
+	}
+
+	output := strings.Join(lines, "\n")
+	if err := os.WriteFile(path, []byte(output), 0o644); err != nil {
+		return fmt.Errorf("write rustdesk config: %w", err)
+	}
+	return nil
 }
 
 func readRustDeskPasswordFromConfig(path, defaultPassword string) string {
@@ -819,6 +906,20 @@ func splitWindowsArgs(raw string) []string {
 		return nil
 	}
 	return strings.Fields(raw)
+}
+
+func resolveInstallerPackageType(source, configured string) string {
+	switch strings.ToLower(strings.TrimSpace(configured)) {
+	case "msi", "exe":
+		return strings.ToLower(strings.TrimSpace(configured))
+	}
+
+	switch strings.ToLower(filepath.Ext(strings.TrimSpace(source))) {
+	case ".msi":
+		return "msi"
+	default:
+		return "exe"
+	}
 }
 
 func joinPowerShellArgs(args []string) string {

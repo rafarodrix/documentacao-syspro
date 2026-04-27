@@ -116,7 +116,7 @@ export class AgentsService {
         enabled: remoteEnabled,
         version: 'go-agent-v1',
         mode: 'managed',
-        install_if_missing: true,
+        install_if_missing: remoteSettings.rustDeskAutoInstall,
         bootstrap_enabled: true,
         sync_enabled: true,
       },

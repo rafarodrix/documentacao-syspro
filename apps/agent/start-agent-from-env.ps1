@@ -1,3 +1,7 @@
+param(
+  [switch]$KeepConsoleOpen
+)
+
 $ErrorActionPreference = "Stop"
 
 $agentRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -49,4 +53,8 @@ Write-Host "Carregando configuracao do agente a partir de $envFile"
 Import-AgentEnvFile -Path $envFile
 
 Write-Host "Executando deploy local do agente com variaveis carregadas..."
-& $deployScript
+if ($KeepConsoleOpen) {
+  & $deployScript -KeepConsoleOpen
+} else {
+  & $deployScript
+}

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const REMOTE_MODULE_SETTINGS_KEY = "remote.module.settings";
+export const REMOTE_RUSTDESK_PACKAGE_TYPE_VALUES = ["AUTO", "MSI", "EXE"] as const;
 
 function isHttpInstallerSource(value: string) {
   return /^https?:\/\//i.test(value.trim());
@@ -17,9 +18,14 @@ export const remoteModuleSettingsSchema = z
     rustDeskPublicKey: z.string().trim().optional().default(""),
     rustDeskVersion: z.string().trim().min(3, "Informe a versao alvo do RustDesk."),
     defaultPassword: z.string().trim().min(4, "Informe a senha padrao do agente."),
+    rustDeskAutoInstall: z.boolean().default(true),
+    rustDeskAutoUpgrade: z.boolean().default(true),
     rustDeskInstallerUrl: z.string().trim().optional().default(""),
     rustDeskInstallerSha256: z.string().trim().optional().default(""),
+    rustDeskInstallerPackageType: z.enum(REMOTE_RUSTDESK_PACKAGE_TYPE_VALUES).default("AUTO"),
     rustDeskInstallArgs: z.string().trim().optional().default("/S"),
+    rustDeskRestartServiceAfterApply: z.boolean().default(true),
+    rustDeskSuppressTrayShortcuts: z.boolean().default(true),
   })
   .superRefine((value, ctx) => {
     if (value.rustDeskInstallerSha256 && !isSha256(value.rustDeskInstallerSha256)) {
@@ -47,9 +53,14 @@ export const DEFAULT_REMOTE_MODULE_SETTINGS = {
     "==Qfi0TVnZTc3YHT1EldidXbJhkbRBzTJ5Wc4BjR4hlN3FHMYBnYit0KIFlbwZkNiojI5V2aiwiIiojIpBXYiwiIyJmLt92YuUmchdHdm92cr5Waslmc05ybzNXZjFmI6ISehxWZyJCLiInYu02bj5SZyF2d0Z2bztmbpxWayRnLvN3clNWYiojI0N3boJye",
   rustDeskVersion: "1.4.6",
   defaultPassword: "Trilink098",
+  rustDeskAutoInstall: true,
+  rustDeskAutoUpgrade: true,
   rustDeskInstallerUrl: "",
   rustDeskInstallerSha256: "",
+  rustDeskInstallerPackageType: "AUTO",
   rustDeskInstallArgs: "/S",
+  rustDeskRestartServiceAfterApply: true,
+  rustDeskSuppressTrayShortcuts: true,
 } satisfies z.infer<typeof remoteModuleSettingsSchema>;
 
 export const remoteModuleSettingsResponseSchema = z.object({

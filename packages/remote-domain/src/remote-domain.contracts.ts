@@ -230,9 +230,14 @@ export type ProcessBootstrapOutput = {
   serverConfig: string | null;
   targetVersion: string | null;
   defaultPassword: string | null;
+  autoInstall: boolean;
+  autoUpgrade: boolean;
   installerUrl: string | null;
   installerChecksumSha256: string | null;
+  installerPackageType: string | null;
   installerSilentArgs: string | null;
+  restartServiceAfterApply: boolean;
+  suppressTrayShortcuts: boolean;
   compliance: BootstrapCompliance;
   flow: {
     stage: "BOOTSTRAPPED";
@@ -290,12 +295,17 @@ export type ProcessSyncOutput = {
     apiHost: string | null;
     publicKey: string | null;
     publicKeyHash: string | null;
-    serverConfig: string | null;
-    targetVersion: string | null;
-    installerUrl: string | null;
-    installerChecksumSha256: string | null;
-    installerSilentArgs: string | null;
-  };
+      serverConfig: string | null;
+      targetVersion: string | null;
+      autoInstall: boolean;
+      autoUpgrade: boolean;
+      installerUrl: string | null;
+      installerChecksumSha256: string | null;
+      installerPackageType: string | null;
+      installerSilentArgs: string | null;
+      restartServiceAfterApply: boolean;
+      suppressTrayShortcuts: boolean;
+    };
   reportedConfig: {
     alias: string | null;
     version: string | null;

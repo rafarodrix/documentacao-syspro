@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -68,7 +69,7 @@ func TestReadRustDeskPasswordFromConfigIgnoresEncodedValues(t *testing.T) {
 func TestBuildRustDeskMSIInstallArgsDisablesTrayLaunch(t *testing.T) {
 	t.Parallel()
 
-	args := buildRustDeskMSIInstallArgs(`C:\tmp\rustdesk.msi`, `C:\tmp\rustdesk.log`)
+	args := buildRustDeskMSIInstallArgs(`C:\tmp\rustdesk.msi`, `C:\tmp\rustdesk.log`, true)
 	if !slices.Contains(args, "LAUNCH_TRAY_APP=0") {
 		t.Fatalf("expected LAUNCH_TRAY_APP=0 in args, got %v", args)
 	}
@@ -77,5 +78,51 @@ func TestBuildRustDeskMSIInstallArgsDisablesTrayLaunch(t *testing.T) {
 	}
 	if !slices.Contains(args, "/l*v") {
 		t.Fatalf("expected verbose log flag in args, got %v", args)
+	}
+}
+
+func TestUpsertRustDeskConfigValueUpdatesExistingKey(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "verification-method = 'use-permanent-password'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	if err := upsertRustDeskConfigValue(path, "verification-method", "use-both-passwords"); err != nil {
+		t.Fatalf("upsert config: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if !strings.Contains(string(data), "verification-method = 'use-both-passwords'") {
+		t.Fatalf("expected verification-method updated, got %q", string(data))
+	}
+}
+
+func TestUpsertRustDeskConfigValueAppendsMissingKey(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "id = '123456789'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	if err := upsertRustDeskConfigValue(path, "verification-method", "use-both-passwords"); err != nil {
+		t.Fatalf("upsert config: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if !strings.Contains(string(data), "verification-method = 'use-both-passwords'") {
+		t.Fatalf("expected verification-method appended, got %q", string(data))
 	}
 }

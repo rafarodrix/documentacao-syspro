@@ -6,9 +6,14 @@ export type RustDeskConfigSettings = {
   rustDeskPublicKey: string;
   rustDeskVersion: string;
   defaultPassword: string;
+  rustDeskAutoInstall: boolean;
+  rustDeskAutoUpgrade: boolean;
   rustDeskInstallerUrl: string;
   rustDeskInstallerSha256: string;
+  rustDeskInstallerPackageType: "AUTO" | "MSI" | "EXE";
   rustDeskInstallArgs: string;
+  rustDeskRestartServiceAfterApply: boolean;
+  rustDeskSuppressTrayShortcuts: boolean;
 };
 
 export function normalizeRustdeskId(value?: string | null): string | null {
@@ -55,6 +60,7 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
   const installerUrl = settings.rustDeskInstallerUrl.trim() || null;
   const installerChecksumSha256 = settings.rustDeskInstallerSha256.trim().toLowerCase() || null;
   const installerSilentArgs = settings.rustDeskInstallArgs.trim() || "/S";
+  const installerPackageType = settings.rustDeskInstallerPackageType;
 
   return {
     serverHost,
@@ -64,12 +70,17 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
     serverConfig: settings.rustDeskServerConfig.trim(),
     targetVersion: settings.rustDeskVersion.trim(),
     defaultPassword: settings.defaultPassword,
+    autoInstall: settings.rustDeskAutoInstall,
+    autoUpgrade: settings.rustDeskAutoUpgrade,
     installerUrl,
     installerChecksumSha256,
+    installerPackageType,
     installerSilentArgs,
+    restartServiceAfterApply: settings.rustDeskRestartServiceAfterApply,
+    suppressTrayShortcuts: settings.rustDeskSuppressTrayShortcuts,
     upgradeDownloadUrl: installerUrl,
     upgradeChecksumSha256: installerChecksumSha256,
-    upgradePackageType: "binary",
+    upgradePackageType: installerPackageType === "AUTO" ? "binary" : installerPackageType.toLowerCase(),
     upgradeSilentArgs: installerSilentArgs,
   };
 }

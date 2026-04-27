@@ -84,12 +84,24 @@ powershell -ExecutionPolicy Bypass -File .\apps\agent\dist\test-deploy\windows-a
 powershell -ExecutionPolicy Bypass -File .\apps\agent\start-agent-from-env.ps1
 ```
 
+Se quiser manter o console de homologacao aberto para acompanhar logs locais:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\apps\agent\start-agent-from-env.ps1 -KeepConsoleOpen
+```
+
 3. Confirme no console:
 
 - `agent-service` iniciado
 - `agent-ui` iniciado
 - `ipc client fetched summary`
 - `windows tray host started`
+
+Observacao:
+
+- no modo padrao o script local desacopla depois de subir o servico e a UI
+- a janela de PowerShell aberta so permanece se voce usar `-KeepConsoleOpen`
+- no instalador normal o steady-state esperado continua sendo servico Windows + UI, sem PowerShell persistente visivel
 
 ## Sequencia de homologacao
 

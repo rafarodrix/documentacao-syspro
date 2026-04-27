@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
@@ -403,6 +404,26 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-2">
             Esses parametros definem a versao esperada do RustDesk e a senha padrao aplicada pelo agente no host.
           </div>
+
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-4 md:col-span-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Instalacao automatica</p>
+                  <p className="text-xs text-muted-foreground">Permite instalar o RustDesk automaticamente quando o host ainda nao tiver cliente.</p>
+                </div>
+                <Switch checked={form.watch("rustDeskAutoInstall")} onCheckedChange={(checked) => form.setValue("rustDeskAutoInstall", checked, { shouldDirty: true })} />
+              </div>
+
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Upgrade automatico</p>
+                  <p className="text-xs text-muted-foreground">Permite disparar upgrade quando a versao reportada divergir da versao alvo configurada no portal.</p>
+                </div>
+                <Switch checked={form.watch("rustDeskAutoUpgrade")} onCheckedChange={(checked) => form.setValue("rustDeskAutoUpgrade", checked, { shouldDirty: true })} />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -448,6 +469,28 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="rustDeskInstallerPackageType">Tipo do pacote</Label>
+            <Select
+              value={form.watch("rustDeskInstallerPackageType")}
+              onValueChange={(value) =>
+                form.setValue("rustDeskInstallerPackageType", value as RemoteModuleSettings["rustDeskInstallerPackageType"], { shouldDirty: true })
+              }
+            >
+              <SelectTrigger id="rustDeskInstallerPackageType">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AUTO">Detectar automaticamente</SelectItem>
+                <SelectItem value="MSI">MSI</SelectItem>
+                <SelectItem value="EXE">EXE</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Use override somente quando a extensao da URL ou do caminho nao for suficiente para o agente inferir o instalador correto.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="rustDeskInstallArgs">Argumentos silenciosos</Label>
             <Input
               id="rustDeskInstallArgs"
@@ -457,6 +500,26 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             <p className="text-xs text-muted-foreground">
               Use `/S` para instaladores EXE ou `/qn /norestart` para MSI quando precisar sobrescrever o padrao.
             </p>
+          </div>
+
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-4 md:col-span-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Reiniciar servico apos aplicar configuracao</p>
+                  <p className="text-xs text-muted-foreground">Reinicia o servico do RustDesk depois de aplicar alias, servidor, chave e senha para convergencia imediata.</p>
+                </div>
+                <Switch checked={form.watch("rustDeskRestartServiceAfterApply")} onCheckedChange={(checked) => form.setValue("rustDeskRestartServiceAfterApply", checked, { shouldDirty: true })} />
+              </div>
+
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Suprimir tray e atalhos do RustDesk</p>
+                  <p className="text-xs text-muted-foreground">Evita tray, shortcuts e janelas residuais deixadas pelo instalador durante bootstrap e upgrade.</p>
+                </div>
+                <Switch checked={form.watch("rustDeskSuppressTrayShortcuts")} onCheckedChange={(checked) => form.setValue("rustDeskSuppressTrayShortcuts", checked, { shouldDirty: true })} />
+              </div>
+            </div>
           </div>
 
         </CardContent>

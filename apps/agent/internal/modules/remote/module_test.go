@@ -67,17 +67,22 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 					AliasMatch: true, VersionMatch: true, ServerHostMatch: true, APIHostMatch: true, PublicKeyMatch: true,
 				},
 				ExpectedConfig: struct {
-					ServerHost    string `json:"serverHost"`
-					APIHost       string `json:"apiHost"`
-					PublicKey     string `json:"publicKey"`
-					PublicKeyHash string `json:"publicKeyHash"`
-					ServerConfig  string `json:"serverConfig"`
-					TargetVersion string `json:"targetVersion"`
-					InstallerURL  string `json:"installerUrl"`
-					InstallerSHA  string `json:"installerChecksumSha256"`
-					InstallerArgs string `json:"installerSilentArgs"`
+					ServerHost               string `json:"serverHost"`
+					APIHost                  string `json:"apiHost"`
+					PublicKey                string `json:"publicKey"`
+					PublicKeyHash            string `json:"publicKeyHash"`
+					ServerConfig             string `json:"serverConfig"`
+					TargetVersion            string `json:"targetVersion"`
+					AutoInstall              bool   `json:"autoInstall"`
+					AutoUpgrade              bool   `json:"autoUpgrade"`
+					InstallerURL             string `json:"installerUrl"`
+					InstallerSHA             string `json:"installerChecksumSha256"`
+					InstallerPackageType     string `json:"installerPackageType"`
+					InstallerArgs            string `json:"installerSilentArgs"`
+					RestartServiceAfterApply bool   `json:"restartServiceAfterApply"`
+					SuppressTrayShortcuts    bool   `json:"suppressTrayShortcuts"`
 				}{
-					ServerHost: "relay.example.com", APIHost: "api.example.com", PublicKey: "pub-key", PublicKeyHash: "pub-hash", ServerConfig: "server-config", TargetVersion: "1.4.6", InstallerArgs: "/S",
+					ServerHost: "relay.example.com", APIHost: "api.example.com", PublicKey: "pub-key", PublicKeyHash: "pub-hash", ServerConfig: "server-config", TargetVersion: "1.4.6", AutoInstall: true, AutoUpgrade: true, InstallerPackageType: "AUTO", InstallerArgs: "/S", RestartServiceAfterApply: true, SuppressTrayShortcuts: true,
 				},
 			},
 		},

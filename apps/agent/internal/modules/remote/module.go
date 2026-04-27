@@ -39,33 +39,38 @@ type EventBus interface {
 }
 
 type remoteState struct {
-	AgentToken          string    `json:"agent_token,omitempty"`
-	HostID              string    `json:"host_id,omitempty"`
-	CompanyID           string    `json:"company_id,omitempty"`
-	CompanyName         string    `json:"company_name,omitempty"`
-	Alias               string    `json:"alias,omitempty"`
-	RustDeskID          string    `json:"rustdesk_id,omitempty"`
-	MachineName         string    `json:"machine_name,omitempty"`
-	ServiceStatus       string    `json:"service_status,omitempty"`
-	CurrentVersion      string    `json:"current_version,omitempty"`
-	ServerHost          string    `json:"server_host,omitempty"`
-	APIHost             string    `json:"api_host,omitempty"`
-	PublicKey           string    `json:"public_key,omitempty"`
-	PublicKeyHash       string    `json:"public_key_hash,omitempty"`
-	ServerConfig        string    `json:"server_config,omitempty"`
-	TargetVersion       string    `json:"target_version,omitempty"`
-	DefaultPassword     string    `json:"default_password,omitempty"`
-	InstallerURL        string    `json:"installer_url,omitempty"`
-	InstallerChecksum   string    `json:"installer_checksum_sha256,omitempty"`
-	InstallerSilentArgs string    `json:"installer_silent_args,omitempty"`
-	RuntimePassword     string    `json:"runtime_password,omitempty"`
-	RustDeskExecutable  string    `json:"rustdesk_executable,omitempty"`
-	LastConfigAppliedAt time.Time `json:"last_config_applied_at,omitempty"`
-	LastAppliedHash     string    `json:"last_applied_hash,omitempty"`
-	RebootstrapRequired bool      `json:"rebootstrap_required"`
-	LastBootstrapFlow   string    `json:"last_bootstrap_flow,omitempty"`
-	LastSyncAt          time.Time `json:"last_sync_at,omitempty"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	AgentToken               string    `json:"agent_token,omitempty"`
+	HostID                   string    `json:"host_id,omitempty"`
+	CompanyID                string    `json:"company_id,omitempty"`
+	CompanyName              string    `json:"company_name,omitempty"`
+	Alias                    string    `json:"alias,omitempty"`
+	RustDeskID               string    `json:"rustdesk_id,omitempty"`
+	MachineName              string    `json:"machine_name,omitempty"`
+	ServiceStatus            string    `json:"service_status,omitempty"`
+	CurrentVersion           string    `json:"current_version,omitempty"`
+	ServerHost               string    `json:"server_host,omitempty"`
+	APIHost                  string    `json:"api_host,omitempty"`
+	PublicKey                string    `json:"public_key,omitempty"`
+	PublicKeyHash            string    `json:"public_key_hash,omitempty"`
+	ServerConfig             string    `json:"server_config,omitempty"`
+	TargetVersion            string    `json:"target_version,omitempty"`
+	DefaultPassword          string    `json:"default_password,omitempty"`
+	AutoInstall              bool      `json:"auto_install"`
+	AutoUpgrade              bool      `json:"auto_upgrade"`
+	InstallerURL             string    `json:"installer_url,omitempty"`
+	InstallerChecksum        string    `json:"installer_checksum_sha256,omitempty"`
+	InstallerPackageType     string    `json:"installer_package_type,omitempty"`
+	InstallerSilentArgs      string    `json:"installer_silent_args,omitempty"`
+	RestartServiceAfterApply bool      `json:"restart_service_after_apply"`
+	SuppressTrayShortcuts    bool      `json:"suppress_tray_shortcuts"`
+	RuntimePassword          string    `json:"runtime_password,omitempty"`
+	RustDeskExecutable       string    `json:"rustdesk_executable,omitempty"`
+	LastConfigAppliedAt      time.Time `json:"last_config_applied_at,omitempty"`
+	LastAppliedHash          string    `json:"last_applied_hash,omitempty"`
+	RebootstrapRequired      bool      `json:"rebootstrap_required"`
+	LastBootstrapFlow        string    `json:"last_bootstrap_flow,omitempty"`
+	LastSyncAt               time.Time `json:"last_sync_at,omitempty"`
+	UpdatedAt                time.Time `json:"updated_at"`
 }
 
 type runtimePhase string
@@ -210,7 +215,7 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, current
 	switch plan.phase {
 	case runtimePhaseSync:
 		m.logger.Debug("remote runtime plan", "phase", plan.phase, "host_id", st.HostID)
-		return m.runSync(ctx, &st, plan.agentToken)
+		return m.runSync(ctx, &st, plan.agentToken, intent.installIfMissing)
 	case runtimePhaseDiscover:
 		if st.RebootstrapRequired {
 			m.logger.Info("remote rebootstrap required; clearing local agent token", "host_id", st.HostID)
@@ -337,17 +342,22 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 	st.RebootstrapRequired = false
 	st.LastBootstrapFlow = "bootstrap_completed"
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
-		Alias:           bootstrapResp.Alias,
-		ServerHost:      bootstrapResp.ServerHost,
-		APIHost:         bootstrapResp.APIHost,
-		PublicKey:       bootstrapResp.PublicKey,
-		PublicKeyHash:   bootstrapResp.PublicKeyHash,
-		ServerConfig:    bootstrapResp.ServerConfig,
-		TargetVersion:   bootstrapResp.TargetVersion,
-		DefaultPassword: bootstrapResp.DefaultPassword,
-		InstallerURL:    bootstrapResp.InstallerURL,
-		InstallerSHA256: bootstrapResp.InstallerChecksum,
-		InstallerArgs:   bootstrapResp.InstallerSilentArgs,
+		Alias:                    bootstrapResp.Alias,
+		ServerHost:               bootstrapResp.ServerHost,
+		APIHost:                  bootstrapResp.APIHost,
+		PublicKey:                bootstrapResp.PublicKey,
+		PublicKeyHash:            bootstrapResp.PublicKeyHash,
+		ServerConfig:             bootstrapResp.ServerConfig,
+		TargetVersion:            bootstrapResp.TargetVersion,
+		DefaultPassword:          bootstrapResp.DefaultPassword,
+		AutoInstall:              bootstrapResp.AutoInstall,
+		AutoUpgrade:              bootstrapResp.AutoUpgrade,
+		InstallerURL:             bootstrapResp.InstallerURL,
+		InstallerSHA256:          bootstrapResp.InstallerChecksum,
+		InstallerPackageType:     bootstrapResp.InstallerPackageType,
+		InstallerArgs:            bootstrapResp.InstallerSilentArgs,
+		RestartServiceAfterApply: bootstrapResp.RestartServiceAfterApply,
+		SuppressTrayShortcuts:    bootstrapResp.SuppressTrayShortcuts,
 	})
 	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, true, nil); err != nil {
 		m.logger.Warn("remote bootstrap local apply failed after token issuance", "host_id", st.HostID, "error", err)
@@ -361,11 +371,11 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		"alias":   st.Alias,
 	})
 
-	return m.runSync(ctx, st, bootstrapResp.AgentToken)
+	return m.runSync(ctx, st, bootstrapResp.AgentToken, intent.installIfMissing)
 }
 
-func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string) domain.ApplyResult {
-	if err := m.refreshRustDeskState(ctx, st, true, false, nil); err != nil {
+func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string, installIfMissing bool) domain.ApplyResult {
+	if err := m.refreshRustDeskState(ctx, st, installIfMissing, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before sync failed", "error", err)
 	}
 
@@ -410,16 +420,21 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	st.RebootstrapRequired = false
 	st.LastSyncAt = time.Now().UTC()
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
-		Alias:           syncResp.Alias,
-		ServerHost:      syncResp.ExpectedConfig.ServerHost,
-		APIHost:         syncResp.ExpectedConfig.APIHost,
-		PublicKey:       syncResp.ExpectedConfig.PublicKey,
-		PublicKeyHash:   syncResp.ExpectedConfig.PublicKeyHash,
-		ServerConfig:    syncResp.ExpectedConfig.ServerConfig,
-		TargetVersion:   syncResp.ExpectedConfig.TargetVersion,
-		InstallerURL:    syncResp.ExpectedConfig.InstallerURL,
-		InstallerSHA256: syncResp.ExpectedConfig.InstallerSHA,
-		InstallerArgs:   syncResp.ExpectedConfig.InstallerArgs,
+		Alias:                    syncResp.Alias,
+		ServerHost:               syncResp.ExpectedConfig.ServerHost,
+		APIHost:                  syncResp.ExpectedConfig.APIHost,
+		PublicKey:                syncResp.ExpectedConfig.PublicKey,
+		PublicKeyHash:            syncResp.ExpectedConfig.PublicKeyHash,
+		ServerConfig:             syncResp.ExpectedConfig.ServerConfig,
+		TargetVersion:            syncResp.ExpectedConfig.TargetVersion,
+		AutoInstall:              syncResp.ExpectedConfig.AutoInstall,
+		AutoUpgrade:              syncResp.ExpectedConfig.AutoUpgrade,
+		InstallerURL:             syncResp.ExpectedConfig.InstallerURL,
+		InstallerSHA256:          syncResp.ExpectedConfig.InstallerSHA,
+		InstallerPackageType:     syncResp.ExpectedConfig.InstallerPackageType,
+		InstallerArgs:            syncResp.ExpectedConfig.InstallerArgs,
+		RestartServiceAfterApply: syncResp.ExpectedConfig.RestartServiceAfterApply,
+		SuppressTrayShortcuts:    syncResp.ExpectedConfig.SuppressTrayShortcuts,
 	})
 
 	invalidateToken := false
@@ -459,7 +474,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 
 	if !syncResp.Compliance.AliasMatch || !syncResp.Compliance.ServerHostMatch || !syncResp.Compliance.APIHostMatch || !syncResp.Compliance.PublicKeyMatch {
-		if err := m.refreshRustDeskState(ctx, st, true, true, nil); err != nil {
+		if err := m.refreshRustDeskState(ctx, st, st.AutoInstall, true, nil); err != nil {
 			m.logger.Warn("remote rustdesk convergence apply after sync failed", "error", err)
 		}
 	}
@@ -496,7 +511,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 			st.Alias = payload.ExpectedAlias
 		}
 		st.LastAppliedHash = ""
-		if err := m.refreshRustDeskState(ctx, st, true, true, nil); err != nil {
+		if err := m.refreshRustDeskState(ctx, st, st.AutoInstall, true, nil); err != nil {
 			return commandAck{
 				status:     domain.RemoteAckStatusFailed,
 				reasonCode: domain.RemoteAckReasonCommandExecutionFailed,
@@ -526,7 +541,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 			st.PublicKeyHash = payload.ExpectedPublicKeyHash
 		}
 		st.LastAppliedHash = ""
-		if err := m.refreshRustDeskState(ctx, st, true, true, nil); err != nil {
+		if err := m.refreshRustDeskState(ctx, st, st.AutoInstall, true, nil); err != nil {
 			return commandAck{
 				status:     domain.RemoteAckStatusFailed,
 				reasonCode: domain.RemoteAckReasonCommandExecutionFailed,
@@ -551,7 +566,7 @@ func (m *Module) executeCommand(ctx context.Context, st *remoteState, cmd domain
 		}
 	case domain.RemoteSyncCommandUpgradeClient:
 		payload := parseUpgradeCommandPayload(cmd.Payload)
-		if err := m.refreshRustDeskState(ctx, st, true, true, &rustDeskUpgradeSpec{
+		if err := m.refreshRustDeskState(ctx, st, st.AutoInstall, true, &rustDeskUpgradeSpec{
 			DownloadURL:    payload.DownloadURL,
 			ChecksumSHA256: payload.ChecksumSHA256,
 			PackageType:    payload.PackageType,
@@ -622,14 +637,15 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 	}
 
 	desired := rustDeskDesiredConfig{
-		Alias:           st.Alias,
-		ServerHost:      st.ServerHost,
-		APIHost:         st.APIHost,
-		PublicKey:       st.PublicKey,
-		PublicKeyHash:   st.PublicKeyHash,
-		ServerConfig:    st.ServerConfig,
-		TargetVersion:   st.TargetVersion,
-		DefaultPassword: st.DefaultPassword,
+		Alias:                    st.Alias,
+		ServerHost:               st.ServerHost,
+		APIHost:                  st.APIHost,
+		PublicKey:                st.PublicKey,
+		PublicKeyHash:            st.PublicKeyHash,
+		ServerConfig:             st.ServerConfig,
+		TargetVersion:            st.TargetVersion,
+		DefaultPassword:          st.DefaultPassword,
+		RestartServiceAfterApply: st.RestartServiceAfterApply,
 	}
 	fingerprint := desiredConfigFingerprint(desired)
 	if status.ExecutablePath != "" && fingerprint != "" && (forceApply || st.LastAppliedHash != fingerprint) {
@@ -668,9 +684,14 @@ func (m *Module) applyPortalConfig(st *remoteState, desired rustDeskDesiredConfi
 	st.ServerConfig = firstNonEmpty(desired.ServerConfig, st.ServerConfig)
 	st.TargetVersion = firstNonEmpty(desired.TargetVersion, st.TargetVersion)
 	st.DefaultPassword = firstNonEmpty(desired.DefaultPassword, st.DefaultPassword)
+	st.AutoInstall = desired.AutoInstall
+	st.AutoUpgrade = desired.AutoUpgrade
 	st.InstallerURL = firstNonEmpty(desired.InstallerURL, st.InstallerURL)
 	st.InstallerChecksum = firstNonEmpty(desired.InstallerSHA256, st.InstallerChecksum)
+	st.InstallerPackageType = firstNonEmpty(desired.InstallerPackageType, st.InstallerPackageType)
 	st.InstallerSilentArgs = firstNonEmpty(desired.InstallerArgs, st.InstallerSilentArgs)
+	st.RestartServiceAfterApply = desired.RestartServiceAfterApply
+	st.SuppressTrayShortcuts = desired.SuppressTrayShortcuts
 }
 
 type aliasCommandPayload struct {
@@ -719,6 +740,7 @@ func desiredConfigFingerprint(desired rustDeskDesiredConfig) string {
 		strings.TrimSpace(desired.ServerConfig),
 		strings.TrimSpace(desired.TargetVersion),
 		strings.TrimSpace(desired.DefaultPassword),
+		fmt.Sprintf("%t", desired.RestartServiceAfterApply),
 	}
 	joined := strings.Join(parts, "|")
 	if strings.Trim(joined, "|") == "" {
@@ -767,13 +789,19 @@ func (m *Module) newRustDeskController(st *remoteState) rustDeskController {
 	}
 	installerURL := ""
 	installerChecksum := ""
+	installerPackageType := ""
 	installerArgs := ""
+	restartServiceAfterApply := true
+	suppressTrayShortcuts := true
 	if st != nil {
 		installerURL = st.InstallerURL
 		installerChecksum = st.InstallerChecksum
+		installerPackageType = st.InstallerPackageType
 		installerArgs = st.InstallerSilentArgs
+		restartServiceAfterApply = st.RestartServiceAfterApply
+		suppressTrayShortcuts = st.SuppressTrayShortcuts
 	}
-	return newRustDeskManager(m.logger, m.stateDir, installerURL, installerChecksum, installerArgs)
+	return newRustDeskManager(m.logger, m.stateDir, installerURL, installerChecksum, installerPackageType, installerArgs, restartServiceAfterApply, suppressTrayShortcuts)
 }
 
 func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) runtimePlan {
