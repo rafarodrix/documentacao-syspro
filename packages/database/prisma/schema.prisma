@@ -1586,3 +1586,20 @@ model IntegrationConnection {
   @@index([evolutionInstanceId])
   @@map("integration_connection")
 }
+
+model AgentDevice {
+  id             String   @id @default(cuid())
+  deviceId       String   @unique
+  hostname       String?
+  os             String?
+  identitySource String?
+  agentVersion   String?
+
+  firstSeenAt       DateTime  @default(now())
+  lastHeartbeatAt   DateTime?
+  lastRegisteredAt  DateTime?
+
+  @@index([deviceId])
+  @@index([lastHeartbeatAt])
+  @@map("agent_device")
+}

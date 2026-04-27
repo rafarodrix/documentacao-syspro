@@ -487,7 +487,12 @@ html, body, #root {
   margin-bottom: 5px;
 }
 
+.support-field-value-row {
+  display: flex; align-items: stretch; gap: 6px;
+}
+
 .support-field-value {
+  flex: 1;
   padding: 8px 10px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-2);
@@ -501,6 +506,36 @@ html, body, #root {
 .support-field-value.mono {
   font-family: Consolas, "Courier New", monospace;
   font-size: 11px;
+}
+
+/* ─── Copy button ────────────────────────────────────────────────────────── */
+.btn-copy {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+
+.btn-copy:hover:not(:disabled) {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(22,103,199,.2);
+}
+
+.btn-copy.copied {
+  background: var(--ok-soft);
+  color: var(--ok);
+  border-color: rgba(10,122,79,.2);
+}
+
+.btn-copy:disabled {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ─── Buttons ────────────────────────────────────────────────────────────── */
@@ -518,8 +553,10 @@ html, body, #root {
   width: 100%;
 }
 
-.btn-primary:hover { opacity: .92; box-shadow: 0 6px 18px rgba(11,45,78,.3); }
-.btn-primary:active { opacity: .85; }
+.btn-primary:hover:not(:disabled) { opacity: .92; box-shadow: 0 6px 18px rgba(11,45,78,.3); }
+.btn-primary:active:not(:disabled) { opacity: .85; }
+.btn-primary:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.btn-primary.btn-loading { cursor: wait; }
 
 /* ─── Shared utils ───────────────────────────────────────────────────────── */
 .mono { font-family: Consolas, "Courier New", monospace; }

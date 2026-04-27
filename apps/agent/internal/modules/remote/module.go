@@ -106,6 +106,7 @@ type remoteDesiredIntent struct {
 	installIfMissing bool
 	bootstrapEnabled bool
 	syncEnabled      bool
+	discoveryToken   string
 }
 
 type Module struct {
@@ -237,12 +238,17 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, current
 }
 
 func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, intent remoteDesiredIntent) domain.ApplyResult {
-	if m.discoveryToken == "" {
+	// Aceita token do desired-state como fallback quando não há env local.
+	effectiveToken := firstNonEmpty(m.discoveryToken, intent.discoveryToken)
+	if effectiveToken == "" {
 		return domain.ApplyResult{
 			Module:  "remote",
 			Changed: false,
 			Message: "remote discovery token not configured",
 		}
+	}
+	if m.discoveryToken == "" && effectiveToken != "" {
+		m.discoveryToken = effectiveToken
 	}
 
 	hostname := currentHostname()
@@ -943,15 +949,12 @@ func resolveRemoteDesiredIntent(desired domain.RemoteDesiredState) remoteDesired
 		managed = false
 	}
 
-	installIfMissing := desired.InstallIfMissing
-	bootstrapEnabled := desired.BootstrapEnabled
-	syncEnabled := desired.SyncEnabled
-
 	return remoteDesiredIntent{
 		managed:          managed,
-		installIfMissing: installIfMissing,
-		bootstrapEnabled: bootstrapEnabled,
-		syncEnabled:      syncEnabled,
+		installIfMissing: desired.InstallIfMissing,
+		bootstrapEnabled: desired.BootstrapEnabled,
+		syncEnabled:      desired.SyncEnabled,
+		discoveryToken:   strings.TrimSpace(desired.DiscoveryToken),
 	}
 }
 

@@ -317,6 +317,8 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 		LocalUsername:    supportContext.LocalUsername,
 		AgentVersion:     supportContext.AgentVersion,
 		AgentEnvironment: supportContext.AgentEnvironment,
+		ContactName:      supportContext.ContactName,
+		Description:      supportContext.Description,
 	}
 
 	if err := s.publisher.SyncSupportConversationContext(ctx, conversationID, payload); err != nil {
@@ -424,9 +426,11 @@ func looksLikeDisplayedRustDeskPassword(value string) bool {
 }
 
 func resolveContactName(context SupportContext) string {
+	// O contato representa a instalação (máquina), não o usuário logado.
+	// hostAlias é o nome legível definido no portal (ex: "Recepção - Filial SP").
 	switch {
-	case context.LocalUsername != "":
-		return context.LocalUsername
+	case context.HostAlias != "":
+		return context.HostAlias
 	case context.MachineName != "":
 		return context.MachineName
 	case context.Hostname != "":
@@ -437,11 +441,14 @@ func resolveContactName(context SupportContext) string {
 }
 
 func buildContextDescription(context SupportContext) string {
+	parts := []string{"Atendimento iniciado pelo agente da Trilink."}
 	if context.RemoteStatusText != "" {
-		return "Atendimento iniciado pelo agente da Trilink. Estado remoto: " + context.RemoteStatusText + "."
+		parts = append(parts, "Estado remoto: "+context.RemoteStatusText+".")
 	}
-
-	return "Atendimento iniciado pelo agente da Trilink."
+	if context.LocalUsername != "" {
+		parts = append(parts, "Usuario logado: "+context.LocalUsername+".")
+	}
+	return strings.Join(parts, " ")
 }
 
 func resolveRemoteStatus(context SupportContext) (string, string) {

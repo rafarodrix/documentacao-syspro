@@ -181,7 +181,7 @@ export class IntegrationContextService {
     const allActiveContexts = await this.listActiveContexts();
     if (allActiveContexts.length === 1) {
       const [singleContext] = allActiveContexts;
-      this.logger.warn(
+      this.logger.debug(
         `[integration_context] resolveForEvolutionWebhook using single active connection fallback: connectionKey=${singleContext.connectionKey}, instanceId=${instanceId || 'n/a'}, instance=${instance || 'n/a'}`,
       );
       return singleContext;

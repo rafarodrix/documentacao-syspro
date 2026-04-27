@@ -7,10 +7,13 @@ import {
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 import { getRemoteModuleSettingsSnapshot } from '../remote-admin/support/module-settings-server';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AgentsService {
   private readonly logger = new Logger(AgentsService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
 
   async register(internalApiKey: string | undefined, body: unknown) {
     assertInternalApiKey(internalApiKey);
@@ -25,6 +28,30 @@ export class AgentsService {
     }
 
     const payload = parsed.data;
+    const now = new Date();
+
+    await this.prisma.agentDevice.upsert({
+      where: { deviceId: payload.deviceId },
+      create: {
+        deviceId: payload.deviceId,
+        hostname: payload.hostname ?? null,
+        os: payload.os ?? null,
+        identitySource: payload.identitySource ?? null,
+        agentVersion: payload.agentVersion ?? null,
+        firstSeenAt: now,
+        lastRegisteredAt: now,
+        lastHeartbeatAt: now,
+      },
+      update: {
+        hostname: payload.hostname ?? undefined,
+        os: payload.os ?? undefined,
+        identitySource: payload.identitySource ?? undefined,
+        agentVersion: payload.agentVersion ?? undefined,
+        lastRegisteredAt: now,
+        lastHeartbeatAt: now,
+      },
+    });
+
     this.logger.log({
       event: 'agent.registered',
       deviceId: payload.deviceId,
@@ -38,7 +65,7 @@ export class AgentsService {
       success: true,
       data: {
         registered: true,
-        receivedAt: new Date().toISOString(),
+        receivedAt: now.toISOString(),
         deviceId: payload.deviceId,
       },
     };
@@ -57,6 +84,22 @@ export class AgentsService {
     }
 
     const payload = parsed.data;
+    const now = new Date();
+
+    await this.prisma.agentDevice.upsert({
+      where: { deviceId: payload.deviceId },
+      create: {
+        deviceId: payload.deviceId,
+        agentVersion: payload.agentVersion ?? null,
+        firstSeenAt: now,
+        lastHeartbeatAt: now,
+      },
+      update: {
+        agentVersion: payload.agentVersion ?? undefined,
+        lastHeartbeatAt: now,
+      },
+    });
+
     this.logger.debug({
       event: 'agent.heartbeat',
       deviceId: payload.deviceId,
@@ -68,7 +111,7 @@ export class AgentsService {
       success: true,
       data: {
         received: true,
-        receivedAt: new Date().toISOString(),
+        receivedAt: now.toISOString(),
         deviceId: payload.deviceId,
       },
     };
@@ -119,6 +162,7 @@ export class AgentsService {
         install_if_missing: remoteSettings.rustDeskAutoInstall,
         bootstrap_enabled: true,
         sync_enabled: true,
+        discovery_token: process.env.REMOTE_DISCOVERY_TOKEN?.trim() || undefined,
       },
       tunnel: {
         enabled: false,
