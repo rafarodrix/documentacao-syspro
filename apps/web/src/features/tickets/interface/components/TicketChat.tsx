@@ -250,13 +250,32 @@ function Timeline({
                     const messageIsSystem = (isSystem(article.from) || article.messageType === "SYSTEM_EVENT") && !technicalResource;
 
                     if (messageIsSystem) {
+                        const historyEvent = parseHistoryEvent(article.body);
                         return (
                             <div key={article.id} className="flex min-w-0 max-w-full justify-center overflow-hidden">
-                                <span className="flex min-w-0 max-w-full items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-xs text-muted-foreground shadow-sm wrap-anywhere">
-                                    <Bot className="h-3 w-3 shrink-0" />
-                                    <span className="min-w-0 wrap-anywhere">{stripHtml(article.body)}</span>
-                                    <span className="shrink-0 opacity-70">* {article.createdAt}</span>
-                                </span>
+                                <div className="w-full max-w-2xl rounded-2xl border border-border/70 bg-background/90 p-3 shadow-sm">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                        <Bot className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="min-w-0 flex-1 wrap-anywhere">{historyEvent.title}</span>
+                                        <span className="shrink-0 opacity-70">{article.createdAt}</span>
+                                    </div>
+                                    {historyEvent.details.length > 0 && (
+                                        <div className="mt-3 space-y-2">
+                                            {historyEvent.details.map((detail, index) => (
+                                                <div key={`${article.id}-detail-${index}`} className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2 text-xs text-foreground">
+                                                    {detail.includes("->") ? (
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <span className="font-medium text-muted-foreground">{detail.split("->")[0]?.trim()}</span>
+                                                            <span className="font-mono text-[11px] text-foreground">{detail.split("->")[1] ? `-> ${detail.split("->")[1]?.trim()}` : ""}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="wrap-anywhere">{detail}</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         );
                     }
@@ -324,4 +343,21 @@ function Timeline({
 
 function stripHtml(value: string) {
     return value.replace(/<[^>]*>?/gm, "");
+}
+
+function parseHistoryEvent(value: string) {
+    const plain = stripHtml(value).replace(/\r/g, "");
+    const lines = plain
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+    if (!lines.length) {
+        return { title: "Evento do sistema", details: [] as string[] };
+    }
+
+    return {
+        title: lines[0],
+        details: lines.slice(1),
+    };
 }

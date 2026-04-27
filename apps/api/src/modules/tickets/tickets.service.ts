@@ -690,6 +690,7 @@ export class TicketsService {
         resolutionSummary: true,
         releaseType: true,
         releaseModule: true,
+        publishToReleases: true,
         metadata: true,
       },
     });
@@ -754,6 +755,10 @@ export class TicketsService {
 
     if (requestedTeam === 'DESENVOLVIMENTO' && previousTeam !== 'DESENVOLVIMENTO' && (!handoffNote || handoffNote.length < 20)) {
       throw new BadRequestException('Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres).');
+    }
+
+    if (exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS && (!handoffNote || handoffNote.length < 20)) {
+      throw new BadRequestException('Motivo obrigatorio ao retornar de Em testes para Em andamento (min. 20 caracteres).');
     }
 
     if (releaseType && !normalizeReleaseType(releaseType)) {
@@ -1015,6 +1020,14 @@ export class TicketsService {
       const nextSupportOwnerName = this.readMetadataString(currentMetadata, 'supportOwnerName');
       const previousDevelopmentOwnerName = this.readMetadataString(existingMetadata, 'developmentOwnerName');
       const nextDevelopmentOwnerName = this.readMetadataString(currentMetadata, 'developmentOwnerName');
+      const previousCurrentOwnerName = this.readMetadataString(existingMetadata, 'currentOwnerName');
+      const nextCurrentOwnerName = this.readMetadataString(currentMetadata, 'currentOwnerName');
+      const previousReleaseTitle = readReleaseMetadataString(existingMetadata, 'releaseTitle');
+      const nextReleaseTitle = this.readMetadataString(currentMetadata, 'releaseTitle');
+      const nextPublishToReleases =
+        typeof data.publishToReleases === 'boolean'
+          ? Boolean(data.publishToReleases)
+          : Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases);
       const historyLines: string[] = [];
 
       if (previousTeam !== nextTeam) {
@@ -1035,6 +1048,10 @@ export class TicketsService {
         historyLines.push(`Prioridade: ${this.formatTicketPriorityLabel(settings, exists.priority)} -> ${this.formatTicketPriorityLabel(settings, nextPriority)}`);
       }
 
+      if (previousCurrentOwnerName !== nextCurrentOwnerName) {
+        historyLines.push(`Responsavel atual: ${previousCurrentOwnerName || 'Nao definido'} -> ${nextCurrentOwnerName || 'Nao definido'}`);
+      }
+
       if (previousSupportOwnerName !== nextSupportOwnerName) {
         historyLines.push(`Analista: ${previousSupportOwnerName || 'Nao definido'} -> ${nextSupportOwnerName || 'Nao definido'}`);
       }
@@ -1043,10 +1060,42 @@ export class TicketsService {
         historyLines.push(`Desenvolvedor: ${previousDevelopmentOwnerName || 'Nao definido'} -> ${nextDevelopmentOwnerName || 'Nao definido'}`);
       }
 
+      if (exists.status !== TicketStatus.RESOLVED && nextStatus === TicketStatus.RESOLVED) {
+        historyLines.push('Fechamento: Ticket concluido');
+      }
+
+      if (resolutionSummary && resolutionSummary !== exists.resolutionSummary?.trim()) {
+        historyLines.push(`Resolucao: ${resolutionSummary}`);
+      }
+
+      if (!Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases) && nextPublishToReleases) {
+        historyLines.push('Release: Publicacao habilitada');
+      } else if (Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases) && !nextPublishToReleases) {
+        historyLines.push('Release: Publicacao desabilitada');
+      }
+
+      if (previousReleaseTitle !== nextReleaseTitle && nextReleaseTitle) {
+        historyLines.push(`Titulo da release: ${nextReleaseTitle}`);
+      }
+
+      if (effectiveReleaseModule && effectiveReleaseModule !== exists.releaseModule?.trim()) {
+        historyLines.push(`Modulo da release: ${effectiveReleaseModule}`);
+      }
+
+      if (effectiveReleaseType && effectiveReleaseType !== (exists.releaseType?.trim() || null)) {
+        historyLines.push(`Tipo da release: ${effectiveReleaseType}`);
+      }
+
       if (historyLines.length > 0 || handoffNote) {
         const bodyLines = [`${requesterDisplayName} alterou o ticket.`];
         for (const line of historyLines) bodyLines.push(line);
-        if (handoffNote) bodyLines.push(`Contexto: ${handoffNote}`);
+        if (handoffNote) {
+          bodyLines.push(
+            exists.status === TicketStatus.TESTING && nextStatus === TicketStatus.IN_PROGRESS
+              ? `Motivo do retorno: ${handoffNote}`
+              : `Contexto: ${handoffNote}`,
+          );
+        }
 
         await tx.conversationMessage.create({
           data: {
@@ -1128,6 +1177,13 @@ export class TicketsService {
       currentMetadata.currentTeam = 'SUPORTE';
     }
 
+    const assignmentBodyLines = [
+      `${requesterName} assumiu o ticket.`,
+      `Responsavel atual: ${requesterName}`,
+      `Estagio: ${this.formatTicketStatusLabel(TicketStatus.NEW)} -> ${this.formatTicketStatusLabel(TicketStatus.IN_PROGRESS)}`,
+      `Equipe: ${this.formatTicketTeamLabel(currentMetadata.currentTeam as string | null)}`,
+    ];
+
     await this.prisma.$transaction([
       this.prisma.conversation.update({
         where: { id },
@@ -1155,7 +1211,7 @@ export class TicketsService {
           type: TicketMessageType.SYSTEM_EVENT,
           authorKind: TicketParticipantKind.USER,
           authorUserId: requester.userId,
-          body: `Ticket assumido por ${requesterName} e movido para EM ANDAMENTO.`,
+          body: assignmentBodyLines.join('\n'),
           status: TicketMessageStatus.SENT,
           sentAt: new Date(),
         }
@@ -1187,10 +1243,17 @@ export class TicketsService {
     const resolvedTeam = input.team
       ? this.resolveTicketTeam(input.team, requester.role, settings, input.category, accessScope.isGlobal)
       : undefined;
-    let logMessage = `Ticket triado por ${requesterName}.`;
-    if (input.priority) logMessage += ` Nova prioridade: ${input.priority}.`;
-    if (input.category) logMessage += ` Categoria: ${input.category}.`;
-    if (resolvedTeam) logMessage += ` Direcionado para: ${resolvedTeam}.`;
+    const triageBodyLines = [`${requesterName} realizou a triagem do ticket.`];
+
+    if (input.priority) {
+      triageBodyLines.push(`Prioridade: ${this.formatTicketPriorityLabel(settings, input.priority as TicketPriority)}`);
+    }
+    if (input.category) {
+      triageBodyLines.push(`Categoria: ${this.resolveCategoryLabel(settings, input.category) || input.category}`);
+    }
+    if (resolvedTeam) {
+      triageBodyLines.push(`Equipe: ${this.formatTicketTeamLabel(resolvedTeam)}`);
+    }
 
     if (input.category) currentMetadata.category = input.category;
     if (resolvedTeam) currentMetadata.currentTeam = resolvedTeam;
@@ -1212,7 +1275,7 @@ export class TicketsService {
           type: TicketMessageType.SYSTEM_EVENT,
           authorKind: TicketParticipantKind.USER,
           authorUserId: requester.userId,
-          body: logMessage,
+          body: triageBodyLines.join('\n'),
           status: TicketMessageStatus.SENT,
           sentAt: new Date(),
         }
@@ -1311,14 +1374,16 @@ export class TicketsService {
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const categoryLabel = this.resolveCategoryLabel(settings, input.category);
     const message = [
-      `Novo ticket aberto - ${categoryLabel || input.team}`,
+      '[Tickets] Abertura',
       `Ticket: ${input.ticketNumber}`,
-      `Titulo: ${input.title}`,
       `Empresa: ${companyName}`,
+      `Titulo: ${input.title}`,
+      `Fila: ${this.formatTicketTeamLabel(input.team)}`,
+      categoryLabel ? `Categoria: ${categoryLabel}` : undefined,
       companyCnpj ? `CNPJ: ${companyCnpj}` : undefined,
       input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
       input.databaseUrl ? `Base: ${input.databaseUrl}` : undefined,
-      ticketUrl ? `Portal: ${ticketUrl}` : undefined,
+      ticketUrl ? `Link: ${ticketUrl}` : undefined,
     ]
       .filter(Boolean)
       .join('\n');
@@ -1412,9 +1477,7 @@ export class TicketsService {
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const statusLabel = this.formatTicketStatusLabel(input.status);
     const message = [
-      input.notificationType === 'testing'
-        ? 'Ticket transferido para testes'
-        : 'Ticket retornou dos testes para andamento',
+      input.notificationType === 'testing' ? '[Tickets] Em testes' : '[Tickets] Retorno dos testes',
       `Estagio: ${statusLabel}`,
       `Ticket: ${input.ticketNumber}`,
       `Empresa: ${companyName}`,

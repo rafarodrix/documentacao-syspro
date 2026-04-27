@@ -160,7 +160,9 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         currentCategory !== initialCategory ||
         currentPriority !== initialPriority;
     const movingToDevelopment = currentTeam === "DESENVOLVIMENTO" && initialTeam !== "DESENVOLVIMENTO";
+    const returningFromTesting = normalizeStatusValue(ticket?.status) === "TESTING";
     const requiresTransferNote = movingToDevelopment && isAdmin;
+    const requiresTestingReturnNote = returningFromTesting && isAdmin;
 
     const persistWorkflowChange = (status?: TicketModuleStatus, successMessage = "Alteracoes salvas.") => {
         if (!ticket) return;
@@ -175,6 +177,15 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
             const normalizedNote = transferNote.trim();
             if (normalizedNote.length < 20) {
                 toast.error("Informe o contexto para o desenvolvimento com no minimo 20 caracteres.");
+                return;
+            }
+            payload.note = normalizedNote;
+        }
+
+        if (status === "IN_PROGRESS" && normalizeStatusValue(ticket.status) === "TESTING") {
+            const normalizedNote = transferNote.trim();
+            if (normalizedNote.length < 20) {
+                toast.error("Informe o motivo do retorno dos testes com no minimo 20 caracteres.");
                 return;
             }
             payload.note = normalizedNote;
@@ -340,17 +351,23 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
                                             }}
                                         />
                                     </EditableSidebarField>
-                                    {requiresTransferNote && (
-                                        <EditableSidebarField label="Contexto para o desenvolvimento">
+                                    {(requiresTransferNote || requiresTestingReturnNote) && (
+                                        <EditableSidebarField label={requiresTestingReturnNote ? "Motivo do retorno dos testes" : "Contexto para o desenvolvimento"}>
                                             <Textarea
                                                 value={transferNote}
                                                 onChange={(event) => setTransferNote(event.target.value)}
-                                                placeholder="Descreva o que ja foi validado, comportamento esperado, comportamento atual e impacto no cliente."
+                                                placeholder={
+                                                    requiresTestingReturnNote
+                                                        ? "Descreva por que os testes falharam, o que foi validado e o que precisa voltar para programacao."
+                                                        : "Descreva o que ja foi validado, comportamento esperado, comportamento atual e impacto no cliente."
+                                                }
                                                 className="min-h-24 resize-none border-border/70 bg-background text-sm"
                                                 disabled={isPending}
                                             />
                                             <p className="mt-1 text-[10px] text-muted-foreground">
-                                                Minimo 20 caracteres. O ticket vai entrar em Desenvolvimento como Novo e sem desenvolvedor assumido.
+                                                {requiresTestingReturnNote
+                                                    ? "Minimo 20 caracteres. Esse motivo fica registrado no historico e acompanha o retorno para programacao."
+                                                    : "Minimo 20 caracteres. O ticket vai entrar em Desenvolvimento como Novo e sem desenvolvedor assumido."}
                                             </p>
                                         </EditableSidebarField>
                                     )}
