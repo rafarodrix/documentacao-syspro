@@ -25,12 +25,12 @@ export function HostInfraTab({
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <CardTitle className="text-lg">Infra da maquina</CardTitle>
-        <CardDescription>Telemetria de sistema, rede, inventario e snapshots raw.</CardDescription>
+        <CardTitle className="text-lg">Infraestrutura da máquina</CardTitle>
+        <CardDescription>Telemetria de sistema, rede, hardware e inventário de software reportados pelo agente.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Hardware e conectividade reportados pelo agente</p>
+          <p className="text-sm font-medium text-foreground">Visão geral de hardware e rede</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
@@ -60,7 +60,7 @@ export function HostInfraTab({
               <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventario de software</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventário de software</p>
               <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
               <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}</p>
             </div>
@@ -76,9 +76,9 @@ export function HostInfraTab({
               </p>
             </div>
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Saude operacional</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Saúde operacional</p>
               <p className="mt-2 text-sm text-foreground">
-                Reboot pendente: {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim" : "Nao"}
+                Reinicialização pendente: {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim" : "Não"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Processos Syspro em alerta: {sysproProcessSnapshot.filter((entry) => entry["running"] === false).length}
@@ -88,25 +88,6 @@ export function HostInfraTab({
               </p>
             </div>
           </div>
-          <details className="mt-3 rounded-lg border border-border/40 bg-background/40 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-foreground">Snapshots raw (hardware/rede/software)</summary>
-            <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
-              {JSON.stringify(
-                {
-                  systemSnapshot: systemSnapshot ?? { status: "Sem leitura" },
-                  networkSnapshot: networkSnapshot ?? { status: "Sem leitura" },
-                  softwareSnapshot: softwareSnapshot.length ? softwareSnapshot : [{ status: "Sem leitura" }],
-                  hardwareIdentity: hardwareIdentity ?? { status: "Sem leitura" },
-                  diskSnapshot: diskSnapshot.length ? diskSnapshot : [{ status: "Sem leitura" }],
-                  sysproProcessSnapshot: sysproProcessSnapshot.length ? sysproProcessSnapshot : [{ status: "Sem leitura" }],
-                  windowsUpdateStatus: windowsUpdateStatus ?? { status: "Sem leitura" },
-                  rebootPending: rebootPending,
-                },
-                null,
-                2
-              )}
-            </pre>
-          </details>
         </div>
       </CardContent>
     </Card>
