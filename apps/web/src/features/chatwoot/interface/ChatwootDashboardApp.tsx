@@ -20,7 +20,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type ChatwootAppContext = {
   conversation: {
@@ -61,6 +65,31 @@ type RemoteHostEntry = {
   productStatus: string;
 };
 
+type CompanyOption = {
+  id: string;
+  razaoSocial: string;
+  nomeFantasia?: string | null;
+};
+
+type ContactLookupEntry = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  companyId?: string | null;
+  companyIds?: string[];
+  companies?: CompanyOption[];
+};
+
+type TicketPriorityOption = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+
+type EmbeddedTicketFormState = {
+  title: string;
+  description: string;
+  priority: TicketPriorityOption;
+};
+
 function readString(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -71,6 +100,14 @@ function pickFirstValue(...values: unknown[]) {
     if (normalized) return normalized;
   }
   return "";
+}
+
+function normalizeDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function getCompanyLabel(company: CompanyOption | null | undefined) {
+  return company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || "Empresa sem nome";
 }
 
 function parseChatwootContext(raw: unknown): ChatwootAppContext | null {
@@ -103,21 +140,50 @@ function parseChatwootContext(raw: unknown): ChatwootAppContext | null {
   };
 }
 
+function requestChatwootContext() {
+  if (typeof window === "undefined") return;
+  window.parent.postMessage("chatwoot-dashboard-app:fetch-info", "*");
+}
+
 export function ChatwootDashboardApp() {
   const [context, setContext] = useState<ChatwootAppContext | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "empty">("loading");
+  const [activeTab, setActiveTab] = useState("overview");
   const [latestTickets, setLatestTickets] = useState<TicketListEntry[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
   const [ticketError, setTicketError] = useState<string | null>(null);
   const [companyHosts, setCompanyHosts] = useState<RemoteHostEntry[]>([]);
   const [isLoadingHosts, setIsLoadingHosts] = useState(false);
   const [hostError, setHostError] = useState<string | null>(null);
+  const [showEmbeddedTicketForm, setShowEmbeddedTicketForm] = useState(false);
+  const [embeddedTicketForm, setEmbeddedTicketForm] = useState<EmbeddedTicketFormState>({
+    title: "",
+    description: "",
+    priority: "NORMAL",
+  });
+  const [isSubmittingEmbeddedTicket, setIsSubmittingEmbeddedTicket] = useState(false);
+  const [embeddedTicketFeedback, setEmbeddedTicketFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [ticketReloadToken, setTicketReloadToken] = useState(0);
+  const [hostReloadToken, setHostReloadToken] = useState(0);
+  const [manualLinkedCompany, setManualLinkedCompany] = useState<CompanyOption | null>(null);
+  const [companySearchTerm, setCompanySearchTerm] = useState("");
+  const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
+  const [isLoadingCompanyOptions, setIsLoadingCompanyOptions] = useState(false);
+  const [companyOptionsError, setCompanyOptionsError] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [portalContactMatch, setPortalContactMatch] = useState<ContactLookupEntry | null>(null);
+  const [isLoadingPortalContact, setIsLoadingPortalContact] = useState(false);
+  const [contactLookupError, setContactLookupError] = useState<string | null>(null);
+  const [isBindingCompany, setIsBindingCompany] = useState(false);
+  const [companyBindingFeedback, setCompanyBindingFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
-    function requestContext() {
-      window.parent.postMessage("chatwoot-dashboard-app:fetch-info", "*");
-    }
-
     function handleMessage(event: MessageEvent) {
       const next = parseChatwootContext(event.data);
       if (!next || (!next.conversation && !next.contact)) return;
@@ -126,9 +192,9 @@ export function ChatwootDashboardApp() {
     }
 
     window.addEventListener("message", handleMessage);
-    requestContext();
+    requestChatwootContext();
     const retryHandle = window.setTimeout(() => {
-      requestContext();
+      requestChatwootContext();
       setStatus((current) => (current === "loading" ? "empty" : current));
     }, 1200);
 
@@ -167,6 +233,8 @@ export function ChatwootDashboardApp() {
     const conversationId = pickFirstValue(context?.conversation?.id);
     const accountId = pickFirstValue(context?.conversation?.account_id);
     const contactId = pickFirstValue(context?.contact?.id);
+    const effectiveCompanyId = companyId || manualLinkedCompany?.id || "";
+    const effectiveCompanyName = companyName || manualLinkedCompany?.nomeFantasia || manualLinkedCompany?.razaoSocial || "";
 
     const ticketParams = new URLSearchParams({
       source: "chatwoot",
@@ -180,15 +248,15 @@ export function ChatwootDashboardApp() {
       subject: contactName ? `${contactName} - Novo ticket` : "Novo ticket",
       description: "Atendimento originado no Chatwoot.",
     });
-    if (companyId) ticketParams.set("companyId", companyId);
+    if (effectiveCompanyId) ticketParams.set("companyId", effectiveCompanyId);
 
     const remoteDirectoryParams = new URLSearchParams();
-    if (companyId) remoteDirectoryParams.set("companyId", companyId);
+    if (effectiveCompanyId) remoteDirectoryParams.set("companyId", effectiveCompanyId);
     if (ticketNumber) remoteDirectoryParams.set("ticketNumber", ticketNumber);
 
     return {
-      companyId,
-      companyName,
+      companyId: effectiveCompanyId,
+      companyName: effectiveCompanyName,
       companyNames,
       hostId,
       rustdeskId,
@@ -211,7 +279,7 @@ export function ChatwootDashboardApp() {
         ? `/portal/plataforma-remota/${hostId}${ticketNumber ? `?ticketNumber=${encodeURIComponent(ticketNumber)}` : ""}`
         : "",
     };
-  }, [context]);
+  }, [context, manualLinkedCompany]);
 
   const canCreateTicket = Boolean(resolved.companyId);
   const canOpenRemoteDirectory = Boolean(resolved.companyId);
@@ -227,6 +295,234 @@ export function ChatwootDashboardApp() {
     () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
     [latestTickets, resolved.ticketNumber],
   );
+  const latestCompanyTicket = latestTickets[0] ?? null;
+  const recommendedHost = useMemo(() => {
+    if (!companyHosts.length) return null;
+    return companyHosts.find((host) => host.id === resolved.hostId) ?? companyHosts[0];
+  }, [companyHosts, resolved.hostId]);
+  const filteredCompanyOptions = useMemo(() => {
+    const q = companySearchTerm.trim().toLowerCase();
+    if (!q) return companyOptions.slice(0, 8);
+    return companyOptions
+      .filter((company) => {
+        const haystack = `${company.nomeFantasia || ""} ${company.razaoSocial || ""}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .slice(0, 8);
+  }, [companyOptions, companySearchTerm]);
+  const selectedCompanyOption = useMemo(
+    () => companyOptions.find((company) => company.id === selectedCompanyId) ?? null,
+    [companyOptions, selectedCompanyId],
+  );
+
+  useEffect(() => {
+    const contactLabel = resolved.contactName || resolved.companyName || "Novo ticket";
+    const defaultTitle = resolved.ticketNumber
+      ? `${contactLabel} - continuidade do atendimento`
+      : `${contactLabel} - novo ticket`;
+    const defaultDescription = [
+      "Atendimento originado no Chatwoot.",
+      resolved.companyName ? `Empresa: ${resolved.companyName}` : "",
+      resolved.contactName ? `Contato: ${resolved.contactName}` : "",
+      resolved.customerPhone ? `Telefone: ${resolved.customerPhone}` : "",
+      resolved.ticketNumber ? `Ticket referenciado na conversa: #${resolved.ticketNumber}` : "",
+      resolved.hostId ? `Host em contexto: ${resolved.hostId}` : "",
+      "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    setEmbeddedTicketForm((current) => {
+      const nextTitle = current.title.trim() ? current.title : defaultTitle;
+      const nextDescription = current.description.trim() ? current.description : defaultDescription;
+      if (nextTitle === current.title && nextDescription === current.description) {
+        return current;
+      }
+      return {
+        ...current,
+        title: nextTitle,
+        description: nextDescription,
+      };
+    });
+  }, [
+    resolved.companyName,
+    resolved.contactName,
+    resolved.customerPhone,
+    resolved.hostId,
+    resolved.ticketNumber,
+  ]);
+
+  useEffect(() => {
+    if (resolved.companyId || companyOptions.length > 0) return;
+
+    const controller = new AbortController();
+    async function loadCompanyOptions() {
+      try {
+        setIsLoadingCompanyOptions(true);
+        setCompanyOptionsError(null);
+        const response = await fetch("/api/companies/options", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setCompanyOptions([]);
+          setCompanyOptionsError(
+            response.status === 401
+              ? "Faca login no portal neste navegador para buscar empresas."
+              : "Nao foi possivel carregar as empresas disponiveis para vinculo.",
+          );
+          return;
+        }
+        const json = (await response.json()) as CompanyOption[];
+        setCompanyOptions(Array.isArray(json) ? json : []);
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+        setCompanyOptions([]);
+        setCompanyOptionsError("Nao foi possivel carregar as empresas disponiveis para vinculo.");
+      } finally {
+        setIsLoadingCompanyOptions(false);
+      }
+    }
+
+    void loadCompanyOptions();
+    return () => controller.abort();
+  }, [companyOptions.length, resolved.companyId]);
+
+  useEffect(() => {
+    if (resolved.companyId) {
+      setPortalContactMatch(null);
+      setContactLookupError(null);
+      return;
+    }
+
+    const phone = normalizeDigits(resolved.customerPhone);
+    const email = resolved.customerEmail.trim().toLowerCase();
+    const q = phone || email;
+    if (!q) {
+      setPortalContactMatch(null);
+      setContactLookupError("Sem telefone ou e-mail para localizar o contato no portal.");
+      return;
+    }
+
+    const controller = new AbortController();
+    async function loadPortalContact() {
+      try {
+        setIsLoadingPortalContact(true);
+        setContactLookupError(null);
+        const params = new URLSearchParams({
+          q,
+          limit: "10",
+        });
+        const response = await fetch(`/api/contacts?${params.toString()}`, {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setPortalContactMatch(null);
+          setContactLookupError(
+            response.status === 401
+              ? "Faca login no portal neste navegador para localizar contatos do cadastro."
+              : "Nao foi possivel verificar se o contato ja existe no portal.",
+          );
+          return;
+        }
+        const json = (await response.json()) as ContactLookupEntry[];
+        const entries = Array.isArray(json) ? json : [];
+        const matched =
+          entries.find((entry) => {
+            const entryWhatsapp = normalizeDigits(String(entry.whatsapp || ""));
+            const entryPhone = normalizeDigits(String(entry.phone || ""));
+            const entryEmail = String(entry.email || "").trim().toLowerCase();
+            return Boolean(
+              (phone && (entryWhatsapp === phone || entryPhone === phone)) ||
+              (email && entryEmail === email),
+            );
+          }) ?? null;
+        setPortalContactMatch(matched);
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+        setPortalContactMatch(null);
+        setContactLookupError("Nao foi possivel verificar se o contato ja existe no portal.");
+      } finally {
+        setIsLoadingPortalContact(false);
+      }
+    }
+
+    void loadPortalContact();
+    return () => controller.abort();
+  }, [resolved.companyId, resolved.customerEmail, resolved.customerPhone]);
+
+  async function handleBindCompany() {
+    if (!selectedCompanyOption || isBindingCompany || resolved.companyId) return;
+
+    try {
+      setIsBindingCompany(true);
+      setCompanyBindingFeedback(null);
+
+      let response: Response;
+      if (portalContactMatch?.id) {
+        response = await fetch(`/api/contacts/${portalContactMatch.id}`, {
+          method: "PATCH",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyIds: Array.from(
+              new Set([...(portalContactMatch.companyIds ?? []), selectedCompanyOption.id]),
+            ),
+          }),
+        });
+      } else {
+        response = await fetch("/api/contacts", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: resolved.contactName || "Contato Chatwoot",
+            email: resolved.customerEmail || undefined,
+            phone: resolved.customerPhone || undefined,
+            whatsapp: resolved.customerPhone || undefined,
+            notes: "Contato criado/vinculado pelo Dashboard App do Chatwoot.",
+            companyIds: [selectedCompanyOption.id],
+          }),
+        });
+      }
+
+      const json = (await response.json().catch(() => null)) as
+        | (ContactLookupEntry & { message?: string; error?: string })
+        | null;
+      if (!response.ok) {
+        setCompanyBindingFeedback({
+          tone: "error",
+          message:
+            json?.error ||
+            json?.message ||
+            (response.status === 401
+              ? "Faca login no portal neste navegador para vincular o contato."
+              : "Nao foi possivel vincular a empresa ao contato."),
+        });
+        return;
+      }
+
+      setPortalContactMatch(json && json.id ? json : portalContactMatch);
+      setManualLinkedCompany(selectedCompanyOption);
+      setCompanyBindingFeedback({
+        tone: "success",
+        message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)}. Agora o painel ja pode abrir ticket e remoto sem sair do Chatwoot.`,
+      });
+      requestChatwootContext();
+      setTicketReloadToken((current) => current + 1);
+      setHostReloadToken((current) => current + 1);
+    } catch {
+      setCompanyBindingFeedback({
+        tone: "error",
+        message: "Nao foi possivel vincular a empresa ao contato.",
+      });
+    } finally {
+      setIsBindingCompany(false);
+    }
+  }
 
   useEffect(() => {
     if (!resolved.companyId) {
@@ -270,7 +566,7 @@ export function ChatwootDashboardApp() {
 
     void loadTickets();
     return () => controller.abort();
-  }, [resolved.companyId]);
+  }, [resolved.companyId, ticketReloadToken]);
 
   useEffect(() => {
     if (!resolved.companyId) {
@@ -323,7 +619,87 @@ export function ChatwootDashboardApp() {
 
     void loadHosts();
     return () => controller.abort();
-  }, [resolved.companyId]);
+  }, [resolved.companyId, hostReloadToken]);
+
+  async function handleEmbeddedTicketSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canCreateTicket || isSubmittingEmbeddedTicket) return;
+
+    const title = embeddedTicketForm.title.trim();
+    const description = embeddedTicketForm.description.trim();
+    if (!title || !description) {
+      setEmbeddedTicketFeedback({
+        tone: "error",
+        message: "Preencha assunto e descricao para criar o ticket aqui no Chatwoot.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingEmbeddedTicket(true);
+      setEmbeddedTicketFeedback(null);
+
+      const payload = {
+        title,
+        description,
+        priority: embeddedTicketForm.priority,
+        channel: "WHATSAPP",
+        entryPoint: "INBOUND",
+        companyId: resolved.companyId || undefined,
+        customerEmail: resolved.customerEmail || undefined,
+        externalThreadId: resolved.conversationId || undefined,
+        contactPhoneSnapshot: resolved.customerPhone || undefined,
+        contactWhatsappSnapshot: resolved.customerPhone || undefined,
+        contactNameSnapshot: resolved.contactName || undefined,
+        metadata: {
+          source: "chatwoot",
+          chatwootConversationId: resolved.conversationId || null,
+          chatwootContactId: resolved.contactId || null,
+          chatwootAccountId: resolved.accountId || null,
+          createdFromPortalAt: new Date().toISOString(),
+          chatwootAgentName: resolved.currentAgentName || null,
+          hostId: resolved.hostId || null,
+          ticketNumberFromConversation: resolved.ticketNumber || null,
+        },
+      };
+
+      const response = await fetch("/api/tickets", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = (await response.json().catch(() => null)) as
+        | { success?: boolean; message?: string; error?: string }
+        | null;
+
+      if (!response.ok || !json?.success) {
+        setEmbeddedTicketFeedback({
+          tone: "error",
+          message:
+            response.status === 401
+              ? "Faca login no portal neste navegador para criar tickets direto do Chatwoot."
+              : json?.error || json?.message || "Nao foi possivel criar o ticket agora.",
+        });
+        return;
+      }
+
+      setEmbeddedTicketFeedback({
+        tone: "success",
+        message: "Ticket criado com sucesso. A lista abaixo sera atualizada com o novo atendimento.",
+      });
+      setShowEmbeddedTicketForm(false);
+      setTicketReloadToken((current) => current + 1);
+    } catch {
+      setEmbeddedTicketFeedback({
+        tone: "error",
+        message: "Nao foi possivel criar o ticket agora.",
+      });
+    } finally {
+      setIsSubmittingEmbeddedTicket(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground">
@@ -340,9 +716,24 @@ export function ChatwootDashboardApp() {
                   Consulte o contexto do contato e abra ticket ou acesso remoto apenas quando o atendente decidir.
                 </CardDescription>
               </div>
-              <Badge variant="outline">
-                {status === "ready" ? "Contexto carregado" : status === "loading" ? "Lendo contexto" : "Sem contexto"}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatus("loading");
+                    requestChatwootContext();
+                    setTicketReloadToken((current) => current + 1);
+                    setHostReloadToken((current) => current + 1);
+                  }}
+                >
+                  Atualizar contexto
+                </Button>
+                <Badge variant="outline">
+                  {status === "ready" ? "Contexto carregado" : status === "loading" ? "Lendo contexto" : "Sem contexto"}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -407,6 +798,122 @@ export function ChatwootDashboardApp() {
               </div>
             ) : null}
 
+            {!resolved.companyId ? (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-4 w-4 text-amber-600" />
+                    Vincular empresa ao contato
+                  </CardTitle>
+                  <CardDescription>
+                    Faca o vinculo aqui mesmo para liberar criacao de ticket, busca de hosts e demais acoes do portal sem sair do Chatwoot.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-border/60 bg-card p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Situacao do contato no portal
+                      </p>
+                      {isLoadingPortalContact ? (
+                        <div className="mt-2">
+                          <InlineLoading label="Verificando contato existente..." />
+                        </div>
+                      ) : portalContactMatch ? (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-sm font-semibold text-foreground">{portalContactMatch.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Contato ja existe no portal{portalContactMatch.companyIds?.length ? " e recebera mais este vinculo." : ", mas ainda esta sem empresa vinculada."}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mt-2 space-y-1">
+                          <p className="text-sm font-semibold text-foreground">Contato ainda nao localizado</p>
+                          <p className="text-xs text-muted-foreground">
+                            O app pode criar o contato com os dados atuais da conversa e ja aplicar o vinculo com a empresa escolhida.
+                          </p>
+                        </div>
+                      )}
+                      {contactLookupError ? <div className="mt-2"><InlineWarning message={contactLookupError} /></div> : null}
+                    </div>
+
+                    <div className="rounded-lg border border-border/60 bg-card p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Escolha a empresa
+                      </p>
+                      <div className="mt-2 space-y-2">
+                        <Input
+                          value={companySearchTerm}
+                          onChange={(event) => setCompanySearchTerm(event.target.value)}
+                          placeholder="Buscar empresa por nome fantasia ou razao social"
+                          className="bg-background"
+                        />
+                        {isLoadingCompanyOptions ? (
+                          <InlineLoading label="Carregando empresas permitidas..." />
+                        ) : null}
+                        {companyOptionsError ? <InlineWarning message={companyOptionsError} /> : null}
+                        {!isLoadingCompanyOptions && !companyOptionsError ? (
+                          <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                            {filteredCompanyOptions.length > 0 ? (
+                              filteredCompanyOptions.map((company) => {
+                                const isSelected = selectedCompanyId === company.id;
+                                return (
+                                  <button
+                                    key={company.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCompanyId(company.id);
+                                      setCompanyBindingFeedback(null);
+                                    }}
+                                    className={cn(
+                                      "w-full rounded-lg border px-3 py-2 text-left transition-colors",
+                                      isSelected
+                                        ? "border-primary/40 bg-primary/10"
+                                        : "border-border/60 bg-background hover:bg-muted/40",
+                                    )}
+                                  >
+                                    <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
+                                    <p className="text-xs text-muted-foreground">{company.razaoSocial}</p>
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              <EmptyState label="Nenhuma empresa encontrada para o filtro atual." />
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedCompanyOption ? (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                      Empresa selecionada: <span className="font-semibold">{getCompanyLabel(selectedCompanyOption)}</span>
+                    </div>
+                  ) : null}
+
+                  {companyBindingFeedback ? (
+                    <InlineNotice tone={companyBindingFeedback.tone} message={companyBindingFeedback.message} />
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Depois do vinculo, use `Atualizar contexto` se o Chatwoot ainda nao refletir a empresa imediatamente.
+                    </p>
+                    <Button
+                      type="button"
+                      className="gap-2"
+                      onClick={handleBindCompany}
+                      disabled={!selectedCompanyOption || isBindingCompany}
+                    >
+                      {isBindingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+                      Vincular empresa
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
@@ -441,10 +948,24 @@ export function ChatwootDashboardApp() {
                   </Button>
                 ) : null}
                 {recommendedAction === "ticket" ? (
-                  <Button asChild className="gap-2">
+                  <Button
+                    type="button"
+                    className="gap-2"
+                    onClick={() => {
+                      setActiveTab("tickets");
+                      setShowEmbeddedTicketForm(true);
+                      setEmbeddedTicketFeedback(null);
+                    }}
+                  >
+                    <Ticket className="h-4 w-4" />
+                    Criar ticket manual
+                  </Button>
+                ) : null}
+                {recommendedAction === "ticket" && resolved.ticketHref ? (
+                  <Button asChild variant="secondary" className="gap-2">
                     <Link href={resolved.ticketHref} target="_blank" rel="noreferrer">
-                      <Ticket className="h-4 w-4" />
-                      Criar ticket manual
+                      <ArrowUpRight className="h-4 w-4" />
+                      Abrir tela completa
                     </Link>
                   </Button>
                 ) : null}
@@ -457,11 +978,27 @@ export function ChatwootDashboardApp() {
               </CardContent>
             </Card>
 
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-3 p-1">
-                <TabsTrigger value="overview" className="py-2">Visao geral</TabsTrigger>
-                <TabsTrigger value="tickets" className="py-2">Tickets</TabsTrigger>
-                <TabsTrigger value="remote" className="py-2">Remoto</TabsTrigger>
+                <TabsTrigger value="overview" className="gap-2 py-2">
+                  Visao geral
+                </TabsTrigger>
+                <TabsTrigger value="tickets" className="gap-2 py-2">
+                  Tickets
+                  {latestTickets.length > 0 ? (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+                      {latestTickets.length}
+                    </span>
+                  ) : null}
+                </TabsTrigger>
+                <TabsTrigger value="remote" className="gap-2 py-2">
+                  Remoto
+                  {companyHosts.length > 0 ? (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+                      {companyHosts.length}
+                    </span>
+                  ) : null}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-3">
@@ -474,7 +1011,12 @@ export function ChatwootDashboardApp() {
                         ? `Ja existe o ticket #${resolved.ticketNumber} neste atendimento. Abra outro apenas se realmente precisar separar a demanda.`
                         : "Abre a tela de novo chamado com o contexto do atendimento. Use apenas quando a conversa precisar virar ticket."
                     }
-                    href={resolved.ticketHref}
+                    actionLabel="Abrir formulario"
+                    onClick={() => {
+                      setActiveTab("tickets");
+                      setShowEmbeddedTicketForm(true);
+                      setEmbeddedTicketFeedback(null);
+                    }}
                     disabled={!canCreateTicket}
                     disabledLabel="Exige empresa vinculada"
                     featured={recommendedAction === "ticket"}
@@ -507,15 +1049,156 @@ export function ChatwootDashboardApp() {
               <TabsContent value="tickets" className="space-y-3">
                 <Card className="border-border/60">
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <Ticket className="h-4 w-4 text-primary" />
-                      Tickets da empresa
-                    </CardTitle>
-                    <CardDescription>
-                      Mostra os ultimos tickets do portal para evitar duplicidade e ajudar na continuidade do atendimento.
-                    </CardDescription>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                          <Ticket className="h-4 w-4 text-primary" />
+                          Tickets da empresa
+                        </CardTitle>
+                        <CardDescription>
+                          Crie o ticket sem sair do Chatwoot e confira os ultimos atendimentos para evitar duplicidade.
+                        </CardDescription>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant={showEmbeddedTicketForm ? "secondary" : "default"}
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => {
+                            setShowEmbeddedTicketForm((current) => !current);
+                            setActiveTab("tickets");
+                            setEmbeddedTicketFeedback(null);
+                          }}
+                          disabled={!canCreateTicket}
+                        >
+                          <Ticket className="h-4 w-4" />
+                          {showEmbeddedTicketForm ? "Fechar formulario" : "Criar ticket aqui"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTicketReloadToken((current) => current + 1)}
+                        >
+                          Atualizar lista
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    {showEmbeddedTicketForm ? (
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <form className="space-y-3" onSubmit={handleEmbeddedTicketSubmit}>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Assunto
+                              </label>
+                              <Input
+                                value={embeddedTicketForm.title}
+                                onChange={(event) =>
+                                  setEmbeddedTicketForm((current) => ({ ...current, title: event.target.value }))
+                                }
+                                placeholder="Resumo curto do problema"
+                                className="bg-background"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Prioridade
+                              </label>
+                              <Select
+                                value={embeddedTicketForm.priority}
+                                onValueChange={(value) =>
+                                  setEmbeddedTicketForm((current) => ({
+                                    ...current,
+                                    priority: value as TicketPriorityOption,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="bg-background">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="LOW">Baixa</SelectItem>
+                                  <SelectItem value="NORMAL">Normal</SelectItem>
+                                  <SelectItem value="HIGH">Alta</SelectItem>
+                                  <SelectItem value="CRITICAL">Critica</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Empresa
+                              </label>
+                              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
+                                {resolved.companyName || resolved.companyId || "Sem empresa"}
+                              </div>
+                            </div>
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Descricao
+                              </label>
+                              <Textarea
+                                value={embeddedTicketForm.description}
+                                onChange={(event) =>
+                                  setEmbeddedTicketForm((current) => ({
+                                    ...current,
+                                    description: event.target.value,
+                                  }))
+                                }
+                                placeholder="Descreva o problema validado pelo atendente"
+                                className="min-h-[150px] bg-background"
+                              />
+                            </div>
+                          </div>
+
+                          {existingTicket ? (
+                            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+                              Esta conversa ja referencia o ticket #{existingTicket.number}. Abra outro apenas se a demanda realmente precisar ser separada.
+                            </div>
+                          ) : null}
+
+                          {embeddedTicketFeedback ? (
+                            <InlineNotice tone={embeddedTicketFeedback.tone} message={embeddedTicketFeedback.message} />
+                          ) : null}
+
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              O envio usa a mesma sessao do portal neste navegador e nao redireciona a conversa.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button asChild type="button" variant="outline" size="sm">
+                                <Link href={resolved.ticketHref} target="_blank" rel="noreferrer">
+                                  Tela completa
+                                </Link>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEmbeddedTicketForm((current) => ({
+                                    ...current,
+                                    title: "",
+                                    description: "",
+                                  }));
+                                  setEmbeddedTicketFeedback(null);
+                                }}
+                              >
+                                Limpar
+                              </Button>
+                              <Button type="submit" size="sm" className="gap-2" disabled={isSubmittingEmbeddedTicket}>
+                                {isSubmittingEmbeddedTicket ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ticket className="h-4 w-4" />}
+                                Criar ticket
+                              </Button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    ) : null}
+
                     {existingTicket ? (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                         <div className="flex items-center justify-between gap-2">
@@ -532,6 +1215,29 @@ export function ChatwootDashboardApp() {
                             <Link href={`/portal/tickets/${existingTicket.id}`} target="_blank" rel="noreferrer">
                               <ArrowUpRight className="h-4 w-4" />
                               Abrir ticket
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!existingTicket && latestCompanyTicket ? (
+                      <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Ultimo ticket da empresa
+                            </p>
+                            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                              #{latestCompanyTicket.number} · {latestCompanyTicket.title}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Status atual: {latestCompanyTicket.statusLabel}
+                            </p>
+                          </div>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/portal/tickets/${latestCompanyTicket.id}`} target="_blank" rel="noreferrer">
+                              Ver ultimo
                             </Link>
                           </Button>
                         </div>
@@ -582,15 +1288,27 @@ export function ChatwootDashboardApp() {
 
               <TabsContent value="remote" className="space-y-3">
                 <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <Monitor className="h-4 w-4 text-primary" />
-                      Hosts da empresa
-                    </CardTitle>
-                    <CardDescription>
-                      Lista curta dos hosts mais recentes para abrir o remoto com menos troca de tela.
-                    </CardDescription>
-                  </CardHeader>
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                            <Monitor className="h-4 w-4 text-primary" />
+                            Hosts da empresa
+                          </CardTitle>
+                          <CardDescription>
+                            Lista curta dos hosts mais recentes para abrir o remoto com menos troca de tela.
+                          </CardDescription>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setHostReloadToken((current) => current + 1)}
+                        >
+                          Atualizar hosts
+                        </Button>
+                      </div>
+                    </CardHeader>
                   <CardContent className="space-y-3">
                     {canOpenHost && resolved.remoteHostHref ? (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
@@ -608,6 +1326,31 @@ export function ChatwootDashboardApp() {
                             <Link href={resolved.remoteHostHref} target="_blank" rel="noreferrer">
                               <ArrowUpRight className="h-4 w-4" />
                               Abrir host
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!canOpenHost && recommendedHost ? (
+                      <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Host mais recente da empresa
+                            </p>
+                            <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedHost.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {recommendedHost.rustdeskId || "Sem RustDesk ID"} · {recommendedHost.productStatus}
+                            </p>
+                          </div>
+                          <Button asChild variant="outline" size="sm">
+                            <Link
+                              href={`/portal/plataforma-remota/${recommendedHost.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Abrir
                             </Link>
                           </Button>
                         </div>
@@ -722,17 +1465,21 @@ function ActionCard({
   title,
   description,
   href,
+  onClick,
   disabled,
   disabledLabel,
   featured = false,
+  actionLabel = "Abrir",
 }: {
   icon: ReactNode;
   title: string;
   description: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   disabled: boolean;
   disabledLabel: string;
   featured?: boolean;
+  actionLabel?: string;
 }) {
   return (
     <div className={`rounded-lg border p-4 ${featured ? "border-primary/30 bg-primary/5" : "border-border/60 bg-card"}`}>
@@ -747,15 +1494,41 @@ function ActionCard({
             <ShieldAlert className="h-4 w-4" />
             {disabledLabel}
           </Button>
+        ) : onClick ? (
+          <Button type="button" className="w-full gap-2" variant={featured ? "default" : "secondary"} onClick={onClick}>
+            <Ticket className="h-4 w-4" />
+            {actionLabel}
+          </Button>
         ) : (
           <Button asChild className="w-full gap-2" variant={featured ? "default" : "secondary"}>
-            <Link href={href} target="_blank" rel="noreferrer">
+            <Link href={href || "#"} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" />
-              Abrir
+              {actionLabel}
             </Link>
           </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+function InlineNotice({
+  tone,
+  message,
+}: {
+  tone: "success" | "error";
+  message: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-3 text-sm",
+        tone === "success"
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      )}
+    >
+      {message}
     </div>
   );
 }
