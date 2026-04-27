@@ -45,9 +45,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
+import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import {
   RemoteApiClientError,
   getRemoteApiErrorMessage,
@@ -56,6 +56,11 @@ import {
 import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
+type RemotePlatformDirectoryPanelProps = {
+  directory: RemotePlatformDirectory;
+  initialCompanyId?: string;
+  initialTicketNumber?: string;
+};
 
 function normalizeSearchValue(value: string | null | undefined) {
   return (value ?? "")
@@ -183,12 +188,17 @@ async function copyTextWithFallback(value: string) {
   }
 }
 
-export function RemotePlatformDirectoryPanel({ directory }: { directory: RemotePlatformDirectory }) {
+export function RemotePlatformDirectoryPanel({
+  directory,
+  initialCompanyId,
+  initialTicketNumber,
+}: RemotePlatformDirectoryPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [companyFilter, setCompanyFilter] = useState(initialCompanyId ?? "all");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
@@ -204,6 +214,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showPendingItems, setShowPendingItems] = useState(false);
+  const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
   useEffect(() => {
@@ -217,6 +228,10 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
     return values.sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [directory.items]);
+  const selectedCompanyLabel = useMemo(
+    () => directory.companyOptions.find((company) => company.id === companyFilter)?.label ?? null,
+    [companyFilter, directory.companyOptions],
+  );
 
   async function handleCopyRustDeskId(value: string | null) {
     if (!value) {
@@ -330,6 +345,42 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
   }
 
+  async function handleQuickConnect(item: DirectoryItem) {
+    const normalizedRustdeskId = item.rustdeskId?.replace(/\s+/g, "").trim() ?? "";
+    if (!normalizedRustdeskId) {
+      toast.error("Host sem identificador remoto. Nao e possivel iniciar sessao.");
+      return;
+    }
+
+    const isChatwootContext = Boolean(initialCompanyId || initialTicketNumber);
+    setConnectingHostId(item.id);
+    try {
+      const result = await requestRemoteSessionAction({
+        hostId: item.id,
+        companyId: item.companyId,
+        ticketNumber: initialTicketNumber ?? item.lastTicketNumber,
+        reason: initialTicketNumber
+          ? `Suporte via ${isChatwootContext ? "Chatwoot" : "Portal"} para Ticket #${initialTicketNumber}`
+          : selectedCompanyLabel
+            ? `Acesso tecnico via ${isChatwootContext ? "Chatwoot" : "Portal"} para ${selectedCompanyLabel}`
+            : `Acesso tecnico via ${isChatwootContext ? "Chatwoot" : "Portal"}`,
+      });
+
+      if (!result.success) {
+        toast.error(result.error ?? "Falha ao iniciar sessao auditada.");
+        return;
+      }
+
+      toast.success("Sessao auditada iniciada.");
+      const href = isMobileClient ? `rustdesk://[${normalizedRustdeskId}]` : `rustdesk://${normalizedRustdeskId}`;
+      window.location.href = href;
+    } catch {
+      toast.error("Erro ao processar inicio de sessao.");
+    } finally {
+      setConnectingHostId(null);
+    }
+  }
+
   const filteredItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
     const referenceNow = hasHydrated ? Date.now() : null;
@@ -354,6 +405,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow);
       const matchesSearch = !term || haystack.includes(term);
+      const matchesCompany = companyFilter === "all" || item.companyId === companyFilter;
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesEnvironment = environmentFilter === "all" || item.environment === environmentFilter;
       const matchesHeartbeat = heartbeatFilter === "all" || heartbeat.bucket === heartbeatFilter;
@@ -365,9 +417,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         (agentFilter === "attention" && item.productStatus === "ATTENTION_REQUIRED") ||
         (agentFilter === "in_service" && item.productStatus === "IN_SERVICE");
 
-      return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
+      return matchesSearch && matchesCompany && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
     });
-  }, [agentFilter, directory.items, environmentFilter, hasHydrated, heartbeatFilter, searchTerm, statusFilter]);
+  }, [agentFilter, companyFilter, directory.items, environmentFilter, hasHydrated, heartbeatFilter, searchTerm, statusFilter]);
 
   const filteredPendingItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
@@ -384,8 +436,15 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         ]
           .filter(Boolean)
           .join(" "));
+        const normalizedSelectedCompany = normalizeSearchValue(selectedCompanyLabel);
+        const matchesCompany =
+          companyFilter === "all" ||
+          (normalizedSelectedCompany.length > 0 &&
+            item.installationCompanies.some((company) =>
+              normalizeSearchValue(company).includes(normalizedSelectedCompany),
+            ));
 
-        return !term || haystack.includes(term);
+        return (!term || haystack.includes(term)) && matchesCompany;
       })
       .sort((a, b) => {
         const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
@@ -395,7 +454,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         }
         return (a.machineName ?? "").localeCompare(b.machineName ?? "", "pt-BR");
       });
-  }, [directory.pendingItems, searchTerm]);
+  }, [companyFilter, directory.pendingItems, searchTerm, selectedCompanyLabel]);
 
   const directoryStats = useMemo(() => {
     const ready = directory.items.filter((item) => item.productStatus === "REMOTE_READY").length;
@@ -647,13 +706,19 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               >
                 <Filter className="h-4 w-4" />
               </Button>
-              {(searchTerm || statusFilter !== "all" || environmentFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all") && (
+              {(searchTerm ||
+                companyFilter !== "all" ||
+                statusFilter !== "all" ||
+                environmentFilter !== "all" ||
+                heartbeatFilter !== "all" ||
+                agentFilter !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-10 px-3 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setSearchTerm("");
+                    setCompanyFilter("all");
                     setStatusFilter("all");
                     setEnvironmentFilter("all");
                     setHeartbeatFilter("all");
@@ -668,7 +733,24 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
             {showFilters && (
               <Card className="border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Empresa</Label>
+                    <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {directory.companyOptions.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Status</Label>
                     <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
@@ -738,6 +820,18 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               <Badge variant="outline" className="h-6 border-border/50 bg-background/50 font-medium">
                 {activeResultCount} hosts
               </Badge>
+              {selectedCompanyLabel ? (
+                <Badge variant="outline" className="h-6 border-primary/20 bg-primary/10 text-primary">
+                  <Building2 className="mr-1 h-3 w-3" />
+                  {selectedCompanyLabel}
+                </Badge>
+              ) : null}
+              {initialTicketNumber ? (
+                <Badge variant="outline" className="h-6 border-primary/20 bg-primary/10 text-primary">
+                  <Ticket className="mr-1 h-3 w-3" />
+                  Ticket #{initialTicketNumber}
+                </Badge>
+              ) : null}
               {filteredQuickIndicators.online > 0 && (
                 <Badge variant="outline" className="h-6 border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                   <Zap className="mr-1 h-3 w-3 fill-current" />
@@ -968,8 +1062,22 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                       </div>
 
                       <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-9 font-semibold shadow-sm"
+                          onClick={() => handleQuickConnect(item)}
+                          disabled={!item.rustdeskId || connectingHostId === item.id}
+                        >
+                          {connectingHostId === item.id ? (
+                            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                          )}
+                          Conectar
+                        </Button>
                         {rustdeskHref ? (
-                          <Button asChild size="sm" className="h-9 font-semibold shadow-sm">
+                          <Button asChild variant="outline" size="sm" className="h-9 font-semibold shadow-sm">
                             <a href={rustdeskHref}>
                               <ExternalLink className="mr-2 h-3.5 w-3.5" />
                               {isMobileClient ? "Abrir App" : "Acesso Rápido"}
@@ -981,7 +1089,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                           </Button>
                         )}
                         <Button asChild variant="outline" size="sm" className="h-9 bg-background/50 hover:bg-muted/50">
-                          <Link href={`/portal/plataforma-remota/${item.id}`}>
+                          <Link
+                            href={`/portal/plataforma-remota/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
+                          >
                             Ver Detalhes
                           </Link>
                         </Button>

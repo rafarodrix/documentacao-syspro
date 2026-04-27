@@ -116,6 +116,23 @@ function ChatwootDiagnosticsTab() {
 
     return `${baseOrigin}/portal/tickets/novo?${params.toString()}`;
   }, [portalOrigin]);
+  const dashboardAppUrl = useMemo(() => {
+    const baseOrigin = portalOrigin || "https://SEU_PORTAL";
+    return `${baseOrigin}/chatwoot/app`;
+  }, [portalOrigin]);
+  const remoteDirectoryAppUrl = useMemo(() => {
+    const baseOrigin = portalOrigin || "https://SEU_PORTAL";
+    const params = new URLSearchParams({
+      companyId: "{{contact.custom_attributes.syspro_company_id}}",
+      ticketNumber: "{{conversation.custom_attributes.ticket_number}}",
+    });
+
+    return `${baseOrigin}/portal/plataforma-remota?${params.toString()}`;
+  }, [portalOrigin]);
+  const remoteHostAppUrl = useMemo(() => {
+    const baseOrigin = portalOrigin || "https://SEU_PORTAL";
+    return `${baseOrigin}/portal/plataforma-remota/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
+  }, [portalOrigin]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -218,8 +235,8 @@ function ChatwootDiagnosticsTab() {
                   />
                   <BehaviorToggle
                     id="ticketCreationAppEnabled"
-                    label="Preparar app de criacao de tickets"
-                    description="Mantem a opcao registrada para habilitar o app/atalho do Chatwoot que abre criacao de ticket no portal."
+                    label="Preparar Dashboard App do Chatwoot"
+                    description="Mantem a opcao registrada para habilitar o painel embutido do Chatwoot com ticket manual e acesso remoto no portal."
                     checked={behavior.ticketCreationAppEnabled}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, ticketCreationAppEnabled: checked }))
@@ -227,15 +244,15 @@ function ChatwootDiagnosticsTab() {
                   />
                 </div>
 
-                <div className="grid gap-4 rounded-lg border bg-background p-4">
-                  <div>
+                <div className="grid min-w-0 gap-4 rounded-lg border bg-background p-4">
+                  <div className="min-w-0">
                     <h4 className="text-sm font-semibold">CSAT no WhatsApp</h4>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Envia avaliacao automatica quando a conversa for resolvida no Chatwoot e trata a resposta do cliente no webhook.
                     </p>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid min-w-0 gap-3 md:grid-cols-2">
                     <BehaviorToggle
                       id="csatEnabled"
                       label="Habilitar CSAT automatico"
@@ -256,8 +273,8 @@ function ChatwootDiagnosticsTab() {
                     />
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                  <div className="grid min-w-0 gap-4 md:grid-cols-2">
+                    <div className="min-w-0 space-y-2">
                       <Label htmlFor="csatLowScoreThreshold">Limite de nota baixa</Label>
                       <Input
                         id="csatLowScoreThreshold"
@@ -275,7 +292,7 @@ function ChatwootDiagnosticsTab() {
                       <p className="text-xs text-muted-foreground">Notas ate esse valor podem reabrir a conversa quando a automacao estiver ativa.</p>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="min-w-0 space-y-2">
                       <Label htmlFor="csatPendingTimeoutHours">Timeout do CSAT (horas)</Label>
                       <Input
                         id="csatPendingTimeoutHours"
@@ -294,8 +311,8 @@ function ChatwootDiagnosticsTab() {
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
+                  <div className="grid min-w-0 gap-4 md:grid-cols-2">
+                    <div className="min-w-0 space-y-2">
                       <Label htmlFor="csatRequestMessage">Mensagem de solicitacao</Label>
                       <Textarea
                         id="csatRequestMessage"
@@ -306,7 +323,7 @@ function ChatwootDiagnosticsTab() {
                         }
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="min-w-0 space-y-2">
                       <Label htmlFor="csatThankYouMessage">Mensagem pos-avaliacao</Label>
                       <Textarea
                         id="csatThankYouMessage"
@@ -320,39 +337,74 @@ function ChatwootDiagnosticsTab() {
                   </div>
 
                   {behavior.ticketCreationAppEnabled && (
-                    <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-                      <p>
+                    <div className="min-w-0 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                      <p className="break-words">
                         O portal aceita a abertura direta em
-                        <span className="mx-1 font-mono text-foreground">/portal/tickets/novo?source=chatwoot</span>
+                        <span className="mx-1 break-all font-mono text-foreground">/portal/tickets/novo?source=chatwoot</span>
                         com os parametros
-                        <span className="mx-1 font-mono text-foreground">chatwootConversationId</span>,
-                        <span className="mx-1 font-mono text-foreground">chatwootContactId</span>,
-                        <span className="mx-1 font-mono text-foreground">chatwootAccountId</span>,
-                        <span className="mx-1 font-mono text-foreground">chatwootConversationUrl</span>,
-                        <span className="mx-1 font-mono text-foreground">customerName</span>,
-                        <span className="mx-1 font-mono text-foreground">customerPhone</span>,
-                        <span className="mx-1 font-mono text-foreground">customerWhatsapp</span>,
-                        <span className="mx-1 font-mono text-foreground">customerEmail</span>,
-                        <span className="mx-1 font-mono text-foreground">companyId</span>,
-                        <span className="mx-1 font-mono text-foreground">subject</span>
+                        <span className="mx-1 break-all font-mono text-foreground">chatwootConversationId</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">chatwootContactId</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">chatwootAccountId</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">chatwootConversationUrl</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">customerName</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">customerPhone</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">customerWhatsapp</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">customerEmail</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">companyId</span>,
+                        <span className="mx-1 break-all font-mono text-foreground">subject</span>
                         e
-                        <span className="ml-1 font-mono text-foreground">description</span>.
+                        <span className="ml-1 break-all font-mono text-foreground">description</span>.
                       </p>
                       <p className="mt-2">
                         Quando esse link for usado, a tela de criacao ja abre vinculada ao atendimento importado do Chatwoot e envia os metadados junto com o ticket.
                       </p>
                       <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-                        Use esse app apenas quando o contato do Chatwoot estiver vinculado a uma empresa no portal. Sem esse vinculo, o ticket sera bloqueado na criacao.
+                        Para o Painel de Aplicativos do Chatwoot, use a URL fixa do Dashboard App. A criacao de ticket continua manual e so e liberada quando o contato estiver vinculado a uma empresa no portal.
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="chatwoot-ticket-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          URL para criar o app no Chatwoot
+                      <div className="min-w-0 space-y-2">
+                        <Label htmlFor="chatwoot-dashboard-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          URL do Dashboard App embutido
                         </Label>
+                        <Textarea
+                          id="chatwoot-dashboard-app-url"
+                          readOnly
+                          value={dashboardAppUrl}
+                          className="min-h-20 w-full min-w-0 break-all font-mono text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Esse endpoint embute um painel proprio dentro da conversa do Chatwoot com duas acoes manuais: criar ticket e abrir acesso remoto.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(dashboardAppUrl);
+                                toast.success("URL do Dashboard App copiada.");
+                              } catch {
+                                toast.error("Nao foi possivel copiar a URL.");
+                              }
+                            }}
+                          >
+                            Copiar URL do Dashboard App
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="min-w-0 space-y-2 border-t border-border/60 pt-3">
+                        <Label htmlFor="chatwoot-ticket-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Atalho direto opcional para ticket
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Use este link apenas se quiser um atalho externo. Para o painel embutido do Chatwoot, prefira a URL fixa acima.
+                        </p>
                         <Textarea
                           id="chatwoot-ticket-app-url"
                           readOnly
                           value={ticketCreationAppUrl}
-                          className="min-h-28 font-mono text-xs"
+                          className="min-h-28 w-full min-w-0 break-all font-mono text-xs"
                         />
                         <div className="flex flex-wrap gap-2">
                           <Button
@@ -372,6 +424,66 @@ function ChatwootDiagnosticsTab() {
                             Copiar URL do app
                           </Button>
                         </div>
+                      </div>
+                      <div className="min-w-0 space-y-2 border-t border-border/60 pt-3">
+                        <Label htmlFor="chatwoot-remote-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Atalho direto opcional para hosts da empresa
+                        </Label>
+                        <Textarea
+                          id="chatwoot-remote-app-url"
+                          readOnly
+                          value={remoteDirectoryAppUrl}
+                          className="min-h-24 w-full min-w-0 break-all font-mono text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Esse app abre a plataforma remota ja filtrada pela empresa do contato e preserva o numero do ticket quando a conversa ja estiver vinculada.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(remoteDirectoryAppUrl);
+                              toast.success("URL dos hosts copiada.");
+                            } catch {
+                              toast.error("Nao foi possivel copiar a URL.");
+                            }
+                          }}
+                        >
+                          Copiar URL dos hosts
+                        </Button>
+                      </div>
+                      <div className="min-w-0 space-y-2 border-t border-border/60 pt-3">
+                        <Label htmlFor="chatwoot-remote-host-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Atalho direto opcional para host especifico
+                        </Label>
+                        <Textarea
+                          id="chatwoot-remote-host-app-url"
+                          readOnly
+                          value={remoteHostAppUrl}
+                          className="min-h-24 w-full min-w-0 break-all font-mono text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Use essa variante quando a conversa ja tiver o atributo <span className="break-all font-mono text-foreground">host_id</span> sincronizado.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(remoteHostAppUrl);
+                              toast.success("URL do host copiada.");
+                            } catch {
+                              toast.error("Nao foi possivel copiar a URL.");
+                            }
+                          }}
+                        >
+                          Copiar URL do host
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -400,13 +512,13 @@ function BehaviorToggle({
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex min-h-28 items-start gap-3 rounded-lg border bg-background p-4">
+    <div className="flex min-w-0 min-h-28 items-start gap-3 rounded-lg border bg-background p-4">
       <Checkbox id={id} checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} />
-      <span className="space-y-1">
+      <span className="min-w-0 space-y-1">
         <Label htmlFor={id} className="cursor-pointer text-sm font-medium">
           {label}
         </Label>
-        <span className="block text-sm text-muted-foreground">{description}</span>
+        <span className="block break-words text-sm text-muted-foreground">{description}</span>
       </span>
     </div>
   );
