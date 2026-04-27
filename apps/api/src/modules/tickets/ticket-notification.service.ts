@@ -89,9 +89,9 @@ export class TicketNotificationService {
     ].filter(Boolean);
     const message = [
       '[Tickets] Abertura',
-      `Ticket: ${input.ticketNumber}`,
-      'Status: Abertura',
-      categoryLabel ? `Setor: ${teamLabel} | Categoria: ${categoryLabel}` : `Setor: ${teamLabel}`,
+      categoryLabel
+        ? `Ticket: ${input.ticketNumber} | Status: Abertura | Setor: ${teamLabel} | Categoria: ${categoryLabel}`
+        : `Ticket: ${input.ticketNumber} | Status: Abertura | Setor: ${teamLabel}`,
       `Empresa: ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
       '',
       `Titulo: ${input.title}`,
@@ -238,6 +238,19 @@ export class TicketNotificationService {
   }
 
   private buildPortalTicketUrl(ticketId: string, rawHeaders?: IncomingHttpHeaders): string | null {
+    const configuredOrigin =
+      process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+      process.env.APP_URL?.trim() ||
+      process.env.PORTAL_URL?.trim() ||
+      '';
+    if (configuredOrigin) {
+      try {
+        return `${new URL(configuredOrigin).origin}/portal/tickets/${ticketId}`;
+      } catch {
+        this.logger.warn(`NEXT_PUBLIC_APP_URL/APP_URL/PORTAL_URL invalida para links de ticket: ${configuredOrigin}`);
+      }
+    }
+
     const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
     if (explicitOrigin) {
       try {
