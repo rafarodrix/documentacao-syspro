@@ -16,6 +16,7 @@ type RemoteDesiredState struct {
 	InstallIfMissing bool   `json:"install_if_missing,omitempty"`
 	BootstrapEnabled bool   `json:"bootstrap_enabled,omitempty"`
 	SyncEnabled      bool   `json:"sync_enabled,omitempty"`
+	DiscoveryToken   string `json:"discovery_token,omitempty"`
 }
 
 type TunnelDesiredState struct {

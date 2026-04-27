@@ -7,6 +7,7 @@ export const remoteDesiredStateSchema = z.object({
   install_if_missing: z.boolean().optional(),
   bootstrap_enabled: z.boolean().optional(),
   sync_enabled: z.boolean().optional(),
+  discovery_token: z.string().trim().optional(),
 });
 
 export const tunnelDesiredStateSchema = z.object({
