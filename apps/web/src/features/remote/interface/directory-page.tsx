@@ -22,6 +22,7 @@ import {
   Clock,
   Ticket,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -103,6 +104,10 @@ function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
 }
 
 function getHeartbeatMeta(lastHeartbeatAt: string | null) {
+  return getHeartbeatMetaAt(lastHeartbeatAt, null);
+}
+
+function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number | null) {
   if (!lastHeartbeatAt) {
     return {
       label: "Sem heartbeat",
@@ -112,7 +117,16 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
     };
   }
 
-  const diffMinutes = Math.floor((Date.now() - new Date(lastHeartbeatAt).getTime()) / 60000);
+  if (referenceNow == null) {
+    return {
+      label: "Heartbeat detectado",
+      shortLabel: "Online",
+      className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      bucket: "recent" as const,
+    };
+  }
+
+  const diffMinutes = Math.floor((referenceNow - new Date(lastHeartbeatAt).getTime()) / 60000);
   if (diffMinutes <= 5) {
     return {
       label: "Heartbeat recente",
@@ -128,6 +142,18 @@ function getHeartbeatMeta(lastHeartbeatAt: string | null) {
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     bucket: "stale" as const,
   };
+}
+
+function formatHeartbeatDateTime(value: string | null, hasHydrated: boolean) {
+  if (!value) return "";
+  if (!hasHydrated) return "Sincronizando horario...";
+  return new Date(value).toLocaleString("pt-BR");
+}
+
+function formatHeartbeatTime(value: string | null, hasHydrated: boolean) {
+  if (!value) return "Offline";
+  if (!hasHydrated) return "--:--";
+  return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 function getOperationalStateFilter(item: DirectoryItem) {
@@ -172,6 +198,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isMobileClient, setIsMobileClient] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
   const [environmentFilter, setEnvironmentFilter] = useState("all");
@@ -186,6 +213,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
 
@@ -193,6 +221,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     if (typeof window === "undefined") return;
     const userAgent = window.navigator.userAgent.toLowerCase();
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
+    setHasHydrated(true);
   }, []);
 
   const environmentOptions = useMemo(() => {
@@ -216,6 +245,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   }
 
   async function handleQuickCreateHost() {
+    if (isCreatingQuickHost) return;
+
     if (!quickCompanyId || !quickHostName.trim() || !quickRustdeskId.trim() || !quickDescription.trim()) {
       toast.error("Selecione a empresa e informe nome do host, RustDesk ID e descricao.");
       return;
@@ -228,21 +259,30 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
 
     try {
-      const payload = await requestRemoteMutation<Record<string, unknown>>({
-        url: "/api/remote/hosts",
-        method: "POST",
-        body: {
-          companyId: quickCompanyId,
-          name: quickHostName.trim(),
-          provider: "RustDesk",
-          environment: quickEnvironment.trim() || "Producao",
-          description: quickDescription.trim(),
-          agentExternalId: rustdeskId.normalized,
-          status: "ACTIVE",
-        },
-      });
+      setIsCreatingQuickHost(true);
+      const controller = new AbortController();
+      const timeoutHandle = window.setTimeout(() => controller.abort(), 15000);
+      let result;
+      try {
+        result = await requestRemoteMutation<Record<string, unknown>>({
+          url: "/api/remote/hosts",
+          method: "POST",
+          body: {
+            companyId: quickCompanyId,
+            name: quickHostName.trim(),
+            provider: "RustDesk",
+            environment: quickEnvironment.trim() || "Producao",
+            description: quickDescription.trim(),
+            agentExternalId: rustdeskId.normalized,
+            status: "ACTIVE",
+          },
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeoutHandle);
+      }
 
-      toast.success("Maquina cadastrada.");
+      toast.success(result.message ?? "Host criado com sucesso.");
       setQuickHostName("");
       setQuickRustdeskId("");
       setQuickEnvironment("Producao");
@@ -251,6 +291,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
       startTransition(() => router.refresh());
     } catch (error) {
       toast.error(getRemoteApiErrorMessage(error));
+    } finally {
+      setIsCreatingQuickHost(false);
     }
   }
 
@@ -321,7 +363,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         .filter(Boolean)
         .join(" "));
 
-      const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
+      const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, hasHydrated ? Date.now() : null);
       const matchesSearch = !term || haystack.includes(term);
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesEnvironment = environmentFilter === "all" || item.environment === environmentFilter;
@@ -380,12 +422,13 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const activeResultCount = filteredItems.length;
   const activePendingCount = filteredPendingItems.length;
   const filteredQuickIndicators = useMemo(() => {
-    const online = filteredItems.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "recent").length;
-    const stale = filteredItems.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "stale").length;
-    const offline = filteredItems.filter((item) => getHeartbeatMeta(item.lastHeartbeatAt).bucket === "missing").length;
+    const referenceNow = hasHydrated ? Date.now() : null;
+    const online = filteredItems.filter((item) => getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow).bucket === "recent").length;
+    const stale = filteredItems.filter((item) => getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow).bucket === "stale").length;
+    const offline = filteredItems.filter((item) => getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow).bucket === "missing").length;
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
     return { online, stale, offline, rebootPending };
-  }, [filteredItems]);
+  }, [filteredItems, hasHydrated]);
   const operationalObservability = useMemo(() => {
     const hostsWithBootstrapRate = filteredItems.filter((item) => typeof item.bootstrapRate24hPct === "number");
     const bootstrapRateAvg = hostsWithBootstrapRate.length
@@ -513,9 +556,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                     <p className="text-xs text-muted-foreground">
                       Para maquinas sem empresa definida no momento da instalacao, prefira o fluxo de descoberta automatica. Elas aparecem em <strong>Novas Descobertas</strong> e podem ser vinculadas depois.
                     </p>
-                    <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Criar host
+                    <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
+                      {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      {isCreatingQuickHost ? "Criando..." : "Criar host"}
                     </Button>
                   </div>
                 </div>
@@ -888,7 +931,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                         <p className="text-xs text-muted-foreground">
                           RustDesk ID: {item.rustdeskId ?? "Nao informado"}
                           {item.agentVersion ? ` | Agente: ${item.agentVersion}` : ""}
-                          {item.lastHeartbeatAt ? ` | Heartbeat: ${new Date(item.lastHeartbeatAt).toLocaleString("pt-BR")}` : ""}
+                          {item.lastHeartbeatAt ? ` | Heartbeat: ${formatHeartbeatDateTime(item.lastHeartbeatAt, hasHydrated)}` : ""}
                         </p>
                       </div>
                       {item.installationCompanies.length ? (
@@ -940,7 +983,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           {filteredItems.length ? (
             <div className="space-y-4">
               {filteredItems.map((item) => {
-                const heartbeat = getHeartbeatMeta(item.lastHeartbeatAt);
+                const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, hasHydrated ? Date.now() : null);
                 const productStatus = getRemoteProductStatusMeta(item.productStatus);
                 const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
                 const installationNames = item.installationCompanies.length
@@ -1000,7 +1043,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
                               )}
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {item.lastHeartbeatAt ? new Date(item.lastHeartbeatAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "Offline"}
+                                {formatHeartbeatTime(item.lastHeartbeatAt, hasHydrated)}
                               </span>
                               {item.lastTicketNumber && (
                                 <span className="flex items-center gap-1 text-primary/80 font-medium">

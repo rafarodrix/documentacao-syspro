@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -258,6 +259,9 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 		Provider:       "go-agent",
 	})
 	if err != nil {
+		if isApplyContextCanceled(err) {
+			return m.canceled("discover cycle canceled")
+		}
 		return m.fail("discover failed", err)
 	}
 
@@ -324,6 +328,9 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		PublicKey:      st.PublicKey,
 	})
 	if err != nil {
+		if isApplyContextCanceled(err) {
+			return m.canceled("bootstrap cycle canceled")
+		}
 		st.RebootstrapRequired = true
 		_ = m.saveState(ctx, st)
 		return m.fail("bootstrap failed", err)
@@ -412,6 +419,10 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		ServiceStatus:  firstNonEmpty(st.ServiceStatus, "unknown"),
 	})
 	if err != nil {
+		if isApplyContextCanceled(err) {
+			m.logger.Info("remote sync canceled", "host_id", st.HostID, "error", err)
+			return m.canceled("sync cycle canceled")
+		}
 		m.logger.Warn("remote sync failed, invalidating agent token and requiring rebootstrap",
 			"host_id", st.HostID,
 			"error", err,
@@ -814,6 +825,18 @@ func (m *Module) fail(message string, err error) domain.ApplyResult {
 		Changed: false,
 		Error:   message,
 	}
+}
+
+func (m *Module) canceled(message string) domain.ApplyResult {
+	return domain.ApplyResult{
+		Module:  "remote",
+		Changed: false,
+		Message: message,
+	}
+}
+
+func isApplyContextCanceled(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 func (m *Module) loadState(ctx context.Context) remoteState {

@@ -610,6 +610,9 @@ func deriveSyncError(result *domain.ApplyResult) string {
 		return ""
 	}
 	value := strings.ToLower(firstNonEmpty(result.Error, result.Message))
+	if strings.Contains(value, "context canceled") || strings.Contains(value, "deadline exceeded") || strings.Contains(value, "cycle canceled") {
+		return ""
+	}
 	if strings.Contains(value, "sync failed") || strings.Contains(value, "bootstrap failed") {
 		return firstNonEmpty(result.Error, result.Message)
 	}

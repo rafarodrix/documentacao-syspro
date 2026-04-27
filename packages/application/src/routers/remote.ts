@@ -76,13 +76,14 @@ function mapRemoteErrorToApiError(error: unknown): never {
   });
 
   const code =
-    mapped.httpStatus === 401
+    mapped.code ??
+    (mapped.httpStatus === 401
       ? "UNAUTHORIZED"
       : mapped.httpStatus === 403
         ? "FORBIDDEN"
         : mapped.httpStatus >= 400 && mapped.httpStatus < 500
           ? "BAD_REQUEST"
-          : "INTERNAL_ERROR";
+          : "INTERNAL_ERROR");
 
   throw new ApiError(mapped.message, code, {
     remote: mapped,

@@ -36,6 +36,9 @@ function toActionableMessage(baseMessage: string, httpStatus?: number, code?: st
   }
 
   if (httpStatus === 409) {
+    if (code === "HOST_AGENT_EXTERNAL_ID_CONFLICT") {
+      return "Ja existe um host com este RustDesk ID. Revise o cadastro existente antes de criar outro.";
+    }
     if (code === "HOST_DELETE_HAS_ACTIVE_SESSION") {
       return "Nao e possivel excluir host com sessao ativa. Encerre a sessao e tente novamente.";
     }
