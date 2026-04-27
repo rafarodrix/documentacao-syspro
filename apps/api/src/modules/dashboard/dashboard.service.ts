@@ -200,8 +200,8 @@ export class DashboardService {
     private readonly ticketsService: TicketsService,
   ) {}
 
-  private async getUserDashboardUF(userId: string): Promise<string> {
-    const membership = await this.prisma.membership.findFirst({
+  private async getUserDashboardUFs(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.membership.findMany({
       where: {
         userId,
         company: { deletedAt: null },
@@ -210,8 +210,6 @@ export class DashboardService {
         company: {
           select: {
             addresses: {
-              take: 1,
-              orderBy: { id: 'asc' },
               select: { estado: true },
             },
           },
@@ -219,8 +217,21 @@ export class DashboardService {
       },
     });
 
-    const state = membership?.company?.addresses?.[0]?.estado?.trim().toUpperCase();
-    return state && state.length === 2 ? state : 'MG';
+    const states = new Set<string>();
+    for (const membership of memberships) {
+      for (const address of membership.company?.addresses || []) {
+        const state = address.estado?.trim().toUpperCase();
+        if (state && state.length === 2) {
+          states.add(state);
+        }
+      }
+    }
+
+    if (states.size === 0) {
+      return ['MG'];
+    }
+
+    return Array.from(states);
   }
 
   private async resolveDailyPassword(rawHeaders?: IncomingHttpHeaders): Promise<DashboardDailyPassword | null> {
@@ -274,7 +285,7 @@ export class DashboardService {
     const isSystemUser = SYSTEM_ROLES.includes(requester.role);
 
     if (isSystemUser) {
-      const dashboardUF = await this.getUserDashboardUF(requester.userId);
+      const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
       const { start } = getLast7DaysRange();
       const now = new Date();
       const [
@@ -428,11 +439,9 @@ export class DashboardService {
             })
           : Promise.resolve([]),
         this.prisma.sefazStatusCurrent.findMany({
-          where: { uf: dashboardUF },
+          where: { uf: { in: dashboardUFs } },
           orderBy: { checkedAt: 'desc' },
-          distinct: ['service'],
-          take: 2,
-        }),
+        }).catch(() => []),
         canViewCompaniesModule
           ? this.prisma.company.findMany({
               where: { ...companyBaseWhere, createdAt: { gte: start } },
@@ -447,13 +456,13 @@ export class DashboardService {
                 expectedCloseAt: true,
                 nextStep: true,
               },
-            })
+            }).catch(() => [])
           : Promise.resolve([]),
         canViewCrm
           ? this.prisma.contract.findMany({
               where: { status: 'ACTIVE', ...companyBaseWhere },
               select: { totalValue: true },
-            })
+            }).catch(() => [])
           : Promise.resolve([]),
       ]);
 
@@ -526,8 +535,14 @@ export class DashboardService {
         ),
       }));
 
-      const latestNfe = sefazRecords.find((item) => item.service === 'NFE');
-      const latestNfce = sefazRecords.find((item) => item.service === 'NFCE');
+      const sefazStatuses = sefazRecords.map((record) => ({
+        uf: record.uf,
+        service: record.service,
+        status: record.status,
+        latency: record.latency,
+        checkedAt: record.checkedAt.toISOString(),
+        changedAt: record.changedAt.toISOString(),
+      }));
 
       return {
         success: true,
@@ -546,22 +561,7 @@ export class DashboardService {
           companies,
           recentContacts: contacts,
           recentUsers: users,
-          sefazNfe: {
-            uf: dashboardUF,
-            service: 'NFE',
-            status: latestNfe?.status ?? 'OFFLINE',
-            latency: latestNfe?.latency ?? 0,
-            checkedAt: latestNfe?.checkedAt.toISOString() ?? new Date(0).toISOString(),
-            changedAt: latestNfe?.changedAt.toISOString() ?? new Date(0).toISOString(),
-          },
-          sefazNfce: {
-            uf: dashboardUF,
-            service: 'NFCE',
-            status: latestNfce?.status ?? 'OFFLINE',
-            latency: latestNfce?.latency ?? 0,
-            checkedAt: latestNfce?.checkedAt.toISOString() ?? new Date(0).toISOString(),
-            changedAt: latestNfce?.changedAt.toISOString() ?? new Date(0).toISOString(),
-          },
+          sefazStatuses,
           tickets,
           totalOpen,
           activity: toSeries(companyActivity.map((company) => company.createdAt)),
@@ -585,6 +585,7 @@ export class DashboardService {
             nomeFantasia: true,
             razaoSocial: true,
             _count: { select: { memberships: true } },
+            addresses: { select: { estado: true } },
           },
         },
       },
@@ -620,6 +621,31 @@ export class DashboardService {
       .filter(Boolean);
     const primaryMembership = memberships[0];
 
+    const states = new Set<string>();
+    for (const membership of memberships) {
+      for (const address of membership.company.addresses || []) {
+        const state = address.estado?.trim().toUpperCase();
+        if (state && state.length === 2) {
+          states.add(state);
+        }
+      }
+    }
+    const dashboardUFs = states.size > 0 ? Array.from(states) : ['MG'];
+
+    const sefazRecords = await this.prisma.sefazStatusCurrent.findMany({
+      where: { uf: { in: dashboardUFs } },
+      orderBy: { checkedAt: 'desc' },
+    }).catch(() => []);
+
+    const sefazStatuses = sefazRecords.map((record) => ({
+      uf: record.uf,
+      service: record.service,
+      status: record.status,
+      latency: record.latency,
+      checkedAt: record.checkedAt.toISOString(),
+      changedAt: record.changedAt.toISOString(),
+    }));
+
     return {
       success: true,
       data: {
@@ -630,6 +656,7 @@ export class DashboardService {
         companyUsers: primaryMembership?.company?._count?.memberships || 0,
         companyCount: companyNames.length,
         companyNames,
+        sefazStatuses,
         tickets,
         totalOpen: kpis.open + kpis.pending,
         kpis,

@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
+import { SefazStatusWidget } from "@/components/platform/app/dashboard/SefazStatusWidget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,8 +31,18 @@ import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { cn } from "@/lib/utils";
+import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";
 
 type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
+
+function groupSefazByUF(sefazStatuses: DashboardSefazStatus[]) {
+  const ufs = Array.from(new Set(sefazStatuses.map(s => s.uf)));
+  return ufs.map(uf => ({
+    uf,
+    nfe: sefazStatuses.find(s => s.uf === uf && s.service === "NFE"),
+    nfce: sefazStatuses.find(s => s.uf === uf && s.service === "NFCE"),
+  }));
+}
 
 function GrowthIndicator({ value }: { value: number }) {
   if (value === 0) {
@@ -131,14 +142,7 @@ export default async function DashboardPage() {
     const showPeopleMetric = canViewUsers || canViewContacts;
     const recentContacts = adminData.recentContacts ?? [];
     const recentUsers = adminData.recentUsers ?? [];
-    const sefazStatusMap: Record<SefazStatusKey, { label: string; color: string; dot: string }> = {
-      ONLINE: { label: "Operacional", color: "text-emerald-500", dot: "bg-emerald-500" },
-      UNSTABLE: { label: "Instavel", color: "text-amber-500", dot: "bg-amber-500" },
-      OFFLINE: { label: "Indisponivel", color: "text-red-500", dot: "bg-red-500" },
-    };
-
-    const sefazNfeStatus = sefazStatusMap[adminData.sefazNfe.status as SefazStatusKey];
-    const sefazNfceStatus = sefazStatusMap[adminData.sefazNfce.status as SefazStatusKey];
+    const sefazGroups = groupSefazByUF(adminData.sefazStatuses || []);
 
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
@@ -163,56 +167,9 @@ export default async function DashboardPage() {
 
           <TabsContent value="operacional" className="space-y-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <Card
-                className={cn(
-                  "border-border/50 bg-card/70",
-                  (adminData.sefazNfe.status !== "ONLINE" || adminData.sefazNfce.status !== "ONLINE") && "border-amber-500/30",
-                )}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Zap className="h-4 w-4 text-amber-500" />
-                    SEFAZ MG
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFe</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                          {adminData.sefazNfe.status === "ONLINE" ? (
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                          ) : null}
-                          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfeStatus.dot)} />
-                        </span>
-                        <span className={cn("text-sm font-semibold", sefazNfeStatus.color)}>{sefazNfeStatus.label}</span>
-                      </div>
-                    </div>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {adminData.sefazNfe.status === "OFFLINE" || adminData.sefazNfe.latency <= 0 ? "Sem medicao" : `${adminData.sefazNfe.latency}ms`}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">NFC-e</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                          {adminData.sefazNfce.status === "ONLINE" ? (
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                          ) : null}
-                          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", sefazNfceStatus.dot)} />
-                        </span>
-                        <span className={cn("text-sm font-semibold", sefazNfceStatus.color)}>{sefazNfceStatus.label}</span>
-                      </div>
-                    </div>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {adminData.sefazNfce.status === "OFFLINE" || adminData.sefazNfce.latency <= 0 ? "Sem medicao" : `${adminData.sefazNfce.latency}ms`}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              {sefazGroups.map(({ uf, nfe, nfce }) => (
+                <SefazStatusWidget key={uf} uf={uf} nfe={nfe} nfce={nfce} />
+              ))}
 
               {canViewCompanies ? (
                 <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
@@ -434,8 +391,9 @@ export default async function DashboardPage() {
   }
 
   const hasMultipleCompanies = data.companyCount > 1;
-  const previewCompanies = data.companyNames.slice(0, 2).join(" Ã¢â‚¬Â¢ ");
+  const previewCompanies = data.companyNames.slice(0, 2).join(" • ");
   const extraCompaniesCount = Math.max(data.companyCount - 2, 0);
+  const clientSefazGroups = groupSefazByUF(data.sefazStatuses || []);
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
@@ -474,6 +432,14 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {clientSefazGroups.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {clientSefazGroups.map(({ uf, nfe, nfce }) => (
+            <SefazStatusWidget key={uf} uf={uf} nfe={nfe} nfce={nfce} />
+          ))}
+        </div>
+      )}
 
       <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
         <MagicCard className="rounded-xl">
