@@ -367,7 +367,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
     });
-  }, [agentFilter, directory.items, environmentFilter, hasHydrated, heartbeatFilter, operationalFilter, searchTerm, statusFilter]);
+  }, [agentFilter, directory.items, environmentFilter, hasHydrated, heartbeatFilter, searchTerm, statusFilter]);
 
   const filteredPendingItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
