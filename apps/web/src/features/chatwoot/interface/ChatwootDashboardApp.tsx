@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -13,6 +13,7 @@ import {
   Ticket,
   Waypoints,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   type TicketModuleSettings,
@@ -21,6 +22,7 @@ import {
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
+import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +68,7 @@ type TicketListEntry = Pick<
 
 type RemoteHostEntry = Pick<
   RemotePlatformDirectory["items"][number],
-  "id" | "name" | "rustdeskId" | "lastHeartbeatAt" | "productStatus"
+  "id" | "name" | "rustdeskId" | "lastHeartbeatAt" | "productStatus" | "companyId" | "companyName"
 >;
 
 type ContactLookupEntry = ContactOption;
@@ -156,6 +158,8 @@ export function ChatwootDashboardApp() {
   const [companyHosts, setCompanyHosts] = useState<RemoteHostEntry[]>([]);
   const [isLoadingHosts, setIsLoadingHosts] = useState(false);
   const [hostError, setHostError] = useState<string | null>(null);
+  const [startingHostId, setStartingHostId] = useState<string | null>(null);
+  const [isStartingSession, startSessionTransition] = useTransition();
   const [showEmbeddedTicketForm, setShowEmbeddedTicketForm] = useState(false);
   const [embeddedTicketForm, setEmbeddedTicketForm] = useState<EmbeddedTicketFormState>({
     title: "",
@@ -231,8 +235,6 @@ export function ChatwootDashboardApp() {
     const hostId = pickFirstValue(conversationAttributes.host_id);
     const rustdeskId = pickFirstValue(conversationAttributes.rustdesk_id);
     const ticketNumber = pickFirstValue(conversationAttributes.ticket_number);
-    const remoteStatus = pickFirstValue(conversationAttributes.remote_status);
-    const remoteStatusText = pickFirstValue(conversationAttributes.remote_status_text);
     const contactName = pickFirstValue(context?.contact?.name, contactAttributes.syspro_contact_name);
     const customerEmail = pickFirstValue(context?.contact?.email);
     const customerPhone = pickFirstValue(context?.contact?.phone_number);
@@ -266,8 +268,6 @@ export function ChatwootDashboardApp() {
       hostId,
       rustdeskId,
       ticketNumber,
-      remoteStatus,
-      remoteStatusText,
       contactName,
       customerEmail,
       customerPhone,
@@ -279,15 +279,11 @@ export function ChatwootDashboardApp() {
       remoteDirectoryHref: remoteDirectoryParams.toString()
         ? `/portal/plataforma-remota?${remoteDirectoryParams.toString()}`
         : "/portal/plataforma-remota",
-      remoteHostHref: hostId
-        ? `/portal/plataforma-remota/${hostId}${ticketNumber ? `?ticketNumber=${encodeURIComponent(ticketNumber)}` : ""}`
-        : "",
     };
   }, [context, manualLinkedCompany]);
 
   const canCreateTicket = Boolean(resolved.companyId);
   const canOpenRemoteDirectory = Boolean(resolved.companyId);
-  const canOpenHost = Boolean(resolved.hostId);
   const matchedExistingTicket = useMemo(
     () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
     [latestTickets, resolved.ticketNumber],
@@ -314,10 +310,6 @@ export function ChatwootDashboardApp() {
     updatedAt: "",
     customer: "",
   };
-  const recommendedHost = useMemo(() => {
-    if (!companyHosts.length) return null;
-    return companyHosts.find((host) => host.id === resolved.hostId) ?? companyHosts[0];
-  }, [companyHosts, resolved.hostId]);
   const filteredCompanyOptions = useMemo(() => {
     const q = companySearchTerm.trim();
     if (!q) return companyOptions.slice(0, 8);
@@ -740,6 +732,8 @@ export function ChatwootDashboardApp() {
           .map((item) => ({
             id: item.id,
             name: item.name.trim() || "Host sem nome",
+            companyId: item.companyId,
+            companyName: item.companyName,
             rustdeskId: item.rustdeskId,
             lastHeartbeatAt: item.lastHeartbeatAt,
             productStatus: item.productStatus,
@@ -748,8 +742,7 @@ export function ChatwootDashboardApp() {
             const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
             const bHeartbeat = b.lastHeartbeatAt ? Date.parse(b.lastHeartbeatAt) : 0;
             return bHeartbeat - aHeartbeat;
-          })
-          .slice(0, 5);
+          });
         setCompanyHosts(nextHosts);
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
@@ -763,6 +756,40 @@ export function ChatwootDashboardApp() {
     void loadHosts();
     return () => controller.abort();
   }, [resolved.companyId, hostReloadToken]);
+
+  function handleStartHostSession(host: RemoteHostEntry) {
+    const rustdeskId = host.rustdeskId?.trim() || "";
+    if (!rustdeskId) {
+      toast.error("Host sem identificador remoto. Nao e possivel iniciar acesso.");
+      return;
+    }
+
+    startSessionTransition(async () => {
+      try {
+        setStartingHostId(host.id);
+        const result = await requestRemoteSessionAction({
+          hostId: host.id,
+          companyId: host.companyId,
+          ticketNumber: resolved.ticketNumber || undefined,
+          reason: resolved.ticketNumber
+            ? `Acesso via Chatwoot para Ticket #${resolved.ticketNumber}`
+            : "Acesso tecnico via Chatwoot",
+        });
+
+        if (!result.success) {
+          toast.error(result.error ?? "Falha ao iniciar sessao auditada.");
+          return;
+        }
+
+        toast.success("Sessao auditada iniciada.");
+        window.location.href = `rustdesk://${rustdeskId}`;
+      } catch {
+        toast.error("Erro ao iniciar sessao remota.");
+      } finally {
+        setStartingHostId(null);
+      }
+    });
+  }
 
   async function handleEmbeddedTicketSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1514,7 +1541,7 @@ export function ChatwootDashboardApp() {
                             Hosts da empresa
                           </CardTitle>
                           <CardDescription>
-                            Lista curta dos hosts mais recentes para abrir o remoto com menos troca de tela.
+                            Lista completa dos hosts vinculados a esta empresa para acesso rapido ou abertura no portal.
                           </CardDescription>
                         </div>
                         <Button
@@ -1528,53 +1555,6 @@ export function ChatwootDashboardApp() {
                       </div>
                     </CardHeader>
                   <CardContent className="space-y-3">
-                    {canOpenHost && resolved.remoteHostHref ? (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Host recomendado</p>
-                            <p className="mt-1 truncate text-sm font-semibold text-foreground">
-                              {resolved.hostId}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {resolved.remoteStatusText || resolved.remoteStatus || "Host sincronizado nesta conversa."}
-                            </p>
-                          </div>
-                          <Button asChild size="sm" className="gap-2">
-                            <Link href={resolved.remoteHostHref} target="_blank" rel="noreferrer">
-                              <ArrowUpRight className="h-4 w-4" />
-                              Abrir host
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {!canOpenHost && recommendedHost ? (
-                      <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              Host mais recente da empresa
-                            </p>
-                            <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedHost.name}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {recommendedHost.rustdeskId || "Sem RustDesk ID"} · {recommendedHost.productStatus}
-                            </p>
-                          </div>
-                          <Button asChild variant="outline" size="sm">
-                            <Link
-                              href={`/portal/plataforma-remota/${recommendedHost.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Abrir
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-
                     {isLoadingHosts ? (
                       <InlineLoading label="Carregando hosts reais da empresa..." />
                     ) : null}
@@ -1591,22 +1571,38 @@ export function ChatwootDashboardApp() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-foreground">{host.name}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {host.companyName || resolved.companyName || "Empresa nao identificada"}
+                                </p>
                                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                  <ContextBadge tone={host.id === resolved.hostId ? "good" : "neutral"}>
-                                    {host.productStatus}
-                                  </ContextBadge>
                                   <span className="break-all font-mono">{host.rustdeskId || "Sem RustDesk ID"}</span>
-                                  <span className="inline-flex items-center gap-1">
-                                    <Clock3 className="h-3 w-3" />
-                                    {formatRelativeDate(host.lastHeartbeatAt)}
-                                  </span>
+                                  {host.lastHeartbeatAt ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <Clock3 className="h-3 w-3" />
+                                      {formatRelativeDate(host.lastHeartbeatAt)}
+                                    </span>
+                                  ) : null}
                                 </div>
                               </div>
-                              <Button asChild variant="outline" size="sm">
-                                <Link href={`/portal/plataforma-remota/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`} target="_blank" rel="noreferrer">
-                                  Ver
-                                </Link>
-                              </Button>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleStartHostSession(host)}
+                                  disabled={isStartingSession || !host.rustdeskId?.trim()}
+                                >
+                                  {isStartingSession && startingHostId === host.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : null}
+                                  Acessar
+                                </Button>
+                                <Button asChild variant="outline" size="sm">
+                                  <Link href={`/portal/plataforma-remota/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`} target="_blank" rel="noreferrer">
+                                    Abrir no portal
+                                  </Link>
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))}
