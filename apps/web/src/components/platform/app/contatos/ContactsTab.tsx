@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { contactListResponseSchema, contactStatsSchema, type ContactListItem, type ContactStats as ContactStatsContract } from "@dosc-syspro/contracts/contact";
 import {
   Building2,
   Briefcase,
@@ -55,45 +56,11 @@ import {
 } from "@/components/platform/shared/RegistryListScaffold";
 import { cn } from "@/lib/utils";
 
-type ContactItem = {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  cpf?: string | null;
-  jobTitle?: string | null;
-  whatsapp?: string | null;
-  notes?: string | null;
-  companyId?: string | null;
-  companyIds?: string[];
-  createdAt: string;
-  updatedAt: string;
-  company?: {
-    id: string;
-    razaoSocial: string;
-    nomeFantasia?: string | null;
-  } | null;
-  companies?: Array<{
-    id: string;
-    razaoSocial: string;
-    nomeFantasia?: string | null;
-  }>;
-};
+type ContactItem = ContactListItem;
 
 type ScopeFilter = "all" | "linked" | "unlinked";
 
-type ContactStats = {
-  all: number;
-  linked: number;
-  unlinked: number;
-  withEmail: number;
-  withPhone: number;
-};
-
-type ContactListResponse = {
-  items: ContactItem[];
-  pagination: RegistryPaginationState;
-};
+type ContactStats = ContactStatsContract;
 
 interface ContactsTabProps {
   canCreate: boolean;
@@ -160,7 +127,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     const response = await fetch("/api/contacts/stats", { cache: "no-store" });
     if (!response.ok) throw new Error(`Falha ao carregar contadores (${response.status})`);
 
-    const data = (await response.json()) as ContactStats;
+    const data = contactStatsSchema.parse(await response.json());
     setContactStats(data);
   };
 
@@ -178,28 +145,17 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       const response = await fetch(`/api/contacts?${params.toString()}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Falha ao carregar contatos (${response.status})`);
 
-      const data = (await response.json()) as ContactListResponse | ContactItem[];
-      const items = Array.isArray(data) ? data : data.items ?? [];
-      const nextPagination = Array.isArray(data) ? null : data.pagination;
-      const normalizedPagination: RegistryPaginationState = nextPagination
-        ? {
-            page: nextPagination.page,
-            pageSize: nextPagination.pageSize,
-            total: nextPagination.total,
-            totalPages: nextPagination.totalPages ?? Math.max(1, Math.ceil(nextPagination.total / nextPagination.pageSize)),
-            hasPreviousPage: nextPagination.hasPreviousPage ?? nextPagination.page > 1,
-            hasNextPage:
-              nextPagination.hasNextPage ??
-              nextPagination.page < Math.max(1, Math.ceil(nextPagination.total / nextPagination.pageSize)),
-          }
-        : {
-            page,
-            pageSize: CONTACTS_PAGE_SIZE,
-            total: items.length,
-            totalPages: 1,
-            hasPreviousPage: false,
-            hasNextPage: false,
-          };
+      const data = contactListResponseSchema.parse(await response.json());
+      const items = data.items;
+      const nextPagination = data.pagination;
+      const normalizedPagination: RegistryPaginationState = {
+        page: nextPagination.page,
+        pageSize: nextPagination.pageSize,
+        total: nextPagination.total,
+        totalPages: Math.max(1, Math.ceil(nextPagination.total / nextPagination.pageSize)),
+        hasPreviousPage: nextPagination.hasPreviousPage,
+        hasNextPage: nextPagination.hasNextPage,
+      };
 
       setContacts(items);
       setPagination(normalizedPagination);

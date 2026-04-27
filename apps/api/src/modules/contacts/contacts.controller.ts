@@ -1,10 +1,21 @@
-import { Controller, Get, Post, Delete, Body, Param, Patch, Query, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Delete, Body, Param, Patch, Query, Req } from '@nestjs/common';
+import { contactListQuerySchema } from '@dosc-syspro/contracts/contact';
 import type { Request } from 'express';
+import type { ZodType } from 'zod';
 import { ContactsService } from './contacts.service';
 
 @Controller('contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
+
+  private parseOrThrow<T>(schema: ZodType<T>, value: unknown): T {
+    const parsed = schema.safeParse(value);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return parsed.data;
+  }
 
   @Post()
   create(
@@ -34,14 +45,16 @@ export class ContactsController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    return this.contactsService.getContacts({
+    const input = this.parseOrThrow(contactListQuerySchema, {
       q: query,
       unlinked,
       companyId,
       limit,
       page,
       pageSize,
-    }, req.headers);
+    });
+
+    return this.contactsService.getContacts(input, req.headers);
   }
 
   @Get('unlinked')

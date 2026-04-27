@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
 
 const contactOptionCompanySchema = z.object({
   id: z.string(),
@@ -20,6 +21,34 @@ export const contactOptionSchema = z.object({
 
 export type ContactOption = z.output<typeof contactOptionSchema>;
 
+export const contactListItemSchema = contactOptionSchema.extend({
+  cpf: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const contactListQuerySchema = paginationQuerySchema.extend({
+  q: z.string().optional(),
+  unlinked: z.enum(["true", "false"]).optional(),
+  companyId: z.string().optional(),
+  limit: z.string().optional(),
+});
+
+export const contactListResponseSchema = z.object({
+  items: z.array(contactListItemSchema),
+  pagination: paginationMetaSchema,
+});
+
+export const contactStatsSchema = z.object({
+  all: z.number().int().nonnegative(),
+  linked: z.number().int().nonnegative(),
+  unlinked: z.number().int().nonnegative(),
+  withEmail: z.number().int().nonnegative(),
+  withPhone: z.number().int().nonnegative(),
+});
+
 export const createContactSchema = z.object({
   name: z.string().min(1, "Informe o nome do contato").trim(),
   email: z
@@ -38,3 +67,7 @@ export const createContactSchema = z.object({
 
 export type CreateContactInput = z.input<typeof createContactSchema>;
 export type CreateContactOutput = z.output<typeof createContactSchema>;
+export type ContactListItem = z.output<typeof contactListItemSchema>;
+export type ContactListQuery = z.infer<typeof contactListQuerySchema>;
+export type ContactListResponse = z.output<typeof contactListResponseSchema>;
+export type ContactStats = z.output<typeof contactStatsSchema>;

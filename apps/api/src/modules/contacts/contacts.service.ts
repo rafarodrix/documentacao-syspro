@@ -1,4 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { buildPaginationMeta } from '@dosc-syspro/contracts';
+import type { ContactListQuery } from '@dosc-syspro/contracts/contact';
 import { CompanyContactSource, CompanyContactStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -6,15 +8,6 @@ import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
-
-type ContactQueryInput = {
-  q?: string;
-  unlinked?: string;
-  companyId?: string;
-  limit?: string;
-  page?: string;
-  pageSize?: string;
-};
 
 type CreateContactInput = {
   name: string;
@@ -62,7 +55,7 @@ export class ContactsService {
     private readonly authorizationService: AuthorizationService,
   ) {}
 
-  async getContacts(input: ContactQueryInput, rawHeaders?: IncomingHttpHeaders) {
+  async getContacts(input: ContactListQuery, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.assertCanViewContacts(rawHeaders);
     const scope = await this.resolveContactCompanyScope(requester);
     const wantsPagination = input.page !== undefined || input.pageSize !== undefined;
@@ -556,18 +549,9 @@ export class ContactsService {
   }
 
   private serializeContactListResponse(items: any[], page: number, pageSize: number, total: number) {
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
     return {
       items,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages,
-        hasPreviousPage: page > 1,
-        hasNextPage: page < totalPages,
-      },
+      pagination: buildPaginationMeta({ page, pageSize, total }),
     };
   }
 

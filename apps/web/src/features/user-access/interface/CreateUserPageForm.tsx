@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
-import type { ContactOption } from "@dosc-syspro/contracts/contact";
+import { contactOptionSchema, type ContactOption } from "@dosc-syspro/contracts/contact";
 import { AnimatePresence, motion } from "framer-motion";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -169,8 +169,8 @@ export function CreateUserPageForm({
           return;
         }
 
-        const payload = (await response.json()) as ContactOption[];
-        const normalized = Array.isArray(payload) ? payload : [];
+        const payload = contactOptionSchema.array().safeParse(await response.json());
+        const normalized = payload.success ? payload.data : [];
         const filtered = selectedRoleIsClient
           ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
           : normalized;
@@ -208,12 +208,12 @@ export function CreateUserPageForm({
         });
 
         if (!response.ok) return;
-        const payload = (await response.json()) as ContactOption;
-        if (cancelled || !payload?.id) return;
+        const payload = contactOptionSchema.safeParse(await response.json());
+        if (cancelled || !payload.success || !payload.data?.id) return;
 
         setContactOptions((prev) => {
-          if (prev.some((contact) => contact.id === payload.id)) return prev;
-          return [payload, ...prev];
+          if (prev.some((contact) => contact.id === payload.data.id)) return prev;
+          return [payload.data, ...prev];
         });
       } catch {
         return;
