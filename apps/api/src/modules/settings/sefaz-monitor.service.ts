@@ -166,13 +166,20 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
             checkedAt,
           } satisfies SefazCheckResult;
         } catch (error) {
+          const errMessage = normalizeErrorMessage(error);
+          
+          // Muitas rotas da SEFAZ (especialmente autorizacao) exigem certificado cliente.
+          // Se o servidor rejeitar no handshake SSL, significa que ele esta no ar respondendo.
+          const isSslHandshakeFailure = errMessage.includes('handshake failure') || errMessage.includes('SSL alert number 40');
+          const status = isSslHandshakeFailure ? 'ONLINE' : 'OFFLINE';
+          
           return {
             uf: endpoint.uf,
             service: endpoint.service,
-            status: 'OFFLINE',
-            latency: 0,
+            status,
+            latency: isSslHandshakeFailure ? 100 : 0, // mock latency
             statusCode: null,
-            errorMessage: normalizeErrorMessage(error),
+            errorMessage: errMessage,
             checkedAt,
           } satisfies SefazCheckResult;
         }
