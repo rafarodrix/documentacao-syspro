@@ -1,6 +1,6 @@
-import { ArrowRightLeft, Building2, HardDriveDownload, Loader2, Network } from "lucide-react";
+import { ArrowRightLeft, Building2, HardDriveDownload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { SearchableCompanyPicker } from "./SearchableCompanyPicker";
@@ -25,12 +25,10 @@ export function HostInstallationsTab({
   handleRelinkInstallation,
   machineProfileDraft,
   setMachineProfileDraft,
-  isSavingMachineProfile,
-  handleSaveMachineProfile,
   primaryCompanyDraft,
   setPrimaryCompanyDraft,
-  isSavingPrimaryCompany,
-  handleSavePrimaryCompany,
+  isSavingHostIdentity,
+  handleSaveHostIdentity,
 }: {
   details: any;
   installationFilter: "all" | "unlinked";
@@ -49,152 +47,98 @@ export function HostInstallationsTab({
   handleRelinkInstallation: (updateId: string, companyId: string | null) => void;
   machineProfileDraft: string;
   setMachineProfileDraft: (value: string) => void;
-  isSavingMachineProfile: boolean;
-  handleSaveMachineProfile: (value: string | null) => void;
   primaryCompanyDraft: string;
   setPrimaryCompanyDraft: (value: string) => void;
-  isSavingPrimaryCompany: boolean;
-  handleSavePrimaryCompany: (value: string) => void;
+  isSavingHostIdentity: boolean;
+  handleSaveHostIdentity: (companyId: string, machineProfile: string | null) => void;
 }) {
   const primaryCompanyName =
     details.host?.companyName ??
     details.company?.nomeFantasia ??
     details.company?.razaoSocial ??
     "Sem empresa principal vinculada";
+  const hostIdentityChanged =
+    (!!primaryCompanyDraft && primaryCompanyDraft !== details.host.companyId) ||
+    machineProfileDraft !== (details.host.machineProfile ?? "");
 
   return (
     <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Instalacoes detectadas</CardTitle>
-          <CardDescription>
-            Corrija a empresa principal do host quando o cadastro inicial estiver incorreto e use os vinculos por instalacao apenas para cenarios com mais de uma empresa na mesma maquina.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
-            <div className="rounded-2xl border border-border/50 bg-background/40 p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl border border-border/50 bg-muted/30 p-2 text-primary">
-                  <Building2 className="h-4 w-4" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
-                  <p className="text-base font-semibold text-foreground">{primaryCompanyName}</p>
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    Esta empresa governa a identidade principal da maquina, os atalhos operacionais e o enquadramento padrao do host no portal.
-                  </p>
-                </div>
+          <div className="rounded-2xl border border-border/50 bg-background/40 p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl border border-border/50 bg-muted/30 p-2 text-primary">
+                <Building2 className="h-4 w-4" />
               </div>
-            </div>
-
-            <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl border border-border/50 bg-background/40 p-2 text-sky-500">
-                  <Network className="h-4 w-4" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Politica desta guia</p>
-                  <p className="text-sm font-semibold text-foreground">Empresa principal primeiro. Instalacoes depois.</p>
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    Quando o host estiver vinculado a empresa errada, ajuste a referencia principal antes de aplicar vinculos complementares por instalacao.
-                  </p>
-                </div>
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
+                <p className="text-base font-semibold text-foreground">{primaryCompanyName}</p>
               </div>
             </div>
           </div>
 
           <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
               <div className="space-y-3">
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Corrigir empresa principal</p>
-                  <p className="text-sm text-muted-foreground">
-                    Use esta acao quando o host existir, mas estiver vinculado a empresa errada.
-                  </p>
-                </div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal</p>
                 <SearchableCompanyPicker
                   value={primaryCompanyDraft}
                   options={details.companyOptions}
                   onChange={setPrimaryCompanyDraft}
-                  disabled={isSavingPrimaryCompany || !canManageInstallations}
+                  disabled={isSavingHostIdentity || !canManageInstallations}
                 />
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={
-                      isSavingPrimaryCompany ||
-                      !canManageInstallations ||
-                      !primaryCompanyDraft ||
-                      primaryCompanyDraft === details.host.companyId
-                    }
-                    onClick={() => handleSavePrimaryCompany(primaryCompanyDraft)}
-                    className="gap-2"
-                  >
-                    {isSavingPrimaryCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                    {isSavingPrimaryCompany ? "Atualizando..." : "Atualizar empresa principal"}
-                  </Button>
-                  {!canManageInstallations ? (
-                    <span className="text-xs text-muted-foreground">Seu perfil tem acesso somente leitura para este ajuste.</span>
-                  ) : null}
-                </div>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-border/50 bg-background/30 p-4">
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Perfil operacional da maquina</p>
-                  <p className="text-sm text-muted-foreground">
-                    Classifique o host para guiar suporte, inventario e politicas futuras.
-                  </p>
-                </div>
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,320px)_auto] lg:items-end">
-                  <div className="space-y-1">
-                    <Select
-                      value={machineProfileDraft}
-                      onValueChange={setMachineProfileDraft}
-                      disabled={isSavingMachineProfile || !canManageInstallations}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o perfil operacional" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SERVER">{MACHINE_PROFILE_LABEL.SERVER}</SelectItem>
-                        <SelectItem value="WORKSTATION">{MACHINE_PROFILE_LABEL.WORKSTATION}</SelectItem>
-                        <SelectItem value="TERMINAL">{MACHINE_PROFILE_LABEL.TERMINAL}</SelectItem>
-                        <SelectItem value="BACKUP_NODE">{MACHINE_PROFILE_LABEL.BACKUP_NODE}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={
-                      isSavingMachineProfile ||
-                      !canManageInstallations ||
-                      !machineProfileDraft ||
-                      machineProfileDraft === (details.host.machineProfile ?? "")
-                    }
-                    onClick={() => handleSaveMachineProfile(machineProfileDraft || null)}
-                  >
-                    Salvar perfil da maquina
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Este perfil orienta o comportamento esperado do host para suporte, inventario e politicas futuras de backup por diretorio.
-                </p>
+              <div className="space-y-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Perfil da maquina</p>
+                <Select
+                  value={machineProfileDraft}
+                  onValueChange={setMachineProfileDraft}
+                  disabled={isSavingHostIdentity || !canManageInstallations}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o perfil operacional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SERVER">{MACHINE_PROFILE_LABEL.SERVER}</SelectItem>
+                    <SelectItem value="WORKSTATION">{MACHINE_PROFILE_LABEL.WORKSTATION}</SelectItem>
+                    <SelectItem value="TERMINAL">{MACHINE_PROFILE_LABEL.TERMINAL}</SelectItem>
+                    <SelectItem value="BACKUP_NODE">{MACHINE_PROFILE_LABEL.BACKUP_NODE}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={
+                  isSavingHostIdentity ||
+                  !canManageInstallations ||
+                  !primaryCompanyDraft ||
+                  !hostIdentityChanged
+                }
+                onClick={() => handleSaveHostIdentity(primaryCompanyDraft, machineProfileDraft || null)}
+                className="gap-2"
+              >
+                {isSavingHostIdentity ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                {isSavingHostIdentity ? "Salvando..." : "Salvar empresa e perfil"}
+              </Button>
+              {!canManageInstallations ? (
+                <span className="text-xs text-muted-foreground">Seu perfil tem acesso somente leitura para este ajuste.</span>
+              ) : null}
+              {!hostIdentityChanged && canManageInstallations ? (
+                <span className="text-xs text-muted-foreground">Nenhuma alteracao pendente.</span>
+              ) : null}
             </div>
           </div>
 
           <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
             <div className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresas complementares por instalacao</p>
-                <p className="text-sm text-muted-foreground">
-                  Use esta camada apenas quando houver multiplas empresas ou diretorios separados dentro do mesmo host.
-                </p>
-              </div>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresas por instalacao</p>
               <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
                 <div className="space-y-1">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro</p>
@@ -262,9 +206,6 @@ export function HostInstallationsTab({
                 {installationFilter === "unlinked"
                   ? `${installationContextsForDisplay.length} instalacao(oes) sem vinculo exibida(s).`
                   : `${dedupedInstallationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Use o vinculo adicional por instalacao para orientar inventario, caminhos de backup e responsabilidades por diretorio quando houver mais de uma empresa no mesmo host.
               </p>
             </div>
           </div>
@@ -453,7 +394,7 @@ export function HostInstallationsTab({
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4 text-sm text-muted-foreground">
               {installationFilter === "unlinked"
                 ? "Nenhuma instalacao sem vinculo encontrada para o filtro atual."
-                : "Esta maquina ainda nao enviou instalacoes no heartbeat."}
+                : "Esta maquina ainda nao enviou instalacoes no heartbeat. O vinculo por instalacao sera liberado quando esse inventario chegar."}
             </div>
           )}
         </CardContent>

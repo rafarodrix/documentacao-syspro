@@ -643,35 +643,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
-  function handleSaveMachineProfile(nextMachineProfile: string | null) {
-    startSavingMachineName(async () => {
-      try {
-        await requestRemoteMutation({
-          url: `/api/remote/hosts/${host.id}`,
-          method: "PATCH",
-          body: {
-            companyId: host.companyId,
-            name: host.name,
-            machineName: host.machineName,
-            machineProfile: nextMachineProfile,
-            environment: host.environment,
-            provider: host.provider,
-            description: host.description,
-            notes: host.notes,
-            agentExternalId: host.rustdeskId,
-            status: host.status,
-          },
-        });
-
-        toast.success("Perfil da maquina atualizado.");
-        router.refresh();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      }
-    });
-  }
-
-  function handleSavePrimaryCompany(nextCompanyId: string) {
+  function handleSaveHostIdentity(nextCompanyId: string, nextMachineProfile: string | null) {
     if (!nextCompanyId) {
       toast.error("Selecione a empresa principal do host.");
       return;
@@ -686,7 +658,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             companyId: nextCompanyId,
             name: host.name,
             machineName: host.machineName,
-            machineProfile: host.machineProfile,
+            machineProfile: nextMachineProfile,
             environment: host.environment,
             provider: host.provider,
             description: host.description,
@@ -696,7 +668,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
           },
         });
 
-        toast.success("Empresa principal do host atualizada.");
+        toast.success("Empresa principal e perfil da maquina atualizados.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -1151,12 +1123,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             handleRelinkInstallation={handleRelinkInstallation}
             machineProfileDraft={machineProfileDraft}
             setMachineProfileDraft={setMachineProfileDraft}
-            isSavingMachineProfile={isSavingMachineName}
-            handleSaveMachineProfile={handleSaveMachineProfile}
             primaryCompanyDraft={primaryCompanyDraft}
             setPrimaryCompanyDraft={setPrimaryCompanyDraft}
-            isSavingPrimaryCompany={isSavingMachineName}
-            handleSavePrimaryCompany={handleSavePrimaryCompany}
+            isSavingHostIdentity={isSavingMachineName}
+            handleSaveHostIdentity={handleSaveHostIdentity}
           />
         </TabsContent>
 
