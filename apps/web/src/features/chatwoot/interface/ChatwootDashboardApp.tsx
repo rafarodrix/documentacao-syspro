@@ -677,8 +677,7 @@ export function ChatwootDashboardApp() {
         const params = new URLSearchParams({
           companyId: resolved.companyId,
           page: "1",
-          pageSize: "20",
-          statusGroup: "open",
+          pageSize: "50",
           sortBy: "updatedAt",
           sortOrder: "desc",
         });
@@ -693,7 +692,8 @@ export function ChatwootDashboardApp() {
           return;
         }
         const json = (await response.json()) as { data?: TicketListItem[] };
-        setLatestTickets(Array.isArray(json.data) ? json.data : []);
+        const items = Array.isArray(json.data) ? json.data : [];
+        setLatestTickets(items.filter((ticket) => ticket.status !== "RESOLVED" && ticket.status !== "ARCHIVED"));
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
         setLatestTickets([]);
