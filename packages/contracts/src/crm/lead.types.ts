@@ -25,6 +25,49 @@ export const CRM_LEAD_SOURCE_VALUES = [
 export const crmLeadStageSchema = z.enum(CRM_LEAD_STAGE_VALUES);
 export const crmLeadSourceSchema = z.enum(CRM_LEAD_SOURCE_VALUES);
 
+export const CRM_ACTIVITY_TYPE_VALUES = [
+  "NOTE",
+  "CALL",
+  "MEETING",
+  "EMAIL",
+  "WHATSAPP",
+  "SYSTEM_EVENT",
+] as const;
+
+export const CRM_TASK_STATUS_VALUES = [
+  "PENDING",
+  "COMPLETED",
+  "CANCELED",
+] as const;
+
+export const crmActivityTypeSchema = z.enum(CRM_ACTIVITY_TYPE_VALUES);
+export const crmTaskStatusSchema = z.enum(CRM_TASK_STATUS_VALUES);
+
+export const crmActivitySchema = z.object({
+  id: z.string(),
+  leadId: z.string(),
+  type: crmActivityTypeSchema,
+  title: z.string().nullable().optional(),
+  body: z.string().nullable().optional(),
+  authorUserId: z.string().nullable().optional(),
+  authorName: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const crmTaskSchema = z.object({
+  id: z.string(),
+  leadId: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  status: crmTaskStatusSchema,
+  dueDate: z.string(),
+  assigneeUserId: z.string().nullable().optional(),
+  assigneeName: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 const nullableTrimmedString = (max: number) =>
   z.union([z.string().trim().max(max), z.literal(""), z.null(), z.undefined()]);
 
@@ -86,6 +129,8 @@ export const crmLeadSchema = z.object({
   lostReason: z.string().nullable().optional(),
   convertedCompanyId: z.string().nullable().optional(),
   convertedCompanyName: z.string().nullable().optional(),
+  activities: z.array(crmActivitySchema).optional().default([]),
+  tasks: z.array(crmTaskSchema).optional().default([]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -154,3 +199,7 @@ export type CrmLeadManualContact = z.output<typeof crmLeadManualContactSchema>;
 export type CrmLeadContactOption = z.output<typeof crmLeadContactOptionSchema>;
 export type CrmSupportData = z.output<typeof crmSupportDataSchema>;
 export type CrmSupportDataResponse = z.output<typeof crmSupportDataResponseSchema>;
+export type CrmActivityType = z.output<typeof crmActivityTypeSchema>;
+export type CrmActivity = z.output<typeof crmActivitySchema>;
+export type CrmTaskStatus = z.output<typeof crmTaskStatusSchema>;
+export type CrmTask = z.output<typeof crmTaskSchema>;

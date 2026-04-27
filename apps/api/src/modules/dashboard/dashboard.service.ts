@@ -326,6 +326,7 @@ export class DashboardService {
         sefazRecords,
         companyActivity,
         crmLeads,
+        activeContracts,
       ] = await Promise.all([
         canViewCompaniesModule
           ? this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } })
@@ -448,6 +449,12 @@ export class DashboardService {
               },
             })
           : Promise.resolve([]),
+        canViewCrm
+          ? this.prisma.contract.findMany({
+              where: { status: 'ACTIVE', ...companyBaseWhere },
+              select: { totalValue: true },
+            })
+          : Promise.resolve([]),
       ]);
 
       let ticketWarning: string | undefined;
@@ -559,6 +566,12 @@ export class DashboardService {
           totalOpen,
           activity: toSeries(companyActivity.map((company) => company.createdAt)),
           crm: canViewCrm ? buildCrmSummary(crmLeads) : undefined,
+          contracts: canViewCrm
+            ? {
+                activeContracts: activeContracts.length,
+                totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
+              }
+            : undefined,
         },
       };
     }

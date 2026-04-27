@@ -89,6 +89,11 @@ export const dashboardCrmSummarySchema = z.object({
   stageDistribution: z.array(dashboardCrmStageSummarySchema),
 });
 
+export const dashboardContractsSummarySchema = z.object({
+  activeContracts: z.number().int().nonnegative(),
+  totalValue: z.number().nonnegative(),
+});
+
 const dashboardViewBaseSchema = z.object({
   ticketWarning: z.string().optional(),
   dailyPassword: dashboardDailyPasswordSchema.nullable().optional(),
@@ -113,6 +118,7 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   totalOpen: z.number().int().nonnegative(),
   activity: z.array(dashboardActivityPointSchema),
   crm: dashboardCrmSummarySchema.optional(),
+  contracts: dashboardContractsSummarySchema.optional(),
 });
 
 export const clientDashboardViewSchema = dashboardViewBaseSchema.extend({
@@ -185,6 +191,7 @@ export type DashboardSefazStatus = z.infer<typeof dashboardSefazStatusSchema>;
 export type DashboardDailyPassword = z.infer<typeof dashboardDailyPasswordSchema>;
 export type DashboardCrmStageSummary = z.infer<typeof dashboardCrmStageSummarySchema>;
 export type DashboardCrmSummary = z.infer<typeof dashboardCrmSummarySchema>;
+export type DashboardContractsSummary = z.infer<typeof dashboardContractsSummarySchema>;
 export type AdminDashboardView = z.infer<typeof adminDashboardViewSchema>;
 export type ClientDashboardView = z.infer<typeof clientDashboardViewSchema>;
 export type DashboardView = z.infer<typeof dashboardViewSchema>;

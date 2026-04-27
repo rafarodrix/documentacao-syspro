@@ -19,6 +19,16 @@ export class CrmController {
     return this.crmService.listLeads({ q, stage, source, ownerUserId, page, pageSize }, req.headers);
   }
 
+  @Get('/summary')
+  getSummary(@Req() req: Request) {
+    return this.crmService.getSummary(req.headers);
+  }
+
+  @Get('/contacts/search')
+  searchContacts(@Req() req: Request, @Query('q') q: string) {
+    return this.crmService.searchContacts(q || '', req.headers);
+  }
+
   @Get('/support-data')
   getSupportData(@Req() req: Request) {
     return this.crmService.getSupportData(req.headers);

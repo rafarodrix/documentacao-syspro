@@ -255,6 +255,21 @@ enum CrmLeadSource {
   OTHER
 }
 
+enum CrmActivityType {
+  NOTE
+  CALL
+  MEETING
+  EMAIL
+  WHATSAPP
+  SYSTEM_EVENT
+}
+
+enum CrmTaskStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -344,17 +359,17 @@ model Company {
 model CompanyContact {
   id String @id @default(cuid())
 
-  name      String
-  email     String?
-  phone     String?
-  whatsapp  String?
-  cpf       String?              @unique
-  jobTitle  String?
-  notes     String?              @db.Text
+  name       String
+  email      String?
+  phone      String?
+  whatsapp   String?
+  cpf        String?              @unique
+  jobTitle   String?
+  notes      String?              @db.Text
   searchText String               @default("")
-  isPrimary Boolean              @default(false)
-  source    CompanyContactSource @default(MANUAL)
-  status    CompanyContactStatus @default(LINKED)
+  isPrimary  Boolean              @default(false)
+  source     CompanyContactSource @default(MANUAL)
+  status     CompanyContactStatus @default(LINKED)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -450,7 +465,7 @@ model User {
   // --- SISTEMA ---
   role Role @default(CLIENTE_USER)
 
-  // RELAÃƒâ€¡Ãƒâ€¢ES
+  // RELACOES
   memberships                         Membership[]
   contactLinks                        UserContactLink[]
   sessions                            Session[]
@@ -469,6 +484,8 @@ model User {
   accessProfileAssignments            UserAccessProfile[]           @relation("UserAccessProfileUser")
   assignedAccessProfiles              UserAccessProfile[]           @relation("UserAccessProfileAssignedBy")
   crmOwnedLeads                       CrmLead[]                     @relation("CrmLeadOwner")
+  authoredCrmActivities               CrmActivity[]                 @relation("CrmActivityAuthor")
+  assignedCrmTasks                    CrmTask[]                     @relation("CrmTaskAssignee")
 
   // INDICES PARA PERFORMANCE
   @@index([name])
@@ -520,9 +537,9 @@ model Membership {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Regra: Um usuÃƒÂ¡rio nÃƒÂ£o pode ter 2 cargos na MESMA empresa
+  // Regra: Um usuário não pode ter 2 cargos na MESMA empresa
   @@unique([userId, companyId])
-  // ÃƒÂndices para performance
+  // Índices para performance
   @@index([userId])
   @@index([companyId])
   @@map("membership")
@@ -931,7 +948,7 @@ model Conversation {
   ticketId           String?
   ticketNumber       String?
   subject            String?
-  searchText         String                 @default("")
+  searchText         String  @default("")
   resolutionSummary  String? @db.Text
   resolutionVideoUrl String?
   releaseType        String?
@@ -954,15 +971,15 @@ model Conversation {
 
   slaResponseDueAt   DateTime?
   slaResolutionDueAt DateTime?
-  slaResponseHitAt     DateTime?
-  slaResolutionHitAt   DateTime?
+  slaResponseHitAt   DateTime?
+  slaResolutionHitAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages    ConversationMessage[]
-  assignments ConversationAssignment[]
-  ticketCategory   TicketCategory? @relation(fields: [ticketCategoryId], references: [id], onDelete: SetNull)
+  messages         ConversationMessage[]
+  assignments      ConversationAssignment[]
+  ticketCategory   TicketCategory?          @relation(fields: [ticketCategoryId], references: [id], onDelete: SetNull)
   ticketCategoryId String?
 
   @@index([ticketCategoryId])
@@ -977,16 +994,16 @@ model Conversation {
 }
 
 model TicketCategory {
-  id        String @id @default(cuid())
-  name      String
-  slug      String @unique
-  type      String // "SUPPORT" | "DEVELOPMENT"
-  priority  String // "LOW" | "NORMAL" | "HIGH" | "CRITICAL"
-  
+  id       String @id @default(cuid())
+  name     String
+  slug     String @unique
+  type     String // "SUPPORT" | "DEVELOPMENT"
+  priority String // "LOW" | "NORMAL" | "HIGH" | "CRITICAL"
+
   // SLA configs (in minutes)
   slaResponseMinutes   Int @default(60)
   slaResolutionMinutes Int @default(1440)
-  
+
   // Roteamento
   defaultTeam String? // "SUPORTE" | "DESENVOLVIMENTO"
 
@@ -1085,18 +1102,18 @@ model SystemSetting {
 }
 
 model ChatwootCsatRating {
-  id                    String   @id @default(cuid())
-  chatwootConversationId String  @unique
-  connectionKey         String   @default("env:default")
-  contact               String?
-  agentId               String?
-  agentName             String?
-  score                 Int
-  status                String   @default("RECORDED")
-  requestedAt           DateTime?
-  respondedAt           DateTime @default(now())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                     String    @id @default(cuid())
+  chatwootConversationId String    @unique
+  connectionKey          String    @default("env:default")
+  contact                String?
+  agentId                String?
+  agentName              String?
+  score                  Int
+  status                 String    @default("RECORDED")
+  requestedAt            DateTime?
+  respondedAt            DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   @@index([connectionKey, respondedAt])
   @@index([agentId, respondedAt])
@@ -1111,7 +1128,7 @@ model CrmLead {
   source CrmLeadSource @default(MANUAL)
 
   ownerUserId String?
-  ownerUser   User? @relation("CrmLeadOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  ownerUser   User?   @relation("CrmLeadOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   contactId String?
   contact   CompanyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
@@ -1131,18 +1148,21 @@ model CrmLead {
   contactPhone String?
   contacts     Json?
 
-  estimatedValue      Decimal? @db.Decimal(12, 2)
-  licenseValue        Decimal? @db.Decimal(12, 2)
-  monthlyFee          Decimal? @db.Decimal(12, 2)
-  minimumWagePercentage Decimal? @db.Decimal(8, 4)
-  expectedCloseAt     DateTime?
-  nextStep            String?
-  qualificationNotes  String?  @db.Text
-  lostReason          String?
-  metadata            Json?
+  estimatedValue        Decimal?  @db.Decimal(12, 2)
+  licenseValue          Decimal?  @db.Decimal(12, 2)
+  monthlyFee            Decimal?  @db.Decimal(12, 2)
+  minimumWagePercentage Decimal?  @db.Decimal(8, 4)
+  expectedCloseAt       DateTime?
+  nextStep              String?
+  qualificationNotes    String?   @db.Text
+  lostReason            String?
+  metadata              Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  activities CrmActivity[]
+  tasks      CrmTask[]
 
   @@index([stage, createdAt])
   @@index([source, createdAt])
@@ -1151,6 +1171,50 @@ model CrmLead {
   @@index([convertedCompanyId])
   @@index([companyName])
   @@map("crm_lead")
+}
+
+model CrmActivity {
+  id String @id @default(cuid())
+
+  leadId String
+  lead   CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  type  CrmActivityType @default(NOTE)
+  title String?
+  body  String?         @db.Text
+
+  authorUserId String?
+  authorUser   User?   @relation("CrmActivityAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId, createdAt])
+  @@index([authorUserId])
+  @@map("crm_activity")
+}
+
+model CrmTask {
+  id String @id @default(cuid())
+
+  leadId String
+  lead   CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?       @db.Text
+  status      CrmTaskStatus @default(PENDING)
+  dueDate     DateTime
+
+  assigneeUserId String?
+  assigneeUser   User?   @relation("CrmTaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId, status])
+  @@index([assigneeUserId, status])
+  @@index([dueDate])
+  @@map("crm_task")
 }
 
 // cst
@@ -1588,16 +1652,16 @@ model IntegrationConnection {
 }
 
 model AgentDevice {
-  id             String   @id @default(cuid())
-  deviceId       String   @unique
+  id             String  @id @default(cuid())
+  deviceId       String  @unique
   hostname       String?
   os             String?
   identitySource String?
   agentVersion   String?
 
-  firstSeenAt       DateTime  @default(now())
-  lastHeartbeatAt   DateTime?
-  lastRegisteredAt  DateTime?
+  firstSeenAt      DateTime  @default(now())
+  lastHeartbeatAt  DateTime?
+  lastRegisteredAt DateTime?
 
   @@index([deviceId])
   @@index([lastHeartbeatAt])

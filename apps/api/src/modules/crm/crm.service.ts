@@ -61,6 +61,10 @@ export class CrmService {
         { companyName: { contains: filters.q, mode: 'insensitive' } },
         { tradeName: { contains: filters.q, mode: 'insensitive' } },
         { city: { contains: filters.q, mode: 'insensitive' } },
+        { nextStep: { contains: filters.q, mode: 'insensitive' } },
+        { lostReason: { contains: filters.q, mode: 'insensitive' } },
+        { contactName: { contains: filters.q, mode: 'insensitive' } },
+        { ownerUser: { name: { contains: filters.q, mode: 'insensitive' } } },
       ];
     }
 
@@ -130,6 +134,101 @@ export class CrmService {
       },
       orderBy: [{ name: 'asc' }],
       take: 100,
+    });
+
+    return {
+      success: true,
+      data: {
+        contacts: contacts.map((contact: any) => ({
+          id: contact.id,
+          name: contact.name,
+          email: contact.email ?? null,
+          phone: contact.phone ?? null,
+          whatsapp: contact.whatsapp ?? null,
+          companies: (contact.companyLinks ?? [])
+            .map((link: any) => link.company?.nomeFantasia || link.company?.razaoSocial)
+            .filter(Boolean),
+        })),
+      },
+    };
+  }
+
+  async getSummary(rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+
+    const stageGroups = await (this.prisma as any).crmLead.groupBy({
+      by: ['stage'],
+      _count: true,
+      _sum: { estimatedValue: true },
+    });
+
+    const activeLeads = await (this.prisma as any).crmLead.findMany({
+      where: { stage: { notIn: ['WON', 'LOST'] } },
+      select: { expectedCloseAt: true, nextStep: true },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const overdueCount = activeLeads.filter(
+      (l: any) => l.expectedCloseAt && new Date(l.expectedCloseAt) < today,
+    ).length;
+
+    const noNextStepCount = activeLeads.filter((l: any) => !String(l.nextStep ?? '').trim()).length;
+
+    return {
+      success: true,
+      data: {
+        stageCounts: stageGroups.reduce((acc: any, curr: any) => {
+          acc[curr.stage] = curr._count;
+          return acc;
+        }, {}),
+        stageValues: stageGroups.reduce((acc: any, curr: any) => {
+          acc[curr.stage] = Number(curr._sum.estimatedValue ?? 0);
+          return acc;
+        }, {}),
+        overdueCount,
+        noNextStepCount,
+      },
+    };
+  }
+
+  async searchContacts(q: string, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+
+    const contacts = await (this.prisma as any).companyContact.findMany({
+      where: {
+        status: { not: 'ARCHIVED' },
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: 'insensitive' } },
+                { email: { contains: q, mode: 'insensitive' } },
+                { companyLinks: { some: { company: { razaoSocial: { contains: q, mode: 'insensitive' } } } } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        whatsapp: true,
+        companyLinks: {
+          select: {
+            company: {
+              select: {
+                razaoSocial: true,
+                nomeFantasia: true,
+              },
+            },
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        },
+      },
+      orderBy: [{ name: 'asc' }],
+      take: 50,
     });
 
     return {

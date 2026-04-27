@@ -1,4 +1,4 @@
-﻿import { requireSession } from "@/lib/auth-helpers";
+import { requireSession } from "@/lib/auth-helpers";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
@@ -13,6 +13,8 @@ import {
   ArrowUpRight,
   BookOpen,
   Building2,
+  DollarSign,
+  FileText,
   Headset,
   KeyRound,
   Minus,
@@ -328,33 +330,52 @@ export default async function DashboardPage() {
 
           {canAccessCrm ? (
           <TabsContent value="comercial" className="space-y-4">
+            <h3 className="text-sm font-medium text-muted-foreground">Métricas de Contratos e Receita</h3>
+            <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <DashboardMetricCard
+                title="Contratos Ativos"
+                value={adminData.contracts?.activeContracts ?? 0}
+                helper="Clientes com contrato ativo"
+                icon={FileText as any}
+                tone="blue"
+              />
+              <DashboardMetricCard
+                title="MRR Estimado"
+                value={adminData.contracts ? formatCurrency(adminData.contracts.totalValue) : "Sem dados"}
+                helper="Receita recorrente mensal"
+                icon={DollarSign as any}
+                tone="emerald"
+              />
+            </div>
+
+            <h3 className="mt-6 text-sm font-medium text-muted-foreground">Pipeline CRM</h3>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
               <DashboardMetricCard
                 title="Pipeline ativo"
                 value={adminData.crm?.activeLeads ?? 0}
                 helper={adminData.crm ? formatCurrency(adminData.crm.pipelineValue) : "Sem dados"}
-                icon={Target}
+                icon={Target as any}
                 tone="blue"
               />
               <DashboardMetricCard
                 title="Em proposta"
                 value={adminData.crm?.proposalLeads ?? 0}
                 helper={`${adminData.crm?.negotiationLeads ?? 0} em negociacao`}
-                icon={TrendingUp}
+                icon={TrendingUp as any}
                 tone="amber"
               />
               <DashboardMetricCard
                 title="Ganhos"
                 value={adminData.crm?.wonLeads ?? 0}
                 helper={adminData.crm ? formatCurrency(adminData.crm.wonValue) : "Sem dados"}
-                icon={Sparkles}
+                icon={Sparkles as any}
                 tone="emerald"
               />
               <DashboardMetricCard
                 title="Risco operacional"
                 value={(adminData.crm?.overdueLeads ?? 0) + (adminData.crm?.noNextStepLeads ?? 0)}
                 helper={`${adminData.crm?.overdueLeads ?? 0} atrasados â€¢ ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
-                icon={TrendingDown}
+                icon={TrendingDown as any}
                 tone="red"
               />
             </div>
