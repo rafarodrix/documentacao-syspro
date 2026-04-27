@@ -314,6 +314,15 @@ export function ChatwootDashboardApp() {
     () => companyOptions.find((company) => company.id === selectedCompanyId) ?? null,
     [companyOptions, selectedCompanyId],
   );
+  const linkedCompanyCount = portalContactMatch?.companyIds?.length ?? (resolved.companyId ? 1 : 0);
+  const contactEditHref = portalContactMatch?.id ? `/portal/contatos/${portalContactMatch.id}/editar` : "";
+  const customerReadinessLabel = resolved.companyId
+    ? linkedCompanyCount > 1
+      ? `${linkedCompanyCount} empresas vinculadas`
+      : "Contato pronto para uso no portal"
+    : portalContactMatch?.id
+      ? "Contato existe no portal, mas precisa de empresa"
+      : "Contato ainda nao registrado no portal";
 
   useEffect(() => {
     const contactLabel = resolved.contactName || resolved.companyName || "Novo ticket";
@@ -702,11 +711,11 @@ export function ChatwootDashboardApp() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 text-foreground">
-      <div className="mx-auto max-w-4xl space-y-4">
+    <div className="min-h-screen bg-background px-3 py-2 text-foreground">
+      <div className="mx-auto w-full max-w-none space-y-3">
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <MessageSquare className="h-5 w-5 text-primary" />
@@ -716,7 +725,7 @@ export function ChatwootDashboardApp() {
                   Consulte o contexto do contato e abra ticket ou acesso remoto apenas quando o atendente decidir.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -733,10 +742,17 @@ export function ChatwootDashboardApp() {
                 <Badge variant="outline">
                   {status === "ready" ? "Contexto carregado" : status === "loading" ? "Lendo contexto" : "Sem contexto"}
                 </Badge>
+                {contactEditHref ? (
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                      Abrir contato
+                    </Link>
+                  </Button>
+                ) : null}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {status === "loading" ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -750,7 +766,7 @@ export function ChatwootDashboardApp() {
               </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               <ContextBadge tone={resolved.companyId ? "good" : "warn"}>
                 {resolved.companyId ? "Empresa vinculada" : "Sem empresa vinculada"}
               </ContextBadge>
@@ -765,31 +781,86 @@ export function ChatwootDashboardApp() {
               </ContextBadge>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <InfoCard
-                icon={<Building2 className="h-4 w-4 text-primary" />}
-                label="Empresa"
-                value={resolved.companyName || "Nao vinculada"}
-                helper={resolved.companyNames || resolved.companyId || "Contato sem empresa no portal"}
-              />
-              <InfoCard
-                icon={<Headphones className="h-4 w-4 text-primary" />}
-                label="Contato"
-                value={resolved.contactName || "Nao identificado"}
-                helper={resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}
-              />
-              <InfoCard
-                icon={<Monitor className="h-4 w-4 text-primary" />}
-                label="Host atual"
-                value={resolved.hostId || "Nao informado"}
-                helper={resolved.rustdeskId || "Sem RustDesk ID"}
-              />
-              <InfoCard
-                icon={<Ticket className="h-4 w-4 text-primary" />}
-                label="Ticket"
-                value={resolved.ticketNumber ? `#${resolved.ticketNumber}` : "Nao vinculado"}
-                helper={resolved.conversationId ? `Conversa ${resolved.conversationId}` : "Sem conversa"}
-              />
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <InfoCard
+                  icon={<Building2 className="h-4 w-4 text-primary" />}
+                  label="Empresa"
+                  value={resolved.companyName || "Nao vinculada"}
+                  helper={resolved.companyNames || resolved.companyId || "Contato sem empresa no portal"}
+                />
+                <InfoCard
+                  icon={<Headphones className="h-4 w-4 text-primary" />}
+                  label="Contato"
+                  value={resolved.contactName || "Nao identificado"}
+                  helper={resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}
+                />
+                <InfoCard
+                  icon={<Monitor className="h-4 w-4 text-primary" />}
+                  label="Host atual"
+                  value={resolved.hostId || "Nao informado"}
+                  helper={resolved.rustdeskId || "Sem RustDesk ID"}
+                />
+                <InfoCard
+                  icon={<Ticket className="h-4 w-4 text-primary" />}
+                  label="Ticket"
+                  value={resolved.ticketNumber ? `#${resolved.ticketNumber}` : "Nao vinculado"}
+                  helper={resolved.conversationId ? `Conversa ${resolved.conversationId}` : "Sem conversa"}
+                />
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cliente e contato</p>
+                    <p className="mt-2 text-base font-semibold text-foreground">
+                      {resolved.contactName || "Contato nao identificado"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {resolved.customerPhone || resolved.customerEmail || "Sem canal principal identificado"}
+                    </p>
+                  </div>
+                  <ContextBadge tone={resolved.companyId ? "good" : "warn"}>
+                    {resolved.companyId ? "Pronto" : "Pendente"}
+                  </ContextBadge>
+                </div>
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Situacao no portal</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">{customerReadinessLabel}</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <MiniMetric
+                      label="Contato local"
+                      value={portalContactMatch?.id ? "Encontrado" : resolved.companyId ? "Sincronizado" : "Pendente"}
+                    />
+                    <MiniMetric
+                      label="Empresas"
+                      value={linkedCompanyCount ? String(linkedCompanyCount) : "0"}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {contactEditHref ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                          Editar contato
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/portal/contatos/novo" target="_blank" rel="noreferrer">
+                          Novo contato
+                        </Link>
+                      </Button>
+                    )}
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/portal/contatos" target="_blank" rel="noreferrer">
+                        Ver contatos
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {!canCreateTicket ? (
@@ -810,7 +881,7 @@ export function ChatwootDashboardApp() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                     <div className="rounded-lg border border-border/60 bg-card p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Situacao do contato no portal
@@ -853,7 +924,7 @@ export function ChatwootDashboardApp() {
                         ) : null}
                         {companyOptionsError ? <InlineWarning message={companyOptionsError} /> : null}
                         {!isLoadingCompanyOptions && !companyOptionsError ? (
-                          <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                          <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                             {filteredCompanyOptions.length > 0 ? (
                               filteredCompanyOptions.map((company) => {
                                 const isSelected = selectedCompanyId === company.id;
@@ -878,7 +949,9 @@ export function ChatwootDashboardApp() {
                                 );
                               })
                             ) : (
-                              <EmptyState label="Nenhuma empresa encontrada para o filtro atual." />
+                              <div className="sm:col-span-2">
+                                <EmptyState label="Nenhuma empresa encontrada para o filtro atual." />
+                              </div>
                             )}
                           </div>
                         ) : null}
@@ -915,7 +988,7 @@ export function ChatwootDashboardApp() {
             ) : null}
 
             <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+              <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Acao recomendada</p>
                   <p className="mt-1 text-sm font-semibold text-foreground">
@@ -1002,7 +1075,7 @@ export function ChatwootDashboardApp() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2">
                   <ActionCard
                     icon={<Ticket className="h-4 w-4" />}
                     title="Criar ticket"
@@ -1410,6 +1483,9 @@ export function ChatwootDashboardApp() {
                 <Radio className="h-3.5 w-3.5 text-primary" />
                 Diagnostico do contexto
               </summary>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Use este bloco quando algo do Chatwoot nao bater com o cadastro do portal.
+              </p>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 <DiagnosticLine label="conversation_id" value={resolved.conversationId} />
                 <DiagnosticLine label="conversation_status" value={resolved.conversationStatus} />
@@ -1456,6 +1532,15 @@ function InfoCard({
       </div>
       <p className="mt-2 break-words text-sm font-semibold text-foreground">{value}</p>
       <p className="mt-1 break-all text-xs text-muted-foreground">{helper}</p>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/70 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }
