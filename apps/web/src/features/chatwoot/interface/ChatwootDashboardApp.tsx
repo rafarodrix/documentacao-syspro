@@ -33,6 +33,8 @@ import {
   getSuggestedCategoryForTeam,
   useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
+import { toTicketListItems } from "@/features/tickets/application/ticket-list.mapper";
+import type { TicketModuleListResponse } from "@dosc-syspro/contracts/ticket";
 import { cn } from "@/lib/utils";
 
 type ChatwootAppContext = {
@@ -691,8 +693,8 @@ export function ChatwootDashboardApp() {
           setTicketError(response.status === 401 ? "Faca login no portal neste navegador para ver tickets reais." : "Nao foi possivel carregar os tickets da empresa.");
           return;
         }
-        const json = (await response.json()) as { data?: TicketListItem[] };
-        const items = Array.isArray(json.data) ? json.data : [];
+        const json = (await response.json()) as TicketModuleListResponse;
+        const items = Array.isArray(json.data) ? toTicketListItems(json.data) : [];
         setLatestTickets(items.filter((ticket) => ticket.status !== "RESOLVED" && ticket.status !== "ARCHIVED"));
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
