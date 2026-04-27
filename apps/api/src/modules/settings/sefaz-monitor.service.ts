@@ -4,6 +4,7 @@ import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts/sefaz-endpoints'
 import { sefazRoutesSchema } from '@dosc-syspro/contracts/sefaz-routes';
 import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
 import { PrismaService } from '../../prisma/prisma.service';
+import * as https from 'https';
 
 type SefazCheckResult = {
   uf: string;
@@ -128,15 +129,30 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
         const probeUrl = normalizeProbeUrl(endpoint.url);
 
         try {
-          const response = await fetch(probeUrl, {
-            method: 'GET',
-            headers: {
-              Accept: 'application/wsdl+xml, text/xml, application/xml, text/html;q=0.8, */*;q=0.5',
-            },
-            signal: AbortSignal.timeout(SEFAZ_MONITOR_TIMEOUT_MS),
+          const response = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+            const req = https.request(probeUrl, {
+              method: 'GET',
+              rejectUnauthorized: false,
+              timeout: SEFAZ_MONITOR_TIMEOUT_MS,
+              headers: {
+                Accept: 'application/wsdl+xml, text/xml, application/xml, text/html;q=0.8, */*;q=0.5',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+              },
+            }, (res) => {
+              let responseBody = '';
+              res.on('data', chunk => responseBody += chunk);
+              res.on('end', () => resolve({ status: res.statusCode || 500, body: responseBody }));
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => {
+              req.destroy();
+              reject(new Error('timeout'));
+            });
+            req.end();
           });
 
-          const body = await response.text().catch(() => '');
+          const body = response.body;
           const latency = Date.now() - start;
           const status = classifySefazResponse(latency, response.status, body);
 
