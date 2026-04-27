@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowUpRight,
   Building2,
+  Clock3,
   ExternalLink,
   Headphones,
   Loader2,
@@ -18,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ChatwootAppContext = {
   conversation: {
@@ -38,6 +41,24 @@ type ChatwootAppContext = {
     name?: string | null;
     email?: string | null;
   } | null;
+};
+
+type TicketListEntry = {
+  id: string;
+  number: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  updatedAt: string;
+  customer?: string | null;
+};
+
+type RemoteHostEntry = {
+  id: string;
+  name: string;
+  rustdeskId: string | null;
+  lastHeartbeatAt: string | null;
+  productStatus: string;
 };
 
 function readString(value: unknown) {
@@ -85,6 +106,12 @@ function parseChatwootContext(raw: unknown): ChatwootAppContext | null {
 export function ChatwootDashboardApp() {
   const [context, setContext] = useState<ChatwootAppContext | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "empty">("loading");
+  const [latestTickets, setLatestTickets] = useState<TicketListEntry[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [ticketError, setTicketError] = useState<string | null>(null);
+  const [companyHosts, setCompanyHosts] = useState<RemoteHostEntry[]>([]);
+  const [isLoadingHosts, setIsLoadingHosts] = useState(false);
+  const [hostError, setHostError] = useState<string | null>(null);
 
   useEffect(() => {
     function requestContext() {
@@ -196,6 +223,107 @@ export function ChatwootDashboardApp() {
       : canCreateTicket
         ? "ticket"
         : "diagnostic";
+  const existingTicket = useMemo(
+    () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
+    [latestTickets, resolved.ticketNumber],
+  );
+
+  useEffect(() => {
+    if (!resolved.companyId) {
+      setLatestTickets([]);
+      setTicketError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    async function loadTickets() {
+      try {
+        setIsLoadingTickets(true);
+        setTicketError(null);
+        const params = new URLSearchParams({
+          companyId: resolved.companyId,
+          page: "1",
+          pageSize: "5",
+          sortBy: "updatedAt",
+          sortOrder: "desc",
+        });
+        const response = await fetch(`/api/tickets?${params.toString()}`, {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setLatestTickets([]);
+          setTicketError(response.status === 401 ? "Faca login no portal neste navegador para ver tickets reais." : "Nao foi possivel carregar os tickets da empresa.");
+          return;
+        }
+        const json = (await response.json()) as { data?: TicketListEntry[] };
+        setLatestTickets(Array.isArray(json.data) ? json.data : []);
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+        setLatestTickets([]);
+        setTicketError("Nao foi possivel carregar os tickets da empresa.");
+      } finally {
+        setIsLoadingTickets(false);
+      }
+    }
+
+    void loadTickets();
+    return () => controller.abort();
+  }, [resolved.companyId]);
+
+  useEffect(() => {
+    if (!resolved.companyId) {
+      setCompanyHosts([]);
+      setHostError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    async function loadHosts() {
+      try {
+        setIsLoadingHosts(true);
+        setHostError(null);
+        const response = await fetch("/api/remote-admin/directory", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setCompanyHosts([]);
+          setHostError(response.status === 401 ? "Faca login no portal neste navegador para ver os hosts reais." : "Nao foi possivel carregar os hosts da empresa.");
+          return;
+        }
+        const json = (await response.json()) as { items?: Array<Record<string, unknown>> };
+        const items = Array.isArray(json.items) ? json.items : [];
+        const nextHosts = items
+          .filter((item) => readString(item.companyId) === resolved.companyId)
+          .map((item) => ({
+            id: readString(item.id),
+            name: readString(item.name) || "Host sem nome",
+            rustdeskId: readString(item.rustdeskId) || null,
+            lastHeartbeatAt: readString(item.lastHeartbeatAt) || null,
+            productStatus: readString(item.productStatus) || "UNKNOWN",
+          }))
+          .sort((a, b) => {
+            const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
+            const bHeartbeat = b.lastHeartbeatAt ? Date.parse(b.lastHeartbeatAt) : 0;
+            return bHeartbeat - aHeartbeat;
+          })
+          .slice(0, 5);
+        setCompanyHosts(nextHosts);
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+        setCompanyHosts([]);
+        setHostError("Nao foi possivel carregar os hosts da empresa.");
+      } finally {
+        setIsLoadingHosts(false);
+      }
+    }
+
+    void loadHosts();
+    return () => controller.abort();
+  }, [resolved.companyId]);
 
   return (
     <div className="min-h-screen bg-background p-4 text-foreground">
@@ -329,43 +457,210 @@ export function ChatwootDashboardApp() {
               </CardContent>
             </Card>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              <ActionCard
-                icon={<Ticket className="h-4 w-4" />}
-                title="Criar ticket"
-                description={
-                  resolved.ticketNumber
-                    ? `Ja existe o ticket #${resolved.ticketNumber} neste atendimento. Abra outro apenas se realmente precisar separar a demanda.`
-                    : "Abre a tela de novo chamado com o contexto do atendimento. Use apenas quando a conversa precisar virar ticket."
-                }
-                href={resolved.ticketHref}
-                disabled={!canCreateTicket}
-                disabledLabel="Exige empresa vinculada"
-                featured={recommendedAction === "ticket"}
-              />
-              <ActionCard
-                icon={<Waypoints className="h-4 w-4" />}
-                title="Hosts da empresa"
-                description="Abre a plataforma remota ja filtrada pela empresa deste contato para localizar hosts e iniciar atendimento."
-                href={resolved.remoteDirectoryHref}
-                disabled={!canOpenRemoteDirectory}
-                disabledLabel="Exige empresa vinculada"
-                featured={recommendedAction === "hosts"}
-              />
-              <ActionCard
-                icon={<Monitor className="h-4 w-4" />}
-                title="Host atual"
-                description={
-                  resolved.remoteStatusText || resolved.remoteStatus
-                    ? `Vai direto para o host sincronizado nesta conversa. Estado remoto atual: ${resolved.remoteStatusText || resolved.remoteStatus}.`
-                    : "Vai direto para o host sincronizado nesta conversa, preservando o ticket quando ele ja existir."
-                }
-                href={resolved.remoteHostHref}
-                disabled={!canOpenHost}
-                disabledLabel="Sem host sincronizado"
-                featured={recommendedAction === "host"}
-              />
-            </div>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-3 p-1">
+                <TabsTrigger value="overview" className="py-2">Visao geral</TabsTrigger>
+                <TabsTrigger value="tickets" className="py-2">Tickets</TabsTrigger>
+                <TabsTrigger value="remote" className="py-2">Remoto</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <ActionCard
+                    icon={<Ticket className="h-4 w-4" />}
+                    title="Criar ticket"
+                    description={
+                      resolved.ticketNumber
+                        ? `Ja existe o ticket #${resolved.ticketNumber} neste atendimento. Abra outro apenas se realmente precisar separar a demanda.`
+                        : "Abre a tela de novo chamado com o contexto do atendimento. Use apenas quando a conversa precisar virar ticket."
+                    }
+                    href={resolved.ticketHref}
+                    disabled={!canCreateTicket}
+                    disabledLabel="Exige empresa vinculada"
+                    featured={recommendedAction === "ticket"}
+                  />
+                  <ActionCard
+                    icon={<Waypoints className="h-4 w-4" />}
+                    title="Hosts da empresa"
+                    description="Abre a plataforma remota ja filtrada pela empresa deste contato para localizar hosts e iniciar atendimento."
+                    href={resolved.remoteDirectoryHref}
+                    disabled={!canOpenRemoteDirectory}
+                    disabledLabel="Exige empresa vinculada"
+                    featured={recommendedAction === "hosts"}
+                  />
+                  <ActionCard
+                    icon={<Monitor className="h-4 w-4" />}
+                    title="Host atual"
+                    description={
+                      resolved.remoteStatusText || resolved.remoteStatus
+                        ? `Vai direto para o host sincronizado nesta conversa. Estado remoto atual: ${resolved.remoteStatusText || resolved.remoteStatus}.`
+                        : "Vai direto para o host sincronizado nesta conversa, preservando o ticket quando ele ja existir."
+                    }
+                    href={resolved.remoteHostHref}
+                    disabled={!canOpenHost}
+                    disabledLabel="Sem host sincronizado"
+                    featured={recommendedAction === "host"}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="tickets" className="space-y-3">
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Ticket className="h-4 w-4 text-primary" />
+                      Tickets da empresa
+                    </CardTitle>
+                    <CardDescription>
+                      Mostra os ultimos tickets do portal para evitar duplicidade e ajudar na continuidade do atendimento.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {existingTicket ? (
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Ticket ja vinculado na conversa</p>
+                            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                              #{existingTicket.number} · {existingTicket.title}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Status atual: {existingTicket.statusLabel}
+                            </p>
+                          </div>
+                          <Button asChild size="sm" className="gap-2">
+                            <Link href={`/portal/tickets/${existingTicket.id}`} target="_blank" rel="noreferrer">
+                              <ArrowUpRight className="h-4 w-4" />
+                              Abrir ticket
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {isLoadingTickets ? (
+                      <InlineLoading label="Carregando tickets reais da empresa..." />
+                    ) : null}
+                    {ticketError ? (
+                      <InlineWarning message={ticketError} />
+                    ) : null}
+                    {!isLoadingTickets && !ticketError && latestTickets.length === 0 ? (
+                      <EmptyState label="Nenhum ticket recente encontrado para esta empresa." />
+                    ) : null}
+                    {!isLoadingTickets && !ticketError && latestTickets.length > 0 ? (
+                      <div className="space-y-2">
+                        {latestTickets.map((ticket) => (
+                          <div key={ticket.id} className="rounded-lg border border-border/60 bg-card p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-foreground">
+                                  #{ticket.number} · {ticket.title}
+                                </p>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                  <ContextBadge tone={ticket.number === resolved.ticketNumber ? "good" : "neutral"}>
+                                    {ticket.statusLabel}
+                                  </ContextBadge>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Clock3 className="h-3 w-3" />
+                                    {formatRelativeDate(ticket.updatedAt)}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button asChild variant="outline" size="sm">
+                                <Link href={`/portal/tickets/${ticket.id}`} target="_blank" rel="noreferrer">
+                                  Ver
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="remote" className="space-y-3">
+                <Card className="border-border/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Monitor className="h-4 w-4 text-primary" />
+                      Hosts da empresa
+                    </CardTitle>
+                    <CardDescription>
+                      Lista curta dos hosts mais recentes para abrir o remoto com menos troca de tela.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {canOpenHost && resolved.remoteHostHref ? (
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Host recomendado</p>
+                            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                              {resolved.hostId}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {resolved.remoteStatusText || resolved.remoteStatus || "Host sincronizado nesta conversa."}
+                            </p>
+                          </div>
+                          <Button asChild size="sm" className="gap-2">
+                            <Link href={resolved.remoteHostHref} target="_blank" rel="noreferrer">
+                              <ArrowUpRight className="h-4 w-4" />
+                              Abrir host
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {isLoadingHosts ? (
+                      <InlineLoading label="Carregando hosts reais da empresa..." />
+                    ) : null}
+                    {hostError ? (
+                      <InlineWarning message={hostError} />
+                    ) : null}
+                    {!isLoadingHosts && !hostError && companyHosts.length === 0 ? (
+                      <EmptyState label="Nenhum host recente encontrado para esta empresa." />
+                    ) : null}
+                    {!isLoadingHosts && !hostError && companyHosts.length > 0 ? (
+                      <div className="space-y-2">
+                        {companyHosts.map((host) => (
+                          <div key={host.id} className="rounded-lg border border-border/60 bg-card p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-foreground">{host.name}</p>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                  <ContextBadge tone={host.id === resolved.hostId ? "good" : "neutral"}>
+                                    {host.productStatus}
+                                  </ContextBadge>
+                                  <span className="break-all font-mono">{host.rustdeskId || "Sem RustDesk ID"}</span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Clock3 className="h-3 w-3" />
+                                    {formatRelativeDate(host.lastHeartbeatAt)}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button asChild variant="outline" size="sm">
+                                <Link href={`/portal/plataforma-remota/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`} target="_blank" rel="noreferrer">
+                                  Ver
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <Button asChild variant="secondary" className="w-full gap-2">
+                      <Link href={resolved.remoteDirectoryHref} target="_blank" rel="noreferrer">
+                        <Waypoints className="h-4 w-4" />
+                        Abrir listagem completa de remotos
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
             <details className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
               <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-foreground">
@@ -493,4 +788,36 @@ function DiagnosticLine({ label, value }: { label: string; value: string }) {
       <p className="mt-1 break-all font-mono text-[11px] text-foreground">{value || "ausente"}</p>
     </div>
   );
+}
+
+function InlineLoading({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      {label}
+    </div>
+  );
+}
+
+function InlineWarning({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+      {message}
+    </div>
+  );
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+      {label}
+    </div>
+  );
+}
+
+function formatRelativeDate(value: string | null) {
+  if (!value) return "Sem registro";
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return value;
+  return new Date(parsed).toLocaleString("pt-BR");
 }
