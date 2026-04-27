@@ -114,6 +114,7 @@ export class TicketNotificationService {
     companyId: string | null;
     status: 'TESTING' | 'IN_PROGRESS';
     notificationType: 'testing' | 'testing_failed';
+    note?: string | null;
     rawHeaders?: IncomingHttpHeaders;
   }) {
     const configuredGroups =
@@ -173,6 +174,7 @@ export class TicketNotificationService {
       `Ticket: ${input.ticketNumber}`,
       `Empresa: ${companyName}`,
       `Titulo: ${input.title}`,
+      input.notificationType === 'testing_failed' && input.note?.trim() ? `Motivo: ${input.note.trim()}` : undefined,
       ticketUrl ? `Link: ${ticketUrl}` : undefined,
     ]
       .filter(Boolean)

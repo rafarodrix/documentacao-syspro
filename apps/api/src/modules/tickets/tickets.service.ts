@@ -62,24 +62,41 @@ export class TicketsService {
     const ticketNumber = this.generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
     const settings = await this.getTicketModuleSettings();
+    const metadataSource =
+      data.metadata && typeof data.metadata === 'object' && typeof data.metadata.source === 'string'
+        ? data.metadata.source.trim().toLowerCase()
+        : null;
+    const isChatwootTicket = metadataSource === 'chatwoot';
 
     let resolvedCompanyId = data.companyId?.trim() || undefined;
     let resolvedContactId = data.companyContactId;
 
     const isSystemAdmin = accessScope.isGlobal;
 
-    if (isSystemAdmin && data.customerEmail) {
-      const contact = await this.prisma.companyContact.findFirst({
-        where: { email: { equals: data.customerEmail, mode: 'insensitive' } },
-        select: {
-          id: true,
-          name: true,
-          companyLinks: {
-            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-            select: { companyId: true },
-          },
-        },
-      });
+    if (isSystemAdmin && (data.customerEmail || data.contactWhatsappSnapshot || data.contactPhoneSnapshot)) {
+      const normalizedEmail = data.customerEmail?.trim().toLowerCase();
+      const normalizedWhatsapp = data.contactWhatsappSnapshot?.replace(/\D/g, '') || undefined;
+      const normalizedPhone = data.contactPhoneSnapshot?.replace(/\D/g, '') || undefined;
+      const contactLookupConditions: Prisma.CompanyContactWhereInput[] = [
+        ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
+        ...(normalizedWhatsapp ? [{ whatsapp: normalizedWhatsapp }] : []),
+        ...(normalizedPhone ? [{ whatsapp: normalizedPhone }] : []),
+      ];
+      const contact = contactLookupConditions.length === 0
+        ? null
+        : await this.prisma.companyContact.findFirst({
+            where: {
+              OR: contactLookupConditions,
+            },
+            select: {
+              id: true,
+              name: true,
+              companyLinks: {
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                select: { companyId: true },
+              },
+            },
+          });
       if (contact) {
         resolvedContactId = contact.id;
         const linkedCompanyIds = contact.companyLinks.map((link) => link.companyId);
@@ -91,6 +108,12 @@ export class TicketsService {
         if (!resolvedCompanyId) {
           resolvedCompanyId = this.getPrimaryCompanyId(contact) ?? undefined;
         }
+
+        if (isChatwootTicket && linkedCompanyIds.length === 0) {
+          throw new BadRequestException('O contato do Chatwoot precisa estar vinculado a uma empresa no portal para abrir ticket.');
+        }
+      } else if (isChatwootTicket) {
+        throw new BadRequestException('O contato do Chatwoot precisa existir no portal e estar vinculado a uma empresa para abrir ticket.');
       }
     } else if (!isSystemAdmin) {
       const selfContact = await this.prisma.companyContact.findFirst({
@@ -130,6 +153,10 @@ export class TicketsService {
       if (!companyExists) {
         throw new NotFoundException('Empresa nao encontrada para vincular ao ticket.');
       }
+    }
+
+    if (isChatwootTicket && (!resolvedCompanyId || !resolvedContactId)) {
+      throw new BadRequestException('Tickets originados do Chatwoot exigem contato vinculado a uma empresa do portal.');
     }
 
     if (!accessScope.isGlobal) {
@@ -752,6 +779,7 @@ export class TicketsService {
       releaseModule || exists.releaseModule?.trim() || readReleaseMetadataString(existingMetadata, 'module');
     const handoffNote = input.note?.trim();
     const requesterDisplayName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+    const isTestingReturn = exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS;
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
@@ -769,7 +797,7 @@ export class TicketsService {
       throw new BadRequestException('Nota de contexto obrigatoria ao transferir para Desenvolvimento (min. 20 caracteres).');
     }
 
-    if (exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS && (!handoffNote || handoffNote.length < 20)) {
+    if (settings.requireTestingReturnReason && isTestingReturn && (!handoffNote || handoffNote.length < 20)) {
       throw new BadRequestException('Motivo obrigatorio ao retornar de Em testes para Em andamento (min. 20 caracteres).');
     }
 
@@ -995,6 +1023,10 @@ export class TicketsService {
           delete currentMetadata.releaseTitle;
         }
       }
+      if (isTestingReturn && handoffNote) {
+        data.lastMessagePreview = handoffNote.slice(0, 500);
+        data.lastMessageAt = new Date();
+      }
       data.metadata = currentMetadata as Prisma.InputJsonValue;
 
       await tx.conversation.update({
@@ -1067,7 +1099,7 @@ export class TicketsService {
         nextReleaseType: effectiveReleaseType || null,
         previousResolutionSummary: exists.resolutionSummary?.trim() || null,
         nextResolutionSummary: effectiveResolutionSummary || null,
-        handoffNote,
+        handoffNote: isTestingReturn ? undefined : handoffNote,
       });
 
       if (historyBody) {
@@ -1079,6 +1111,21 @@ export class TicketsService {
             authorKind: TicketParticipantKind.USER,
             authorUserId: requester.userId,
             body: historyBody,
+            status: TicketMessageStatus.SENT,
+            sentAt: new Date(),
+          },
+        });
+      }
+
+      if (isTestingReturn && handoffNote) {
+        await tx.conversationMessage.create({
+          data: {
+            conversationId: id,
+            direction: TicketMessageDirection.INTERNAL,
+            type: TicketMessageType.TEXT,
+            authorKind: TicketParticipantKind.USER,
+            authorUserId: requester.userId,
+            body: handoffNote,
             status: TicketMessageStatus.SENT,
             sentAt: new Date(),
           },
@@ -1099,7 +1146,7 @@ export class TicketsService {
       });
     }
 
-    if (exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS) {
+    if (isTestingReturn) {
       await this.ticketNotificationService.sendTicketStatusGroupNotification({
         settings,
         ticketId: exists.id,
@@ -1108,6 +1155,7 @@ export class TicketsService {
         companyId: exists.companyId,
         status: TicketStatus.IN_PROGRESS,
         notificationType: 'testing_failed',
+        note: handoffNote,
         rawHeaders,
       });
     }

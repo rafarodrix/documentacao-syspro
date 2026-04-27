@@ -79,6 +79,20 @@ type CompanyOption = {
 
 interface CreateTicketPageFormProps {
   isSystemUser: boolean;
+  initialContext?: {
+    source?: string;
+    chatwootConversationId?: string;
+    chatwootContactId?: string;
+    chatwootAccountId?: string;
+    chatwootConversationUrl?: string;
+    customerName?: string;
+    customerPhone?: string;
+    customerWhatsapp?: string;
+    customerEmail?: string;
+    companyId?: string;
+    subject?: string;
+    description?: string;
+  };
 }
 
 type TicketTeam = "SUPORTE" | "DESENVOLVIMENTO";
@@ -100,22 +114,30 @@ function normalizeTicketTeam(value: string): TicketTeam {
   return value === "DESENVOLVIMENTO" ? "DESENVOLVIMENTO" : "SUPORTE";
 }
 
-export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps) {
+export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTicketPageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const source = initialContext?.source === "chatwoot" ? "chatwoot" : "portal";
+  const chatwootConversationId = initialContext?.chatwootConversationId?.trim() || "";
+  const chatwootContactId = initialContext?.chatwootContactId?.trim() || "";
+  const chatwootAccountId = initialContext?.chatwootAccountId?.trim() || "";
+  const chatwootConversationUrl = initialContext?.chatwootConversationUrl?.trim() || "";
+  const customerName = initialContext?.customerName?.trim() || "";
+  const customerPhone = initialContext?.customerPhone?.trim() || "";
+  const customerWhatsapp = initialContext?.customerWhatsapp?.trim() || "";
 
   const [files, setFiles] = useState<File[]>([]);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerEmail, setCustomerEmail] = useState(initialContext?.customerEmail?.trim().toLowerCase() || "");
   const [customerCompany, setCustomerCompany] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
   const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
   const [customerOptionsError, setCustomerOptionsError] = useState<string | null>(null);
   const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState("");
-  const [descriptionHtml, setDescriptionHtml] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState(initialContext?.companyId?.trim() || "");
+  const [descriptionHtml, setDescriptionHtml] = useState(initialContext?.description?.trim() || "");
   const ticketSettings = useTicketModuleSettings();
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
@@ -126,7 +148,7 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
   const form = useForm<TicketFormInput, undefined, TicketFormOutput>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues: {
-      subject: "",
+      subject: initialContext?.subject?.trim() || "",
       type: "incident",
       description: "",
       priority: DEFAULT_TICKET_MODULE_SETTINGS.defaultPriority,
@@ -180,8 +202,11 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     label: company.name,
   }));
 
+  const requiresAssociatedCompany = source === "chatwoot";
   const companyRequirementMet = isSystemUser
-    ? Boolean(selectedCompanyId || customerEmail.trim())
+    ? requiresAssociatedCompany
+      ? Boolean(selectedCompanyId)
+      : Boolean(selectedCompanyId || customerEmail.trim())
     : clientCompanies.length <= 1 || Boolean(selectedCompanyId);
 
   const canSubmit =
@@ -265,6 +290,12 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
     form.setValue("description", descriptionText, { shouldValidate: descriptionText.length > 0 });
   }, [descriptionText, form]);
 
+  useEffect(() => {
+    if (initialContext?.subject?.trim()) {
+      form.setValue("subject", initialContext.subject.trim(), { shouldValidate: true });
+    }
+  }, [form, initialContext?.subject]);
+
   const appendFiles = (newFiles: File[]) => {
     if (!newFiles.length) return;
     const totalSize = [...files, ...newFiles].reduce((acc, file) => acc + file.size, 0);
@@ -336,6 +367,14 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
         if (selectedTeam) formData.append("team", selectedTeam);
         if (databaseUrl.trim()) formData.append("databaseUrl", databaseUrl.trim());
         if (developmentVideoUrl.trim()) formData.append("developmentVideoUrl", developmentVideoUrl.trim());
+        formData.append("source", source);
+        if (chatwootConversationId) formData.append("chatwootConversationId", chatwootConversationId);
+        if (chatwootContactId) formData.append("chatwootContactId", chatwootContactId);
+        if (chatwootAccountId) formData.append("chatwootAccountId", chatwootAccountId);
+        if (chatwootConversationUrl) formData.append("chatwootConversationUrl", chatwootConversationUrl);
+        if (customerName) formData.append("customerName", customerName);
+        if (customerPhone) formData.append("customerPhone", customerPhone);
+        if (customerWhatsapp) formData.append("customerWhatsapp", customerWhatsapp);
         files.forEach((file) => formData.append("attachments", file));
 
         const result = await createTicketAction(null, formData);
@@ -463,6 +502,27 @@ export function CreateTicketPageForm({ isSystemUser }: CreateTicketPageFormProps
                         {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
                       </div>
                     ) : null}
+                    {source === "chatwoot" && !selectedCompanyId ? (
+                      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                        Tickets originados do Chatwoot so podem ser abertos quando o contato estiver vinculado a uma empresa no portal.
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                {source === "chatwoot" && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-sm">
+                    <p className="font-medium text-foreground">Criacao vinculada ao Chatwoot</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Este ticket sera criado a partir do atendimento atual e mantera o vinculo com a conversa importada.
+                    </p>
+                    {(customerName || customerWhatsapp || customerPhone) && (
+                      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {customerName ? <p>Contato: <span className="font-medium text-foreground">{customerName}</span></p> : null}
+                        {customerWhatsapp ? <p>WhatsApp: <span className="font-mono text-foreground">{customerWhatsapp}</span></p> : null}
+                        {!customerWhatsapp && customerPhone ? <p>Telefone: <span className="font-mono text-foreground">{customerPhone}</span></p> : null}
+                      </div>
+                    )}
                   </div>
                 )}
 

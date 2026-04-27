@@ -30,6 +30,7 @@ import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/t
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
+import { TicketTestingReturnDialog } from "@/features/tickets/interface/components/TicketTestingReturnDialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
+    const [testingReturnOpen, setTestingReturnOpen] = useState(false);
     const ticketSettings = useTicketModuleSettings();
     const [internalUsers, setInternalUsers] = useState<InternalUserOption[]>([]);
     const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
@@ -135,6 +137,10 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
             setFinalizeOpen(true);
             return;
         }
+        if (status === "IN_PROGRESS" && normalizeStatusValue(ticket.status) === "TESTING" && ticketSettings.requireTestingReturnReason) {
+            setTestingReturnOpen(true);
+            return;
+        }
 
         persistWorkflowChange(status, classificationDirty ? "Classificacao e estagio atualizados." : "Estagio atualizado.");
     };
@@ -178,7 +184,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
     const movingToDevelopment = currentTeam === "DESENVOLVIMENTO" && initialTeam !== "DESENVOLVIMENTO";
     const returningFromTesting = normalizeStatusValue(ticket?.status) === "TESTING";
     const requiresTransferNote = movingToDevelopment && isAdmin;
-    const requiresTestingReturnNote = returningFromTesting && isAdmin;
+    const requiresTestingReturnNote = returningFromTesting && isAdmin && ticketSettings.requireTestingReturnReason;
 
     const persistWorkflowChange = (status?: TicketModuleStatus, successMessage = "Alteracoes salvas.") => {
         if (!ticket) return;
@@ -193,15 +199,6 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
             const normalizedNote = transferNote.trim();
             if (normalizedNote.length < 20) {
                 toast.error("Informe o contexto para o desenvolvimento com no minimo 20 caracteres.");
-                return;
-            }
-            payload.note = normalizedNote;
-        }
-
-        if (status === "IN_PROGRESS" && normalizeStatusValue(ticket.status) === "TESTING") {
-            const normalizedNote = transferNote.trim();
-            if (normalizedNote.length < 20) {
-                toast.error("Informe o motivo do retorno dos testes com no minimo 20 caracteres.");
                 return;
             }
             payload.note = normalizedNote;
@@ -416,25 +413,26 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                             }}
                                         />
                                     </EditableSidebarField>
-                                    {(requiresTransferNote || requiresTestingReturnNote) && (
-                                        <EditableSidebarField label={requiresTestingReturnNote ? "Motivo do retorno dos testes" : "Contexto para o desenvolvimento"}>
+                                    {requiresTransferNote && (
+                                        <EditableSidebarField label="Contexto para o desenvolvimento">
                                             <Textarea
                                                 value={transferNote}
                                                 onChange={(event) => setTransferNote(event.target.value)}
                                                 placeholder={
-                                                    requiresTestingReturnNote
-                                                        ? "Descreva por que os testes falharam, o que foi validado e o que precisa voltar para programacao."
-                                                        : "Descreva o que ja foi validado, comportamento esperado, comportamento atual e impacto no cliente."
+                                                    "Descreva o que ja foi validado, comportamento esperado, comportamento atual e impacto no cliente."
                                                 }
                                                 className="min-h-24 resize-none border-border/70 bg-background text-sm"
                                                 disabled={isPending}
                                             />
                                             <p className="mt-1 text-[10px] text-muted-foreground">
-                                                {requiresTestingReturnNote
-                                                    ? "Minimo 20 caracteres. Esse motivo fica registrado no historico e acompanha o retorno para programacao."
-                                                    : "Minimo 20 caracteres. O ticket vai entrar em Desenvolvimento como Novo e sem desenvolvedor assumido."}
+                                                Minimo 20 caracteres. O ticket vai entrar em Desenvolvimento como Novo e sem desenvolvedor assumido.
                                             </p>
                                         </EditableSidebarField>
+                                    )}
+                                    {requiresTestingReturnNote && (
+                                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                                            Ao voltar de <span className="font-medium text-foreground">Em teste</span> para <span className="font-medium text-foreground">Em andamento</span>, o sistema abre uma tela para registrar o motivo como nota interna e disparar a automacao.
+                                        </div>
                                     )}
                                     {isAdmin && classificationDirty && (
                                         <div className="flex gap-2">
@@ -541,6 +539,19 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
             </div>
 
             <TicketFinalizeDialog ticket={ticket} open={finalizeOpen} onOpenChange={setFinalizeOpen} />
+            <TicketTestingReturnDialog
+                ticket={ticket}
+                open={testingReturnOpen}
+                onOpenChange={setTestingReturnOpen}
+                payload={{
+                    ...(currentTeam !== initialTeam ? { team: currentTeam } : {}),
+                    ...(currentModule !== initialModule ? { module: currentModule } : {}),
+                    ...(currentCategory !== initialCategory ? { category: currentCategory } : {}),
+                    ...(currentPriority !== initialPriority ? { priority: mapLevelToPriority(currentPriority) } : {}),
+                    status: "IN_PROGRESS",
+                }}
+                successMessage={classificationDirty ? "Classificacao e estagio atualizados." : "Estagio atualizado."}
+            />
         </div>
     );
 }

@@ -66,6 +66,7 @@ function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSe
   return {
     ...settings,
     quickReplyTemplates: settings.quickReplyTemplates ?? DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates,
+    requireTestingReturnReason: settings.requireTestingReturnReason ?? DEFAULT_TICKET_MODULE_SETTINGS.requireTestingReturnReason,
     supportNotificationGroups:
       settings.supportNotificationGroups?.length
         ? settings.supportNotificationGroups
@@ -626,6 +627,18 @@ export function TicketSettingsTab() {
                               </div>
                               <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                             </div>
+                          </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="requireTestingReturnReason" render={({ field }) => (
+                          <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Motivo obrigatorio no retorno dos testes</FormLabel>
+                              <FormDescription className="text-xs">
+                                Exige justificativa ao voltar de Em teste para Em andamento e registra o texto como nota interna.
+                              </FormDescription>
+                            </div>
+                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                           </FormItem>
                         )} />
 

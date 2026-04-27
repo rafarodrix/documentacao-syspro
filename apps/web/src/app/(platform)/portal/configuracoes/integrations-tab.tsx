@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
@@ -97,6 +97,31 @@ function ChatwootDiagnosticsTab() {
   } = useChatwootBehaviorSettings();
   const chatwoot = diagnostics?.chatwoot;
   const runtime = chatwoot?.runtime ?? {};
+  const [portalOrigin, setPortalOrigin] = useState("");
+  const ticketCreationAppUrl = useMemo(() => {
+    const baseOrigin = portalOrigin || "https://SEU_PORTAL";
+    const params = new URLSearchParams({
+      source: "chatwoot",
+      chatwootConversationId: "{{conversation.id}}",
+      chatwootContactId: "{{contact.id}}",
+      chatwootAccountId: "{{account.id}}",
+      chatwootConversationUrl: "{{conversation.url}}",
+      customerName: "{{contact.name}}",
+      customerPhone: "{{contact.phone_number}}",
+      customerWhatsapp: "{{contact.phone_number}}",
+      customerEmail: "{{contact.email}}",
+      subject: "{{contact.name}} - Novo ticket",
+      description: "Atendimento originado no Chatwoot.",
+    });
+
+    return `${baseOrigin}/portal/tickets/novo?${params.toString()}`;
+  }, [portalOrigin]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPortalOrigin(window.location.origin);
+    }
+  }, []);
 
   return (
     <Card>
@@ -295,10 +320,59 @@ function ChatwootDiagnosticsTab() {
                   </div>
 
                   {behavior.ticketCreationAppEnabled && (
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-                      A opcao do atalho/app de abertura de ticket no Chatwoot foi mantida. O portal continua aceitando os parametros
-                      `source=chatwoot`, `chatwootConversationId`, `chatwootContactId`, `chatwootAccountId` e `chatwootConversationUrl`
-                      para abrir a criacao de ticket vinculada ao atendimento.
+                    <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                      <p>
+                        O portal aceita a abertura direta em
+                        <span className="mx-1 font-mono text-foreground">/portal/tickets/novo?source=chatwoot</span>
+                        com os parametros
+                        <span className="mx-1 font-mono text-foreground">chatwootConversationId</span>,
+                        <span className="mx-1 font-mono text-foreground">chatwootContactId</span>,
+                        <span className="mx-1 font-mono text-foreground">chatwootAccountId</span>,
+                        <span className="mx-1 font-mono text-foreground">chatwootConversationUrl</span>,
+                        <span className="mx-1 font-mono text-foreground">customerName</span>,
+                        <span className="mx-1 font-mono text-foreground">customerPhone</span>,
+                        <span className="mx-1 font-mono text-foreground">customerWhatsapp</span>,
+                        <span className="mx-1 font-mono text-foreground">customerEmail</span>,
+                        <span className="mx-1 font-mono text-foreground">companyId</span>,
+                        <span className="mx-1 font-mono text-foreground">subject</span>
+                        e
+                        <span className="ml-1 font-mono text-foreground">description</span>.
+                      </p>
+                      <p className="mt-2">
+                        Quando esse link for usado, a tela de criacao ja abre vinculada ao atendimento importado do Chatwoot e envia os metadados junto com o ticket.
+                      </p>
+                      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                        Use esse app apenas quando o contato do Chatwoot estiver vinculado a uma empresa no portal. Sem esse vinculo, o ticket sera bloqueado na criacao.
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="chatwoot-ticket-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          URL para criar o app no Chatwoot
+                        </Label>
+                        <Textarea
+                          id="chatwoot-ticket-app-url"
+                          readOnly
+                          value={ticketCreationAppUrl}
+                          className="min-h-28 font-mono text-xs"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(ticketCreationAppUrl);
+                                toast.success("URL do app copiada.");
+                              } catch {
+                                toast.error("Nao foi possivel copiar a URL.");
+                              }
+                            }}
+                          >
+                            Copiar URL do app
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
