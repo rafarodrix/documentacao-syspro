@@ -290,6 +290,11 @@ function Timeline({
                                         "[&_p]:whitespace-normal [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word",
                                         "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:whitespace-pre-wrap",
                                         "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
+                                        "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-xl [&_table]:border [&_table]:border-border/70",
+                                        "[&_thead]:bg-muted/60 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35",
+                                        "[&_th]:border [&_th]:border-border/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:align-top [&_th]:font-semibold [&_th]:text-foreground",
+                                        "[&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-foreground",
+                                        "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0",
                                         article.isInternal
                                             ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
                                             : messageIsMe

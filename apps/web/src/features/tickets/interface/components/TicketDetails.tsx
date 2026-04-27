@@ -476,6 +476,11 @@ function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: Ti
 
     if (!resources.length) return articles;
 
+    const existingTechnicalResourceArticles = articles.filter((article) => isTechnicalResourceArticle(article));
+    if (existingTechnicalResourceArticles.some((article) => article.messageType !== "SYSTEM_EVENT")) {
+        return articles;
+    }
+
     const cleanedArticles = articles.filter((article) => !isTechnicalResourceArticle(article));
     const openingArticleIndex = findOpeningArticleIndex(cleanedArticles);
 

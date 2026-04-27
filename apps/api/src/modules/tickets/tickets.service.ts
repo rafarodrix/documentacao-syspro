@@ -200,7 +200,7 @@ export class TicketsService {
       const safeDatabaseUrl = escapeHtml(databaseUrl);
       messagesToCreate.push({
         direction: TicketMessageDirection.INTERNAL,
-        type: TicketMessageType.SYSTEM_EVENT,
+        type: TicketMessageType.TEXT,
         authorKind: TicketParticipantKind.USER,
         authorUser: { connect: { id: requester.userId } },
         body: `<p><strong>Recurso tecnico: base de dados</strong></p><p><a href="${safeDatabaseUrl}" target="_blank" rel="noopener noreferrer">${safeDatabaseUrl}</a></p>`,
@@ -213,7 +213,7 @@ export class TicketsService {
       const safeDevelopmentVideoUrl = escapeHtml(developmentVideoUrl);
       messagesToCreate.push({
         direction: TicketMessageDirection.INTERNAL,
-        type: TicketMessageType.SYSTEM_EVENT,
+        type: TicketMessageType.TEXT,
         authorKind: TicketParticipantKind.USER,
         authorUser: { connect: { id: requester.userId } },
         body: `<p><strong>Recurso tecnico: video explicativo</strong></p><p><a href="${safeDevelopmentVideoUrl}" target="_blank" rel="noopener noreferrer">${safeDevelopmentVideoUrl}</a></p>`,
@@ -255,6 +255,7 @@ export class TicketsService {
       ticketNumber: createdTicket.ticketNumber || ticketNumber,
       title: data.title,
       team: normalizedTeam,
+      category: normalizedCategory,
       companyId: resolvedCompanyId ?? null,
       databaseUrl,
       developmentVideoUrl,
@@ -1175,6 +1176,7 @@ export class TicketsService {
     ticketNumber: string;
     title: string;
     team: 'SUPORTE' | 'DESENVOLVIMENTO';
+    category: string | null;
     companyId: string | null;
     databaseUrl: string | null;
     developmentVideoUrl: string | null;
@@ -1231,8 +1233,9 @@ export class TicketsService {
     const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
     const companyCnpj = this.formatCnpj(company?.cnpj);
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
+    const categoryLabel = this.resolveCategoryLabel(settings, input.category);
     const message = [
-      `Novo ticket aberto - ${input.team}`,
+      `Novo ticket aberto - ${categoryLabel || input.team}`,
       `Ticket: ${input.ticketNumber}`,
       `Titulo: ${input.title}`,
       `Empresa: ${companyName}`,
@@ -1386,6 +1389,13 @@ export class TicketsService {
     }
 
     return team === 'SUPORTE' ? 'SUPORTE' : null;
+  }
+
+  private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {
+    const normalizedCategory = category?.trim();
+    if (!normalizedCategory) return null;
+
+    return settings.categories.find((item) => item.value === normalizedCategory)?.label || normalizedCategory;
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {
