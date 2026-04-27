@@ -33,6 +33,8 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "users:edit", label: "Editar usuario", module: "users", description: "Permite atualizar dados de usuarios." },
   { key: "users:reset_password", label: "Resetar senha de usuario", module: "users", description: "Permite acionar redefinicao de senha." },
   { key: "users:status", label: "Ativar ou desativar acesso", module: "users", description: "Permite bloquear ou reativar acesso." },
+  { key: "users:view_internal", label: "Visualizar equipe interna", module: "users", description: "Permite visualizar administradores e desenvolvedores." },
+  { key: "users:manage_internal", label: "Gerenciar equipe interna", module: "users", description: "Permite criar e editar perfis de sistema." },
   { key: "contracts:view", label: "Visualizar contratos", module: "contracts", description: "Permite consultar contratos." },
   { key: "contracts:create", label: "Criar contrato", module: "contracts", description: "Permite cadastrar contrato." },
   { key: "contracts:edit", label: "Editar contrato", module: "contracts", description: "Permite alterar contrato existente." },
@@ -52,8 +54,6 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "tickets:manage", label: "Gerenciar chamados", module: "tickets", description: "Permite atuar operacionalmente em tickets." },
   { key: "tax_reform:view", label: "Visualizar reforma tributaria", module: "tax_reform", description: "Permite acessar a area tributaria." },
   { key: "tax_reform:manage", label: "Gerenciar dados da reforma tributaria", module: "tax_reform", description: "Permite alterar dados e sincronizacoes fiscais." },
-  { key: "system_team:view", label: "Visualizar equipe interna", module: "system_team", description: "Permite ver equipe interna." },
-  { key: "system_team:manage", label: "Gerenciar equipe interna", module: "system_team", description: "Permite criar e editar equipe interna." },
 ] as const;
 
 export const SETTINGS_PERMISSION_KEY_VALUES = SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key) as [
