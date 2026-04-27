@@ -78,6 +78,8 @@ function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSe
         : legacyDevelopmentGroupJid?.trim()
           ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
           : [],
+    testingNotificationGroups: settings.testingNotificationGroups ?? [],
+    testingFailedNotificationGroups: settings.testingFailedNotificationGroups ?? [],
     categories: [...settings.categories].sort((left, right) => {
       const leftTeam = left.defaultTeam === "DESENVOLVIMENTO" ? 1 : 0;
       const rightTeam = right.defaultTeam === "DESENVOLVIMENTO" ? 1 : 0;
@@ -119,6 +121,8 @@ export function TicketSettingsTab() {
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
   const supportNotificationGroupsArray = useFieldArray({ control: form.control, name: "supportNotificationGroups" });
   const developmentNotificationGroupsArray = useFieldArray({ control: form.control, name: "developmentNotificationGroups" });
+  const testingNotificationGroupsArray = useFieldArray({ control: form.control, name: "testingNotificationGroups" });
+  const testingFailedNotificationGroupsArray = useFieldArray({ control: form.control, name: "testingFailedNotificationGroups" });
 
   const priorities = form.watch("priorities");
   const autoResponseEnabled = form.watch("autoResponseEnabled");
@@ -641,7 +645,7 @@ export function TicketSettingsTab() {
                   <TabsContent value="notifications" className="mt-5">
                     <Card className="border-border/60 bg-card/95">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Notificacoes de abertura</CardTitle>
+                        <CardTitle className="text-sm">Notificacoes e automacoes</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-1">
@@ -669,6 +673,26 @@ export function TicketSettingsTab() {
                           form={form}
                           onAdd={() => developmentNotificationGroupsArray.append(createNotificationGroup())}
                           onRemove={(index) => developmentNotificationGroupsArray.remove(index)}
+                        />
+
+                        <NotificationGroupsSection
+                          title="Grupos de Em testes"
+                          description="Recebem aviso quando o ticket muda de estagio para Em testes."
+                          fields={testingNotificationGroupsArray.fields}
+                          baseName="testingNotificationGroups"
+                          form={form}
+                          onAdd={() => testingNotificationGroupsArray.append(createNotificationGroup())}
+                          onRemove={(index) => testingNotificationGroupsArray.remove(index)}
+                        />
+
+                        <NotificationGroupsSection
+                          title="Grupos de Retorno dos testes"
+                          description="Recebem aviso quando o ticket volta de Em testes para Em andamento."
+                          fields={testingFailedNotificationGroupsArray.fields}
+                          baseName="testingFailedNotificationGroups"
+                          form={form}
+                          onAdd={() => testingFailedNotificationGroupsArray.append(createNotificationGroup())}
+                          onRemove={(index) => testingFailedNotificationGroupsArray.remove(index)}
                         />
                       </CardContent>
                     </Card>
@@ -703,7 +727,11 @@ function NotificationGroupsSection({
   title: string;
   description: string;
   fields: Array<{ id: string }>;
-  baseName: "supportNotificationGroups" | "developmentNotificationGroups";
+  baseName:
+    | "supportNotificationGroups"
+    | "developmentNotificationGroups"
+    | "testingNotificationGroups"
+    | "testingFailedNotificationGroups";
   form: UseFormReturn<TicketModuleSettings>;
   onAdd: () => void;
   onRemove: (index: number) => void;

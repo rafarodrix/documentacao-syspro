@@ -681,6 +681,7 @@ export class TicketsService {
       where: { id },
       select: {
         id: true,
+        ticketNumber: true,
         status: true,
         companyId: true,
         assignedUserId: true,
@@ -1011,6 +1012,30 @@ export class TicketsService {
 
     });
 
+    if (exists.status !== requestedStatus && requestedStatus === TicketStatus.TESTING) {
+      await this.sendTicketStatusGroupNotification({
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: exists.subject?.trim() || 'Sem titulo',
+        companyId: exists.companyId,
+        status: TicketStatus.TESTING,
+        notificationType: 'testing',
+        rawHeaders,
+      });
+    }
+
+    if (exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS) {
+      await this.sendTicketStatusGroupNotification({
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: exists.subject?.trim() || 'Sem titulo',
+        companyId: exists.companyId,
+        status: TicketStatus.IN_PROGRESS,
+        notificationType: 'testing_failed',
+        rawHeaders,
+      });
+    }
+
     return serializeMutationResponse('Ticket atualizado com sucesso.');
   }
 
@@ -1274,6 +1299,109 @@ export class TicketsService {
     }
   }
 
+  private async sendTicketStatusGroupNotification(input: {
+    ticketId: string;
+    ticketNumber: string;
+    title: string;
+    companyId: string | null;
+    status: 'TESTING' | 'IN_PROGRESS';
+    notificationType: 'testing' | 'testing_failed';
+    rawHeaders?: IncomingHttpHeaders;
+  }) {
+    const settings = await this.getTicketModuleSettings();
+    const configuredGroups =
+      input.notificationType === 'testing'
+        ? settings.testingNotificationGroups
+        : settings.testingFailedNotificationGroups;
+    const targetGroups = configuredGroups
+      .filter((group) => group.active)
+      .map((group) => ({
+        ...group,
+        jid: this.normalizeGroupRecipient(group.jid),
+      }))
+      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+
+    if (!targetGroups.length) {
+      this.logger.debug(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'ticket_status_notification_skipped_no_group',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        notificationType: input.notificationType,
+        status: input.status,
+      }));
+      return;
+    }
+
+    const connection = await this.integrationContext.getDefaultContext();
+    if (!connection) {
+      this.logger.warn(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'ticket_status_notification_skipped_no_connection',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        notificationType: input.notificationType,
+        status: input.status,
+        groupCount: targetGroups.length,
+      }));
+      return;
+    }
+
+    const company = input.companyId
+      ? await this.prisma.company.findUnique({
+          where: { id: input.companyId },
+          select: {
+            nomeFantasia: true,
+            razaoSocial: true,
+          },
+        })
+      : null;
+
+    const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
+    const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
+    const statusLabel = this.formatTicketStatusLabel(input.status);
+    const message = [
+      input.notificationType === 'testing'
+        ? 'Ticket transferido para testes'
+        : 'Ticket retornou dos testes para andamento',
+      `Estagio: ${statusLabel}`,
+      `Ticket: ${input.ticketNumber}`,
+      `Empresa: ${companyName}`,
+      `Titulo: ${input.title}`,
+      ticketUrl ? `Link: ${ticketUrl}` : undefined,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    for (const group of targetGroups) {
+      try {
+        await this.evolutionClient.sendTextMessage(connection.evolution, group.jid, message);
+        this.logger.log(JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'ticket_status_notification_sent',
+          ticketId: input.ticketId,
+          ticketNumber: input.ticketNumber,
+          notificationType: input.notificationType,
+          status: input.status,
+          groupJid: group.jid,
+          groupLabel: group.label,
+        }));
+      } catch (error: any) {
+        this.logger.warn(JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'ticket_status_notification_failed',
+          ticketId: input.ticketId,
+          ticketNumber: input.ticketNumber,
+          notificationType: input.notificationType,
+          status: input.status,
+          groupJid: group.jid,
+          groupLabel: group.label,
+          error: error?.message ?? 'unknown_error',
+        }));
+      }
+    }
+  }
+
   private normalizeLegacyTicketModuleSettings(raw: unknown): unknown {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       return raw;
@@ -1396,6 +1524,31 @@ export class TicketsService {
     if (!normalizedCategory) return null;
 
     return settings.categories.find((item) => item.value === normalizedCategory)?.label || normalizedCategory;
+  }
+
+  private formatTicketStatusLabel(status: TicketStatus): string {
+    switch (status) {
+      case TicketStatus.NEW:
+        return 'Novo';
+      case TicketStatus.UNASSIGNED:
+        return 'Sem dono';
+      case TicketStatus.TRIAGE:
+        return 'Triagem';
+      case TicketStatus.IN_PROGRESS:
+        return 'Em andamento';
+      case TicketStatus.WAITING_CUSTOMER:
+        return 'Pendente cliente';
+      case TicketStatus.WAITING_INTERNAL:
+        return 'Aguardando interno';
+      case TicketStatus.TESTING:
+        return 'Em testes';
+      case TicketStatus.RESOLVED:
+        return 'Resolvido';
+      case TicketStatus.ARCHIVED:
+        return 'Arquivado';
+      default:
+        return status;
+    }
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {

@@ -65,6 +65,8 @@ export const ticketModuleSettingsSchema = z.object({
   defaultTeam: z.enum(["SUPORTE", "DESENVOLVIMENTO"]),
   supportNotificationGroups: z.array(ticketNotificationGroupSchema).default([]),
   developmentNotificationGroups: z.array(ticketNotificationGroupSchema).default([]),
+  testingNotificationGroups: z.array(ticketNotificationGroupSchema).default([]),
+  testingFailedNotificationGroups: z.array(ticketNotificationGroupSchema).default([]),
 });
 
 export const ticketModuleSettingsResponseSchema = z.object({
@@ -217,4 +219,6 @@ export const DEFAULT_TICKET_MODULE_SETTINGS: TicketModuleSettings = {
   defaultTeam: "SUPORTE",
   supportNotificationGroups: [],
   developmentNotificationGroups: [],
+  testingNotificationGroups: [],
+  testingFailedNotificationGroups: [],
 };
