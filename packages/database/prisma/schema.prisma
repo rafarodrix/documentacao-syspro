@@ -266,6 +266,7 @@ model Company {
   cnpj                    String                       @unique
   razaoSocial             String
   nomeFantasia            String?
+  searchText              String                       @default("")
   segment                 CompanySegment?
   status                  CompanyStatus                @default(ACTIVE)
   logoUrl                 String?
@@ -350,6 +351,7 @@ model CompanyContact {
   cpf       String?              @unique
   jobTitle  String?
   notes     String?              @db.Text
+  searchText String               @default("")
   isPrimary Boolean              @default(false)
   source    CompanyContactSource @default(MANUAL)
   status    CompanyContactStatus @default(LINKED)
@@ -929,6 +931,7 @@ model Conversation {
   ticketId           String?
   ticketNumber       String?
   subject            String?
+  searchText         String                 @default("")
   resolutionSummary  String? @db.Text
   resolutionVideoUrl String?
   releaseType        String?

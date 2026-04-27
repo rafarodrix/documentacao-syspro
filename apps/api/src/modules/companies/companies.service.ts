@@ -11,6 +11,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { buildCompanySearchWhere } from '../shared/search/domain-search';
+import { buildCompanySearchText } from '../shared/search/search-index';
 import { ContactsService } from '../contacts/contacts.service';
 const COMPANY_REGISTRY_PROVIDER = process.env.COMPANY_REGISTRY_PROVIDER?.toLowerCase() ?? 'brasilapi';
 const COMPANY_REGISTRY_AUTH_URL = process.env.COMPANY_REGISTRY_AUTH_URL;
@@ -634,6 +635,7 @@ export class CompaniesService {
         data: {
           ...validData,
           cnpj: validData.cnpj,
+          searchText: buildCompanySearchText(validData),
           addresses:
             address && typeof address === 'object' && address.cep
               ? {
@@ -703,6 +705,7 @@ export class CompaniesService {
         data: {
           ...validData,
           cnpj: nextCnpj,
+          searchText: buildCompanySearchText({ ...validData, cnpj: nextCnpj }),
           accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : { disconnect: true },
           parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : { disconnect: true },
           addresses:

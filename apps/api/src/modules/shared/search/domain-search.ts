@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { normalizeSearchText } from '@dosc-syspro/shared';
 
 export type PreparedSearchTerm = {
   raw: string;
@@ -6,12 +7,20 @@ export type PreparedSearchTerm = {
   hasValue: boolean;
 };
 
+function searchTextContains(term: string) {
+  return {
+    contains: term,
+    mode: Prisma.QueryMode.insensitive,
+  } as Prisma.StringFilter;
+}
+
 export function prepareSearchTerm(query: string | null | undefined): PreparedSearchTerm {
   const raw = String(query ?? '').trim();
+  const normalized = normalizeSearchText(raw, { preserveSeparators: false });
   return {
-    raw,
+    raw: normalized,
     digits: raw.replace(/\D/g, ''),
-    hasValue: raw.length > 0,
+    hasValue: normalized.length > 0,
   };
 }
 
@@ -20,12 +29,8 @@ export function buildCompanySearchWhere(query: string | null | undefined): Prism
   if (!term.hasValue) return {};
 
   return {
-    OR: [
-      { razaoSocial: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { nomeFantasia: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      ...(term.digits ? [{ cnpj: { contains: term.digits } }] : []),
-    ],
-  };
+    searchText: searchTextContains(term.raw),
+  } as Prisma.CompanyWhereInput;
 }
 
 export function buildContactSearchWhere(query: string | null | undefined): Prisma.CompanyContactWhereInput {
@@ -34,16 +39,18 @@ export function buildContactSearchWhere(query: string | null | undefined): Prism
 
   return {
     OR: [
-      { name: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { email: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { phone: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      ...(term.digits ? [{ cpf: { contains: term.digits, mode: Prisma.QueryMode.insensitive } }] : []),
-      { jobTitle: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { whatsapp: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { companyLinks: { some: { company: { razaoSocial: { contains: term.raw, mode: Prisma.QueryMode.insensitive } } } } },
-      { companyLinks: { some: { company: { nomeFantasia: { contains: term.raw, mode: Prisma.QueryMode.insensitive } } } } },
+      { searchText: searchTextContains(term.raw) } as Prisma.CompanyContactWhereInput,
+      {
+        companyLinks: {
+          some: {
+            company: {
+              searchText: searchTextContains(term.raw),
+            } as Prisma.CompanyWhereInput,
+          },
+        },
+      } as Prisma.CompanyContactWhereInput,
     ],
-  };
+  } as Prisma.CompanyContactWhereInput;
 }
 
 export function buildTicketSearchWhere(query: string | null | undefined): Prisma.ConversationWhereInput {
@@ -52,14 +59,19 @@ export function buildTicketSearchWhere(query: string | null | undefined): Prisma
 
   return {
     OR: [
-      { subject: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { ticketNumber: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { companyContact: { name: { contains: term.raw, mode: Prisma.QueryMode.insensitive } } },
-      { companyContact: { email: { contains: term.raw, mode: Prisma.QueryMode.insensitive } } },
-      { company: { nomeFantasia: { contains: term.raw, mode: Prisma.QueryMode.insensitive } } },
-      { company: { razaoSocial: { contains: term.raw, mode: Prisma.QueryMode.insensitive } } },
+      { searchText: searchTextContains(term.raw) } as Prisma.ConversationWhereInput,
+      {
+        companyContact: {
+          searchText: searchTextContains(term.raw),
+        } as Prisma.CompanyContactWhereInput,
+      } as Prisma.ConversationWhereInput,
+      {
+        company: {
+          searchText: searchTextContains(term.raw),
+        } as Prisma.CompanyWhereInput,
+      } as Prisma.ConversationWhereInput,
     ],
-  };
+  } as Prisma.ConversationWhereInput;
 }
 
 export function buildTicketCustomerOptionCompanySearchWhere(query: string | null | undefined): Prisma.CompanyWhereInput {
@@ -74,21 +86,17 @@ export function buildTicketCustomerOptionContactSearchWhere(
 
   return {
     OR: [
-      { email: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-      { name: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
+      { searchText: searchTextContains(term.raw) } as Prisma.CompanyContactWhereInput,
       {
         companyLinks: {
           some: {
             company: {
               deletedAt: null,
-              OR: [
-                { nomeFantasia: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-                { razaoSocial: { contains: term.raw, mode: Prisma.QueryMode.insensitive } },
-              ],
-            },
+              searchText: searchTextContains(term.raw),
+            } as Prisma.CompanyWhereInput,
           },
         },
-      },
+      } as Prisma.CompanyContactWhereInput,
     ],
-  };
+  } as Prisma.CompanyContactWhereInput;
 }

@@ -9,6 +9,7 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { buildContactSearchWhere } from '../shared/search/domain-search';
+import { buildContactSearchText } from '../shared/search/search-index';
 
 type CreateContactInput = {
   name: string;
@@ -234,6 +235,14 @@ export class ContactsService {
               jobTitle,
               whatsapp,
               notes: input.notes?.trim() || null,
+              searchText: buildContactSearchText({
+                name,
+                email: input.email?.trim() || null,
+                phone,
+                cpf,
+                jobTitle,
+                whatsapp,
+              }),
               source: existing.source,
               status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
             },
@@ -265,6 +274,14 @@ export class ContactsService {
             jobTitle,
             whatsapp,
             notes: input.notes?.trim() || null,
+            searchText: buildContactSearchText({
+              name,
+              email: input.email?.trim() || null,
+              phone,
+              cpf,
+              jobTitle,
+              whatsapp,
+            }),
             source: CompanyContactSource.MANUAL,
             status: companyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK,
           },
@@ -316,6 +333,14 @@ export class ContactsService {
     if (input.companyId !== undefined || input.companyIds !== undefined) {
       data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
     }
+    data.searchText = buildContactSearchText({
+      name: data.name ?? existing.name,
+      email: data.email ?? existing.email,
+      phone: data.phone ?? existing.phone,
+      cpf: data.cpf ?? existing.cpf,
+      jobTitle: data.jobTitle ?? existing.jobTitle,
+      whatsapp: data.whatsapp ?? existing.whatsapp,
+    });
 
     const updated = await this.prisma.$transaction(
       async (tx) => {

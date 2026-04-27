@@ -41,6 +41,7 @@ import {
   buildTicketCustomerOptionContactSearchWhere,
   buildTicketSearchWhere,
 } from '../shared/search/domain-search';
+import { buildConversationSearchText } from '../shared/search/search-index';
 import { TicketHistoryService } from './ticket-history.service';
 import { TicketNotificationService } from './ticket-notification.service';
 
@@ -260,6 +261,14 @@ export class TicketsService {
         status: TicketStatus.NEW,
         priority,
         subject: data.title,
+        searchText: buildConversationSearchText({
+          subject: data.title,
+          ticketNumber,
+          contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
+          contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
+          contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
+          externalThreadId: data.externalThreadId?.trim() || null,
+        }),
         ticketNumber,
         companyId: resolvedCompanyId,
         companyContactId: resolvedContactId,
