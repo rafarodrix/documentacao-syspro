@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
+import { includesNormalizedSearch, normalizeSearchText } from "@dosc-syspro/shared";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Building2,
@@ -157,10 +158,12 @@ export function CreateContactPageForm({
   );
 
   const filteredCompanies = useMemo(() => {
-    const term = normalizeSearch(companyQuery);
+    const term = normalizeSearchText(companyQuery, { preserveSeparators: false });
     const source = term
       ? companies.filter((company) =>
-          normalizeSearch(`${company.nomeFantasia || ""} ${company.razaoSocial}`).includes(term),
+          includesNormalizedSearch(`${company.nomeFantasia || ""} ${company.razaoSocial}`, term, {
+            preserveSeparators: false,
+          }),
         )
       : companies;
 

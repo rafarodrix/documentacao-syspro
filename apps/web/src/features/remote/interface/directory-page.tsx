@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { normalizeSearchText } from "@dosc-syspro/shared";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,13 +64,7 @@ type RemotePlatformDirectoryPanelProps = {
 };
 
 function normalizeSearchValue(value: string | null | undefined) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  return normalizeSearchText(value, { preserveSeparators: false });
 }
 
 function normalizeRustDeskId(value: string) {

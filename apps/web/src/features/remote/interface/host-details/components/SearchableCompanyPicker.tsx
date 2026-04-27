@@ -1,20 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { includesNormalizedSearch } from "@dosc-syspro/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UNLINKED_COMPANY_VALUE } from "../constants";
 import { requestRemoteQuery } from "@/features/remote/interface/remote-api";
-
-function normalizeCompanySearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\p{L}\p{N}\s|/-]/gu, " ")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export function SearchableCompanyPicker({
   value,
@@ -69,9 +60,9 @@ export function SearchableCompanyPicker({
   }, [options, asyncOptions]);
 
   const filtered = useMemo(() => {
-    const q = normalizeCompanySearch(query);
+    const q = query.trim();
     if (!q) return mergedOptions;
-    return mergedOptions.filter((option) => normalizeCompanySearch(option.searchText ?? option.label).includes(q));
+    return mergedOptions.filter((option) => includesNormalizedSearch(option.searchText ?? option.label, q));
   }, [mergedOptions, query]);
   const selectedLabel =
     value === UNLINKED_COMPANY_VALUE

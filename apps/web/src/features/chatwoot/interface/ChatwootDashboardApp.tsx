@@ -16,9 +16,11 @@ import {
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   type TicketModuleSettings,
+  type TicketModuleListResponse,
 } from "@dosc-syspro/contracts/ticket";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
+import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +36,6 @@ import {
   useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { toTicketListItems } from "@/features/tickets/application/ticket-list.mapper";
-import type { TicketModuleListResponse } from "@dosc-syspro/contracts/ticket";
 import { cn } from "@/lib/utils";
 
 type ChatwootAppContext = {
@@ -95,16 +96,6 @@ function pickFirstValue(...values: unknown[]) {
 
 function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
-}
-
-function normalizeCompanySearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\p{L}\p{N}\s|/-]/gu, " ")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function getCompanyLabel(company: CompanyOption | null | undefined) {
@@ -328,13 +319,12 @@ export function ChatwootDashboardApp() {
     return companyHosts.find((host) => host.id === resolved.hostId) ?? companyHosts[0];
   }, [companyHosts, resolved.hostId]);
   const filteredCompanyOptions = useMemo(() => {
-    const q = normalizeCompanySearch(companySearchTerm);
+    const q = companySearchTerm.trim();
     if (!q) return companyOptions.slice(0, 8);
     return companyOptions
-      .filter((company) => {
-        const haystack = normalizeCompanySearch(`${company.nomeFantasia || ""} ${company.razaoSocial || ""}`);
-        return haystack.includes(q);
-      })
+      .filter((company) =>
+        includesNormalizedSearch(buildSearchText([company.nomeFantasia, company.razaoSocial]), q),
+      )
       .slice(0, 8);
   }, [companyOptions, companySearchTerm]);
   const selectedCompanyOption = useMemo(

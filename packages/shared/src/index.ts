@@ -11,6 +11,8 @@ export {
   formatPhone,
 } from "./formatters";
 export { formatRecency } from "./date";
+export { buildSearchText, includesNormalizedSearch, normalizeSearchText } from "./search";
+export type { NormalizeSearchTextOptions } from "./search";
 export { createLogger, createRequestLogger, getCorrelationIdFromRequest } from "./logger";
 export type { LogFields, LogLevel, RequestLoggerLike, RequestLoggerOptions } from "./logger";
 export { resolveRemoteOperationalStatus } from "./remote-operational-status";
