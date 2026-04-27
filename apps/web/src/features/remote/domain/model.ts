@@ -21,6 +21,7 @@ export type {
   RemotePlatformEndpoint,
   RemotePlatformModule,
   RemotePlatformOverview,
+  RemotePaginationMeta,
   RemotePlatformRoadmapPhase,
   RemotePlatformStatus,
   RemoteSessionAuditAction,

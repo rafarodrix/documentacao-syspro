@@ -5,6 +5,7 @@ import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ticketModuleDetailsResponseSchema } from "@dosc-syspro/contracts/ticket";
 import {
     AlertCircle,
     ArrowLeft,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 import { updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
+import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
@@ -42,15 +44,18 @@ import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/feature
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import type { TicketArticleItem, TicketDetailsItem } from "./types";
+import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./types";
 
 interface TicketDetailsProps {
     ticket?: TicketDetailsItem;
     articles: TicketArticleItem[];
+    messagePagination?: TicketMessagePagination;
     isAdmin: boolean;
     error?: string;
     currentUserId?: string;
 }
+
+const TICKET_HISTORY_PAGE_SIZE = 50;
 
 type InternalUserOption = {
     id: string;
@@ -60,7 +65,7 @@ type InternalUserOption = {
     isActive?: boolean;
 };
 
-export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId }: TicketDetailsProps) {
+export function TicketDetails({ ticket, articles, messagePagination, isAdmin, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -72,6 +77,9 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
     const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
     const [localPriority, setLocalPriority] = useState(ticket?.priority);
     const [transferNote, setTransferNote] = useState("");
+    const [timelineArticles, setTimelineArticles] = useState<TicketArticleItem[]>(() => (ticket ? withTechnicalResourceArticles(articles || [], ticket) : (articles || [])));
+    const [timelinePagination, setTimelinePagination] = useState<TicketMessagePagination | undefined>(messagePagination);
+    const [isLoadingOlderArticles, setIsLoadingOlderArticles] = useState(false);
     const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
     void currentUserId;
@@ -112,6 +120,14 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         setLocalPriority(ticket?.priority);
         setTransferNote("");
     }, [ticket?.id, ticket?.operations?.category, ticket?.operations?.currentTeam, ticket?.operations?.module, ticket?.priority]);
+
+    useEffect(() => {
+        setTimelineArticles(ticket ? withTechnicalResourceArticles(articles || [], ticket) : (articles || []));
+    }, [articles, ticket]);
+
+    useEffect(() => {
+        setTimelinePagination(messagePagination);
+    }, [messagePagination]);
 
     const changeStatus = (status: TicketModuleStatus) => {
         if (!ticket) return;
@@ -232,11 +248,53 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
         );
     }
 
-    const timelineArticles = withTechnicalResourceArticles(articles || [], ticket);
     const categoryOptions = getCategoriesForTeam(ticketSettings.categories, currentTeam, currentCategory);
     const canManageRelease = currentTeam === "DESENVOLVIMENTO" || Boolean(ticket.publishToReleases);
     const supportUsers = getAssignableUsers(internalUsers, "SUPORTE");
     const developmentUsers = getAssignableUsers(internalUsers, "DESENVOLVIMENTO");
+
+    const loadOlderArticles = async () => {
+        if (!ticket || isLoadingOlderArticles || !timelinePagination?.hasNextPage) {
+            return false;
+        }
+
+        setIsLoadingOlderArticles(true);
+        try {
+            const query = new URLSearchParams({
+                page: String(timelinePagination.page + 1),
+                pageSize: String(timelinePagination.pageSize || TICKET_HISTORY_PAGE_SIZE),
+            });
+            const response = await fetch(`/api/tickets/${ticket.id}?${query.toString()}`, {
+                cache: "no-store",
+            });
+            const payload = ticketModuleDetailsResponseSchema.parse(await response.json());
+            const mapped = mapTicketModuleDetailsResponse(payload);
+
+            if (!mapped.success) {
+                toast.error(mapped.error || "Nao foi possivel carregar o historico anterior.");
+                return false;
+            }
+
+            const nextArticles = withTechnicalResourceArticles(mapped.articles, ticket);
+            setTimelineArticles((current) => {
+                const seen = new Set<string>();
+                return [...nextArticles, ...current].filter((article) => {
+                    const key = String(article.id);
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            });
+            setTimelinePagination(mapped.messagePagination);
+            return true;
+        } catch (loadError) {
+            console.error("Erro ao carregar historico anterior do ticket:", loadError);
+            toast.error("Nao foi possivel carregar o historico anterior.");
+            return false;
+        } finally {
+            setIsLoadingOlderArticles(false);
+        }
+    };
 
     return (
         <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -270,7 +328,14 @@ export function TicketDetails({ ticket, articles, isAdmin, error, currentUserId 
 
             <div className="grid grid-cols-1 gap-6 px-4 pb-10 md:px-0 lg:grid-cols-12">
                 <div className="min-w-0 space-y-6 lg:col-span-8">
-                    <TicketChat ticketId={String(ticket.id)} articles={timelineArticles} ticketStatus={ticket.status || ""} />
+                    <TicketChat
+                        ticketId={String(ticket.id)}
+                        articles={timelineArticles}
+                        ticketStatus={ticket.status || ""}
+                        messagePagination={timelinePagination}
+                        isLoadingOlder={isLoadingOlderArticles}
+                        onLoadOlder={loadOlderArticles}
+                    />
                 </div>
 
                 <aside className="min-w-0 space-y-4 lg:col-span-4">

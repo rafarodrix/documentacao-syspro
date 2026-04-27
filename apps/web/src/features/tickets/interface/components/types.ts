@@ -2,6 +2,7 @@ export type {
   TicketArticleItem,
   TicketDetailsItem,
   TicketListItem,
+  TicketMessagePagination,
   TicketPriorityLevel,
   TicketsPagination,
   TicketStatusCounts,

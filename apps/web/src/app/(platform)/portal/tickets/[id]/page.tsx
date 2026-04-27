@@ -19,12 +19,12 @@ export default async function ClientTicketPage({ params }: PageProps) {
       return <TicketDetails articles={[]} error="Identificador do chamado invalido." isAdmin={isAdmin} currentUserId={session?.userId} />;
     }
 
-    const result = await getTicketDetailsAction(ticketId);
+    const result = await getTicketDetailsAction(ticketId, { page: 1, pageSize: 50 });
     if (!result.success) {
       return <TicketDetails articles={[]} error={result.error} isAdmin={isAdmin} currentUserId={session?.userId} />;
     }
 
-    return <TicketDetails ticket={result.ticket} articles={result.articles} isAdmin={isAdmin} currentUserId={session?.userId} />;
+    return <TicketDetails ticket={result.ticket} articles={result.articles} messagePagination={result.messagePagination} isAdmin={isAdmin} currentUserId={session?.userId} />;
   } catch (error) {
     console.error("Erro ao abrir pagina do ticket:", error);
     return <TicketDetails articles={[]} error="Falha ao abrir o chamado. Tente novamente." isAdmin={isAdmin} currentUserId={session?.userId} />;

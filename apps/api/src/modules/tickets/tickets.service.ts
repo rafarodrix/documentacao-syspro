@@ -8,6 +8,7 @@ import type {
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
 import { DEFAULT_TICKET_MODULE_SETTINGS, ticketModuleSettingsSchema } from '@dosc-syspro/contracts/ticket';
+import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
   ConversationAssignmentType as TicketAssignmentType,
@@ -591,39 +592,51 @@ export class TicketsService {
     });
   }
 
-  async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
+  async findOne(id: string, input?: { page?: string; pageSize?: string }, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
+    const page = Math.max(1, Number.parseInt(input?.page || '1', 10) || 1);
+    const pageSize = Math.min(100, Math.max(10, Number.parseInt(input?.pageSize || '50', 10) || 50));
+    const skip = (page - 1) * pageSize;
 
-    const ticket = await this.prisma.conversation.findUnique({
-      where: { id },
-      include: {
-        company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
-        companyContact: { select: { id: true, name: true, email: true, whatsapp: true } },
-        assignedUser: { select: { id: true, name: true, email: true } },
-        resolvedByUser: { select: { id: true, name: true, email: true } },
-        messages: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            authorUser: { select: { id: true, name: true, email: true } },
-            authorContact: { select: { id: true, name: true } },
+    const [ticket, totalMessages] = await this.prisma.$transaction([
+      this.prisma.conversation.findUnique({
+        where: { id },
+        include: {
+          company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
+          companyContact: { select: { id: true, name: true, email: true, whatsapp: true } },
+          assignedUser: { select: { id: true, name: true, email: true } },
+          resolvedByUser: { select: { id: true, name: true, email: true } },
+          messages: {
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip,
+            take: pageSize,
+            include: {
+              authorUser: { select: { id: true, name: true, email: true } },
+              authorContact: { select: { id: true, name: true } },
+            },
           },
         },
-        assignments: {
-          orderBy: { createdAt: 'desc' },
-          include: {
-            assignedUser: { select: { id: true, name: true, email: true } },
-            assignedByUser: { select: { id: true, name: true, email: true } },
-            transferFromUser: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
-    });
+      }),
+      this.prisma.conversationMessage.count({
+        where: { conversationId: id },
+      }),
+    ]);
 
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(ticket.companyId, accessScope);
 
-    return serializeTicketDetailsResponse(ticket);
+    const orderedMessages = [...ticket.messages].reverse();
+
+    return serializeTicketDetailsResponse(
+      {
+        ...ticket,
+        messages: orderedMessages,
+      },
+      {
+        ...buildPaginationMeta({ page, pageSize, total: totalMessages }),
+      },
+    );
   }
 
   async reply(id: string, message: string | undefined, visibility: 'PUBLIC' | 'INTERNAL' = 'INTERNAL', rawHeaders?: IncomingHttpHeaders) {

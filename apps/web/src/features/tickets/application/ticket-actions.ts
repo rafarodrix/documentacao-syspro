@@ -14,11 +14,12 @@ import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketV
 import {
   createTicketGateway,
   fetchLinkedCompaniesGateway,
-  fetchTicketDetailsGateway,
+  fetchTicketDetailsPageGateway,
   fetchTicketsGateway,
   replyTicketGateway,
   updateTicketGateway,
 } from "@/features/tickets/infrastructure";
+import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import type {
   TicketDetailsResponse,
   TicketMutationResponse,
@@ -349,87 +350,13 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
   }
 }
 
-export async function getTicketDetailsAction(ticketId: string): Promise<TicketDetailsResponse> {
+export async function getTicketDetailsAction(ticketId: string, params?: { page?: number; pageSize?: number }): Promise<TicketDetailsResponse> {
   const session = await getProtectedSession();
   if (!session) return { success: false, error: "Nao autorizado" };
 
   try {
-    const response = await fetchTicketDetailsGateway(ticketId);
-    if (!response.success || !response.data) {
-      return { success: false, error: response.error || "Chamado nao encontrado." };
-    }
-
-    const ticket = response.data;
-    const sla = calculateSlaState(ticket);
-
-    return {
-      success: true,
-      ticket: {
-        id: ticket.id,
-        title: ticket.subject || "Sem assunto",
-        status: mapStatusLabel(ticket.status),
-        number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
-        priority: mapPriorityToLevel(ticket.priority),
-        companyId: ticket.companyId,
-        companyName: ticket.company?.nomeFantasia || ticket.company?.razaoSocial || null,
-        ownerId: ticket.assignedUserId,
-        ownerName: ticket.assignedUser?.name || ticket.assignedUser?.email || readStringMetadata(ticket.metadata, "currentOwnerName"),
-        updatedAt: ticket.updatedAt,
-        firstResponseAt: ticket.slaResponseHitAt ?? null,
-        resolvedAt: ticket.closedAt,
-        slaResponseDueAt: ticket.slaResponseDueAt ?? null,
-        slaResolutionDueAt: ticket.slaResolutionDueAt ?? null,
-        slaResponseHitAt: ticket.slaResponseHitAt ?? null,
-        slaResolutionHitAt: ticket.slaResolutionHitAt ?? null,
-        resolvedByName: ticket.resolvedByUser?.name || ticket.resolvedByUser?.email || readStringMetadata(ticket.metadata, "resolvedByName"),
-        resolutionSummary: ticket.resolutionSummary || null,
-        resolutionVideoUrl: ticket.resolutionVideoUrl || null,
-        releaseType: ticket.releaseType || null,
-        releaseTitle: ticket.releaseTitle || readStringMetadata(ticket.metadata, "releaseTitle"),
-        releaseModule: ticket.releaseModule || null,
-        publishToReleases: Boolean(ticket.publishToReleases),
-        ...sla,
-        origin: {
-          source: readStringMetadata(ticket.metadata, "source"),
-          externalThreadId: ticket.externalThreadId || null,
-          contactName: ticket.contactNameSnapshot || null,
-          contactPhone: ticket.contactPhoneSnapshot || null,
-          contactWhatsapp: ticket.contactWhatsappSnapshot || null,
-          chatwootConversationId: readStringMetadata(ticket.metadata, "chatwootConversationId"),
-          chatwootContactId: readStringMetadata(ticket.metadata, "chatwootContactId"),
-          chatwootAccountId: readStringMetadata(ticket.metadata, "chatwootAccountId"),
-          chatwootConversationUrl: readStringMetadata(ticket.metadata, "chatwootConversationUrl"),
-        },
-        operations: {
-          openedByName: readNullableMetadata(ticket.metadata, "openedByName"),
-          openedByEmail: readNullableMetadata(ticket.metadata, "openedByEmail"),
-          openedByRole: readNullableMetadata(ticket.metadata, "openedByRole"),
-          currentTeam: readNullableMetadata(ticket.metadata, "currentTeam"),
-          category: readNullableMetadata(ticket.metadata, "category"),
-          module: readNullableMetadata(ticket.metadata, "module"),
-          databaseUrl: readNullableMetadata(ticket.metadata, "databaseUrl"),
-          developmentVideoUrl: readNullableMetadata(ticket.metadata, "developmentVideoUrl"),
-          supportOwnerUserId: readNullableMetadata(ticket.metadata, "supportOwnerUserId"),
-          supportOwnerName: readNullableMetadata(ticket.metadata, "supportOwnerName"),
-          developmentOwnerUserId: readNullableMetadata(ticket.metadata, "developmentOwnerUserId"),
-          developmentOwnerName: readNullableMetadata(ticket.metadata, "developmentOwnerName"),
-        },
-        createdAt: new Date(ticket.createdAt).toLocaleDateString("pt-BR"),
-      },
-      articles: (ticket.messages || []).map((message: NonNullable<TicketModuleRecord["messages"]>[number]) => ({
-        id: message.id,
-        from:
-          message.authorUser?.email ||
-          message.authorUser?.name ||
-          message.authorContact?.name ||
-          "Sistema",
-        body: message.body || "",
-        createdAt: new Date(message.createdAt).toLocaleString("pt-BR"),
-        sender: message.direction === "INBOUND" ? "Customer" : "Agent",
-        isInternal: message.direction === "INTERNAL",
-        messageType: message.type,
-      })),
-    };
+    const response = await fetchTicketDetailsPageGateway(ticketId, params);
+    return mapTicketModuleDetailsResponse(response);
   } catch (error) {
     console.error("Erro ao carregar detalhes do chamado:", error);
     return { success: false, error: "Chamado nao encontrado." };

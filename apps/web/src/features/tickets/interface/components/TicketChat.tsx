@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Bot, FileText, Headset, History, Loader2, MessageSquareText, Paperclip, Send, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TicketArticleItem } from "./types";
+import type { TicketArticleItem, TicketMessagePagination } from "./types";
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
@@ -33,13 +33,18 @@ interface TicketChatProps {
     ticketId: string;
     articles: TicketArticleItem[];
     ticketStatus: string;
+    messagePagination?: TicketMessagePagination;
+    isLoadingOlder?: boolean;
+    onLoadOlder?: () => Promise<boolean> | boolean;
 }
 
-export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps) {
+export function TicketChat({ ticketId, articles, ticketStatus, messagePagination, isLoadingOlder = false, onLoadOlder }: TicketChatProps) {
+    const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+    const pendingScrollRestoreRef = useRef<{ viewport: HTMLElement; scrollHeight: number; scrollTop: number } | null>(null);
     const {
         message, setMessage, files, addFiles, removeFile,
         isPending, scrollRef, handleSend, isMe, isSystem,
-    } = useTicketChat(ticketId, articles);
+    } = useTicketChat(ticketId, articles, autoScrollEnabled);
 
     const [messageMode, setMessageMode] = useState<"PUBLIC" | "INTERNAL">("PUBLIC");
     const [isDragging, setIsDragging] = useState(false);
@@ -53,14 +58,49 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
     const historyArticles = articles.filter((article) => isHistoryArticle(article, isSystem));
     const conversationArticles = articles.filter((article) => !isHistoryArticle(article, isSystem));
     const composerIsInternal = messageMode === "INTERNAL";
+    const hasOlderArticles = Boolean(messagePagination?.hasNextPage);
 
     useEffect(() => {
         setQuickTemplates(ticketSettings.quickReplyTemplates);
     }, [ticketSettings]);
 
+    useEffect(() => {
+        const pendingRestore = pendingScrollRestoreRef.current;
+        if (!pendingRestore) return;
+
+        requestAnimationFrame(() => {
+            const heightDelta = pendingRestore.viewport.scrollHeight - pendingRestore.scrollHeight;
+            pendingRestore.viewport.scrollTop = pendingRestore.scrollTop + Math.max(0, heightDelta);
+            pendingScrollRestoreRef.current = null;
+            setAutoScrollEnabled(true);
+        });
+    }, [articles]);
+
     const insertTemplate = (body: string) => {
         const html = body.trim().startsWith("<") ? body : `<p>${body}</p>`;
         setMessage((current) => `${current || ""}${current ? "<p><br></p>" : ""}${html}`);
+    };
+
+    const handleLoadOlder = async (container: HTMLDivElement | null) => {
+        if (!onLoadOlder || !container || isLoadingOlder || !hasOlderArticles) {
+            return;
+        }
+
+        const viewport = container.querySelector("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+        if (viewport) {
+            pendingScrollRestoreRef.current = {
+                viewport,
+                scrollHeight: viewport.scrollHeight,
+                scrollTop: viewport.scrollTop,
+            };
+            setAutoScrollEnabled(false);
+        }
+
+        const loaded = await onLoadOlder();
+        if (!loaded) {
+            pendingScrollRestoreRef.current = null;
+            setAutoScrollEnabled(true);
+        }
     };
 
     return (
@@ -87,6 +127,9 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             isMe={isMe}
                             isSystem={isSystem}
                             scrollRef={scrollRef}
+                            hasOlderArticles={hasOlderArticles}
+                            isLoadingOlder={isLoadingOlder}
+                            onLoadOlder={handleLoadOlder}
                         />
                     </TabsContent>
 
@@ -97,6 +140,9 @@ export function TicketChat({ ticketId, articles, ticketStatus }: TicketChatProps
                             isMe={isMe}
                             isSystem={isSystem}
                             scrollRef={undefined}
+                            hasOlderArticles={hasOlderArticles}
+                            isLoadingOlder={isLoadingOlder}
+                            onLoadOlder={handleLoadOlder}
                         />
                     </TabsContent>
                 </Tabs>
@@ -228,116 +274,142 @@ function Timeline({
     isMe,
     isSystem,
     scrollRef,
+    hasOlderArticles,
+    isLoadingOlder,
+    onLoadOlder,
 }: {
     articles: TicketArticleItem[];
     emptyLabel: string;
     isMe: (from: string) => boolean;
     isSystem: (from: string) => boolean;
     scrollRef?: RefObject<HTMLDivElement | null>;
+    hasOlderArticles: boolean;
+    isLoadingOlder: boolean;
+    onLoadOlder: (container: HTMLDivElement | null) => Promise<void | boolean>;
 }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
     return (
-        <ScrollArea className="h-130 w-full max-w-full overflow-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40 **:data-radix-scroll-area-viewport:overflow-x-hidden">
-            <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden p-4">
-                {articles.length === 0 && (
-                    <div className="rounded-lg border border-dashed bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground">
-                        {emptyLabel}
-                    </div>
-                )}
+        <div ref={containerRef} className="w-full">
+            <ScrollArea className="h-130 w-full max-w-full overflow-hidden bg-[hsl(var(--muted))]/20 dark:bg-[hsl(var(--background))]/40 **:data-radix-scroll-area-viewport:overflow-x-hidden">
+                <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden p-4">
+                    {hasOlderArticles && (
+                        <div className="flex justify-center">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full text-xs"
+                                disabled={isLoadingOlder}
+                                onClick={() => void onLoadOlder(containerRef.current)}
+                            >
+                                {isLoadingOlder ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+                                Carregar mensagens anteriores
+                            </Button>
+                        </div>
+                    )}
 
-                {articles.map((article) => {
-                    const technicalResource = isTechnicalResourceArticle(article);
-                    const messageIsMe = !technicalResource && (article.sender === "Agent" || isMe(article.from));
-                    const messageIsSystem = (isSystem(article.from) || article.messageType === "SYSTEM_EVENT") && !technicalResource;
+                    {articles.length === 0 && (
+                        <div className="rounded-lg border border-dashed bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground">
+                            {emptyLabel}
+                        </div>
+                    )}
 
-                    if (messageIsSystem) {
-                        const historyEvent = parseHistoryEvent(article.body);
-                        return (
-                            <div key={article.id} className="flex min-w-0 max-w-full justify-center overflow-hidden">
-                                <div className="w-full max-w-2xl rounded-2xl border border-border/70 bg-background/90 p-3 shadow-sm">
-                                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                        <Bot className="h-3.5 w-3.5 shrink-0" />
-                                        <span className="min-w-0 flex-1 wrap-anywhere">{historyEvent.title}</span>
-                                        <span className="shrink-0 opacity-70">{article.createdAt}</span>
-                                    </div>
-                                    {historyEvent.details.length > 0 && (
-                                        <div className="mt-3 space-y-2">
-                                            {historyEvent.details.map((detail, index) => (
-                                                <div key={`${article.id}-detail-${index}`} className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2 text-xs text-foreground">
-                                                    {detail.includes("->") ? (
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <span className="font-medium text-muted-foreground">{detail.split("->")[0]?.trim()}</span>
-                                                            <span className="font-mono text-[11px] text-foreground">{detail.split("->")[1] ? `-> ${detail.split("->")[1]?.trim()}` : ""}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="wrap-anywhere">{detail}</span>
-                                                    )}
-                                                </div>
-                                            ))}
+                    {articles.map((article) => {
+                        const technicalResource = isTechnicalResourceArticle(article);
+                        const messageIsMe = !technicalResource && (article.sender === "Agent" || isMe(article.from));
+                        const messageIsSystem = (isSystem(article.from) || article.messageType === "SYSTEM_EVENT") && !technicalResource;
+
+                        if (messageIsSystem) {
+                            const historyEvent = parseHistoryEvent(article.body);
+                            return (
+                                <div key={article.id} className="flex min-w-0 max-w-full justify-center overflow-hidden">
+                                    <div className="w-full max-w-2xl rounded-2xl border border-border/70 bg-background/90 p-3 shadow-sm">
+                                        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                                            <Bot className="h-3.5 w-3.5 shrink-0" />
+                                            <span className="min-w-0 flex-1 wrap-anywhere">{historyEvent.title}</span>
+                                            <span className="shrink-0 opacity-70">{article.createdAt}</span>
                                         </div>
-                                    )}
+                                        {historyEvent.details.length > 0 && (
+                                            <div className="mt-3 space-y-2">
+                                                {historyEvent.details.map((detail, index) => (
+                                                    <div key={`${article.id}-detail-${index}`} className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2 text-xs text-foreground">
+                                                        {detail.includes("->") ? (
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="font-medium text-muted-foreground">{detail.split("->")[0]?.trim()}</span>
+                                                                <span className="font-mono text-[11px] text-foreground">{detail.split("->")[1] ? `-> ${detail.split("->")[1]?.trim()}` : ""}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="wrap-anywhere">{detail}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
+                            );
+                        }
+
+                        return (
+                            <div key={article.id} className={cn("grid min-w-0 max-w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3", messageIsMe && "grid-cols-[minmax(0,1fr)_2.25rem]")}>
+                                {!messageIsMe && (
+                                    <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
+                                        <AvatarFallback className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
+                                            <Headset className="h-4 w-4" />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                )}
+
+                                <div className={cn("flex min-w-0 max-w-full flex-col", messageIsMe && "items-end")}>
+                                    <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", messageIsMe && "justify-end")}>
+                                        <span className="min-w-0 max-w-55 truncate text-xs font-medium">
+                                            {messageIsMe ? "Voce" : article.from.split("<")[0]}
+                                        </span>
+                                        {article.isInternal && (
+                                            <span className="max-w-full wrap-break-word rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                                                Nota Interna
+                                            </span>
+                                        )}
+                                        <span className="shrink-0 text-[10px] text-muted-foreground">{article.createdAt}</span>
+                                    </div>
+
+                                    <div
+                                        className={cn(
+                                            "prose prose-sm min-w-0 w-fit max-w-[min(100%,42rem)]! rounded-2xl p-3 text-sm shadow-sm wrap-anywhere **:max-w-full **:wrap-anywhere",
+                                            "[&_p]:whitespace-normal [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word",
+                                            "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:whitespace-pre-wrap",
+                                            "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
+                                            "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-xl [&_table]:border [&_table]:border-border/70",
+                                            "[&_thead]:bg-muted/60 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35",
+                                            "[&_th]:border [&_th]:border-border/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:align-top [&_th]:font-semibold [&_th]:text-foreground",
+                                            "[&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-foreground",
+                                            "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0",
+                                            article.isInternal
+                                                ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
+                                                : messageIsMe
+                                                    ? "rounded-tr-sm bg-primary text-primary-foreground **:text-primary-foreground"
+                                                    : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
+                                        )}
+                                        dangerouslySetInnerHTML={{ __html: article.body }}
+                                    />
+                                </div>
+
+                                {messageIsMe && (
+                                    <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
+                                        <AvatarFallback className="bg-primary/20 text-primary">
+                                            <User className="h-4 w-4" />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                )}
                             </div>
                         );
-                    }
+                    })}
 
-                    return (
-                        <div key={article.id} className={cn("grid min-w-0 max-w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3", messageIsMe && "grid-cols-[minmax(0,1fr)_2.25rem]")}>
-                            {!messageIsMe && (
-                                <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
-                                    <AvatarFallback className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
-                                        <Headset className="h-4 w-4" />
-                                    </AvatarFallback>
-                                </Avatar>
-                            )}
-
-                            <div className={cn("flex min-w-0 max-w-full flex-col", messageIsMe && "items-end")}>
-                                <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", messageIsMe && "justify-end")}>
-                                    <span className="min-w-0 max-w-55 truncate text-xs font-medium">
-                                        {messageIsMe ? "Voce" : article.from.split("<")[0]}
-                                    </span>
-                                    {article.isInternal && (
-                                        <span className="max-w-full wrap-break-word rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
-                                            Nota Interna
-                                        </span>
-                                    )}
-                                    <span className="shrink-0 text-[10px] text-muted-foreground">{article.createdAt}</span>
-                                </div>
-
-                                <div
-                                    className={cn(
-                                        "prose prose-sm min-w-0 w-fit max-w-[min(100%,42rem)]! rounded-2xl p-3 text-sm shadow-sm wrap-anywhere **:max-w-full **:wrap-anywhere",
-                                        "[&_p]:whitespace-normal [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word",
-                                        "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:whitespace-pre-wrap",
-                                        "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
-                                        "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-xl [&_table]:border [&_table]:border-border/70",
-                                        "[&_thead]:bg-muted/60 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35",
-                                        "[&_th]:border [&_th]:border-border/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:align-top [&_th]:font-semibold [&_th]:text-foreground",
-                                        "[&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-foreground",
-                                        "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0",
-                                        article.isInternal
-                                            ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
-                                            : messageIsMe
-                                                ? "rounded-tr-sm bg-primary text-primary-foreground **:text-primary-foreground"
-                                                : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
-                                    )}
-                                    dangerouslySetInnerHTML={{ __html: article.body }}
-                                />
-                            </div>
-
-                            {messageIsMe && (
-                                <Avatar className="h-9 w-9 shrink-0 border shadow-sm">
-                                    <AvatarFallback className="bg-primary/20 text-primary">
-                                        <User className="h-4 w-4" />
-                                    </AvatarFallback>
-                                </Avatar>
-                            )}
-                        </div>
-                    );
-                })}
-
-                {scrollRef && <div ref={scrollRef} className="h-px w-full" />}
-            </div>
-        </ScrollArea>
+                    {scrollRef && <div ref={scrollRef} className="h-px w-full" />}
+                </div>
+            </ScrollArea>
+        </div>
     );
 }
 

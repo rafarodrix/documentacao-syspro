@@ -75,8 +75,8 @@ export class TicketsController {
   }
 
   @Get(':id')
-  findOne(@Req() req: Request, @Param('id') id: string) {
-    return this.ticketsService.findOne(id, req.headers);
+  findOne(@Req() req: Request, @Param('id') id: string, @Query('page') page?: string, @Query('pageSize') pageSize?: string) {
+    return this.ticketsService.findOne(id, { page, pageSize }, req.headers);
   }
 
   @Post(':id/reply')

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Activity, Clock, History, Monitor, Ticket, User, Filter } from "lucide-react";
 import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
 import { cn } from "@/lib/utils";
-import type { RemoteSessionSummary, RemoteSessionStatus } from "@/features/remote/domain/model";
+import type { RemotePaginationMeta, RemoteSessionSummary, RemoteSessionStatus } from "@/features/remote/domain/model";
 import { formatDateOnly, formatDateTime } from "./host-details/utils";
 
 interface SessionItem extends RemoteSessionSummary {
@@ -28,14 +28,7 @@ type StatusFilter = "ALL" | "ACTIVE" | RemoteSessionStatus;
 
 interface RemoteSessionsPanelProps {
   sessions: SessionItem[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
-  };
+  pagination: RemotePaginationMeta;
   hostOptions: Array<{ id: string; name: string }>;
   filters: {
     status: StatusFilter;

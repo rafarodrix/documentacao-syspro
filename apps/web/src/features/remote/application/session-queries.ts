@@ -1,5 +1,4 @@
-import type { RemoteTenantScope } from "@/features/remote/domain/model";
-import type { RemoteSessionStatus, RemotePlatformOverview } from "@/features/remote/domain/model";
+import type { RemotePaginationMeta, RemotePlatformOverview, RemoteSessionStatus, RemoteTenantScope } from "@/features/remote/domain/model";
 import { fetchRemoteSessionsGateway } from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
 
 export async function getRemoteSessions(
@@ -13,14 +12,7 @@ export async function getRemoteSessions(
   }
 ): Promise<{
   sessions: RemotePlatformOverview["recentSessions"];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
-  };
+  pagination: RemotePaginationMeta;
   hostOptions: Array<{ id: string; name: string }>;
 }> {
   return fetchRemoteSessionsGateway(options);

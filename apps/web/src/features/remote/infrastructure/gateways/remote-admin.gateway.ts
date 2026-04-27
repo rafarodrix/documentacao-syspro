@@ -1,6 +1,7 @@
 import { callWebApi } from "@/lib/web-api";
 import type {
   RemoteHostDetails,
+  RemotePaginationMeta,
   RemotePlatformDirectory,
   RemotePlatformOverview,
   RemoteSessionStatus,
@@ -36,14 +37,7 @@ export async function fetchRemoteSessionsGateway(options?: {
 
   return callWebApi(`/api/remote-admin/sessions${search ? `?${search}` : ""}`).then((res) => res.json() as Promise<{
     sessions: RemotePlatformOverview["recentSessions"];
-    pagination: {
-      page: number;
-      pageSize: number;
-      total: number;
-      totalPages: number;
-      hasPreviousPage: boolean;
-      hasNextPage: boolean;
-    };
+    pagination: RemotePaginationMeta;
     hostOptions: Array<{ id: string; name: string }>;
   }>);
 }

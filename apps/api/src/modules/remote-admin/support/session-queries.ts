@@ -1,5 +1,7 @@
 import { buildScopedWhere, prisma } from "@dosc-syspro/database";
+import { buildPaginationMeta } from "@dosc-syspro/contracts";
 import type { RemoteTenantScope, RemoteSessionStatus, RemotePlatformOverview } from "./model";
+import type { RemotePaginationMeta } from "@dosc-syspro/contracts/remote";
 
 export async function getRemoteSessions(
   tenantScope: RemoteTenantScope,
@@ -12,14 +14,7 @@ export async function getRemoteSessions(
   }
 ): Promise<{
   sessions: RemotePlatformOverview["recentSessions"];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
-  };
+  pagination: RemotePaginationMeta;
   hostOptions: Array<{ id: string; name: string }>;
 }> {
   const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
@@ -91,12 +86,8 @@ export async function getRemoteSessions(
       endedAt: session.endedAt?.toISOString() ?? null,
     })),
     pagination: {
-      page,
-      pageSize,
-      total,
       totalPages,
-      hasPreviousPage: page > 1,
-      hasNextPage: page < totalPages,
+      ...buildPaginationMeta({ page, pageSize, total }),
     },
     hostOptions,
   };

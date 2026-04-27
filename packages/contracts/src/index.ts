@@ -18,6 +18,8 @@ export type { SefazConfig, SefazRoutePreset } from "./sefaz/sefaz-endpoints.type
 
 export { addressSchema } from "./shared/address.types";
 export type { AddressInput } from "./shared/address.types";
+export { buildPaginationMeta, paginationMetaSchema, paginationQuerySchema } from "./shared/pagination.types";
+export type { PaginationMeta, PaginationQuery } from "./shared/pagination.types";
 
 // Context exports
 export * from "./company/index";

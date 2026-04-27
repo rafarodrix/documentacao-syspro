@@ -9,6 +9,8 @@ import type {
   TicketModuleRecord,
   TicketModuleUser,
 } from '@dosc-syspro/contracts/ticket';
+import { buildPaginationMeta } from '@dosc-syspro/contracts';
+import type { PaginationMeta } from '@dosc-syspro/contracts';
 
 type NullableRecord = Record<string, unknown> | null;
 
@@ -164,10 +166,14 @@ export function serializeMutationResponse(message?: string): TicketModuleMutatio
   };
 }
 
-export function serializeTicketDetailsResponse(ticket: TicketRecordSource): TicketModuleDetailsResponse {
+export function serializeTicketDetailsResponse(
+  ticket: TicketRecordSource,
+  messagePagination?: PaginationMeta,
+): TicketModuleDetailsResponse {
   return {
     success: true,
     data: serializeTicketRecord(ticket),
+    ...(messagePagination ? { messagePagination } : {}),
   };
 }
 
@@ -191,11 +197,7 @@ export function serializeTicketListResponse(input: {
     success: true,
     data: items.map(serializeTicketRecord),
     pagination: {
-      page,
-      pageSize,
-      total,
-      hasNextPage: page * pageSize < total,
-      hasPreviousPage: page > 1,
+      ...buildPaginationMeta({ page, pageSize, total }),
     },
     queueCounts: input.queueCounts ?? {
       all: total,

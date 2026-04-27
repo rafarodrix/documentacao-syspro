@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
 
 export const TICKET_MODULE_STATUS_VALUES = [
   "NEW",
@@ -100,9 +101,7 @@ export const ticketModuleTriageRequestSchema = z.object({
   category: optionalTrimmedStringSchema,
 });
 
-export const ticketModuleListQuerySchema = z.object({
-  page: z.string().optional(),
-  pageSize: z.string().optional(),
+export const ticketModuleListQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
   status: z.string().optional(),
   statusGroup: z.enum(["open", "pending", "closed", "all"]).optional(),
@@ -193,13 +192,7 @@ export const ticketModuleMutationResponseSchema = z.object({
 export const ticketModuleListResponseSchema = z.object({
   success: z.boolean(),
   data: z.array(ticketModuleRecordSchema).optional(),
-  pagination: z.object({
-    page: z.number().int().positive(),
-    pageSize: z.number().int().positive(),
-    total: z.number().int().nonnegative(),
-    hasNextPage: z.boolean(),
-    hasPreviousPage: z.boolean(),
-  }).optional(),
+  pagination: paginationMetaSchema.optional(),
   queueCounts: ticketModuleQueueCountsSchema.optional(),
   statusCounts: ticketModuleStatusCountsSchema.optional(),
   error: z.string().optional(),
@@ -208,6 +201,7 @@ export const ticketModuleListResponseSchema = z.object({
 export const ticketModuleDetailsResponseSchema = z.object({
   success: z.boolean(),
   data: ticketModuleRecordSchema.optional(),
+  messagePagination: paginationMetaSchema.optional(),
   error: z.string().optional(),
 });
 

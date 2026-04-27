@@ -157,11 +157,21 @@ export interface TicketArticleItem {
     messageType?: string | null;
 }
 
+export interface TicketMessagePagination {
+    page: number;
+    pageSize: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    total: number;
+    loadedCount: number;
+}
+
 export type TicketDetailsResponse =
     | {
         success: true;
         ticket: TicketDetailsItem;
         articles: TicketArticleItem[];
+        messagePagination: TicketMessagePagination;
       }
     | TicketActionFailure;
 

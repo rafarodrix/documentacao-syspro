@@ -7,7 +7,7 @@ import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
 import { useSession } from "@/lib/auth-client";
 import { fileToBase64 } from "@/features/tickets/application/utils";
 
-export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
+export function useTicketChat(ticketId: string, articles: TicketArticleItem[], autoScrollEnabled = true) {
     const [message, setMessage] = useState("");
     const [files, setFiles] = useState<File[]>([]);
     const [isPending, startTransition] = useTransition();
@@ -17,6 +17,10 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
     const currentUserEmail = session?.user?.email;
 
     useEffect(() => {
+        if (!autoScrollEnabled) {
+            return;
+        }
+
         const marker = scrollRef.current;
         if (!marker) return;
 
@@ -30,7 +34,7 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[]) {
             viewport.scrollLeft = 0;
             viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
         });
-    }, [articles]);
+    }, [articles, autoScrollEnabled]);
 
     const handleSend = (visibility: "PUBLIC" | "INTERNAL" = "PUBLIC") => {
         const trimmed = message.trim();

@@ -1,4 +1,5 @@
 import type { RemoteModuleSettings } from "./remote-module-settings.types";
+import type { PaginationMeta } from "../shared/pagination.types";
 
 type RemoteDirectoryModuleSettings = RemoteModuleSettings & {
   rustDeskPublicKeyHash: string | null;
@@ -220,6 +221,10 @@ export type RemotePlatformOverview = {
     label: string;
     status: RemoteHostStatus;
   }>;
+};
+
+export type RemotePaginationMeta = PaginationMeta & {
+  totalPages: number;
 };
 
 export type RemoteConfiguredHostItem = {

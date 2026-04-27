@@ -29,6 +29,14 @@ export async function fetchTicketDetailsGateway(ticketId: string): Promise<Ticke
   return ticketModuleDetailsResponseSchema.parse(await callTicketsApi(`/${ticketId}`));
 }
 
+export async function fetchTicketDetailsPageGateway(ticketId: string, params?: { page?: number; pageSize?: number }): Promise<TicketModuleDetailsResponse> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.pageSize) query.set("pageSize", String(params.pageSize));
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return ticketModuleDetailsResponseSchema.parse(await callTicketsApi(`/${ticketId}${suffix}`));
+}
+
 export async function createTicketGateway(payload: TicketModuleCreateRequest): Promise<TicketModuleMutationResponse> {
   return ticketModuleMutationResponseSchema.parse(
     await callTicketsApi("", {
