@@ -26,6 +26,7 @@ function App() {
   const [supportSession, setSupportSession] = useState<uistate.SupportSession | null>(null);
   const [, setNotifications] = useState<Array<uistate.Notification>>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
+  const [chatwootLoading, setChatwootLoading] = useState(false);
   const [chatwootBootNonce, setChatwootBootNonce] = useState(0);
   const syncedConversationIds = useRef<Record<string, boolean>>({});
 
@@ -63,6 +64,20 @@ function App() {
     };
   }, []);
 
+  // Polling: atualiza status remoto na SupportScreen a cada 15s
+  useEffect(() => {
+    if (route !== "agent://support") return;
+
+    const poll = () => {
+      void GetSupportSession()
+        .then((session) => setSupportSession(session))
+        .catch(() => {/* silencioso */});
+    };
+
+    const id = setInterval(poll, 15_000);
+    return () => clearInterval(id);
+  }, [route]);
+
   useEffect(() => {
     if (route !== "agent://support" || !supportSession) {
       return;
@@ -75,7 +90,9 @@ function App() {
     const onReady = () => {
       if (cancelled) return;
       hideChatwootBubble();
+      identifyChatwootContact(supportSession.context);
       setChatwootReady(true);
+      setChatwootLoading(false);
     };
 
     const onMessage = (event: Event) => {
@@ -113,6 +130,7 @@ function App() {
       }).chatwootSDK;
 
       if (sdk) {
+        setChatwootLoading(true);
         sdk.run({
           websiteToken: supportSession.website_token,
           baseUrl: supportSession.base_url,
@@ -131,6 +149,7 @@ function App() {
       script.onerror = () => {
         if (cancelled) return;
         setChatwootReady(false);
+        setChatwootLoading(false);
       };
       document.body.appendChild(script);
     }
@@ -197,6 +216,7 @@ function App() {
         <SupportScreen
           session={supportSession}
           chatwootReady={chatwootReady}
+          chatwootLoading={chatwootLoading}
           onOpenSupport={openSupport}
           onOpenSetup={navigateToSetup}
         />
@@ -360,14 +380,51 @@ function TimelineItem({ step, isFirst }: { step: uistate.SetupStep; isFirst: boo
   );
 }
 
+function CopyButton({ value, label }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback silencioso
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className={`btn-copy ${copied ? "copied" : ""}`}
+      onClick={() => void handleCopy()}
+      title={label ?? "Copiar"}
+      disabled={!value}
+    >
+      {copied ? <CopiedIcon /> : <CopyIcon />}
+    </button>
+  );
+}
+
 function SupportScreen(props: {
   session: uistate.SupportSession | null;
   chatwootReady: boolean;
+  chatwootLoading: boolean;
   onOpenSupport: () => void;
   onOpenSetup: () => void;
 }) {
-  const { session, chatwootReady, onOpenSupport, onOpenSetup } = props;
+  const { session, chatwootReady, chatwootLoading, onOpenSupport, onOpenSetup } = props;
   const context = session?.context;
+
+  const remoteId = context?.rustdeskId ?? "";
+  const remotePassword = context?.remoteAccessPassword ?? "";
+
+  const buttonLabel = chatwootLoading
+    ? "Conectando..."
+    : chatwootReady
+      ? "Abrir atendimento"
+      : "Iniciar atendimento";
 
   return (
     <main className="panel support-panel">
@@ -397,23 +454,34 @@ function SupportScreen(props: {
           <div className="support-fields">
             <div className="support-field">
               <div className="support-field-label">ID remoto</div>
-              <div className="support-field-value mono">
-                {context?.rustdeskId ?? "Aguardando identificacao"}
+              <div className="support-field-value-row">
+                <div className="support-field-value mono">
+                  {remoteId || "Aguardando identificacao"}
+                </div>
+                {remoteId && <CopyButton value={remoteId} label="Copiar ID remoto" />}
               </div>
             </div>
             <div className="support-field">
               <div className="support-field-label">Senha temporaria</div>
-              <div className="support-field-value mono">
-                {context?.remoteAccessPassword ??
-                  (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
-                    ? "Disponivel no aplicativo RustDesk"
-                    : "Aguardando configuracao")}
+              <div className="support-field-value-row">
+                <div className="support-field-value mono">
+                  {remotePassword ||
+                    (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
+                      ? "Disponivel no RustDesk"
+                      : "Aguardando configuracao")}
+                </div>
+                {remotePassword && <CopyButton value={remotePassword} label="Copiar senha" />}
               </div>
             </div>
           </div>
 
-          <button type="button" className="btn-primary" onClick={onOpenSupport}>
-            {chatwootReady ? "Abrir atendimento" : "Tentar novamente"}
+          <button
+            type="button"
+            className={`btn-primary ${chatwootLoading ? "btn-loading" : ""}`}
+            onClick={onOpenSupport}
+            disabled={chatwootLoading}
+          >
+            {buttonLabel}
           </button>
         </div>
       </section>
@@ -434,6 +502,23 @@ function StatusIcon() {
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <path d="M11.5 4.5 7 9l4.5 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M7.5 9H14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+      <rect x="4.5" y="4.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CopiedIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+      <path d="M2 7l3 3 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -472,6 +557,32 @@ function hideChatwootBubble() {
 
   try {
     chatwoot?.toggleBubbleVisibility?.("hide");
+  } catch {
+    // ignore
+  }
+}
+
+function identifyChatwootContact(context: uistate.SupportContext | undefined) {
+  if (!context) return;
+
+  const chatwoot = (window as unknown as {
+    $chatwoot?: {
+      setUser?: (identifier: string, attributes: Record<string, string>) => void;
+      setLabel?: (label: string) => void;
+    };
+  }).$chatwoot;
+
+  if (!chatwoot?.setUser) return;
+
+  const identifier = context.deviceId || context.hostname || context.machineName || "";
+  if (!identifier) return;
+
+  try {
+    chatwoot.setUser(identifier, {
+      name: context.contactName || context.localUsername || context.machineName || identifier,
+      company_name: context.companyDisplayName || "",
+      description: context.description || "",
+    });
   } catch {
     // ignore
   }

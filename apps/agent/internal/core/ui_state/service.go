@@ -317,6 +317,8 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 		LocalUsername:    supportContext.LocalUsername,
 		AgentVersion:     supportContext.AgentVersion,
 		AgentEnvironment: supportContext.AgentEnvironment,
+		ContactName:      supportContext.ContactName,
+		Description:      supportContext.Description,
 	}
 
 	if err := s.publisher.SyncSupportConversationContext(ctx, conversationID, payload); err != nil {
