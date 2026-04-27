@@ -27,6 +27,7 @@
                     "db:deploy":  "npm run db:deploy -w @dosc-syspro/database",
                     "db:seed:companies":  "npm run db:seed:companies -w @dosc-syspro/database",
                     "db:seed:remote":  "npm run db:seed:remote -w @dosc-syspro/database",
+                    "tickets:normalize-history": "node scripts/normalize-ticket-history.mjs",
                     "check:utf8":  "node scripts/check-utf8.mjs",
                     "check:generated-js":  "node scripts/check-generated-js.mjs",
                     "build:api":  "npm run build -w @dosc-syspro/app-api",
