@@ -22,6 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   createSettingsUserAccessProfileAction,
   removeSettingsUserAccessProfileAction,
@@ -83,6 +87,11 @@ const MODULE_ORDER = [
 
 function getModuleLabel(moduleKey: string) {
   return MODULE_LABELS[moduleKey] ?? moduleKey.replace(/_/g, " ");
+}
+
+function getInitials(name: string) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).map(n => n[0]).slice(0, 2).join("").toUpperCase();
 }
 
 export function AccessControlTab({ adminView }: AccessControlTabProps) {
@@ -351,42 +360,54 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                 </div>
 
                 <div className="space-y-4">
-                  {orderedPermissionGroups.map(([moduleKey, modulePermissions]) => (
-                    <div key={moduleKey} className="rounded-lg border border-border/50 p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">{getModuleLabel(moduleKey)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {modulePermissions.length} permissoes neste modulo
-                          </p>
-                        </div>
-                        <Badge variant="outline">{modulePermissions.length}</Badge>
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {modulePermissions.map((permission) => {
-                          const checked = profileForm.permissions.includes(permission.key);
-                          return (
-                            <label
-                              key={permission.key}
-                              className="flex items-start gap-3 rounded-md border border-border/40 p-3 text-sm"
-                            >
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(value) => handlePermissionToggle(permission.key, value === true)}
-                                className="mt-0.5"
-                              />
-                              <span className="space-y-1">
-                                <span className="block font-medium">{permission.label}</span>
-                                <span className="block text-xs text-muted-foreground">{permission.description}</span>
-                                <span className="block font-mono text-[10px] text-muted-foreground/70">{permission.key}</span>
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                  <Accordion type="multiple" className="w-full space-y-3">
+                    {orderedPermissionGroups.map(([moduleKey, modulePermissions]) => {
+                      const selectedCount = modulePermissions.filter(p => profileForm.permissions.includes(p.key)).length;
+                      const totalCount = modulePermissions.length;
+                      const progress = (selectedCount / totalCount) * 100;
+                      return (
+                        <AccordionItem value={moduleKey} key={moduleKey} className="rounded-lg border border-border/50 bg-card/40 px-4 py-1 shadow-sm transition-all hover:border-border/80 data-[state=open]:bg-card/80">
+                          <AccordionTrigger className="hover:no-underline py-3">
+                            <div className="flex w-full items-center justify-between gap-4 pr-4">
+                              <div className="flex flex-col items-start gap-1 text-left">
+                                <span className="text-sm font-semibold">{getModuleLabel(moduleKey)}</span>
+                                <span className="text-[11px] text-muted-foreground">{selectedCount} de {totalCount} permissoes ativas</span>
+                              </div>
+                              <div className="hidden sm:flex w-32 items-center gap-3">
+                                <Progress value={progress} className="h-1.5" />
+                                <Badge variant={selectedCount > 0 ? "default" : "secondary"} className="w-12 justify-center text-[10px]">
+                                  {Math.round(progress)}%
+                                </Badge>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-4 pb-3">
+                            <div className="grid gap-3 md:grid-cols-2">
+                              {modulePermissions.map((permission) => {
+                                const checked = profileForm.permissions.includes(permission.key);
+                                return (
+                                  <label
+                                    key={permission.key}
+                                    className="flex items-start gap-3 rounded-md border border-border/40 bg-background/50 p-3 text-sm transition-colors hover:bg-muted/40 cursor-pointer"
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(value) => handlePermissionToggle(permission.key, value === true)}
+                                      className="mt-0.5"
+                                    />
+                                    <span className="space-y-1">
+                                      <span className="block font-medium leading-none">{permission.label}</span>
+                                      <span className="block text-xs text-muted-foreground">{permission.description}</span>
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -623,11 +644,18 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                       </TableHeader>
                       <TableBody>
                         {adminView.assignments.map((assignment) => (
-                          <TableRow key={assignment.id}>
+                          <TableRow key={assignment.id} className="hover:bg-muted/30">
                             <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-medium">{assignment.userName}</div>
-                                <div className="text-xs text-muted-foreground">{assignment.userEmail}</div>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9 rounded-md border border-border/50">
+                                  <AvatarFallback className="rounded-md bg-primary/10 text-xs font-semibold text-primary">
+                                    {getInitials(assignment.userName)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="space-y-1">
+                                  <div className="font-medium leading-none">{assignment.userName}</div>
+                                  <div className="text-[11px] text-muted-foreground">{assignment.userEmail}</div>
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -638,15 +666,15 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
-                                <Badge variant={assignment.scopeType === "GLOBAL" ? "secondary" : "outline"}>
+                                <Badge variant="outline" className={assignment.scopeType === "GLOBAL" ? "bg-slate-500/10 text-slate-600 border-slate-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"}>
                                   {assignment.scopeType === "GLOBAL" ? "Global" : "Empresa"}
                                 </Badge>
                                 {assignment.companyName ? (
-                                  <div className="text-xs text-muted-foreground">{assignment.companyName}</div>
+                                  <div className="text-[11px] text-muted-foreground truncate max-w-[150px]" title={assignment.companyName}>{assignment.companyName}</div>
                                 ) : null}
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={assignment.reason || "Sem motivo informado."}>
                               {assignment.reason || "Sem motivo informado."}
                             </TableCell>
                             <TableCell className="text-right">
@@ -705,52 +733,53 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                           <Badge variant="outline">{modulePermissions.length}</Badge>
                         </div>
                       </div>
-                      <Table>
-                        <TableHeader className="bg-muted/20">
-                          <TableRow>
-                            <TableHead className="w-[320px]">Funcionalidade / Permissao</TableHead>
-                            {adminView.catalog.profiles.map((profile) => (
-                              <TableHead key={profile.key} className="min-w-[120px] text-center">
-                                <div className="flex flex-col items-center gap-1">
-                                  <span className="text-xs font-semibold">{profile.label}</span>
-                                  <Badge variant="outline" className="text-[10px] font-mono opacity-70">
-                                    {profile.key}
-                                  </Badge>
-                                </div>
-                              </TableHead>
-                            ))}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {modulePermissions.map((permission) => (
-                            <TableRow key={permission.key} className="hover:bg-muted/20">
-                              <TableCell className="font-medium text-sm text-muted-foreground">
-                                {permission.label}
-                                <div className="text-[10px] font-mono text-muted-foreground/50">{permission.key}</div>
-                              </TableCell>
-
-                              {adminView.catalog.profiles.map((profile) => {
-                                const allowed = profile.permissions.includes(permission.key);
-                                return (
-                                  <TableCell key={`${profile.key}-${permission.key}`} className="text-center">
-                                    {allowed ? (
-                                      <div className="flex justify-center">
-                                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/10">
-                                          <Check className="h-4 w-4 text-green-600" />
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="flex justify-center opacity-20">
-                                        <X className="h-4 w-4" />
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                );
-                              })}
+                      <ScrollArea className="max-h-[500px]">
+                        <Table>
+                          <TableHeader className="sticky top-0 z-20 bg-muted/80 backdrop-blur-md shadow-sm">
+                            <TableRow>
+                              <TableHead className="sticky left-0 z-20 w-[320px] bg-muted/80 backdrop-blur-md border-r">Funcionalidade / Permissao</TableHead>
+                              {adminView.catalog.profiles.map((profile) => (
+                                <TableHead key={profile.key} className="min-w-[120px] text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider">{profile.label}</span>
+                                    <Badge variant="outline" className="text-[9px] font-mono opacity-50 bg-background/50">
+                                      {profile.key}
+                                    </Badge>
+                                  </div>
+                                </TableHead>
+                              ))}
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {modulePermissions.map((permission) => (
+                              <TableRow key={permission.key} className="hover:bg-muted/10">
+                                <TableCell className="sticky left-0 z-10 w-[320px] bg-background border-r font-medium text-sm text-muted-foreground shadow-[1px_0_0_0_theme(colors.border)]">
+                                  {permission.label}
+                                  <div className="text-[10px] font-mono text-muted-foreground/40">{permission.key}</div>
+                                </TableCell>
+
+                                {adminView.catalog.profiles.map((profile) => {
+                                  const allowed = profile.permissions.includes(permission.key);
+                                  return (
+                                    <TableCell key={`${profile.key}-${permission.key}`} className="text-center p-0">
+                                      <div className={`flex h-full w-full items-center justify-center p-3 transition-colors ${allowed ? "bg-green-500/5 hover:bg-green-500/10" : "hover:bg-muted/30"}`}>
+                                        {allowed ? (
+                                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/10 ring-1 ring-green-500/20">
+                                            <Check className="h-3.5 w-3.5 text-green-600" />
+                                          </div>
+                                        ) : (
+                                          <X className="h-3.5 w-3.5 opacity-10" />
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
                     </div>
                   ))}
                 </div>
