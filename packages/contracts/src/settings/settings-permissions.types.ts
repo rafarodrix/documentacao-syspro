@@ -54,6 +54,8 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "tickets:manage", label: "Gerenciar chamados", module: "tickets", description: "Permite atuar operacionalmente em tickets." },
   { key: "tax_reform:view", label: "Visualizar reforma tributaria", module: "tax_reform", description: "Permite acessar a area tributaria." },
   { key: "tax_reform:manage", label: "Gerenciar dados da reforma tributaria", module: "tax_reform", description: "Permite alterar dados e sincronizacoes fiscais." },
+  { key: "system_team:view", label: "Visualizar equipe interna (Obsoleto)", module: "system_team", description: "Permite ver equipe interna." },
+  { key: "system_team:manage", label: "Gerenciar equipe interna (Obsoleto)", module: "system_team", description: "Permite criar e editar equipe interna." },
 ] as const;
 
 export const SETTINGS_PERMISSION_KEY_VALUES = SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key) as [
