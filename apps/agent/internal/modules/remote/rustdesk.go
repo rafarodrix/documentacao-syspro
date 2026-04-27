@@ -38,6 +38,11 @@ type rustDeskDesiredConfig struct {
 	InstallerArgs            string
 	RestartServiceAfterApply bool
 	SuppressTrayShortcuts    bool
+	HideTray                 bool
+	HideStopService          bool
+	AllowRemoteConfigMod     bool
+	AllowD3DRender           bool
+	EnableDirectXCapture     bool
 }
 
 type rustDeskUpgradeSpec struct {
@@ -240,6 +245,9 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 	}
 	if err := m.ensureVerificationMethodUsesBothPasswords(); err != nil {
 		return fmt.Errorf("apply rustdesk verification method: %w", err)
+	}
+	if err := m.applyAdvancedSettings(desired); err != nil {
+		return fmt.Errorf("apply rustdesk advanced settings: %w", err)
 	}
 	// Restart the service so it picks up the new config cleanly.  This also
 	// eliminates any residual white-screen state from a previous launch.
@@ -544,6 +552,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		}
 
 		_ = m.runPowerShell(ctx, "Stop-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
+		_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
 		stopDeadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(stopDeadline) {
 			if s := m.getServiceStatus(ctx); s == "stopped" || s == "missing" {
@@ -574,7 +583,9 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 			return classifyInstallerError("run msi installer", err, output, logPath)
 		}
 		time.Sleep(3 * time.Second)
-		_ = m.runPowerShell(ctx, "Start-Service -Name 'RustDesk' -ErrorAction SilentlyContinue")
+		// Do not leave any auto-launched RustDesk process alive here. The caller
+		// will start the service in a controlled step before applying config.
+		_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
 		if logPath != "" {
 			m.logger.Info("rustdesk msi installer completed", "log_path", logPath)
 		}
@@ -752,6 +763,56 @@ func (m *rustDeskManager) ensureVerificationMethodUsesBothPasswords() error {
 		return lastErr
 	}
 	return nil
+}
+
+func (m *rustDeskManager) applyAdvancedSettings(desired rustDeskDesiredConfig) error {
+	settings := []struct {
+		key   string
+		value string
+	}{
+		{key: "hide-tray", value: rustDeskConfigBoolValue(desired.HideTray)},
+		{key: "hide-stop-service", value: rustDeskConfigBoolValue(desired.HideStopService)},
+		{key: "allow-remote-config-modification", value: rustDeskConfigBoolValue(desired.AllowRemoteConfigMod)},
+		// The official docs currently mention both keys in different sections.
+		{key: "allow-remote-cm-modification", value: rustDeskConfigBoolValue(desired.AllowRemoteConfigMod)},
+		{key: "allow-d3d-render", value: rustDeskConfigBoolValue(desired.AllowD3DRender)},
+		{key: "enable-directx-capture", value: rustDeskConfigBoolValue(desired.EnableDirectXCapture)},
+	}
+
+	var updated int
+	var lastErr error
+	for _, path := range rustDeskConfigPaths() {
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			lastErr = err
+			continue
+		}
+
+		for _, setting := range settings {
+			if err := upsertRustDeskConfigValue(path, setting.key, setting.value); err != nil {
+				lastErr = err
+				continue
+			}
+		}
+		updated++
+	}
+
+	if updated > 0 {
+		return nil
+	}
+	if lastErr != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func rustDeskConfigBoolValue(value bool) string {
+	if value {
+		return "Y"
+	}
+	return "N"
 }
 
 func buildRustDeskMSIInstallArgs(installerPath, logPath string, suppressTrayShortcuts bool) []string {

@@ -81,8 +81,13 @@ func TestDiscoverBootstrapSyncCyclePersistsProtectedState(t *testing.T) {
 					InstallerArgs            string `json:"installerSilentArgs"`
 					RestartServiceAfterApply bool   `json:"restartServiceAfterApply"`
 					SuppressTrayShortcuts    bool   `json:"suppressTrayShortcuts"`
+					HideTray                 bool   `json:"hideTray"`
+					HideStopService          bool   `json:"hideStopService"`
+					AllowRemoteConfigMod     bool   `json:"allowRemoteConfigModification"`
+					AllowD3DRender           bool   `json:"allowD3DRender"`
+					EnableDirectXCapture     bool   `json:"enableDirectXCapture"`
 				}{
-					ServerHost: "relay.example.com", APIHost: "api.example.com", PublicKey: "pub-key", PublicKeyHash: "pub-hash", ServerConfig: "server-config", TargetVersion: "1.4.6", AutoInstall: true, AutoUpgrade: true, InstallerPackageType: "AUTO", InstallerArgs: "/S", RestartServiceAfterApply: true, SuppressTrayShortcuts: true,
+					ServerHost: "relay.example.com", APIHost: "api.example.com", PublicKey: "pub-key", PublicKeyHash: "pub-hash", ServerConfig: "server-config", TargetVersion: "1.4.6", AutoInstall: true, AutoUpgrade: true, InstallerPackageType: "AUTO", InstallerArgs: "/S", RestartServiceAfterApply: true, SuppressTrayShortcuts: true, HideTray: true, HideStopService: true, AllowRemoteConfigMod: false, AllowD3DRender: false, EnableDirectXCapture: true,
 				},
 			},
 		},

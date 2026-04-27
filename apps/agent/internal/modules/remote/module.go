@@ -63,6 +63,11 @@ type remoteState struct {
 	InstallerSilentArgs      string    `json:"installer_silent_args,omitempty"`
 	RestartServiceAfterApply bool      `json:"restart_service_after_apply"`
 	SuppressTrayShortcuts    bool      `json:"suppress_tray_shortcuts"`
+	HideTray                 bool      `json:"hide_tray"`
+	HideStopService          bool      `json:"hide_stop_service"`
+	AllowRemoteConfigMod     bool      `json:"allow_remote_config_modification"`
+	AllowD3DRender           bool      `json:"allow_d3d_render"`
+	EnableDirectXCapture     bool      `json:"enable_directx_capture"`
 	RuntimePassword          string    `json:"runtime_password,omitempty"`
 	RustDeskExecutable       string    `json:"rustdesk_executable,omitempty"`
 	LastConfigAppliedAt      time.Time `json:"last_config_applied_at,omitempty"`
@@ -358,6 +363,11 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		InstallerArgs:            bootstrapResp.InstallerSilentArgs,
 		RestartServiceAfterApply: bootstrapResp.RestartServiceAfterApply,
 		SuppressTrayShortcuts:    bootstrapResp.SuppressTrayShortcuts,
+		HideTray:                 bootstrapResp.HideTray,
+		HideStopService:          bootstrapResp.HideStopService,
+		AllowRemoteConfigMod:     bootstrapResp.AllowRemoteConfigMod,
+		AllowD3DRender:           bootstrapResp.AllowD3DRender,
+		EnableDirectXCapture:     bootstrapResp.EnableDirectXCapture,
 	})
 	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, true, nil); err != nil {
 		m.logger.Warn("remote bootstrap local apply failed after token issuance", "host_id", st.HostID, "error", err)
@@ -435,6 +445,11 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		InstallerArgs:            syncResp.ExpectedConfig.InstallerArgs,
 		RestartServiceAfterApply: syncResp.ExpectedConfig.RestartServiceAfterApply,
 		SuppressTrayShortcuts:    syncResp.ExpectedConfig.SuppressTrayShortcuts,
+		HideTray:                 syncResp.ExpectedConfig.HideTray,
+		HideStopService:          syncResp.ExpectedConfig.HideStopService,
+		AllowRemoteConfigMod:     syncResp.ExpectedConfig.AllowRemoteConfigMod,
+		AllowD3DRender:           syncResp.ExpectedConfig.AllowD3DRender,
+		EnableDirectXCapture:     syncResp.ExpectedConfig.EnableDirectXCapture,
 	})
 
 	invalidateToken := false
@@ -646,6 +661,12 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 		TargetVersion:            st.TargetVersion,
 		DefaultPassword:          st.DefaultPassword,
 		RestartServiceAfterApply: st.RestartServiceAfterApply,
+		SuppressTrayShortcuts:    st.SuppressTrayShortcuts,
+		HideTray:                 st.HideTray,
+		HideStopService:          st.HideStopService,
+		AllowRemoteConfigMod:     st.AllowRemoteConfigMod,
+		AllowD3DRender:           st.AllowD3DRender,
+		EnableDirectXCapture:     st.EnableDirectXCapture,
 	}
 	fingerprint := desiredConfigFingerprint(desired)
 	if status.ExecutablePath != "" && fingerprint != "" && (forceApply || st.LastAppliedHash != fingerprint) {
@@ -692,6 +713,11 @@ func (m *Module) applyPortalConfig(st *remoteState, desired rustDeskDesiredConfi
 	st.InstallerSilentArgs = firstNonEmpty(desired.InstallerArgs, st.InstallerSilentArgs)
 	st.RestartServiceAfterApply = desired.RestartServiceAfterApply
 	st.SuppressTrayShortcuts = desired.SuppressTrayShortcuts
+	st.HideTray = desired.HideTray
+	st.HideStopService = desired.HideStopService
+	st.AllowRemoteConfigMod = desired.AllowRemoteConfigMod
+	st.AllowD3DRender = desired.AllowD3DRender
+	st.EnableDirectXCapture = desired.EnableDirectXCapture
 }
 
 type aliasCommandPayload struct {
@@ -741,6 +767,12 @@ func desiredConfigFingerprint(desired rustDeskDesiredConfig) string {
 		strings.TrimSpace(desired.TargetVersion),
 		strings.TrimSpace(desired.DefaultPassword),
 		fmt.Sprintf("%t", desired.RestartServiceAfterApply),
+		fmt.Sprintf("%t", desired.SuppressTrayShortcuts),
+		fmt.Sprintf("%t", desired.HideTray),
+		fmt.Sprintf("%t", desired.HideStopService),
+		fmt.Sprintf("%t", desired.AllowRemoteConfigMod),
+		fmt.Sprintf("%t", desired.AllowD3DRender),
+		fmt.Sprintf("%t", desired.EnableDirectXCapture),
 	}
 	joined := strings.Join(parts, "|")
 	if strings.Trim(joined, "|") == "" {

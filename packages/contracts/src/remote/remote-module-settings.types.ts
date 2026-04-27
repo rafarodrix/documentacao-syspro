@@ -26,6 +26,11 @@ export const remoteModuleSettingsSchema = z
     rustDeskInstallArgs: z.string().trim().optional().default("/S"),
     rustDeskRestartServiceAfterApply: z.boolean().default(true),
     rustDeskSuppressTrayShortcuts: z.boolean().default(true),
+    rustDeskHideTray: z.boolean().default(true),
+    rustDeskHideStopService: z.boolean().default(true),
+    rustDeskAllowRemoteConfigModification: z.boolean().default(false),
+    rustDeskAllowD3DRender: z.boolean().default(false),
+    rustDeskEnableDirectXCapture: z.boolean().default(true),
   })
   .superRefine((value, ctx) => {
     if (value.rustDeskInstallerSha256 && !isSha256(value.rustDeskInstallerSha256)) {
@@ -61,6 +66,11 @@ export const DEFAULT_REMOTE_MODULE_SETTINGS = {
   rustDeskInstallArgs: "/S",
   rustDeskRestartServiceAfterApply: true,
   rustDeskSuppressTrayShortcuts: true,
+  rustDeskHideTray: true,
+  rustDeskHideStopService: true,
+  rustDeskAllowRemoteConfigModification: false,
+  rustDeskAllowD3DRender: false,
+  rustDeskEnableDirectXCapture: true,
 } satisfies z.infer<typeof remoteModuleSettingsSchema>;
 
 export const remoteModuleSettingsResponseSchema = z.object({

@@ -126,3 +126,14 @@ func TestUpsertRustDeskConfigValueAppendsMissingKey(t *testing.T) {
 		t.Fatalf("expected verification-method appended, got %q", string(data))
 	}
 }
+
+func TestRustDeskConfigBoolValue(t *testing.T) {
+	t.Parallel()
+
+	if got := rustDeskConfigBoolValue(true); got != "Y" {
+		t.Fatalf("expected Y for true, got %q", got)
+	}
+	if got := rustDeskConfigBoolValue(false); got != "N" {
+		t.Fatalf("expected N for false, got %q", got)
+	}
+}

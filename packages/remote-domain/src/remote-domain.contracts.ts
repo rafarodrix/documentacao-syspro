@@ -238,6 +238,11 @@ export type ProcessBootstrapOutput = {
   installerSilentArgs: string | null;
   restartServiceAfterApply: boolean;
   suppressTrayShortcuts: boolean;
+  hideTray: boolean;
+  hideStopService: boolean;
+  allowRemoteConfigModification: boolean;
+  allowD3DRender: boolean;
+  enableDirectXCapture: boolean;
   compliance: BootstrapCompliance;
   flow: {
     stage: "BOOTSTRAPPED";
@@ -305,6 +310,11 @@ export type ProcessSyncOutput = {
       installerSilentArgs: string | null;
       restartServiceAfterApply: boolean;
       suppressTrayShortcuts: boolean;
+      hideTray: boolean;
+      hideStopService: boolean;
+      allowRemoteConfigModification: boolean;
+      allowD3DRender: boolean;
+      enableDirectXCapture: boolean;
     };
   reportedConfig: {
     alias: string | null;

@@ -48,6 +48,24 @@ Windows:
 - PowerShell
 - WebView2 Runtime desejavel
 
+## Limpeza agressiva do RustDesk
+
+Se uma maquina ficou com instalacao quebrada, servico preso ou resquicios de configuracao antiga do RustDesk, rode como administrador:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\apps\agent\clean-rustdesk.ps1
+```
+
+O script:
+
+- para processos `rustdesk`
+- para/remove o servico `RustDesk`
+- tenta desinstalar pela chave de uninstall do Windows
+- apaga pastas residuais em `Program Files`, `ProgramData`, `APPDATA` e perfis de servico
+- limpa entrada de auto-start no registro
+
+Depois disso, reinicie a maquina antes de testar nova instalacao.
+
 ## Estado esperado do `.env`
 
 Exemplo minimo:

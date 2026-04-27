@@ -93,6 +93,11 @@ export type RemoteBootstrapConfigProfile = {
   installerSilentArgs: string | null;
   restartServiceAfterApply: boolean;
   suppressTrayShortcuts: boolean;
+  hideTray: boolean;
+  hideStopService: boolean;
+  allowRemoteConfigModification: boolean;
+  allowD3DRender: boolean;
+  enableDirectXCapture: boolean;
 };
 
 export type IssuedAgentToken = {
@@ -203,6 +208,11 @@ export type RemoteSyncConfigProfile = {
   installerSilentArgs?: string | null;
   restartServiceAfterApply: boolean;
   suppressTrayShortcuts: boolean;
+  hideTray: boolean;
+  hideStopService: boolean;
+  allowRemoteConfigModification: boolean;
+  allowD3DRender: boolean;
+  enableDirectXCapture: boolean;
   upgradeDownloadUrl?: string | null;
   upgradeChecksumSha256?: string | null;
   upgradePackageType?: string | null;

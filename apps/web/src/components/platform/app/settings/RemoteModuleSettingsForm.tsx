@@ -525,6 +525,63 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         </CardContent>
       </Card>
 
+      <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Politicas premium do cliente</CardTitle>
+              <CardDescription>
+                Endurecimento do RustDesk para hosts gerenciados, com foco em suporte assistido, resiliencia do servico e compatibilidade no Windows.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Ocultar tray do RustDesk</p>
+              <p className="text-xs text-muted-foreground">Reduz a dependencia do systray do RustDesk em hosts governados pelo agente.</p>
+            </div>
+            <Switch checked={form.watch("rustDeskHideTray")} onCheckedChange={(checked) => form.setValue("rustDeskHideTray", checked, { shouldDirty: true })} />
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Ocultar acao de parar servico</p>
+              <p className="text-xs text-muted-foreground">Esconde a acao de stop/toggle service para reduzir desligamentos acidentais do remoto.</p>
+            </div>
+            <Switch checked={form.watch("rustDeskHideStopService")} onCheckedChange={(checked) => form.setValue("rustDeskHideStopService", checked, { shouldDirty: true })} />
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Permitir configuracao remota pela UI</p>
+              <p className="text-xs text-muted-foreground">Quando desligado, dificulta alteracoes operacionais feitas pela interface do proprio RustDesk.</p>
+            </div>
+            <Switch checked={form.watch("rustDeskAllowRemoteConfigModification")} onCheckedChange={(checked) => form.setValue("rustDeskAllowRemoteConfigModification", checked, { shouldDirty: true })} />
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Permitir renderizacao D3D</p>
+              <p className="text-xs text-muted-foreground">Knob de compatibilidade para cenarios de tela branca, especialmente em Windows 10 e GPUs problematicas.</p>
+            </div>
+            <Switch checked={form.watch("rustDeskAllowD3DRender")} onCheckedChange={(checked) => form.setValue("rustDeskAllowD3DRender", checked, { shouldDirty: true })} />
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4 md:col-span-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Preferir captura DirectX</p>
+              <p className="text-xs text-muted-foreground">Mantem a captura DirectX habilitada no host controlado, recomendada como padrao salvo incompatibilidade conhecida.</p>
+            </div>
+            <Switch checked={form.watch("rustDeskEnableDirectXCapture")} onCheckedChange={(checked) => form.setValue("rustDeskEnableDirectXCapture", checked, { shouldDirty: true })} />
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />

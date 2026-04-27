@@ -288,6 +288,11 @@ export async function processSync(
       installerSilentArgs: configProfile.installerSilentArgs ?? null,
       restartServiceAfterApply: configProfile.restartServiceAfterApply,
       suppressTrayShortcuts: configProfile.suppressTrayShortcuts,
+      hideTray: configProfile.hideTray,
+      hideStopService: configProfile.hideStopService,
+      allowRemoteConfigModification: configProfile.allowRemoteConfigModification,
+      allowD3DRender: configProfile.allowD3DRender,
+      enableDirectXCapture: configProfile.enableDirectXCapture,
     },
     reportedConfig: {
       alias: persisted.host.lastKnownRustDeskAlias,

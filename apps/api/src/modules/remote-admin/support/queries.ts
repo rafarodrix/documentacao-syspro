@@ -997,6 +997,11 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
       rustDeskInstallArgs: moduleSettings.rustDeskInstallArgs,
       rustDeskRestartServiceAfterApply: moduleSettings.rustDeskRestartServiceAfterApply,
       rustDeskSuppressTrayShortcuts: moduleSettings.rustDeskSuppressTrayShortcuts,
+      rustDeskHideTray: moduleSettings.rustDeskHideTray,
+      rustDeskHideStopService: moduleSettings.rustDeskHideStopService,
+      rustDeskAllowRemoteConfigModification: moduleSettings.rustDeskAllowRemoteConfigModification,
+      rustDeskAllowD3DRender: moduleSettings.rustDeskAllowD3DRender,
+      rustDeskEnableDirectXCapture: moduleSettings.rustDeskEnableDirectXCapture,
     },
     stats: {
       totalHosts,

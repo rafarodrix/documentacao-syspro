@@ -109,6 +109,11 @@ export async function processBootstrap(
     installerSilentArgs: configProfile.installerSilentArgs,
     restartServiceAfterApply: configProfile.restartServiceAfterApply,
     suppressTrayShortcuts: configProfile.suppressTrayShortcuts,
+    hideTray: configProfile.hideTray,
+    hideStopService: configProfile.hideStopService,
+    allowRemoteConfigModification: configProfile.allowRemoteConfigModification,
+    allowD3DRender: configProfile.allowD3DRender,
+    enableDirectXCapture: configProfile.enableDirectXCapture,
     compliance,
     flow: {
       stage: "BOOTSTRAPPED",

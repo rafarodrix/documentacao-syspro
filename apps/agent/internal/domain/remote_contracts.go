@@ -127,6 +127,11 @@ type RemoteBootstrapResponse struct {
 	InstallerSilentArgs      string `json:"installerSilentArgs"`
 	RestartServiceAfterApply bool   `json:"restartServiceAfterApply"`
 	SuppressTrayShortcuts    bool   `json:"suppressTrayShortcuts"`
+	HideTray                 bool   `json:"hideTray"`
+	HideStopService          bool   `json:"hideStopService"`
+	AllowRemoteConfigMod     bool   `json:"allowRemoteConfigModification"`
+	AllowD3DRender           bool   `json:"allowD3DRender"`
+	EnableDirectXCapture     bool   `json:"enableDirectXCapture"`
 	Compliance               struct {
 		AliasMatch      bool `json:"aliasMatch"`
 		VersionMatch    bool `json:"versionMatch"`
@@ -198,6 +203,11 @@ type RemoteSyncResponse struct {
 		InstallerArgs            string `json:"installerSilentArgs"`
 		RestartServiceAfterApply bool   `json:"restartServiceAfterApply"`
 		SuppressTrayShortcuts    bool   `json:"suppressTrayShortcuts"`
+		HideTray                 bool   `json:"hideTray"`
+		HideStopService          bool   `json:"hideStopService"`
+		AllowRemoteConfigMod     bool   `json:"allowRemoteConfigModification"`
+		AllowD3DRender           bool   `json:"allowD3DRender"`
+		EnableDirectXCapture     bool   `json:"enableDirectXCapture"`
 	} `json:"expectedConfig"`
 	ReportedConfig struct {
 		Alias         string `json:"alias"`

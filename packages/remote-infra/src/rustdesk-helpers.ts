@@ -14,6 +14,11 @@ export type RustDeskConfigSettings = {
   rustDeskInstallArgs: string;
   rustDeskRestartServiceAfterApply: boolean;
   rustDeskSuppressTrayShortcuts: boolean;
+  rustDeskHideTray: boolean;
+  rustDeskHideStopService: boolean;
+  rustDeskAllowRemoteConfigModification: boolean;
+  rustDeskAllowD3DRender: boolean;
+  rustDeskEnableDirectXCapture: boolean;
 };
 
 export function normalizeRustdeskId(value?: string | null): string | null {
@@ -78,6 +83,11 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
     installerSilentArgs,
     restartServiceAfterApply: settings.rustDeskRestartServiceAfterApply,
     suppressTrayShortcuts: settings.rustDeskSuppressTrayShortcuts,
+    hideTray: settings.rustDeskHideTray,
+    hideStopService: settings.rustDeskHideStopService,
+    allowRemoteConfigModification: settings.rustDeskAllowRemoteConfigModification,
+    allowD3DRender: settings.rustDeskAllowD3DRender,
+    enableDirectXCapture: settings.rustDeskEnableDirectXCapture,
     upgradeDownloadUrl: installerUrl,
     upgradeChecksumSha256: installerChecksumSha256,
     upgradePackageType: installerPackageType === "AUTO" ? "binary" : installerPackageType.toLowerCase(),
