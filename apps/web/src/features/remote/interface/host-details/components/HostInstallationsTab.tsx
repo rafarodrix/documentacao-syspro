@@ -1,4 +1,4 @@
-import { HardDriveDownload } from "lucide-react";
+import { ArrowRightLeft, Building2, HardDriveDownload, Loader2, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +27,10 @@ export function HostInstallationsTab({
   setMachineProfileDraft,
   isSavingMachineProfile,
   handleSaveMachineProfile,
+  primaryCompanyDraft,
+  setPrimaryCompanyDraft,
+  isSavingPrimaryCompany,
+  handleSavePrimaryCompany,
 }: {
   details: any;
   installationFilter: "all" | "unlinked";
@@ -47,6 +51,10 @@ export function HostInstallationsTab({
   setMachineProfileDraft: (value: string) => void;
   isSavingMachineProfile: boolean;
   handleSaveMachineProfile: (value: string | null) => void;
+  primaryCompanyDraft: string;
+  setPrimaryCompanyDraft: (value: string) => void;
+  isSavingPrimaryCompany: boolean;
+  handleSavePrimaryCompany: (value: string) => void;
 }) {
   const primaryCompanyName =
     details.host?.companyName ??
@@ -60,131 +68,205 @@ export function HostInstallationsTab({
         <CardHeader>
           <CardTitle className="text-lg">Instalacoes detectadas</CardTitle>
           <CardDescription>
-            A empresa principal do host ja foi definida no vinculo inicial. Use esta aba para revisar as instalacoes detectadas e, quando necessario, vincular empresas adicionais por instalacao.
+            Corrija a empresa principal do host quando o cadastro inicial estiver incorreto e use os vinculos por instalacao apenas para cenarios com mais de uma empresa na mesma maquina.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-xl border border-border/50 bg-background/40 p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{primaryCompanyName}</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              O fluxo padrao e herdar esta empresa como referencia principal da maquina. Vinculos nesta aba so devem complementar cenarios com multiplas instalacoes ou diretorios separados no mesmo host.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,320px)_auto] lg:items-end">
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Perfil da maquina</p>
-                <Select
-                  value={machineProfileDraft}
-                  onValueChange={setMachineProfileDraft}
-                  disabled={isSavingMachineProfile || !canManageInstallations}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o perfil operacional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SERVER">{MACHINE_PROFILE_LABEL.SERVER}</SelectItem>
-                    <SelectItem value="WORKSTATION">{MACHINE_PROFILE_LABEL.WORKSTATION}</SelectItem>
-                    <SelectItem value="TERMINAL">{MACHINE_PROFILE_LABEL.TERMINAL}</SelectItem>
-                    <SelectItem value="BACKUP_NODE">{MACHINE_PROFILE_LABEL.BACKUP_NODE}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                size="sm"
-                disabled={
-                  isSavingMachineProfile ||
-                  !canManageInstallations ||
-                  !machineProfileDraft ||
-                  machineProfileDraft === (details.host.machineProfile ?? "")
-                }
-                onClick={() => handleSaveMachineProfile(machineProfileDraft || null)}
-              >
-                Salvar perfil da maquina
-              </Button>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Este perfil orienta o comportamento esperado do host para suporte, inventario e politicas futuras de backup por diretorio.
-            </p>
-            {!canManageInstallations ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Seu perfil tem acesso somente leitura para classificar a maquina.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro</p>
-                <Select
-                  value={installationFilter}
-                  onValueChange={(value: "all" | "unlinked") => setInstallationFilter(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as instalacoes</SelectItem>
-                    <SelectItem value="unlinked">Somente sem vinculo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {canManageInstallations ? (
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Empresa adicional para instalacoes filtradas
-                  </p>
-                  <SearchableCompanyPicker
-                    value={bulkInstallationCompanyId || UNLINKED_COMPANY_VALUE}
-                    options={details.companyOptions}
-                    onChange={(next) =>
-                      setBulkInstallationCompanyId(next === UNLINKED_COMPANY_VALUE ? "" : next)
-                    }
-                    disabled={isBulkRelinkingInstallations || !details.companyOptions.length}
-                  />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
+            <div className="rounded-2xl border border-border/50 bg-background/40 p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl border border-border/50 bg-muted/30 p-2 text-primary">
+                  <Building2 className="h-4 w-4" />
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground lg:pb-2">
-                  Seu perfil tem acesso somente leitura para vinculacao de instalacoes.
-                </p>
-              )}
-
-              {canManageInstallations ? (
-                <Button
-                  size="sm"
-                  disabled={
-                    isBulkRelinkingInstallations ||
-                    !bulkInstallationCompanyId ||
-                    !installationContextsForDisplay.length
-                  }
-                  onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
-                >
-                  Aplicar empresa nas filtradas
-                </Button>
-              ) : null}
-              {canManageInstallations ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isBulkRelinkingInstallations || !installationContextsForDisplay.length}
-                  onClick={() => handleBulkRelinkInstallations(null)}
-                >
-                  Limpar vinculos filtrados
-                </Button>
-              ) : null}
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
+                  <p className="text-base font-semibold text-foreground">{primaryCompanyName}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Esta empresa governa a identidade principal da maquina, os atalhos operacionais e o enquadramento padrao do host no portal.
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              {installationFilter === "unlinked"
-                ? `${installationContextsForDisplay.length} instalacao(oes) sem vinculo exibida(s).`
-                : `${dedupedInstallationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Use o vinculo adicional por instalacao para orientar inventario, caminhos de backup e responsabilidades por diretorio quando houver mais de uma empresa no mesmo host.
-            </p>
+
+            <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl border border-border/50 bg-background/40 p-2 text-sky-500">
+                  <Network className="h-4 w-4" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Politica desta guia</p>
+                  <p className="text-sm font-semibold text-foreground">Empresa principal primeiro. Instalacoes depois.</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Quando o host estiver vinculado a empresa errada, ajuste a referencia principal antes de aplicar vinculos complementares por instalacao.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Corrigir empresa principal</p>
+                  <p className="text-sm text-muted-foreground">
+                    Use esta acao quando o host existir, mas estiver vinculado a empresa errada.
+                  </p>
+                </div>
+                <SearchableCompanyPicker
+                  value={primaryCompanyDraft}
+                  options={details.companyOptions}
+                  onChange={setPrimaryCompanyDraft}
+                  disabled={isSavingPrimaryCompany || !canManageInstallations}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      isSavingPrimaryCompany ||
+                      !canManageInstallations ||
+                      !primaryCompanyDraft ||
+                      primaryCompanyDraft === details.host.companyId
+                    }
+                    onClick={() => handleSavePrimaryCompany(primaryCompanyDraft)}
+                    className="gap-2"
+                  >
+                    {isSavingPrimaryCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                    {isSavingPrimaryCompany ? "Atualizando..." : "Atualizar empresa principal"}
+                  </Button>
+                  {!canManageInstallations ? (
+                    <span className="text-xs text-muted-foreground">Seu perfil tem acesso somente leitura para este ajuste.</span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-border/50 bg-background/30 p-4">
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Perfil operacional da maquina</p>
+                  <p className="text-sm text-muted-foreground">
+                    Classifique o host para guiar suporte, inventario e politicas futuras.
+                  </p>
+                </div>
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,320px)_auto] lg:items-end">
+                  <div className="space-y-1">
+                    <Select
+                      value={machineProfileDraft}
+                      onValueChange={setMachineProfileDraft}
+                      disabled={isSavingMachineProfile || !canManageInstallations}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o perfil operacional" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SERVER">{MACHINE_PROFILE_LABEL.SERVER}</SelectItem>
+                        <SelectItem value="WORKSTATION">{MACHINE_PROFILE_LABEL.WORKSTATION}</SelectItem>
+                        <SelectItem value="TERMINAL">{MACHINE_PROFILE_LABEL.TERMINAL}</SelectItem>
+                        <SelectItem value="BACKUP_NODE">{MACHINE_PROFILE_LABEL.BACKUP_NODE}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      isSavingMachineProfile ||
+                      !canManageInstallations ||
+                      !machineProfileDraft ||
+                      machineProfileDraft === (details.host.machineProfile ?? "")
+                    }
+                    onClick={() => handleSaveMachineProfile(machineProfileDraft || null)}
+                  >
+                    Salvar perfil da maquina
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Este perfil orienta o comportamento esperado do host para suporte, inventario e politicas futuras de backup por diretorio.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresas complementares por instalacao</p>
+                <p className="text-sm text-muted-foreground">
+                  Use esta camada apenas quando houver multiplas empresas ou diretorios separados dentro do mesmo host.
+                </p>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Filtro</p>
+                  <Select
+                    value={installationFilter}
+                    onValueChange={(value: "all" | "unlinked") => setInstallationFilter(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as instalacoes</SelectItem>
+                      <SelectItem value="unlinked">Somente sem vinculo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {canManageInstallations ? (
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Empresa complementar para instalacoes filtradas
+                    </p>
+                    <SearchableCompanyPicker
+                      value={bulkInstallationCompanyId || UNLINKED_COMPANY_VALUE}
+                      options={details.companyOptions}
+                      onChange={(next) =>
+                        setBulkInstallationCompanyId(next === UNLINKED_COMPANY_VALUE ? "" : next)
+                      }
+                      disabled={isBulkRelinkingInstallations || !details.companyOptions.length}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground lg:pb-2">
+                    Seu perfil tem acesso somente leitura para vinculacao de instalacoes.
+                  </p>
+                )}
+
+                {canManageInstallations ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      isBulkRelinkingInstallations ||
+                      !bulkInstallationCompanyId ||
+                      !installationContextsForDisplay.length
+                    }
+                    onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
+                  >
+                    Aplicar empresa nas filtradas
+                  </Button>
+                ) : null}
+                {canManageInstallations ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isBulkRelinkingInstallations || !installationContextsForDisplay.length}
+                    onClick={() => handleBulkRelinkInstallations(null)}
+                  >
+                    Limpar vinculos filtrados
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {installationFilter === "unlinked"
+                  ? `${installationContextsForDisplay.length} instalacao(oes) sem vinculo exibida(s).`
+                  : `${dedupedInstallationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use o vinculo adicional por instalacao para orientar inventario, caminhos de backup e responsabilidades por diretorio quando houver mais de uma empresa no mesmo host.
+              </p>
+            </div>
           </div>
           {installationContextsForDisplay.length ? (
             <div className="space-y-4">

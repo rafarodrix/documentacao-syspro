@@ -101,6 +101,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
   const [machineProfileDraft, setMachineProfileDraft] = useState(host.machineProfile ?? "");
+  const [primaryCompanyDraft, setPrimaryCompanyDraft] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
   const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
@@ -125,6 +126,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   useEffect(() => {
     setMachineProfileDraft(host.machineProfile ?? "");
   }, [host.machineProfile]);
+
+  useEffect(() => {
+    setPrimaryCompanyDraft(host.companyId ?? details.companyOptions[0]?.id ?? "");
+  }, [details.companyOptions, host.companyId]);
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
@@ -666,6 +671,39 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     });
   }
 
+  function handleSavePrimaryCompany(nextCompanyId: string) {
+    if (!nextCompanyId) {
+      toast.error("Selecione a empresa principal do host.");
+      return;
+    }
+
+    startSavingMachineName(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}`,
+          method: "PATCH",
+          body: {
+            companyId: nextCompanyId,
+            name: host.name,
+            machineName: host.machineName,
+            machineProfile: host.machineProfile,
+            environment: host.environment,
+            provider: host.provider,
+            description: host.description,
+            notes: host.notes,
+            agentExternalId: host.rustdeskId,
+            status: host.status,
+          },
+        });
+
+        toast.success("Empresa principal do host atualizada.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
   function handleRotateAgentToken() {
     startRevokingAgentToken(async () => {
       try {
@@ -1115,6 +1153,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             setMachineProfileDraft={setMachineProfileDraft}
             isSavingMachineProfile={isSavingMachineName}
             handleSaveMachineProfile={handleSaveMachineProfile}
+            primaryCompanyDraft={primaryCompanyDraft}
+            setPrimaryCompanyDraft={setPrimaryCompanyDraft}
+            isSavingPrimaryCompany={isSavingMachineName}
+            handleSavePrimaryCompany={handleSavePrimaryCompany}
           />
         </TabsContent>
 
