@@ -220,7 +220,7 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, current
 	switch plan.phase {
 	case runtimePhaseSync:
 		m.logger.Debug("remote runtime plan", "phase", plan.phase, "host_id", st.HostID)
-		return m.runSync(ctx, &st, plan.agentToken, intent.installIfMissing)
+		return m.runSync(ctx, &st, plan.agentToken, intent)
 	case runtimePhaseDiscover:
 		if st.RebootstrapRequired {
 			m.logger.Info("remote rebootstrap required; clearing local agent token", "host_id", st.HostID)
@@ -381,11 +381,11 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		"alias":   st.Alias,
 	})
 
-	return m.runSync(ctx, st, bootstrapResp.AgentToken, intent.installIfMissing)
+	return m.runSync(ctx, st, bootstrapResp.AgentToken, intent)
 }
 
-func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string, installIfMissing bool) domain.ApplyResult {
-	if err := m.refreshRustDeskState(ctx, st, installIfMissing, false, nil); err != nil {
+func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string, intent remoteDesiredIntent) domain.ApplyResult {
+	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before sync failed", "error", err)
 	}
 
@@ -417,8 +417,15 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			"error", err,
 		)
 		st.AgentToken = ""
+		st.HostID = ""
+		st.CompanyID = ""
+		st.CompanyName = ""
 		st.RebootstrapRequired = true
 		_ = m.saveState(ctx, st)
+		if intent.bootstrapEnabled && m.discoveryToken != "" {
+			m.logger.Info("remote sync failed; attempting immediate rediscovery", "error", err)
+			return m.runDiscoverBootstrapSync(ctx, st, intent)
+		}
 		return m.fail("sync failed", err)
 	}
 
@@ -823,6 +830,7 @@ func (m *Module) newRustDeskController(st *remoteState) rustDeskController {
 	installerChecksum := ""
 	installerPackageType := ""
 	installerArgs := ""
+	defaultPassword := ""
 	restartServiceAfterApply := true
 	suppressTrayShortcuts := true
 	if st != nil {
@@ -830,10 +838,11 @@ func (m *Module) newRustDeskController(st *remoteState) rustDeskController {
 		installerChecksum = st.InstallerChecksum
 		installerPackageType = st.InstallerPackageType
 		installerArgs = st.InstallerSilentArgs
+		defaultPassword = st.DefaultPassword
 		restartServiceAfterApply = st.RestartServiceAfterApply
 		suppressTrayShortcuts = st.SuppressTrayShortcuts
 	}
-	return newRustDeskManager(m.logger, m.stateDir, installerURL, installerChecksum, installerPackageType, installerArgs, restartServiceAfterApply, suppressTrayShortcuts)
+	return newRustDeskManager(m.logger, m.stateDir, installerURL, installerChecksum, installerPackageType, installerArgs, defaultPassword, restartServiceAfterApply, suppressTrayShortcuts)
 }
 
 func (m *Module) buildRuntimePlan(st *remoteState, intent remoteDesiredIntent) runtimePlan {

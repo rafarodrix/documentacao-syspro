@@ -3,7 +3,6 @@ import {
   GetSetupStatus,
   GetSupportSession,
   ListNotifications,
-  OpenSetupExperience,
   OpenSupportConversation,
   SyncSupportConversationContext,
 } from "./bindings";
@@ -27,6 +26,7 @@ function App() {
   const [supportSession, setSupportSession] = useState<uistate.SupportSession | null>(null);
   const [, setNotifications] = useState<Array<uistate.Notification>>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
+  const [chatwootBootNonce, setChatwootBootNonce] = useState(0);
   const syncedConversationIds = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -140,7 +140,28 @@ function App() {
       window.removeEventListener("chatwoot:ready", onReady);
       window.removeEventListener("chatwoot:on-message", onMessage);
     };
-  }, [route, supportSession]);
+  }, [route, supportSession, chatwootBootNonce]);
+
+  const navigateToSetup = () => {
+    setRoute("agent://setup");
+    void GetSetupStatus().then(setSetupStatus).catch((err) => console.error("GetSetupStatus failed:", err));
+  };
+
+  const openSupport = () => {
+    setRoute("agent://support");
+
+    if (chatwootReady && openChatwoot()) {
+      return;
+    }
+
+    if (supportSession) {
+      setChatwootReady(false);
+      setChatwootBootNonce((value) => value + 1);
+      return;
+    }
+
+    void OpenSupportConversation();
+  };
 
   const pendingSteps = setupStatus.steps.filter((step) => step.status !== "complete");
   const completedSteps = setupStatus.steps.filter((step) => step.status === "complete");
@@ -176,11 +197,8 @@ function App() {
         <SupportScreen
           session={supportSession}
           chatwootReady={chatwootReady}
-          onOpenSupport={() => {
-            if (chatwootReady && openChatwoot()) return;
-            void OpenSupportConversation();
-          }}
-          onOpenSetup={() => void OpenSetupExperience()}
+          onOpenSupport={openSupport}
+          onOpenSetup={navigateToSetup}
         />
       ) : (
         <SetupScreen
@@ -357,9 +375,13 @@ function SupportScreen(props: {
         <div>
           <div className="support-hero-label">Atendimento oficial</div>
           <div className="support-hero-title">Suporte Trilink</div>
+          <div className="support-hero-subtitle">
+            Acesso remoto governado pelo agente com contexto tecnico sincronizado.
+          </div>
         </div>
-        <button type="button" className="btn-ghost" onClick={onOpenSetup} title="Ver status do agente">
+        <button type="button" className="btn-ghost btn-ghost-wide" onClick={onOpenSetup} title="Voltar ao status do agente">
           <StatusIcon />
+          <span>Voltar</span>
         </button>
       </section>
 
@@ -380,7 +402,7 @@ function SupportScreen(props: {
               </div>
             </div>
             <div className="support-field">
-              <div className="support-field-label">Senha de acesso</div>
+              <div className="support-field-label">Senha temporaria</div>
               <div className="support-field-value mono">
                 {context?.remoteAccessPassword ??
                   (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
@@ -410,8 +432,8 @@ function CheckIcon() {
 function StatusIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M5.5 9h7M9 5.5v7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M11.5 4.5 7 9l4.5 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.5 9H14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -424,7 +446,11 @@ function stepBadge(status: uistate.SetupStep["status"]) {
 
 function openChatwoot() {
   const chatwoot = (window as unknown as {
-    $chatwoot?: { toggle?: (mode: string) => void; toggleBubbleVisibility?: (mode: string) => void };
+    $chatwoot?: {
+      toggle?: (mode: string) => void;
+      toggleBubbleVisibility?: (mode: string) => void;
+      popoutChatWindow?: () => void;
+    };
   }).$chatwoot;
 
   if (!chatwoot) return false;
@@ -432,6 +458,7 @@ function openChatwoot() {
   try {
     chatwoot.toggle?.("open");
     chatwoot.toggleBubbleVisibility?.("hide");
+    chatwoot.popoutChatWindow?.();
     return true;
   } catch {
     return false;

@@ -76,12 +76,13 @@ type rustDeskManager struct {
 	installerSHA256          string
 	installerPackageType     string
 	installerArgs            string
+	defaultPassword          string
 	restartServiceAfterApply bool
 	suppressTrayShortcuts    bool
 	httpClient               *http.Client
 }
 
-func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, installerPackageType, installerArgs string, restartServiceAfterApply, suppressTrayShortcuts bool) *rustDeskManager {
+func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, installerPackageType, installerArgs, defaultPassword string, restartServiceAfterApply, suppressTrayShortcuts bool) *rustDeskManager {
 	packageType := resolveInstallerPackageType(strings.TrimSpace(installerURL), installerPackageType)
 	args := strings.TrimSpace(installerArgs)
 	if args == "" {
@@ -100,6 +101,7 @@ func newRustDeskManager(logger Logger, stateDir, installerURL, installerSHA256, 
 		installerSHA256:          strings.TrimSpace(installerSHA256),
 		installerPackageType:     packageType,
 		installerArgs:            args,
+		defaultPassword:          strings.TrimSpace(defaultPassword),
 		restartServiceAfterApply: restartServiceAfterApply,
 		suppressTrayShortcuts:    suppressTrayShortcuts,
 		httpClient: &http.Client{
@@ -320,9 +322,8 @@ func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string
 }
 
 func (m *rustDeskManager) getAccessPassword() string {
-	defaultPassword := strings.TrimSpace(readPersistedDefaultPassword(filepath.Join(m.stateDir, stateFile)))
 	for _, path := range rustDeskConfigPaths() {
-		if password := readRustDeskPasswordFromConfig(path, defaultPassword); password != "" {
+		if password := readRustDeskPasswordFromConfig(path, m.defaultPassword); password != "" {
 			return password
 		}
 	}

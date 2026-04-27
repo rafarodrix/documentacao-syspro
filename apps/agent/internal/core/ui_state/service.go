@@ -398,13 +398,10 @@ func resolveDisplayedRustDeskPassword(remoteState persistedRemoteState) string {
 	// Prefere a senha em tempo de execução (lida do RustDesk2.toml a cada sync)
 	// sobre a senha padrão do bootstrap, que é estática.
 	runtimePassword := strings.TrimSpace(remoteState.RuntimePassword)
-	if looksLikeDisplayedRustDeskPassword(runtimePassword) {
-		return runtimePassword
-	}
-
 	defaultPassword := strings.TrimSpace(remoteState.DefaultPassword)
-	if looksLikeDisplayedRustDeskPassword(defaultPassword) {
-		return defaultPassword
+	if looksLikeDisplayedRustDeskPassword(runtimePassword) &&
+		(defaultPassword == "" || !strings.EqualFold(runtimePassword, defaultPassword)) {
+		return runtimePassword
 	}
 
 	return ""
