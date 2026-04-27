@@ -107,9 +107,6 @@ type Module struct {
 	agentVersion    string
 	environment     string
 	stateDir        string
-	installerURL    string
-	installerSHA256 string
-	installerArgs   string
 	rustDeskFactory func() rustDeskController
 }
 
@@ -135,23 +132,14 @@ func WithStateDir(stateDir string) Option {
 	return func(m *Module) { m.stateDir = stateDir }
 }
 
-func WithRustDeskInstaller(url, checksumSHA256, installArgs string) Option {
-	return func(m *Module) {
-		m.installerURL = url
-		m.installerSHA256 = checksumSHA256
-		m.installerArgs = installArgs
-	}
-}
-
 func New(client PortalClient, store StateStore, logger Logger, events EventBus, opts ...Option) *Module {
 	m := &Module{
-		client:        client,
-		store:         store,
-		logger:        logger,
-		events:        events,
-		agentVersion:  "go-agent-v1",
-		environment:   "Producao",
-		installerArgs: "/S",
+		client:       client,
+		store:        store,
+		logger:       logger,
+		events:       events,
+		agentVersion: "go-agent-v1",
+		environment:  "Producao",
 	}
 	for _, opt := range opts {
 		opt(m)
@@ -777,13 +765,13 @@ func (m *Module) newRustDeskController(st *remoteState) rustDeskController {
 	if m.rustDeskFactory != nil {
 		return m.rustDeskFactory()
 	}
-	installerURL := m.installerURL
-	installerChecksum := m.installerSHA256
-	installerArgs := m.installerArgs
+	installerURL := ""
+	installerChecksum := ""
+	installerArgs := ""
 	if st != nil {
-		installerURL = firstNonEmpty(st.InstallerURL, installerURL)
-		installerChecksum = firstNonEmpty(st.InstallerChecksum, installerChecksum)
-		installerArgs = firstNonEmpty(st.InstallerSilentArgs, installerArgs)
+		installerURL = st.InstallerURL
+		installerChecksum = st.InstallerChecksum
+		installerArgs = st.InstallerSilentArgs
 	}
 	return newRustDeskManager(m.logger, m.stateDir, installerURL, installerChecksum, installerArgs)
 }

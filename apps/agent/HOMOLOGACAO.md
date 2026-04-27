@@ -37,8 +37,10 @@ Agente:
   - `SUPPORT_CHATWOOT_WEBSITE_TOKEN`
   - `REMOTE_ENABLED=true`
   - `REMOTE_DISCOVERY_TOKEN`
-  - `REMOTE_RUSTDESK_INSTALLER_URL`
-- `REMOTE_RUSTDESK_INSTALLER_SHA256` e opcional, mas recomendado
+- configuracao global do remoto preenchida no portal, incluindo:
+  - URL ou caminho do instalador
+  - SHA256 do instalador para `http/https`
+  - argumentos silenciosos quando necessario
 
 Windows:
 
@@ -60,15 +62,13 @@ SUPPORT_CHATWOOT_WEBSITE_TOKEN=<website token>
 
 REMOTE_ENABLED=true
 REMOTE_DISCOVERY_TOKEN=<discovery token>
-REMOTE_RUSTDESK_INSTALLER_URL=https://github.com/rustdesk/rustdesk/releases/download/1.4.6/rustdesk-1.4.6-x86_64.msi
-REMOTE_RUSTDESK_INSTALLER_SHA256=
-REMOTE_RUSTDESK_INSTALL_ARGS=
 ```
 
 Observacao:
 
 - `REMOTE_INSTALL_TOKEN` deixou de ser configuracao operacional do agente
 - o token passa a ser obtido automaticamente depois que a maquina descoberta for vinculada no portal
+- o instalador do RustDesk passa a ser governado pelo portal, nao pelo `.env` do agente
 
 ## Execucao
 
@@ -195,6 +195,7 @@ Verifique primeiro:
 - `SUPPORT_CHATWOOT_WEBSITE_TOKEN`
 - se o dominio configurado realmente expone as rotas `/api/remote/...`
 - se o host foi vinculado no portal
+- se a configuracao `Agente Trilink > Remoto` tem instalador e SHA256 validos para downloads HTTP/HTTPS
 
 ## Observacao de arquitetura
 
@@ -207,5 +208,4 @@ O desenho atual ja esta em um bom nivel para homologacao enterprise inicial:
 O proximo nivel depois da homologacao e:
 
 - desired state remoto vindo 100% do backend
-- menos fallback local
 - mais automacao de vinculo por regra operacional

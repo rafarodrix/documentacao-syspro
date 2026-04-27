@@ -52,22 +52,9 @@ export function resolveRustDeskAlias(input: {
 export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
   const serverHost = settings.rustDeskServerHost.trim();
   const publicKey = settings.rustDeskPublicKey.trim();
-  const installerUrl =
-    settings.rustDeskInstallerUrl.trim() ||
-    process.env.REMOTE_RUSTDESK_INSTALLER_URL?.trim() ||
-    process.env.REMOTE_RUSTDESK_UPGRADE_URL?.trim() ||
-    null;
-  const installerChecksumSha256 =
-    settings.rustDeskInstallerSha256.trim().toLowerCase() ||
-    process.env.REMOTE_RUSTDESK_INSTALLER_SHA256?.trim().toLowerCase() ||
-    process.env.REMOTE_RUSTDESK_UPGRADE_SHA256?.trim().toLowerCase() ||
-    null;
-  const installerSilentArgs =
-    settings.rustDeskInstallArgs.trim() ||
-    process.env.REMOTE_RUSTDESK_INSTALL_ARGS?.trim() ||
-    process.env.REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS?.trim() ||
-    "/S";
-  const upgradePackageType = process.env.REMOTE_RUSTDESK_UPGRADE_PACKAGE_TYPE?.trim().toLowerCase() || "binary";
+  const installerUrl = settings.rustDeskInstallerUrl.trim() || null;
+  const installerChecksumSha256 = settings.rustDeskInstallerSha256.trim().toLowerCase() || null;
+  const installerSilentArgs = settings.rustDeskInstallArgs.trim() || "/S";
 
   return {
     serverHost,
@@ -82,7 +69,7 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
     installerSilentArgs,
     upgradeDownloadUrl: installerUrl,
     upgradeChecksumSha256: installerChecksumSha256,
-    upgradePackageType,
+    upgradePackageType: "binary",
     upgradeSilentArgs: installerSilentArgs,
   };
 }

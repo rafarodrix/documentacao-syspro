@@ -20,12 +20,9 @@ type PathsConfig struct {
 }
 
 type RemoteConfig struct {
-	Enabled                 bool
-	DiscoveryToken          string
-	InstallToken            string
-	RustDeskInstallerURL    string
-	RustDeskInstallerSHA256 string
-	RustDeskInstallArgs     string
+	Enabled        bool
+	DiscoveryToken string
+	InstallToken   string
 }
 
 type SupportConfig struct {

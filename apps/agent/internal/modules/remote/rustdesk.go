@@ -343,7 +343,7 @@ func (m *rustDeskManager) downloadInstaller(ctx context.Context, rawURL, checksu
 	}
 
 	if strings.TrimSpace(checksum) == "" {
-		return "", fmt.Errorf("checksum SHA256 e obrigatorio para downloads HTTP — configure REMOTE_RUSTDESK_INSTALLER_SHA256")
+		return "", fmt.Errorf("checksum SHA256 e obrigatorio para downloads HTTP — preencha a configuracao do instalador remoto no portal")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)

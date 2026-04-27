@@ -20,12 +20,9 @@ func Load() (Config, error) {
 			StateDir: getStateDir(),
 		},
 		Remote: RemoteConfig{
-			Enabled:                 getEnvBool("REMOTE_ENABLED", true),
-			DiscoveryToken:          getEnv("REMOTE_DISCOVERY_TOKEN", ""),
-			InstallToken:            getEnv("REMOTE_INSTALL_TOKEN", ""),
-			RustDeskInstallerURL:    getEnvAny([]string{"REMOTE_RUSTDESK_INSTALLER_URL", "REMOTE_RUSTDESK_UPGRADE_URL"}, ""),
-			RustDeskInstallerSHA256: getEnvAny([]string{"REMOTE_RUSTDESK_INSTALLER_SHA256", "REMOTE_RUSTDESK_UPGRADE_SHA256"}, ""),
-			RustDeskInstallArgs:     getEnvAny([]string{"REMOTE_RUSTDESK_INSTALL_ARGS", "REMOTE_RUSTDESK_UPGRADE_SILENT_ARGS"}, ""),
+			Enabled:        getEnvBool("REMOTE_ENABLED", true),
+			DiscoveryToken: getEnv("REMOTE_DISCOVERY_TOKEN", ""),
+			InstallToken:   getEnv("REMOTE_INSTALL_TOKEN", ""),
 		},
 		Support: SupportConfig{
 			ChatwootBaseURL:      getEnvAny([]string{"SUPPORT_CHATWOOT_BASE_URL", "CHATWOOT_URL"}, "https://chat.trilinksoftware.com.br"),

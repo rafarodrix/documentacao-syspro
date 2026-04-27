@@ -429,7 +429,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               {...form.register("rustDeskInstallerUrl")}
             />
             <p className="text-xs text-muted-foreground">
-              Aceita HTTP/HTTPS, caminho local ou compartilhamento de rede. Esse valor passa a governar o bootstrap remoto pelo portal.
+              Aceita HTTP/HTTPS, caminho local ou compartilhamento de rede. Esse valor governa o bootstrap remoto pelo portal.
             </p>
           </div>
 
@@ -459,9 +459,6 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
             </p>
           </div>
 
-          <div className="rounded-lg border border-border/50 bg-muted/10 p-3 text-xs text-muted-foreground md:col-span-2">
-            O agente ainda aceita `REMOTE_RUSTDESK_INSTALLER_*` no ambiente como fallback, mas a origem recomendada passa a ser esta tela.
-          </div>
         </CardContent>
       </Card>
 
