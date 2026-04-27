@@ -21,6 +21,8 @@ import {
 } from "@dosc-syspro/contracts/ticket";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
+import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,23 +58,15 @@ type ChatwootAppContext = {
   } | null;
 };
 
-type TicketListEntry = {
-  id: string;
-  number: string;
-  title: string;
-  status: string;
-  statusLabel: string;
-  updatedAt: string;
-  customer?: string | null;
-};
+type TicketListEntry = Pick<
+  TicketListItem,
+  "id" | "number" | "title" | "status" | "statusLabel" | "updatedAt" | "customer"
+>;
 
-type RemoteHostEntry = {
-  id: string;
-  name: string;
-  rustdeskId: string | null;
-  lastHeartbeatAt: string | null;
-  productStatus: string;
-};
+type RemoteHostEntry = Pick<
+  RemotePlatformDirectory["items"][number],
+  "id" | "name" | "rustdeskId" | "lastHeartbeatAt" | "productStatus"
+>;
 
 type ContactLookupEntry = ContactOption;
 
@@ -613,7 +607,7 @@ export function ChatwootDashboardApp() {
           setTicketError(response.status === 401 ? "Faca login no portal neste navegador para ver tickets reais." : "Nao foi possivel carregar os tickets da empresa.");
           return;
         }
-        const json = (await response.json()) as { data?: TicketListEntry[] };
+        const json = (await response.json()) as { data?: TicketListItem[] };
         setLatestTickets(Array.isArray(json.data) ? json.data : []);
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
@@ -650,16 +644,16 @@ export function ChatwootDashboardApp() {
           setHostError(response.status === 401 ? "Faca login no portal neste navegador para ver os hosts reais." : "Nao foi possivel carregar os hosts da empresa.");
           return;
         }
-        const json = (await response.json()) as { items?: Array<Record<string, unknown>> };
+        const json = (await response.json()) as RemotePlatformDirectory;
         const items = Array.isArray(json.items) ? json.items : [];
         const nextHosts = items
-          .filter((item) => readString(item.companyId) === resolved.companyId)
+          .filter((item) => item.companyId === resolved.companyId)
           .map((item) => ({
-            id: readString(item.id),
-            name: readString(item.name) || "Host sem nome",
-            rustdeskId: readString(item.rustdeskId) || null,
-            lastHeartbeatAt: readString(item.lastHeartbeatAt) || null,
-            productStatus: readString(item.productStatus) || "UNKNOWN",
+            id: item.id,
+            name: item.name.trim() || "Host sem nome",
+            rustdeskId: item.rustdeskId,
+            lastHeartbeatAt: item.lastHeartbeatAt,
+            productStatus: item.productStatus,
           }))
           .sort((a, b) => {
             const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
