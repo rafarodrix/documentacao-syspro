@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowUpRight,
   Building2,
   Clock3,
@@ -11,7 +10,6 @@ import {
   Loader2,
   MessageSquare,
   Monitor,
-  Radio,
   Ticket,
   Waypoints,
 } from "lucide-react";
@@ -60,7 +58,7 @@ type ChatwootAppContext = {
 
 type TicketListEntry = Pick<
   TicketListItem,
-  "id" | "number" | "title" | "status" | "statusLabel" | "updatedAt" | "customer"
+  "id" | "number" | "title" | "status" | "statusLabel" | "createdAt" | "updatedAt" | "customer"
 >;
 
 type RemoteHostEntry = Pick<
@@ -188,6 +186,8 @@ export function ChatwootDashboardApp() {
     tone: "success" | "error";
     message: string;
   } | null>(null);
+  const [contactNameDraft, setContactNameDraft] = useState("");
+  const [isSavingContactName, setIsSavingContactName] = useState(false);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -229,10 +229,6 @@ export function ChatwootDashboardApp() {
     const ticketNumber = pickFirstValue(conversationAttributes.ticket_number);
     const remoteStatus = pickFirstValue(conversationAttributes.remote_status);
     const remoteStatusText = pickFirstValue(conversationAttributes.remote_status_text);
-    const companyNames = pickFirstValue(
-      contactAttributes.syspro_company_names,
-      conversationAttributes.syspro_company_names,
-    );
     const contactName = pickFirstValue(context?.contact?.name, contactAttributes.syspro_contact_name);
     const customerEmail = pickFirstValue(context?.contact?.email);
     const customerPhone = pickFirstValue(context?.contact?.phone_number);
@@ -263,7 +259,6 @@ export function ChatwootDashboardApp() {
     return {
       companyId: effectiveCompanyId,
       companyName: effectiveCompanyName,
-      companyNames,
       hostId,
       rustdeskId,
       ticketNumber,
@@ -273,7 +268,6 @@ export function ChatwootDashboardApp() {
       customerEmail,
       customerPhone,
       conversationId,
-      conversationStatus: pickFirstValue(context?.conversation?.status),
       contactId,
       accountId,
       currentAgentName: pickFirstValue(context?.currentAgent?.name),
@@ -290,18 +284,32 @@ export function ChatwootDashboardApp() {
   const canCreateTicket = Boolean(resolved.companyId);
   const canOpenRemoteDirectory = Boolean(resolved.companyId);
   const canOpenHost = Boolean(resolved.hostId);
-  const recommendedAction = canOpenHost
-    ? "host"
-    : canOpenRemoteDirectory
-      ? "hosts"
-      : canCreateTicket
-        ? "ticket"
-        : "diagnostic";
-  const existingTicket = useMemo(
+  const matchedExistingTicket = useMemo(
     () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
     [latestTickets, resolved.ticketNumber],
   );
-  const latestCompanyTicket = latestTickets[0] ?? null;
+  const hasExistingTicket = matchedExistingTicket != null;
+  const existingTicket: TicketListEntry = matchedExistingTicket ?? {
+    id: "",
+    number: "-",
+    title: "Sem titulo",
+    status: "",
+    statusLabel: "-",
+    createdAt: "",
+    updatedAt: "",
+    customer: "",
+  };
+  const hasLatestCompanyTicket = latestTickets.length > 0;
+  const latestCompanyTicket: TicketListEntry = latestTickets[0] ?? {
+    id: "",
+    number: "-",
+    title: "Sem titulo",
+    status: "",
+    statusLabel: "-",
+    createdAt: "",
+    updatedAt: "",
+    customer: "",
+  };
   const recommendedHost = useMemo(() => {
     if (!companyHosts.length) return null;
     return companyHosts.find((host) => host.id === resolved.hostId) ?? companyHosts[0];
@@ -320,19 +328,37 @@ export function ChatwootDashboardApp() {
     () => companyOptions.find((company) => company.id === selectedCompanyId) ?? null,
     [companyOptions, selectedCompanyId],
   );
+  const trimmedCompanySearchTerm = companySearchTerm.trim();
+  const shouldSearchCompanies = !resolved.companyId && trimmedCompanySearchTerm.length >= 2;
   const filteredCategories = useMemo(
     () => ticketSettings.categories.filter((category) => category.defaultTeam === embeddedTicketForm.team),
     [embeddedTicketForm.team, ticketSettings.categories],
   );
-  const linkedCompanyCount = portalContactMatch?.companyIds?.length ?? (resolved.companyId ? 1 : 0);
   const contactEditHref = portalContactMatch?.id ? `/portal/contatos/${portalContactMatch.id}/editar` : "";
-  const customerReadinessLabel = resolved.companyId
-    ? linkedCompanyCount > 1
-      ? `${linkedCompanyCount} empresas vinculadas`
-      : "Contato pronto para uso no portal"
-    : portalContactMatch?.id
-      ? "Contato existe no portal, mas precisa de empresa"
-      : "Contato ainda nao registrado no portal";
+  const linkedCompanies = useMemo(() => {
+    const byId = new Map<string, CompanyOption>();
+    for (const company of portalContactMatch?.companies ?? []) {
+      if (company?.id) {
+        byId.set(company.id, {
+          id: company.id,
+          razaoSocial: company.razaoSocial,
+          nomeFantasia: company.nomeFantasia ?? null,
+        });
+      }
+    }
+    if (manualLinkedCompany?.id) {
+      byId.set(manualLinkedCompany.id, manualLinkedCompany);
+    }
+    if (byId.size === 0 && resolved.companyId) {
+      byId.set(resolved.companyId, {
+        id: resolved.companyId,
+        razaoSocial: resolved.companyName || resolved.companyId,
+        nomeFantasia: resolved.companyName || null,
+      });
+    }
+    return Array.from(byId.values());
+  }, [manualLinkedCompany, portalContactMatch?.companies, resolved.companyId, resolved.companyName]);
+  const effectiveContactName = contactNameDraft.trim() || portalContactMatch?.name || resolved.contactName || "Contato Chatwoot";
 
   useEffect(() => {
     setEmbeddedTicketForm((current) => {
@@ -370,14 +396,21 @@ export function ChatwootDashboardApp() {
   }, [filteredCategories, ticketSettings]);
 
   useEffect(() => {
-    const contactLabel = resolved.contactName || resolved.companyName || "Novo ticket";
+    setContactNameDraft((current) => {
+      if (current.trim()) return current;
+      return portalContactMatch?.name || resolved.contactName || "";
+    });
+  }, [portalContactMatch?.name, resolved.contactName]);
+
+  useEffect(() => {
+    const contactLabel = effectiveContactName || resolved.companyName || "Novo ticket";
     const defaultTitle = resolved.ticketNumber
       ? `${contactLabel} - continuidade do atendimento`
       : `${contactLabel} - novo ticket`;
     const defaultDescription = [
       "Atendimento originado no Chatwoot.",
       resolved.companyName ? `Empresa: ${resolved.companyName}` : "",
-      resolved.contactName ? `Contato: ${resolved.contactName}` : "",
+      effectiveContactName ? `Contato: ${effectiveContactName}` : "",
       resolved.customerPhone ? `Telefone: ${resolved.customerPhone}` : "",
       resolved.ticketNumber ? `Ticket referenciado na conversa: #${resolved.ticketNumber}` : "",
       resolved.hostId ? `Host em contexto: ${resolved.hostId}` : "",
@@ -400,21 +433,27 @@ export function ChatwootDashboardApp() {
     });
   }, [
     resolved.companyName,
-    resolved.contactName,
+    effectiveContactName,
     resolved.customerPhone,
     resolved.hostId,
     resolved.ticketNumber,
   ]);
 
   useEffect(() => {
-    if (resolved.companyId || companyOptions.length > 0) return;
+    if (resolved.companyId) return;
+    if (!shouldSearchCompanies) {
+      setCompanyOptionsError(null);
+      setIsLoadingCompanyOptions(false);
+      return;
+    }
 
     const controller = new AbortController();
     async function loadCompanyOptions() {
       try {
         setIsLoadingCompanyOptions(true);
         setCompanyOptionsError(null);
-        const response = await fetch("/api/companies/options", {
+        const params = new URLSearchParams({ q: trimmedCompanySearchTerm });
+        const response = await fetch(`/api/companies/search?${params.toString()}`, {
           method: "GET",
           cache: "no-store",
           signal: controller.signal,
@@ -424,7 +463,7 @@ export function ChatwootDashboardApp() {
           setCompanyOptionsError(
             response.status === 401
               ? "Faca login no portal neste navegador para buscar empresas."
-              : "Nao foi possivel carregar as empresas disponiveis para vinculo.",
+              : "Nao foi possivel buscar as empresas para vinculo.",
           );
           return;
         }
@@ -433,7 +472,7 @@ export function ChatwootDashboardApp() {
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
         setCompanyOptions([]);
-        setCompanyOptionsError("Nao foi possivel carregar as empresas disponiveis para vinculo.");
+        setCompanyOptionsError("Nao foi possivel buscar as empresas para vinculo.");
       } finally {
         setIsLoadingCompanyOptions(false);
       }
@@ -441,7 +480,7 @@ export function ChatwootDashboardApp() {
 
     void loadCompanyOptions();
     return () => controller.abort();
-  }, [companyOptions.length, resolved.companyId]);
+  }, [resolved.companyId, shouldSearchCompanies, trimmedCompanySearchTerm]);
 
   useEffect(() => {
     if (resolved.companyId) {
@@ -533,7 +572,7 @@ export function ChatwootDashboardApp() {
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: resolved.contactName || "Contato Chatwoot",
+            name: effectiveContactName,
             email: resolved.customerEmail || undefined,
             phone: resolved.customerPhone || undefined,
             whatsapp: resolved.customerPhone || undefined,
@@ -578,6 +617,51 @@ export function ChatwootDashboardApp() {
     }
   }
 
+  async function handleSaveContactName() {
+    const nextName = contactNameDraft.trim();
+    if (!nextName || isSavingContactName || !portalContactMatch?.id) return;
+
+    try {
+      setIsSavingContactName(true);
+      setCompanyBindingFeedback(null);
+      const response = await fetch(`/api/contacts/${portalContactMatch.id}`, {
+        method: "PATCH",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nextName }),
+      });
+      const json = (await response.json().catch(() => null)) as (ContactLookupEntry & { error?: string; message?: string }) | null;
+      if (!response.ok) {
+        setCompanyBindingFeedback({
+          tone: "error",
+          message:
+            json?.error ||
+            json?.message ||
+            (response.status === 401
+              ? "Faca login no portal neste navegador para atualizar o nome do contato."
+              : "Nao foi possivel atualizar o nome do contato."),
+        });
+        return;
+      }
+
+      if (json?.id) {
+        setPortalContactMatch(json);
+      }
+      setCompanyBindingFeedback({
+        tone: "success",
+        message: "Nome do contato atualizado no portal e sincronizado com o Chatwoot.",
+      });
+      requestChatwootContext();
+    } catch {
+      setCompanyBindingFeedback({
+        tone: "error",
+        message: "Nao foi possivel atualizar o nome do contato.",
+      });
+    } finally {
+      setIsSavingContactName(false);
+    }
+  }
+
   useEffect(() => {
     if (!resolved.companyId) {
       setLatestTickets([]);
@@ -593,7 +677,8 @@ export function ChatwootDashboardApp() {
         const params = new URLSearchParams({
           companyId: resolved.companyId,
           page: "1",
-          pageSize: "5",
+          pageSize: "20",
+          statusGroup: "open",
           sortBy: "updatedAt",
           sortOrder: "desc",
         });
@@ -707,7 +792,7 @@ export function ChatwootDashboardApp() {
         externalThreadId: resolved.conversationId || undefined,
         contactPhoneSnapshot: resolved.customerPhone || undefined,
         contactWhatsappSnapshot: resolved.customerPhone || undefined,
-        contactNameSnapshot: resolved.contactName || undefined,
+        contactNameSnapshot: effectiveContactName || undefined,
         metadata: {
           source: "chatwoot",
           chatwootConversationId: resolved.conversationId || null,
@@ -832,97 +917,60 @@ export function ChatwootDashboardApp() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-3">
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <InfoCard
-                      icon={<Building2 className="h-4 w-4 text-primary" />}
-                      label="Empresa"
-                      value={resolved.companyName || "Nao vinculada"}
-                      helper={resolved.companyNames || resolved.companyId || "Contato sem empresa no portal"}
-                    />
-                    <InfoCard
-                      icon={<Headphones className="h-4 w-4 text-primary" />}
-                      label="Contato"
-                      value={resolved.contactName || "Nao identificado"}
-                      helper={resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}
-                    />
-                    <InfoCard
-                      icon={<Monitor className="h-4 w-4 text-primary" />}
-                      label="Host atual"
-                      value={resolved.hostId || "Nao informado"}
-                      helper={resolved.rustdeskId || "Sem RustDesk ID"}
-                    />
-                    <InfoCard
-                      icon={<Waypoints className="h-4 w-4 text-primary" />}
-                      label="Situacao"
-                      value={customerReadinessLabel}
-                      helper={resolved.ticketNumber ? `Ticket atual: #${resolved.ticketNumber}` : `Conversa ${resolved.conversationId || "sem id"}`}
-                    />
-                  </div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+                  <Card className="border-border/60">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Headphones className="h-4 w-4 text-primary" />
+                        Contato
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <p className="text-base font-semibold text-foreground">
+                          {effectiveContactName || "Nao identificado"}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {resolved.customerPhone || "Sem telefone"}
+                        </p>
+                        <p className="mt-1 break-all text-sm text-muted-foreground">
+                          {resolved.customerEmail || "Sem e-mail"}
+                        </p>
+                      </div>
+                      {contactEditHref ? (
+                        <Button asChild variant="outline" size="sm" className="gap-2">
+                          <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                            <ArrowUpRight className="h-4 w-4" />
+                            Editar contato
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </CardContent>
+                  </Card>
 
-                  <Card className="border-primary/20 bg-primary/5">
-                    <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Acao recomendada</p>
-                        <p className="mt-1 text-sm font-semibold text-foreground">
-                          {recommendedAction === "host" && "Abrir host atual para atendimento imediato"}
-                          {recommendedAction === "hosts" && "Ver os hosts da empresa antes de abrir ticket"}
-                          {recommendedAction === "ticket" && "Abrir ticket manual com classificacao completa"}
-                          {recommendedAction === "diagnostic" && "Vincular o contato a uma empresa primeiro"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {recommendedAction === "host" && "O contexto desta conversa ja trouxe um host especifico sincronizado."}
-                          {recommendedAction === "hosts" && "Ha empresa vinculada, entao o proximo passo mais util costuma ser localizar o host correto."}
-                          {recommendedAction === "ticket" && "Sem host no contexto, mas o contato ja pode virar ticket manualmente se o atendente decidir."}
-                          {recommendedAction === "diagnostic" && "Sem empresa vinculada, o app fica limitado a diagnostico e vinculo do cadastro."}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {recommendedAction === "host" && resolved.remoteHostHref ? (
-                          <Button asChild className="gap-2">
-                            <Link href={resolved.remoteHostHref} target="_blank" rel="noreferrer">
-                              <Monitor className="h-4 w-4" />
-                              Abrir host atual
-                            </Link>
-                          </Button>
-                        ) : null}
-                        {recommendedAction === "hosts" ? (
-                          <Button asChild className="gap-2">
-                            <Link href={resolved.remoteDirectoryHref} target="_blank" rel="noreferrer">
-                              <Waypoints className="h-4 w-4" />
-                              Ver hosts da empresa
-                            </Link>
-                          </Button>
-                        ) : null}
-                        {recommendedAction === "ticket" ? (
-                          <Button
-                            type="button"
-                            className="gap-2"
-                            onClick={() => {
-                              setActiveTab("tickets");
-                              setShowEmbeddedTicketForm(true);
-                              setEmbeddedTicketFeedback(null);
-                            }}
-                          >
-                            <Ticket className="h-4 w-4" />
-                            Criar ticket
-                          </Button>
-                        ) : null}
-                        {recommendedAction === "diagnostic" ? (
-                          <div className="inline-flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                            <AlertTriangle className="h-4 w-4" />
-                            Vinculo pendente
+                  <Card className="border-border/60">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        Empresas vinculadas
+                      </CardTitle>
+                      <CardDescription>
+                        {linkedCompanies.length > 0
+                          ? `${linkedCompanies.length} empresa${linkedCompanies.length > 1 ? "s" : ""} vinculada${linkedCompanies.length > 1 ? "s" : ""} a este contato.`
+                          : "Este contato ainda nao possui empresa vinculada no portal."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {linkedCompanies.length > 0 ? (
+                        linkedCompanies.map((company) => (
+                          <div key={company.id} className="rounded-lg border border-border/60 bg-card px-3 py-2">
+                            <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{company.razaoSocial}</p>
                           </div>
-                        ) : null}
-                        {contactEditHref ? (
-                          <Button asChild variant="outline" className="gap-2">
-                            <Link href={contactEditHref} target="_blank" rel="noreferrer">
-                              <ArrowUpRight className="h-4 w-4" />
-                              Editar contato
-                            </Link>
-                          </Button>
-                        ) : null}
-                      </div>
+                        ))
+                      ) : (
+                        <EmptyState label="Nenhuma empresa vinculada encontrada para este contato." />
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -952,18 +1000,63 @@ export function ChatwootDashboardApp() {
                               <InlineLoading label="Verificando contato existente..." />
                             </div>
                           ) : portalContactMatch ? (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-sm font-semibold text-foreground">{portalContactMatch.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Contato ja existe no portal{portalContactMatch.companyIds?.length ? " e recebera mais este vinculo." : ", mas ainda esta sem empresa vinculada."}
-                              </p>
+                            <div className="mt-2 space-y-3">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">{portalContactMatch.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Contato ja existe no portal{portalContactMatch.companyIds?.length ? " e recebera mais este vinculo." : ", mas ainda esta sem empresa vinculada."}
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                  Nome do contato
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                  <Input
+                                    value={contactNameDraft}
+                                    onChange={(event) => {
+                                      setContactNameDraft(event.target.value);
+                                      setCompanyBindingFeedback(null);
+                                    }}
+                                    placeholder="Nome usado no portal e no Chatwoot"
+                                    className="h-10 flex-1 bg-background"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={handleSaveContactName}
+                                    disabled={!contactNameDraft.trim() || contactNameDraft.trim() === (portalContactMatch.name || "").trim() || isSavingContactName}
+                                  >
+                                    {isSavingContactName ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
+                                    Sincronizar nome
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
                           ) : (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-sm font-semibold text-foreground">Contato ainda nao localizado</p>
-                              <p className="text-xs text-muted-foreground">
-                                O app pode criar o contato com os dados atuais da conversa e ja aplicar o vinculo com a empresa escolhida.
-                              </p>
+                            <div className="mt-2 space-y-3">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-foreground">Contato ainda nao localizado</p>
+                                <p className="text-xs text-muted-foreground">
+                                  O app pode criar o contato com os dados atuais da conversa e ja aplicar o vinculo com a empresa escolhida.
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                  Nome para criar no portal
+                                </label>
+                                <Input
+                                  value={contactNameDraft}
+                                  onChange={(event) => {
+                                    setContactNameDraft(event.target.value);
+                                    setCompanyBindingFeedback(null);
+                                  }}
+                                  placeholder="Nome que sera usado ao criar o contato"
+                                  className="h-10 bg-background"
+                                />
+                              </div>
                             </div>
                           )}
                           {contactLookupError ? <div className="mt-2"><InlineWarning message={contactLookupError} /></div> : null}
@@ -980,11 +1073,14 @@ export function ChatwootDashboardApp() {
                               placeholder="Buscar empresa por nome fantasia ou razao social"
                               className="bg-background"
                             />
+                            {!shouldSearchCompanies ? (
+                              <EmptyState label="Digite pelo menos 2 caracteres para buscar empresas e vincular este contato." />
+                            ) : null}
                             {isLoadingCompanyOptions ? (
-                              <InlineLoading label="Carregando empresas permitidas..." />
+                              <InlineLoading label="Buscando empresas..." />
                             ) : null}
                             {companyOptionsError ? <InlineWarning message={companyOptionsError} /> : null}
-                            {!isLoadingCompanyOptions && !companyOptionsError ? (
+                            {shouldSearchCompanies && !isLoadingCompanyOptions && !companyOptionsError ? (
                               <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                                 {filteredCompanyOptions.length > 0 ? (
                                   filteredCompanyOptions.map((company) => {
@@ -1051,17 +1147,17 @@ export function ChatwootDashboardApp() {
 
               <TabsContent value="tickets" className="space-y-3">
                 <Card className="border-border/60">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div className="min-w-0">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                          <Ticket className="h-4 w-4 text-primary" />
-                          Tickets da empresa
-                        </CardTitle>
-                        <CardDescription>
-                          Crie o ticket sem sair do Chatwoot e confira os ultimos atendimentos para evitar duplicidade.
-                        </CardDescription>
-                      </div>
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                            <Ticket className="h-4 w-4 text-primary" />
+                            Tickets da empresa
+                          </CardTitle>
+                          <CardDescription>
+                            Abra o ticket sem sair do Chatwoot e acompanhe somente os chamados ainda abertos desta empresa.
+                          </CardDescription>
+                        </div>
                       <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
@@ -1091,12 +1187,16 @@ export function ChatwootDashboardApp() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {showEmbeddedTicketForm ? (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                      <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
                         <form className="space-y-3" onSubmit={handleEmbeddedTicketSubmit}>
-                          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-                            <div className="space-y-3">
+                          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                            <div className="space-y-4 p-4 xl:border-r xl:border-border/60">
+                              <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                Resumo do chamado
+                              </div>
                               <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <label className="text-sm font-semibold text-foreground">
                                   Assunto
                                 </label>
                                 <Input
@@ -1104,14 +1204,17 @@ export function ChatwootDashboardApp() {
                                   onChange={(event) =>
                                     setEmbeddedTicketForm((current) => ({ ...current, title: event.target.value }))
                                   }
-                                  placeholder="Resumo curto do problema"
-                                  className="bg-background"
+                                  placeholder="Ex: Erro ao emitir nota fiscal"
+                                  className="h-10 bg-background"
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                  Descricao
-                                </label>
+                                <div className="flex items-center justify-between gap-2">
+                                  <label className="text-sm font-semibold text-foreground">
+                                    Descricao detalhada
+                                  </label>
+                                  <span className="text-[11px] text-muted-foreground">Passo a passo validado pelo analista</span>
+                                </div>
                                 <Textarea
                                   value={embeddedTicketForm.description}
                                   onChange={(event) =>
@@ -1120,15 +1223,28 @@ export function ChatwootDashboardApp() {
                                       description: event.target.value,
                                     }))
                                   }
-                                  placeholder="Descreva o problema validado pelo atendente, o passo a passo e o resultado esperado."
-                                  className="min-h-[180px] bg-background"
+                                  placeholder="Informe o passo a passo, resultado esperado, mensagem de erro e usuarios impactados."
+                                  className="min-h-55 bg-background leading-relaxed"
                                 />
+                                <p className="text-xs text-muted-foreground">
+                                  Use o mesmo nivel de detalhe da abertura normal do modulo para reduzir retrabalho.
+                                </p>
                               </div>
                             </div>
 
-                            <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
+                            <div className="space-y-3 bg-muted/5 p-4">
+                              <div className="inline-flex items-center gap-2 rounded-md border border-border/40 bg-muted px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-foreground">
+                                <Waypoints className="h-3.5 w-3.5" />
+                                Informacoes
+                              </div>
+                              <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Classificacao</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Define fila, prioridade, categoria e modulo inicial do chamado.
+                                </p>
+                              </div>
                               <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                   Setor
                                 </label>
                                 <Select
@@ -1151,7 +1267,7 @@ export function ChatwootDashboardApp() {
                                     })
                                   }
                                 >
-                                  <SelectTrigger className="bg-background">
+                                  <SelectTrigger className="h-10 bg-background">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1165,7 +1281,7 @@ export function ChatwootDashboardApp() {
                               </div>
 
                               <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                   Prioridade
                                 </label>
                                 <Select
@@ -1177,7 +1293,7 @@ export function ChatwootDashboardApp() {
                                     }))
                                   }
                                 >
-                                  <SelectTrigger className="bg-background">
+                                  <SelectTrigger className="h-10 bg-background">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1191,7 +1307,7 @@ export function ChatwootDashboardApp() {
                               </div>
 
                               <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                   Categoria
                                 </label>
                                 <Select
@@ -1203,7 +1319,7 @@ export function ChatwootDashboardApp() {
                                     }))
                                   }
                                 >
-                                  <SelectTrigger className="bg-background">
+                                  <SelectTrigger className="h-10 bg-background">
                                     <SelectValue placeholder="Selecione a categoria" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1217,7 +1333,7 @@ export function ChatwootDashboardApp() {
                               </div>
 
                               <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                   Modulo
                                 </label>
                                 <TicketModuleCascadeSelect
@@ -1237,19 +1353,19 @@ export function ChatwootDashboardApp() {
                                 />
                               </div>
 
-                              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
+                              <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
                                 <p className="mt-1 font-medium">{resolved.companyName || resolved.companyId || "Sem empresa"}</p>
                               </div>
-                              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
+                              <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
-                                <p className="mt-1 font-medium">{resolved.contactName || "Nao identificado"}</p>
+                                <p className="mt-1 font-medium">{effectiveContactName || "Nao identificado"}</p>
                                 <p className="mt-1 text-xs text-muted-foreground">{resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}</p>
                               </div>
                             </div>
                           </div>
 
-                          {existingTicket ? (
+                          {hasExistingTicket ? (
                             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
                               Esta conversa ja referencia o ticket #{existingTicket.number}. Abra outro apenas se a demanda realmente precisar ser separada.
                             </div>
@@ -1259,9 +1375,9 @@ export function ChatwootDashboardApp() {
                             <InlineNotice tone={embeddedTicketFeedback.tone} message={embeddedTicketFeedback.message} />
                           ) : null}
 
-                          <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-4 pb-1 pt-3">
                             <p className="text-xs text-muted-foreground">
-                              O envio usa a mesma sessao do portal neste navegador e nao redireciona a conversa.
+                              O envio usa a mesma sessao do portal neste navegador e mantem o atendente dentro da conversa.
                             </p>
                             <div className="flex flex-wrap gap-2">
                               <Button asChild type="button" variant="outline" size="sm">
@@ -1294,7 +1410,7 @@ export function ChatwootDashboardApp() {
                       </div>
                     ) : null}
 
-                    {existingTicket ? (
+                    {hasExistingTicket ? (false ? (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
@@ -1314,9 +1430,9 @@ export function ChatwootDashboardApp() {
                           </Button>
                         </div>
                       </div>
-                    ) : null}
+                    ) : null) : null}
 
-                    {!existingTicket && latestCompanyTicket ? (
+                    {!hasExistingTicket && hasLatestCompanyTicket ? (false ? (
                       <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -1337,7 +1453,7 @@ export function ChatwootDashboardApp() {
                           </Button>
                         </div>
                       </div>
-                    ) : null}
+                    ) : null) : null}
 
                     {isLoadingTickets ? (
                       <InlineLoading label="Carregando tickets reais da empresa..." />
@@ -1346,7 +1462,7 @@ export function ChatwootDashboardApp() {
                       <InlineWarning message={ticketError} />
                     ) : null}
                     {!isLoadingTickets && !ticketError && latestTickets.length === 0 ? (
-                      <EmptyState label="Nenhum ticket recente encontrado para esta empresa." />
+                      <EmptyState label="Nenhum ticket aberto encontrado para esta empresa." />
                     ) : null}
                     {!isLoadingTickets && !ticketError && latestTickets.length > 0 ? (
                       <div className="space-y-2">
@@ -1358,12 +1474,15 @@ export function ChatwootDashboardApp() {
                                   #{ticket.number} · {ticket.title}
                                 </p>
                                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                  <ContextBadge tone={ticket.number === resolved.ticketNumber ? "good" : "neutral"}>
-                                    {ticket.statusLabel}
-                                  </ContextBadge>
+                                  {ticket.number === resolved.ticketNumber ? (
+                                    <ContextBadge tone="good">Ticket da conversa</ContextBadge>
+                                  ) : null}
                                   <span className="inline-flex items-center gap-1">
                                     <Clock3 className="h-3 w-3" />
-                                    {formatRelativeDate(ticket.updatedAt)}
+                                    Criado em {formatRelativeDate(ticket.createdAt)}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    Estagio atual: {ticket.statusLabel}
                                   </span>
                                 </div>
                               </div>
@@ -1500,60 +1619,9 @@ export function ChatwootDashboardApp() {
               </TabsContent>
             </Tabs>
 
-            <details className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-              <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-foreground">
-                <Radio className="h-3.5 w-3.5 text-primary" />
-                Diagnostico do contexto
-              </summary>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Use este bloco quando algo do Chatwoot nao bater com o cadastro do portal.
-              </p>
-              <div className="mt-3 grid gap-2 md:grid-cols-2">
-                <DiagnosticLine label="conversation_id" value={resolved.conversationId} />
-                <DiagnosticLine label="conversation_status" value={resolved.conversationStatus} />
-                <DiagnosticLine label="contact_id" value={resolved.contactId} />
-                <DiagnosticLine label="account_id" value={resolved.accountId} />
-                <DiagnosticLine label="company_id" value={resolved.companyId} />
-                <DiagnosticLine label="company_name" value={resolved.companyName} />
-                <DiagnosticLine label="host_id" value={resolved.hostId} />
-                <DiagnosticLine label="rustdesk_id" value={resolved.rustdeskId} />
-                <DiagnosticLine label="ticket_number" value={resolved.ticketNumber} />
-                <DiagnosticLine label="remote_status" value={resolved.remoteStatusText || resolved.remoteStatus} />
-                <DiagnosticLine label="contact_phone" value={resolved.customerPhone} />
-                <DiagnosticLine label="contact_email" value={resolved.customerEmail} />
-              </div>
-            </details>
-
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-              {resolved.currentAgentName ? `Agente atual: ${resolved.currentAgentName}. ` : ""}
-              Este painel nao abre ticket automaticamente. Ele apenas concentra as acoes manuais de ticket e acesso remoto dentro da conversa do Chatwoot.
-            </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function InfoCard({
-  icon,
-  label,
-  value,
-  helper,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  helper: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-card p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <p className="mt-2 break-words text-sm font-semibold text-foreground">{value}</p>
-      <p className="mt-1 break-all text-xs text-muted-foreground">{helper}</p>
     </div>
   );
 }
@@ -1597,15 +1665,6 @@ function ContextBadge({
     <Badge variant="outline" className={className}>
       {children}
     </Badge>
-  );
-}
-
-function DiagnosticLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border/50 bg-background/70 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 break-all font-mono text-[11px] text-foreground">{value || "ausente"}</p>
-    </div>
   );
 }
 
