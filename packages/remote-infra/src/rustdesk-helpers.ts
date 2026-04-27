@@ -66,6 +66,10 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
   const installerChecksumSha256 = settings.rustDeskInstallerSha256.trim().toLowerCase() || null;
   const installerSilentArgs = settings.rustDeskInstallArgs.trim() || "/S";
   const installerPackageType = settings.rustDeskInstallerPackageType;
+  // Product policy: managed hosts should not rely on the native RustDesk tray
+  // and should not expose service stop controls to the end user.
+  const hideTray = true;
+  const hideStopService = true;
 
   return {
     serverHost,
@@ -83,8 +87,8 @@ export function buildRustDeskConfigProfile(settings: RustDeskConfigSettings) {
     installerSilentArgs,
     restartServiceAfterApply: settings.rustDeskRestartServiceAfterApply,
     suppressTrayShortcuts: settings.rustDeskSuppressTrayShortcuts,
-    hideTray: settings.rustDeskHideTray,
-    hideStopService: settings.rustDeskHideStopService,
+    hideTray,
+    hideStopService,
     allowRemoteConfigModification: settings.rustDeskAllowRemoteConfigModification,
     allowD3DRender: settings.rustDeskAllowD3DRender,
     enableDirectXCapture: settings.rustDeskEnableDirectXCapture,

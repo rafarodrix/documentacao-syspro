@@ -9,7 +9,6 @@ import {
   Monitor,
   Plus,
   Search,
-  Settings,
   ShieldCheck,
   TimerReset,
   Wrench,
@@ -78,6 +77,24 @@ function normalizeRustDeskId(value: string) {
 function delay(ms: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 }
+
+const QUICK_DESCRIPTION_TEMPLATES = [
+  "ERP matriz / servidor fiscal",
+  "Servidor principal do cliente",
+  "Terminal de suporte financeiro",
+  "Estacao do faturamento",
+  "Servidor de aplicacao",
+  "PDV / caixa operacional",
+];
+
+const QUICK_ENVIRONMENT_TEMPLATES = [
+  "Producao",
+  "Homologacao",
+  "Servidor",
+  "Matriz",
+  "Filial",
+  "Terminal",
+];
 
 function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
   if (status === "ACTIVE") return "Ativo";
@@ -162,7 +179,9 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
   const [operationalFilter, setOperationalFilter] = useState<"all" | "attention_required" | "provisioning" | "ready" | "in_service">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
+  const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
+  const [quickEnvironment, setQuickEnvironment] = useState("Producao");
   const [quickDescription, setQuickDescription] = useState("");
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
@@ -197,8 +216,8 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
   }
 
   async function handleQuickCreateHost() {
-    if (!quickCompanyId || !quickRustdeskId.trim() || !quickDescription.trim()) {
-      toast.error("Selecione a empresa, informe o RustDesk ID e a descricao.");
+    if (!quickCompanyId || !quickHostName.trim() || !quickRustdeskId.trim() || !quickDescription.trim()) {
+      toast.error("Selecione a empresa e informe nome do host, RustDesk ID e descricao.");
       return;
     }
 
@@ -209,23 +228,24 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
     }
 
     try {
-      const companyLabel = directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Host remoto";
-      const name = `${companyLabel} - Acesso remoto`;
       const payload = await requestRemoteMutation<Record<string, unknown>>({
         url: "/api/remote/hosts",
         method: "POST",
         body: {
           companyId: quickCompanyId,
-          name,
+          name: quickHostName.trim(),
           provider: "RustDesk",
-          description: quickDescription,
+          environment: quickEnvironment.trim() || "Producao",
+          description: quickDescription.trim(),
           agentExternalId: rustdeskId.normalized,
           status: "ACTIVE",
         },
       });
 
       toast.success("Maquina cadastrada.");
+      setQuickHostName("");
       setQuickRustdeskId("");
+      setQuickEnvironment("Producao");
       setQuickDescription("");
       setShowQuickCreate(false);
       startTransition(() => router.refresh());
@@ -407,13 +427,6 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href="/portal/configuracoes?tab=remote"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
-          >
-            <Settings className="h-4 w-4" />
-            Configuracoes
-          </a>
           {canCreateHosts && (
             <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
               <DialogTrigger asChild>
@@ -424,41 +437,87 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
               </DialogTrigger>
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Cadastro rapido de host</DialogTitle>
+                  <DialogTitle>Adicionar host manualmente</DialogTitle>
                   <DialogDescription>
-                    Fluxo minimo para criar um host operacional diretamente nesta rota.
+                    Cadastro assistido para criar um host operacional com empresa pesquisavel, identidade do RustDesk e contexto tecnico claro.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-3">
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="space-y-2">
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
                       <Label>Empresa</Label>
-                      <Select value={quickCompanyId} onValueChange={setQuickCompanyId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a empresa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {directory.companyOptions.map((company) => (
-                            <SelectItem key={company.id} value={company.id}>
-                              {company.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableCompanyPicker
+                        value={quickCompanyId}
+                        options={directory.companyOptions}
+                        searchUrl="/api/remote/companies/search"
+                        onChange={setQuickCompanyId}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Pesquise por razao social, nome fantasia ou codigo operacional para localizar a empresa com mais rapidez.
+                      </p>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label>Nome do host</Label>
+                      <Input value={quickHostName} onChange={(event) => setQuickHostName(event.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Ambiente</Label>
+                      <Input
+                        list="quick-environment-options"
+                        value={quickEnvironment}
+                        onChange={(event) => setQuickEnvironment(event.target.value)}
+                        placeholder="Producao"
+                      />
+                      <datalist id="quick-environment-options">
+                        {QUICK_ENVIRONMENT_TEMPLATES.map((option) => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
+                    </div>
+
                     <div className="space-y-2">
                       <Label>RustDesk ID</Label>
                       <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
+                      <p className="text-xs text-muted-foreground">Informe apenas numeros. O portal valida IDs com 7 a 12 digitos.</p>
                     </div>
+
                     <div className="space-y-2">
-                      <Label>Descricao</Label>
-                      <Input value={quickDescription} onChange={(event) => setQuickDescription(event.target.value)} placeholder="ERP matriz / servidor fiscal" />
+                      <Label>Descricao operacional</Label>
+                      <Input
+                        list="quick-description-options"
+                        value={quickDescription}
+                        onChange={(event) => setQuickDescription(event.target.value)}
+                        placeholder="ERP matriz / servidor fiscal"
+                      />
+                      <datalist id="quick-description-options">
+                        {QUICK_DESCRIPTION_TEMPLATES.map((option) => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
                     </div>
                   </div>
-                  <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Confirmar cadastro
-                  </Button>
+
+                  <div className="rounded-lg border border-border/50 bg-muted/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
+                    <div className="mt-2 grid gap-2 text-sm text-foreground md:grid-cols-2">
+                      <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Nao selecionada"}</p>
+                      <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}</p>
+                      <p><span className="text-muted-foreground">Ambiente:</span> {quickEnvironment.trim() || "Nao informado"}</p>
+                      <p><span className="text-muted-foreground">RustDesk ID:</span> {quickRustdeskId.trim() || "Nao informado"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      Para maquinas sem empresa definida no momento da instalacao, prefira o fluxo de descoberta automatica. Elas aparecem em <strong>Novas Descobertas</strong> e podem ser vinculadas depois.
+                    </p>
+                    <Button onClick={handleQuickCreateHost} disabled={isPending} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Criar host
+                    </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -546,7 +605,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
           <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Settings className="h-3.5 w-3.5 text-rose-500" />
+                <Wrench className="h-3.5 w-3.5 text-rose-500" />
                 Configuração
               </CardTitle>
             </CardHeader>

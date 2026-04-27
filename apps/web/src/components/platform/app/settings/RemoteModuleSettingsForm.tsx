@@ -542,22 +542,6 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Ocultar tray do RustDesk</p>
-              <p className="text-xs text-muted-foreground">Reduz a dependencia do systray do RustDesk em hosts governados pelo agente.</p>
-            </div>
-            <Switch checked={form.watch("rustDeskHideTray")} onCheckedChange={(checked) => form.setValue("rustDeskHideTray", checked, { shouldDirty: true })} />
-          </div>
-
-          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Ocultar acao de parar servico</p>
-              <p className="text-xs text-muted-foreground">Esconde a acao de stop/toggle service para reduzir desligamentos acidentais do remoto.</p>
-            </div>
-            <Switch checked={form.watch("rustDeskHideStopService")} onCheckedChange={(checked) => form.setValue("rustDeskHideStopService", checked, { shouldDirty: true })} />
-          </div>
-
-          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-muted/10 p-4">
-            <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">Permitir configuracao remota pela UI</p>
               <p className="text-xs text-muted-foreground">Quando desligado, dificulta alteracoes operacionais feitas pela interface do proprio RustDesk.</p>
             </div>
@@ -578,6 +562,10 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
               <p className="text-xs text-muted-foreground">Mantem a captura DirectX habilitada no host controlado, recomendada como padrao salvo incompatibilidade conhecida.</p>
             </div>
             <Switch checked={form.watch("rustDeskEnableDirectXCapture")} onCheckedChange={(checked) => form.setValue("rustDeskEnableDirectXCapture", checked, { shouldDirty: true })} />
+          </div>
+
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-4 text-xs text-muted-foreground md:col-span-2">
+            Em hosts gerenciados, o tray nativo do RustDesk e a acao de parar o servico sao tratados como politica fixa do produto. A operacao usa o Agent Trilink como experiencia principal.
           </div>
         </CardContent>
       </Card>

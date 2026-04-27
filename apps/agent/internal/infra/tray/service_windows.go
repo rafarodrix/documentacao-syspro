@@ -64,10 +64,10 @@ func (s *Service) Run(ctx context.Context) error {
 			systray.SetTitle("Trilink Agent")
 			systray.SetTooltip(s.tooltipText())
 
-			setupItem = systray.AddMenuItem("Status do agente", "Provisionnamento e diagnostico")
-			supportItem = systray.AddMenuItem("Abrir suporte", "Canal oficial Trilink")
+			setupItem = systray.AddMenuItem("Painel do agente", "Provisionamento, diagnostico e status operacional")
+			supportItem = systray.AddMenuItem("Suporte Trilink", "Canal oficial de atendimento")
 			systray.AddSeparator()
-			quitItem = systray.AddMenuItem("Sair", "Encerrar interface do agente")
+			quitItem = systray.AddMenuItem("Fechar interface", "Encerrar apenas a interface do agente")
 
 			go s.handleClicks(ctx, setupItem, supportItem, quitItem)
 			go func() {
