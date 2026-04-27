@@ -7,16 +7,20 @@ import {
   ArrowUpRight,
   Building2,
   Clock3,
-  ExternalLink,
   Headphones,
   Loader2,
   MessageSquare,
   Monitor,
   Radio,
-  ShieldAlert,
   Ticket,
   Waypoints,
 } from "lucide-react";
+import {
+  DEFAULT_TICKET_MODULE_SETTINGS,
+  type TicketModuleSettings,
+} from "@dosc-syspro/contracts/ticket";
+import type { CompanyOption } from "@dosc-syspro/contracts/company";
+import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +28,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
+import {
+  getSuggestedCategoryForTeam,
+  useTicketModuleSettings,
+} from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { cn } from "@/lib/utils";
 
 type ChatwootAppContext = {
@@ -65,29 +74,17 @@ type RemoteHostEntry = {
   productStatus: string;
 };
 
-type CompanyOption = {
-  id: string;
-  razaoSocial: string;
-  nomeFantasia?: string | null;
-};
-
-type ContactLookupEntry = {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  whatsapp?: string | null;
-  companyId?: string | null;
-  companyIds?: string[];
-  companies?: CompanyOption[];
-};
+type ContactLookupEntry = ContactOption;
 
 type TicketPriorityOption = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
 
 type EmbeddedTicketFormState = {
   title: string;
   description: string;
-  priority: TicketPriorityOption;
+  priorityValue: string;
+  team: "SUPORTE" | "DESENVOLVIMENTO";
+  category: string;
+  module: string;
 };
 
 function readString(value: unknown) {
@@ -145,7 +142,16 @@ function requestChatwootContext() {
   window.parent.postMessage("chatwoot-dashboard-app:fetch-info", "*");
 }
 
+function resolveApiPriorityFromSettingValue(value: string): TicketPriorityOption {
+  const normalized = value.trim().toLowerCase();
+  if (normalized.includes("critical")) return "CRITICAL";
+  if (normalized.startsWith("3") || normalized.includes("high") || normalized.includes("alta")) return "HIGH";
+  if (normalized.startsWith("1") || normalized.includes("low") || normalized.includes("baixa")) return "LOW";
+  return "NORMAL";
+}
+
 export function ChatwootDashboardApp() {
+  const ticketSettings = useTicketModuleSettings();
   const [context, setContext] = useState<ChatwootAppContext | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "empty">("loading");
   const [activeTab, setActiveTab] = useState("overview");
@@ -159,7 +165,13 @@ export function ChatwootDashboardApp() {
   const [embeddedTicketForm, setEmbeddedTicketForm] = useState<EmbeddedTicketFormState>({
     title: "",
     description: "",
-    priority: "NORMAL",
+    priorityValue: DEFAULT_TICKET_MODULE_SETTINGS.defaultPriority,
+    team: DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam,
+    category: getSuggestedCategoryForTeam(
+      DEFAULT_TICKET_MODULE_SETTINGS,
+      DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam,
+    ) || DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value || "",
+    module: DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value || "",
   });
   const [isSubmittingEmbeddedTicket, setIsSubmittingEmbeddedTicket] = useState(false);
   const [embeddedTicketFeedback, setEmbeddedTicketFeedback] = useState<{
@@ -314,6 +326,10 @@ export function ChatwootDashboardApp() {
     () => companyOptions.find((company) => company.id === selectedCompanyId) ?? null,
     [companyOptions, selectedCompanyId],
   );
+  const filteredCategories = useMemo(
+    () => ticketSettings.categories.filter((category) => category.defaultTeam === embeddedTicketForm.team),
+    [embeddedTicketForm.team, ticketSettings.categories],
+  );
   const linkedCompanyCount = portalContactMatch?.companyIds?.length ?? (resolved.companyId ? 1 : 0);
   const contactEditHref = portalContactMatch?.id ? `/portal/contatos/${portalContactMatch.id}/editar` : "";
   const customerReadinessLabel = resolved.companyId
@@ -323,6 +339,41 @@ export function ChatwootDashboardApp() {
     : portalContactMatch?.id
       ? "Contato existe no portal, mas precisa de empresa"
       : "Contato ainda nao registrado no portal";
+
+  useEffect(() => {
+    setEmbeddedTicketForm((current) => {
+      const nextTeam = current.team || ticketSettings.defaultTeam;
+      const nextCategory =
+        filteredCategories.find((category) => category.value === current.category)?.value ||
+        getSuggestedCategoryForTeam(ticketSettings, nextTeam) ||
+        ticketSettings.categories[0]?.value ||
+        "";
+      const nextModule =
+        ticketSettings.modules.find((module) => module.value === current.module)?.value ||
+        ticketSettings.modules[0]?.value ||
+        "";
+      const nextPriorityValue =
+        ticketSettings.priorities.find((priority) => priority.value === current.priorityValue)?.value ||
+        ticketSettings.defaultPriority;
+
+      if (
+        nextTeam === current.team &&
+        nextCategory === current.category &&
+        nextModule === current.module &&
+        nextPriorityValue === current.priorityValue
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        team: nextTeam as "SUPORTE" | "DESENVOLVIMENTO",
+        category: nextCategory,
+        module: nextModule,
+        priorityValue: nextPriorityValue,
+      };
+    });
+  }, [filteredCategories, ticketSettings]);
 
   useEffect(() => {
     const contactLabel = resolved.contactName || resolved.companyName || "Novo ticket";
@@ -651,10 +702,13 @@ export function ChatwootDashboardApp() {
       const payload = {
         title,
         description,
-        priority: embeddedTicketForm.priority,
+        priority: resolveApiPriorityFromSettingValue(embeddedTicketForm.priorityValue),
         channel: "WHATSAPP",
         entryPoint: "INBOUND",
         companyId: resolved.companyId || undefined,
+        category: embeddedTicketForm.category || undefined,
+        module: embeddedTicketForm.module || undefined,
+        team: embeddedTicketForm.team || undefined,
         customerEmail: resolved.customerEmail || undefined,
         externalThreadId: resolved.conversationId || undefined,
         contactPhoneSnapshot: resolved.customerPhone || undefined,
@@ -721,9 +775,6 @@ export function ChatwootDashboardApp() {
                   <MessageSquare className="h-5 w-5 text-primary" />
                   Painel do Atendimento
                 </CardTitle>
-                <CardDescription>
-                  Consulte o contexto do contato e abra ticket ou acesso remoto apenas quando o atendente decidir.
-                </CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -739,9 +790,6 @@ export function ChatwootDashboardApp() {
                 >
                   Atualizar contexto
                 </Button>
-                <Badge variant="outline">
-                  {status === "ready" ? "Contexto carregado" : status === "loading" ? "Lendo contexto" : "Sem contexto"}
-                </Badge>
                 {contactEditHref ? (
                   <Button asChild variant="secondary" size="sm">
                     <Link href={contactEditHref} target="_blank" rel="noreferrer">
@@ -765,291 +813,6 @@ export function ChatwootDashboardApp() {
                 O Chatwoot ainda nao enviou o contexto desta conversa para o app. Reabra a aba do painel ou confira se o Dashboard App foi configurado neste endpoint.
               </div>
             ) : null}
-
-            <div className="flex flex-wrap gap-1.5">
-              <ContextBadge tone={resolved.companyId ? "good" : "warn"}>
-                {resolved.companyId ? "Empresa vinculada" : "Sem empresa vinculada"}
-              </ContextBadge>
-              <ContextBadge tone={resolved.hostId ? "good" : "neutral"}>
-                {resolved.hostId ? "Host sincronizado" : "Sem host sincronizado"}
-              </ContextBadge>
-              <ContextBadge tone={resolved.ticketNumber ? "good" : "neutral"}>
-                {resolved.ticketNumber ? `Ticket #${resolved.ticketNumber}` : "Sem ticket vinculado"}
-              </ContextBadge>
-              <ContextBadge tone={resolved.remoteStatus || resolved.remoteStatusText ? "good" : "neutral"}>
-                {resolved.remoteStatusText || resolved.remoteStatus || "Sem status remoto"}
-              </ContextBadge>
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <InfoCard
-                  icon={<Building2 className="h-4 w-4 text-primary" />}
-                  label="Empresa"
-                  value={resolved.companyName || "Nao vinculada"}
-                  helper={resolved.companyNames || resolved.companyId || "Contato sem empresa no portal"}
-                />
-                <InfoCard
-                  icon={<Headphones className="h-4 w-4 text-primary" />}
-                  label="Contato"
-                  value={resolved.contactName || "Nao identificado"}
-                  helper={resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}
-                />
-                <InfoCard
-                  icon={<Monitor className="h-4 w-4 text-primary" />}
-                  label="Host atual"
-                  value={resolved.hostId || "Nao informado"}
-                  helper={resolved.rustdeskId || "Sem RustDesk ID"}
-                />
-                <InfoCard
-                  icon={<Ticket className="h-4 w-4 text-primary" />}
-                  label="Ticket"
-                  value={resolved.ticketNumber ? `#${resolved.ticketNumber}` : "Nao vinculado"}
-                  helper={resolved.conversationId ? `Conversa ${resolved.conversationId}` : "Sem conversa"}
-                />
-              </div>
-
-              <div className="rounded-xl border border-border/60 bg-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cliente e contato</p>
-                    <p className="mt-2 text-base font-semibold text-foreground">
-                      {resolved.contactName || "Contato nao identificado"}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {resolved.customerPhone || resolved.customerEmail || "Sem canal principal identificado"}
-                    </p>
-                  </div>
-                  <ContextBadge tone={resolved.companyId ? "good" : "warn"}>
-                    {resolved.companyId ? "Pronto" : "Pendente"}
-                  </ContextBadge>
-                </div>
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Situacao no portal</p>
-                    <p className="mt-1 text-sm font-medium text-foreground">{customerReadinessLabel}</p>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <MiniMetric
-                      label="Contato local"
-                      value={portalContactMatch?.id ? "Encontrado" : resolved.companyId ? "Sincronizado" : "Pendente"}
-                    />
-                    <MiniMetric
-                      label="Empresas"
-                      value={linkedCompanyCount ? String(linkedCompanyCount) : "0"}
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {contactEditHref ? (
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={contactEditHref} target="_blank" rel="noreferrer">
-                          Editar contato
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button asChild variant="outline" size="sm">
-                        <Link href="/portal/contatos/novo" target="_blank" rel="noreferrer">
-                          Novo contato
-                        </Link>
-                      </Button>
-                    )}
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/portal/contatos" target="_blank" rel="noreferrer">
-                        Ver contatos
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {!canCreateTicket ? (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-                Este contato ainda nao esta vinculado a uma empresa no portal. Nesse estado o app nao libera criacao manual de ticket.
-              </div>
-            ) : null}
-
-            {!resolved.companyId ? (
-              <Card className="border-amber-500/30 bg-amber-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Building2 className="h-4 w-4 text-amber-600" />
-                    Vincular empresa ao contato
-                  </CardTitle>
-                  <CardDescription>
-                    Faca o vinculo aqui mesmo para liberar criacao de ticket, busca de hosts e demais acoes do portal sem sair do Chatwoot.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <div className="rounded-lg border border-border/60 bg-card p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Situacao do contato no portal
-                      </p>
-                      {isLoadingPortalContact ? (
-                        <div className="mt-2">
-                          <InlineLoading label="Verificando contato existente..." />
-                        </div>
-                      ) : portalContactMatch ? (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm font-semibold text-foreground">{portalContactMatch.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Contato ja existe no portal{portalContactMatch.companyIds?.length ? " e recebera mais este vinculo." : ", mas ainda esta sem empresa vinculada."}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm font-semibold text-foreground">Contato ainda nao localizado</p>
-                          <p className="text-xs text-muted-foreground">
-                            O app pode criar o contato com os dados atuais da conversa e ja aplicar o vinculo com a empresa escolhida.
-                          </p>
-                        </div>
-                      )}
-                      {contactLookupError ? <div className="mt-2"><InlineWarning message={contactLookupError} /></div> : null}
-                    </div>
-
-                    <div className="rounded-lg border border-border/60 bg-card p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Escolha a empresa
-                      </p>
-                      <div className="mt-2 space-y-2">
-                        <Input
-                          value={companySearchTerm}
-                          onChange={(event) => setCompanySearchTerm(event.target.value)}
-                          placeholder="Buscar empresa por nome fantasia ou razao social"
-                          className="bg-background"
-                        />
-                        {isLoadingCompanyOptions ? (
-                          <InlineLoading label="Carregando empresas permitidas..." />
-                        ) : null}
-                        {companyOptionsError ? <InlineWarning message={companyOptionsError} /> : null}
-                        {!isLoadingCompanyOptions && !companyOptionsError ? (
-                          <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
-                            {filteredCompanyOptions.length > 0 ? (
-                              filteredCompanyOptions.map((company) => {
-                                const isSelected = selectedCompanyId === company.id;
-                                return (
-                                  <button
-                                    key={company.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedCompanyId(company.id);
-                                      setCompanyBindingFeedback(null);
-                                    }}
-                                    className={cn(
-                                      "w-full rounded-lg border px-3 py-2 text-left transition-colors",
-                                      isSelected
-                                        ? "border-primary/40 bg-primary/10"
-                                        : "border-border/60 bg-background hover:bg-muted/40",
-                                    )}
-                                  >
-                                    <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
-                                    <p className="text-xs text-muted-foreground">{company.razaoSocial}</p>
-                                  </button>
-                                );
-                              })
-                            ) : (
-                              <div className="sm:col-span-2">
-                                <EmptyState label="Nenhuma empresa encontrada para o filtro atual." />
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedCompanyOption ? (
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-                      Empresa selecionada: <span className="font-semibold">{getCompanyLabel(selectedCompanyOption)}</span>
-                    </div>
-                  ) : null}
-
-                  {companyBindingFeedback ? (
-                    <InlineNotice tone={companyBindingFeedback.tone} message={companyBindingFeedback.message} />
-                  ) : null}
-
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      Depois do vinculo, use `Atualizar contexto` se o Chatwoot ainda nao refletir a empresa imediatamente.
-                    </p>
-                    <Button
-                      type="button"
-                      className="gap-2"
-                      onClick={handleBindCompany}
-                      disabled={!selectedCompanyOption || isBindingCompany}
-                    >
-                      {isBindingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
-                      Vincular empresa
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Acao recomendada</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">
-                    {recommendedAction === "host" && "Abrir host atual para atendimento imediato"}
-                    {recommendedAction === "hosts" && "Ver os hosts da empresa antes de abrir ticket"}
-                    {recommendedAction === "ticket" && "Contato apto para ticket manual quando necessario"}
-                    {recommendedAction === "diagnostic" && "Conferir vinculo da empresa antes de seguir"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {recommendedAction === "host" && "O contexto desta conversa ja trouxe um host especifico sincronizado."}
-                    {recommendedAction === "hosts" && "Ha empresa vinculada, entao o proximo passo mais util costuma ser localizar o host correto."}
-                    {recommendedAction === "ticket" && "Sem host no contexto, mas o contato ja pode virar ticket manualmente se o atendente decidir."}
-                    {recommendedAction === "diagnostic" && "Sem empresa vinculada, o app fica limitado a diagnostico do contexto recebido."}
-                  </p>
-                </div>
-                {recommendedAction === "host" && resolved.remoteHostHref ? (
-                  <Button asChild className="gap-2">
-                    <Link href={resolved.remoteHostHref} target="_blank" rel="noreferrer">
-                      <Monitor className="h-4 w-4" />
-                      Abrir host atual
-                    </Link>
-                  </Button>
-                ) : null}
-                {recommendedAction === "hosts" ? (
-                  <Button asChild className="gap-2">
-                    <Link href={resolved.remoteDirectoryHref} target="_blank" rel="noreferrer">
-                      <Waypoints className="h-4 w-4" />
-                      Ver hosts da empresa
-                    </Link>
-                  </Button>
-                ) : null}
-                {recommendedAction === "ticket" ? (
-                  <Button
-                    type="button"
-                    className="gap-2"
-                    onClick={() => {
-                      setActiveTab("tickets");
-                      setShowEmbeddedTicketForm(true);
-                      setEmbeddedTicketFeedback(null);
-                    }}
-                  >
-                    <Ticket className="h-4 w-4" />
-                    Criar ticket manual
-                  </Button>
-                ) : null}
-                {recommendedAction === "ticket" && resolved.ticketHref ? (
-                  <Button asChild variant="secondary" className="gap-2">
-                    <Link href={resolved.ticketHref} target="_blank" rel="noreferrer">
-                      <ArrowUpRight className="h-4 w-4" />
-                      Abrir tela completa
-                    </Link>
-                  </Button>
-                ) : null}
-                {recommendedAction === "diagnostic" ? (
-                  <div className="inline-flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                    <AlertTriangle className="h-4 w-4" />
-                    Falta empresa no contexto
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-3 p-1">
@@ -1075,48 +838,221 @@ export function ChatwootDashboardApp() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <ActionCard
-                    icon={<Ticket className="h-4 w-4" />}
-                    title="Criar ticket"
-                    description={
-                      resolved.ticketNumber
-                        ? `Ja existe o ticket #${resolved.ticketNumber} neste atendimento. Abra outro apenas se realmente precisar separar a demanda.`
-                        : "Abre a tela de novo chamado com o contexto do atendimento. Use apenas quando a conversa precisar virar ticket."
-                    }
-                    actionLabel="Abrir formulario"
-                    onClick={() => {
-                      setActiveTab("tickets");
-                      setShowEmbeddedTicketForm(true);
-                      setEmbeddedTicketFeedback(null);
-                    }}
-                    disabled={!canCreateTicket}
-                    disabledLabel="Exige empresa vinculada"
-                    featured={recommendedAction === "ticket"}
-                  />
-                  <ActionCard
-                    icon={<Waypoints className="h-4 w-4" />}
-                    title="Hosts da empresa"
-                    description="Abre a plataforma remota ja filtrada pela empresa deste contato para localizar hosts e iniciar atendimento."
-                    href={resolved.remoteDirectoryHref}
-                    disabled={!canOpenRemoteDirectory}
-                    disabledLabel="Exige empresa vinculada"
-                    featured={recommendedAction === "hosts"}
-                  />
-                  <ActionCard
-                    icon={<Monitor className="h-4 w-4" />}
-                    title="Host atual"
-                    description={
-                      resolved.remoteStatusText || resolved.remoteStatus
-                        ? `Vai direto para o host sincronizado nesta conversa. Estado remoto atual: ${resolved.remoteStatusText || resolved.remoteStatus}.`
-                        : "Vai direto para o host sincronizado nesta conversa, preservando o ticket quando ele ja existir."
-                    }
-                    href={resolved.remoteHostHref}
-                    disabled={!canOpenHost}
-                    disabledLabel="Sem host sincronizado"
-                    featured={recommendedAction === "host"}
-                  />
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <InfoCard
+                      icon={<Building2 className="h-4 w-4 text-primary" />}
+                      label="Empresa"
+                      value={resolved.companyName || "Nao vinculada"}
+                      helper={resolved.companyNames || resolved.companyId || "Contato sem empresa no portal"}
+                    />
+                    <InfoCard
+                      icon={<Headphones className="h-4 w-4 text-primary" />}
+                      label="Contato"
+                      value={resolved.contactName || "Nao identificado"}
+                      helper={resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}
+                    />
+                    <InfoCard
+                      icon={<Monitor className="h-4 w-4 text-primary" />}
+                      label="Host atual"
+                      value={resolved.hostId || "Nao informado"}
+                      helper={resolved.rustdeskId || "Sem RustDesk ID"}
+                    />
+                    <InfoCard
+                      icon={<Waypoints className="h-4 w-4 text-primary" />}
+                      label="Situacao"
+                      value={customerReadinessLabel}
+                      helper={resolved.ticketNumber ? `Ticket atual: #${resolved.ticketNumber}` : `Conversa ${resolved.conversationId || "sem id"}`}
+                    />
+                  </div>
+
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">Acao recomendada</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">
+                          {recommendedAction === "host" && "Abrir host atual para atendimento imediato"}
+                          {recommendedAction === "hosts" && "Ver os hosts da empresa antes de abrir ticket"}
+                          {recommendedAction === "ticket" && "Abrir ticket manual com classificacao completa"}
+                          {recommendedAction === "diagnostic" && "Vincular o contato a uma empresa primeiro"}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {recommendedAction === "host" && "O contexto desta conversa ja trouxe um host especifico sincronizado."}
+                          {recommendedAction === "hosts" && "Ha empresa vinculada, entao o proximo passo mais util costuma ser localizar o host correto."}
+                          {recommendedAction === "ticket" && "Sem host no contexto, mas o contato ja pode virar ticket manualmente se o atendente decidir."}
+                          {recommendedAction === "diagnostic" && "Sem empresa vinculada, o app fica limitado a diagnostico e vinculo do cadastro."}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {recommendedAction === "host" && resolved.remoteHostHref ? (
+                          <Button asChild className="gap-2">
+                            <Link href={resolved.remoteHostHref} target="_blank" rel="noreferrer">
+                              <Monitor className="h-4 w-4" />
+                              Abrir host atual
+                            </Link>
+                          </Button>
+                        ) : null}
+                        {recommendedAction === "hosts" ? (
+                          <Button asChild className="gap-2">
+                            <Link href={resolved.remoteDirectoryHref} target="_blank" rel="noreferrer">
+                              <Waypoints className="h-4 w-4" />
+                              Ver hosts da empresa
+                            </Link>
+                          </Button>
+                        ) : null}
+                        {recommendedAction === "ticket" ? (
+                          <Button
+                            type="button"
+                            className="gap-2"
+                            onClick={() => {
+                              setActiveTab("tickets");
+                              setShowEmbeddedTicketForm(true);
+                              setEmbeddedTicketFeedback(null);
+                            }}
+                          >
+                            <Ticket className="h-4 w-4" />
+                            Criar ticket
+                          </Button>
+                        ) : null}
+                        {recommendedAction === "diagnostic" ? (
+                          <div className="inline-flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                            <AlertTriangle className="h-4 w-4" />
+                            Vinculo pendente
+                          </div>
+                        ) : null}
+                        {contactEditHref ? (
+                          <Button asChild variant="outline" className="gap-2">
+                            <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                              <ArrowUpRight className="h-4 w-4" />
+                              Editar contato
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
+
+                {!canCreateTicket ? (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+                    Este contato ainda nao esta vinculado a uma empresa no portal. Nesse estado o app nao libera criacao manual de ticket.
+                  </div>
+                ) : null}
+
+                {!resolved.companyId ? (
+                  <Card className="border-amber-500/30 bg-amber-500/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-amber-600" />
+                        Vincular empresa ao contato
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                        <div className="rounded-lg border border-border/60 bg-card p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Situacao do contato no portal
+                          </p>
+                          {isLoadingPortalContact ? (
+                            <div className="mt-2">
+                              <InlineLoading label="Verificando contato existente..." />
+                            </div>
+                          ) : portalContactMatch ? (
+                            <div className="mt-2 space-y-1">
+                              <p className="text-sm font-semibold text-foreground">{portalContactMatch.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Contato ja existe no portal{portalContactMatch.companyIds?.length ? " e recebera mais este vinculo." : ", mas ainda esta sem empresa vinculada."}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-2 space-y-1">
+                              <p className="text-sm font-semibold text-foreground">Contato ainda nao localizado</p>
+                              <p className="text-xs text-muted-foreground">
+                                O app pode criar o contato com os dados atuais da conversa e ja aplicar o vinculo com a empresa escolhida.
+                              </p>
+                            </div>
+                          )}
+                          {contactLookupError ? <div className="mt-2"><InlineWarning message={contactLookupError} /></div> : null}
+                        </div>
+
+                        <div className="rounded-lg border border-border/60 bg-card p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Escolha a empresa
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            <Input
+                              value={companySearchTerm}
+                              onChange={(event) => setCompanySearchTerm(event.target.value)}
+                              placeholder="Buscar empresa por nome fantasia ou razao social"
+                              className="bg-background"
+                            />
+                            {isLoadingCompanyOptions ? (
+                              <InlineLoading label="Carregando empresas permitidas..." />
+                            ) : null}
+                            {companyOptionsError ? <InlineWarning message={companyOptionsError} /> : null}
+                            {!isLoadingCompanyOptions && !companyOptionsError ? (
+                              <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                                {filteredCompanyOptions.length > 0 ? (
+                                  filteredCompanyOptions.map((company) => {
+                                    const isSelected = selectedCompanyId === company.id;
+                                    return (
+                                      <button
+                                        key={company.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedCompanyId(company.id);
+                                          setCompanyBindingFeedback(null);
+                                        }}
+                                        className={cn(
+                                          "w-full rounded-lg border px-3 py-2 text-left transition-colors",
+                                          isSelected
+                                            ? "border-primary/40 bg-primary/10"
+                                            : "border-border/60 bg-background hover:bg-muted/40",
+                                        )}
+                                      >
+                                        <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
+                                        <p className="text-xs text-muted-foreground">{company.razaoSocial}</p>
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="sm:col-span-2">
+                                    <EmptyState label="Nenhuma empresa encontrada para o filtro atual." />
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {selectedCompanyOption ? (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                          Empresa selecionada: <span className="font-semibold">{getCompanyLabel(selectedCompanyOption)}</span>
+                        </div>
+                      ) : null}
+
+                      {companyBindingFeedback ? (
+                        <InlineNotice tone={companyBindingFeedback.tone} message={companyBindingFeedback.message} />
+                      ) : null}
+
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          Depois do vinculo, use `Atualizar contexto` se o Chatwoot ainda nao refletir a empresa imediatamente.
+                        </p>
+                        <Button
+                          type="button"
+                          className="gap-2"
+                          onClick={handleBindCompany}
+                          disabled={!selectedCompanyOption || isBindingCompany}
+                        >
+                          {isBindingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+                          Vincular empresa
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </TabsContent>
 
               <TabsContent value="tickets" className="space-y-3">
@@ -1163,67 +1099,159 @@ export function ChatwootDashboardApp() {
                     {showEmbeddedTicketForm ? (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                         <form className="space-y-3" onSubmit={handleEmbeddedTicketSubmit}>
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="space-y-1.5 sm:col-span-2">
-                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Assunto
-                              </label>
-                              <Input
-                                value={embeddedTicketForm.title}
-                                onChange={(event) =>
-                                  setEmbeddedTicketForm((current) => ({ ...current, title: event.target.value }))
-                                }
-                                placeholder="Resumo curto do problema"
-                                className="bg-background"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Prioridade
-                              </label>
-                              <Select
-                                value={embeddedTicketForm.priority}
-                                onValueChange={(value) =>
-                                  setEmbeddedTicketForm((current) => ({
-                                    ...current,
-                                    priority: value as TicketPriorityOption,
-                                  }))
-                                }
-                              >
-                                <SelectTrigger className="bg-background">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="LOW">Baixa</SelectItem>
-                                  <SelectItem value="NORMAL">Normal</SelectItem>
-                                  <SelectItem value="HIGH">Alta</SelectItem>
-                                  <SelectItem value="CRITICAL">Critica</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Empresa
-                              </label>
-                              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
-                                {resolved.companyName || resolved.companyId || "Sem empresa"}
+                          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                            <div className="space-y-3">
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Assunto
+                                </label>
+                                <Input
+                                  value={embeddedTicketForm.title}
+                                  onChange={(event) =>
+                                    setEmbeddedTicketForm((current) => ({ ...current, title: event.target.value }))
+                                  }
+                                  placeholder="Resumo curto do problema"
+                                  className="bg-background"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Descricao
+                                </label>
+                                <Textarea
+                                  value={embeddedTicketForm.description}
+                                  onChange={(event) =>
+                                    setEmbeddedTicketForm((current) => ({
+                                      ...current,
+                                      description: event.target.value,
+                                    }))
+                                  }
+                                  placeholder="Descreva o problema validado pelo atendente, o passo a passo e o resultado esperado."
+                                  className="min-h-[180px] bg-background"
+                                />
                               </div>
                             </div>
-                            <div className="space-y-1.5 sm:col-span-2">
-                              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Descricao
-                              </label>
-                              <Textarea
-                                value={embeddedTicketForm.description}
-                                onChange={(event) =>
-                                  setEmbeddedTicketForm((current) => ({
-                                    ...current,
-                                    description: event.target.value,
-                                  }))
-                                }
-                                placeholder="Descreva o problema validado pelo atendente"
-                                className="min-h-[150px] bg-background"
-                              />
+
+                            <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Setor
+                                </label>
+                                <Select
+                                  value={embeddedTicketForm.team}
+                                  onValueChange={(value) =>
+                                    setEmbeddedTicketForm((current) => {
+                                      const nextTeam = value === "DESENVOLVIMENTO" ? "DESENVOLVIMENTO" : "SUPORTE";
+                                      const nextCategory =
+                                        ticketSettings.categories.find(
+                                          (category) => category.value === current.category && category.defaultTeam === nextTeam,
+                                        )?.value ||
+                                        getSuggestedCategoryForTeam(ticketSettings, nextTeam) ||
+                                        ticketSettings.categories[0]?.value ||
+                                        "";
+                                      return {
+                                        ...current,
+                                        team: nextTeam,
+                                        category: nextCategory,
+                                      };
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ticketSettings.teams.map((team) => (
+                                      <SelectItem key={team.id} value={team.value}>
+                                        {team.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Prioridade
+                                </label>
+                                <Select
+                                  value={embeddedTicketForm.priorityValue}
+                                  onValueChange={(value) =>
+                                    setEmbeddedTicketForm((current) => ({
+                                      ...current,
+                                      priorityValue: value,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ticketSettings.priorities.map((priority) => (
+                                      <SelectItem key={priority.id} value={priority.value}>
+                                        {priority.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Categoria
+                                </label>
+                                <Select
+                                  value={embeddedTicketForm.category}
+                                  onValueChange={(value) =>
+                                    setEmbeddedTicketForm((current) => ({
+                                      ...current,
+                                      category: value,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue placeholder="Selecione a categoria" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {filteredCategories.map((category) => (
+                                      <SelectItem key={category.id} value={category.value}>
+                                        {category.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Modulo
+                                </label>
+                                <TicketModuleCascadeSelect
+                                  options={ticketSettings.modules}
+                                  value={embeddedTicketForm.module}
+                                  onChange={(value) =>
+                                    setEmbeddedTicketForm((current) => ({
+                                      ...current,
+                                      module: value,
+                                    }))
+                                  }
+                                  mode="single"
+                                  compact
+                                  labels={{
+                                    single: "Modulo, submodulo e tela",
+                                  }}
+                                />
+                              </div>
+
+                              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
+                                <p className="mt-1 font-medium">{resolved.companyName || resolved.companyId || "Sem empresa"}</p>
+                              </div>
+                              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
+                                <p className="mt-1 font-medium">{resolved.contactName || "Nao identificado"}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">{resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}</p>
+                              </div>
                             </div>
                           </div>
 
@@ -1532,67 +1560,6 @@ function InfoCard({
       </div>
       <p className="mt-2 break-words text-sm font-semibold text-foreground">{value}</p>
       <p className="mt-1 break-all text-xs text-muted-foreground">{helper}</p>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-background/70 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function ActionCard({
-  icon,
-  title,
-  description,
-  href,
-  onClick,
-  disabled,
-  disabledLabel,
-  featured = false,
-  actionLabel = "Abrir",
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  href?: string;
-  onClick?: () => void;
-  disabled: boolean;
-  disabledLabel: string;
-  featured?: boolean;
-  actionLabel?: string;
-}) {
-  return (
-    <div className={`rounded-lg border p-4 ${featured ? "border-primary/30 bg-primary/5" : "border-border/60 bg-card"}`}>
-      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        {icon}
-        {title}
-      </div>
-      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-      <div className="mt-4">
-        {disabled ? (
-          <Button type="button" variant="outline" className="w-full gap-2" disabled>
-            <ShieldAlert className="h-4 w-4" />
-            {disabledLabel}
-          </Button>
-        ) : onClick ? (
-          <Button type="button" className="w-full gap-2" variant={featured ? "default" : "secondary"} onClick={onClick}>
-            <Ticket className="h-4 w-4" />
-            {actionLabel}
-          </Button>
-        ) : (
-          <Button asChild className="w-full gap-2" variant={featured ? "default" : "secondary"}>
-            <Link href={href || "#"} target="_blank" rel="noreferrer">
-              <ExternalLink className="h-4 w-4" />
-              {actionLabel}
-            </Link>
-          </Button>
-        )}
-      </div>
     </div>
   );
 }
