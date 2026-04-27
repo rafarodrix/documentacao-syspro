@@ -5,18 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
-  AlertTriangle,
   ArrowLeft,
-  Check,
-  CheckCircle2,
-  ChevronsUpDown,
-  CircleHelp,
   Copy,
   ExternalLink,
   Fingerprint,
-  HardDriveDownload,
-  UserRound,
-  XCircle,
   Ticket,
   RefreshCcw,
   RefreshCw,
@@ -31,14 +23,12 @@ import {
   AlertCircle,
   Zap,
   Shield,
-  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -106,7 +96,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
   const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   
-  // --- Tickets Ticket Context (Fase 7) ---
   const ticketNumber = useSearchParams().get("ticketNumber");
   const [ticketDetails, setTicketDetails] = useState<{ title: string; state: string; priority: string } | null>(null);
   const [isLoadingTicket, setIsLoadingTicket] = useState(false);
@@ -281,8 +270,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
     return items;
   }, [dedupedInstallationContexts, details.company.installationDirectory]);
-  const installationsPreview = useMemo(() => installations.slice(0, 2), [installations]);
-  const hasMoreInstallations = installations.length > installationsPreview.length;
   const detectedCompanyCount = useMemo(() => {
     const names = new Set(
       installations
@@ -601,13 +588,13 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
   function handleOpenRustDesk() {
     if (!rustdeskHref) {
-      toast.error("Identificador remoto nao configurado.");
+      toast.error("Identificador remoto não configurado.");
       return;
     }
 
     window.location.assign(rustdeskHref);
     window.setTimeout(() => {
-      toast("Se o acesso remoto nao abrir, copie o ID e conecte manualmente.");
+      toast("Se o acesso remoto não abrir, copie o ID e conecte manualmente.");
     }, 600);
   }
 
@@ -770,7 +757,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
 
   const handleStartOrchestratedSession = async () => {
     if (!normalizedRustdeskId) {
-      toast.error("Host sem identificador remoto. Nao e possivel iniciar sessao.");
+      toast.error("Host sem identificador remoto. Não é possível iniciar sessão.");
       return;
     }
 
@@ -784,18 +771,17 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         });
 
         if (result.success) {
-          toast.success("Sessao auditada iniciada.");
-          // Abre o RustDesk (usando o ID da maquina para o deep link)
-          const href = isMobileClient 
+          toast.success("Sessão auditada iniciada.");
+          const href = isMobileClient
             ? `rustdesk://[${normalizedRustdeskId}]` 
             : `rustdesk://${normalizedRustdeskId}`;
           
           window.location.href = href;
         } else {
-          toast.error(result.error ?? "Falha ao iniciar sessao auditada.");
+          toast.error(result.error ?? "Falha ao iniciar sessão auditada.");
         }
       } catch (error) {
-        toast.error("Erro ao processar inicio de sessao.");
+        toast.error("Erro ao processar início de sessão.");
       }
     });
   };
@@ -878,22 +864,22 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       <Tabs defaultValue="geral" className="space-y-6">
         <div className="flex w-full md:justify-end">
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:w-auto md:grid-cols-5">
-            <TabsTrigger value="geral">Visao Geral</TabsTrigger>
-            <TabsTrigger value="tecnicas">Informacoes tecnicas</TabsTrigger>
-            <TabsTrigger value="instalacoes">Instalacoes detectadas</TabsTrigger>
-            <TabsTrigger value="infra">Infra</TabsTrigger>
+            <TabsTrigger value="geral">Visão Geral</TabsTrigger>
+            <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
+            <TabsTrigger value="instalacoes">Instalações</TabsTrigger>
+            <TabsTrigger value="infra">Infraestrutura</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="geral" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className={`grid gap-6 ${ticketNumber ? "lg:grid-cols-2" : ""}`}>
             {/* Health & Performance Snapshot */}
             <Card className="border-border/40 bg-muted/5 shadow-sm">
               <CardHeader className="pb-3 px-6 pt-6">
                 <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  Saude do host
+                  Saúde do Host
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 pt-0 grid gap-6 sm:grid-cols-3">
@@ -920,7 +906,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             </Card>
 
             {/* Support Ticket Context */}
-            {ticketNumber ? (
+            {ticketNumber && (
               <Card className="border-blue-500/20 bg-blue-500/5 shadow-sm backdrop-blur-sm">
                 <CardHeader className="pb-3 px-6 pt-6">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest text-blue-400 flex items-center gap-2">
@@ -946,16 +932,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-blue-300/70 italic">Nao foi possivel recuperar os detalhes do chamado #{ticketNumber}.</div>
+                    <div className="text-sm text-blue-300/70 italic">Não foi possível recuperar os detalhes do chamado #{ticketNumber}.</div>
                   )}
                 </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-dashed border-border/60 bg-transparent flex items-center justify-center p-8 opacity-60">
-                <div className="text-center space-y-2">
-                  <Ticket className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-                  <p className="text-xs text-muted-foreground uppercase font-bold">Acesso sem chamado vinculado</p>
-                </div>
               </Card>
             )}
           </div>
@@ -968,7 +947,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                    <CardHeader className="pb-2 px-4 pt-4">
                     <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      Alertas criticos
+                      Alertas Críticos
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 flex flex-wrap gap-2">
@@ -999,7 +978,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                  <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Ultima atividade</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Última atividade</span>
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
@@ -1014,14 +993,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-lg font-bold text-foreground capitalize">{serviceStatus.label}</p>
-                      <p className="text-xs text-muted-foreground">Versao: {host.agentVersion ?? "N/A"}</p>
+                      <p className="text-xs text-muted-foreground">Versão: {host.agentVersion ?? "N/A"}</p>
                     </div>
                  </div>
               </div>
 
                <Card className="border-border/40 bg-muted/5">
                  <CardHeader className="pb-3 px-6 pt-6 uppercase tracking-widest font-bold text-muted-foreground text-[10px] border-b border-border/40 mb-4">
-                    Instalacoes detectadas no host
+                    Instalações Detectadas
                  </CardHeader>
                  <CardContent className="px-6 pb-6 p-0">
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -1045,12 +1024,12 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             <div className="w-full lg:w-72 space-y-4">
                 <Card className="border-border/40 bg-muted/5">
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Acoes rapidas</CardTitle>
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ações Rápidas</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 flex flex-col gap-2">
                     <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}>
                       <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                      Reenviar configuracao
+                      Reenviar configuração
                     </Button>
                     <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}>
                       <Zap className="mr-2 h-3.5 w-3.5" />
@@ -1064,14 +1043,14 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </Card>
 
                 <div className="rounded-xl border border-border/40 bg-background/40 p-4 space-y-4">
-                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sessoes ativas</p>
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sessões Ativas</p>
                    <div className="flex items-center gap-3">
                       <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
                         <Monitor className="h-5 w-5" />
                       </div>
                       <div>
                         <p className="text-sm font-bold text-foreground">{host.openSessionCount || "Zero"} sessoes</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Monitoramento em tempo real</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Em andamento</p>
                       </div>
                    </div>
                 </div>

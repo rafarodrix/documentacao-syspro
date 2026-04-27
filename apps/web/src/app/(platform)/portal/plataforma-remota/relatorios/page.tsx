@@ -69,13 +69,13 @@ export default async function RemoteEfficiencyReportsPage() {
             <Clock className="h-20 w-20 text-primary" />
           </div>
           <CardHeader className="pb-2">
-            <CardDescription className="text-sm font-medium uppercase tracking-wider">Time to Remote (TTR)</CardDescription>
+            <CardDescription className="text-sm font-medium uppercase tracking-wider">Tempo até o Remoto (TTR)</CardDescription>
             <CardTitle className="text-3xl font-bold tracking-tight text-primary">
               {formatDuration(metrics.averageTimeToRemoteSeconds)}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Media entre abertura do ticket e 1o acesso</p>
+            <p className="text-xs text-muted-foreground">Média entre abertura do ticket e 1º acesso</p>
           </CardContent>
         </Card>
 
@@ -90,7 +90,7 @@ export default async function RemoteEfficiencyReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Tempo medio logado nas maquinas</p>
+            <p className="text-xs text-muted-foreground">Tempo médio conectado nas máquinas</p>
           </CardContent>
         </Card>
 
@@ -105,7 +105,7 @@ export default async function RemoteEfficiencyReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Atendimentos remotos finalizados</p>
+            <p className="text-xs text-muted-foreground">Sessões remotas finalizadas</p>
           </CardContent>
         </Card>
 
@@ -120,7 +120,7 @@ export default async function RemoteEfficiencyReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">Chamados que precisaram de acesso</p>
+            <p className="text-xs text-muted-foreground">Chamados que precisaram de acesso remoto</p>
           </CardContent>
         </Card>
       </div>
@@ -131,7 +131,7 @@ export default async function RemoteEfficiencyReportsPage() {
             <TrendingUp className="h-5 w-5 text-primary" />
             <CardTitle>Historico de Eficiencia</CardTitle>
           </div>
-          <CardDescription>Detalhamento por ticket focado no tempo de resposta.</CardDescription>
+          <CardDescription>Detalhamento por chamado com foco no tempo de resposta.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -141,7 +141,7 @@ export default async function RemoteEfficiencyReportsPage() {
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Ticket</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Host / Empresa</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Tecnico</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">TTR (Tempo p/ Remoto)</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">TTR (Tempo até Remoto)</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider">Duracao</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider text-right">Acao</th>
                 </tr>
@@ -152,7 +152,7 @@ export default async function RemoteEfficiencyReportsPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-mono text-sm font-bold text-foreground">#{session.ticketNumber || "N/A"}</span>
-                        <span className="text-[10px] text-muted-foreground">{new Date(session.createdAt).toLocaleString("pt-BR")}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(session.createdAt).toLocaleDateString("pt-BR")}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -187,13 +187,15 @@ export default async function RemoteEfficiencyReportsPage() {
                       <span className="text-sm font-medium text-foreground">{formatDuration(session.durationSeconds)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/portal/plataforma-remota/${session.hostName}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary/80 hover:text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0"
-                      >
-                        Ver Host
-                        <ChevronRight className="h-3 w-3" />
-                      </Link>
+                      {session.hostId ? (
+                        <Link
+                          href={`/portal/plataforma-remota/${session.hostId}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-primary/80 hover:text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0"
+                        >
+                          Ver Host
+                          <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
