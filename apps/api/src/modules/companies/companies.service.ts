@@ -1,7 +1,9 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
+  type CompanyListQuery,
   createCompanySchema,
   type CreateCompanyInput,
   type CreateCompanyOutput,
@@ -248,11 +250,14 @@ export class CompaniesService {
   }
 
   async listCompanies(
-    filters?: { search?: string; status?: string },
+    filters?: CompanyListQuery,
     rawHeaders?: IncomingHttpHeaders,
   ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getCompanyViewScope(requester);
+    const wantsPagination = filters?.page !== undefined || filters?.pageSize !== undefined;
+    const page = this.parsePage(filters?.page);
+    const pageSize = this.parsePageSize(filters?.pageSize);
 
     const where: any = { deletedAt: null };
 
@@ -273,28 +278,32 @@ export class CompaniesService {
       where.id = { in: accessScope.companyIds.length ? accessScope.companyIds : ['__none__'] };
     }
 
-    const companies = await this.prisma.company.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            memberships: true,
-            contactLinks: true,
-            contracts: true,
-            branches: true,
-            accountingClients: true,
+    const [companies, total] = await Promise.all([
+      this.prisma.company.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              memberships: true,
+              contactLinks: true,
+              contracts: true,
+              branches: true,
+              accountingClients: true,
+            },
           },
+          addresses: {
+            take: 1,
+            orderBy: { id: 'asc' },
+          },
+          accountingFirm: { select: { id: true, nomeFantasia: true } },
         },
-        addresses: {
-          take: 1,
-          orderBy: { id: 'asc' },
-        },
-        accountingFirm: { select: { id: true, nomeFantasia: true } },
-      },
-      orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
-    });
+        orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
+        ...(wantsPagination ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
+      }),
+      wantsPagination ? this.prisma.company.count({ where }) : Promise.resolve(0),
+    ]);
 
-    return companies.map((company) => {
+    const items = companies.map((company) => {
       const block = parseContractBlockReason(company.observacoes);
       return {
         ...company,
@@ -305,6 +314,15 @@ export class CompaniesService {
         contractBlockReasonLabel: block?.label ?? null,
       };
     });
+
+    if (!wantsPagination) {
+      return items;
+    }
+
+    return {
+      items,
+      pagination: buildPaginationMeta({ page, pageSize, total }),
+    };
   }
 
   async getAdminView(rawHeaders?: IncomingHttpHeaders) {
@@ -334,6 +352,16 @@ export class CompaniesService {
         nomeFantasia: true,
       },
     });
+  }
+
+  private parsePage(value?: string): number {
+    const parsed = Number.parseInt(value || '1', 10);
+    return Math.max(1, Number.isNaN(parsed) ? 1 : parsed);
+  }
+
+  private parsePageSize(value?: string): number {
+    const parsed = Number.parseInt(value || '50', 10);
+    return Math.min(100, Math.max(1, Number.isNaN(parsed) ? 50 : parsed));
   }
 
   async getCompanyEditView(companyId: string, rawHeaders?: IncomingHttpHeaders) {

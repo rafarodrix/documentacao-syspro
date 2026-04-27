@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { addressSchema } from "../shared/address.types";
+import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
 
 const emptyToUndefined = z.preprocess(
   (val) => (val === "" || val === null ? undefined : val),
@@ -149,3 +150,60 @@ export const companyOptionSchema = z.object({
 });
 
 export type CompanyOption = z.output<typeof companyOptionSchema>;
+export type CompanyAddressView = z.output<typeof companyAddressViewSchema>;
+export type CompanyListItem = z.output<typeof companyListItemSchema>;
+export type CompanyListQuery = z.infer<typeof companyListQuerySchema>;
+export type CompanyListResponse = z.output<typeof companyListResponseSchema>;
+
+export const companyAddressViewSchema = z.object({
+  description: z.string().nullable().optional(),
+  cep: z.string().nullable().optional(),
+  logradouro: z.string().nullable().optional(),
+  numero: z.string().nullable().optional(),
+  complemento: z.string().nullable().optional(),
+  bairro: z.string().nullable().optional(),
+  cidade: z.string().nullable().optional(),
+  estado: z.string().nullable().optional(),
+  pais: z.string().nullable().optional(),
+  codigoIbgeCidade: z.string().nullable().optional(),
+  codigoIbgeEstado: z.string().nullable().optional(),
+});
+
+export const companyListItemSchema = z.object({
+  id: z.string(),
+  cnpj: z.string(),
+  razaoSocial: z.string(),
+  nomeFantasia: z.string().nullable(),
+  segment: z.enum(COMPANY_SEGMENT_VALUES).nullable().optional(),
+  status: z.enum(COMPANY_STATUS_VALUES),
+  serverType: z.enum(COMPANY_SERVER_TYPE_VALUES).nullable().optional(),
+  serverPort: z.number().int().nullable().optional(),
+  serverHost: z.string().nullable().optional(),
+  serverProtocol: z.enum(COMPANY_SERVER_PROTOCOL_VALUES).nullable().optional(),
+  contractBlockReasonLabel: z.string().nullable().optional(),
+  isBlockedByContract: z.boolean().optional(),
+  usersCount: z.number().int().optional(),
+  contactsCount: z.number().int().optional(),
+  address: companyAddressViewSchema.nullable().optional(),
+  accountingFirm: z.object({
+    id: z.string(),
+    nomeFantasia: z.string().nullable(),
+  }).nullable().optional(),
+  _count: z.object({
+    memberships: z.number().int(),
+    contactLinks: z.number().int().optional(),
+    contracts: z.number().int().optional(),
+    branches: z.number().int().optional(),
+    accountingClients: z.number().int().optional(),
+  }).optional(),
+});
+
+export const companyListQuerySchema = paginationQuerySchema.extend({
+  search: z.string().optional(),
+  status: z.enum([...COMPANY_STATUS_VALUES, "ALL"]).optional(),
+});
+
+export const companyListResponseSchema = z.object({
+  items: z.array(companyListItemSchema),
+  pagination: paginationMetaSchema,
+});

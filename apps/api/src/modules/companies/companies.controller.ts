@@ -1,16 +1,33 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { CompanySegment, CompanyStatus } from '@prisma/client';
-import type { CreateCompanyInput, CreateCompanyOutput } from '@dosc-syspro/contracts/company';
+import { companyListQuerySchema, type CreateCompanyInput, type CreateCompanyOutput } from '@dosc-syspro/contracts/company';
+import type { ZodType } from 'zod';
 import { CompaniesService } from './companies.service';
 
 @Controller('companies')
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
+  private parseOrThrow<T>(schema: ZodType<T>, value: unknown): T {
+    const parsed = schema.safeParse(value);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return parsed.data;
+  }
+
   @Get()
-  list(@Req() req: Request, @Query('search') search?: string, @Query('status') status?: string) {
-    return this.companiesService.listCompanies({ search, status }, req.headers);
+  list(
+    @Req() req: Request,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const input = this.parseOrThrow(companyListQuerySchema, { search, status, page, pageSize });
+    return this.companiesService.listCompanies(input, req.headers);
   }
 
   @Get('view/admin')

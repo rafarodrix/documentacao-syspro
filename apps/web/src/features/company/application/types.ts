@@ -1,4 +1,7 @@
 import type {
+  CompanyAddressView,
+  CompanyListItem,
+  CompanyListResponse,
   CompanyOption,
   CompanySegmentValue,
   CompanyStatusValue,
@@ -67,45 +70,7 @@ export type CompanyRegistryLookupResponse = {
   };
 };
 
-export interface CompanyAddressView {
-  description?: string | null;
-  cep?: string | null;
-  logradouro?: string | null;
-  numero?: string | null;
-  complemento?: string | null;
-  bairro?: string | null;
-  cidade?: string | null;
-  estado?: string | null;
-  pais?: string | null;
-  codigoIbgeCidade?: string | null;
-  codigoIbgeEstado?: string | null;
-}
-
-export interface CompanyListItem {
-  id: string;
-  cnpj: string;
-  razaoSocial: string;
-  nomeFantasia: string | null;
-  segment?: CompanySegmentValue | null;
-  status: CompanyStatusValue;
-  serverType?: "SYSPRO_SERVER" | "IIS" | null;
-  serverPort?: number | null;
-  serverHost?: string | null;
-  serverProtocol?: "HTTP" | "HTTPS" | null;
-  contractBlockReasonLabel?: string | null;
-  isBlockedByContract?: boolean;
-  usersCount?: number;
-  contactsCount?: number;
-  address?: CompanyAddressView | null;
-  accountingFirm?: { id: string; nomeFantasia: string | null } | null;
-  _count?: {
-    memberships: number;
-    contactLinks?: number;
-    contracts?: number;
-    branches?: number;
-    accountingClients?: number;
-  };
-}
+export type { CompanyAddressView, CompanyListItem, CompanyListResponse } from "@dosc-syspro/contracts/company";
 
 export interface CompanyAdminListViewData {
   companies: CompanyListItem[];

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CompanyStatus } from "@prisma/client"
+import { companyListResponseSchema, type CompanyListResponse } from "@dosc-syspro/contracts/company"
 import { toast } from "sonner"
 import {
   Table,
@@ -38,13 +39,16 @@ import {
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
+  type RegistryPaginationState,
 } from "@/components/platform/shared/RegistryListScaffold"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
 
 interface CompanyTabProps {
   data: CompanyListItem[]
+  initialPagination?: RegistryPaginationState
   initialSearchTerm?: string
+  initialStatusFilter?: CompanyStatus | "ALL"
   canCreate: boolean
   canEdit: boolean
   canToggleStatus: boolean
@@ -52,12 +56,6 @@ interface CompanyTabProps {
 }
 
 const formatCNPJ = (cnpj: string) => cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
-const normalizeSearch = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
 const COMPANY_NAME_COLLATOR = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true })
 const COMPANIES_PAGE_SIZE = 50
 
@@ -190,13 +188,33 @@ function CompanyActionsMenu({
   )
 }
 
-export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, canToggleStatus, canDelete }: CompanyTabProps) {
+export function CompanyTab({
+  data,
+  initialPagination,
+  initialSearchTerm = "",
+  initialStatusFilter = "ALL",
+  canCreate,
+  canEdit,
+  canToggleStatus,
+  canDelete,
+}: CompanyTabProps) {
   const router = useRouter()
   const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
-  const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">("ALL")
+  const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">(initialStatusFilter)
   const [filterBlocked, setFilterBlocked] = useState<"ALL" | "BLOCKED">("ALL")
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(initialPagination?.page ?? 1)
+  const [pagination, setPagination] = useState<RegistryPaginationState>(
+    initialPagination ?? {
+      page: 1,
+      pageSize: COMPANIES_PAGE_SIZE,
+      total: data.length,
+      totalPages: Math.max(1, Math.ceil(data.length / COMPANIES_PAGE_SIZE)),
+      hasPreviousPage: false,
+      hasNextPage: false,
+    },
+  )
+  const [loadingList, setLoadingList] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<
@@ -209,27 +227,23 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
   }, [data])
 
   useEffect(() => {
+    if (initialPagination) {
+      setPagination(initialPagination)
+    }
+  }, [initialPagination])
+
+  useEffect(() => {
     setSearchTerm(initialSearchTerm)
   }, [initialSearchTerm])
 
+  useEffect(() => {
+    setFilterStatus(initialStatusFilter)
+  }, [initialStatusFilter])
+
   const filteredData = useMemo(() => {
-    const term = normalizeSearch(searchTerm)
-    const cnpjRaw = searchTerm.replace(/\D/g, "")
-
     const filtered = items.filter((company) => {
-      const normalizedRazao = normalizeSearch(company.razaoSocial)
-      const normalizedFantasia = normalizeSearch(company.nomeFantasia ?? "")
-      const normalizedId = normalizeSearch(company.id)
-      const matchesSearch =
-        !term ||
-        normalizedRazao.includes(term) ||
-        normalizedFantasia.includes(term) ||
-        normalizedId.includes(term) ||
-        (cnpjRaw.length > 0 && company.cnpj.includes(cnpjRaw))
-
-      const matchesStatus = filterStatus === "ALL" || company.status === filterStatus
       const matchesBlocked = filterBlocked === "ALL" || company.isBlockedByContract
-      return matchesSearch && matchesStatus && matchesBlocked
+      return matchesBlocked
     })
 
     return filtered.sort((a, b) => {
@@ -237,22 +251,59 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
       const bName = b.nomeFantasia?.trim() || b.razaoSocial.trim()
       return COMPANY_NAME_COLLATOR.compare(aName, bName)
     })
-  }, [items, searchTerm, filterStatus, filterBlocked])
+  }, [items, filterBlocked])
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / COMPANIES_PAGE_SIZE))
+  const totalPages = Math.max(1, pagination.totalPages ?? Math.ceil(pagination.total / pagination.pageSize))
   const currentPage = Math.min(page, totalPages)
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * COMPANIES_PAGE_SIZE
-    return filteredData.slice(start, start + COMPANIES_PAGE_SIZE)
-  }, [currentPage, filteredData])
+  const paginatedData = filteredData
 
   useEffect(() => {
     setPage(1)
   }, [searchTerm, filterStatus, filterBlocked])
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages)
-  }, [page, totalPages])
+    let active = true
+
+    async function loadCompanies() {
+      setLoadingList(true)
+      try {
+        const params = new URLSearchParams()
+        if (searchTerm.trim()) params.set("search", searchTerm.trim())
+        if (filterStatus !== "ALL") params.set("status", filterStatus)
+        params.set("page", String(page))
+        params.set("pageSize", String(COMPANIES_PAGE_SIZE))
+
+        const response = await fetch(`/api/companies?${params.toString()}`, { cache: "no-store" })
+        if (!response.ok) throw new Error(`Falha ao carregar empresas (${response.status})`)
+
+        const payload = companyListResponseSchema.parse(await response.json()) as CompanyListResponse
+        if (!active) return
+
+        setItems(payload.items)
+        setPagination({
+          page: payload.pagination.page,
+          pageSize: payload.pagination.pageSize,
+          total: payload.pagination.total,
+          totalPages: Math.max(1, Math.ceil(payload.pagination.total / payload.pagination.pageSize)),
+          hasPreviousPage: payload.pagination.hasPreviousPage,
+          hasNextPage: payload.pagination.hasNextPage,
+        })
+      } catch (error) {
+        if (!active) return
+        const message = error instanceof Error ? error.message : "Falha ao carregar empresas."
+        toast.error(message)
+        setItems([])
+      } finally {
+        if (active) setLoadingList(false)
+      }
+    }
+
+    void loadCompanies()
+
+    return () => {
+      active = false
+    }
+  }, [page, searchTerm, filterStatus])
 
   const blockedCount = useMemo(
     () => items.filter((company) => company.isBlockedByContract).length,
@@ -280,13 +331,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
       if (result.success) {
         toast.success(result.message ?? "Status atualizado")
         setFeedback({ type: "success", message: result.message ?? "Status atualizado com sucesso." })
-        setItems((prev) =>
-          prev.map((c) =>
-            c.id === company.id
-              ? { ...c, status: nextStatus }
-              : c,
-          ),
-        )
+        setItems((prev) => prev.map((c) => (c.id === company.id ? { ...c, status: nextStatus } : c)))
       } else {
         toast.error(result.message ?? "Falha ao atualizar status")
         setFeedback({ type: "error", message: result.message ?? "Falha ao atualizar status." })
@@ -304,6 +349,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
         toast.success(result.message ?? "Empresa excluida")
         setFeedback({ type: "success", message: result.message ?? "Empresa excluida com sucesso." })
         setItems((prev) => prev.filter((c) => c.id !== company.id))
+        setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }))
       } else {
         toast.error(result.message ?? "Falha ao excluir")
         setFeedback({ type: "error", message: result.message ?? "Falha ao excluir empresa." })
@@ -355,7 +401,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
         {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
 
         <RegistryMetrics>
-          <RegistryMetricCard title="Total" value={items.length} description="Empresas cadastradas" icon={Building2} tone="info" />
+          <RegistryMetricCard title="Total" value={pagination.total} description="Empresas cadastradas" icon={Building2} tone="info" />
           <RegistryMetricCard title="Ativas" value={statusCounts.ACTIVE ?? 0} description="Disponiveis para operacao" icon={Users} tone="success" />
           <RegistryMetricCard title="Bloqueadas" value={blockedCount} description="Com restricao contratual" icon={CircleAlert} tone={blockedCount > 0 ? "warning" : "neutral"} />
         </RegistryMetrics>
@@ -365,7 +411,7 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
           searchPlaceholder="Razao social, fantasia ou CNPJ..."
           onSearchChange={setSearchTerm}
           onClearSearch={() => setSearchTerm("")}
-          resultLabel={`${filteredData.length} filtradas`}
+          resultLabel={`${pagination.total} filtradas`}
           filters={
             <>
               <RegistryFilterGroup
@@ -406,7 +452,9 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
 
         <RegistryTableCard>
           <div className="md:hidden divide-y">
-            {paginatedData.length === 0 ? (
+            {loadingList ? (
+              <div className="p-6 text-sm text-muted-foreground">Carregando empresas...</div>
+            ) : paginatedData.length === 0 ? (
               <RegistryEmptyState
                 icon={Building2}
                 title="Nenhuma empresa encontrada"
@@ -480,7 +528,13 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             </TableHeader>
 
             <TableBody>
-              {paginatedData.length === 0 ? (
+              {loadingList ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-sm text-muted-foreground">
+                    Carregando empresas...
+                  </TableCell>
+                </TableRow>
+              ) : paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-64 text-center">
                     <RegistryEmptyState
@@ -602,10 +656,10 @@ export function CompanyTab({ data, initialSearchTerm = "", canCreate, canEdit, c
             pagination={{
               page: currentPage,
               pageSize: COMPANIES_PAGE_SIZE,
-              total: filteredData.length,
+              total: pagination.total,
               totalPages,
-              hasPreviousPage: currentPage > 1,
-              hasNextPage: currentPage < totalPages,
+              hasPreviousPage: pagination.hasPreviousPage,
+              hasNextPage: pagination.hasNextPage,
             }}
             itemLabel={{ singular: "empresa", plural: "empresas" }}
             onPageChange={setPage}
