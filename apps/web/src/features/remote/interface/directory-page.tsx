@@ -344,6 +344,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
   const filteredItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
+    const referenceNow = hasHydrated ? Date.now() : null;
     return directory.items.filter((item) => {
       const haystack = normalizeSearchValue([
         item.name,
@@ -363,7 +364,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
         .filter(Boolean)
         .join(" "));
 
-      const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, hasHydrated ? Date.now() : null);
+      const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow);
       const matchesSearch = !term || haystack.includes(term);
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       const matchesEnvironment = environmentFilter === "all" || item.environment === environmentFilter;
@@ -380,7 +381,7 @@ export function RemotePlatformDirectoryPanel({ directory }: { directory: RemoteP
 
       return matchesSearch && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent && matchesOperational;
     });
-  }, [agentFilter, directory.items, environmentFilter, heartbeatFilter, operationalFilter, searchTerm, statusFilter]);
+  }, [agentFilter, directory.items, environmentFilter, hasHydrated, heartbeatFilter, operationalFilter, searchTerm, statusFilter]);
 
   const filteredPendingItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
