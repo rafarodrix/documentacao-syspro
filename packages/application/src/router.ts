@@ -3,7 +3,7 @@ import type { ApiContext, ProcedureDefinition, RouterDefinition } from "./lib/co
 export class ApiError extends Error {
   constructor(
     message: string,
-    readonly code: "UNAUTHORIZED" | "FORBIDDEN" | "BAD_REQUEST" | "INTERNAL_ERROR",
+    readonly code: string,
     readonly cause?: unknown,
   ) {
     super(message);

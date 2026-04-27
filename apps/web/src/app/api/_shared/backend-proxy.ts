@@ -44,6 +44,15 @@ export function createBackendProxyHeaders(
   const upstreamHeaders = new Headers(headers ?? request.headers);
   upstreamHeaders.delete("host");
   upstreamHeaders.delete("content-length");
+  upstreamHeaders.delete("expect");
+  upstreamHeaders.delete("connection");
+  upstreamHeaders.delete("keep-alive");
+  upstreamHeaders.delete("proxy-authenticate");
+  upstreamHeaders.delete("proxy-authorization");
+  upstreamHeaders.delete("te");
+  upstreamHeaders.delete("trailer");
+  upstreamHeaders.delete("transfer-encoding");
+  upstreamHeaders.delete("upgrade");
   return internal ? withInternalApiHeaders(upstreamHeaders) : upstreamHeaders;
 }
 
