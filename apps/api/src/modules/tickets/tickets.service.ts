@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   TicketModuleSettings,
   TicketModuleCreateRequest,
@@ -28,7 +28,6 @@ import {
   readReleaseMetadataString,
 } from '@dosc-syspro/core';
 import { PrismaService } from '../../prisma/prisma.service';
-import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import {
   serializeLinkedCompaniesResponse,
   serializeMutationResponse,
@@ -36,7 +35,8 @@ import {
   serializeTicketListResponse,
 } from './ticket-contract.mapper';
 import { AuthorizationService } from '../authorization/authorization.service';
-import { IntegrationContextService } from '../settings/integration-context.service';
+import { TicketHistoryService } from './ticket-history.service';
+import { TicketNotificationService } from './ticket-notification.service';
 
 function escapeHtml(value: string) {
   return value
@@ -49,13 +49,11 @@ function escapeHtml(value: string) {
 
 @Injectable()
 export class TicketsService {
-  private readonly logger = new Logger(TicketsService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
-    private readonly evolutionClient: EvolutionClient,
-    private readonly integrationContext: IntegrationContextService,
+    private readonly ticketHistoryService: TicketHistoryService,
+    private readonly ticketNotificationService: TicketNotificationService,
   ) {}
 
   async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
@@ -250,7 +248,8 @@ export class TicketsService {
       },
     });
 
-    await this.sendTicketCreatedGroupNotification({
+    await this.ticketNotificationService.sendTicketCreatedGroupNotification({
+      settings,
       ticketId: createdTicket.id,
       ticketNumber: createdTicket.ticketNumber || ticketNumber,
       title: data.title,
@@ -1016,87 +1015,49 @@ export class TicketsService {
         typeof existingMetadata.category === 'string' && existingMetadata.category.trim()
           ? existingMetadata.category.trim()
           : null;
-      const previousSupportOwnerName = this.readMetadataString(existingMetadata, 'supportOwnerName');
-      const nextSupportOwnerName = this.readMetadataString(currentMetadata, 'supportOwnerName');
-      const previousDevelopmentOwnerName = this.readMetadataString(existingMetadata, 'developmentOwnerName');
-      const nextDevelopmentOwnerName = this.readMetadataString(currentMetadata, 'developmentOwnerName');
-      const previousCurrentOwnerName = this.readMetadataString(existingMetadata, 'currentOwnerName');
-      const nextCurrentOwnerName = this.readMetadataString(currentMetadata, 'currentOwnerName');
+      const previousSupportOwnerName = this.ticketHistoryService.readMetadataString(existingMetadata, 'supportOwnerName');
+      const nextSupportOwnerName = this.ticketHistoryService.readMetadataString(currentMetadata, 'supportOwnerName');
+      const previousDevelopmentOwnerName = this.ticketHistoryService.readMetadataString(existingMetadata, 'developmentOwnerName');
+      const nextDevelopmentOwnerName = this.ticketHistoryService.readMetadataString(currentMetadata, 'developmentOwnerName');
+      const previousCurrentOwnerName = this.ticketHistoryService.readMetadataString(existingMetadata, 'currentOwnerName');
+      const nextCurrentOwnerName = this.ticketHistoryService.readMetadataString(currentMetadata, 'currentOwnerName');
       const previousReleaseTitle = readReleaseMetadataString(existingMetadata, 'releaseTitle');
-      const nextReleaseTitle = this.readMetadataString(currentMetadata, 'releaseTitle');
+      const nextReleaseTitle = this.ticketHistoryService.readMetadataString(currentMetadata, 'releaseTitle');
       const nextPublishToReleases =
         typeof data.publishToReleases === 'boolean'
           ? Boolean(data.publishToReleases)
           : Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases);
-      const historyLines: string[] = [];
+      const historyBody = this.ticketHistoryService.buildUpdateBody({
+        requesterDisplayName,
+        settings,
+        previousTeam,
+        nextTeam,
+        previousStatus: exists.status,
+        nextStatus,
+        previousCategory,
+        nextCategory,
+        previousPriority: exists.priority,
+        nextPriority,
+        previousCurrentOwnerName,
+        nextCurrentOwnerName,
+        previousSupportOwnerName,
+        nextSupportOwnerName,
+        previousDevelopmentOwnerName,
+        nextDevelopmentOwnerName,
+        previousPublishToReleases: Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases),
+        nextPublishToReleases,
+        previousReleaseTitle,
+        nextReleaseTitle,
+        previousReleaseModule: exists.releaseModule?.trim() || null,
+        nextReleaseModule: effectiveReleaseModule || null,
+        previousReleaseType: exists.releaseType?.trim() || null,
+        nextReleaseType: effectiveReleaseType || null,
+        previousResolutionSummary: exists.resolutionSummary?.trim() || null,
+        nextResolutionSummary: effectiveResolutionSummary || null,
+        handoffNote,
+      });
 
-      if (previousTeam !== nextTeam) {
-        historyLines.push(`Equipe: ${this.formatTicketTeamLabel(previousTeam)} -> ${this.formatTicketTeamLabel(nextTeam)}`);
-      }
-
-      if (exists.status !== nextStatus) {
-        historyLines.push(`Estagio: ${this.formatTicketStatusLabel(exists.status)} -> ${this.formatTicketStatusLabel(nextStatus)}`);
-      }
-
-      if (previousCategory !== nextCategory) {
-        historyLines.push(
-          `Categoria: ${this.resolveCategoryLabel(settings, previousCategory) || 'Nao definida'} -> ${this.resolveCategoryLabel(settings, nextCategory) || 'Nao definida'}`,
-        );
-      }
-
-      if (exists.priority !== nextPriority) {
-        historyLines.push(`Prioridade: ${this.formatTicketPriorityLabel(settings, exists.priority)} -> ${this.formatTicketPriorityLabel(settings, nextPriority)}`);
-      }
-
-      if (previousCurrentOwnerName !== nextCurrentOwnerName) {
-        historyLines.push(`Responsavel atual: ${previousCurrentOwnerName || 'Nao definido'} -> ${nextCurrentOwnerName || 'Nao definido'}`);
-      }
-
-      if (previousSupportOwnerName !== nextSupportOwnerName) {
-        historyLines.push(`Analista: ${previousSupportOwnerName || 'Nao definido'} -> ${nextSupportOwnerName || 'Nao definido'}`);
-      }
-
-      if (previousDevelopmentOwnerName !== nextDevelopmentOwnerName) {
-        historyLines.push(`Desenvolvedor: ${previousDevelopmentOwnerName || 'Nao definido'} -> ${nextDevelopmentOwnerName || 'Nao definido'}`);
-      }
-
-      if (exists.status !== TicketStatus.RESOLVED && nextStatus === TicketStatus.RESOLVED) {
-        historyLines.push('Fechamento: Ticket concluido');
-      }
-
-      if (resolutionSummary && resolutionSummary !== exists.resolutionSummary?.trim()) {
-        historyLines.push(`Resolucao: ${resolutionSummary}`);
-      }
-
-      if (!Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases) && nextPublishToReleases) {
-        historyLines.push('Release: Publicacao habilitada');
-      } else if (Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases) && !nextPublishToReleases) {
-        historyLines.push('Release: Publicacao desabilitada');
-      }
-
-      if (previousReleaseTitle !== nextReleaseTitle && nextReleaseTitle) {
-        historyLines.push(`Titulo da release: ${nextReleaseTitle}`);
-      }
-
-      if (effectiveReleaseModule && effectiveReleaseModule !== exists.releaseModule?.trim()) {
-        historyLines.push(`Modulo da release: ${effectiveReleaseModule}`);
-      }
-
-      if (effectiveReleaseType && effectiveReleaseType !== (exists.releaseType?.trim() || null)) {
-        historyLines.push(`Tipo da release: ${effectiveReleaseType}`);
-      }
-
-      if (historyLines.length > 0 || handoffNote) {
-        const bodyLines = [`${requesterDisplayName} alterou o ticket.`];
-        for (const line of historyLines) bodyLines.push(line);
-        if (handoffNote) {
-          bodyLines.push(
-            exists.status === TicketStatus.TESTING && nextStatus === TicketStatus.IN_PROGRESS
-              ? `Motivo do retorno: ${handoffNote}`
-              : `Contexto: ${handoffNote}`,
-          );
-        }
-
+      if (historyBody) {
         await tx.conversationMessage.create({
           data: {
             conversationId: id,
@@ -1104,7 +1065,7 @@ export class TicketsService {
             type: TicketMessageType.SYSTEM_EVENT,
             authorKind: TicketParticipantKind.USER,
             authorUserId: requester.userId,
-            body: bodyLines.join('\n'),
+            body: historyBody,
             status: TicketMessageStatus.SENT,
             sentAt: new Date(),
           },
@@ -1113,7 +1074,8 @@ export class TicketsService {
     });
 
     if (exists.status !== requestedStatus && requestedStatus === TicketStatus.TESTING) {
-      await this.sendTicketStatusGroupNotification({
+      await this.ticketNotificationService.sendTicketStatusGroupNotification({
+        settings,
         ticketId: exists.id,
         ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
         title: exists.subject?.trim() || 'Sem titulo',
@@ -1125,7 +1087,8 @@ export class TicketsService {
     }
 
     if (exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS) {
-      await this.sendTicketStatusGroupNotification({
+      await this.ticketNotificationService.sendTicketStatusGroupNotification({
+        settings,
         ticketId: exists.id,
         ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
         title: exists.subject?.trim() || 'Sem titulo',
@@ -1177,12 +1140,10 @@ export class TicketsService {
       currentMetadata.currentTeam = 'SUPORTE';
     }
 
-    const assignmentBodyLines = [
-      `${requesterName} assumiu o ticket.`,
-      `Responsavel atual: ${requesterName}`,
-      `Estagio: ${this.formatTicketStatusLabel(TicketStatus.NEW)} -> ${this.formatTicketStatusLabel(TicketStatus.IN_PROGRESS)}`,
-      `Equipe: ${this.formatTicketTeamLabel(currentMetadata.currentTeam as string | null)}`,
-    ];
+    const assignmentBody = this.ticketHistoryService.buildAssignmentBody({
+      requesterName,
+      currentTeam: currentMetadata.currentTeam as string | null,
+    });
 
     await this.prisma.$transaction([
       this.prisma.conversation.update({
@@ -1211,7 +1172,7 @@ export class TicketsService {
           type: TicketMessageType.SYSTEM_EVENT,
           authorKind: TicketParticipantKind.USER,
           authorUserId: requester.userId,
-          body: assignmentBodyLines.join('\n'),
+          body: assignmentBody,
           status: TicketMessageStatus.SENT,
           sentAt: new Date(),
         }
@@ -1243,17 +1204,12 @@ export class TicketsService {
     const resolvedTeam = input.team
       ? this.resolveTicketTeam(input.team, requester.role, settings, input.category, accessScope.isGlobal)
       : undefined;
-    const triageBodyLines = [`${requesterName} realizou a triagem do ticket.`];
-
-    if (input.priority) {
-      triageBodyLines.push(`Prioridade: ${this.formatTicketPriorityLabel(settings, input.priority as TicketPriority)}`);
-    }
-    if (input.category) {
-      triageBodyLines.push(`Categoria: ${this.resolveCategoryLabel(settings, input.category) || input.category}`);
-    }
-    if (resolvedTeam) {
-      triageBodyLines.push(`Equipe: ${this.formatTicketTeamLabel(resolvedTeam)}`);
-    }
+    const triageBody = this.ticketHistoryService.buildTriageBody({
+      requesterName,
+      settings,
+      triage: input,
+      resolvedTeam,
+    });
 
     if (input.category) currentMetadata.category = input.category;
     if (resolvedTeam) currentMetadata.currentTeam = resolvedTeam;
@@ -1275,7 +1231,7 @@ export class TicketsService {
           type: TicketMessageType.SYSTEM_EVENT,
           authorKind: TicketParticipantKind.USER,
           authorUserId: requester.userId,
-          body: triageBodyLines.join('\n'),
+          body: triageBody,
           status: TicketMessageStatus.SENT,
           sentAt: new Date(),
         }
@@ -1307,212 +1263,6 @@ export class TicketsService {
       return validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
     } catch {
       return DEFAULT_TICKET_MODULE_SETTINGS;
-    }
-  }
-
-  private async sendTicketCreatedGroupNotification(input: {
-    ticketId: string;
-    ticketNumber: string;
-    title: string;
-    team: 'SUPORTE' | 'DESENVOLVIMENTO';
-    category: string | null;
-    companyId: string | null;
-    databaseUrl: string | null;
-    developmentVideoUrl: string | null;
-    rawHeaders?: IncomingHttpHeaders;
-  }) {
-    const settings = await this.getTicketModuleSettings();
-    const configuredGroups =
-      input.team === 'DESENVOLVIMENTO'
-        ? settings.developmentNotificationGroups
-        : settings.supportNotificationGroups;
-    const targetGroups = configuredGroups
-      .filter((group) => group.active)
-      .map((group) => ({
-        ...group,
-        jid: this.normalizeGroupRecipient(group.jid),
-      }))
-      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
-
-    if (!targetGroups.length) {
-      this.logger.debug(JSON.stringify({
-        flow: 'portal_to_evolution',
-        stage: 'ticket_group_notification_skipped_no_group',
-        ticketId: input.ticketId,
-        ticketNumber: input.ticketNumber,
-        team: input.team,
-      }));
-      return;
-    }
-
-    const connection = await this.integrationContext.getDefaultContext();
-    if (!connection) {
-      this.logger.warn(JSON.stringify({
-        flow: 'portal_to_evolution',
-        stage: 'ticket_group_notification_skipped_no_connection',
-        ticketId: input.ticketId,
-        ticketNumber: input.ticketNumber,
-        team: input.team,
-        groupCount: targetGroups.length,
-      }));
-      return;
-    }
-
-    const company = input.companyId
-      ? await this.prisma.company.findUnique({
-          where: { id: input.companyId },
-          select: {
-            nomeFantasia: true,
-            razaoSocial: true,
-            cnpj: true,
-          },
-        })
-      : null;
-
-    const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
-    const companyCnpj = this.formatCnpj(company?.cnpj);
-    const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
-    const categoryLabel = this.resolveCategoryLabel(settings, input.category);
-    const message = [
-      '[Tickets] Abertura',
-      `Ticket: ${input.ticketNumber}`,
-      `Empresa: ${companyName}`,
-      `Titulo: ${input.title}`,
-      `Fila: ${this.formatTicketTeamLabel(input.team)}`,
-      categoryLabel ? `Categoria: ${categoryLabel}` : undefined,
-      companyCnpj ? `CNPJ: ${companyCnpj}` : undefined,
-      input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
-      input.databaseUrl ? `Base: ${input.databaseUrl}` : undefined,
-      ticketUrl ? `Link: ${ticketUrl}` : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    for (const group of targetGroups) {
-      try {
-        await this.evolutionClient.sendTextMessage(connection.evolution, group.jid, message);
-        this.logger.log(JSON.stringify({
-          flow: 'portal_to_evolution',
-          stage: 'ticket_group_notification_sent',
-          ticketId: input.ticketId,
-          ticketNumber: input.ticketNumber,
-          team: input.team,
-          groupJid: group.jid,
-          groupLabel: group.label,
-        }));
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
-          flow: 'portal_to_evolution',
-          stage: 'ticket_group_notification_failed',
-          ticketId: input.ticketId,
-          ticketNumber: input.ticketNumber,
-          team: input.team,
-          groupJid: group.jid,
-          groupLabel: group.label,
-          error: error?.message ?? 'unknown_error',
-        }));
-      }
-    }
-  }
-
-  private async sendTicketStatusGroupNotification(input: {
-    ticketId: string;
-    ticketNumber: string;
-    title: string;
-    companyId: string | null;
-    status: 'TESTING' | 'IN_PROGRESS';
-    notificationType: 'testing' | 'testing_failed';
-    rawHeaders?: IncomingHttpHeaders;
-  }) {
-    const settings = await this.getTicketModuleSettings();
-    const configuredGroups =
-      input.notificationType === 'testing'
-        ? settings.testingNotificationGroups
-        : settings.testingFailedNotificationGroups;
-    const targetGroups = configuredGroups
-      .filter((group) => group.active)
-      .map((group) => ({
-        ...group,
-        jid: this.normalizeGroupRecipient(group.jid),
-      }))
-      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
-
-    if (!targetGroups.length) {
-      this.logger.debug(JSON.stringify({
-        flow: 'portal_to_evolution',
-        stage: 'ticket_status_notification_skipped_no_group',
-        ticketId: input.ticketId,
-        ticketNumber: input.ticketNumber,
-        notificationType: input.notificationType,
-        status: input.status,
-      }));
-      return;
-    }
-
-    const connection = await this.integrationContext.getDefaultContext();
-    if (!connection) {
-      this.logger.warn(JSON.stringify({
-        flow: 'portal_to_evolution',
-        stage: 'ticket_status_notification_skipped_no_connection',
-        ticketId: input.ticketId,
-        ticketNumber: input.ticketNumber,
-        notificationType: input.notificationType,
-        status: input.status,
-        groupCount: targetGroups.length,
-      }));
-      return;
-    }
-
-    const company = input.companyId
-      ? await this.prisma.company.findUnique({
-          where: { id: input.companyId },
-          select: {
-            nomeFantasia: true,
-            razaoSocial: true,
-          },
-        })
-      : null;
-
-    const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
-    const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
-    const statusLabel = this.formatTicketStatusLabel(input.status);
-    const message = [
-      input.notificationType === 'testing' ? '[Tickets] Em testes' : '[Tickets] Retorno dos testes',
-      `Estagio: ${statusLabel}`,
-      `Ticket: ${input.ticketNumber}`,
-      `Empresa: ${companyName}`,
-      `Titulo: ${input.title}`,
-      ticketUrl ? `Link: ${ticketUrl}` : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    for (const group of targetGroups) {
-      try {
-        await this.evolutionClient.sendTextMessage(connection.evolution, group.jid, message);
-        this.logger.log(JSON.stringify({
-          flow: 'portal_to_evolution',
-          stage: 'ticket_status_notification_sent',
-          ticketId: input.ticketId,
-          ticketNumber: input.ticketNumber,
-          notificationType: input.notificationType,
-          status: input.status,
-          groupJid: group.jid,
-          groupLabel: group.label,
-        }));
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
-          flow: 'portal_to_evolution',
-          stage: 'ticket_status_notification_failed',
-          ticketId: input.ticketId,
-          ticketNumber: input.ticketNumber,
-          notificationType: input.notificationType,
-          status: input.status,
-          groupJid: group.jid,
-          groupLabel: group.label,
-          error: error?.message ?? 'unknown_error',
-        }));
-      }
     }
   }
 
@@ -1551,49 +1301,6 @@ export class TicketsService {
     return parsed;
   }
 
-  private normalizeGroupRecipient(value?: string | null): string | null {
-    const normalized = String(value ?? '').trim();
-    if (!normalized) return null;
-    if (normalized.endsWith('@g.us')) return normalized;
-
-    const digits = normalized.replace(/\D/g, '');
-    return digits ? `${digits}@g.us` : null;
-  }
-
-  private formatCnpj(value?: string | null): string | null {
-    const digits = String(value ?? '').replace(/\D/g, '');
-    if (digits.length !== 14) return null;
-    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-  }
-
-  private buildPortalTicketUrl(ticketId: string, rawHeaders?: IncomingHttpHeaders): string | null {
-    const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
-    if (explicitOrigin) {
-      try {
-        return `${new URL(explicitOrigin).origin}/portal/tickets/${ticketId}`;
-      } catch {
-        return null;
-      }
-    }
-
-    const host = this.readHeader(rawHeaders, 'x-forwarded-host') || this.readHeader(rawHeaders, 'host');
-    if (!host) return null;
-
-    const protocol = this.readHeader(rawHeaders, 'x-forwarded-proto') || 'https';
-    try {
-      return `${new URL(`${protocol}://${host}`).origin}/portal/tickets/${ticketId}`;
-    } catch {
-      return null;
-    }
-  }
-
-  private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {
-    const header = rawHeaders?.[key];
-    if (Array.isArray(header)) {
-      return header[0]?.trim() || null;
-    }
-    return typeof header === 'string' && header.trim() ? header.trim() : null;
-  }
 
   private resolveTicketTeam(
     requestedTeam: string | undefined,
@@ -1631,65 +1338,6 @@ export class TicketsService {
     }
 
     return team === 'SUPORTE' ? 'SUPORTE' : null;
-  }
-
-  private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {
-    const normalizedCategory = category?.trim();
-    if (!normalizedCategory) return null;
-
-    return settings.categories.find((item) => item.value === normalizedCategory)?.label || normalizedCategory;
-  }
-
-  private formatTicketTeamLabel(team?: string | null): string {
-    if (team === 'DESENVOLVIMENTO') return 'Desenvolvimento';
-    if (team === 'SUPORTE') return 'Suporte';
-    return 'Nao definida';
-  }
-
-  private formatTicketPriorityLabel(settings: TicketModuleSettings, priority?: TicketPriority | null): string {
-    if (!priority) return 'Nao definida';
-
-    const configured = settings.priorities.find((item) => {
-      const value = `${item.id} ${item.value} ${item.label}`.toLowerCase();
-      if (priority === TicketPriority.CRITICAL) {
-        return value.includes('critical') || value.includes('urgent') || value.includes('alta') || value.includes('high') || item.id === '3';
-      }
-      if (priority === TicketPriority.HIGH) return value.includes('high') || value.includes('alta') || item.id === '3';
-      if (priority === TicketPriority.LOW) return value.includes('low') || value.includes('baixa') || item.id === '1';
-      return value.includes('normal') || item.id === '2';
-    });
-
-    return configured?.label || priority;
-  }
-
-  private readMetadataString(metadata: Record<string, unknown>, key: string): string | null {
-    const value = metadata[key];
-    return typeof value === 'string' && value.trim() ? value.trim() : null;
-  }
-
-  private formatTicketStatusLabel(status: TicketStatus): string {
-    switch (status) {
-      case TicketStatus.NEW:
-        return 'Novo';
-      case TicketStatus.UNASSIGNED:
-        return 'Sem dono';
-      case TicketStatus.TRIAGE:
-        return 'Triagem';
-      case TicketStatus.IN_PROGRESS:
-        return 'Em andamento';
-      case TicketStatus.WAITING_CUSTOMER:
-        return 'Pendente cliente';
-      case TicketStatus.WAITING_INTERNAL:
-        return 'Aguardando interno';
-      case TicketStatus.TESTING:
-        return 'Em testes';
-      case TicketStatus.RESOLVED:
-        return 'Resolvido';
-      case TicketStatus.ARCHIVED:
-        return 'Arquivado';
-      default:
-        return status;
-    }
   }
 
   private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {
