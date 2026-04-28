@@ -33,6 +33,8 @@ function formatDate(iso: string): string {
 }
 
 export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
+  const visibleCount = tickets.length;
+
   return (
     <Card className="h-full w-full border-border/60 bg-card/70 shadow-sm">
       <CardHeader className="px-5 pb-3 pt-5">
@@ -48,6 +50,9 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
                 "Nenhum chamado em aberto"
               )}
             </CardDescription>
+            {visibleCount > 0 ? (
+              <p className="text-xs text-muted-foreground">Mostrando os {visibleCount} registros mais recentes.</p>
+            ) : null}
           </div>
           <Link
             href="/portal/tickets"
@@ -76,6 +81,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
               const statusCfg = STATUS_CONFIG[ticket.status];
               const priorityCfg = PRIORITY_CONFIG[ticket.priority];
               const StatusIcon = statusCfg.icon;
+              const isLatest = ticket.id === tickets[0]?.id;
 
               return (
                 <Link
@@ -89,6 +95,14 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium truncate leading-tight">{ticket.subject}</span>
+                      {isLatest ? (
+                        <Badge
+                          variant="outline"
+                          className="h-4 shrink-0 border-emerald-500/20 bg-emerald-500/10 px-1.5 text-[10px] text-emerald-600"
+                        >
+                          Mais recente
+                        </Badge>
+                      ) : null}
                       <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 shrink-0 border", priorityCfg.class)}>
                         {ticket.priority}
                       </Badge>

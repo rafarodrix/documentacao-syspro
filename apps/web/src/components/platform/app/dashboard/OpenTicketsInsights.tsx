@@ -6,6 +6,7 @@ import type { ApexOptions } from "apexcharts";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -50,6 +51,12 @@ function getScopeDescription(scopeMode: TicketScopeMode) {
   if (scopeMode === "own") return "Seus tickets abertos no escopo atual.";
   if (scopeMode === "development") return "Tickets abertos atualmente na fila de desenvolvimento.";
   return "Tickets abertos no escopo operacional carregado para este perfil.";
+}
+
+function getScopeTitle(scopeMode: TicketScopeMode) {
+  if (scopeMode === "own") return "Distribuicao dos seus tickets";
+  if (scopeMode === "development") return "Distribuicao da fila de desenvolvimento";
+  return "Distribuicao operacional";
 }
 
 function groupRecords(records: DashboardOpenTicketRecord[], key: BreakdownKind): GroupedItem[] {
@@ -190,6 +197,7 @@ export function OpenTicketsInsights({
 
   const selectedModuleLabel = selectedModule ? formatModuleLabel(selectedModule) : "";
   const selectedCategoryLabel = selectedCategory ? formatCategoryLabel(selectedCategory) : "";
+  const hasActiveDetailFilter = Boolean(selectedModule || selectedCategory);
 
   const filterLabel =
     areaFilter === "SUPORTE"
@@ -218,7 +226,7 @@ export function OpenTicketsInsights({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card/40 px-4 py-3">
         <div className="space-y-1">
-          <h3 className="text-base font-semibold text-foreground">Distribuicao operacional</h3>
+          <h3 className="text-base font-semibold text-foreground">{getScopeTitle(scopeMode)}</h3>
           <p className="text-sm text-muted-foreground">{getScopeDescription(scopeMode)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -259,6 +267,18 @@ export function OpenTicketsInsights({
               Categoria: {selectedCategoryLabel}
             </Badge>
           ) : null}
+          {hasActiveDetailFilter ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedModule("");
+                setSelectedCategory("");
+              }}
+              className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              Limpar foco
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -287,10 +307,8 @@ function BreakdownCard({
   title,
   filterLabel,
   items,
-  selectedValue,
   selectedLabel,
   chartOptions,
-  onSelect,
 }: {
   title: string;
   filterLabel: string;
@@ -299,6 +317,7 @@ function BreakdownCard({
   chartOptions: ApexOptions;
 }) {
   const hasData = items.length > 0;
+  const topItem = items[0];
 
   return (
     <Card className="border-border/60 bg-card/70 shadow-sm">
@@ -307,10 +326,21 @@ function BreakdownCard({
           <div className="space-y-1">
             <CardTitle className="text-sm">{title}</CardTitle>
             <p className="text-xs text-muted-foreground">
-              {selectedLabel ? `Filtro ativo: ${selectedLabel}` : "Clique para focar no recorte"}
+              {selectedLabel
+                ? `Filtro ativo: ${selectedLabel}`
+                : topItem
+                  ? `Topico lider: ${topItem.label}`
+                  : "Clique para focar no recorte"}
             </p>
           </div>
-          <Badge variant="outline" className="border-border/60 bg-background/70">{filterLabel}</Badge>
+          <div className="flex items-center gap-2">
+            {hasData ? (
+              <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                Top {items.length}
+              </Badge>
+            ) : null}
+            <Badge variant="outline" className="border-border/60 bg-background/70">{filterLabel}</Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
