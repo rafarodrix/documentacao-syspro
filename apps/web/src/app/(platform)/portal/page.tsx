@@ -631,16 +631,11 @@ export default async function DashboardPage() {
       <OpenTicketsInsights records={data.openTicketRecords} scopeMode="own" />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
-          <ShineBorder borderWidth={1} duration={16} shineColor={["#38bdf855", "#60a5fa44"]} className="opacity-70" />
-          <div className="relative z-10 grid grid-cols-1 gap-4">
-            <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
-          </div>
+        <div className="min-w-0">
+          <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
-          <ShineBorder borderWidth={1} duration={18} shineColor={["#22d3ee40", "#a78bfa44"]} className="opacity-60" />
-          <div className="relative z-10 grid grid-cols-1 gap-4">
+        <div className="min-w-0">
           <ActivityChart
             title="Atualizacoes de chamados"
             description="Movimento dos seus chamados nos ultimos 7 dias"
@@ -648,7 +643,6 @@ export default async function DashboardPage() {
             badgeLabel="Meu historico"
             emptyLabel="Nenhuma atualizacao recente"
           />
-          </div>
         </div>
       </div>
 

@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -35,12 +34,12 @@ function formatDate(iso: string): string {
 
 export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
   return (
-    <Card className="h-full w-full border-border/50 bg-card/70">
-      <CardHeader className="pb-3 px-5 pt-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-semibold">Chamados Recentes</CardTitle>
-            <CardDescription className="text-xs mt-0.5">
+    <Card className="h-full w-full border-border/60 bg-card/70 shadow-sm">
+      <CardHeader className="px-5 pb-3 pt-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-semibold">Chamados recentes</CardTitle>
+            <CardDescription className="text-sm">
               {totalOpen > 0 ? (
                 <>
                   <span className="text-foreground font-medium">{totalOpen}</span> em aberto
@@ -50,12 +49,13 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
               )}
             </CardDescription>
           </div>
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
-            <Link href="/portal/tickets">
-              Ver todos
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </Button>
+          <Link
+            href="/portal/tickets"
+            className="inline-flex items-center gap-1 rounded-full border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          >
+            Ver todos
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
         </div>
       </CardHeader>
 

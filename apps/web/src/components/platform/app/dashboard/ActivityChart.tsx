@@ -115,26 +115,22 @@ export function ActivityChart({
   };
 
   return (
-    <Card className="h-full w-full border-border/60 bg-background/40 shadow-md backdrop-blur-xl">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="h-full w-full border-border/60 bg-card/70 shadow-sm">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardDescription className="text-sm">{description}</CardDescription>
         </div>
         <Badge
           variant="outline"
-          className="gap-1 border-emerald-500/20 bg-emerald-500/10 pr-2.5 text-emerald-500"
+          className="border-border/60 bg-background/70 px-2.5 text-muted-foreground"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-          </span>
           {badgeLabel}
         </Badge>
       </CardHeader>
 
       <CardContent className="px-4 pb-4">
-        <div className="relative h-full rounded-2xl border border-border/50 bg-muted/5 p-3">
+        <div className="relative h-full rounded-2xl border border-border/50 bg-background/40 p-3">
           {!hasData ? (
             <div className="flex h-[320px] w-full flex-col items-center justify-center text-center">
               <Activity className="mb-2 h-8 w-8 text-muted-foreground/40" />

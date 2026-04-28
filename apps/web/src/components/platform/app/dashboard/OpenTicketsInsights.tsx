@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ApexOptions } from "apexcharts";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
@@ -87,29 +86,6 @@ function groupRecords(records: DashboardOpenTicketRecord[], key: BreakdownKind):
     }))
     .sort((left, right) => right.value - left.value || left.label.localeCompare(right.label))
     .slice(0, 6);
-}
-
-function buildTicketsHref(input: {
-  team?: TicketArea;
-  category?: string;
-  module?: string;
-}) {
-  const params = new URLSearchParams();
-  params.set("status", "open");
-
-  if (input.team && input.team !== "ALL") {
-    params.set("team", input.team);
-  }
-
-  if (input.category?.trim()) {
-    params.set("category", input.category.trim());
-  }
-
-  if (input.module?.trim()) {
-    params.set("module", input.module.trim());
-  }
-
-  return `/portal/tickets?${params.toString()}`;
 }
 
 function createHorizontalChartOptions(
@@ -278,7 +254,7 @@ export function OpenTicketsInsights({
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <Card className="border-border/60 bg-linear-to-br from-card via-card to-primary/5 xl:col-span-3">
+      <Card className="border-border/60 bg-card/70 shadow-sm xl:col-span-3">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
@@ -286,9 +262,9 @@ export function OpenTicketsInsights({
               <p className="text-sm text-muted-foreground">{getScopeDescription(scopeMode)}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {selectedModuleLabel ? <Badge variant="outline">Modulo: {selectedModuleLabel}</Badge> : null}
-              {selectedCategoryLabel ? <Badge variant="outline">Categoria: {selectedCategoryLabel}</Badge> : null}
-              <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+              {selectedModuleLabel ? <Badge variant="outline" className="border-border/60 bg-background/70">Modulo: {selectedModuleLabel}</Badge> : null}
+              {selectedCategoryLabel ? <Badge variant="outline" className="border-border/60 bg-background/70">Categoria: {selectedCategoryLabel}</Badge> : null}
+              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
                 {filteredRecords.length} ativos no recorte
               </Badge>
             </div>
@@ -316,7 +292,7 @@ export function OpenTicketsInsights({
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/70">
+      <Card className="border-border/60 bg-card/70 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Tickets abertos por area</CardTitle>
           <p className="text-xs text-muted-foreground">{getScopeDescription(scopeMode)}</p>
@@ -362,13 +338,6 @@ export function OpenTicketsInsights({
         selectedLabel={selectedModuleLabel}
         chartOptions={moduleChartOptions}
         onSelect={(item) => setSelectedModule((current) => (current === item.queryValue ? "" : item.queryValue))}
-        hrefBuilder={(item) =>
-          buildTicketsHref({
-            team: areaFilter,
-            module: item.queryValue,
-            category: selectedCategory,
-          })
-        }
       />
 
       <BreakdownCard
@@ -379,13 +348,6 @@ export function OpenTicketsInsights({
         selectedLabel={selectedCategoryLabel}
         chartOptions={categoryChartOptions}
         onSelect={(item) => setSelectedCategory((current) => (current === item.queryValue ? "" : item.queryValue))}
-        hrefBuilder={(item) =>
-          buildTicketsHref({
-            team: areaFilter,
-            category: item.queryValue,
-            module: selectedModule,
-          })
-        }
       />
     </div>
   );
@@ -416,7 +378,6 @@ function BreakdownCard({
   selectedLabel,
   chartOptions,
   onSelect,
-  hrefBuilder,
 }: {
   title: string;
   filterLabel: string;
@@ -425,12 +386,11 @@ function BreakdownCard({
   selectedLabel: string;
   chartOptions: ApexOptions;
   onSelect: (item: GroupedItem) => void;
-  hrefBuilder: (item: GroupedItem) => string;
 }) {
   const hasData = items.length > 0;
 
   return (
-    <Card className="border-border/50 bg-card/70">
+    <Card className="border-border/60 bg-card/70 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
@@ -439,7 +399,7 @@ function BreakdownCard({
               {selectedLabel ? `Filtro ativo: ${selectedLabel}` : "Clique para focar no recorte"}
             </p>
           </div>
-          <Badge variant="outline">{filterLabel}</Badge>
+          <Badge variant="outline" className="border-border/60 bg-background/70">{filterLabel}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -473,15 +433,7 @@ function BreakdownCard({
                       <div className="truncate text-sm font-medium text-foreground">{item.label}</div>
                       <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
                     </button>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold tabular-nums text-foreground">{item.value}</span>
-                      <Link
-                        href={hrefBuilder(item)}
-                        className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                      >
-                        Abrir
-                      </Link>
-                    </div>
+                    <span className="text-sm font-semibold tabular-nums text-foreground">{item.value}</span>
                   </div>
                 </div>
               ))}
@@ -507,9 +459,9 @@ function SummaryMetric({
   tone: "default" | "support" | "development";
 }) {
   const toneClass = {
-    default: "border-primary/15 bg-primary/5 text-foreground",
-    support: "border-sky-500/15 bg-sky-500/5 text-sky-500",
-    development: "border-violet-500/15 bg-violet-500/5 text-violet-500",
+    default: "border-border/60 bg-background/40 text-foreground",
+    support: "border-sky-500/20 bg-sky-500/5 text-sky-500",
+    development: "border-violet-500/20 bg-violet-500/5 text-violet-500",
   }[tone];
 
   return (
