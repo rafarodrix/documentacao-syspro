@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, BarChart3, BookOpen, Building2, ContactRound, Cpu, FileText, Monitor, Scale, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
+import { BookOpen, Building2, ContactRound, FileText, Monitor, Scale, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar";
@@ -70,32 +70,11 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
         enabled: navigationAccess?.crm !== false,
       },
       {
-        label: "Plataforma Remota",
-        href: "/portal/plataforma-remota",
-        keywords: "plataforma remota hosts acesso remoto rustdesk",
+        label: "Infraestrutura",
+        href: "/portal/infraestrutura",
+        keywords: "infraestrutura hosts sessoes relatorios agentes dispositivos acesso remoto rustdesk",
         icon: Monitor,
-        enabled: navigationAccess?.remote !== false,
-      },
-      {
-        label: "Sessoes Remotas",
-        href: "/portal/plataforma-remota/sessoes",
-        keywords: "sessoes remotas auditoria acesso tecnico",
-        icon: Activity,
-        enabled: navigationAccess?.remoteSessions !== false,
-      },
-      {
-        label: "Relatorios do Remoto",
-        href: "/portal/plataforma-remota/relatorios",
-        keywords: "relatorios remoto eficiencia suporte metrica",
-        icon: BarChart3,
-        enabled: navigationAccess?.remoteReports !== false,
-      },
-      {
-        label: "Agentes e Dispositivos",
-        href: "/portal/dispositivos",
-        keywords: "agentes dispositivos frota heartbeat online offline",
-        icon: Cpu,
-        enabled: navigationAccess?.agents !== false,
+        enabled: navigationAccess?.infrastructure !== false,
       },
       {
         label: "Ferramentas",
@@ -210,7 +189,11 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
                 <div className="space-y-1">
                   {filteredItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href || (item.href !== "/portal" && pathname.startsWith(item.href));
+                    const isActive =
+                      item.href === "/portal/infraestrutura"
+                        ? pathname.startsWith("/portal/infraestrutura") ||
+                          pathname.startsWith("/portal/infraestrutura/hosts")
+                        : pathname === item.href || (item.href !== "/portal" && pathname.startsWith(item.href));
 
                     return (
                       <button

@@ -55,7 +55,7 @@ export function DownloadsSection() {
               <div className="space-y-3">
                 <h3 className="text-2xl font-bold text-foreground">Portal do cliente e operacao remota</h3>
                 <p className="text-muted-foreground">
-                  Para instaladores operacionais, scripts tecnicos e acesso remoto, use o portal e a rota de Plataforma Remota.
+                  Para instaladores operacionais, scripts tecnicos e acesso remoto, use o portal e a area de Infraestrutura.
                 </p>
               </div>
               <div className="mt-auto">

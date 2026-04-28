@@ -60,7 +60,7 @@ const MODULE_LABELS: Record<string, string> = {
   users: "Usuarios",
   contracts: "Contratos",
   crm: "CRM",
-  remote: "Plataforma Remota",
+  remote: "Infraestrutura Remota",
   agents: "Dispositivos do Agente",
   atendimento: "Atendimento",
   settings: "Configuracoes",
@@ -286,16 +286,16 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
       </Card>
 
       <Tabs defaultValue="profiles" className="space-y-6">
-        <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
-          <TabsTrigger value="profiles" className="gap-2 px-4 py-2">
+        <TabsList className="inline-flex w-full sm:w-auto p-1 bg-muted/50 border border-border/40">
+          <TabsTrigger value="profiles" className="gap-2 px-6 py-2">
             <ShieldCheck className="h-4 w-4" />
             Perfis
           </TabsTrigger>
-          <TabsTrigger value="assignments" className="gap-2 px-4 py-2">
+          <TabsTrigger value="assignments" className="gap-2 px-6 py-2">
             <Users className="h-4 w-4" />
             Vinculos
           </TabsTrigger>
-          <TabsTrigger value="matrix" className="gap-2 px-4 py-2">
+          <TabsTrigger value="matrix" className="gap-2 px-6 py-2">
             <Layers3 className="h-4 w-4" />
             Matriz
           </TabsTrigger>

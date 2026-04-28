@@ -5,7 +5,7 @@ import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import { RemoteHostDetailsPanel } from "@/features/remote/interface/host-details-page";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
-export default async function RemoteHostDetailsPage({
+export default async function InfrastructureHostDetailsPage({
   params,
 }: {
   params: Promise<{ hostId: string }>;

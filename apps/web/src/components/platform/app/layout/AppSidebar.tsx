@@ -34,13 +34,10 @@ import {
   ShieldCheck,
   HelpCircle,
   Monitor,
-  Cpu,
   Smartphone,
   MessagesSquare,
   BriefcaseBusiness,
   Target,
-  Activity,
-  BarChart3,
   Scale,
 } from "lucide-react"
 
@@ -68,6 +65,7 @@ export interface NavigationAccess {
   contacts: boolean
   tickets: boolean
   atendimento: boolean
+  infrastructure: boolean
   remote: boolean
   remoteSessions: boolean
   remoteReports: boolean
@@ -95,10 +93,7 @@ const NAV_SUPPORT: NavItemType[] = [
   { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
   { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES], newTab: true },
-  { title: "Hosts Remotos", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
-  { title: "Sessoes Remotas", href: "/portal/plataforma-remota/sessoes", icon: Activity, roles: [...SYSTEM_ROLES] },
-  { title: "Relatorios do Remoto", href: "/portal/plataforma-remota/relatorios", icon: BarChart3, roles: [...SYSTEM_ROLES] },
-  { title: "Agentes / Dispositivos", href: "/portal/dispositivos", icon: Cpu, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
+  { title: "Infraestrutura", href: "/portal/infraestrutura", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
 const NAV_COMMERCIAL: NavItemType[] = [
@@ -328,10 +323,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
   const supportItems = filterByAccess(filterByRole(NAV_SUPPORT, user.role), {
     "/portal/tickets": navigationAccess?.tickets,
     "/portal/atendimento": navigationAccess?.atendimento,
-    "/portal/plataforma-remota": navigationAccess?.remote,
-    "/portal/plataforma-remota/sessoes": navigationAccess?.remoteSessions,
-    "/portal/plataforma-remota/relatorios": navigationAccess?.remoteReports,
-    "/portal/dispositivos": navigationAccess?.agents,
+    "/portal/infraestrutura": navigationAccess?.infrastructure,
   })
   const commercialItems = filterByAccess(filterByRole(NAV_COMMERCIAL, user.role), {
     "/portal/comercial/leads": navigationAccess?.crm,
@@ -346,8 +338,11 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
 
   const isActive = (href: string) => {
     if (href === "/portal") return pathname === "/portal"
-    if (href === "/portal/plataforma-remota") {
-      return pathname === href || /^\/portal\/plataforma-remota\/[^/]+$/.test(pathname)
+    if (href === "/portal/infraestrutura") {
+      return (
+        pathname.startsWith("/portal/infraestrutura") ||
+        pathname.startsWith("/portal/infraestrutura/hosts")
+      )
     }
     return pathname.startsWith(href)
   }

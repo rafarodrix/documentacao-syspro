@@ -123,15 +123,16 @@ function ChatwootDiagnosticsTab() {
   const remoteDirectoryAppUrl = useMemo(() => {
     const baseOrigin = portalOrigin || "https://SEU_PORTAL";
     const params = new URLSearchParams({
+      tab: "hosts",
       companyId: "{{contact.custom_attributes.syspro_company_id}}",
       ticketNumber: "{{conversation.custom_attributes.ticket_number}}",
     });
 
-    return `${baseOrigin}/portal/plataforma-remota?${params.toString()}`;
+    return `${baseOrigin}/portal/infraestrutura?${params.toString()}`;
   }, [portalOrigin]);
   const remoteHostAppUrl = useMemo(() => {
     const baseOrigin = portalOrigin || "https://SEU_PORTAL";
-    return `${baseOrigin}/portal/plataforma-remota/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
+    return `${baseOrigin}/portal/infraestrutura/hosts/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
   }, [portalOrigin]);
 
   useEffect(() => {

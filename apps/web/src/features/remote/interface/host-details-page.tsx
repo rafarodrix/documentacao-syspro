@@ -792,10 +792,10 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
       <div className="sticky top-0 z-30 -mx-6 -mt-6 mb-6 border-b border-border/40 bg-background/60 px-6 py-4 backdrop-blur-xl transition-all animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4 min-w-0">
-            <Link 
-              href="/portal/plataforma-remota" 
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/40 hover:bg-muted/80 hover:scale-105 transition-all text-muted-foreground hover:text-foreground"
-              title="Voltar para a lista"
+              <Link 
+              href="/portal/infraestrutura?tab=hosts" 
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/40 hover:bg-muted/80 hover:scale-105 transition-all text-muted-foreground hover:text-foreground"
+                title="Voltar para a lista"
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -1140,7 +1140,6 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
     </div>
   );
 }
-
 
 
 

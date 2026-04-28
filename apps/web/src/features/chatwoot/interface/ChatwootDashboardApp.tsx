@@ -276,9 +276,9 @@ export function ChatwootDashboardApp() {
       accountId,
       currentAgentName: pickFirstValue(context?.currentAgent?.name),
       ticketHref: `/portal/tickets/novo?${ticketParams.toString()}`,
-      remoteDirectoryHref: remoteDirectoryParams.toString()
-        ? `/portal/plataforma-remota?${remoteDirectoryParams.toString()}`
-        : "/portal/plataforma-remota",
+        remoteDirectoryHref: remoteDirectoryParams.toString()
+        ? `/portal/infraestrutura?tab=hosts&${remoteDirectoryParams.toString()}`
+        : "/portal/infraestrutura?tab=hosts",
     };
   }, [context, manualLinkedCompany]);
 
@@ -1598,7 +1598,7 @@ export function ChatwootDashboardApp() {
                                   Acessar
                                 </Button>
                                 <Button asChild variant="outline" size="sm">
-                                  <Link href={`/portal/plataforma-remota/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`} target="_blank" rel="noreferrer">
+                                  <Link href={`/portal/infraestrutura/hosts/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`} target="_blank" rel="noreferrer">
                                     Abrir no portal
                                   </Link>
                                 </Button>

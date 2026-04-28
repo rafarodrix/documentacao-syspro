@@ -45,6 +45,7 @@ export async function PortalShellLayout({
       acceptCompanyScope: true,
     }),
     atendimento: await currentUserHasPermission("atendimento:view", { acceptCompanyScope: true }),
+    infrastructure: false,
     remote: await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
       acceptCompanyScope: true,
     }),
@@ -63,6 +64,11 @@ export async function PortalShellLayout({
     tax: true,
     settings: await currentUserHasPermission("settings:view"),
   }
+  navigationAccess.infrastructure =
+    navigationAccess.remote ||
+    navigationAccess.remoteSessions ||
+    navigationAccess.remoteReports ||
+    navigationAccess.agents
 
   const user = {
     name: session.name ?? session.email.split("@")[0] ?? "Usuario",

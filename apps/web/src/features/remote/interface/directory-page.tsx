@@ -476,7 +476,7 @@ export function RemotePlatformDirectoryPanel({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <LayoutDashboard className="h-6 w-6 text-primary" />
-            Plataforma Remota
+            Hosts remotos
           </h1>
           <p className="text-sm text-muted-foreground">
             Gestão centralizada de hosts e conectividade remota.
@@ -1085,7 +1085,7 @@ export function RemotePlatformDirectoryPanel({
                         )}
                         <Button asChild variant="outline" size="sm" className="h-9 bg-background/50 hover:bg-muted/50">
                           <Link
-                            href={`/portal/plataforma-remota/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
+                            href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
                           >
                             Ver Detalhes
                           </Link>

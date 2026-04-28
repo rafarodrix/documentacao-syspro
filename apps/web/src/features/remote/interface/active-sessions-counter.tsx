@@ -59,7 +59,7 @@ export function RemoteActiveSessionsCounter({ initialCount = 0 }: { initialCount
 
   return (
     <Link 
-      href="/portal/plataforma-remota/sessoes"
+      href="/portal/infraestrutura?tab=sessoes"
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all duration-500",
         count > 0 

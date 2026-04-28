@@ -10,10 +10,12 @@ import {
     settingsSchema,
     type SettingsInput,
     type SettingsOutput,
+    type SettingsPermissionsAdminView,
 } from "@dosc-syspro/contracts/settings";
 import { updateSettingsAction } from "@/features/settings/application/actions";
 import { getSettingsAction } from "@/features/settings/application/queries";
 import { ReasonOptionsEditor } from "@/components/platform/app/settings/ReasonOptionsEditor";
+import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +41,14 @@ const defaultValues: SettingsInput = {
     },
 };
 
-export default function GeneralSettingsForm() {
+interface GeneralSettingsFormProps {
+    adminView: SettingsPermissionsAdminView;
+}
+
+export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, startTransition] = useTransition();
+    const [activeTab, setActiveTab] = useState("general");
 
     const form = useForm<SettingsInput, undefined, SettingsOutput>({
         resolver: zodResolver(settingsSchema),
@@ -100,14 +107,17 @@ export default function GeneralSettingsForm() {
     }
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in duration-500">
-            <Tabs defaultValue="general" className="space-y-6">
+        <div className="animate-in fade-in duration-500">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="inline-flex w-full sm:w-auto p-1 bg-muted/50 border border-border/40">
                     <TabsTrigger value="general" className="px-6 py-2">Geral</TabsTrigger>
                     <TabsTrigger value="preferences" className="px-6 py-2">Motivos de Cancelamento</TabsTrigger>
+                    <TabsTrigger value="access" className="px-6 py-2">Perfis de Acesso</TabsTrigger>
                 </TabsList>
 
-            <TabsContent value="general" className="space-y-6">
+                <div className={activeTab === 'access' ? 'hidden' : 'block'}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <TabsContent value="general" forceMount className={activeTab !== 'general' ? 'hidden' : 'space-y-6'}>
             {/* --- SECAO FINANCEIRA --- */}
             <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm overflow-hidden">
                 <CardHeader className="bg-muted/10 pb-4 border-b border-border/40">
@@ -234,7 +244,7 @@ export default function GeneralSettingsForm() {
             </Card>
             </TabsContent>
 
-            <TabsContent value="preferences" className="space-y-6">
+            <TabsContent value="preferences" forceMount className={activeTab !== 'preferences' ? 'hidden' : 'space-y-6'}>
                 <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm overflow-hidden">
                     <CardHeader className="bg-muted/10 pb-4 border-b border-border/40">
                         <div className="flex items-center gap-3">
@@ -276,7 +286,6 @@ export default function GeneralSettingsForm() {
                     </CardContent>
                 </Card>
             </TabsContent>
-            </Tabs>
 
             <div className="flex justify-end pt-4 pb-10">
                 <Button
@@ -296,7 +305,13 @@ export default function GeneralSettingsForm() {
                     )}
                 </Button>
             </div>
+          </form>
+        </div>
 
-        </form>
-    );
+        <TabsContent value="access" forceMount className={activeTab !== 'access' ? 'hidden' : ''}>
+            <AccessControlTab adminView={adminView} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
