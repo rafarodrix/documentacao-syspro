@@ -163,9 +163,15 @@ export class AgentsService {
       if (matches.length !== 1) return;
 
       const match = matches[0];
-      const data: Prisma.AgentDeviceUpdateInput = { remoteHostId: match.id };
+      const data: Prisma.AgentDeviceUpdateInput = {
+        remoteHost: {
+          connect: { id: match.id },
+        },
+      };
       if (match.companyId && !companyId) {
-        data.companyId = match.companyId;
+        data.company = {
+          connect: { id: match.companyId },
+        };
       }
 
       await this.prisma.agentDevice.update({ where: { deviceId }, data });
