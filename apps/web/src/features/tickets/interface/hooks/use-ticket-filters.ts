@@ -133,6 +133,21 @@ export function useTicketFilters(initialSearch: string) {
     [updateParams]
   );
 
+  const setModuleFilter = useCallback(
+    (nextModule: string) => {
+      updateParams((params) => {
+        const normalized = nextModule.trim();
+        if (!normalized || normalized === "all") {
+          params.delete("module");
+        } else {
+          params.set("module", normalized);
+        }
+        params.set("page", "1");
+      });
+    },
+    [updateParams]
+  );
+
   const setSort = useCallback(
     (sortBy: TicketSortBy, sortOrder: TicketSortOrder) => {
       updateParams((params) => {
@@ -153,6 +168,7 @@ export function useTicketFilters(initialSearch: string) {
     setClosedWindowFilter,
     setTeamFilter,
     setCategoryFilter,
+    setModuleFilter,
     setSort,
     isPending,
   };

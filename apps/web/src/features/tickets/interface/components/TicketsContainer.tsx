@@ -26,6 +26,7 @@ interface TicketsContainerProps {
   statusGroup: TicketStatusGroup;
   closedWindow: ClosedTicketsWindow;
   category: string;
+  module: string;
   sortBy: TicketSortBy;
   sortOrder: TicketSortOrder;
 }
@@ -45,6 +46,7 @@ export function TicketsContainer({
   statusGroup,
   closedWindow,
   category,
+  module,
   sortBy,
   sortOrder,
 }: TicketsContainerProps) {
@@ -57,6 +59,7 @@ export function TicketsContainer({
     setClosedWindowFilter,
     setTeamFilter,
     setCategoryFilter,
+    setModuleFilter,
     setSort,
   } = useTicketFilters(search);
 
@@ -117,6 +120,8 @@ export function TicketsContainer({
             queueCounts={queueCounts}
             category={category}
             setCategoryFilter={setCategoryFilter}
+            module={module}
+            setModuleFilter={setModuleFilter}
           />
 
 

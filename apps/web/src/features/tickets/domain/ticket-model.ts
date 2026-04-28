@@ -63,6 +63,7 @@ export interface TicketQueryParams {
     team?: Exclude<TicketTeamFilter, "all">;
     closedWindow?: ClosedTicketsWindow;
     category?: string;
+    module?: string;
     sortBy?: TicketSortBy;
     sortOrder?: TicketSortOrder;
 }

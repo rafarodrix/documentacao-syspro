@@ -103,6 +103,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   if (params.team) query.set("team", params.team);
   if (params.closedWindow) query.set("closedWindow", params.closedWindow);
   if (params.category?.trim()) query.set("category", params.category.trim());
+  if (params.module?.trim()) query.set("module", params.module.trim());
   if (params.sortBy) query.set("sortBy", params.sortBy);
   if (params.sortOrder) query.set("sortOrder", params.sortOrder);
   if (params.search?.trim()) query.set("search", params.search.trim());

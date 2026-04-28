@@ -109,6 +109,7 @@ export const ticketModuleListQuerySchema = paginationQuerySchema.extend({
   team: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
   closedWindow: z.enum(["30d", "60d", "90d", "180d", "365d", "all"]).optional(),
   category: z.string().trim().optional(),
+  module: z.string().trim().optional(),
   sortBy: z.enum(["updatedAt", "subject", "customer"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
   assignedUserId: z.string().optional(),

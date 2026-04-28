@@ -52,6 +52,8 @@ export class TicketsController {
     @Query('queue') queue?: string,
     @Query('team') team?: string,
     @Query('closedWindow') closedWindow?: string,
+    @Query('category') category?: string,
+    @Query('module') module?: string,
     @Query('assignedUserId') assignedUserId?: string,
     @Query('companyId') companyId?: string,
   ) {
@@ -64,6 +66,8 @@ export class TicketsController {
       queue,
       team,
       closedWindow,
+      category,
+      module,
       assignedUserId,
       companyId,
     });

@@ -31,6 +31,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const statusParam = typeof params?.status === "string" ? params.status : "open";
   const teamParam = typeof params?.team === "string" ? params.team : undefined;
   const categoryParam = typeof params?.category === "string" ? params.category : "";
+  const moduleParam = typeof params?.module === "string" ? params.module : "";
   const sortByParam = typeof params?.sortBy === "string" ? params.sortBy : "updatedAt";
   const sortOrderParam = typeof params?.sortOrder === "string" ? params.sortOrder : "desc";
   const statusGroup: TicketStatusGroup = isTicketStatusGroup(statusParam) ? statusParam : "open";
@@ -70,6 +71,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     statusGroup,
     closedWindow,
     category: categoryParam || undefined,
+    module: moduleParam || undefined,
     sortBy,
     sortOrder,
     hasSearch: Boolean(search.trim()),
@@ -84,6 +86,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     statusGroup,
     closedWindow,
     category: categoryParam || undefined,
+    module: moduleParam || undefined,
     sortBy,
     sortOrder,
   });
@@ -136,6 +139,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
       statusGroup={statusGroup}
       closedWindow={closedWindow}
       category={categoryParam}
+      module={moduleParam}
       sortBy={sortBy}
       sortOrder={sortOrder}
     />

@@ -5,6 +5,7 @@ import { CalendarDays, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
+import { formatModuleOptionLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { type TicketStatusGroup, type QueueKey } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketStatusCounts, TicketTeamFilter } from "./types";
 
@@ -24,6 +25,8 @@ interface TicketsFiltersProps {
     queueCounts: Record<QueueKey, number>;
     category: string;
     setCategoryFilter: (val: string) => void;
+    module: string;
+    setModuleFilter: (val: string) => void;
 }
 
 const CLOSED_WINDOW_LABELS: Record<ClosedTicketsWindow, string> = {
@@ -51,6 +54,8 @@ export function TicketsFilters({
     queueCounts,
     category,
     setCategoryFilter,
+    module,
+    setModuleFilter,
 }: TicketsFiltersProps) {
     const ticketSettings = useTicketModuleSettings();
     const categoryOptions = ticketSettings.categories.filter((item) => team === "all" || item.defaultTeam === team);
@@ -120,6 +125,20 @@ export function TicketsFilters({
                                     {categoryOptions.map((option) => (
                                         <SelectItem key={option.id} value={option.value}>
                                             {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={module || "all"} onValueChange={setModuleFilter}>
+                                <SelectTrigger className="h-10 w-52 bg-background">
+                                    <SelectValue placeholder="Modulo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos modulos</SelectItem>
+                                    {ticketSettings.modules.map((option) => (
+                                        <SelectItem key={option.id} value={option.value}>
+                                            {formatModuleOptionLabel(option)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

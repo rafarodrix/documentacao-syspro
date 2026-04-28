@@ -509,6 +509,14 @@ export class TicketsService {
       ];
     }
 
+    if (input.module?.trim()) {
+      const normalizedModule = input.module.trim();
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        { metadata: { path: ['module'], equals: normalizedModule } },
+      ];
+    }
+
     const isClosedStatusView =
       input.status === TicketStatus.RESOLVED ||
       input.status === TicketStatus.ARCHIVED ||
