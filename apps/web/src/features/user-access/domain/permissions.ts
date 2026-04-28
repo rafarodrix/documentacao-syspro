@@ -51,7 +51,6 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "tools:all",
     "tickets:view_all",
     "tickets:manage",
-    "tax_reform:view",
     "users:view_internal",
   ],
 

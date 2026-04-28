@@ -91,7 +91,7 @@ const NAV_SUPPORT: NavItemType[] = [
   { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
   { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES], newTab: true },
-  { title: "Infraestrutura", href: "/portal/infraestrutura", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
+  { title: "Infraestrutura", href: "/portal/infraestrutura", icon: Monitor },
 ]
 
 const NAV_COMMERCIAL: NavItemType[] = [

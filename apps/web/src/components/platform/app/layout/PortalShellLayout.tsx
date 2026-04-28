@@ -49,8 +49,8 @@ export async function PortalShellLayout({
     remote: await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
       acceptCompanyScope: true,
     }),
-    remoteSessions: await currentUserHasPermission("tools:all"),
-    remoteReports: await currentUserHasPermission("tools:all"),
+    remoteSessions: false,
+    remoteReports: false,
     agents: await currentUserHasAnyPermission(["agents:view", "agents:manage"], {
       acceptCompanyScope: true,
     }),
@@ -60,13 +60,13 @@ export async function PortalShellLayout({
     contracts: await currentUserHasPermission("contracts:view", { acceptCompanyScope: true }),
     docs: true,
     releases: true,
-    tools: await currentUserHasPermission("tools:view"),
+    tools: await currentUserHasAnyPermission(["tools:view", "tools:basic", "tools:all"]),
     settings: await currentUserHasPermission("settings:view"),
   }
+  navigationAccess.remoteSessions = navigationAccess.remote
+  navigationAccess.remoteReports = navigationAccess.remote
   navigationAccess.infrastructure =
     navigationAccess.remote ||
-    navigationAccess.remoteSessions ||
-    navigationAccess.remoteReports ||
     navigationAccess.agents
 
   const user = {

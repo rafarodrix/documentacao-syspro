@@ -9,10 +9,9 @@ export async function getCurrentSessionRoleView() {
     return null;
   }
 
-  const [canManageTools, canEditSettings, canManageTax] = await Promise.all([
+  const [canManageTools, canEditSettings] = await Promise.all([
     currentUserHasPermission("tools:all"),
     currentUserHasPermission("settings:edit"),
-    currentUserHasPermission("tax_reform:manage"),
   ]);
 
   return {
@@ -21,7 +20,6 @@ export async function getCurrentSessionRoleView() {
     permissions: {
       canManageTools,
       canEditSettings,
-      canManageTax,
     },
   };
 }

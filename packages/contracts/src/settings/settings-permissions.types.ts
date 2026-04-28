@@ -61,8 +61,6 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "tickets:view_all", label: "Visualizar todos os chamados", module: "tickets", description: "Libera visao global de tickets." },
   { key: "tickets:create", label: "Criar chamado", module: "tickets", description: "Permite abrir novo ticket." },
   { key: "tickets:manage", label: "Gerenciar chamados", module: "tickets", description: "Permite atuar operacionalmente em tickets." },
-  { key: "tax_reform:view", label: "Visualizar reforma tributaria", module: "tax_reform", description: "Permite acessar a area tributaria." },
-  { key: "tax_reform:manage", label: "Gerenciar dados da reforma tributaria", module: "tax_reform", description: "Permite alterar dados e sincronizacoes fiscais." },
   { key: "system_team:view", label: "Visualizar equipe interna (Obsoleto)", module: "system_team", description: "Permite ver equipe interna." },
   { key: "system_team:manage", label: "Gerenciar equipe interna (Obsoleto)", module: "system_team", description: "Permite criar e editar equipe interna." },
 ] as const;

@@ -53,7 +53,6 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "tools:all",
     "tickets:view_all",
     "tickets:manage",
-    "tax_reform:view",
     "users:view_internal",
   ],
   CLIENTE_ADMIN: [

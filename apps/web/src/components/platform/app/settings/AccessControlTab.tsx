@@ -67,7 +67,6 @@ const MODULE_LABELS: Record<string, string> = {
   settings: "Configuracoes",
   tools: "Ferramentas",
   tickets: "Tickets",
-  tax_reform: "Fiscal",
 };
 
 const MODULE_ORDER = [
@@ -84,7 +83,6 @@ const MODULE_ORDER = [
   "tickets",
   "tools",
   "settings",
-  "tax_reform",
 ] as const;
 
 function getModuleLabel(moduleKey: string) {

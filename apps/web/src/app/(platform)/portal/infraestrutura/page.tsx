@@ -91,12 +91,12 @@ const TAB_META: Record<
 export default async function InfraestruturaPage({ searchParams }: PageProps) {
   await requireSession();
 
-  const canHosts =
-    (await currentUserHasPermission("tools:all")) ||
-    ((await currentUserHasPermission("tools:basic")) &&
-      (await currentUserHasPermission("companies:view", { acceptCompanyScope: true })));
-  const canSessions = await currentUserHasPermission("tools:all");
-  const canReports = canSessions;
+  const canRemote = await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
+    acceptCompanyScope: true,
+  });
+  const canHosts = canRemote;
+  const canSessions = canRemote;
+  const canReports = canRemote;
   const canAgents = await currentUserHasAnyPermission(["agents:view", "agents:manage"], {
     acceptCompanyScope: true,
   });
