@@ -35,6 +35,7 @@ export class AgentsController {
     @Query('search') search?: string,
     @Query('status') status?: string,
     @Query('companyId') companyId?: string,
+    @Query('remoteHostId') remoteHostId?: string,
   ) {
     return this.agentsService.listDevices(req.headers as Record<string, unknown>, {
       page: page ? Number(page) : undefined,
@@ -42,6 +43,7 @@ export class AgentsController {
       search,
       status: status === 'online' || status === 'offline' ? status : 'all',
       companyId,
+      remoteHostId,
     });
   }
 
