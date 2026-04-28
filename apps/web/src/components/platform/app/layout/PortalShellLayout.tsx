@@ -48,6 +48,9 @@ export async function PortalShellLayout({
     remote: await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
       acceptCompanyScope: true,
     }),
+    agents: await currentUserHasAnyPermission(["agents:view", "agents:manage"], {
+      acceptCompanyScope: true,
+    }),
     crm: await currentUserHasAnyPermission(["crm:view", "crm:manage"], {
       acceptCompanyScope: true,
     }),

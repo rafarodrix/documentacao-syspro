@@ -1,7 +1,7 @@
 import { buildScopedWhere, prisma } from "@dosc-syspro/database";
 import { hashRustDeskPublicKey } from "@dosc-syspro/remote-infra/rustdesk-helpers";
 import type { RemoteTenantScope } from "./model";
-import { getRemoteModuleSettingsSnapshot } from "./module-settings-server";
+import { getRemoteModuleSettingsSnapshot } from "../../../common/system-settings/remote-module-settings-snapshot";
 import { resolveRemoteOperationalStatus } from "./operational-status";
 import type {
   RemoteConfiguredHostItem,

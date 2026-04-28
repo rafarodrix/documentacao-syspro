@@ -3,8 +3,8 @@ import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   REMOTE_MODULE_SETTINGS_KEY,
   remoteModuleSettingsSchema,
+  type RemoteModuleSettings,
 } from "@dosc-syspro/contracts/remote";
-import type { RemoteModuleSettings } from "./model";
 
 export async function getRemoteModuleSettingsSnapshot(): Promise<RemoteModuleSettings> {
   try {
