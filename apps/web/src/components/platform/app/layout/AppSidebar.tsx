@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   HelpCircle,
   Monitor,
+  Cpu,
   Smartphone,
   MessagesSquare,
   BriefcaseBusiness,
@@ -88,6 +89,7 @@ const NAV_SUPPORT: NavItemType[] = [
   { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES], newTab: true },
   { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
+  { title: "Dispositivos", href: "/portal/dispositivos", icon: Cpu, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
 const NAV_COMMERCIAL: NavItemType[] = [
@@ -317,6 +319,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/tickets": navigationAccess?.tickets,
     "/portal/atendimento": navigationAccess?.atendimento,
     "/portal/plataforma-remota": navigationAccess?.remote,
+    "/portal/dispositivos": navigationAccess?.remote,
   })
   const commercialItems = filterByAccess(filterByRole(NAV_COMMERCIAL, user.role), {
     "/portal/comercial/leads": navigationAccess?.crm,
