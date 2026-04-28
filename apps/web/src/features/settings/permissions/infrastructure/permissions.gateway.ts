@@ -12,13 +12,22 @@ import {
   type SettingsUserAccessProfileCreateInput,
 } from "@dosc-syspro/contracts/settings";
 import { callWebApi } from "@/lib/web-api";
+import { sanitizeSettingsPermissionsResponse } from "@/features/settings/infrastructure/gateways/sanitize-settings-permissions";
 
 export async function fetchSettingsPermissionsCatalogGateway(): Promise<SettingsPermissionsCatalogResponse> {
-  return settingsPermissionsCatalogResponseSchema.parse(await callWebApi("/api/platform/settings/permissions").then((res) => res.json()));
+  return settingsPermissionsCatalogResponseSchema.parse(
+    sanitizeSettingsPermissionsResponse(
+      await callWebApi("/api/platform/settings/permissions").then((res) => res.json()),
+    ),
+  );
 }
 
 export async function fetchSettingsPermissionsAdminViewGateway(): Promise<SettingsPermissionsAdminViewResponse> {
-  return settingsPermissionsAdminViewResponseSchema.parse(await callWebApi("/api/platform/settings/permissions/admin-view").then((res) => res.json()));
+  return settingsPermissionsAdminViewResponseSchema.parse(
+    sanitizeSettingsPermissionsResponse(
+      await callWebApi("/api/platform/settings/permissions/admin-view").then((res) => res.json()),
+    ),
+  );
 }
 
 export async function updateSettingsPermissionsMatrixVisibilityGateway(

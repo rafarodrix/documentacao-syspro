@@ -732,16 +732,6 @@ export class ChatwootWebhookController {
       payload?.contact?.name
     );
 
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_portal',
-      stage: 'contact_update_received',
-      chatwootContactId: contactId ?? null,
-      whatsappNumber: phone ?? null,
-      sourceIds,
-      hasName: Boolean(contactName),
-      connectionKey: connectionKey ?? null,
-    }));
-
     if (!contactName) {
       return;
     }
@@ -781,12 +771,6 @@ export class ChatwootWebhookController {
     }
 
     if (existingContact.name === contactName) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'contact_update_skipped_same_name',
-        whatsappNumber: link.whatsappNumber,
-        contactName,
-      }));
       return;
     }
 

@@ -17,6 +17,34 @@ import { AuthorizationService } from '../authorization/authorization.service';
 
 const ONLINE_THRESHOLD_SECONDS = 5 * 60;
 
+type AgentDeviceWithCompany = {
+  id: string;
+  deviceId: string;
+  agentVersion: string | null;
+  hostname: string | null;
+  os: string | null;
+  identitySource: string | null;
+  firstSeenAt: Date;
+  lastHeartbeatAt: Date | null;
+  lastRegisteredAt: Date | null;
+  companyId?: string | null;
+  company?: {
+    id: string;
+    nomeFantasia: string | null;
+    razaoSocial: string;
+  } | null;
+};
+
+function legacyAgentDeviceWhere(where: Record<string, unknown>): Prisma.AgentDeviceWhereInput {
+  return where as Prisma.AgentDeviceWhereInput;
+}
+
+function legacyAgentDeviceInclude() {
+  return {
+    company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
+  } as never;
+}
+
 @Injectable()
 export class AgentsService {
   private readonly logger = new Logger(AgentsService.name);
@@ -111,13 +139,6 @@ export class AgentsService {
       },
     });
 
-    this.logger.debug({
-      event: 'agent.heartbeat',
-      deviceId: payload.deviceId,
-      agentVersion: payload.agentVersion,
-      at: payload.at instanceof Date ? payload.at.toISOString() : payload.at,
-    });
-
     return {
       success: true,
       data: {
@@ -140,13 +161,6 @@ export class AgentsService {
     }
 
     const state = await this.buildDesiredState();
-    this.logger.debug({
-      event: 'agent.desired_state_requested',
-      deviceId: normalizedDeviceId,
-      desiredVersion: state.version,
-      remoteEnabled: state.remote.enabled,
-    });
-
     return {
       success: true,
       data: state,
@@ -221,7 +235,7 @@ export class AgentsService {
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
-    const where: Prisma.AgentDeviceWhereInput = {};
+    const where: Record<string, unknown> = {};
     if (companyId) where.companyId = companyId;
     if (search) {
       where.OR = [
@@ -241,19 +255,19 @@ export class AgentsService {
     }
 
     const [total, rows] = await this.prisma.$transaction([
-      this.prisma.agentDevice.count({ where }),
+      this.prisma.agentDevice.count({ where: legacyAgentDeviceWhere(where) }),
       this.prisma.agentDevice.findMany({
-        where,
+        where: legacyAgentDeviceWhere(where),
         orderBy: [{ lastHeartbeatAt: 'desc' }, { hostname: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: {
-          company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
-        },
+        include: legacyAgentDeviceInclude(),
       }),
     ]);
 
-    const items: AgentDeviceSummary[] = rows.map((row) => this.toSummary(row, onlineSince));
+    const items: AgentDeviceSummary[] = (rows as AgentDeviceWithCompany[]).map((row) =>
+      this.toSummary(row, onlineSince),
+    );
 
     return {
       success: true,
@@ -282,7 +296,7 @@ export class AgentsService {
 
     const row = await this.prisma.agentDevice.findUnique({
       where: { deviceId: normalizedDeviceId },
-      include: { company: { select: { id: true, nomeFantasia: true, razaoSocial: true } } },
+      include: legacyAgentDeviceInclude(),
     });
 
     if (!row) {
@@ -290,7 +304,7 @@ export class AgentsService {
     }
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
-    return { success: true, data: this.toSummary(row, onlineSince) };
+    return { success: true, data: this.toSummary(row as AgentDeviceWithCompany, onlineSince) };
   }
 
   async getFleetStats(
@@ -304,7 +318,7 @@ export class AgentsService {
       this.prisma.agentDevice.count(),
       this.prisma.agentDevice.count({ where: { lastHeartbeatAt: { gte: onlineSince } } }),
       this.prisma.agentDevice.count({ where: { lastHeartbeatAt: null } }),
-      this.prisma.agentDevice.count({ where: { companyId: { not: null } } }),
+      this.prisma.agentDevice.count({ where: legacyAgentDeviceWhere({ companyId: { not: null } }) }),
     ]);
 
     return {
@@ -322,9 +336,7 @@ export class AgentsService {
   }
 
   private toSummary(
-    row: Prisma.AgentDeviceGetPayload<{
-      include: { company: { select: { id: true; nomeFantasia: true; razaoSocial: true } } };
-    }>,
+    row: AgentDeviceWithCompany,
     onlineSince: Date,
   ): AgentDeviceSummary {
     const lastHeartbeat = row.lastHeartbeatAt;

@@ -22,6 +22,16 @@ export class ProcessOutgoingMessageUseCase {
     context?: { connection?: ResolvedIntegrationContext; prependAgentNameOnOutbound?: boolean },
   ) {
     const messagePayload = this.extractMessagePayload(payload);
+    const normalizedMessageType = this.normalizeMessageType(messagePayload.messageType);
+    if (messagePayload.isPrivateNote) {
+      return;
+    }
+
+    // Ignora mensagens que nao foram enviadas pelo agente (outgoing/template)
+    if (normalizedMessageType !== 'outgoing' && normalizedMessageType !== 'template') {
+      return;
+    }
+
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'payload_normalized',
@@ -33,26 +43,6 @@ export class ProcessOutgoingMessageUseCase {
       hasAttachment: messagePayload.attachments.length > 0,
       isPrivateNote: messagePayload.isPrivateNote,
     }));
-    const normalizedMessageType = this.normalizeMessageType(messagePayload.messageType);
-    if (messagePayload.isPrivateNote) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'ignored_private_note',
-        messageId: messagePayload.messageId ?? null,
-      }));
-      return;
-    }
-
-    // Ignora mensagens que nao foram enviadas pelo agente (outgoing/template)
-    if (normalizedMessageType !== 'outgoing' && normalizedMessageType !== 'template') {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'ignored_message_type',
-        messageId: messagePayload.messageId ?? null,
-        messageType: messagePayload.messageType ?? null,
-      }));
-      return;
-    }
 
     const content = this.buildOutboundContent(
       messagePayload.content,

@@ -131,6 +131,13 @@ export class EvolutionWebhookController {
         connection: resolvedContext,
       });
     } else {
+      const isNoiseEvent =
+        normalizedEvent === 'chatpresence' ||
+        normalizedEvent === 'presence' ||
+        normalizedEvent === 'presence.update';
+      if (isNoiseEvent) {
+        return { ok: true };
+      }
       this.logger.debug(JSON.stringify({
         flow: 'evolution_to_chatwoot',
         stage: 'ignored_event',

@@ -32,6 +32,7 @@ import {
 } from "@dosc-syspro/contracts/settings";
 import { sefazRoutesSchema, type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { callWebApi } from "@/lib/web-api";
+import { sanitizeSettingsAuthorizationContextResponse } from "./sanitize-settings-permissions";
 
 type SettingsGatewayResponse<T> = {
   success: boolean;
@@ -128,7 +129,9 @@ export async function fetchSettingsRemoteAdminViewGateway(): Promise<SettingsRem
 
 export async function fetchSettingsAuthorizationContextGateway(): Promise<SettingsAuthorizationContextResponse> {
   return settingsAuthorizationContextResponseSchema.parse(
-    await callSettingsApi<SettingsAuthorizationContextResponse>("/authorization/context"),
+    sanitizeSettingsAuthorizationContextResponse(
+      await callSettingsApi<SettingsAuthorizationContextResponse>("/authorization/context"),
+    ),
   );
 }
 
