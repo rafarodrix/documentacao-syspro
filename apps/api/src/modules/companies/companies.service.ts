@@ -75,6 +75,10 @@ function sumValues(values: number[]) {
   return values.reduce((acc, value) => acc + value, 0);
 }
 
+function legacyWhere<T extends object>(where: T) {
+  return where as any;
+}
+
 function normalizeDate(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const raw = value.trim();
@@ -1152,7 +1156,7 @@ export class CompaniesService {
         this.prisma.conversationLink.count({ where: { companyId } }),
         this.prisma.messageLink.count({ where: { companyId } }),
         this.prisma.integrationConnection.count({ where: { companyId } }),
-        this.prisma.agentDevice.count({ where: { companyId } }),
+        this.prisma.agentDevice.count({ where: legacyWhere({ companyId }) }),
         this.prisma.remoteAddressBookCredential.count({ where: { companyId } }),
         this.prisma.remoteHostSysproUpdate.count({ where: { companyId } }),
       ]);
