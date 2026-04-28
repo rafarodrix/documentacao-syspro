@@ -42,6 +42,10 @@ function isVisiblePermissionKey(key: string): key is SettingsPermissionKey {
   return !LEGACY_HIDDEN_PERMISSION_KEYS.has(key);
 }
 
+function filterVisiblePermissionKeys(keys: string[]): SettingsPermissionKey[] {
+  return keys.filter(isVisiblePermissionKey);
+}
+
 @Injectable()
 export class AuthorizationService {
   constructor(
@@ -680,7 +684,7 @@ export class AuthorizationService {
       },
     });
 
-    return profile?.permissions.map((item) => item.permission.key as SettingsPermissionKey) ?? [];
+    return filterVisiblePermissionKeys(profile?.permissions.map((item) => item.permission.key) ?? []);
   }
 
   private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
@@ -722,8 +726,8 @@ export class AuthorizationService {
     return assignments.map((assignment) => ({
       scopeType: assignment.scopeType,
       companyId: assignment.companyId,
-      permissionKeys: assignment.profile.permissions.map(
-        (profilePermission) => profilePermission.permission.key as SettingsPermissionKey,
+      permissionKeys: filterVisiblePermissionKeys(
+        assignment.profile.permissions.map((profilePermission) => profilePermission.permission.key),
       ),
     }));
   }
