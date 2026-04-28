@@ -5,9 +5,10 @@ import { UserContactAccessService } from './user-contact-access.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
 import { SettingsModule } from '../settings/settings.module';
+import { ContactsModule } from '../contacts/contacts.module';
 
 @Module({
-  imports: [PrismaModule, ChatwootModule, SettingsModule],
+  imports: [PrismaModule, ChatwootModule, SettingsModule, ContactsModule],
   controllers: [UsersController],
   providers: [UsersService, UserContactAccessService],
 })

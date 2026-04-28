@@ -14,6 +14,7 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { UserContactAccessService } from './user-contact-access.service';
+import { ContactsService } from '../contacts/contacts.service';
 import {
   currentUserProfileSchema,
   createUserSchema,
@@ -30,6 +31,12 @@ import {
 import { buildCompanySearchText } from '../shared/search/search-index';
 import { SYSTEM_ROLES, CLIENT_ROLES, ROLE_LABELS } from '@dosc-syspro/core';
 
+type Requester = {
+  userId: string;
+  email: string;
+  role: Role;
+};
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -41,6 +48,7 @@ export class UsersService {
     private readonly integrationContext: IntegrationContextService,
     private readonly authorizationService: AuthorizationService,
     private readonly userContactAccessService: UserContactAccessService,
+    private readonly contactsService: ContactsService,
   ) {}
 
   async findAll(filters?: { search?: string; role?: string }, rawHeaders?: IncomingHttpHeaders) {
