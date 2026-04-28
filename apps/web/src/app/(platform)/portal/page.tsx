@@ -158,16 +158,16 @@ export default async function DashboardPage() {
               <Zap className="h-4 w-4" />
               Operacional
             </TabsTrigger>
-            {canAccessCrm ? (
-              <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
-                <Target className="h-4 w-4" />
-                Comercial
-              </TabsTrigger>
-            ) : null}
             {hasCadastrosAccess ? (
               <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
                 <Building2 className="h-4 w-4" />
                 Cadastros
+              </TabsTrigger>
+            ) : null}
+            {canAccessCrm ? (
+              <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
+                <Target className="h-4 w-4" />
+                Comercial
               </TabsTrigger>
             ) : null}
           </TabsList>
