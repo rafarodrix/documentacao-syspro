@@ -268,6 +268,120 @@ function isTechnicalResourceArticle(article: TicketArticleItem) {
     return body.includes("recurso tecnico") || body.includes("recurso de diagnostico") || body.includes("recurso de diagnóstico");
 }
 
+const ALLOWED_HTML_TAGS = new Set([
+    "a",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "del",
+    "div",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "hr",
+    "i",
+    "img",
+    "li",
+    "ol",
+    "p",
+    "pre",
+    "s",
+    "span",
+    "strong",
+    "sub",
+    "sup",
+    "table",
+    "tbody",
+    "td",
+    "th",
+    "thead",
+    "tr",
+    "u",
+    "ul",
+]);
+
+const GLOBAL_ALLOWED_ATTRIBUTES = new Set(["class"]);
+const TAG_ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
+    a: new Set(["href", "target", "rel"]),
+    img: new Set(["src", "alt", "title"]),
+};
+
+function sanitizeArticleHtml(html: string) {
+    if (!html.trim() || typeof window === "undefined") return html;
+
+    const parser = new DOMParser();
+    const document = parser.parseFromString(html, "text/html");
+
+    const sanitizeNode = (node: Node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node as HTMLElement;
+            const tagName = element.tagName.toLowerCase();
+
+            if (!ALLOWED_HTML_TAGS.has(tagName)) {
+                const fragment = document.createDocumentFragment();
+                while (element.firstChild) {
+                    fragment.appendChild(element.firstChild);
+                }
+                element.replaceWith(fragment);
+                fragment.childNodes.forEach(sanitizeNode);
+                return;
+            }
+
+            const allowedAttributes = new Set([
+                ...GLOBAL_ALLOWED_ATTRIBUTES,
+                ...(TAG_ALLOWED_ATTRIBUTES[tagName] ?? new Set<string>()),
+            ]);
+
+            for (const attribute of Array.from(element.attributes)) {
+                const attributeName = attribute.name.toLowerCase();
+                const attributeValue = attribute.value.trim();
+
+                if (attributeName.startsWith("on")) {
+                    element.removeAttribute(attribute.name);
+                    continue;
+                }
+
+                if (!allowedAttributes.has(attributeName)) {
+                    element.removeAttribute(attribute.name);
+                    continue;
+                }
+
+                if ((attributeName === "href" || attributeName === "src") && !isSafeUrl(attributeValue)) {
+                    element.removeAttribute(attribute.name);
+                    continue;
+                }
+
+                if (tagName === "a" && attributeName === "target") {
+                    element.setAttribute("target", "_blank");
+                }
+
+                if (tagName === "a" && attributeName === "href") {
+                    element.setAttribute("rel", "noopener noreferrer nofollow");
+                }
+            }
+        }
+
+        node.childNodes.forEach(sanitizeNode);
+    };
+
+    document.body.childNodes.forEach(sanitizeNode);
+    return document.body.innerHTML;
+}
+
+function isSafeUrl(value: string) {
+    if (!value) return false;
+    const normalized = value.trim().toLowerCase();
+    if (normalized.startsWith("javascript:")) return false;
+    if (normalized.startsWith("vbscript:")) return false;
+    if (normalized.startsWith("data:text/html")) return false;
+    return true;
+}
+
 function Timeline({
     articles,
     emptyLabel,
@@ -391,7 +505,7 @@ function Timeline({
                                                     ? "rounded-tr-sm bg-primary text-primary-foreground **:text-primary-foreground"
                                                     : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
                                         )}
-                                        dangerouslySetInnerHTML={{ __html: article.body }}
+                                        dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(article.body) }}
                                     />
                                 </div>
 

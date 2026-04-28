@@ -38,7 +38,7 @@ export function ActivityChart({
       toolbar: { show: false },
       sparkline: { enabled: false },
       zoom: { enabled: false },
-      animations: { easing: "easeinout", speed: 450 },
+      animations: { speed: 450 },
       foreColor: "hsl(var(--muted-foreground))",
       fontFamily: "inherit",
     },
