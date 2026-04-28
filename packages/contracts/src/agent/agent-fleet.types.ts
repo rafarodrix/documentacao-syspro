@@ -9,6 +9,8 @@ export const agentDeviceSummarySchema = z.object({
   agentVersion: z.string().nullable(),
   companyId: z.string().nullable(),
   companyName: z.string().nullable(),
+  remoteHostId: z.string().nullable(),
+  remoteHostName: z.string().nullable(),
   firstSeenAt: z.string().min(1),
   lastHeartbeatAt: z.string().nullable(),
   lastRegisteredAt: z.string().nullable(),

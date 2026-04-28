@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Cpu,
+  ExternalLink,
   Loader2,
   MonitorCheck,
   RefreshCw,
@@ -38,6 +42,7 @@ export function AgentDevicesPanel(props: {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const status = (searchParams.get("status") as StatusFilter | null) ?? "all";
+  const page = Number(searchParams.get("page") ?? "1") || 1;
 
   const updateParam = (next: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -48,15 +53,18 @@ export function AgentDevicesPanel(props: {
         params.set(key, value);
       }
     }
-    params.delete("page");
     startRefresh(() => router.replace(`?${params.toString()}`, { scroll: false }));
+  };
+
+  const changePage = (next: number) => {
+    updateParam({ page: String(next) });
   };
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (searchInput === initialSearch) return;
     debounceRef.current = setTimeout(() => {
-      updateParam({ search: searchInput.trim() || null });
+      updateParam({ search: searchInput.trim() || null, page: null });
     }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -66,8 +74,10 @@ export function AgentDevicesPanel(props: {
 
   const stats = initialStats;
   const list = initialList;
+  const { pagination } = list;
 
   const onlinePct = stats.total > 0 ? Math.round((stats.online / stats.total) * 100) : 0;
+  const linkedPct = stats.total > 0 ? Math.round((stats.withCompany / stats.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -89,14 +99,14 @@ export function AgentDevicesPanel(props: {
           icon={<WifiOff className="w-4 h-4" />}
           label="Offline"
           value={stats.offline}
-          hint="ultimos 5 minutos"
+          hint={`janela de ${Math.round(stats.onlineThresholdSeconds / 60)} min`}
           accent="amber"
         />
         <StatCard
           icon={<Building2 className="w-4 h-4" />}
           label="Vinculados a empresa"
           value={stats.withCompany}
-          hint={`${stats.withoutCompany} sem vinculo`}
+          hint={`${linkedPct}% — ${stats.withoutCompany} sem vinculo`}
           accent="violet"
         />
       </div>
@@ -120,7 +130,7 @@ export function AgentDevicesPanel(props: {
                   size="sm"
                   onClick={() => {
                     setSearchInput("");
-                    updateParam({ search: null });
+                    updateParam({ search: null, page: null });
                   }}
                 >
                   Limpar
@@ -133,20 +143,20 @@ export function AgentDevicesPanel(props: {
                 label="Todos"
                 count={stats.total}
                 active={status === "all"}
-                onClick={() => updateParam({ status: null })}
+                onClick={() => updateParam({ status: null, page: null })}
               />
               <FilterPill
                 label="Online"
                 count={stats.online}
                 active={status === "online"}
-                onClick={() => updateParam({ status: "online" })}
+                onClick={() => updateParam({ status: "online", page: null })}
                 tone="emerald"
               />
               <FilterPill
                 label="Offline"
                 count={stats.offline}
                 active={status === "offline"}
-                onClick={() => updateParam({ status: "offline" })}
+                onClick={() => updateParam({ status: "offline", page: null })}
                 tone="amber"
               />
               <Button
@@ -167,13 +177,36 @@ export function AgentDevicesPanel(props: {
 
           <DevicesTable items={list.items} />
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-            <span>
-              Mostrando {list.items.length} de {list.pagination.total} dispositivos
+          <div className="flex items-center justify-between pt-2 border-t">
+            <span className="text-xs text-muted-foreground">
+              {pagination.total === 0
+                ? "Nenhum dispositivo"
+                : `${(page - 1) * pagination.pageSize + 1}–${Math.min(page * pagination.pageSize, pagination.total)} de ${pagination.total} dispositivos`}
             </span>
-            <span>
-              Janela de online: {Math.round(stats.onlineThresholdSeconds / 60)} min
-            </span>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={page <= 1 || isRefreshing}
+                onClick={() => changePage(page - 1)}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground px-2 tabular-nums">
+                {page} / {pagination.totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={page >= pagination.totalPages || isRefreshing}
+                onClick={() => changePage(page + 1)}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -266,6 +299,7 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
             <th className="py-2 pr-3 font-semibold">Hostname</th>
             <th className="py-2 pr-3 font-semibold">SO</th>
             <th className="py-2 pr-3 font-semibold">Empresa</th>
+            <th className="py-2 pr-3 font-semibold">Host remoto</th>
             <th className="py-2 pr-3 font-semibold">Versao</th>
             <th className="py-2 pr-3 font-semibold">Ultimo heartbeat</th>
             <th className="py-2 pl-3 font-semibold text-right">Device ID</th>
@@ -283,14 +317,27 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
               <td className="py-2.5 pr-3 text-muted-foreground">{item.os ?? "—"}</td>
               <td className="py-2.5 pr-3">
                 {item.companyName ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Building2 className="w-3 h-3 text-muted-foreground" />
-                    {item.companyName}
+                  <span className="inline-flex items-center gap-1.5 text-xs">
+                    <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <span className="truncate max-w-[140px]">{item.companyName}</span>
                   </span>
                 ) : (
                   <Badge variant="outline" className="text-[10px]">
                     sem vinculo
                   </Badge>
+                )}
+              </td>
+              <td className="py-2.5 pr-3">
+                {item.remoteHostId && item.remoteHostName ? (
+                  <Link
+                    href={`/portal/infraestrutura/hosts/${item.remoteHostId}`}
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate max-w-[140px]">{item.remoteHostName}</span>
+                  </Link>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
                 )}
               </td>
               <td className="py-2.5 pr-3 text-xs font-mono text-muted-foreground">
@@ -332,8 +379,8 @@ function StatusDot({ online }: { online: boolean }) {
 
 function formatRelativeTime(iso: string | null, lagSeconds: number | null): string {
   if (!iso || lagSeconds === null) return "nunca";
-  if (lagSeconds < 60) return `ha ${lagSeconds}s`;
-  if (lagSeconds < 3600) return `ha ${Math.floor(lagSeconds / 60)}min`;
-  if (lagSeconds < 86400) return `ha ${Math.floor(lagSeconds / 3600)}h`;
-  return `ha ${Math.floor(lagSeconds / 86400)}d`;
+  if (lagSeconds < 60) return `há ${lagSeconds}s`;
+  if (lagSeconds < 3600) return `há ${Math.floor(lagSeconds / 60)}min`;
+  if (lagSeconds < 86400) return `há ${Math.floor(lagSeconds / 3600)}h`;
+  return `há ${Math.floor(lagSeconds / 86400)}d`;
 }
