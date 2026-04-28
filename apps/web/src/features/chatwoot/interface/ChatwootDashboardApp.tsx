@@ -313,45 +313,12 @@ export function ChatwootDashboardApp() {
   };
   const priorityTicket = matchedExistingTicket ?? latestTickets[0] ?? null;
   const recommendedHost = companyHosts[0] ?? null;
-  const nextStep = useMemo(() => {
-    if (!resolved.companyId) {
-      return {
-        label: "Vincular empresa",
-        description: "Associe este contato a uma empresa para liberar ticket e infraestrutura.",
-        tab: "overview",
-      } as const;
-    }
-
-    if (matchedExistingTicket) {
-      return {
-        label: `Continuar ticket #${matchedExistingTicket.number}`,
-        description: "A conversa ja aponta para um ticket existente. O melhor proximo passo e continuar esse atendimento.",
-        tab: "tickets",
-      } as const;
-    }
-
-    if (companyHosts.length > 0) {
-      return {
-        label: `Acessar ${companyHosts[0]?.name ?? "host recomendado"}`,
-        description: "A infraestrutura da empresa ja esta pronta para acesso rapido.",
-        tab: "infrastructure",
-      } as const;
-    }
-
-    if (latestTickets.length > 0) {
-      return {
-        label: `Revisar ticket #${latestTickets[0]?.number ?? ""}`,
-        description: "A empresa ja possui ticket aberto. Vale revisar antes de criar um novo chamado.",
-        tab: "tickets",
-      } as const;
-    }
-
-    return {
-      label: "Criar ticket",
-      description: "Nao ha ticket aberto em contexto. O proximo passo natural e registrar o atendimento.",
-      tab: "tickets",
-    } as const;
-  }, [companyHosts, latestTickets, matchedExistingTicket, resolved.companyId]);
+  const initialSuggestedTab = useMemo(() => {
+    if (!resolved.companyId) return "overview";
+    if (matchedExistingTicket) return "tickets";
+    if (companyHosts.length > 0) return "infrastructure";
+    return "tickets";
+  }, [companyHosts.length, matchedExistingTicket, resolved.companyId]);
   const filteredCompanyOptions = useMemo(() => {
     const q = companySearchTerm.trim();
     if (!q) return companyOptions.slice(0, 8);
@@ -395,6 +362,17 @@ export function ChatwootDashboardApp() {
     }
     return Array.from(byId.values());
   }, [manualLinkedCompany, portalContactMatch?.companies, resolved.companyId, resolved.companyName]);
+  const primaryCompany = useMemo(
+    () =>
+      linkedCompanies.find((company) => company.id === resolved.companyId) ??
+      linkedCompanies[0] ??
+      null,
+    [linkedCompanies, resolved.companyId],
+  );
+  const additionalLinkedCompanies = useMemo(
+    () => linkedCompanies.filter((company) => company.id !== primaryCompany?.id),
+    [linkedCompanies, primaryCompany?.id],
+  );
   const effectiveContactName = contactNameDraft.trim() || portalContactMatch?.name || resolved.contactName || "Contato Chatwoot";
 
   useEffect(() => {
@@ -409,9 +387,9 @@ export function ChatwootDashboardApp() {
       return;
     }
 
-    setActiveTab(nextStep.tab);
+    setActiveTab(initialSuggestedTab);
     setHasAutoSelectedTab(true);
-  }, [hasAutoSelectedTab, nextStep.tab, resolved.companyId, status]);
+  }, [hasAutoSelectedTab, initialSuggestedTab, resolved.companyId, status]);
 
   useEffect(() => {
     setEmbeddedTicketForm((current) => {
@@ -999,48 +977,6 @@ export function ChatwootDashboardApp() {
               </div>
             ) : null}
 
-            {status === "ready" ? (
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/80">
-                        Proximo passo sugerido
-                      </p>
-                      <p className="mt-1 text-base font-semibold text-foreground">{nextStep.label}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{nextStep.description}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" onClick={() => setActiveTab(nextStep.tab)}>
-                        Abrir area
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={handleCopySummary}>
-                        Copiar resumo
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <QuickStatCard
-                    label="Empresa"
-                    value={resolved.companyName || "Nao vinculada"}
-                    helper={resolved.companyId || "Vincule para liberar a operacao"}
-                  />
-                  <QuickStatCard
-                    label="Ticket atual"
-                    value={priorityTicket ? `#${priorityTicket.number}` : "Sem ticket"}
-                    helper={priorityTicket?.statusLabel || "Nenhum ticket em contexto"}
-                  />
-                  <QuickStatCard
-                    label="Hosts"
-                    value={String(companyHosts.length)}
-                    helper={recommendedHost?.name || "Sem host recomendado"}
-                  />
-                </div>
-              </div>
-            ) : null}
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-3 p-1">
                 <TabsTrigger value="overview" className="gap-2 py-2">
@@ -1065,6 +1001,28 @@ export function ChatwootDashboardApp() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <QuickStatCard
+                    label="Hosts"
+                    value={String(companyHosts.length)}
+                    helper={recommendedHost?.name || "Sem host recomendado"}
+                  />
+                  <QuickStatCard
+                    label="Tickets"
+                    value={String(latestTickets.length)}
+                    helper={priorityTicket ? `Principal: #${priorityTicket.number}` : "Nenhum ticket em contexto"}
+                  />
+                  <QuickStatCard
+                    label="Vinculo"
+                    value={resolved.companyId ? "Ativo" : "Pendente"}
+                    helper={
+                      resolved.companyId
+                        ? `${linkedCompanies.length} empresa${linkedCompanies.length === 1 ? "" : "s"} ligada${linkedCompanies.length === 1 ? "" : "s"}`
+                        : "Contato ainda sem empresa no portal"
+                    }
+                  />
+                </div>
+
                 <div className="grid gap-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
                   <Card className="border-border/60">
                     <CardHeader className="pb-3">
@@ -1072,27 +1030,46 @@ export function ChatwootDashboardApp() {
                         <Headphones className="h-4 w-4 text-primary" />
                         Contato
                       </CardTitle>
+                      <CardDescription>
+                        Dados recebidos da conversa e correspondencia atual no portal.
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
+                    <CardContent className="space-y-4">
+                      <div className="rounded-lg border border-border/60 bg-card px-3 py-3">
                         <p className="text-base font-semibold text-foreground">
                           {effectiveContactName || "Nao identificado"}
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {resolved.customerPhone || "Sem telefone"}
-                        </p>
-                        <p className="mt-1 break-all text-sm text-muted-foreground">
-                          {resolved.customerEmail || "Sem e-mail"}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {portalContactMatch?.id ? `Contato localizado no portal (${portalContactMatch.id})` : "Contato ainda nao localizado no portal"}
                         </p>
                       </div>
-                      {contactEditHref ? (
-                        <Button asChild variant="outline" size="sm" className="gap-2">
-                          <Link href={contactEditHref} target="_blank" rel="noreferrer">
-                            <ArrowUpRight className="h-4 w-4" />
-                            Editar contato
-                          </Link>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <DetailItem label="Telefone" value={resolved.customerPhone || "Sem telefone"} />
+                        <DetailItem label="E-mail" value={resolved.customerEmail || "Sem e-mail"} breakAll />
+                        <DetailItem
+                          label="Empresas ligadas"
+                          value={`${linkedCompanies.length}`}
+                          helper={linkedCompanies.length > 0 ? "Encontradas no portal" : "Nenhum vinculo encontrado"}
+                        />
+                        <DetailItem
+                          label="Ticket na conversa"
+                          value={resolved.ticketNumber ? `#${resolved.ticketNumber}` : "Nao referenciado"}
+                          helper={priorityTicket?.statusLabel || "Sem ticket associado a esta conversa"}
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={handleCopySummary}>
+                          Copiar resumo
                         </Button>
-                      ) : null}
+                        {contactEditHref ? (
+                          <Button asChild variant="outline" size="sm" className="gap-2">
+                            <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                              <ArrowUpRight className="h-4 w-4" />
+                              Editar contato
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
                     </CardContent>
                   </Card>
 
@@ -1100,22 +1077,49 @@ export function ChatwootDashboardApp() {
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-2 text-sm">
                         <Building2 className="h-4 w-4 text-primary" />
-                        Empresas vinculadas
+                        Empresa em contexto
                       </CardTitle>
                       <CardDescription>
-                        {linkedCompanies.length > 0
-                          ? `${linkedCompanies.length} empresa${linkedCompanies.length > 1 ? "s" : ""} vinculada${linkedCompanies.length > 1 ? "s" : ""} a este contato.`
+                        {resolved.companyId
+                          ? "Empresa liberada para ticket e infraestrutura nesta conversa."
                           : "Este contato ainda nao possui empresa vinculada no portal."}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      {linkedCompanies.length > 0 ? (
-                        linkedCompanies.map((company) => (
-                          <div key={company.id} className="rounded-lg border border-border/60 bg-card px-3 py-2">
-                            <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{company.razaoSocial}</p>
+                    <CardContent className="space-y-3">
+                      {primaryCompany ? (
+                        <>
+                          <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground">{getCompanyLabel(primaryCompany)}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">{primaryCompany.razaoSocial}</p>
+                              </div>
+                              <Badge variant="outline">{resolved.companyId ? "Ativa na conversa" : "Disponivel"}</Badge>
+                            </div>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                              <DetailItem label="Empresa principal" value={getCompanyLabel(primaryCompany)} />
+                              <DetailItem
+                                label="Identificador"
+                                value={primaryCompany.id}
+                                helper={resolved.companyId ? "Usado nas acoes do painel" : "Pronto para vinculo"}
+                              />
+                            </div>
                           </div>
-                        ))
+
+                          {additionalLinkedCompanies.length > 0 ? (
+                            <div className="space-y-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Outras empresas ligadas ao contato
+                              </p>
+                              {additionalLinkedCompanies.map((company) => (
+                                <div key={company.id} className="rounded-lg border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">{company.razaoSocial}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </>
                       ) : (
                         <EmptyState label="Nenhuma empresa vinculada encontrada para este contato." />
                       )}
@@ -1912,6 +1916,26 @@ function EmptyState({ label }: { label: string }) {
   return (
     <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
       {label}
+    </div>
+  );
+}
+
+function DetailItem({
+  label,
+  value,
+  helper,
+  breakAll = false,
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+  breakAll?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-background px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-sm font-medium text-foreground", breakAll && "break-all")}>{value}</p>
+      {helper ? <p className="mt-1 text-xs text-muted-foreground">{helper}</p> : null}
     </div>
   );
 }
