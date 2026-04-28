@@ -7,9 +7,9 @@ import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/model";
-import { SYSTEM_ROLES } from "@/features/user-access/domain/constants";
 import { handleActionError } from "@dosc-syspro/shared/action-error-handler";
 import { callWebApi } from "@/lib/web-api";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface GetUsersParams {
   search?: string;
@@ -73,9 +73,9 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
   const session = await getProtectedSession();
   if (!session) return { success: false, message: "Permissao negada." };
 
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === "CLIENTE_ADMIN";
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Permissao negada." };
+  if (!(await currentUserHasPermission("users:create", { acceptCompanyScope: true }))) {
+    return { success: false, message: "Permissao negada." };
+  }
 
   const validation = createUserSchema.safeParse(data);
   if (!validation.success) {
@@ -132,9 +132,9 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
   const session = await getProtectedSession();
   if (!session) return { success: false, message: "Acesso negado." };
 
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === "CLIENTE_ADMIN";
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+  if (!(await currentUserHasPermission("users:edit", { acceptCompanyScope: true }))) {
+    return { success: false, message: "Acesso negado." };
+  }
 
   const updateValidation = updateUserSchema.safeParse(data);
   if (!updateValidation.success) {
@@ -170,9 +170,9 @@ export async function deleteUserAction(id: string): Promise<UserAccessActionResp
   const session = await getProtectedSession();
   if (!session || id === session.userId) return { success: false, message: "Operacao invalida." };
 
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === "CLIENTE_ADMIN";
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+  if (!(await currentUserHasPermission("users:status", { acceptCompanyScope: true }))) {
+    return { success: false, message: "Acesso negado." };
+  }
 
   try {
     const response = await callApi(`/users/${encodeURIComponent(id)}`, {
@@ -195,9 +195,9 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
   const session = await getProtectedSession();
   if (!session) return { success: false, message: "Acesso negado." };
 
-  const isSystemRole = SYSTEM_ROLES.includes(session.role);
-  const isClientManager = session.role === "CLIENTE_ADMIN";
-  if (!isSystemRole && !isClientManager) return { success: false, message: "Acesso negado." };
+  if (!(await currentUserHasPermission("users:status", { acceptCompanyScope: true }))) {
+    return { success: false, message: "Acesso negado." };
+  }
 
   try {
     const response = await callApi(`/users/${encodeURIComponent(id)}`, {

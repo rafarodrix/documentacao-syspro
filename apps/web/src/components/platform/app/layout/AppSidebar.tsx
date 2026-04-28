@@ -7,7 +7,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
-import { SIDEBAR_ROLE_RULES, SYSTEM_ROLES } from "@dosc-syspro/core"
+import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { getRoleLabel as getUnifiedRoleLabel } from "@dosc-syspro/core"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NavItem, NavItemType } from "./NavItem"
@@ -82,21 +82,20 @@ const NAV_MAIN: NavItemType[] = [
 ]
 
 const NAV_CADASTROS: NavItemType[] = [
-  { title: "Empresa", href: "/portal/cadastros/empresa", icon: FileText, roles: [...SIDEBAR_ROLE_RULES.cadastroEmpresa] },
-  { title: "Usuarios", href: "/portal/cadastros/usuarios", icon: Users, roles: [...SIDEBAR_ROLE_RULES.cadastroUsuarios] },
-  { title: "Contatos", href: "/portal/contatos", icon: Smartphone, roles: [...SIDEBAR_ROLE_RULES.cadastroContatos] },
+  { title: "Empresa", href: "/portal/cadastros/empresa", icon: FileText },
+  { title: "Usuarios", href: "/portal/cadastros/usuarios", icon: Users },
+  { title: "Contatos", href: "/portal/contatos", icon: Smartphone },
 ]
 
 const NAV_SUPPORT: NavItemType[] = [
-  { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
-  { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
+  { title: "Tickets", href: "/portal/tickets", icon: Ticket },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES], newTab: true },
   { title: "Infraestrutura", href: "/portal/infraestrutura", icon: Monitor },
 ]
 
 const NAV_COMMERCIAL: NavItemType[] = [
-  { title: "CRM", href: "/portal/comercial/leads", icon: Target, roles: [...SYSTEM_ROLES] },
-  { title: "Contratos", href: "/portal/contratos", icon: BriefcaseBusiness, roles: [...SYSTEM_ROLES] },
+  { title: "CRM", href: "/portal/comercial/leads", icon: Target },
+  { title: "Contratos", href: "/portal/contratos", icon: BriefcaseBusiness },
 ]
 
 const NAV_DOCS: NavItemType[] = [
@@ -104,10 +103,6 @@ const NAV_DOCS: NavItemType[] = [
   { title: "Releases", href: "/portal/releases", icon: Rocket },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
 ]
-
-function filterByRole(items: NavItemType[], role: UserRole): NavItemType[] {
-  return items.filter((item) => !item.roles || item.roles.includes(role))
-}
 
 function filterByAccess(items: NavItemType[], accessByHref: Partial<Record<string, boolean>>): NavItemType[] {
   return items.filter((item) => accessByHref[item.href] !== false)
@@ -271,12 +266,12 @@ function SidebarFooter({
           <DropdownMenuItem
             className="cursor-pointer gap-2 text-sm"
             onClick={() => {
-              router.push(isSystemUser && navigationAccess?.settings ? "/portal/configuracoes" : "/portal/perfil")
+              router.push(navigationAccess?.settings ? "/portal/configuracoes" : "/portal/perfil")
               onClose?.()
             }}
           >
             <Settings className="h-4 w-4 text-muted-foreground" />
-            {isSystemUser && navigationAccess?.settings ? "Configuracoes" : "Meu Perfil"}
+            {navigationAccess?.settings ? "Configuracoes" : "Meu Perfil"}
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -309,24 +304,27 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
   const pathname = usePathname()
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
-  const mainItems = filterByAccess(filterByRole(NAV_MAIN, user.role), {
+  const supportNavItems = NAV_SUPPORT.map((item) =>
+    item.href === "/portal/tickets" ? { ...item, title: isSystemUser ? "Tickets" : "Meus Chamados" } : item,
+  )
+  const mainItems = filterByAccess(NAV_MAIN, {
     "/portal": navigationAccess?.dashboard,
   })
-  const cadastroItems = filterByAccess(filterByRole(NAV_CADASTROS, user.role), {
+  const cadastroItems = filterByAccess(NAV_CADASTROS, {
     "/portal/cadastros/empresa": navigationAccess?.companies,
     "/portal/cadastros/usuarios": navigationAccess?.users,
     "/portal/contatos": navigationAccess?.contacts,
   })
-  const supportItems = filterByAccess(filterByRole(NAV_SUPPORT, user.role), {
+  const supportItems = filterByAccess(supportNavItems, {
     "/portal/tickets": navigationAccess?.tickets,
     "/portal/atendimento": navigationAccess?.atendimento,
     "/portal/infraestrutura": navigationAccess?.infrastructure,
   })
-  const commercialItems = filterByAccess(filterByRole(NAV_COMMERCIAL, user.role), {
+  const commercialItems = filterByAccess(NAV_COMMERCIAL, {
     "/portal/comercial/leads": navigationAccess?.crm,
     "/portal/contratos": navigationAccess?.contracts,
   })
-  const docsItems = filterByAccess(filterByRole(NAV_DOCS, user.role), {
+  const docsItems = filterByAccess(NAV_DOCS, {
     "/portal/docs": navigationAccess?.docs,
     "/portal/releases": navigationAccess?.releases,
     "/portal/tools": navigationAccess?.tools,

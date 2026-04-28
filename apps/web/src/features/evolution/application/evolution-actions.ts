@@ -7,6 +7,7 @@ import {
 } from "@dosc-syspro/contracts/evolution";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { callWebApi } from "@/lib/web-api";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export type EvolutionQrCodeResult = {
   instance: string;
@@ -40,7 +41,7 @@ async function apiRequest(path: string, init?: RequestInit) {
 
 export async function getEvolutionSettingsAction() {
   const session = await getProtectedSession();
-  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+  if (!session || !(await currentUserHasPermission("settings:view"))) {
     return unauthorizedResponse();
   }
 
@@ -68,7 +69,7 @@ export async function getEvolutionSettingsAction() {
 
 export async function updateEvolutionSettingsAction(input: EvolutionSettingsInput) {
   const session = await getProtectedSession();
-  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+  if (!session || !(await currentUserHasPermission("settings:edit"))) {
     return unauthorizedResponse();
   }
 
@@ -108,7 +109,7 @@ export async function getEvolutionInstanceStatusAction(): Promise<
   | { success: false; error: string; message: string }
 > {
   const session = await getProtectedSession();
-  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+  if (!session || !(await currentUserHasPermission("settings:view"))) {
     return { success: false, error: "UNAUTHORIZED", message: "Sessao sem permissao para consultar a Evolution." };
   }
 
@@ -135,7 +136,7 @@ export async function getEvolutionInstanceStatusAction(): Promise<
 
 export async function requestEvolutionQrCodeAction(): Promise<EvolutionQrCodeActionResult> {
   const session = await getProtectedSession();
-  if (!session || !["ADMIN", "DEVELOPER"].includes(session.role)) {
+  if (!session || !(await currentUserHasPermission("settings:edit"))) {
     return { success: false, error: "UNAUTHORIZED", message: "Sessao sem permissao para gerar QR Code." };
   }
 

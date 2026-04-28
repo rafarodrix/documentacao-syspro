@@ -9,10 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 export default async function AtendimentoPage() {
-  const session = await requireSession();
+  await requireSession();
   const canAccessAtendimento = await currentUserHasPermission("atendimento:view", { acceptCompanyScope: true });
 
-  if (!canAccessAtendimento || !["ADMIN", "DEVELOPER", "SUPORTE"].includes(session.role)) {
+  if (!canAccessAtendimento) {
     redirect("/portal");
   }
 

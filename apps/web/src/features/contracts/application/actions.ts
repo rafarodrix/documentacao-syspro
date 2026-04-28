@@ -15,6 +15,7 @@ import type { ContractBlockReason } from "@dosc-syspro/core";
 import { callWebApi } from "@/lib/web-api";
 import { revalidateContractsViews } from "@/lib/cache-invalidation";
 import type { ContractActionResponse } from "@/features/contracts/domain/model";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 async function apiRequest(path: string, init?: RequestInit) {
   return callWebApi(`/api${path}`, init);
@@ -40,14 +41,10 @@ async function parseActionResponse<T = void>(
   }
 }
 
-function hasContractWriteAccess(role?: string | null) {
-  return role === "ADMIN" && SYSTEM_ROLES.includes(role);
-}
-
 export async function createContractAction(data: CreateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
 
-  if (!session || !hasContractWriteAccess(session.role)) {
+  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -80,7 +77,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
 
 export async function updateContractAction(data: UpdateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !hasContractWriteAccess(session.role)) {
+  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -116,7 +113,7 @@ export async function batchReadjustContractsAction(
 ): Promise<ContractActionResponse<{ affected: number }>> {
   const session = await getProtectedSession();
 
-  if (!session || !hasContractWriteAccess(session.role)) {
+  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
     return { success: false, error: "Permissao negada. Apenas administradores podem reajustar contratos." };
   }
 
@@ -150,7 +147,7 @@ export async function updateContractStatusAction(
   details?: string | null,
 ): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
-  if (!session || !hasContractWriteAccess(session.role)) {
+  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
     return { success: false, error: "Permissao negada." };
   }
 
