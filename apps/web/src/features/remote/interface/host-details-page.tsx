@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
@@ -73,10 +74,17 @@ import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
+import { LinkedDeviceCard } from "./host-details/components/LinkedDeviceCard";
 
 
 
-export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails }) {
+export function RemoteHostDetailsPanel({
+  details,
+  linkedDevice = null,
+}: {
+  details: RemoteHostDetails;
+  linkedDevice?: AgentDeviceSummary | null;
+}) {
   const router = useRouter();
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
@@ -873,7 +881,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
         </div>
 
         <TabsContent value="geral" className="space-y-6">
-          <div className={`grid gap-6 ${ticketNumber ? "lg:grid-cols-2" : ""}`}>
+          <div className={`grid gap-6 ${ticketNumber || linkedDevice ? "lg:grid-cols-2" : ""}`}>
             {/* Health & Performance Snapshot */}
             <Card className="border-border/40 bg-muted/5 shadow-sm">
               <CardHeader className="pb-3 px-6 pt-6">
@@ -904,6 +912,9 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
                 </div>
               </CardContent>
             </Card>
+
+            {/* Linked Agent Device */}
+            {linkedDevice && <LinkedDeviceCard device={linkedDevice} />}
 
             {/* Support Ticket Context */}
             {ticketNumber && (
@@ -1133,6 +1144,7 @@ export function RemoteHostDetailsPanel({ details }: { details: RemoteHostDetails
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
             ackQueueMetrics={ackQueueMetrics}
             hasPendingInstallGuide={hasPendingInstallGuide}
+            linkedDevice={linkedDevice}
           />
         </TabsContent>
 

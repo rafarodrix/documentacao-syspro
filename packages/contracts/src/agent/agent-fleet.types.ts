@@ -24,6 +24,7 @@ export const agentDeviceListQuerySchema = z.object({
   search: z.string().trim().optional(),
   status: z.enum(["all", "online", "offline"]).default("all"),
   companyId: z.string().trim().optional(),
+  remoteHostId: z.string().trim().optional(),
 });
 
 export const agentDeviceListResultSchema = z.object({

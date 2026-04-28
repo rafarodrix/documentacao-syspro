@@ -1,6 +1,8 @@
+import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { LinkedDeviceCard } from "./LinkedDeviceCard";
 import { Copy, Fingerprint, HardDriveDownload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, formatDateOnly, getCommandStatusMeta, extractStringFromPayload } from "../utils";
@@ -32,11 +34,14 @@ export function HostAgentTab({
   hiddenAcknowledgedCount,
   ackQueueMetrics,
   hasPendingInstallGuide,
-}: any) {
+  linkedDevice = null,
+}: any & { linkedDevice?: AgentDeviceSummary | null }) {
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
 
   return (
+    <div className="space-y-4">
+    {linkedDevice && <LinkedDeviceCard device={linkedDevice} />}
     <Card className="border-border/50">
       <CardHeader>
         <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
@@ -427,5 +432,6 @@ export function HostAgentTab({
         </details>
       </CardContent>
     </Card>
+    </div>
   );
 }

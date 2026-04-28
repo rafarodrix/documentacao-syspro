@@ -258,11 +258,13 @@ export class AgentsService {
     const search = query.search?.trim();
     const status = query.status ?? 'all';
     const companyId = query.companyId?.trim();
+    const remoteHostId = query.remoteHostId?.trim();
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
     const where: Prisma.AgentDeviceWhereInput = {};
     if (companyId) where.companyId = companyId;
+    if (remoteHostId) where.remoteHostId = remoteHostId;
     if (search) {
       where.OR = [
         { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
