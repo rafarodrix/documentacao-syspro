@@ -126,6 +126,59 @@ function ExecutiveLine({
   );
 }
 
+function TicketScopeSummaryCard({
+  title,
+  value,
+  helper,
+}: {
+  title: string;
+  value: number;
+  helper: string;
+}) {
+  return (
+    <Card className="border-border/50 bg-card/70 shadow-none">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="text-4xl font-bold tracking-tight tabular-nums text-foreground">{value}</div>
+        <p className="mt-2 text-xs text-muted-foreground">{helper}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TicketSectorSplitCard({
+  support,
+  development,
+  helper,
+}: {
+  support: number;
+  development: number;
+  helper: string;
+}) {
+  return (
+    <Card className="border-border/50 bg-card/70 shadow-none">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-muted-foreground">Tickets por setor</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-3">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Suporte</div>
+            <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-sky-500">{support}</div>
+          </div>
+          <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-3 py-3">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Desenvolvimento</div>
+            <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-violet-500">{development}</div>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">{helper}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default async function DashboardPage() {
   const session = await requireSession();
   const canAccessCrm = await currentUserHasAnyPermission(["crm:view", "crm:manage"], {
@@ -148,6 +201,21 @@ export default async function DashboardPage() {
     const sefazGroups = groupSefazByUF(adminData.sefazStatuses || []);
     const adminTicketScopeMode = session.role === "DEVELOPER" ? "development" : "all";
     const allowAdminTicketAreaFilter = session.role === "ADMIN";
+    const scopedOpenTicketRecords =
+      adminTicketScopeMode === "development"
+        ? adminData.openTicketRecords.filter((record) => record.team === "DESENVOLVIMENTO")
+        : adminData.openTicketRecords;
+    const openTicketsNow = scopedOpenTicketRecords.length;
+    const openTicketsSupport = scopedOpenTicketRecords.filter((record) => record.team === "SUPORTE").length;
+    const openTicketsDevelopment = scopedOpenTicketRecords.filter((record) => record.team === "DESENVOLVIMENTO").length;
+    const ticketScopeHelper =
+      session.role === "DEVELOPER"
+        ? "Somente a fila de desenvolvimento no seu escopo."
+        : "Volume aberto no escopo operacional atual.";
+    const ticketSectorHelper =
+      session.role === "DEVELOPER"
+        ? "Recorte travado em desenvolvimento para este perfil."
+        : "Distribuicao atual entre suporte e desenvolvimento.";
 
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
@@ -202,6 +270,18 @@ export default async function DashboardPage() {
                   <p className="mt-2 text-xs text-muted-foreground">Uso operacional interno do dia.</p>
                 </CardContent>
               </Card>
+
+              <TicketScopeSummaryCard
+                title="Tickets abertos"
+                value={openTicketsNow}
+                helper={ticketScopeHelper}
+              />
+
+              <TicketSectorSplitCard
+                support={openTicketsSupport}
+                development={openTicketsDevelopment}
+                helper={ticketSectorHelper}
+              />
             </div>
 
             <OpenTicketsInsights

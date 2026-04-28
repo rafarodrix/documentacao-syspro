@@ -99,9 +99,9 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
             const activeReasons = preferences.contractBlockReasons.filter((item) => item.isActive);
             if (activeReasons.length) {
                 setContractReasonOptions(activeReasons);
-                if (!activeReasons.some((item) => item.key === blockReason)) {
-                    setBlockReason(activeReasons[0].key);
-                }
+                setBlockReason((current) =>
+                    activeReasons.some((item) => item.key === current) ? current : activeReasons[0].key,
+                );
             }
         }
 

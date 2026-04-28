@@ -289,9 +289,9 @@ export function CompanyTab({
       const activeReasons = preferences.companyInactivationReasons.filter((item) => item.isActive)
       if (activeReasons.length) {
         setCompanyReasonOptions(activeReasons)
-        if (!activeReasons.some((item) => item.key === inactivationReason)) {
-          setInactivationReason(activeReasons[0].key)
-        }
+        setInactivationReason((current) =>
+          activeReasons.some((item) => item.key === current) ? current : activeReasons[0].key,
+        )
       }
     }
 

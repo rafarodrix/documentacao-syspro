@@ -53,11 +53,6 @@ function getScopeDescription(scopeMode: TicketScopeMode) {
   return "Tickets abertos no escopo operacional carregado para este perfil.";
 }
 
-function getAreaShare(value: number, total: number) {
-  if (total <= 0) return "0%";
-  return `${Math.round((value / total) * 100)}%`;
-}
-
 function groupRecords(records: DashboardOpenTicketRecord[], key: BreakdownKind): GroupedItem[] {
   const counts = new Map<string, { value: number; open: number; pending: number; queryValue: string }>();
 
@@ -193,41 +188,11 @@ export function OpenTicketsInsights({
     return scopedRecords.filter((record) => record.team === areaFilter);
   }, [areaFilter, scopedRecords]);
 
-  const areaCounts = useMemo(() => {
-    const support = scopedRecords.filter((record) => record.team === "SUPORTE").length;
-    const development = scopedRecords.filter((record) => record.team === "DESENVOLVIMENTO").length;
-    const withoutArea = scopedRecords.filter((record) => !record.team).length;
-    return {
-      support,
-      development,
-      withoutArea,
-      total: scopedRecords.length,
-    };
-  }, [scopedRecords]);
-
-  const filteredRecords = useMemo(() => {
-    return areaScopedRecords.filter((record) => {
-      const moduleMatch = !selectedModule || String(record.module ?? "").trim() === selectedModule;
-      const categoryMatch = !selectedCategory || String(record.category ?? "").trim() === selectedCategory;
-      return moduleMatch && categoryMatch;
-    });
-  }, [areaScopedRecords, selectedCategory, selectedModule]);
-
   const moduleBreakdown = useMemo(() => groupRecords(areaScopedRecords, "module"), [areaScopedRecords]);
   const categoryBreakdown = useMemo(() => groupRecords(areaScopedRecords, "category"), [areaScopedRecords]);
 
   const selectedModuleLabel = selectedModule ? formatModuleLabel(selectedModule) : "";
   const selectedCategoryLabel = selectedCategory ? formatCategoryLabel(selectedCategory) : "";
-  const openCount = filteredRecords.filter((record) => record.status === "Aberto").length;
-  const inProgressCount = filteredRecords.length - openCount;
-  const scopeLabel =
-    scopeMode === "own"
-      ? "no seu escopo"
-      : areaFilter === "SUPORTE"
-        ? "na fila de suporte"
-        : areaFilter === "DESENVOLVIMENTO"
-          ? "na fila de desenvolvimento"
-          : "no recorte atual";
 
   const filterLabel =
     areaFilter === "SUPORTE"
@@ -253,61 +218,17 @@ export function OpenTicketsInsights({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <Card className="border-border/60 bg-card/70 shadow-sm xl:col-span-3">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle className="text-base">Tickets abertos agora</CardTitle>
-              <p className="text-sm text-muted-foreground">{getScopeDescription(scopeMode)}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedModuleLabel ? <Badge variant="outline" className="border-border/60 bg-background/70">Modulo: {selectedModuleLabel}</Badge> : null}
-              {selectedCategoryLabel ? <Badge variant="outline" className="border-border/60 bg-background/70">Categoria: {selectedCategoryLabel}</Badge> : null}
-              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-                {filteredRecords.length} ativos no recorte
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          <SummaryMetric
-            label="Total em aberto"
-            value={filteredRecords.length}
-            tone="default"
-            helper={`Volume aberto ${scopeLabel}`}
-          />
-          <SummaryMetric
-            label="Novos"
-            value={openCount}
-            tone="support"
-            helper={`${getAreaShare(openCount, filteredRecords.length)} do volume aberto`}
-          />
-          <SummaryMetric
-            label="Em andamento"
-            value={inProgressCount}
-            tone="development"
-            helper={`${getAreaShare(inProgressCount, filteredRecords.length)} do volume aberto`}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/60 bg-card/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Tickets abertos por area</CardTitle>
-          <p className="text-xs text-muted-foreground">{getScopeDescription(scopeMode)}</p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <AreaLine label="Total no escopo" value={areaCounts.total} emphasis="text-foreground" />
-          <AreaLine label="Suporte" value={areaCounts.support} emphasis="text-sky-500" />
-          <AreaLine label="Desenvolvimento" value={areaCounts.development} emphasis="text-violet-500" />
-          {areaCounts.withoutArea > 0 ? (
-            <AreaLine label="Sem area definida" value={areaCounts.withoutArea} emphasis="text-amber-500" />
-          ) : null}
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card/40 px-4 py-3">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-foreground">Distribuicao operacional</h3>
+          <p className="text-sm text-muted-foreground">{getScopeDescription(scopeMode)}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           {allowAreaFilter ? (
-            <div className="flex flex-wrap gap-2 pt-2">
+            <>
               {([
-                ["ALL", "Todas"],
+                ["ALL", "Todas as areas"],
                 ["SUPORTE", "Suporte"],
                 ["DESENVOLVIMENTO", "Desenvolvimento"],
               ] as const).map(([value, label]) => (
@@ -316,7 +237,7 @@ export function OpenTicketsInsights({
                   type="button"
                   onClick={() => setAreaFilter(value)}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                     areaFilter === value
                       ? "border-primary/40 bg-primary/10 text-primary"
                       : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
@@ -325,47 +246,46 @@ export function OpenTicketsInsights({
                   {label}
                 </button>
               ))}
-            </div>
+            </>
+          ) : (
+            <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+              {filterLabel}
+            </Badge>
+          )}
+          {selectedModuleLabel ? (
+            <Badge variant="outline" className="border-border/60 bg-background/70">
+              Modulo: {selectedModuleLabel}
+            </Badge>
           ) : null}
-        </CardContent>
-      </Card>
+          {selectedCategoryLabel ? (
+            <Badge variant="outline" className="border-border/60 bg-background/70">
+              Categoria: {selectedCategoryLabel}
+            </Badge>
+          ) : null}
+        </div>
+      </div>
 
-      <BreakdownCard
-        title="Abertos por modulo"
-        filterLabel={filterLabel}
-        items={moduleBreakdown}
-        selectedValue={selectedModule}
-        selectedLabel={selectedModuleLabel}
-        chartOptions={moduleChartOptions}
-        onSelect={(item) => setSelectedModule((current) => (current === item.queryValue ? "" : item.queryValue))}
-      />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <BreakdownCard
+          title="Abertos por modulo"
+          filterLabel={filterLabel}
+          items={moduleBreakdown}
+          selectedValue={selectedModule}
+          selectedLabel={selectedModuleLabel}
+          chartOptions={moduleChartOptions}
+          onSelect={(item) => setSelectedModule((current) => (current === item.queryValue ? "" : item.queryValue))}
+        />
 
-      <BreakdownCard
-        title="Abertos por categoria"
-        filterLabel={filterLabel}
-        items={categoryBreakdown}
-        selectedValue={selectedCategory}
-        selectedLabel={selectedCategoryLabel}
-        chartOptions={categoryChartOptions}
-        onSelect={(item) => setSelectedCategory((current) => (current === item.queryValue ? "" : item.queryValue))}
-      />
-    </div>
-  );
-}
-
-function AreaLine({
-  label,
-  value,
-  emphasis,
-}: {
-  label: string;
-  value: number;
-  emphasis: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/50 px-3 py-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={cn("text-sm font-semibold tabular-nums", emphasis)}>{value}</span>
+        <BreakdownCard
+          title="Abertos por categoria"
+          filterLabel={filterLabel}
+          items={categoryBreakdown}
+          selectedValue={selectedCategory}
+          selectedLabel={selectedCategoryLabel}
+          chartOptions={categoryChartOptions}
+          onSelect={(item) => setSelectedCategory((current) => (current === item.queryValue ? "" : item.queryValue))}
+        />
+      </div>
     </div>
   );
 }
@@ -405,7 +325,7 @@ function BreakdownCard({
       <CardContent className="space-y-4">
         {hasData ? (
           <>
-            <div className="rounded-2xl border border-border/50 bg-background/40 px-2 py-3">
+            <div className="rounded-2xl border border-border/50 bg-background/55 px-2 py-3">
               <ReactApexChart
                 type="bar"
                 height={240}
@@ -444,31 +364,5 @@ function BreakdownCard({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function SummaryMetric({
-  label,
-  value,
-  helper,
-  tone,
-}: {
-  label: string;
-  value: number;
-  helper: string;
-  tone: "default" | "support" | "development";
-}) {
-  const toneClass = {
-    default: "border-border/60 bg-background/40 text-foreground",
-    support: "border-sky-500/20 bg-sky-500/5 text-sky-500",
-    development: "border-violet-500/20 bg-violet-500/5 text-violet-500",
-  }[tone];
-
-  return (
-    <div className={cn("rounded-xl border px-4 py-3", toneClass)}>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{value}</div>
-      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
-    </div>
   );
 }

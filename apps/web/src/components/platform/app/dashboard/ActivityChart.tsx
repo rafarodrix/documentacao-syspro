@@ -31,6 +31,7 @@ export function ActivityChart({
   const values = points.map((point) => point.value);
   const labels = points.map((point) => point.label);
   const hasData = values.some((value) => value > 0);
+  const peakValue = values.length > 0 ? Math.max(...values, 0) : 0;
 
   const options: ApexOptions = {
     chart: {
@@ -41,28 +42,29 @@ export function ActivityChart({
       animations: { speed: 450 },
       foreColor: "hsl(var(--muted-foreground))",
       fontFamily: "inherit",
+      background: "transparent",
     },
     colors: ["hsl(var(--primary))"],
     stroke: {
       curve: "smooth",
-      width: 3,
+      width: 4,
     },
     fill: {
       type: "gradient",
       gradient: {
         shadeIntensity: 1,
-        opacityFrom: 0.28,
-        opacityTo: 0.04,
+        opacityFrom: 0.5,
+        opacityTo: 0.12,
         stops: [0, 90, 100],
       },
     },
     grid: {
-      borderColor: "hsl(var(--border) / 0.45)",
+      borderColor: "hsl(var(--border) / 0.7)",
       strokeDashArray: 4,
       padding: {
         left: 6,
         right: 10,
-        top: 10,
+        top: 18,
         bottom: 2,
       },
     },
@@ -80,20 +82,24 @@ export function ActivityChart({
     },
     yaxis: {
       min: 0,
+      max: peakValue > 0 ? peakValue + 1 : undefined,
+      tickAmount: peakValue > 0 ? Math.min(4, peakValue + 1) : 3,
       forceNiceScale: true,
       labels: {
         formatter: (value) => Math.round(value).toLocaleString("pt-BR"),
         style: {
-          colors: ["hsl(var(--muted-foreground))"],
+          colors: ["hsl(var(--foreground) / 0.78)"],
           fontSize: "11px",
         },
       },
     },
     dataLabels: { enabled: false },
     markers: {
-      size: 4,
-      strokeWidth: 0,
-      hover: { size: 6 },
+      size: 5,
+      strokeWidth: 3,
+      strokeColors: "hsl(var(--background))",
+      colors: ["hsl(var(--primary))"],
+      hover: { size: 7 },
     },
     tooltip: {
       theme: "dark",
@@ -130,7 +136,7 @@ export function ActivityChart({
       </CardHeader>
 
       <CardContent className="px-4 pb-4">
-        <div className="relative h-full rounded-2xl border border-border/50 bg-background/40 p-3">
+        <div className="relative h-full rounded-2xl border border-border/50 bg-linear-to-br from-background/75 via-background/60 to-primary/5 p-3">
           {!hasData ? (
             <div className="flex h-[320px] w-full flex-col items-center justify-center text-center">
               <Activity className="mb-2 h-8 w-8 text-muted-foreground/40" />
