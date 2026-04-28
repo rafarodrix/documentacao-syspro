@@ -21,7 +21,7 @@ function parseStatus(value: string): "all" | "online" | "offline" {
 export default async function DispositivosPage({ searchParams }: PageProps) {
   await requireSession();
 
-  const canView = await currentUserHasPermission("remote:view", { acceptCompanyScope: true });
+  const canView = await currentUserHasPermission("agents:view", { acceptCompanyScope: true });
   if (!canView) {
     redirect("/portal");
   }
@@ -36,7 +36,7 @@ export default async function DispositivosPage({ searchParams }: PageProps) {
     fetchAgentDeviceList({ page, search: search || undefined, status }),
   ]);
 
-  const isGlobalView = await currentUserHasPermission("remote:view");
+  const isGlobalView = await currentUserHasPermission("agents:view");
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

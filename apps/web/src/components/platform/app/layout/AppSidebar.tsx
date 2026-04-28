@@ -66,6 +66,7 @@ export interface NavigationAccess {
   tickets: boolean
   atendimento: boolean
   remote: boolean
+  agents: boolean
   crm: boolean
   contracts: boolean
   docs: boolean
@@ -319,7 +320,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/tickets": navigationAccess?.tickets,
     "/portal/atendimento": navigationAccess?.atendimento,
     "/portal/plataforma-remota": navigationAccess?.remote,
-    "/portal/dispositivos": navigationAccess?.remote,
+    "/portal/dispositivos": navigationAccess?.agents,
   })
   const commercialItems = filterByAccess(filterByRole(NAV_COMMERCIAL, user.role), {
     "/portal/comercial/leads": navigationAccess?.crm,
