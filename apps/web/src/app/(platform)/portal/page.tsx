@@ -127,22 +127,37 @@ function ExecutiveLine({
 }
 
 function TicketScopeSummaryCard({
-  title,
-  value,
+  total,
+  open,
+  inProgress,
   helper,
 }: {
-  title: string;
-  value: number;
+  total: number;
+  open: number;
+  inProgress: number;
   helper: string;
 }) {
   return (
     <Card className="border-border/50 bg-card/70 shadow-none">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="text-sm text-muted-foreground">Tickets abertos</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="text-4xl font-bold tracking-tight tabular-nums text-foreground">{value}</div>
-        <p className="mt-2 text-xs text-muted-foreground">{helper}</p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
+            <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">{total}</span>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+            <span className="text-sm text-muted-foreground">Tickets abertos</span>
+            <span className="text-lg font-semibold tabular-nums text-sky-500">{open}</span>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+            <span className="text-sm text-muted-foreground">Tickets em execucao</span>
+            <span className="text-lg font-semibold tabular-nums text-violet-500">{inProgress}</span>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -167,19 +182,19 @@ function TicketSectorSplitCard({
         <CardTitle className="text-sm text-muted-foreground">Tickets por setor</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className={cn("grid gap-3", showSupport ? "grid-cols-2" : "grid-cols-1")}>
+        <div className="space-y-3">
           {showSupport ? (
-            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Suporte</div>
-              <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-sky-500">{support}</div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-muted-foreground">Suporte</span>
+              <span className="text-2xl font-bold tracking-tight tabular-nums text-sky-500">{support}</span>
             </div>
           ) : null}
-          <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-3 py-3">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Desenvolvimento</div>
-            <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-violet-500">{development}</div>
+          <div className={cn("flex items-center justify-between gap-3", showSupport ? "border-t border-border/50 pt-3" : "")}>
+            <span className="text-sm text-muted-foreground">Desenvolvimento</span>
+            <span className="text-2xl font-bold tracking-tight tabular-nums text-violet-500">{development}</span>
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{helper}</p>
+        <p className="mt-3 text-xs text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -214,6 +229,8 @@ export default async function DashboardPage() {
     const openTicketsNow = scopedOpenTicketRecords.length;
     const openTicketsSupport = scopedOpenTicketRecords.filter((record) => record.team === "SUPORTE").length;
     const openTicketsDevelopment = scopedOpenTicketRecords.filter((record) => record.team === "DESENVOLVIMENTO").length;
+    const openTicketsWaiting = scopedOpenTicketRecords.filter((record) => record.status === "Aberto").length;
+    const openTicketsInProgress = scopedOpenTicketRecords.filter((record) => record.status !== "Aberto").length;
     const ticketScopeHelper =
       session.role === "DEVELOPER"
         ? "Somente a fila de desenvolvimento no seu escopo."
@@ -278,8 +295,9 @@ export default async function DashboardPage() {
               </Card>
 
               <TicketScopeSummaryCard
-                title="Tickets abertos"
-                value={openTicketsNow}
+                total={openTicketsNow}
+                open={openTicketsWaiting}
+                inProgress={openTicketsInProgress}
                 helper={ticketScopeHelper}
               />
 
