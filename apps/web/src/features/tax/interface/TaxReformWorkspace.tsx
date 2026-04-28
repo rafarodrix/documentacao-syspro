@@ -1,25 +1,13 @@
-import { getProtectedSession } from "@/lib/auth-helpers";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { BookOpen, CalendarDays, Files, Info, Scale, Search } from "lucide-react";
 import { TaxAnexosContainer, TaxNcmLookup, TaxViewerContainer } from "@/features/tax/interface";
-import { BookOpen, Scale, Info, CalendarDays, Files, Search } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const metadata = {
-  title: "Tabelas IBS/CBS | Reforma Tributaria",
-  description: "Consulta de CSTs, Classificacoes Fiscais e Anexos oficiais.",
-};
-
-export default async function ReformaTributariaPage() {
-  const session = await getProtectedSession();
-  if (!session) {
-    redirect("/auth/login");
-  }
-
+export function TaxReformWorkspace() {
   return (
-    <div className="mx-auto flex w-full max-w-400 flex-col gap-6 p-6 animate-in fade-in duration-500">
+    <div className="mx-auto flex w-full max-w-400 flex-col gap-6 p-1 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-2 text-primary">

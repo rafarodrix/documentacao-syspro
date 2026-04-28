@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Building2, ContactRound, FileText, Monitor, Scale, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
+import { BookOpen, Building2, ContactRound, FileText, Monitor, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar";
@@ -79,16 +79,9 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
       {
         label: "Ferramentas",
         href: "/portal/tools",
-        keywords: "ferramentas utilitarios consulta cnpj",
+        keywords: "ferramentas utilitarios consulta cnpj reforma tributaria ibs cbs ncm anexos fiscal",
         icon: Wrench,
         enabled: navigationAccess?.tools !== false,
-      },
-      {
-        label: "Reforma Tributaria",
-        href: "/portal/reforma-tributaria",
-        keywords: "reforma tributaria ibs cbs ncm anexos",
-        icon: Scale,
-        enabled: navigationAccess?.tax !== false,
       },
       {
         label: "Configuracoes",

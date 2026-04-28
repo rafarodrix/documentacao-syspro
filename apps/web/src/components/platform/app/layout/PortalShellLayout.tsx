@@ -61,7 +61,6 @@ export async function PortalShellLayout({
     docs: true,
     releases: true,
     tools: await currentUserHasPermission("tools:view"),
-    tax: true,
     settings: await currentUserHasPermission("settings:view"),
   }
   navigationAccess.infrastructure =

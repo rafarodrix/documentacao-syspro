@@ -15,3 +15,4 @@ export { TaxNcmPanel } from "@/components/platform/tax/TaxNcmPanel";
 export { TaxRulesViewer } from "@/components/platform/tax/TaxRulesViewer";
 export { TaxSyncStatusBar } from "@/components/platform/tax/TaxSyncStatusBar";
 export { TaxViewerContainer } from "@/components/platform/tax/TaxViewerContainer";
+export { TaxReformWorkspace } from "./TaxReformWorkspace";

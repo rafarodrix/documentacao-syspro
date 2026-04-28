@@ -43,7 +43,7 @@ export function revalidateSettingsViews(includeDashboard = false) {
 }
 
 export function revalidateTaxViews() {
-  revalidatePaths(["/portal/configuracoes", "/portal/reforma-tributaria"]);
+  revalidatePaths(["/portal/configuracoes", "/portal/tools"]);
 }
 
 export function revalidateDocumentosViews() {
