@@ -12,7 +12,6 @@ import {
   LayoutGrid,
   Divide,
   Coins,
-  Scale,
   Building2,
 } from "lucide-react";
 
@@ -20,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { Badge } from "@/components/ui/badge";
 
-type Category = "calculadoras" | "simuladores" | "utilitarios" | "reforma";
+type Category = "calculadoras" | "simuladores" | "utilitarios";
 
 type Tool = {
   title: string;
@@ -104,14 +103,6 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
       href: `${basePath}/configuracao-documentos`,
       category: "utilitarios",
     },
-    {
-      title: "Reforma Tributaria (IBS/CBS)",
-      description: "Consulte tabelas e parametros da reforma em uma guia dedicada.",
-      icon: Scale,
-      href: "/portal/reforma-tributaria",
-      category: "reforma",
-      badge: "Novo",
-    },
   ];
 
   const ToolsGrid = ({ items }: { items: Tool[] }) => (
@@ -150,7 +141,7 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
     <div className="space-y-8">
       <Tabs defaultValue="todos" className="w-full">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:grid-cols-5 h-auto p-1">
+          <TabsList className="grid h-auto w-full grid-cols-2 p-1 sm:w-auto sm:grid-cols-4">
             <TabsTrigger value="todos" className="gap-2 py-2">
               <LayoutGrid className="w-4 h-4" /> Todos
             </TabsTrigger>
@@ -162,9 +153,6 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
             </TabsTrigger>
             <TabsTrigger value="utilitarios" className="gap-2 py-2">
               <FileText className="w-4 h-4" /> Utilitarios
-            </TabsTrigger>
-            <TabsTrigger value="reforma" className="gap-2 py-2">
-              <Scale className="w-4 h-4" /> Reforma
             </TabsTrigger>
           </TabsList>
         </div>
@@ -184,10 +172,6 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
 
           <TabsContent value="utilitarios" className="mt-0">
             <ToolsGrid items={tools.filter((t) => t.category === "utilitarios")} />
-          </TabsContent>
-
-          <TabsContent value="reforma" className="mt-0">
-            <ToolsGrid items={tools.filter((t) => t.category === "reforma")} />
           </TabsContent>
         </div>
       </Tabs>

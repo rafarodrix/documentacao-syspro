@@ -8,6 +8,11 @@ export const SETTINGS_PROFILE_KEY_VALUES = [
   "CLIENTE_USER",
 ] as const;
 
+export const SETTINGS_HIDDEN_PERMISSION_KEYS = [
+  "system_team:view",
+  "system_team:manage",
+] as const;
+
 export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "dashboard:view", label: "Visualizar dashboard", module: "dashboard", description: "Acessa a visao principal do portal." },
   { key: "dashboard:stats_full", label: "Visualizar estatisticas completas", module: "dashboard", description: "Libera indicadores operacionais completos." },
@@ -40,8 +45,8 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "contracts:edit", label: "Editar contrato", module: "contracts", description: "Permite alterar contrato existente." },
   { key: "crm:view", label: "Visualizar CRM comercial", module: "crm", description: "Permite acessar a area comercial e o pipeline de leads." },
   { key: "crm:manage", label: "Gerenciar leads e pipeline", module: "crm", description: "Permite criar, editar e conduzir leads no CRM." },
-  { key: "remote:view", label: "Visualizar plataforma remota", module: "remote", description: "Permite acessar a plataforma remota e consultar hosts e sessoes." },
-  { key: "remote:manage", label: "Gerenciar plataforma remota", module: "remote", description: "Permite operar hosts, sessoes e configuracoes remotas." },
+  { key: "remote:view", label: "Visualizar infraestrutura remota", module: "remote", description: "Permite acessar hosts, sessoes e relatorios da infraestrutura remota." },
+  { key: "remote:manage", label: "Gerenciar infraestrutura remota", module: "remote", description: "Permite operar hosts, sessoes e configuracoes da infraestrutura remota." },
   { key: "agents:view", label: "Visualizar dispositivos do agente", module: "agents", description: "Permite consultar a frota de agentes Trilink instalados." },
   { key: "agents:manage", label: "Gerenciar dispositivos do agente", module: "agents", description: "Permite vincular, desvincular e operar dispositivos do agente Trilink." },
   { key: "atendimento:view", label: "Acessar central de atendimento", module: "atendimento", description: "Permite abrir a central de atendimento integrada." },

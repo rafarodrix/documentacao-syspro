@@ -4,11 +4,14 @@ import type { IncomingHttpHeaders } from 'node:http';
 import type {
   SettingsAccessProfileUpsertInput,
   SettingsAuthorizationContext,
-  SettingsPermissionKey,
-  SettingsPermissionsAdminView,
-  SettingsProfileKey,
   SettingsPermissionsCatalog,
+  SettingsPermissionsAdminView,
+  SettingsPermissionKey,
+  SettingsProfileKey,
   SettingsUserAccessProfileCreateInput,
+} from '@dosc-syspro/contracts/settings';
+import {
+  SETTINGS_HIDDEN_PERMISSION_KEYS,
 } from '@dosc-syspro/contracts/settings';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -28,6 +31,10 @@ type PermissionAssignment = {
   companyId: string | null;
   permissionKeys: SettingsPermissionKey[];
 };
+
+const HIDDEN_PERMISSION_KEYS = new Set<SettingsPermissionKey>(
+  SETTINGS_HIDDEN_PERMISSION_KEYS as readonly SettingsPermissionKey[],
+);
 
 @Injectable()
 export class AuthorizationService {
@@ -254,18 +261,29 @@ export class AuthorizationService {
       }),
     ]);
 
+    const visiblePermissionKeys = new Set<SettingsPermissionKey>();
+    const visiblePermissions = permissions
+      .filter((permission) => !HIDDEN_PERMISSION_KEYS.has(permission.key as SettingsPermissionKey))
+      .map((permission) => {
+        const key = permission.key as SettingsPermissionKey;
+        visiblePermissionKeys.add(key);
+        return {
+          key,
+          label: permission.label,
+          module: permission.moduleKey,
+          description: permission.description || '',
+        };
+      });
+
     return {
       matrixEnabled: true,
-      permissions: permissions.map((permission) => ({
-        key: permission.key as SettingsPermissionKey,
-        label: permission.label,
-        module: permission.moduleKey,
-        description: permission.description || '',
-      })),
+      permissions: visiblePermissions,
       profiles: profiles.map((profile) => ({
         key: profile.key as SettingsProfileKey,
         label: profile.name,
-        permissions: profile.permissions.map((item) => item.permission.key as SettingsPermissionKey),
+        permissions: profile.permissions
+          .map((item) => item.permission.key as SettingsPermissionKey)
+          .filter((key) => visiblePermissionKeys.has(key)),
       })),
     };
   }
@@ -359,15 +377,17 @@ export class AuthorizationService {
 
     return {
       catalog,
-      profiles: profiles.map((profile) => ({
-        id: profile.id,
-        key: profile.key,
-        label: profile.name,
-        description: profile.description ?? undefined,
-        isSystem: profile.isSystem,
-        isActive: profile.isActive,
-        permissions: profile.permissions.map((item) => item.permission.key as SettingsPermissionKey),
-      })),
+        profiles: profiles.map((profile) => ({
+          id: profile.id,
+          key: profile.key,
+          label: profile.name,
+          description: profile.description ?? undefined,
+          isSystem: profile.isSystem,
+          isActive: profile.isActive,
+          permissions: profile.permissions
+            .map((item) => item.permission.key as SettingsPermissionKey)
+            .filter((key) => !HIDDEN_PERMISSION_KEYS.has(key)),
+        })),
       users: users.map((user) => ({
         id: user.id,
         name: user.name?.trim() || user.email,
