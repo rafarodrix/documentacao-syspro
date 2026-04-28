@@ -9,6 +9,8 @@ export const agentDeviceSummarySchema = z.object({
   agentVersion: z.string().nullable(),
   companyId: z.string().nullable(),
   companyName: z.string().nullable(),
+  remoteHostId: z.string().nullable(),
+  remoteHostName: z.string().nullable(),
   firstSeenAt: z.string().min(1),
   lastHeartbeatAt: z.string().nullable(),
   lastRegisteredAt: z.string().nullable(),
@@ -22,6 +24,7 @@ export const agentDeviceListQuerySchema = z.object({
   search: z.string().trim().optional(),
   status: z.enum(["all", "online", "offline"]).default("all"),
   companyId: z.string().trim().optional(),
+  remoteHostId: z.string().trim().optional(),
 });
 
 export const agentDeviceListResultSchema = z.object({

@@ -30,6 +30,7 @@ export async function fetchAgentDeviceList(params?: {
   search?: string;
   status?: "all" | "online" | "offline";
   companyId?: string;
+  remoteHostId?: string;
 }): Promise<AgentDeviceListResult> {
   const search = new URLSearchParams();
   if (params?.page) search.set("page", String(params.page));
@@ -37,6 +38,12 @@ export async function fetchAgentDeviceList(params?: {
   if (params?.search) search.set("search", params.search);
   if (params?.status && params.status !== "all") search.set("status", params.status);
   if (params?.companyId) search.set("companyId", params.companyId);
+  if (params?.remoteHostId) search.set("remoteHostId", params.remoteHostId);
   const query = search.toString();
   return fetchEnvelope(`/api/agents${query ? `?${query}` : ""}`, agentDeviceListResultSchema);
+}
+
+export async function fetchLinkedAgentDevice(remoteHostId: string) {
+  const result = await fetchAgentDeviceList({ remoteHostId, pageSize: 1 });
+  return result.items[0] ?? null;
 }

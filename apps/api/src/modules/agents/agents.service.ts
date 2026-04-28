@@ -17,33 +17,12 @@ import { AuthorizationService } from '../authorization/authorization.service';
 
 const ONLINE_THRESHOLD_SECONDS = 5 * 60;
 
-type AgentDeviceWithCompany = {
-  id: string;
-  deviceId: string;
-  agentVersion: string | null;
-  hostname: string | null;
-  os: string | null;
-  identitySource: string | null;
-  firstSeenAt: Date;
-  lastHeartbeatAt: Date | null;
-  lastRegisteredAt: Date | null;
-  companyId?: string | null;
-  company?: {
-    id: string;
-    nomeFantasia: string | null;
-    razaoSocial: string;
-  } | null;
-};
+const DEVICE_INCLUDE = {
+  company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
+  remoteHost: { select: { id: true, name: true } },
+} as const;
 
-function legacyAgentDeviceWhere(where: Record<string, unknown>): Prisma.AgentDeviceWhereInput {
-  return where as Prisma.AgentDeviceWhereInput;
-}
-
-function legacyAgentDeviceInclude() {
-  return {
-    company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
-  } as never;
-}
+type DeviceRow = Prisma.AgentDeviceGetPayload<{ include: typeof DEVICE_INCLUDE }>;
 
 @Injectable()
 export class AgentsService {
@@ -69,7 +48,7 @@ export class AgentsService {
     const payload = parsed.data;
     const now = new Date();
 
-    await this.prisma.agentDevice.upsert({
+    const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
       create: {
         deviceId: payload.deviceId,
@@ -90,6 +69,10 @@ export class AgentsService {
         lastHeartbeatAt: now,
       },
     });
+
+    if (!device.remoteHostId && payload.hostname) {
+      await this.tryLinkRemoteHost(payload.deviceId, payload.hostname, device.companyId);
+    }
 
     this.logger.log({
       event: 'agent.registered',
@@ -125,7 +108,7 @@ export class AgentsService {
     const payload = parsed.data;
     const now = new Date();
 
-    await this.prisma.agentDevice.upsert({
+    const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
       create: {
         deviceId: payload.deviceId,
@@ -139,6 +122,10 @@ export class AgentsService {
       },
     });
 
+    if (!device.remoteHostId && device.hostname) {
+      await this.tryLinkRemoteHost(payload.deviceId, device.hostname, device.companyId);
+    }
+
     return {
       success: true,
       data: {
@@ -147,6 +134,45 @@ export class AgentsService {
         deviceId: payload.deviceId,
       },
     };
+  }
+
+  /**
+   * Best-effort: find a RemoteHost whose machineName matches the agent hostname.
+   * Only links when exactly one unambiguous match exists so we never create a wrong link.
+   * Scoped by companyId when available to avoid cross-company collisions.
+   */
+  private async tryLinkRemoteHost(
+    deviceId: string,
+    hostname: string,
+    companyId: string | null,
+  ): Promise<void> {
+    try {
+      const where: Prisma.RemoteHostWhereInput = {
+        machineName: { equals: hostname, mode: Prisma.QueryMode.insensitive },
+        agentDevice: null, // not yet linked to any device
+      };
+      if (companyId) {
+        where.companyId = companyId;
+      }
+
+      const matches = await this.prisma.remoteHost.findMany({ where, select: { id: true }, take: 2 });
+      if (matches.length !== 1) return;
+
+      await this.prisma.agentDevice.update({
+        where: { deviceId },
+        data: { remoteHostId: matches[0].id },
+      });
+
+      this.logger.log({
+        event: 'agent.host_linked',
+        deviceId,
+        hostname,
+        remoteHostId: matches[0].id,
+      });
+    } catch (err) {
+      // Match is best-effort — never fail the heartbeat/register because of this
+      this.logger.warn({ event: 'agent.host_link_failed', deviceId, error: String(err) });
+    }
   }
 
   async getDesiredState(internalApiKey: string | undefined, deviceId: string) {
@@ -232,11 +258,13 @@ export class AgentsService {
     const search = query.search?.trim();
     const status = query.status ?? 'all';
     const companyId = query.companyId?.trim();
+    const remoteHostId = query.remoteHostId?.trim();
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
-    const where: Record<string, unknown> = {};
+    const where: Prisma.AgentDeviceWhereInput = {};
     if (companyId) where.companyId = companyId;
+    if (remoteHostId) where.remoteHostId = remoteHostId;
     if (search) {
       where.OR = [
         { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
@@ -247,28 +275,25 @@ export class AgentsService {
     if (status === 'online') {
       where.lastHeartbeatAt = { gte: onlineSince };
     } else if (status === 'offline') {
-      const currentOr = Array.isArray(where.OR) ? where.OR : [];
       where.OR = [
-        ...currentOr,
+        ...(where.OR ?? []),
         { lastHeartbeatAt: null },
         { lastHeartbeatAt: { lt: onlineSince } },
       ];
     }
 
     const [total, rows] = await this.prisma.$transaction([
-      this.prisma.agentDevice.count({ where: legacyAgentDeviceWhere(where) }),
+      this.prisma.agentDevice.count({ where }),
       this.prisma.agentDevice.findMany({
-        where: legacyAgentDeviceWhere(where),
+        where,
         orderBy: [{ lastHeartbeatAt: 'desc' }, { hostname: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: legacyAgentDeviceInclude(),
+        include: DEVICE_INCLUDE,
       }),
     ]);
 
-    const items: AgentDeviceSummary[] = (rows as AgentDeviceWithCompany[]).map((row) =>
-      this.toSummary(row, onlineSince),
-    );
+    const items: AgentDeviceSummary[] = rows.map((row) => this.toSummary(row, onlineSince));
 
     return {
       success: true,
@@ -297,7 +322,7 @@ export class AgentsService {
 
     const row = await this.prisma.agentDevice.findUnique({
       where: { deviceId: normalizedDeviceId },
-      include: legacyAgentDeviceInclude(),
+      include: DEVICE_INCLUDE,
     });
 
     if (!row) {
@@ -305,7 +330,7 @@ export class AgentsService {
     }
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
-    return { success: true, data: this.toSummary(row as AgentDeviceWithCompany, onlineSince) };
+    return { success: true, data: this.toSummary(row, onlineSince) };
   }
 
   async getFleetStats(
@@ -319,7 +344,7 @@ export class AgentsService {
       this.prisma.agentDevice.count(),
       this.prisma.agentDevice.count({ where: { lastHeartbeatAt: { gte: onlineSince } } }),
       this.prisma.agentDevice.count({ where: { lastHeartbeatAt: null } }),
-      this.prisma.agentDevice.count({ where: legacyAgentDeviceWhere({ companyId: { not: null } }) }),
+      this.prisma.agentDevice.count({ where: { companyId: { not: null } } }),
     ]);
 
     return {
@@ -336,10 +361,7 @@ export class AgentsService {
     };
   }
 
-  private toSummary(
-    row: AgentDeviceWithCompany,
-    onlineSince: Date,
-  ): AgentDeviceSummary {
+  private toSummary(row: DeviceRow, onlineSince: Date): AgentDeviceSummary {
     const lastHeartbeat = row.lastHeartbeatAt;
     const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
     const heartbeatLagSeconds = lastHeartbeat
@@ -357,8 +379,10 @@ export class AgentsService {
       os: row.os,
       identitySource: row.identitySource,
       agentVersion: row.agentVersion,
-      companyId: row.companyId ?? null,
+      companyId: row.companyId,
       companyName,
+      remoteHostId: row.remoteHostId,
+      remoteHostName: row.remoteHost?.name ?? null,
       firstSeenAt: row.firstSeenAt.toISOString(),
       lastHeartbeatAt: lastHeartbeat ? lastHeartbeat.toISOString() : null,
       lastRegisteredAt: row.lastRegisteredAt ? row.lastRegisteredAt.toISOString() : null,
