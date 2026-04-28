@@ -23,6 +23,18 @@ function hasValidPermissionKey(
   return Boolean(value) && typeof value === "object" && isValidPermissionKey((value as { key?: unknown }).key);
 }
 
+function sanitizeProfileWithPermissions(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const profile = value as Record<string, unknown>;
+  return {
+    ...profile,
+    permissions: sanitizePermissionList(profile.permissions),
+  };
+}
+
 export function sanitizeSettingsAuthorizationContextResponse<T extends Record<string, any>>(response: T): T {
   if (!response?.data || typeof response.data !== "object") {
     return response;
@@ -64,10 +76,7 @@ export function sanitizeSettingsPermissionsResponse<T extends Record<string, any
             ? data.catalog.permissions.filter((permission: unknown) => hasValidPermissionKey(permission))
             : [],
           profiles: Array.isArray(data.catalog.profiles)
-            ? data.catalog.profiles.map((profile) => ({
-                ...profile,
-                permissions: sanitizePermissionList(profile?.permissions),
-              }))
+            ? data.catalog.profiles.map((profile: unknown) => sanitizeProfileWithPermissions(profile))
             : [],
         }
       : data.catalog;
@@ -78,10 +87,7 @@ export function sanitizeSettingsPermissionsResponse<T extends Record<string, any
       ...data,
       catalog,
       profiles: Array.isArray(data.profiles)
-        ? data.profiles.map((profile) => ({
-            ...profile,
-            permissions: sanitizePermissionList(profile?.permissions),
-          }))
+        ? data.profiles.map((profile: unknown) => sanitizeProfileWithPermissions(profile))
         : [],
     },
   };
