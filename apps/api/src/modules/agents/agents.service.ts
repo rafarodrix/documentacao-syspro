@@ -22,7 +22,32 @@ const DEVICE_INCLUDE = {
   remoteHost: { select: { id: true, name: true } },
 } as const;
 
-type DeviceRow = Prisma.AgentDeviceGetPayload<{ include: typeof DEVICE_INCLUDE }>;
+type DeviceRow = {
+  id: string;
+  deviceId: string;
+  hostname: string | null;
+  os: string | null;
+  identitySource: string | null;
+  agentVersion: string | null;
+  companyId: string | null;
+  remoteHostId: string | null;
+  firstSeenAt: Date;
+  lastHeartbeatAt: Date | null;
+  lastRegisteredAt: Date | null;
+  company: {
+    id: string;
+    nomeFantasia: string | null;
+    razaoSocial: string;
+  } | null;
+  remoteHost: {
+    id: string;
+    name: string;
+  } | null;
+};
+
+type LooseWhereInput = Record<string, unknown> & {
+  OR?: Array<Record<string, unknown>>;
+};
 
 @Injectable()
 export class AgentsService {
@@ -70,8 +95,9 @@ export class AgentsService {
       },
     });
 
-    if (!device.remoteHostId && payload.hostname) {
-      await this.tryLinkRemoteHost(payload.deviceId, payload.hostname, device.companyId);
+    const registeredDevice = device as { remoteHostId?: string | null; companyId: string | null };
+    if (!registeredDevice.remoteHostId && payload.hostname) {
+      await this.tryLinkRemoteHost(payload.deviceId, payload.hostname, registeredDevice.companyId);
     }
 
     this.logger.log({
@@ -122,8 +148,13 @@ export class AgentsService {
       },
     });
 
-    if (!device.remoteHostId && device.hostname) {
-      await this.tryLinkRemoteHost(payload.deviceId, device.hostname, device.companyId);
+    const heartbeatDevice = device as {
+      remoteHostId?: string | null;
+      hostname: string | null;
+      companyId: string | null;
+    };
+    if (!heartbeatDevice.remoteHostId && heartbeatDevice.hostname) {
+      await this.tryLinkRemoteHost(payload.deviceId, heartbeatDevice.hostname, heartbeatDevice.companyId);
     }
 
     return {
@@ -147,7 +178,7 @@ export class AgentsService {
     companyId: string | null,
   ): Promise<void> {
     try {
-      const where: Prisma.RemoteHostWhereInput = {
+      const where: LooseWhereInput = {
         machineName: { equals: hostname, mode: Prisma.QueryMode.insensitive },
         agentDevice: null, // not yet linked to any device
       };
@@ -156,25 +187,19 @@ export class AgentsService {
       }
 
       const matches = await this.prisma.remoteHost.findMany({
-        where,
+        where: where as any,
         select: { id: true, companyId: true },
         take: 2,
       });
       if (matches.length !== 1) return;
 
       const match = matches[0];
-      const data: Prisma.AgentDeviceUpdateInput = {
-        remoteHost: {
-          connect: { id: match.id },
-        },
-      };
+      const data: Record<string, unknown> = { remoteHostId: match.id };
       if (match.companyId && !companyId) {
-        data.company = {
-          connect: { id: match.companyId },
-        };
+        data.companyId = match.companyId;
       }
 
-      await this.prisma.agentDevice.update({ where: { deviceId }, data });
+      await this.prisma.agentDevice.update({ where: { deviceId }, data: data as any });
 
       this.logger.log({
         event: 'agent.host_linked',
@@ -272,11 +297,11 @@ export class AgentsService {
     const search = query.search?.trim();
     const status = query.status ?? 'all';
     const companyId = query.companyId?.trim();
-    const remoteHostId = query.remoteHostId?.trim();
+    const remoteHostId = (query as { remoteHostId?: string }).remoteHostId?.trim();
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 
-    const where: Prisma.AgentDeviceWhereInput = {};
+    const where: LooseWhereInput = {};
     if (companyId) where.companyId = companyId;
     if (remoteHostId) where.remoteHostId = remoteHostId;
     if (search) {
@@ -289,25 +314,28 @@ export class AgentsService {
     if (status === 'online') {
       where.lastHeartbeatAt = { gte: onlineSince };
     } else if (status === 'offline') {
+      const existingOr = Array.isArray(where.OR) ? where.OR : [];
       where.OR = [
-        ...(where.OR ?? []),
+        ...existingOr,
         { lastHeartbeatAt: null },
         { lastHeartbeatAt: { lt: onlineSince } },
       ];
     }
 
     const [total, rows] = await this.prisma.$transaction([
-      this.prisma.agentDevice.count({ where }),
+      this.prisma.agentDevice.count({ where: where as any }),
       this.prisma.agentDevice.findMany({
-        where,
+        where: where as any,
         orderBy: [{ lastHeartbeatAt: 'desc' }, { hostname: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: DEVICE_INCLUDE,
+        include: DEVICE_INCLUDE as any,
       }),
     ]);
 
-    const items: AgentDeviceSummary[] = rows.map((row) => this.toSummary(row, onlineSince));
+    const items: AgentDeviceSummary[] = (rows as unknown as DeviceRow[]).map((row) =>
+      this.toSummary(row, onlineSince),
+    );
 
     return {
       success: true,
@@ -336,7 +364,7 @@ export class AgentsService {
 
     const row = await this.prisma.agentDevice.findUnique({
       where: { deviceId: normalizedDeviceId },
-      include: DEVICE_INCLUDE,
+      include: DEVICE_INCLUDE as any,
     });
 
     if (!row) {
@@ -344,7 +372,7 @@ export class AgentsService {
     }
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
-    return { success: true, data: this.toSummary(row, onlineSince) };
+    return { success: true, data: this.toSummary(row as unknown as DeviceRow, onlineSince) };
   }
 
   async getFleetStats(
@@ -386,7 +414,7 @@ export class AgentsService {
       ? row.company.nomeFantasia?.trim() || row.company.razaoSocial.trim()
       : null;
 
-    return {
+    const summary = {
       id: row.id,
       deviceId: row.deviceId,
       hostname: row.hostname,
@@ -402,6 +430,8 @@ export class AgentsService {
       lastRegisteredAt: row.lastRegisteredAt ? row.lastRegisteredAt.toISOString() : null,
       isOnline,
       heartbeatLagSeconds,
-    };
+    } as unknown as AgentDeviceSummary;
+
+    return summary;
   }
 }
