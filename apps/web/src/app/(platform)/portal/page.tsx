@@ -130,34 +130,29 @@ function TicketScopeSummaryCard({
   total,
   open,
   inProgress,
-  helper,
 }: {
   total: number;
   open: number;
   inProgress: number;
-  helper: string;
 }) {
   return (
     <Card className="border-border/50 bg-card/70 shadow-none">
-      <CardHeader className="pb-2">
+      <CardHeader className="px-4 pb-1 pt-4">
         <CardTitle className="text-sm text-muted-foreground">Tickets abertos</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">Total</span>
-            <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">{total}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
-            <span className="text-sm text-muted-foreground">Tickets abertos</span>
-            <span className="text-lg font-semibold tabular-nums text-sky-500">{open}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
-            <span className="text-sm text-muted-foreground">Tickets em execucao</span>
-            <span className="text-lg font-semibold tabular-nums text-violet-500">{inProgress}</span>
-          </div>
+      <CardContent className="space-y-2 px-4 pb-4 pt-0">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Total</span>
+          <span className="text-2xl font-bold tracking-tight tabular-nums text-foreground">{total}</span>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">{helper}</p>
+        <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2.5">
+          <span className="text-sm text-muted-foreground">Tickets abertos</span>
+          <span className="text-base font-semibold tabular-nums text-sky-500">{open}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2.5">
+          <span className="text-sm text-muted-foreground">Tickets em execucao</span>
+          <span className="text-base font-semibold tabular-nums text-violet-500">{inProgress}</span>
+        </div>
       </CardContent>
     </Card>
   );
@@ -166,35 +161,30 @@ function TicketScopeSummaryCard({
 function TicketSectorSplitCard({
   support,
   development,
-  helper,
   scopeMode = "all",
 }: {
   support: number;
   development: number;
-  helper: string;
   scopeMode?: "all" | "development";
 }) {
   const showSupport = scopeMode !== "development";
 
   return (
     <Card className="border-border/50 bg-card/70 shadow-none">
-      <CardHeader className="pb-2">
+      <CardHeader className="px-4 pb-1 pt-4">
         <CardTitle className="text-sm text-muted-foreground">Tickets por setor</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          {showSupport ? (
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-muted-foreground">Suporte</span>
-              <span className="text-2xl font-bold tracking-tight tabular-nums text-sky-500">{support}</span>
-            </div>
-          ) : null}
-          <div className={cn("flex items-center justify-between gap-3", showSupport ? "border-t border-border/50 pt-3" : "")}>
+      <CardContent className="space-y-2 px-4 pb-4 pt-0">
+        {showSupport ? (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Suporte</span>
+            <span className="text-2xl font-bold tracking-tight tabular-nums text-sky-500">{support}</span>
+          </div>
+        ) : null}
+        <div className={cn("flex items-center justify-between gap-3", showSupport ? "border-t border-border/50 pt-2.5" : "")}>
             <span className="text-sm text-muted-foreground">Desenvolvimento</span>
             <span className="text-2xl font-bold tracking-tight tabular-nums text-violet-500">{development}</span>
-          </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -231,15 +221,6 @@ export default async function DashboardPage() {
     const openTicketsDevelopment = scopedOpenTicketRecords.filter((record) => record.team === "DESENVOLVIMENTO").length;
     const openTicketsWaiting = scopedOpenTicketRecords.filter((record) => record.status === "Aberto").length;
     const openTicketsInProgress = scopedOpenTicketRecords.filter((record) => record.status !== "Aberto").length;
-    const ticketScopeHelper =
-      session.role === "DEVELOPER"
-        ? "Somente a fila de desenvolvimento no seu escopo."
-        : "Volume aberto no escopo operacional atual.";
-    const ticketSectorHelper =
-      session.role === "DEVELOPER"
-        ? "Recorte travado em desenvolvimento para este perfil."
-        : "Distribuicao atual entre suporte e desenvolvimento.";
-
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
         <Tabs defaultValue="operacional" className="space-y-4">
@@ -298,13 +279,11 @@ export default async function DashboardPage() {
                 total={openTicketsNow}
                 open={openTicketsWaiting}
                 inProgress={openTicketsInProgress}
-                helper={ticketScopeHelper}
               />
 
               <TicketSectorSplitCard
                 support={openTicketsSupport}
                 development={openTicketsDevelopment}
-                helper={ticketSectorHelper}
                 scopeMode={adminTicketScopeMode}
               />
             </div>
