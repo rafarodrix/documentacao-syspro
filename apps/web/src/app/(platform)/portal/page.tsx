@@ -26,6 +26,7 @@ import {
   TrendingUp,
   Users,
   Zap,
+  FolderOpen,
 } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
@@ -163,6 +164,10 @@ export default async function DashboardPage() {
                 Comercial
               </TabsTrigger>
             ) : null}
+            <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
+              <FolderOpen className="h-4 w-4" />
+              Cadastros
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
@@ -171,55 +176,7 @@ export default async function DashboardPage() {
                 <SefazStatusWidget key={uf} uf={uf} nfe={nfe} nfce={nfce} />
               ))}
 
-              {canViewCompanies ? (
-                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
-                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
-                    <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
-                  </div>
-                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Empresas Ativas</CardTitle>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
-                      <Building2 className="h-3.5 w-3.5 text-blue-500" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                    <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.companiesCount.toLocaleString("pt-BR")}</div>
-                    <div className="mt-1">
-                      <GrowthIndicator value={adminData.companiesGrowth} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              {showPeopleMetric ? (
-                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
-                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
-                    <Users className="h-20 w-20 rotate-12 text-violet-500" />
-                  </div>
-                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {showUsersMetric ? "Usuarios" : "Contatos"}
-                    </CardTitle>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
-                      <Users className="h-3.5 w-3.5 text-violet-500" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4">
-                    <div className="text-3xl font-bold tracking-tight tabular-nums">
-                      {(showUsersMetric ? adminData.usersCount : (adminData.contactsCount ?? 0)).toLocaleString("pt-BR")}
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {showUsersMetric ? (
-                          <><span className="font-medium text-emerald-500">{adminData.activeUsersCount}</span> ativos</>
-                        ) : (
-                          <><span className="font-medium text-emerald-500">{adminData.contactsCount ?? 0}</span> vinculados ao escopo</>
-                        )}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
+              {/* CARDS DE CADASTROS MOVIDOS PARA ABA CADASTROS */}
 
               <Card className="border-border/50 bg-card/70">
                 <CardHeader className="pb-2">
@@ -240,49 +197,7 @@ export default async function DashboardPage() {
               <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
             </div>
 
-            <div className={cn("grid grid-cols-1 gap-4", canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1")}>
-              {canViewCompanies ? <RecentCompanies companies={adminData.companies} /> : null}
-              {canViewContacts ? (
-                <RecentRecords
-                  title="Ultimos contatos cadastrados"
-                  description="Contatos recentes dentro do seu escopo"
-                  emptyTitle="Nenhum contato cadastrado"
-                  emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
-                  viewAllHref="/portal/contatos"
-                  createHref="/portal/contatos/novo"
-                  createLabel="Cadastrar contato"
-                  icon="contact"
-                  items={recentContacts.map((contact) => ({
-                    id: contact.id,
-                    title: contact.name,
-                    subtitle: contact.email || contact.whatsapp || "Sem canal principal",
-                    meta: contact.companyNames?.length ? contact.companyNames.join(" Ã¢â‚¬Â¢ ") : "Sem empresa vinculada",
-                    createdAt: contact.createdAt,
-                    tags: contact.companyNames?.slice(0, 2),
-                  }))}
-                />
-              ) : null}
-              {canViewUsers ? (
-                <RecentRecords
-                  title="Ultimos usuarios cadastrados"
-                  description="Usuarios recentes dentro do seu escopo"
-                  emptyTitle="Nenhum usuario cadastrado"
-                  emptyDescription="Novos usuarios aparecerao aqui assim que forem criados."
-                  viewAllHref="/portal/cadastros/usuarios"
-                  createHref="/portal/cadastros/usuarios/novo"
-                  createLabel="Novo usuario"
-                  icon="user"
-                  items={recentUsers.map((user) => ({
-                    id: user.id,
-                    title: user.name,
-                    subtitle: user.email,
-                    meta: user.companyNames?.length ? user.companyNames.join(" Ã¢â‚¬Â¢ ") : user.role,
-                    createdAt: user.createdAt,
-                    tags: [user.role],
-                  }))}
-                />
-              ) : null}
-            </div>
+              {/* RECENT RECORDS MOVIDOS PARA ABA CADASTROS */}
           </TabsContent>
 
           {canAccessCrm ? (
@@ -385,6 +300,179 @@ export default async function DashboardPage() {
             </div>
           </TabsContent>
           ) : null}
+
+          <TabsContent value="cadastros" className="space-y-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {canViewCompanies ? (
+                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                    <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
+                  </div>
+                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Empresas Ativas</CardTitle>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
+                      <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-3xl font-bold tracking-tight tabular-nums">{adminData.cadastros?.companies.total.toLocaleString("pt-BR") ?? adminData.companiesCount.toLocaleString("pt-BR")}</div>
+                    <div className="mt-2 flex items-center justify-between text-xs border-t border-border/40 pt-2">
+                      <span className="flex items-center gap-1 font-medium text-emerald-500">
+                        <TrendingUp className="h-3 w-3" /> +{adminData.cadastros?.companies.registeredThisMonth ?? 0} no mês
+                      </span>
+                      <span className="flex items-center gap-1 font-medium text-red-500">
+                        <TrendingDown className="h-3 w-3" /> -{adminData.cadastros?.companies.inactivatedThisMonth ?? 0} inativ.
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {canViewContacts ? (
+                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                    <Users className="h-20 w-20 rotate-12 text-orange-500" />
+                  </div>
+                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contatos Vinculados</CardTitle>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-orange-500/10">
+                      <Users className="h-3.5 w-3.5 text-orange-500" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-3xl font-bold tracking-tight tabular-nums">
+                      {(adminData.cadastros?.contacts.total ?? adminData.contactsCount ?? 0).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs border-t border-border/40 pt-2">
+                      <span className="flex items-center gap-1 font-medium text-emerald-500">
+                        <TrendingUp className="h-3 w-3" /> +{adminData.cadastros?.contacts.registeredThisMonth ?? 0} no mês
+                      </span>
+                      <span className="flex items-center gap-1 font-medium text-red-500">
+                        <TrendingDown className="h-3 w-3" /> -{adminData.cadastros?.contacts.inactivatedThisMonth ?? 0} inativ.
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {canViewUsers ? (
+                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                  <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
+                    <Users className="h-20 w-20 rotate-12 text-violet-500" />
+                  </div>
+                  <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Usuários Ativos</CardTitle>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-500/10">
+                      <Users className="h-3.5 w-3.5 text-violet-500" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <div className="text-3xl font-bold tracking-tight tabular-nums">
+                      {(adminData.cadastros?.users.total ?? adminData.usersCount ?? 0).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs border-t border-border/40 pt-2">
+                      <span className="flex items-center gap-1 font-medium text-emerald-500">
+                        <TrendingUp className="h-3 w-3" /> +{adminData.cadastros?.users.registeredThisMonth ?? 0} no mês
+                      </span>
+                      <span className="flex items-center gap-1 font-medium text-red-500">
+                        <TrendingDown className="h-3 w-3" /> -{adminData.cadastros?.users.inactivatedThisMonth ?? 0} inativ.
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
+
+            <h3 className="mt-6 text-sm font-medium text-muted-foreground">Últimos Cadastros</h3>
+            <div className={cn("grid grid-cols-1 gap-4", canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1")}>
+              {canViewCompanies ? <RecentCompanies companies={adminData.companies} /> : null}
+              {canViewContacts ? (
+                <RecentRecords
+                  title="Ultimos contatos cadastrados"
+                  description="Contatos recentes dentro do seu escopo"
+                  emptyTitle="Nenhum contato cadastrado"
+                  emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
+                  viewAllHref="/portal/contatos"
+                  createHref="/portal/contatos/novo"
+                  createLabel="Cadastrar contato"
+                  icon="contact"
+                  items={recentContacts.map((contact) => ({
+                    id: contact.id,
+                    title: contact.name,
+                    subtitle: contact.email || contact.whatsapp || "Sem canal principal",
+                    meta: contact.companyNames?.length ? contact.companyNames.join(" • ") : "Sem empresa vinculada",
+                    createdAt: contact.createdAt,
+                    tags: contact.companyNames?.slice(0, 2),
+                  }))}
+                />
+              ) : null}
+              {canViewUsers ? (
+                <RecentRecords
+                  title="Ultimos usuarios cadastrados"
+                  description="Usuarios recentes dentro do seu escopo"
+                  emptyTitle="Nenhum usuario cadastrado"
+                  emptyDescription="Novos usuarios aparecerao aqui assim que forem criados."
+                  viewAllHref="/portal/cadastros/usuarios"
+                  createHref="/portal/cadastros/usuarios/novo"
+                  createLabel="Novo usuario"
+                  icon="user"
+                  items={recentUsers.map((user) => ({
+                    id: user.id,
+                    title: user.name,
+                    subtitle: user.email,
+                    meta: user.companyNames?.length ? user.companyNames.join(" • ") : user.role,
+                    createdAt: user.createdAt,
+                    tags: [user.role],
+                  }))}
+                />
+              ) : null}
+            </div>
+
+            <h3 className="mt-6 text-sm font-medium text-muted-foreground">Últimas Inativações</h3>
+            <div className={cn("grid grid-cols-1 gap-4", canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1")}>
+              {canViewCompanies ? (
+                <RecentCompanies companies={adminData.cadastros?.recentInactivatedCompanies ?? []} />
+              ) : null}
+              {canViewContacts ? (
+                <RecentRecords
+                  title="Ultimos contatos inativados"
+                  description="Contatos arquivados recentemente"
+                  emptyTitle="Nenhuma inativacao"
+                  emptyDescription="Contatos inativados aparecerao aqui."
+                  viewAllHref="/portal/contatos"
+                  createLabel="Ver contatos"
+                  icon="contact"
+                  items={(adminData.cadastros?.recentInactivatedContacts ?? []).map((contact) => ({
+                    id: contact.id,
+                    title: contact.name,
+                    subtitle: contact.email || contact.whatsapp || "Sem canal principal",
+                    meta: contact.companyNames?.length ? contact.companyNames.join(" • ") : "Sem empresa vinculada",
+                    createdAt: contact.createdAt,
+                    tags: contact.companyNames?.slice(0, 2),
+                  }))}
+                />
+              ) : null}
+              {canViewUsers ? (
+                <RecentRecords
+                  title="Ultimos usuarios inativados"
+                  description="Usuarios inativados recentemente"
+                  emptyTitle="Nenhuma inativacao"
+                  emptyDescription="Usuarios inativados aparecerao aqui."
+                  viewAllHref="/portal/cadastros/usuarios"
+                  createLabel="Ver usuarios"
+                  icon="user"
+                  items={(adminData.cadastros?.recentInactivatedUsers ?? []).map((user) => ({
+                    id: user.id,
+                    title: user.name,
+                    subtitle: user.email,
+                    meta: user.companyNames?.length ? user.companyNames.join(" • ") : user.role,
+                    createdAt: user.createdAt,
+                    tags: [user.role],
+                  }))}
+                />
+              ) : null}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     );

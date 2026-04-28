@@ -338,6 +338,14 @@ export class DashboardService {
         companyActivity,
         crmLeads,
         activeContracts,
+        usersThisMonth,
+        contactsThisMonth,
+        inactivatedCompaniesThisMonth,
+        inactivatedUsersThisMonth,
+        inactivatedContactsThisMonth,
+        recentInactivatedCompanies,
+        recentInactivatedUsers,
+        recentInactivatedContacts,
       ] = await Promise.all([
         canViewCompaniesModule
           ? this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } })
@@ -464,6 +472,26 @@ export class DashboardService {
               select: { totalValue: true },
             }).catch(() => [])
           : Promise.resolve([]),
+        this.prisma.user.count({ where: { ...userBaseWhere, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
+        canViewContactsModule
+          ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { companyLinks: { some: { companyId: { in: scopedContactIds } } }, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } : { createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } })
+          : Promise.resolve(0),
+        canViewCompaniesModule
+          ? this.prisma.company.count({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] }, updatedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } })
+          : Promise.resolve(0),
+        this.prisma.user.count({ where: { ...userBaseWhere, isActive: false, updatedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
+        canViewContactsModule
+          ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { status: 'ARCHIVED', companyLinks: { some: { companyId: { in: scopedContactIds } } }, updatedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } : { status: 'ARCHIVED', updatedAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } })
+          : Promise.resolve(0),
+        canViewCompaniesModule
+          ? this.prisma.company.findMany({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] } }, orderBy: { updatedAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } })
+          : Promise.resolve([]),
+        canViewUsersModule
+          ? this.prisma.user.findMany({ where: { ...userBaseWhere, isActive: false }, orderBy: [{ updatedAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, role: true, createdAt: true, memberships: { orderBy: [{ createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } })
+          : Promise.resolve([]),
+        canViewContactsModule
+          ? (this.prisma as any).companyContact.findMany({ where: scopedContactIds ? { status: 'ARCHIVED', companyLinks: { some: { companyId: { in: scopedContactIds } } } } : { status: 'ARCHIVED' }, orderBy: [{ updatedAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, whatsapp: true, createdAt: true, companyLinks: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } })
+          : Promise.resolve([]),
       ]);
 
       let ticketWarning: string | undefined;
@@ -494,19 +522,19 @@ export class DashboardService {
           ? ticketsResponse.statusCounts.open + ticketsResponse.statusCounts.pending
           : normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').length;
 
-      const companies = recentCompanies.map((company) => ({
+      const mapCompany = (company: any) => ({
         id: company.id,
         razaoSocial: company.razaoSocial,
         nomeFantasia: company.nomeFantasia,
         cnpj: company.cnpj,
         status: company.status,
         createdAt: company.createdAt.toISOString(),
-        membershipsCount: company._count.memberships,
-        contactsCount: company.contactLinks.length,
-        cidade: company.addresses[0]?.cidade ?? null,
-        estado: company.addresses[0]?.estado ?? null,
-      }));
-      const contacts = recentContacts.map((contact: any) => ({
+        membershipsCount: company._count?.memberships ?? 0,
+        contactsCount: company.contactLinks?.length ?? 0,
+        cidade: company.addresses?.[0]?.cidade ?? null,
+        estado: company.addresses?.[0]?.estado ?? null,
+      });
+      const mapContact = (contact: any) => ({
         id: contact.id,
         name: contact.name,
         email: contact.email ?? null,
@@ -516,11 +544,12 @@ export class DashboardService {
           new Set(
             (contact.companyLinks ?? [])
               .map((link: any) => link.company?.nomeFantasia || link.company?.razaoSocial)
-              .filter(Boolean),
+              .filter(Boolean) as string[],
           ),
         ),
-      }));
-      const users = recentUsers.map((user) => ({
+      });
+
+      const mapUser = (user: any) => ({
         id: user.id,
         name: user.name?.trim() || user.email,
         email: user.email,
@@ -530,10 +559,18 @@ export class DashboardService {
           new Set(
             (user.memberships ?? [])
               .map((membership: any) => membership.company?.nomeFantasia || membership.company?.razaoSocial)
-              .filter(Boolean),
+              .filter(Boolean) as string[],
           ),
         ),
-      }));
+      });
+
+      const companies = recentCompanies.map(mapCompany);
+      const contacts = recentContacts.map(mapContact);
+      const users = recentUsers.map(mapUser);
+      
+      const inactCompanies = recentInactivatedCompanies.map(mapCompany);
+      const inactContacts = recentInactivatedContacts.map(mapContact);
+      const inactUsers = recentInactivatedUsers.map(mapUser);
 
       const sefazStatuses = sefazRecords.map((record) => ({
         uf: record.uf,
@@ -572,6 +609,26 @@ export class DashboardService {
                 totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
               }
             : undefined,
+          cadastros: {
+            companies: {
+              total: companiesCount,
+              registeredThisMonth: companiesThisMonth,
+              inactivatedThisMonth: inactivatedCompaniesThisMonth,
+            },
+            contacts: {
+              total: contactsCount,
+              registeredThisMonth: contactsThisMonth,
+              inactivatedThisMonth: inactivatedContactsThisMonth,
+            },
+            users: {
+              total: usersCount,
+              registeredThisMonth: usersThisMonth,
+              inactivatedThisMonth: inactivatedUsersThisMonth,
+            },
+            recentInactivatedCompanies: inactCompanies,
+            recentInactivatedContacts: inactContacts,
+            recentInactivatedUsers: inactUsers,
+          },
         },
       };
     }
