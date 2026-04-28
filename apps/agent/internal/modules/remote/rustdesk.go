@@ -750,9 +750,18 @@ func (m *rustDeskManager) ensureVerificationMethodUsesBothPasswords() error {
 			continue
 		}
 
-		if err := upsertRustDeskConfigValue(path, "verification-method", "use-both-passwords"); err != nil {
-			lastErr = err
-			continue
+		settings := []struct {
+			key   string
+			value string
+		}{
+			{key: "approve-mode", value: "password"},
+			{key: "verification-method", value: "use-both-passwords"},
+		}
+		for _, setting := range settings {
+			if err := upsertRustDeskConfigValue(path, setting.key, setting.value); err != nil {
+				lastErr = err
+				continue
+			}
 		}
 		updated++
 	}

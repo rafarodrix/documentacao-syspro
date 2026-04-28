@@ -127,6 +127,43 @@ func TestUpsertRustDeskConfigValueAppendsMissingKey(t *testing.T) {
 	}
 }
 
+func TestRustDeskDualPasswordSettingsCanBePersisted(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "id = '123456789'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	settings := []struct {
+		key   string
+		value string
+	}{
+		{key: "approve-mode", value: "password"},
+		{key: "verification-method", value: "use-both-passwords"},
+	}
+	for _, setting := range settings {
+		if err := upsertRustDeskConfigValue(path, setting.key, setting.value); err != nil {
+			t.Fatalf("upsert %s: %v", setting.key, err)
+		}
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+
+	got := string(data)
+	if !strings.Contains(got, "approve-mode = 'password'") {
+		t.Fatalf("expected approve-mode=password, got %q", got)
+	}
+	if !strings.Contains(got, "verification-method = 'use-both-passwords'") {
+		t.Fatalf("expected verification-method use-both-passwords, got %q", got)
+	}
+}
+
 func TestRustDeskConfigBoolValue(t *testing.T) {
 	t.Parallel()
 
