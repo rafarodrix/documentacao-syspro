@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, KeyboardEvent, ReactNode, SyntheticEvent } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import { TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ function handleRecordKeyDown(event: KeyboardEvent<HTMLElement>, enabled: boolean
   onOpen();
 }
 
-export function stopRecordClick(event: SyntheticEvent) {
+export function stopRecordClick(event: Pick<Event, "stopPropagation">) {
   event.stopPropagation();
 }
 

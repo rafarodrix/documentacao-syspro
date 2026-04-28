@@ -48,6 +48,10 @@ export default function GeneralSettingsForm() {
         defaultValues,
         mode: "onChange"
     });
+    const companyInactivationReasons =
+        form.watch("preferences.companyInactivationReasons") ?? DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS;
+    const contractBlockReasons =
+        form.watch("preferences.contractBlockReasons") ?? DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS;
 
     // Carregar dados iniciais
     useEffect(() => {
@@ -250,7 +254,7 @@ export default function GeneralSettingsForm() {
                         <ReasonOptionsEditor
                             title="Motivos de inativacao de empresa"
                             description="Usados na inativacao em cascata de empresa."
-                            options={form.watch("preferences.companyInactivationReasons")}
+                            options={companyInactivationReasons}
                             inputPrefix="company-reason"
                             onChange={(next) => {
                                 form.setValue("preferences.companyInactivationReasons", next, {
@@ -263,7 +267,7 @@ export default function GeneralSettingsForm() {
                         <ReasonOptionsEditor
                             title="Motivos de bloqueio contratual"
                             description="Usados ao suspender contrato e refletir no restante do portal."
-                            options={form.watch("preferences.contractBlockReasons")}
+                            options={contractBlockReasons}
                             inputPrefix="contract-reason"
                             onChange={(next) => {
                                 form.setValue("preferences.contractBlockReasons", next, {
@@ -282,7 +286,7 @@ export default function GeneralSettingsForm() {
                     type="submit"
                     size="lg"
                     disabled={isSaving || !form.formState.isDirty}
-                    className="shadow-xl shadow-primary/20 min-w-[160px] transition-all hover:scale-[1.02]"
+                    className="shadow-xl shadow-primary/20 min-w-40 transition-all hover:scale-[1.02]"
                 >
                     {isSaving ? (
                         <>

@@ -7,8 +7,8 @@ import { Switch } from "@/components/ui/switch";
 type ReasonOption = {
   key: string;
   label: string;
-  isActive: boolean;
-  requiresDetails: boolean;
+  isActive?: boolean;
+  requiresDetails?: boolean;
 };
 
 interface ReasonOptionsEditorProps<T extends ReasonOption> {
@@ -26,6 +26,15 @@ export function ReasonOptionsEditor<T extends ReasonOption>({
   inputPrefix,
   onChange,
 }: ReasonOptionsEditorProps<T>) {
+  const updateOption = (index: number, updater: (current: T) => T) => {
+    const next = options.map((option, optionIndex) => {
+      if (optionIndex !== index) return option;
+      return updater(option);
+    });
+
+    onChange(next);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -49,11 +58,12 @@ export function ReasonOptionsEditor<T extends ReasonOption>({
               <Input
                 id={`${inputPrefix}-${reason.key}`}
                 value={reason.label}
-                onChange={(event) => {
-                  const next = [...options];
-                  next[index] = { ...next[index], label: event.target.value };
-                  onChange(next);
-                }}
+                onChange={(event) =>
+                  updateOption(index, (current) => ({
+                    ...current,
+                    label: event.target.value,
+                  }))
+                }
               />
             </div>
 
@@ -64,12 +74,13 @@ export function ReasonOptionsEditor<T extends ReasonOption>({
                   <p className="text-[11px] text-muted-foreground">Exibir no modulo</p>
                 </div>
                 <Switch
-                  checked={reason.isActive}
-                  onCheckedChange={(checked) => {
-                    const next = [...options];
-                    next[index] = { ...next[index], isActive: checked };
-                    onChange(next);
-                  }}
+                  checked={Boolean(reason.isActive)}
+                  onCheckedChange={(checked) =>
+                    updateOption(index, (current) => ({
+                      ...current,
+                      isActive: checked,
+                    }))
+                  }
                 />
               </div>
 
@@ -79,12 +90,13 @@ export function ReasonOptionsEditor<T extends ReasonOption>({
                   <p className="text-[11px] text-muted-foreground">Campo complementar obrigatorio</p>
                 </div>
                 <Switch
-                  checked={reason.requiresDetails}
-                  onCheckedChange={(checked) => {
-                    const next = [...options];
-                    next[index] = { ...next[index], requiresDetails: checked };
-                    onChange(next);
-                  }}
+                  checked={Boolean(reason.requiresDetails)}
+                  onCheckedChange={(checked) =>
+                    updateOption(index, (current) => ({
+                      ...current,
+                      requiresDetails: checked,
+                    }))
+                  }
                 />
               </div>
             </div>
