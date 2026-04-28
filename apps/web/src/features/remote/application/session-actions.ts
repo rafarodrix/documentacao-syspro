@@ -6,6 +6,25 @@ import { currentUserHasPermission } from "@/features/user-access/application/cur
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://suporte.trilink.com.br";
 
+type RemoteActionErrorPayload = {
+  message?: string;
+  error?: string;
+  code?: string;
+  data?: unknown;
+  httpStatus?: number;
+};
+
+class RemoteSessionActionError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+    readonly data?: unknown,
+    readonly httpStatus?: number,
+  ) {
+    super(message);
+  }
+}
+
 async function postJson<T>(url: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
@@ -14,11 +33,37 @@ async function postJson<T>(url: string, body?: unknown): Promise<T> {
     cache: "no-store",
   });
 
-  const payload = await response.json().catch(() => null);
+  const payload = (await response.json().catch(() => null)) as RemoteActionErrorPayload | null;
   if (!response.ok) {
-    throw new Error(payload?.error ?? payload?.message ?? "Falha ao processar sessao remota.");
+    throw new RemoteSessionActionError(
+      payload?.error ?? payload?.message ?? "Falha ao processar sessao remota.",
+      payload?.code,
+      payload?.data,
+      payload?.httpStatus ?? response.status,
+    );
   }
   return payload as T;
+}
+
+type RemoteSessionRecord = {
+  id: string;
+  status?: string | null;
+};
+
+function readSessionRecord(value: unknown): RemoteSessionRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const id = "id" in value ? String((value as { id?: unknown }).id ?? "").trim() : "";
+  if (!id) return null;
+  const status =
+    "status" in value && typeof (value as { status?: unknown }).status === "string"
+      ? String((value as { status?: string }).status)
+      : null;
+  return { id, status };
+}
+
+async function ensureStartedSession(sessionId: string) {
+  const result = await postJson<{ success: true; data: RemoteSessionRecord }>(`/api/remote/sessions/${sessionId}/start`);
+  return result.data;
 }
 
 export async function requestRemoteSessionAction(input: {
@@ -38,18 +83,47 @@ export async function requestRemoteSessionAction(input: {
   }
 
   try {
-    const result = await postJson<{ success: true; data: { id: string } }>("/api/remote/sessions", input);
+    const created = await postJson<{ success: true; data: RemoteSessionRecord }>("/api/remote/sessions", input);
+    const started = await ensureStartedSession(created.data.id);
 
     revalidatePath("/portal/plataforma-remota/sessoes");
     revalidatePath(`/portal/plataforma-remota/hosts/${input.hostId}`);
 
     return {
       success: true,
-      data: result.data,
-      deepLink: `rustdesk://${result.data.id}`,
+      data: started,
+      deepLink: `rustdesk://${started.id}`,
       appUrl: APP_URL,
     };
   } catch (error) {
+    if (error instanceof RemoteSessionActionError && error.code === "SESSION_DUPLICATE_OPEN") {
+      const existingSession = readSessionRecord(error.data);
+      if (existingSession) {
+        try {
+          const activeSession =
+            existingSession.status === "REQUESTED"
+              ? await ensureStartedSession(existingSession.id)
+              : existingSession;
+
+          revalidatePath("/portal/plataforma-remota/sessoes");
+          revalidatePath(`/portal/plataforma-remota/hosts/${input.hostId}`);
+
+          return {
+            success: true,
+            data: activeSession,
+            deepLink: `rustdesk://${activeSession.id}`,
+            appUrl: APP_URL,
+            reused: true,
+          };
+        } catch (startError) {
+          return {
+            success: false,
+            error: startError instanceof Error ? startError.message : "Falha ao reutilizar sessao aberta.",
+          };
+        }
+      }
+    }
+
     return { success: false, error: error instanceof Error ? error.message : "Falha ao solicitar sessao" };
   }
 }
