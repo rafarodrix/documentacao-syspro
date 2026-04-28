@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { Activity, BarChart3, Cpu, Monitor, Network } from "lucide-react";
+import { Activity, BarChart3, Cpu, Monitor } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/queries";
 import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
@@ -195,50 +194,46 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Card className="border-border/50 bg-background/70 shadow-sm">
-        <CardContent className="space-y-5 p-5">
-          <div className="flex flex-col gap-3">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-              <Network className="h-3.5 w-3.5" />
-              Infraestrutura
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Hosts, sessoes, relatorios e agentes</h1>
-              <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-                Entrada unica para a operacao remota do portal. A infraestrutura fica centralizada aqui, com subabas por contexto.
-              </p>
-            </div>
-          </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 space-y-5 pb-8 duration-700">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Infraestrutura</h1>
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">
+            Centralize hosts, sessoes remotas, relatorios operacionais e agentes em uma unica rota.
+          </p>
+        </div>
+      </div>
 
-          <div className="grid gap-2 rounded-xl border border-border/50 bg-muted/20 p-1 sm:grid-cols-2 xl:grid-cols-4">
-            {availableTabs.map((tab) => {
-              const meta = TAB_META[tab];
-              const Icon = meta.icon;
-              const href = buildTabHref(tab, tabParams);
-              const isActive = activeTab === tab;
-              return (
-                <Link
-                  key={tab}
-                  href={href}
-                  className={cn(
-                    "rounded-lg border px-4 py-3 text-left transition-colors",
-                    isActive
-                      ? "border-primary/20 bg-background text-foreground shadow-sm"
-                      : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-background/70 hover:text-foreground",
-                  )}
-                >
-                  <div className="flex items-center gap-2 text-sm font-semibold">
+      <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max rounded-md bg-muted/40 p-1">
+              {availableTabs.map((tab) => {
+                const meta = TAB_META[tab];
+                const Icon = meta.icon;
+                const href = buildTabHref(tab, tabParams);
+                const isActive = activeTab === tab;
+                return (
+                  <Link
+                    key={tab}
+                    href={href}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
                     <Icon className="h-4 w-4" />
                     {meta.label}
-                  </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{meta.description}</p>
-                </Link>
-              );
-            })}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <p className="px-1 text-sm text-muted-foreground">{TAB_META[activeTab].description}</p>
+        </div>
+      </section>
 
       {content}
     </div>

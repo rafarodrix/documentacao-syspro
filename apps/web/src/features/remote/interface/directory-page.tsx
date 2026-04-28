@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Copy,
   ExternalLink,
-  Monitor,
   Plus,
   Search,
   ShieldCheck,
@@ -14,7 +13,6 @@ import {
   X,
   Activity,
   Zap,
-  LayoutDashboard,
   Filter,
   Cpu,
   Building2,
