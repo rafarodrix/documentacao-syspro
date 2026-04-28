@@ -1,6 +1,11 @@
 "use server";
 
-import type { CompanyStatusValue, CreateCompanyInput, CreateCompanyOutput } from "@dosc-syspro/contracts/company";
+import type {
+  CompanyInactivationReasonValue,
+  CompanyStatusValue,
+  CreateCompanyInput,
+  CreateCompanyOutput,
+} from "@dosc-syspro/contracts/company";
 import { callWebApi } from "@/lib/web-api";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
@@ -83,11 +88,16 @@ export async function updateCompanyAction(
   }
 }
 
-export async function updateCompanyStatusAction(id: string, status: CompanyStatusValue): Promise<ActionResponse> {
+export async function updateCompanyStatusAction(
+  id: string,
+  status: CompanyStatusValue,
+  reason?: CompanyInactivationReasonValue | null,
+  details?: string | null,
+): Promise<ActionResponse> {
   try {
     const response = await apiRequest(`/companies/${encodeURIComponent(id)}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, reason: reason ?? null, details: details ?? null }),
     });
 
     const result = await parseActionResponse(response, "Erro ao atualizar status da empresa.");

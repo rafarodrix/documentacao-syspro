@@ -9,6 +9,20 @@ export {
 } from "./config/contract-blocking";
 export type { ContractBlockReason } from "./config/contract-blocking";
 export {
+  ENTITY_INACTIVATION_MARKER,
+  ENTITY_INACTIVATION_REASON_VALUES,
+  ENTITY_INACTIVATION_REASON_LABEL,
+  serializeEntityInactivationMetadata,
+  parseEntityInactivationMetadata,
+  appendEntityInactivationMetadata,
+  removeEntityInactivationMetadata,
+} from "./config/entity-inactivation";
+export type {
+  EntityInactivationReason,
+  EntityInactivationMetadata,
+  EntityInactivationTargetType,
+} from "./config/entity-inactivation";
+export {
   APP_ROLES,
   SYSTEM_ROLES,
   CLIENT_ROLES,

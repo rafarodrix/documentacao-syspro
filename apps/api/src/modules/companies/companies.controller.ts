@@ -1,7 +1,13 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { CompanySegment, CompanyStatus } from '@prisma/client';
-import { companyListQuerySchema, type CreateCompanyInput, type CreateCompanyOutput } from '@dosc-syspro/contracts/company';
+import { CompanySegment } from '@prisma/client';
+import {
+  companyListQuerySchema,
+  companyStatusUpdateSchema,
+  type CompanyStatusUpdateInput,
+  type CreateCompanyInput,
+  type CreateCompanyOutput,
+} from '@dosc-syspro/contracts/company';
 import type { ZodType } from 'zod';
 import { CompaniesService } from './companies.service';
 
@@ -82,8 +88,9 @@ export class CompaniesController {
   }
 
   @Patch(':id/status')
-  updateStatus(@Req() req: Request, @Param('id') id: string, @Body('status') status: CompanyStatus) {
-    return this.companiesService.updateCompanyStatus(id, status, req.headers);
+  updateStatus(@Req() req: Request, @Param('id') id: string, @Body() body: CompanyStatusUpdateInput) {
+    const input = this.parseOrThrow(companyStatusUpdateSchema, body);
+    return this.companiesService.updateCompanyStatus(id, input, req.headers);
   }
 
   @Delete(':id')

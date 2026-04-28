@@ -4,7 +4,15 @@ import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CompanyStatus } from "@prisma/client"
-import { companyListResponseSchema, type CompanyListResponse } from "@dosc-syspro/contracts/company"
+import {
+  companyListResponseSchema,
+  type CompanyInactivationReasonValue,
+  type CompanyListResponse,
+} from "@dosc-syspro/contracts/company"
+import {
+  DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
+  type CompanyInactivationReasonOption,
+} from "@dosc-syspro/contracts/settings"
 import { toast } from "sonner"
 import {
   Table,
@@ -15,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
 import {
   DropdownMenu,
@@ -26,6 +35,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/types"
@@ -43,6 +55,7 @@ import {
 } from "@/components/platform/shared/RegistryListScaffold"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
+import { fetchSettingsPreferences } from "@/features/settings/application/preferences"
 
 interface CompanyTabProps {
   data: CompanyListItem[]
@@ -58,6 +71,8 @@ interface CompanyTabProps {
 const formatCNPJ = (cnpj: string) => cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
 const COMPANY_NAME_COLLATOR = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true })
 const COMPANIES_PAGE_SIZE = 50
+const DEFAULT_INACTIVATION_REASON: CompanyInactivationReasonValue =
+  DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS[0]?.key ?? "SOLICITACAO_CLIENTE"
 
 const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: string }> = {
   ACTIVE: {
@@ -164,7 +179,13 @@ function CompanyActionsMenu({
         )}
 
         {canToggleStatus && (
-          <DropdownMenuItem className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md" onClick={onToggleStatus}>
+          <DropdownMenuItem
+            className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
+            onSelect={(event) => {
+              stopRecordClick(event)
+              onToggleStatus()
+            }}
+          >
             <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-sm">{company.status === "INACTIVE" ? "Reativar empresa" : "Inativar empresa"}</span>
           </DropdownMenuItem>
@@ -176,7 +197,10 @@ function CompanyActionsMenu({
 
             <DropdownMenuItem
               className="gap-2.5 cursor-pointer rounded-md text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
-              onClick={onDelete}
+              onSelect={(event) => {
+                stopRecordClick(event)
+                onDelete()
+              }}
             >
               <X className="h-3.5 w-3.5" />
               <span className="text-sm font-medium">Excluir empresa</span>
@@ -221,6 +245,11 @@ export function CompanyTab({
     | { type: "delete" | "status"; company: CompanyListItem }
     | null
   >(null)
+  const [inactivationReason, setInactivationReason] = useState<CompanyInactivationReasonValue>(DEFAULT_INACTIVATION_REASON)
+  const [inactivationDetails, setInactivationDetails] = useState("")
+  const [companyReasonOptions, setCompanyReasonOptions] = useState<CompanyInactivationReasonOption[]>(
+    DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
+  )
 
   useEffect(() => {
     setItems(data)
@@ -239,6 +268,28 @@ export function CompanyTab({
   useEffect(() => {
     setFilterStatus(initialStatusFilter)
   }, [initialStatusFilter])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadSettingsPreferences() {
+      const preferences = await fetchSettingsPreferences()
+      if (!active || !preferences) return
+
+      const activeReasons = preferences.companyInactivationReasons.filter((item) => item.isActive)
+      if (activeReasons.length) {
+        setCompanyReasonOptions(activeReasons)
+        if (!activeReasons.some((item) => item.key === inactivationReason)) {
+          setInactivationReason(activeReasons[0].key)
+        }
+      }
+    }
+
+    void loadSettingsPreferences()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const filteredData = useMemo(() => {
     const filtered = items.filter((company) => {
@@ -327,11 +378,18 @@ export function CompanyTab({
     setLoadingId(company.id)
     try {
       const nextStatus = company.status === "INACTIVE" ? CompanyStatus.ACTIVE : CompanyStatus.INACTIVE
-      const result = await updateCompanyStatusAction(company.id, nextStatus)
+      const result = await updateCompanyStatusAction(
+        company.id,
+        nextStatus,
+        nextStatus === CompanyStatus.INACTIVE ? inactivationReason : null,
+        nextStatus === CompanyStatus.INACTIVE ? inactivationDetails : null,
+      )
       if (result.success) {
         toast.success(result.message ?? "Status atualizado")
         setFeedback({ type: "success", message: result.message ?? "Status atualizado com sucesso." })
         setItems((prev) => prev.map((c) => (c.id === company.id ? { ...c, status: nextStatus } : c)))
+        setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+        setInactivationDetails("")
       } else {
         toast.error(result.message ?? "Falha ao atualizar status")
         setFeedback({ type: "error", message: result.message ?? "Falha ao atualizar status." })
@@ -364,38 +422,142 @@ export function CompanyTab({
     router.push(`/portal/cadastros/empresa/${company.id}/editar`)
   }
 
+  const selectedInactivationReason = companyReasonOptions.find((item) => item.key === inactivationReason) ?? null
+  const requiresInactivationDetails = selectedInactivationReason?.requiresDetails ?? false
+
   return (
     <>
       <ConfirmActionDialog
-        open={!!confirmDialog}
+        open={confirmDialog?.type === "delete"}
         onOpenChange={(open) => (!open ? setConfirmDialog(null) : undefined)}
-        title={
-          confirmDialog?.type === "delete"
-            ? "Confirmar exclusao da empresa"
-            : "Confirmar alteracao de status"
-        }
+        title="Confirmar exclusao da empresa"
         description={
-          confirmDialog
-            ? confirmDialog.type === "delete"
-              ? `Deseja excluir a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}? Essa acao e irreversivel.`
-              : confirmDialog.company.status === "INACTIVE"
-                ? `Deseja reativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}?`
-                : `Deseja inativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}? ${confirmDialog.company._count?.memberships ?? confirmDialog.company.usersCount ?? 0} usuarios poderao perder acesso.`
+          confirmDialog?.type === "delete"
+            ? `Deseja excluir a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}? Essa acao e irreversivel.`
             : ""
         }
-        confirmLabel={confirmDialog?.type === "delete" ? "Excluir empresa" : "Confirmar"}
-        isLoading={!!confirmDialog?.company && loadingId === confirmDialog.company.id}
-        variant={confirmDialog?.type === "delete" ? "danger" : "default"}
+        confirmLabel="Excluir empresa"
+        isLoading={confirmDialog?.type === "delete" ? loadingId === confirmDialog.company.id : false}
+        variant="danger"
         onConfirm={async () => {
-          if (!confirmDialog) return
-          if (confirmDialog.type === "delete") {
-            await handleDelete(confirmDialog.company)
-          } else {
-            await handleToggleStatus(confirmDialog.company)
-          }
+          if (!confirmDialog || confirmDialog.type !== "delete") return
+          await handleDelete(confirmDialog.company)
           setConfirmDialog(null)
         }}
       />
+
+      <Dialog
+        open={confirmDialog?.type === "status"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDialog(null)
+            setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+            setInactivationDetails("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDialog?.type === "status" && confirmDialog.company.status === "INACTIVE"
+                ? "Reativar empresa"
+                : "Inativar empresa"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog?.type === "status"
+                ? confirmDialog.company.status === "INACTIVE"
+                  ? `A reativacao pode restaurar contratos, contatos e usuarios que foram inativados exclusivamente por esta empresa.`
+                  : `A inativacao da empresa sera aplicada em cascata: contratos serao suspensos, contatos exclusivos serao arquivados e usuarios exclusivos serao desativados.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {confirmDialog?.type === "status" && confirmDialog.company.status !== "INACTIVE" ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
+                Empresa: <span className="font-medium text-foreground">{confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}</span>
+                <br />
+                Usuarios vinculados: <span className="font-medium text-foreground">{confirmDialog.company._count?.memberships ?? confirmDialog.company.usersCount ?? 0}</span>
+                <br />
+                Contatos vinculados: <span className="font-medium text-foreground">{confirmDialog.company._count?.contactLinks ?? confirmDialog.company.contactsCount ?? 0}</span>
+                <br />
+                Contratos vinculados: <span className="font-medium text-foreground">{confirmDialog.company._count?.contracts ?? 0}</span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company-inactivation-reason">Motivo global da inativacao</Label>
+                <Select
+                  value={inactivationReason}
+                  onValueChange={(value) => setInactivationReason(value as CompanyInactivationReasonValue)}
+                >
+                  <SelectTrigger id="company-inactivation-reason">
+                    <SelectValue placeholder="Selecione o motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyReasonOptions.map((reason) => (
+                      <SelectItem key={reason.key} value={reason.key}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company-inactivation-details">
+                  {requiresInactivationDetails ? "Detalhes obrigatorios" : "Detalhes adicionais"}
+                </Label>
+                <Input
+                  id="company-inactivation-details"
+                  value={inactivationDetails}
+                  onChange={(event) => setInactivationDetails(event.target.value)}
+                  placeholder="Descreva o contexto da inativacao"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm text-muted-foreground">
+              {confirmDialog?.type === "status"
+                ? `Deseja reativar a empresa ${confirmDialog.company.nomeFantasia || confirmDialog.company.razaoSocial}?`
+                : ""}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setConfirmDialog(null)
+                setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+                setInactivationDetails("")
+              }}
+              disabled={confirmDialog?.type === "status" ? loadingId === confirmDialog.company.id : false}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={async () => {
+                if (!confirmDialog || confirmDialog.type !== "status") return
+                if (confirmDialog.company.status !== "INACTIVE" && !inactivationReason) {
+                  toast.error("Informe o motivo da inativacao.")
+                  return
+                }
+                if (confirmDialog.company.status !== "INACTIVE" && requiresInactivationDetails && !inactivationDetails.trim()) {
+                  toast.error("Descreva o motivo da inativacao.")
+                  return
+                }
+                await handleToggleStatus(confirmDialog.company)
+                setConfirmDialog(null)
+              }}
+              disabled={confirmDialog?.type === "status" ? loadingId === confirmDialog.company.id : false}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
@@ -484,7 +646,11 @@ export function CompanyTab({
                         canToggleStatus={canToggleStatus}
                         canDelete={canDelete}
                         isLoading={loadingId === company.id}
-                        onToggleStatus={() => setConfirmDialog({ type: "status", company })}
+                        onToggleStatus={() => {
+                          setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+                          setInactivationDetails("")
+                          setConfirmDialog({ type: "status", company })
+                        }}
                         onDelete={() => setConfirmDialog({ type: "delete", company })}
                       />
                     </div>
@@ -638,7 +804,11 @@ export function CompanyTab({
                           canToggleStatus={canToggleStatus}
                           canDelete={canDelete}
                           isLoading={loadingId === company.id}
-                          onToggleStatus={() => setConfirmDialog({ type: "status", company })}
+                          onToggleStatus={() => {
+                            setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+                            setInactivationDetails("")
+                            setConfirmDialog({ type: "status", company })
+                          }}
                           onDelete={() => setConfirmDialog({ type: "delete", company })}
                         />
                       </TableCell>

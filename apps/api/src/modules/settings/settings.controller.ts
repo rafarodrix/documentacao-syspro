@@ -23,9 +23,12 @@ import {
   type RemoteModuleSettingsInput,
 } from '@dosc-syspro/contracts/remote';
 import {
+  DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
+  DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
   type SettingsContractsAdminView,
   SETTING_KEYS,
   settingsSchema,
+  settingsPreferencesSchema,
   settingsAccessProfileUpsertSchema,
   settingsPermissionsMatrixVisibilityUpdateSchema,
   settingsUserAccessProfileCreateSchema,
@@ -69,6 +72,10 @@ export class SettingsController {
     supportEmail: 'equipe@trilinksoftware.com.br',
     supportPhone: '34997713731',
     rbacMatrixEnabled: true,
+    preferences: {
+      companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
+      contractBlockReasons: DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    },
   };
   private readonly logger = new Logger(SettingsController.name);
   private static readonly TICKETS_SETTINGS_KEY = 'tickets.module.settings';
@@ -91,7 +98,7 @@ export class SettingsController {
     const settings = await this.prisma.systemSetting.findMany({
       where: {
         key: {
-          in: ['minimumWage', 'maintenanceMode', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled'],
+          in: ['minimumWage', 'maintenanceMode', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled', SETTING_KEYS.PREFERENCES],
         },
       },
     });
@@ -107,6 +114,7 @@ export class SettingsController {
       supportEmail: configMap.supportEmail,
       supportPhone: configMap.supportPhone,
       rbacMatrixEnabled: configMap.rbacMatrixEnabled,
+      preferences: configMap[SETTING_KEYS.PREFERENCES],
     };
 
     const normalizedData = this.normalizeGeneralSettings(rawData);
@@ -130,10 +138,13 @@ export class SettingsController {
     supportEmail?: string;
     supportPhone?: string;
     rbacMatrixEnabled?: string;
+    preferences?: string;
   }): SettingsOutput {
     const parsedMinimumWage = Number(input.minimumWage);
     const normalizedPhone = this.normalizeDigits(input.supportPhone);
     const normalizedEmail = (input.supportEmail ?? '').trim();
+
+    const parsedPreferences = settingsPreferencesSchema.safeParse(this.parseJsonSetting(input.preferences));
 
     return {
       minimumWage:
@@ -144,6 +155,9 @@ export class SettingsController {
       supportEmail: normalizedEmail || SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
       supportPhone: normalizedPhone || SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
       rbacMatrixEnabled: input.rbacMatrixEnabled !== 'false',
+      preferences: parsedPreferences.success
+        ? parsedPreferences.data
+        : SettingsController.DEFAULT_GENERAL_SETTINGS.preferences,
     };
   }
 
@@ -153,6 +167,7 @@ export class SettingsController {
     supportEmail: string;
     supportPhone: string;
     rbacMatrixEnabled: boolean;
+    preferences: SettingsOutput["preferences"];
   }): SettingsOutput {
     const supportEmailValidation = settingsSchema.shape.supportEmail.safeParse(input.supportEmail);
     const supportPhoneValidation = settingsSchema.shape.supportPhone.safeParse(this.normalizeDigits(input.supportPhone));
@@ -169,11 +184,23 @@ export class SettingsController {
         ? supportPhoneValidation.data
         : SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
       rbacMatrixEnabled: input.rbacMatrixEnabled,
+      preferences: settingsPreferencesSchema.safeParse(input.preferences).success
+        ? input.preferences
+        : SettingsController.DEFAULT_GENERAL_SETTINGS.preferences,
     };
   }
 
   private normalizeDigits(value?: string): string {
     return (value ?? '').replace(/\D+/g, '');
+  }
+
+  private parseJsonSetting(value?: string) {
+    if (!value?.trim()) return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
   }
 
   @Put('general')
@@ -206,6 +233,15 @@ export class SettingsController {
         where: { key: 'rbacMatrixEnabled' },
         update: { value: String(parsed.rbacMatrixEnabled) },
         create: { key: 'rbacMatrixEnabled', value: String(parsed.rbacMatrixEnabled), description: 'Visibilidade da matriz RBAC' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: SETTING_KEYS.PREFERENCES },
+        update: { value: JSON.stringify(parsed.preferences) },
+        create: {
+          key: SETTING_KEYS.PREFERENCES,
+          value: JSON.stringify(parsed.preferences),
+          description: 'Preferencias globais e catalogos centralizados de motivos',
+        },
       }),
     ]);
 

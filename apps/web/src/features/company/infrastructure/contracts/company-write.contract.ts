@@ -1,4 +1,8 @@
-import type { CompanyStatusValue, CreateCompanyInput } from "@dosc-syspro/contracts/company";
+import type {
+  CompanyInactivationReasonValue,
+  CompanyStatusValue,
+  CreateCompanyInput,
+} from "@dosc-syspro/contracts/company";
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
@@ -10,6 +14,11 @@ export interface CompanyWriteContract {
   ): Promise<CompanyActionResponse<CompanyRegistryLookupResponse>>;
   createCompany(data: CreateCompanyInput): Promise<CompanyActionResponse>;
   updateCompany(id: string, data: CreateCompanyInput): Promise<CompanyActionResponse>;
-  updateCompanyStatus(id: string, status: CompanyStatusValue): Promise<CompanyActionResponse>;
+  updateCompanyStatus(
+    id: string,
+    status: CompanyStatusValue,
+    reason?: CompanyInactivationReasonValue | null,
+    details?: string | null,
+  ): Promise<CompanyActionResponse>;
   deleteCompany(id: string): Promise<CompanyActionResponse>;
 }

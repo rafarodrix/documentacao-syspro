@@ -4,9 +4,16 @@ import { useState, useTransition, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { settingsSchema, type SettingsInput, type SettingsOutput } from "@dosc-syspro/contracts/settings";
+import {
+    DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
+    DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    settingsSchema,
+    type SettingsInput,
+    type SettingsOutput,
+} from "@dosc-syspro/contracts/settings";
 import { updateSettingsAction } from "@/features/settings/application/actions";
 import { getSettingsAction } from "@/features/settings/application/queries";
+import { ReasonOptionsEditor } from "@/components/platform/app/settings/ReasonOptionsEditor";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +21,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Loader2, Save, DollarSign, ShieldAlert, Headset, Mail, Phone,
-    Banknote, Lock
+    Banknote, Lock, SlidersHorizontal
 } from "lucide-react";
 
 const defaultValues: SettingsInput = {
@@ -25,6 +33,10 @@ const defaultValues: SettingsInput = {
     supportEmail: "",
     supportPhone: "",
     rbacMatrixEnabled: true,
+    preferences: {
+        companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
+        contractBlockReasons: DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    },
 };
 
 export default function GeneralSettingsForm() {
@@ -85,7 +97,13 @@ export default function GeneralSettingsForm() {
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in duration-500">
+            <Tabs defaultValue="general" className="space-y-6">
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="general">Geral</TabsTrigger>
+                    <TabsTrigger value="preferences">Preferencias</TabsTrigger>
+                </TabsList>
 
+            <TabsContent value="general" className="space-y-6">
             {/* --- SECAO FINANCEIRA --- */}
             <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
                 <CardHeader className="pb-4">
@@ -212,6 +230,52 @@ export default function GeneralSettingsForm() {
                     </div>
                 </CardContent>
             </Card>
+            </TabsContent>
+
+            <TabsContent value="preferences" className="space-y-6">
+                <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-violet-500/10 text-violet-600 border border-violet-500/20">
+                                <SlidersHorizontal className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-lg">Preferencias Globais</CardTitle>
+                                <CardDescription>Centralize catalogos de motivos e rotulos reutilizados pelos modulos.</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <Separator className="bg-border/40" />
+                    <CardContent className="space-y-6 pt-6">
+                        <ReasonOptionsEditor
+                            title="Motivos de inativacao de empresa"
+                            description="Usados na inativacao em cascata de empresa."
+                            options={form.watch("preferences.companyInactivationReasons")}
+                            inputPrefix="company-reason"
+                            onChange={(next) => {
+                                form.setValue("preferences.companyInactivationReasons", next, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
+                        />
+
+                        <ReasonOptionsEditor
+                            title="Motivos de bloqueio contratual"
+                            description="Usados ao suspender contrato e refletir no restante do portal."
+                            options={form.watch("preferences.contractBlockReasons")}
+                            inputPrefix="contract-reason"
+                            onChange={(next) => {
+                                form.setValue("preferences.contractBlockReasons", next, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
+                        />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            </Tabs>
 
             <div className="flex justify-end pt-4 pb-10">
                 <Button

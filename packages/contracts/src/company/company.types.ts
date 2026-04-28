@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { addressSchema } from "../shared/address.types";
 import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
+import { ENTITY_INACTIVATION_REASON_VALUES } from "@dosc-syspro/core";
 
 const emptyToUndefined = z.preprocess(
   (val) => (val === "" || val === null ? undefined : val),
@@ -36,11 +37,13 @@ export const INDICADOR_IE_VALUES = ["CONTRIBUINTE", "ISENTO", "NAO_CONTRIBUINTE"
 export const COMPANY_SERVER_TYPE_VALUES = ["SYSPRO_SERVER", "IIS"] as const;
 export const COMPANY_SERVER_PROTOCOL_VALUES = ["HTTP", "HTTPS"] as const;
 export const COMPANY_REMOTE_CONNECTION_TYPE_VALUES = ["DDNS_NOIP", "RADMIN_VPN"] as const;
+export const COMPANY_INACTIVATION_REASON_VALUES = ENTITY_INACTIVATION_REASON_VALUES;
 
 export type CompanyStatusValue = (typeof COMPANY_STATUS_VALUES)[number];
 export type CompanySegmentValue = (typeof COMPANY_SEGMENT_VALUES)[number];
 export type TaxRegimeValue = (typeof TAX_REGIME_VALUES)[number];
 export type IndicadorIEValue = (typeof INDICADOR_IE_VALUES)[number];
+export type CompanyInactivationReasonValue = (typeof COMPANY_INACTIVATION_REASON_VALUES)[number];
 
 const companyRemoteConnectionSchema = z.object({
   type: z.enum(COMPANY_REMOTE_CONNECTION_TYPE_VALUES),
@@ -207,3 +210,27 @@ export const companyListResponseSchema = z.object({
   items: z.array(companyListItemSchema),
   pagination: paginationMetaSchema,
 });
+
+export const companyStatusUpdateSchema = z.object({
+  status: z.enum(COMPANY_STATUS_VALUES),
+  reason: z.enum(COMPANY_INACTIVATION_REASON_VALUES).nullable().optional(),
+  details: z.string().trim().nullable().optional(),
+}).superRefine((input, ctx) => {
+  if (input.status === "INACTIVE" && !input.reason) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["reason"],
+      message: "Informe o motivo da inativacao.",
+    });
+  }
+
+  if (input.status === "INACTIVE" && input.reason === "OUTROS" && !input.details?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["details"],
+      message: "Descreva o motivo da inativacao.",
+    });
+  }
+});
+
+export type CompanyStatusUpdateInput = z.infer<typeof companyStatusUpdateSchema>;

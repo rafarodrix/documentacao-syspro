@@ -120,7 +120,17 @@ export function CompanyIdentificationTab({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} value={toInputValue(field.value)}>
+                <Select
+                  onValueChange={(value) => {
+                    form.setValue("status", value as CompanyStatus, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                  value={toInputValue(field.value)}
+                  disabled={mode === "edit"}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -131,6 +141,11 @@ export function CompanyIdentificationTab({
                     <SelectItem value={CompanyStatus.INACTIVE}>Inativo</SelectItem>
                   </SelectContent>
                 </Select>
+                {mode === "edit" ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Use a acao de ativar/inativar na listagem da empresa para alterar o status operacional.
+                  </p>
+                ) : null}
                 <FormMessage />
               </FormItem>
             )}

@@ -3,11 +3,19 @@ import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
+  companyStatusUpdateSchema,
+  type CompanyStatusUpdateInput,
   type CompanyListQuery,
   createCompanySchema,
   type CreateCompanyInput,
   type CreateCompanyOutput,
 } from '@dosc-syspro/contracts/company';
+import {
+  appendEntityInactivationMetadata,
+  parseContractBlockReason,
+  parseEntityInactivationMetadata,
+  removeEntityInactivationMetadata,
+} from '@dosc-syspro/core';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { buildCompanySearchWhere } from '../shared/search/domain-search';
@@ -25,15 +33,6 @@ const COMPANY_REGISTRY_TIMEOUT_MS = Number(process.env.COMPANY_REGISTRY_TIMEOUT_
 const COMPANY_REGISTRY_USER_AGENT =
   process.env.COMPANY_REGISTRY_USER_AGENT?.trim() ||
   'TrilinkSoftware/1.0 (+https://ajuda.trilinksoftware.com.br)';
-const CONTRACT_BLOCK_MARKER = '[CONTRACT_BLOCK]';
-const CONTRACT_BLOCK_REASON_LABEL = {
-  EMPRESA_FECHOU: 'Empresa fechou',
-  TROCOU_SISTEMA: 'Trocou de sistema',
-  INADIMPLENCIA: 'Inadimplencia',
-  OUTROS: 'Outros',
-} as const;
-
-type ContractBlockReason = keyof typeof CONTRACT_BLOCK_REASON_LABEL;
 type NormalizedCompanyPartner = {
   name: string;
   qualification?: string;
@@ -42,6 +41,26 @@ type NormalizedCompanyPartner = {
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
+}
+
+function findEntityInactivationMarker(
+  value: string | null | undefined,
+  sourceId: string,
+  targetType: 'company' | 'contract' | 'contact' | 'user',
+) {
+  const entries = String(value ?? '')
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  for (const entry of entries) {
+    const parsed = parseEntityInactivationMetadata(entry);
+    if (parsed?.sourceId === sourceId && parsed.targetType === targetType) {
+      return parsed;
+    }
+  }
+
+  return null;
 }
 
 function firstString(...values: unknown[]) {
@@ -199,20 +218,6 @@ function normalizeRegistryPayload(payload: unknown, fallbackCnpj: string) {
   };
 }
 
-function parseContractBlockReason(notes: string | null | undefined) {
-  if (!notes || !notes.startsWith(CONTRACT_BLOCK_MARKER)) return null;
-
-  const payload = notes.slice(CONTRACT_BLOCK_MARKER.length);
-  const [rawReason, rawDetails = ''] = payload.split('|');
-  if (!(rawReason in CONTRACT_BLOCK_REASON_LABEL)) return null;
-
-  const reason = rawReason as ContractBlockReason;
-  const details = rawDetails.trim() || null;
-  const label = details ? `${CONTRACT_BLOCK_REASON_LABEL[reason]}: ${details}` : CONTRACT_BLOCK_REASON_LABEL[reason];
-
-  return { reason, details, label };
-}
-
 @Injectable()
 export class CompaniesService {
   private readonly logger = new Logger(CompaniesService.name);
@@ -238,6 +243,7 @@ export class CompaniesService {
     return this.prisma.company.findMany({
       where: {
         deletedAt: null,
+        status: { not: CompanyStatus.INACTIVE },
         ...(!accessScope.isGlobal ? { id: { in: accessScope.companyIds } } : {}),
         ...buildCompanySearchWhere(q),
       },
@@ -257,10 +263,19 @@ export class CompaniesService {
     const page = this.parsePage(filters?.page);
     const pageSize = this.parsePageSize(filters?.pageSize);
 
-    const where: any = { deletedAt: null };
+    const where: any = {
+      AND: [
+        {
+          OR: [
+            { deletedAt: null },
+            { status: CompanyStatus.INACTIVE },
+          ],
+        },
+      ],
+    };
 
     if (filters?.search?.trim()) {
-      Object.assign(where, buildCompanySearchWhere(filters.search));
+      where.AND.push(buildCompanySearchWhere(filters.search));
     }
 
     if (filters?.status && filters.status !== 'ALL') {
@@ -336,6 +351,7 @@ export class CompaniesService {
     return this.prisma.company.findMany({
       where: {
         deletedAt: null,
+        status: { not: CompanyStatus.INACTIVE },
         ...(!accessScope.isGlobal ? { id: { in: accessScope.companyIds.length ? accessScope.companyIds : ['__none__'] } } : {}),
       },
       orderBy: { razaoSocial: 'asc' },
@@ -365,7 +381,10 @@ export class CompaniesService {
     const company = (await this.prisma.company.findFirst({
       where: {
         id: companyId,
-        deletedAt: null,
+        OR: [
+          { deletedAt: null },
+          { status: CompanyStatus.INACTIVE },
+        ],
       },
       select: {
         id: true,
@@ -685,6 +704,7 @@ export class CompaniesService {
         select: {
           id: true,
           cnpj: true,
+          status: true,
           addresses: {
             select: { id: true },
             take: 1,
@@ -695,6 +715,13 @@ export class CompaniesService {
 
       if (!existing) {
         return { success: false, message: 'Empresa nao encontrada.' };
+      }
+
+      if (validation.data.status !== existing.status) {
+        return {
+          success: false,
+          message: 'Use a acao de ativar/inativar empresa para alterar o status operacional.',
+        };
       }
 
       const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
@@ -748,31 +775,328 @@ export class CompaniesService {
     }
   }
 
-  async updateCompanyStatus(companyId: string, status: CompanyStatus, rawHeaders?: IncomingHttpHeaders) {
+  async updateCompanyStatus(companyId: string, input: CompanyStatusUpdateInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     if (!(await this.authorizationService.userHasPermission(requester, 'companies:status'))) {
       return { success: false, message: 'Sem permissao.' };
     }
 
     try {
-      await this.prisma.company.update({
+      const parsed = companyStatusUpdateSchema.safeParse(input);
+      if (!parsed.success) {
+        return {
+          success: false,
+          errors: parsed.error.flatten().fieldErrors,
+          message: 'Verifique o motivo da alteracao de status.',
+        };
+      }
+
+      const company = await this.prisma.company.findUnique({
         where: { id: companyId },
-        data: {
-          status,
-          deletedAt: status === CompanyStatus.INACTIVE ? new Date() : null,
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          status: true,
+          observacoes: true,
         },
+      });
+      if (!company) {
+        return { success: false, message: 'Empresa nao encontrada.' };
+      }
+
+      if (company.status === parsed.data.status) {
+        return {
+          success: true,
+          message: parsed.data.status === CompanyStatus.INACTIVE
+            ? 'Empresa ja esta inativa.'
+            : 'Empresa ja esta ativa.',
+        };
+      }
+
+      const summary = await this.prisma.$transaction(async (tx) => {
+        if (parsed.data.status === CompanyStatus.INACTIVE) {
+          return this.deactivateCompanyCascade(tx, company, parsed.data);
+        }
+
+        return this.reactivateCompanyCascade(tx, company);
+      });
+
+      void this.contactsService.syncChatwootContactsForCompany(companyId).catch((error: any) => {
+        this.logger.error(
+          `Falha ao sincronizar contatos da empresa ${companyId} apos alteracao de status: ${error?.message ?? 'unknown_error'}`,
+        );
       });
 
       return {
         success: true,
-        message:
-          status === CompanyStatus.INACTIVE
-            ? 'Empresa inativada com sucesso.'
-            : 'Empresa reativada com sucesso.',
+        message: summary.message,
+        data: summary,
       };
     } catch (error: any) {
       return this.toMutationError(error);
     }
+  }
+
+  private async deactivateCompanyCascade(
+    tx: any,
+    company: { id: string; razaoSocial: string; nomeFantasia: string | null; observacoes: string | null },
+    input: CompanyStatusUpdateInput,
+  ) {
+    const companyLabel = company.nomeFantasia?.trim() || company.razaoSocial;
+    const metadata = {
+      reason: input.reason!,
+      details: input.details ?? null,
+      sourceType: 'company' as const,
+      sourceId: company.id,
+      sourceLabel: companyLabel,
+    };
+
+    await tx.company.update({
+      where: { id: company.id },
+      data: {
+        status: CompanyStatus.INACTIVE,
+        deletedAt: null,
+        observacoes: appendEntityInactivationMetadata(company.observacoes, {
+          ...metadata,
+          targetType: 'company',
+        }),
+      },
+    });
+
+    const contractsToSuspend = await tx.contract.findMany({
+      where: {
+        companyId: company.id,
+        status: { not: 'CANCELLED' },
+      },
+      select: { id: true, notes: true, status: true },
+    });
+
+    let suspendedContracts = 0;
+    for (const contract of contractsToSuspend) {
+      if (contract.status === 'SUSPENDED') {
+        continue;
+      }
+
+      suspendedContracts += 1;
+      await tx.contract.update({
+        where: { id: contract.id },
+        data: {
+          status: 'SUSPENDED',
+          notes: appendEntityInactivationMetadata(contract.notes, {
+            ...metadata,
+            targetType: 'contract',
+          }),
+        },
+      });
+    }
+
+    const contacts = await tx.companyContact.findMany({
+      where: {
+        companyLinks: { some: { companyId: company.id } },
+      },
+      select: {
+        id: true,
+        status: true,
+        notes: true,
+        companyLinks: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    let archivedContacts = 0;
+    for (const contact of contacts) {
+      if (contact.companyLinks.length !== 1 || contact.status === 'ARCHIVED') {
+        continue;
+      }
+
+      archivedContacts += 1;
+      await tx.companyContact.update({
+        where: { id: contact.id },
+        data: {
+          status: 'ARCHIVED',
+          notes: appendEntityInactivationMetadata(contact.notes, {
+            ...metadata,
+            targetType: 'contact',
+          }),
+        },
+      });
+    }
+
+    const clientUsers = await tx.user.findMany({
+      where: {
+        deletedAt: null,
+        role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+        memberships: { some: { companyId: company.id } },
+      },
+      select: {
+        id: true,
+        isActive: true,
+        banReason: true,
+        memberships: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    let inactivatedUsers = 0;
+    for (const user of clientUsers) {
+      if (user.memberships.length !== 1 || !user.isActive) {
+        continue;
+      }
+
+      inactivatedUsers += 1;
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          isActive: false,
+          banReason: appendEntityInactivationMetadata(user.banReason, {
+            ...metadata,
+            targetType: 'user',
+          }),
+        },
+      });
+    }
+
+    return {
+      companyId: company.id,
+      status: CompanyStatus.INACTIVE,
+      suspendedContracts,
+      archivedContacts,
+      inactivatedUsers,
+      message: 'Empresa inativada com cascata aplicada em contratos, contatos e usuarios elegiveis.',
+    };
+  }
+
+  private async reactivateCompanyCascade(
+    tx: any,
+    company: { id: string; observacoes: string | null },
+  ) {
+    await tx.company.update({
+      where: { id: company.id },
+      data: {
+        status: CompanyStatus.ACTIVE,
+        deletedAt: null,
+        observacoes: removeEntityInactivationMetadata(company.observacoes, {
+          sourceType: 'company',
+          sourceId: company.id,
+          targetType: 'company',
+        }),
+      },
+    });
+
+    const contractsToReactivate = await tx.contract.findMany({
+      where: {
+        companyId: company.id,
+        status: 'SUSPENDED',
+      },
+      select: { id: true, notes: true },
+    });
+
+    let reactivatedContracts = 0;
+    for (const contract of contractsToReactivate) {
+      const marker = findEntityInactivationMarker(contract.notes, company.id, 'contract');
+      if (!marker || marker.sourceId !== company.id || marker.targetType !== 'contract') {
+        continue;
+      }
+
+      reactivatedContracts += 1;
+      await tx.contract.update({
+        where: { id: contract.id },
+        data: {
+          status: 'ACTIVE',
+          notes: removeEntityInactivationMetadata(contract.notes, {
+            sourceType: 'company',
+            sourceId: company.id,
+            targetType: 'contract',
+          }),
+        },
+      });
+    }
+
+    const contactsToReactivate = await tx.companyContact.findMany({
+      where: {
+        status: 'ARCHIVED',
+        companyLinks: { some: { companyId: company.id } },
+      },
+      select: {
+        id: true,
+        notes: true,
+        companyLinks: {
+          select: { companyId: true },
+        },
+      },
+    });
+
+    let reactivatedContacts = 0;
+    for (const contact of contactsToReactivate) {
+      const marker = findEntityInactivationMarker(contact.notes, company.id, 'contact');
+      if (!marker || marker.sourceId !== company.id || marker.targetType !== 'contact') {
+        continue;
+      }
+
+      reactivatedContacts += 1;
+      await tx.companyContact.update({
+        where: { id: contact.id },
+        data: {
+          status: contact.companyLinks.length ? 'LINKED' : 'PENDING_LINK',
+          notes: removeEntityInactivationMetadata(contact.notes, {
+            sourceType: 'company',
+            sourceId: company.id,
+            targetType: 'contact',
+          }),
+        },
+      });
+    }
+
+    const usersToReactivate = await tx.user.findMany({
+      where: {
+        deletedAt: null,
+        isActive: false,
+        role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+        memberships: { some: { companyId: company.id } },
+      },
+      select: {
+        id: true,
+        banReason: true,
+        memberships: { select: { companyId: true } },
+      },
+    });
+
+    let reactivatedUsers = 0;
+    for (const user of usersToReactivate) {
+      if (user.memberships.length !== 1) {
+        continue;
+      }
+
+      const marker = findEntityInactivationMarker(user.banReason, company.id, 'user');
+      if (!marker || marker.sourceId !== company.id || marker.targetType !== 'user') {
+        continue;
+      }
+
+      reactivatedUsers += 1;
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          isActive: true,
+          banReason: removeEntityInactivationMetadata(user.banReason, {
+            sourceType: 'company',
+            sourceId: company.id,
+            targetType: 'user',
+          }),
+        },
+      });
+    }
+
+    return {
+      companyId: company.id,
+      status: CompanyStatus.ACTIVE,
+      reactivatedContracts,
+      reactivatedContacts,
+      reactivatedUsers,
+      message: 'Empresa reativada com recuperacao da cadeia vinculada por inativacao desta empresa.',
+    };
   }
 
   async deleteCompany(companyId: string, rawHeaders?: IncomingHttpHeaders) {
@@ -824,10 +1148,10 @@ export class CompaniesService {
   private async assertCompanyAccess(companyId: string, accessScope: { isGlobal: boolean; companyIds: string[] }) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
-      select: { id: true, deletedAt: true },
+      select: { id: true, deletedAt: true, status: true },
     });
 
-    if (!company || company.deletedAt) {
+    if (!company || (company.deletedAt && company.status !== CompanyStatus.INACTIVE)) {
       throw new NotFoundException('Empresa nao encontrada.');
     }
 

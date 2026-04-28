@@ -37,10 +37,13 @@ import { updateContractAction, updateContractStatusAction } from "@/features/con
 import { getContractSuspendImpactAction } from "@/features/contracts/application/queries";
 import {
     ContractBlockReason,
-    CONTRACT_BLOCK_REASONS,
-    CONTRACT_BLOCK_REASON_LABEL,
 } from "@dosc-syspro/core";
+import {
+    DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    type ContractBlockReasonOption,
+} from "@dosc-syspro/contracts/settings";
 import { DEFAULT_CONTRACT_TAX_RATE } from "@/features/contracts/application/contract-schema";
+import { fetchSettingsPreferences } from "@/features/settings/application/preferences";
 
 interface ContractsTableProps {
     contracts: ContractListItem[];
@@ -58,11 +61,15 @@ const toNumber = (value: number | string) => {
 };
 
 export function ContractsTable({ contracts }: ContractsTableProps) {
+    const fallbackContractReason = DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS[0]?.key ?? "EMPRESA_FECHOU";
     const [items, setItems] = useState<ContractListItem[]>(contracts);
     const [isPending, startTransition] = useTransition();
     const [suspendTarget, setSuspendTarget] = useState<ContractListItem | null>(null);
-    const [blockReason, setBlockReason] = useState<ContractBlockReason>("EMPRESA_FECHOU");
+    const [blockReason, setBlockReason] = useState<ContractBlockReason>(fallbackContractReason);
     const [blockReasonDetails, setBlockReasonDetails] = useState("");
+    const [contractReasonOptions, setContractReasonOptions] = useState<ContractBlockReasonOption[]>(
+        DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+    );
     const [suspendImpact, setSuspendImpact] = useState<ContractSuspendImpact | null>(null);
     const [isImpactLoading, setIsImpactLoading] = useState(false);
     const [editTarget, setEditTarget] = useState<ContractListItem | null>(null);
@@ -82,7 +89,33 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         setItems(contracts);
     }, [contracts]);
 
-    const requiresDetails = useMemo(() => blockReason === "OUTROS", [blockReason]);
+    useEffect(() => {
+        let active = true;
+
+        async function loadSettingsPreferences() {
+            const preferences = await fetchSettingsPreferences();
+            if (!active || !preferences) return;
+
+            const activeReasons = preferences.contractBlockReasons.filter((item) => item.isActive);
+            if (activeReasons.length) {
+                setContractReasonOptions(activeReasons);
+                if (!activeReasons.some((item) => item.key === blockReason)) {
+                    setBlockReason(activeReasons[0].key);
+                }
+            }
+        }
+
+        void loadSettingsPreferences();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const selectedBlockReason = useMemo(
+        () => contractReasonOptions.find((item) => item.key === blockReason) ?? null,
+        [blockReason, contractReasonOptions],
+    );
+    const requiresDetails = useMemo(() => selectedBlockReason?.requiresDetails ?? false, [selectedBlockReason]);
 
     useEffect(() => {
         let isMounted = true;
@@ -139,7 +172,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 toast.success(result.message ?? "Contrato inativado com sucesso.");
                 setItems((prev) => prev.filter((contract) => contract.id !== suspendTarget.id));
                 setSuspendTarget(null);
-                setBlockReason("EMPRESA_FECHOU");
+                setBlockReason(contractReasonOptions[0]?.key ?? fallbackContractReason);
                 setBlockReasonDetails("");
                 setSuspendImpact(null);
                 return;
@@ -256,9 +289,9 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                     <SelectValue placeholder="Selecione o motivo" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {CONTRACT_BLOCK_REASONS.map((reason) => (
-                                        <SelectItem key={reason} value={reason}>
-                                            {CONTRACT_BLOCK_REASON_LABEL[reason]}
+                                    {contractReasonOptions.map((reason) => (
+                                        <SelectItem key={reason.key} value={reason.key}>
+                                            {reason.label}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
