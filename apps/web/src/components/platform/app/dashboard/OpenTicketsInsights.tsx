@@ -6,7 +6,6 @@ import type { ApexOptions } from "apexcharts";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -103,9 +102,7 @@ function createHorizontalChartOptions(
         },
       },
     },
-    colors: items.map((item) =>
-      item.queryValue === selectedValue ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.38)",
-    ),
+    colors: items.map((item) => (item.queryValue === selectedValue ? "#38bdf8" : "#64748b")),
     plotOptions: {
       bar: {
         horizontal: true,
@@ -115,7 +112,7 @@ function createHorizontalChartOptions(
       },
     },
     grid: {
-      borderColor: "hsl(var(--border) / 0.35)",
+      borderColor: "hsl(var(--border) / 0.55)",
       strokeDashArray: 4,
       padding: {
         left: 4,
@@ -138,7 +135,7 @@ function createHorizontalChartOptions(
       categories: items.map((item) => item.label),
       labels: {
         style: {
-          colors: ["hsl(var(--muted-foreground))"],
+          colors: items.map(() => "hsl(var(--foreground) / 0.82)"),
           fontSize: "11px",
         },
       },
@@ -149,7 +146,7 @@ function createHorizontalChartOptions(
       labels: {
         maxWidth: 220,
         style: {
-          colors: items.map(() => "hsl(var(--foreground))"),
+          colors: items.map(() => "hsl(var(--foreground) / 0.92)"),
           fontSize: "11px",
         },
       },
@@ -270,20 +267,16 @@ export function OpenTicketsInsights({
           title="Abertos por modulo"
           filterLabel={filterLabel}
           items={moduleBreakdown}
-          selectedValue={selectedModule}
           selectedLabel={selectedModuleLabel}
           chartOptions={moduleChartOptions}
-          onSelect={(item) => setSelectedModule((current) => (current === item.queryValue ? "" : item.queryValue))}
         />
 
         <BreakdownCard
           title="Abertos por categoria"
           filterLabel={filterLabel}
           items={categoryBreakdown}
-          selectedValue={selectedCategory}
           selectedLabel={selectedCategoryLabel}
           chartOptions={categoryChartOptions}
-          onSelect={(item) => setSelectedCategory((current) => (current === item.queryValue ? "" : item.queryValue))}
         />
       </div>
     </div>
@@ -302,10 +295,8 @@ function BreakdownCard({
   title: string;
   filterLabel: string;
   items: GroupedItem[];
-  selectedValue: string;
   selectedLabel: string;
   chartOptions: ApexOptions;
-  onSelect: (item: GroupedItem) => void;
 }) {
   const hasData = items.length > 0;
 
@@ -324,41 +315,14 @@ function BreakdownCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {hasData ? (
-          <>
-            <div className="rounded-2xl border border-border/50 bg-background/55 px-2 py-3">
-              <ReactApexChart
-                type="bar"
-                height={240}
-                series={[{ name: "Tickets", data: items.map((item) => item.value) }]}
-                options={chartOptions}
-              />
-            </div>
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div
-                  key={`${title}-${item.label}`}
-                  className={cn(
-                    "rounded-xl border px-3 py-3 transition-colors",
-                    item.queryValue === selectedValue
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/50 bg-background/50",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => onSelect(item)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <div className="truncate text-sm font-medium text-foreground">{item.label}</div>
-                      <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
-                    </button>
-                    <span className="text-sm font-semibold tabular-nums text-foreground">{item.value}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
+          <div className="rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 px-2 py-3">
+            <ReactApexChart
+              type="bar"
+              height={260}
+              series={[{ name: "Tickets", data: items.map((item) => item.value) }]}
+              options={chartOptions}
+            />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">Nenhum ticket aberto neste recorte.</p>
         )}

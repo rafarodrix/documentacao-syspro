@@ -1,29 +1,39 @@
 import type { Release } from "@dosc-syspro/core";
-import { callWebApi } from "@/lib/web-api";
 
 type ReleasesResponse = {
     success: boolean;
     data?: Release[];
 };
 
-function isExpectedDynamicUsageError(error: unknown) {
-  if (!error || typeof error !== "object") return false;
+function resolvePublicWebOrigin() {
+  const explicit =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_WEB_URL?.trim();
 
-  const withDigest = error as { digest?: string; description?: string };
-  return (
-    withDigest.digest === "DYNAMIC_SERVER_USAGE" ||
-    withDigest.description?.includes("couldn't be rendered statically because it used `headers`") === true
-  );
+  if (explicit) return explicit.replace(/\/+$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+async function fetchPublicReleases(): Promise<Release[]> {
+  const origin = resolvePublicWebOrigin();
+  const response = await fetch(`${origin}/api/releases`, {
+    next: {
+      revalidate: 3600,
+      tags: ["releases"],
+    },
+  });
+
+  if (!response.ok) return [];
+
+  const payload = (await response.json()) as ReleasesResponse;
+  return payload.success ? payload.data ?? [] : [];
 }
 
 export async function getReleases(): Promise<Release[]> {
   try {
-    const response = await callWebApi("/api/releases").then((res) => res.json() as Promise<ReleasesResponse>);
-    return response.success ? response.data ?? [] : [];
+    return await fetchPublicReleases();
   } catch (error) {
-    if (isExpectedDynamicUsageError(error)) {
-      return [];
-    }
     console.warn("getReleases failed:", error);
     return [];
   }

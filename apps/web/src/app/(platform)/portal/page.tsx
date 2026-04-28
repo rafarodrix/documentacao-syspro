@@ -152,22 +152,28 @@ function TicketSectorSplitCard({
   support,
   development,
   helper,
+  scopeMode = "all",
 }: {
   support: number;
   development: number;
   helper: string;
+  scopeMode?: "all" | "development";
 }) {
+  const showSupport = scopeMode !== "development";
+
   return (
     <Card className="border-border/50 bg-card/70 shadow-none">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm text-muted-foreground">Tickets por setor</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-3">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Suporte</div>
-            <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-sky-500">{support}</div>
-          </div>
+        <div className={cn("grid gap-3", showSupport ? "grid-cols-2" : "grid-cols-1")}>
+          {showSupport ? (
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Suporte</div>
+              <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-sky-500">{support}</div>
+            </div>
+          ) : null}
           <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-3 py-3">
             <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Desenvolvimento</div>
             <div className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-violet-500">{development}</div>
@@ -281,6 +287,7 @@ export default async function DashboardPage() {
                 support={openTicketsSupport}
                 development={openTicketsDevelopment}
                 helper={ticketSectorHelper}
+                scopeMode={adminTicketScopeMode}
               />
             </div>
 
