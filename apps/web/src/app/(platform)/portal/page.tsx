@@ -26,7 +26,6 @@ import {
   TrendingUp,
   Users,
   Zap,
-  FolderOpen,
 } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application/queries";
@@ -139,6 +138,7 @@ export default async function DashboardPage() {
     const canViewCompanies = adminData.canViewCompanies ?? true;
     const canViewContacts = adminData.canViewContacts ?? true;
     const canViewUsers = adminData.canViewUsers ?? true;
+    const hasCadastrosAccess = canViewCompanies || canViewContacts || canViewUsers;
     const showUsersMetric = canViewUsers;
     const showPeopleMetric = canViewUsers || canViewContacts;
     const recentContacts = adminData.recentContacts ?? [];
@@ -164,10 +164,12 @@ export default async function DashboardPage() {
                 Comercial
               </TabsTrigger>
             ) : null}
-            <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
-              <FolderOpen className="h-4 w-4" />
-              Cadastros
-            </TabsTrigger>
+            {hasCadastrosAccess ? (
+              <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
+                <Building2 className="h-4 w-4" />
+                Cadastros
+              </TabsTrigger>
+            ) : null}
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
@@ -301,6 +303,7 @@ export default async function DashboardPage() {
           </TabsContent>
           ) : null}
 
+          {hasCadastrosAccess ? (
           <TabsContent value="cadastros" className="space-y-6">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {canViewCompanies ? (
@@ -473,6 +476,7 @@ export default async function DashboardPage() {
               ) : null}
             </div>
           </TabsContent>
+          ) : null}
         </Tabs>
       </div>
     );
