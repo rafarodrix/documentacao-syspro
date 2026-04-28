@@ -765,6 +765,7 @@ model RemoteHost {
   sysproUpdates   RemoteHostSysproUpdate[]
   discoveryRecord RemoteDiscoveredHost?
   agentCommands   RemoteAgentCommand[]
+  agentDevice     AgentDevice?
 
   @@index([companyId, status])
   @@index([agentExternalId])
@@ -1663,6 +1664,9 @@ model AgentDevice {
   companyId      String?
   company        Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
+  remoteHostId   String?    @unique
+  remoteHost     RemoteHost? @relation(fields: [remoteHostId], references: [id], onDelete: SetNull)
+
   firstSeenAt       DateTime  @default(now())
   lastHeartbeatAt   DateTime?
   lastRegisteredAt  DateTime?
@@ -1671,5 +1675,6 @@ model AgentDevice {
   @@index([lastHeartbeatAt])
   @@index([companyId])
   @@index([companyId, lastHeartbeatAt])
+  @@index([remoteHostId])
   @@map("agent_device")
 }
