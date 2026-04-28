@@ -102,15 +102,15 @@ export default function GeneralSettingsForm() {
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in duration-500">
             <Tabs defaultValue="general" className="space-y-6">
-                <TabsList className="grid w-full max-w-md grid-cols-2">
-                    <TabsTrigger value="general">Geral</TabsTrigger>
-                    <TabsTrigger value="preferences">Preferencias</TabsTrigger>
+                <TabsList className="inline-flex w-full sm:w-auto p-1 bg-muted/50 border border-border/40">
+                    <TabsTrigger value="general" className="px-6 py-2">Geral</TabsTrigger>
+                    <TabsTrigger value="preferences" className="px-6 py-2">Motivos de Cancelamento</TabsTrigger>
                 </TabsList>
 
             <TabsContent value="general" className="space-y-6">
             {/* --- SECAO FINANCEIRA --- */}
-            <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-                <CardHeader className="pb-4">
+            <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="bg-muted/10 pb-4 border-b border-border/40">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                             <Banknote className="h-5 w-5" />
@@ -121,8 +121,7 @@ export default function GeneralSettingsForm() {
                         </div>
                     </div>
                 </CardHeader>
-                <Separator className="bg-border/40" />
-                <CardContent className="pt-6">
+                <CardContent className="p-5">
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="minimumWage">Salario Minimo Nacional (Base)</Label>
@@ -151,8 +150,8 @@ export default function GeneralSettingsForm() {
             </Card>
 
             {/* --- SECAO SUPORTE --- */}
-            <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-                <CardHeader className="pb-4">
+            <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="bg-muted/10 pb-4 border-b border-border/40">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 border border-blue-500/20">
                             <Headset className="h-5 w-5" />
@@ -163,8 +162,7 @@ export default function GeneralSettingsForm() {
                         </div>
                     </div>
                 </CardHeader>
-                <Separator className="bg-border/40" />
-                <CardContent className="pt-6">
+                <CardContent className="p-5">
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="supportEmail">E-mail Oficial</Label>
@@ -201,8 +199,8 @@ export default function GeneralSettingsForm() {
             </Card>
 
             {/* --- SECAO SISTEMA / PERIGO --- */}
-            <Card className="border-rose-200 dark:border-rose-900/50 shadow-sm bg-rose-50/30 dark:bg-rose-950/10">
-                <CardHeader className="pb-4">
+            <Card className="border-rose-200 dark:border-rose-900/50 shadow-sm bg-rose-50/30 dark:bg-rose-950/10 overflow-hidden">
+                <CardHeader className="bg-rose-100/30 dark:bg-rose-900/20 pb-4 border-b border-rose-200 dark:border-rose-900/50">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 border border-rose-500/20">
                             <ShieldAlert className="h-5 w-5" />
@@ -213,8 +211,8 @@ export default function GeneralSettingsForm() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="pt-2">
-                    <div className="flex flex-row items-center justify-between rounded-lg border border-rose-200 dark:border-rose-900/50 p-4 bg-background/50">
+                <CardContent className="p-5">
+                    <div className="flex flex-row items-center justify-between rounded-lg border border-rose-200 dark:border-rose-900/50 p-4 bg-background/80">
                         <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                                 <Lock className="h-4 w-4 text-rose-500" />
@@ -237,20 +235,19 @@ export default function GeneralSettingsForm() {
             </TabsContent>
 
             <TabsContent value="preferences" className="space-y-6">
-                <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-                    <CardHeader className="pb-4">
+                <Card className="border-border/60 shadow-sm bg-background/50 backdrop-blur-sm overflow-hidden">
+                    <CardHeader className="bg-muted/10 pb-4 border-b border-border/40">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-violet-500/10 text-violet-600 border border-violet-500/20">
                                 <SlidersHorizontal className="h-5 w-5" />
                             </div>
                             <div>
-                                <CardTitle className="text-lg">Preferencias Globais</CardTitle>
-                                <CardDescription>Centralize catalogos de motivos e rotulos reutilizados pelos modulos.</CardDescription>
+                                <CardTitle className="text-lg">Motivos de Inativação e Cancelamento</CardTitle>
+                                <CardDescription>Gerencie as opções exibidas ao usuário para desativar empresas e cancelar contratos.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
-                    <Separator className="bg-border/40" />
-                    <CardContent className="space-y-6 pt-6">
+                    <CardContent className="space-y-8 p-5">
                         <ReasonOptionsEditor
                             title="Motivos de inativacao de empresa"
                             description="Usados na inativacao em cascata de empresa."
@@ -303,4 +300,3 @@ export default function GeneralSettingsForm() {
         </form>
     );
 }
-

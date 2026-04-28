@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Building2, ContactRound, FileText, Monitor, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
+import { Activity, BarChart3, BookOpen, Building2, ContactRound, Cpu, FileText, Monitor, Scale, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar";
@@ -72,9 +72,30 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
       {
         label: "Plataforma Remota",
         href: "/portal/plataforma-remota",
-        keywords: "plataforma remota acesso remoto rustdesk hosts",
+        keywords: "plataforma remota hosts acesso remoto rustdesk",
         icon: Monitor,
         enabled: navigationAccess?.remote !== false,
+      },
+      {
+        label: "Sessoes Remotas",
+        href: "/portal/plataforma-remota/sessoes",
+        keywords: "sessoes remotas auditoria acesso tecnico",
+        icon: Activity,
+        enabled: navigationAccess?.remoteSessions !== false,
+      },
+      {
+        label: "Relatorios do Remoto",
+        href: "/portal/plataforma-remota/relatorios",
+        keywords: "relatorios remoto eficiencia suporte metrica",
+        icon: BarChart3,
+        enabled: navigationAccess?.remoteReports !== false,
+      },
+      {
+        label: "Agentes e Dispositivos",
+        href: "/portal/dispositivos",
+        keywords: "agentes dispositivos frota heartbeat online offline",
+        icon: Cpu,
+        enabled: navigationAccess?.agents !== false,
       },
       {
         label: "Ferramentas",
@@ -82,6 +103,13 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
         keywords: "ferramentas utilitarios consulta cnpj",
         icon: Wrench,
         enabled: navigationAccess?.tools !== false,
+      },
+      {
+        label: "Reforma Tributaria",
+        href: "/portal/reforma-tributaria",
+        keywords: "reforma tributaria ibs cbs ncm anexos",
+        icon: Scale,
+        enabled: navigationAccess?.tax !== false,
       },
       {
         label: "Configuracoes",

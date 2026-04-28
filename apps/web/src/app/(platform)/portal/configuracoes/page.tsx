@@ -53,7 +53,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     const sefazRoutes = settingsView.sefazRoutes;
 
     return (
-        <div className="flex flex-col gap-8 p-6 max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+        <div className="flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
             <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                     <Sliders className="h-8 w-8 text-primary/80" />
@@ -69,7 +69,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     <TabsList className="bg-muted/50 p-1 border border-border/40 h-auto flex-wrap">
                         <TabsTrigger value="general" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
                             <Settings className="h-4 w-4" />
-                            <span className="font-medium">Geral & Financeiro</span>
+                            <span className="font-medium">Preferências</span>
                         </TabsTrigger>
 
                         <TabsTrigger value="agent" className="gap-2 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-colors">
@@ -106,7 +106,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </div>
 
                 <TabsContent value="general" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
-                    <div className="max-w-4xl">
+                    <div className="max-w-6xl">
                         <GeneralSettingsForm />
                     </div>
                 </TabsContent>
@@ -130,7 +130,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </TabsContent>
 
                 <TabsContent value="access" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
-                    <div className="max-w-5xl">
+                    <div className="max-w-6xl">
                         <AccessControlTab adminView={settingsView.permissionsAdminView} />
                     </div>
                 </TabsContent>
@@ -206,7 +206,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </TabsContent>
 
                 <TabsContent value="tickets" className="space-y-4 focus-visible:ring-0 outline-none animate-in fade-in zoom-in-95 duration-300">
-                    <div className="max-w-4xl">
+                    <div className="max-w-6xl">
                         <TicketSettingsTab />
                     </div>
                 </TabsContent>

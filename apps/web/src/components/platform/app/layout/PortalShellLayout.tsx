@@ -48,6 +48,8 @@ export async function PortalShellLayout({
     remote: await currentUserHasAnyPermission(["remote:view", "remote:manage"], {
       acceptCompanyScope: true,
     }),
+    remoteSessions: await currentUserHasPermission("tools:all"),
+    remoteReports: await currentUserHasPermission("tools:all"),
     agents: await currentUserHasAnyPermission(["agents:view", "agents:manage"], {
       acceptCompanyScope: true,
     }),
@@ -58,6 +60,7 @@ export async function PortalShellLayout({
     docs: true,
     releases: true,
     tools: await currentUserHasPermission("tools:view"),
+    tax: true,
     settings: await currentUserHasPermission("settings:view"),
   }
 

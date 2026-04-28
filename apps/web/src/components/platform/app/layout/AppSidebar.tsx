@@ -39,6 +39,9 @@ import {
   MessagesSquare,
   BriefcaseBusiness,
   Target,
+  Activity,
+  BarChart3,
+  Scale,
 } from "lucide-react"
 
 export type UserRole = Role
@@ -66,12 +69,15 @@ export interface NavigationAccess {
   tickets: boolean
   atendimento: boolean
   remote: boolean
+  remoteSessions: boolean
+  remoteReports: boolean
   agents: boolean
   crm: boolean
   contracts: boolean
   docs: boolean
   releases: boolean
   tools: boolean
+  tax: boolean
   settings: boolean
 }
 
@@ -89,8 +95,10 @@ const NAV_SUPPORT: NavItemType[] = [
   { title: "Meus Chamados", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosCliente] },
   { title: "Tickets", href: "/portal/tickets", icon: Ticket, roles: [...SIDEBAR_ROLE_RULES.chamadosSistema] },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES], newTab: true },
-  { title: "Plataforma Remota", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
-  { title: "Dispositivos", href: "/portal/dispositivos", icon: Cpu, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
+  { title: "Hosts Remotos", href: "/portal/plataforma-remota", icon: Monitor, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
+  { title: "Sessoes Remotas", href: "/portal/plataforma-remota/sessoes", icon: Activity, roles: [...SYSTEM_ROLES] },
+  { title: "Relatorios do Remoto", href: "/portal/plataforma-remota/relatorios", icon: BarChart3, roles: [...SYSTEM_ROLES] },
+  { title: "Agentes / Dispositivos", href: "/portal/dispositivos", icon: Cpu, roles: [...SYSTEM_ROLES, "CLIENTE_ADMIN"] },
 ]
 
 const NAV_COMMERCIAL: NavItemType[] = [
@@ -101,6 +109,7 @@ const NAV_COMMERCIAL: NavItemType[] = [
 const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/portal/docs", icon: BookOpen },
   { title: "Releases", href: "/portal/releases", icon: Rocket },
+  { title: "Reforma Tributaria", href: "/portal/reforma-tributaria", icon: Scale },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
 ]
 
@@ -320,6 +329,8 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/tickets": navigationAccess?.tickets,
     "/portal/atendimento": navigationAccess?.atendimento,
     "/portal/plataforma-remota": navigationAccess?.remote,
+    "/portal/plataforma-remota/sessoes": navigationAccess?.remoteSessions,
+    "/portal/plataforma-remota/relatorios": navigationAccess?.remoteReports,
     "/portal/dispositivos": navigationAccess?.agents,
   })
   const commercialItems = filterByAccess(filterByRole(NAV_COMMERCIAL, user.role), {
@@ -329,10 +340,17 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
   const docsItems = filterByAccess(filterByRole(NAV_DOCS, user.role), {
     "/portal/docs": navigationAccess?.docs,
     "/portal/releases": navigationAccess?.releases,
+    "/portal/reforma-tributaria": navigationAccess?.tax,
     "/portal/tools": navigationAccess?.tools,
   })
 
-  const isActive = (href: string) => (href === "/portal" ? pathname === "/portal" : pathname.startsWith(href))
+  const isActive = (href: string) => {
+    if (href === "/portal") return pathname === "/portal"
+    if (href === "/portal/plataforma-remota") {
+      return pathname === href || /^\/portal\/plataforma-remota\/[^/]+$/.test(pathname)
+    }
+    return pathname.startsWith(href)
+  }
 
   return (
     <div
@@ -401,4 +419,3 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     </div>
   )
 }
-
