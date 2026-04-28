@@ -42,6 +42,7 @@ export interface UserTabProps {
   data: UserWithRelations[];
   isAdmin: boolean;
   canManage: boolean;
+  canViewInternal?: boolean;
 }
 
 function getInitials(name: string | null): string {
@@ -202,7 +203,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
   );
 }
 
-export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
+export function UserTab({ data, isAdmin, canManage, canViewInternal = true }: UserTabProps) {
   const router = useRouter();
   const [users, setUsers] = useState<UserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
@@ -356,16 +357,16 @@ export function UserTab({ data, isAdmin, canManage }: UserTabProps) {
             <>
               <RegistryFilterGroup
                 value={roleFilter}
-                onChange={setRoleFilter}
+                onChange={(value) => setRoleFilter(value as "all" | "client" | "system")}
                 options={[
                   { value: "all", label: "Todos os perfis", count: counts.all },
                   { value: "client", label: "Plataforma", count: counts.client },
-                  { value: "system", label: "Equipe interna", count: counts.system },
+                  ...(canViewInternal ? [{ value: "system", label: "Equipe interna", count: counts.system }] : []),
                 ]}
               />
               <RegistryFilterGroup
                 value={companyFilter}
-                onChange={setCompanyFilter}
+                onChange={(value) => setCompanyFilter(value as "all" | "with_company" | "without_company")}
                 options={[
                   { value: "all", label: "Todas as empresas", count: counts.all },
                   { value: "with_company", label: "Com empresa", count: counts.withCompany },

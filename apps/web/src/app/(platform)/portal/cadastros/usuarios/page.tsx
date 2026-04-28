@@ -22,6 +22,7 @@ export default async function CadastrosUsuariosPage() {
     acceptCompanyScope: true,
   });
   const isGlobalView = await currentUserHasPermission("users:view_all");
+  const canViewInternal = await currentUserHasPermission("users:view_internal");
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -34,6 +35,7 @@ export default async function CadastrosUsuariosPage() {
         data={result.users}
         isAdmin={isGlobalView || result.isGlobalView}
         canManage={canManage}
+        canViewInternal={canViewInternal}
       />
     </div>
   );

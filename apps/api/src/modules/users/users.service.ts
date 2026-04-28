@@ -56,6 +56,7 @@ export class UsersService {
 
     const where: any = { deletedAt: null };
     const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canViewInternal = await this.authorizationService.userHasPermission(requester, 'users:view_internal');
     const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
       acceptCompanyScope: true,
     });
@@ -70,6 +71,8 @@ export class UsersService {
 
       where.role = { in: CLIENT_ROLES };
       where.memberships = { some: { companyId: { in: companyIds } } };
+    } else if (!canViewInternal) {
+      where.role = { in: CLIENT_ROLES };
     }
 
     if (filters?.search) {
@@ -96,6 +99,7 @@ export class UsersService {
   async findOne(id: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canViewInternal = await this.authorizationService.userHasPermission(requester, 'users:view_internal');
 
     if (!isGlobalView && requester.role === Role.CLIENTE_ADMIN) {
       await this.assertClientManagerCanManageTarget(requester.userId, id);
@@ -110,6 +114,9 @@ export class UsersService {
       include: this.userInclude(),
     });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
+    if (SYSTEM_ROLES.includes(user.role) && !canViewInternal) {
+      throw new ForbiddenException('Acesso negado.');
+    }
     return this.serializeUserAccessListItem(user);
   }
 
@@ -178,6 +185,7 @@ export class UsersService {
   async create(input: CreateUserInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canManageInternal = await this.authorizationService.userHasPermission(requester, 'users:manage_internal');
     const canCreateUsers = await this.authorizationService.userHasPermission(requester, 'users:create', {
       acceptCompanyScope: true,
     });
@@ -229,7 +237,7 @@ export class UsersService {
     }
 
     const userRole = data.role || Role.CLIENTE_USER;
-    this.assertRequesterCanManageRole(requester.role, userRole);
+    this.assertRequesterCanManageRole(requester.role, userRole, canManageInternal);
 
     if (isClientManager) {
       const managedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
@@ -309,6 +317,7 @@ export class UsersService {
   async update(id: string, input: UpdateUserInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canManageInternal = await this.authorizationService.userHasPermission(requester, 'users:manage_internal');
     const canEditUsers = await this.authorizationService.userHasPermission(requester, 'users:edit', {
       acceptCompanyScope: true,
     });
@@ -325,9 +334,9 @@ export class UsersService {
 
     const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
-    this.assertRequesterCanManageRole(requester.role, user.role);
+    this.assertRequesterCanManageRole(requester.role, user.role, canManageInternal);
     if (data.role) {
-      this.assertRequesterCanManageRole(requester.role, data.role);
+      this.assertRequesterCanManageRole(requester.role, data.role, canManageInternal);
     }
 
     let managedCompanyIds: string[] = [];
@@ -387,6 +396,7 @@ export class UsersService {
   async remove(id: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+    const canManageInternal = await this.authorizationService.userHasPermission(requester, 'users:manage_internal');
     const canUpdateStatus = await this.authorizationService.userHasPermission(requester, 'users:status', {
       acceptCompanyScope: true,
     });
@@ -403,7 +413,7 @@ export class UsersService {
       select: { role: true },
     });
     if (!targetUser) throw new NotFoundException('Usuario nao encontrado');
-    this.assertRequesterCanManageRole(requester.role, targetUser.role);
+    this.assertRequesterCanManageRole(requester.role, targetUser.role, canManageInternal);
 
     const removedUser = await this.prisma.user.update({
       where: { id },
@@ -1268,16 +1278,17 @@ export class UsersService {
     }
   }
 
-  private getManageableRolesForRequester(role: Role): Role[] {
+  private getManageableRolesForRequester(role: Role, canManageInternal: boolean): Role[] {
+    if (!canManageInternal) return [...CLIENT_ROLES];
     if (role === Role.ADMIN) return [...SYSTEM_ROLES, ...CLIENT_ROLES];
-    if (role === Role.DEVELOPER) return [Role.DEVELOPER];
-    if (role === Role.SUPORTE) return [Role.SUPORTE];
+    if (role === Role.DEVELOPER) return [Role.DEVELOPER, ...CLIENT_ROLES];
+    if (role === Role.SUPORTE) return [Role.SUPORTE, ...CLIENT_ROLES];
     if (role === Role.CLIENTE_ADMIN) return [...CLIENT_ROLES];
     return [];
   }
 
-  private assertRequesterCanManageRole(requesterRole: Role, targetRole: Role) {
-    const allowedRoles = this.getManageableRolesForRequester(requesterRole);
+  private assertRequesterCanManageRole(requesterRole: Role, targetRole: Role, canManageInternal: boolean) {
+    const allowedRoles = this.getManageableRolesForRequester(requesterRole, canManageInternal);
     if (!allowedRoles.includes(targetRole)) {
       throw new ForbiddenException(
         `${ROLE_LABELS[requesterRole]} nao pode gerenciar usuario com perfil ${ROLE_LABELS[targetRole]}.`,
