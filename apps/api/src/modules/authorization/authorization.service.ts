@@ -32,9 +32,15 @@ type PermissionAssignment = {
   permissionKeys: SettingsPermissionKey[];
 };
 
-const HIDDEN_PERMISSION_KEYS = new Set<SettingsPermissionKey>(
-  SETTINGS_HIDDEN_PERMISSION_KEYS as readonly SettingsPermissionKey[],
-);
+const LEGACY_HIDDEN_PERMISSION_KEYS = new Set<string>([
+  ...SETTINGS_HIDDEN_PERMISSION_KEYS,
+  'tax_reform:view',
+  'tax_reform:manage',
+]);
+
+function isVisiblePermissionKey(key: string): key is SettingsPermissionKey {
+  return !LEGACY_HIDDEN_PERMISSION_KEYS.has(key);
+}
 
 @Injectable()
 export class AuthorizationService {
@@ -263,9 +269,9 @@ export class AuthorizationService {
 
     const visiblePermissionKeys = new Set<SettingsPermissionKey>();
     const visiblePermissions = permissions
-      .filter((permission) => !HIDDEN_PERMISSION_KEYS.has(permission.key as SettingsPermissionKey))
+      .filter((permission) => isVisiblePermissionKey(permission.key))
       .map((permission) => {
-        const key = permission.key as SettingsPermissionKey;
+        const key = permission.key;
         visiblePermissionKeys.add(key);
         return {
           key,
@@ -385,8 +391,8 @@ export class AuthorizationService {
           isSystem: profile.isSystem,
           isActive: profile.isActive,
           permissions: profile.permissions
-            .map((item) => item.permission.key as SettingsPermissionKey)
-            .filter((key) => !HIDDEN_PERMISSION_KEYS.has(key)),
+            .map((item) => item.permission.key)
+            .filter(isVisiblePermissionKey),
         })),
       users: users.map((user) => ({
         id: user.id,
