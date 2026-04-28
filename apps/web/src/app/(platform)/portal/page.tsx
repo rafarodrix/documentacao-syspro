@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
+import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTicketsInsights";
 import { SefazStatusWidget } from "@/components/platform/app/dashboard/SefazStatusWidget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ function ExecutiveLine({
 }
 
 export default async function DashboardPage() {
-  await requireSession();
+  const session = await requireSession();
   const canAccessCrm = await currentUserHasAnyPermission(["crm:view", "crm:manage"], {
     acceptCompanyScope: true,
   });
@@ -145,20 +146,11 @@ export default async function DashboardPage() {
     const recentContacts = adminData.recentContacts ?? [];
     const recentUsers = adminData.recentUsers ?? [];
     const sefazGroups = groupSefazByUF(adminData.sefazStatuses || []);
+    const adminTicketScopeMode = session.role === "DEVELOPER" ? "development" : "all";
+    const allowAdminTicketAreaFilter = session.role === "ADMIN";
 
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Dashboard administrativo
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight sm:text-xl">Painel operacional</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
-          </div>
-        </div>
-
         <Tabs defaultValue="operacional" className="space-y-4">
           <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
             <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
@@ -215,6 +207,12 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
               <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
             </div>
+
+            <OpenTicketsInsights
+              records={adminData.openTicketRecords}
+              scopeMode={adminTicketScopeMode}
+              allowAreaFilter={allowAdminTicketAreaFilter}
+            />
 
               {/* RECENT RECORDS MOVIDOS PARA ABA CADASTROS */}
           </TabsContent>
@@ -625,6 +623,8 @@ export default async function DashboardPage() {
           <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
         </div>
       </div>
+
+      <OpenTicketsInsights records={data.openTicketRecords} scopeMode="own" />
 
       <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
         <ShineBorder borderWidth={1} duration={18} shineColor={["#22d3ee40", "#a78bfa44"]} className="opacity-60" />

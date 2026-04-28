@@ -16,6 +16,17 @@ export const dashboardTicketSummarySchema = z.object({
   lastUpdate: z.string().min(1),
 });
 
+export const dashboardOpenTicketRecordSchema = z.object({
+  id: z.string().min(1),
+  number: z.string().min(1),
+  subject: z.string().min(1),
+  team: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).nullable(),
+  module: z.string().nullable(),
+  category: z.string().nullable(),
+  priority: z.enum(["Alta", "Média", "Baixa"]),
+  status: z.enum(["Aberto", "Em Análise", "Pendente"]),
+});
+
 export const dashboardTicketKpisSchema = z.object({
   open: z.number().int().nonnegative(),
   pending: z.number().int().nonnegative(),
@@ -136,6 +147,7 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   recentUsers: z.array(dashboardRecentUserSchema).default([]),
   sefazStatuses: z.array(dashboardSefazStatusSchema).default([]),
   tickets: z.array(dashboardTicketSummarySchema),
+  openTicketRecords: z.array(dashboardOpenTicketRecordSchema).default([]),
   totalOpen: z.number().int().nonnegative(),
   activity: z.array(dashboardActivityPointSchema),
   crm: dashboardCrmSummarySchema.optional(),
@@ -151,6 +163,7 @@ export const clientDashboardViewSchema = dashboardViewBaseSchema.extend({
   companyNames: z.array(z.string().min(1)),
   sefazStatuses: z.array(dashboardSefazStatusSchema).default([]),
   tickets: z.array(dashboardTicketSummarySchema),
+  openTicketRecords: z.array(dashboardOpenTicketRecordSchema).default([]),
   totalOpen: z.number().int().nonnegative(),
   kpis: dashboardTicketKpisSchema,
   activity: z.array(dashboardActivityPointSchema),
@@ -206,6 +219,7 @@ export function getDailyPasswordForDate(date = new Date(), timeZone = PORTAL_DAS
 
 export type DashboardActivityPoint = z.infer<typeof dashboardActivityPointSchema>;
 export type DashboardTicketSummary = z.infer<typeof dashboardTicketSummarySchema>;
+export type DashboardOpenTicketRecord = z.infer<typeof dashboardOpenTicketRecordSchema>;
 export type DashboardTicketKpis = z.infer<typeof dashboardTicketKpisSchema>;
 export type DashboardCompanySummary = z.infer<typeof dashboardCompanySummarySchema>;
 export type DashboardRecentContact = z.infer<typeof dashboardRecentContactSchema>;

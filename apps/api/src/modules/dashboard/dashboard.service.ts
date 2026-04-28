@@ -4,6 +4,7 @@ import { Role } from '@prisma/client';
 import type {
   DashboardCrmSummary,
   DashboardDailyPassword,
+  DashboardOpenTicketRecord,
   DashboardResponse,
   DashboardTicketKpis,
   DashboardTicketSummary,
@@ -128,6 +129,41 @@ function toTicketSummaryItems(records: TicketModuleRecord[]): DashboardTicketSum
   }));
 }
 
+function readTicketMetadataString(metadata: TicketModuleRecord['metadata'], key: string): string | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function toOpenTicketRecordItems(records: TicketModuleRecord[]): DashboardOpenTicketRecord[] {
+  const items: DashboardOpenTicketRecord[] = [];
+
+  for (const ticket of records) {
+    const status = mapTicketStatus(ticket.status);
+    if (status === 'Resolvido') continue;
+
+    const currentTeam = readTicketMetadataString(ticket.metadata, 'currentTeam');
+    const moduleName = readTicketMetadataString(ticket.metadata, 'module');
+    const categoryName = readTicketMetadataString(ticket.metadata, 'category');
+
+    items.push({
+      id: ticket.id,
+      number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
+      subject: ticket.subject || 'Sem assunto',
+      team:
+        currentTeam === 'SUPORTE' || currentTeam === 'DESENVOLVIMENTO'
+          ? currentTeam
+          : null,
+      module: moduleName,
+      category: categoryName,
+      priority: mapTicketPriority(ticket.priority),
+      status,
+    });
+  }
+
+  return items;
+}
+
 function buildTicketKpis(records: DashboardTicketSummary[]): DashboardTicketKpis {
   const resolved = records.filter((ticket) => ticket.status === 'Resolvido').length;
   const pending = records.filter((ticket) => ticket.status === 'Pendente' || ticket.status === 'Em Análise').length;
@@ -188,7 +224,6 @@ function buildCrmSummary(leads: any[]): DashboardCrmSummary {
 
 function getDashboardTicketTeam(role: Role): 'SUPORTE' | 'DESENVOLVIMENTO' | undefined {
   if (role === Role.DEVELOPER) return 'DESENVOLVIMENTO';
-  if (role === Role.SUPORTE) return 'SUPORTE';
   return undefined;
 }
 
@@ -502,7 +537,7 @@ export class DashboardService {
           this.ticketsService.findAll(
             {
               page: '1',
-              pageSize: '50',
+              pageSize: '200',
               ...(dashboardTicketTeam ? { team: dashboardTicketTeam } : {}),
             },
             rawHeaders,
@@ -516,6 +551,7 @@ export class DashboardService {
 
       const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
       const normalizedTickets = toTicketSummaryItems(records);
+      const openTicketRecords = toOpenTicketRecordItems(records);
       const tickets = normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
       const totalOpen =
         ticketsResponse?.success && ticketsResponse.statusCounts
@@ -600,6 +636,7 @@ export class DashboardService {
           recentUsers: users,
           sefazStatuses,
           tickets,
+          openTicketRecords,
           totalOpen,
           activity: toSeries(companyActivity.map((company) => company.createdAt)),
           crm: canViewCrm ? buildCrmSummary(crmLeads) : undefined,
@@ -653,7 +690,7 @@ export class DashboardService {
 
     try {
       ticketsResponse = await withTimeout(
-        this.ticketsService.findAll({ page: '1', pageSize: '20' }, rawHeaders),
+        this.ticketsService.findAll({ page: '1', pageSize: '200' }, rawHeaders),
         DASHBOARD_TICKETS_TIMEOUT_MS,
         'Consulta de tickets do dashboard',
       );
@@ -663,6 +700,7 @@ export class DashboardService {
 
     const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
     const normalizedTickets = toTicketSummaryItems(records);
+    const openTicketRecords = toOpenTicketRecordItems(records);
     const tickets = normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 10);
     const kpis =
       ticketsResponse?.success && ticketsResponse.statusCounts
@@ -715,6 +753,7 @@ export class DashboardService {
         companyNames,
         sefazStatuses,
         tickets,
+        openTicketRecords,
         totalOpen: kpis.open + kpis.pending,
         kpis,
         activity: toSeries(normalizedTickets.map((ticket) => new Date(ticket.lastUpdate))),
