@@ -344,6 +344,7 @@ model Company {
   messageLinks                 MessageLink[]
   userAccessProfiles           UserAccessProfile[]
   convertedCrmLeads            CrmLead[]                     @relation("CrmLeadConvertedCompany")
+  agentDevices                 AgentDevice[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -1659,11 +1660,16 @@ model AgentDevice {
   identitySource String?
   agentVersion   String?
 
-  firstSeenAt      DateTime  @default(now())
-  lastHeartbeatAt  DateTime?
-  lastRegisteredAt DateTime?
+  companyId      String?
+  company        Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  firstSeenAt       DateTime  @default(now())
+  lastHeartbeatAt   DateTime?
+  lastRegisteredAt  DateTime?
 
   @@index([deviceId])
   @@index([lastHeartbeatAt])
+  @@index([companyId])
+  @@index([companyId, lastHeartbeatAt])
   @@map("agent_device")
 }
