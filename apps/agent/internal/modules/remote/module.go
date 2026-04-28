@@ -41,6 +41,7 @@ type EventBus interface {
 
 type remoteState struct {
 	AgentToken               string    `json:"agent_token,omitempty"`
+	AgentTokenIssuedAt       time.Time `json:"agent_token_issued_at,omitempty"`
 	HostID                   string    `json:"host_id,omitempty"`
 	CompanyID                string    `json:"company_id,omitempty"`
 	CompanyName              string    `json:"company_name,omitempty"`
@@ -351,6 +352,7 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 	}
 
 	st.AgentToken = bootstrapResp.AgentToken
+	st.AgentTokenIssuedAt = parseRemoteTime(bootstrapResp.AgentTokenIssuedAt)
 	st.HostID = firstNonEmpty(bootstrapResp.HostID, st.HostID)
 	st.CompanyID = firstNonEmpty(bootstrapResp.CompanyID, st.CompanyID)
 	st.CompanyName = firstNonEmpty(bootstrapResp.CompanyName, st.CompanyName)
@@ -388,7 +390,11 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 	}
 	_ = m.saveState(ctx, st)
 
-	m.logger.Info("remote bootstrap completed", "host_id", st.HostID, "alias", st.Alias)
+	m.logger.Info("remote bootstrap completed",
+		"host_id", st.HostID,
+		"alias", st.Alias,
+		"token_fingerprint", tokenFingerprint(st.AgentToken),
+	)
 	_ = m.publish(ctx, "remote.bootstrap.completed", "bootstrap completed", map[string]any{
 		"host_id": st.HostID,
 		"alias":   st.Alias,
@@ -398,6 +404,12 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 }
 
 func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string, intent remoteDesiredIntent) domain.ApplyResult {
+	m.logger.Debug("remote sync cycle starting",
+		"host_id", st.HostID,
+		"token_fingerprint", tokenFingerprint(agentToken),
+		"persisted_token_fingerprint", tokenFingerprint(st.AgentToken),
+	)
+
 	if err := m.refreshRustDeskState(ctx, st, intent.installIfMissing, false, nil); err != nil {
 		m.logger.Warn("remote rustdesk refresh before sync failed", "error", err)
 	}
@@ -431,9 +443,11 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		}
 		m.logger.Warn("remote sync failed, invalidating agent token and requiring rebootstrap",
 			"host_id", st.HostID,
+			"token_fingerprint", tokenFingerprint(agentToken),
 			"error", err,
 		)
 		st.AgentToken = ""
+		st.AgentTokenIssuedAt = time.Time{}
 		st.HostID = ""
 		st.CompanyID = ""
 		st.CompanyName = ""
@@ -451,6 +465,9 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	st.Alias = firstNonEmpty(syncResp.Alias, st.Alias)
 	st.RustDeskID = firstNonEmpty(syncResp.RustDeskID, st.RustDeskID)
 	st.MachineName = firstNonEmpty(syncResp.MachineName, hostname)
+	if issuedAt := parseRemoteTime(syncResp.AgentTokenIssuedAt); !issuedAt.IsZero() {
+		st.AgentTokenIssuedAt = issuedAt
+	}
 	st.RebootstrapRequired = false
 	st.LastSyncAt = time.Now().UTC()
 	m.applyPortalConfig(st, rustDeskDesiredConfig{
@@ -508,6 +525,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 
 	if invalidateToken {
 		st.AgentToken = ""
+		st.AgentTokenIssuedAt = time.Time{}
 		st.RebootstrapRequired = true
 		m.logger.Info("remote token invalidated after command processing", "host_id", st.HostID)
 	}
@@ -807,6 +825,17 @@ func desiredConfigFingerprint(desired rustDeskDesiredConfig) string {
 }
 
 func (m *Module) saveState(ctx context.Context, st *remoteState) error {
+	persisted := m.loadState(ctx)
+	if shouldKeepPersistedRemoteState(persisted, *st) {
+		m.logger.Warn("remote state save skipped to preserve newer persisted token",
+			"persisted_token_fingerprint", tokenFingerprint(persisted.AgentToken),
+			"incoming_token_fingerprint", tokenFingerprint(st.AgentToken),
+			"persisted_issued_at", persisted.AgentTokenIssuedAt,
+			"incoming_issued_at", st.AgentTokenIssuedAt,
+		)
+		*st = persisted
+	}
+
 	st.UpdatedAt = time.Now().UTC()
 	return m.store.SaveJSON(ctx, stateFile, st)
 }
@@ -996,4 +1025,45 @@ func timePtr(value time.Time) *time.Time {
 		return nil
 	}
 	return &value
+}
+
+func parseRemoteTime(value string) time.Time {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return time.Time{}
+	}
+	parsed, err := time.Parse(time.RFC3339, trimmed)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
+}
+
+func tokenFingerprint(token string) string {
+	trimmed := strings.TrimSpace(token)
+	if trimmed == "" {
+		return "empty"
+	}
+	sum := sha256.Sum256([]byte(trimmed))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+func shouldKeepPersistedRemoteState(current, incoming remoteState) bool {
+	if current.AgentToken == "" || incoming.AgentToken == current.AgentToken {
+		return false
+	}
+
+	if !current.AgentTokenIssuedAt.IsZero() && !incoming.AgentTokenIssuedAt.IsZero() {
+		return current.AgentTokenIssuedAt.After(incoming.AgentTokenIssuedAt)
+	}
+
+	if !current.LastSyncAt.IsZero() && incoming.LastSyncAt.IsZero() {
+		return true
+	}
+
+	if current.RebootstrapRequired != incoming.RebootstrapRequired {
+		return !current.RebootstrapRequired && incoming.RebootstrapRequired
+	}
+
+	return current.UpdatedAt.After(incoming.UpdatedAt)
 }

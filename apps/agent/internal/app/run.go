@@ -64,6 +64,17 @@ func runServiceInteractive() error {
 }
 
 func runServiceLogic(ctx context.Context) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config for runtime lock: %w", err)
+	}
+
+	lock, err := acquireRuntimeLock(cfg.Paths.StateDir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = lock.Release() }()
+
 	container, err := BootstrapService(ctx)
 	if err != nil {
 		return fmt.Errorf("bootstrap failed: %w", err)
