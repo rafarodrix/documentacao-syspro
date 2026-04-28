@@ -238,37 +238,33 @@ export class TicketNotificationService {
   }
 
   private buildPortalTicketUrl(ticketId: string, rawHeaders?: IncomingHttpHeaders): string | null {
-    const configuredOrigin =
-      process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-      process.env.APP_URL?.trim() ||
-      process.env.PORTAL_URL?.trim() ||
-      '';
-    if (configuredOrigin) {
-      try {
-        return `${new URL(configuredOrigin).origin}/portal/tickets/${ticketId}`;
-      } catch {
-        this.logger.warn(`NEXT_PUBLIC_APP_URL/APP_URL/PORTAL_URL invalida para links de ticket: ${configuredOrigin}`);
-      }
+    const configuredOrigins = [
+      process.env.PORTAL_URL,
+      process.env.NEXT_PUBLIC_WEB_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      process.env.WEB_URL,
+      process.env.FRONTEND_URL,
+      process.env.APP_URL,
+    ];
+
+    for (const configuredOrigin of configuredOrigins) {
+      const normalized = this.normalizeOrigin(configuredOrigin);
+      if (!normalized) continue;
+      return `${normalized}/portal/tickets/${ticketId}`;
     }
 
     const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
     if (explicitOrigin) {
-      try {
-        return `${new URL(explicitOrigin).origin}/portal/tickets/${ticketId}`;
-      } catch {
-        return null;
-      }
+      const normalized = this.normalizeOrigin(explicitOrigin);
+      if (normalized) return `${normalized}/portal/tickets/${ticketId}`;
     }
 
     const host = this.readHeader(rawHeaders, 'x-forwarded-host') || this.readHeader(rawHeaders, 'host');
     if (!host) return null;
 
     const protocol = this.readHeader(rawHeaders, 'x-forwarded-proto') || 'https';
-    try {
-      return `${new URL(`${protocol}://${host}`).origin}/portal/tickets/${ticketId}`;
-    } catch {
-      return null;
-    }
+    const inferredOrigin = this.normalizeOrigin(`${protocol}://${host}`);
+    return inferredOrigin ? `${inferredOrigin}/portal/tickets/${ticketId}` : null;
   }
 
   private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {
@@ -277,5 +273,17 @@ export class TicketNotificationService {
       return header[0]?.trim() || null;
     }
     return typeof header === 'string' && header.trim() ? header.trim() : null;
+  }
+
+  private normalizeOrigin(value?: string | null): string | null {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+
+    try {
+      return new URL(trimmed).origin;
+    } catch {
+      this.logger.warn(`Origem invalida ignorada ao montar link de ticket: ${trimmed}`);
+      return null;
+    }
   }
 }
