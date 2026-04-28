@@ -35,7 +35,7 @@ function formatDate(iso: string): string {
 
 export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
   return (
-    <Card className="w-full xl:col-span-4 border-border/50">
+    <Card className="h-full w-full border-border/50 bg-card/70">
       <CardHeader className="pb-3 px-5 pt-5">
         <div className="flex items-center justify-between">
           <div>
@@ -61,7 +61,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
 
       <CardContent className="px-5 pb-5">
         {tickets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-30 gap-3 text-center">
+          <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-center">
             <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center border border-border">
               <Headset className="h-5 w-5 text-muted-foreground/40" />
             </div>
@@ -71,7 +71,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {tickets.map((ticket) => {
               const statusCfg = STATUS_CONFIG[ticket.status];
               const priorityCfg = PRIORITY_CONFIG[ticket.priority];
@@ -81,7 +81,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
                 <Link
                   key={ticket.id}
                   href={`/portal/tickets/${ticket.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
+                  className="group flex items-center gap-3 rounded-xl border border-border/40 bg-background/35 px-3 py-3 transition-colors hover:border-border/70 hover:bg-muted/40"
                 >
                   <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", statusCfg.bg)}>
                     <StatusIcon className={cn("h-4 w-4", statusCfg.color)} />

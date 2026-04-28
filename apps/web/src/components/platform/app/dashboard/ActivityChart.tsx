@@ -115,7 +115,7 @@ export function ActivityChart({
   };
 
   return (
-    <Card className="w-full border-border/60 bg-background/40 shadow-md backdrop-blur-xl xl:col-span-4">
+    <Card className="h-full w-full border-border/60 bg-background/40 shadow-md backdrop-blur-xl">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">{title}</CardTitle>
@@ -134,16 +134,16 @@ export function ActivityChart({
       </CardHeader>
 
       <CardContent className="px-4 pb-4">
-        <div className="relative rounded-xl border border-border/50 bg-muted/5 p-3">
+        <div className="relative h-full rounded-2xl border border-border/50 bg-muted/5 p-3">
           {!hasData ? (
-            <div className="flex h-[280px] w-full flex-col items-center justify-center text-center">
+            <div className="flex h-[320px] w-full flex-col items-center justify-center text-center">
               <Activity className="mb-2 h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">{emptyLabel}</p>
             </div>
           ) : (
             <ReactApexChart
               type="area"
-              height={280}
+              height={320}
               series={[
                 {
                   name: "Atualizacoes",

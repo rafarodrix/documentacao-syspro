@@ -210,15 +210,19 @@ export default async function DashboardPage() {
               allowAreaFilter={allowAdminTicketAreaFilter}
             />
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-              <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
-              <ActivityChart
-                title="Atualizacoes de tickets"
-                description="Movimento operacional dos ultimos 7 dias"
-                points={adminData.activity}
-                badgeLabel="Fila operacional"
-                emptyLabel="Sem atividade recente no periodo"
-              />
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div className="min-w-0">
+                <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
+              </div>
+              <div className="min-w-0">
+                <ActivityChart
+                  title="Atualizacoes de tickets"
+                  description="Movimento operacional dos ultimos 7 dias"
+                  points={adminData.activity}
+                  badgeLabel="Fila operacional"
+                  emptyLabel="Sem atividade recente no periodo"
+                />
+              </div>
             </div>
 
               {/* RECENT RECORDS MOVIDOS PARA ABA CADASTROS */}
@@ -626,7 +630,7 @@ export default async function DashboardPage() {
 
       <OpenTicketsInsights records={data.openTicketRecords} scopeMode="own" />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
           <ShineBorder borderWidth={1} duration={16} shineColor={["#38bdf855", "#60a5fa44"]} className="opacity-70" />
           <div className="relative z-10 grid grid-cols-1 gap-4">

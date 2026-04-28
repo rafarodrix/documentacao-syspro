@@ -6,7 +6,6 @@ import { useMemo, useState } from "react";
 import type { ApexOptions } from "apexcharts";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
@@ -243,11 +242,16 @@ export function OpenTicketsInsights({
 
   const selectedModuleLabel = selectedModule ? formatModuleLabel(selectedModule) : "";
   const selectedCategoryLabel = selectedCategory ? formatCategoryLabel(selectedCategory) : "";
-  const activeHref = buildTicketsHref({
-    team: areaFilter,
-    category: selectedCategory,
-    module: selectedModule,
-  });
+  const openCount = filteredRecords.filter((record) => record.status === "Aberto").length;
+  const inProgressCount = filteredRecords.length - openCount;
+  const scopeLabel =
+    scopeMode === "own"
+      ? "no seu escopo"
+      : areaFilter === "SUPORTE"
+        ? "na fila de suporte"
+        : areaFilter === "DESENVOLVIMENTO"
+          ? "na fila de desenvolvimento"
+          : "no recorte atual";
 
   const filterLabel =
     areaFilter === "SUPORTE"
@@ -290,34 +294,25 @@ export function OpenTicketsInsights({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+        <CardContent className="grid gap-3 md:grid-cols-3">
           <SummaryMetric
             label="Total em aberto"
-            value={areaCounts.total}
+            value={filteredRecords.length}
             tone="default"
-            helper={scopeMode === "own" ? "Chamados do seu contexto atual" : "Volume aberto disponivel agora"}
+            helper={`Volume aberto ${scopeLabel}`}
           />
           <SummaryMetric
-            label="Fila de suporte"
-            value={areaCounts.support}
+            label="Novos"
+            value={openCount}
             tone="support"
-            helper={`${getAreaShare(areaCounts.support, areaCounts.total)} do volume aberto`}
+            helper={`${getAreaShare(openCount, filteredRecords.length)} do volume aberto`}
           />
           <SummaryMetric
-            label="Fila de desenvolvimento"
-            value={areaCounts.development}
+            label="Em andamento"
+            value={inProgressCount}
             tone="development"
-            helper={`${getAreaShare(areaCounts.development, areaCounts.total)} do volume aberto`}
+            helper={`${getAreaShare(inProgressCount, filteredRecords.length)} do volume aberto`}
           />
-          <div className="flex flex-col justify-between gap-3 rounded-xl border border-border/50 bg-background/50 p-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Acao rapida</p>
-              <p className="mt-2 text-sm text-muted-foreground">Abra a fila ja filtrada pelo recorte atual.</p>
-            </div>
-            <Button asChild className="w-full gap-2">
-              <Link href={activeHref}>Abrir tickets filtrados</Link>
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -447,21 +442,23 @@ function BreakdownCard({
           <Badge variant="outline">{filterLabel}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {hasData ? (
           <>
-            <ReactApexChart
-              type="bar"
-              height={260}
-              series={[{ name: "Tickets", data: items.map((item) => item.value) }]}
-              options={chartOptions}
-            />
+            <div className="rounded-2xl border border-border/50 bg-background/40 px-2 py-3">
+              <ReactApexChart
+                type="bar"
+                height={240}
+                series={[{ name: "Tickets", data: items.map((item) => item.value) }]}
+                options={chartOptions}
+              />
+            </div>
             <div className="space-y-2">
               {items.map((item) => (
                 <div
                   key={`${title}-${item.label}`}
                   className={cn(
-                    "rounded-lg border px-3 py-2 transition-colors",
+                    "rounded-xl border px-3 py-3 transition-colors",
                     item.queryValue === selectedValue
                       ? "border-primary/40 bg-primary/5"
                       : "border-border/50 bg-background/50",
@@ -478,9 +475,12 @@ function BreakdownCard({
                     </button>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold tabular-nums text-foreground">{item.value}</span>
-                      <Button asChild size="sm" variant="outline" className="h-8 px-3 text-xs">
-                        <Link href={hrefBuilder(item)}>Abrir</Link>
-                      </Button>
+                      <Link
+                        href={hrefBuilder(item)}
+                        className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                      >
+                        Abrir
+                      </Link>
                     </div>
                   </div>
                 </div>
