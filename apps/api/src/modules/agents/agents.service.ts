@@ -1,19 +1,30 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import {
   agentHeartbeatPayloadSchema,
   agentRegisterPayloadSchema,
   type AgentDesiredState,
+  type AgentDeviceListQuery,
+  type AgentDeviceListResult,
+  type AgentDeviceSummary,
+  type AgentFleetStats,
 } from '@dosc-syspro/contracts/agent';
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 import { getRemoteModuleSettingsSnapshot } from '../remote-admin/support/module-settings-server';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuthorizationService } from '../authorization/authorization.service';
+
+const ONLINE_THRESHOLD_SECONDS = 5 * 60;
 
 @Injectable()
 export class AgentsService {
   private readonly logger = new Logger(AgentsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authorizationService: AuthorizationService,
+  ) {}
 
   async register(internalApiKey: string | undefined, body: unknown) {
     assertInternalApiKey(internalApiKey);
@@ -193,6 +204,153 @@ export class AgentsService {
         collect_inventory: false,
         collect_metrics: false,
       },
+    };
+  }
+
+  async listDevices(
+    rawHeaders: Record<string, unknown> | undefined,
+    query: Partial<AgentDeviceListQuery>,
+  ): Promise<{ success: true; data: AgentDeviceListResult }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:view');
+
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.min(200, Math.max(1, Math.trunc(query.pageSize ?? 50)));
+    const search = query.search?.trim();
+    const status = query.status ?? 'all';
+    const companyId = query.companyId?.trim();
+
+    const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
+
+    const where: Prisma.AgentDeviceWhereInput = {};
+    if (companyId) where.companyId = companyId;
+    if (search) {
+      where.OR = [
+        { deviceId: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { hostname: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { os: { contains: search, mode: Prisma.QueryMode.insensitive } },
+      ];
+    }
+    if (status === 'online') {
+      where.lastHeartbeatAt = { gte: onlineSince };
+    } else if (status === 'offline') {
+      where.OR = [
+        ...(where.OR ?? []),
+        { lastHeartbeatAt: null },
+        { lastHeartbeatAt: { lt: onlineSince } },
+      ];
+    }
+
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.agentDevice.count({ where }),
+      this.prisma.agentDevice.findMany({
+        where,
+        orderBy: [{ lastHeartbeatAt: 'desc' }, { hostname: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          company: { select: { id: true, nomeFantasia: true, razaoSocial: true } },
+        },
+      }),
+    ]);
+
+    const items: AgentDeviceSummary[] = rows.map((row) => this.toSummary(row, onlineSince));
+
+    return {
+      success: true,
+      data: {
+        items,
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        },
+      },
+    };
+  }
+
+  async getDevice(
+    rawHeaders: Record<string, unknown> | undefined,
+    deviceId: string,
+  ): Promise<{ success: true; data: AgentDeviceSummary }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:view');
+
+    const normalizedDeviceId = deviceId?.trim();
+    if (!normalizedDeviceId) {
+      throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
+    }
+
+    const row = await this.prisma.agentDevice.findUnique({
+      where: { deviceId: normalizedDeviceId },
+      include: { company: { select: { id: true, nomeFantasia: true, razaoSocial: true } } },
+    });
+
+    if (!row) {
+      throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+    }
+
+    const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
+    return { success: true, data: this.toSummary(row, onlineSince) };
+  }
+
+  async getFleetStats(
+    rawHeaders: Record<string, unknown> | undefined,
+  ): Promise<{ success: true; data: AgentFleetStats }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:view');
+
+    const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
+
+    const [total, online, unseen, withCompany] = await this.prisma.$transaction([
+      this.prisma.agentDevice.count(),
+      this.prisma.agentDevice.count({ where: { lastHeartbeatAt: { gte: onlineSince } } }),
+      this.prisma.agentDevice.count({ where: { lastHeartbeatAt: null } }),
+      this.prisma.agentDevice.count({ where: { companyId: { not: null } } }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        total,
+        online,
+        offline: Math.max(0, total - online),
+        unseen,
+        withCompany,
+        withoutCompany: Math.max(0, total - withCompany),
+        onlineThresholdSeconds: ONLINE_THRESHOLD_SECONDS,
+      },
+    };
+  }
+
+  private toSummary(
+    row: Prisma.AgentDeviceGetPayload<{
+      include: { company: { select: { id: true; nomeFantasia: true; razaoSocial: true } } };
+    }>,
+    onlineSince: Date,
+  ): AgentDeviceSummary {
+    const lastHeartbeat = row.lastHeartbeatAt;
+    const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
+    const heartbeatLagSeconds = lastHeartbeat
+      ? Math.max(0, Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000))
+      : null;
+
+    const companyName = row.company
+      ? row.company.nomeFantasia?.trim() || row.company.razaoSocial.trim()
+      : null;
+
+    return {
+      id: row.id,
+      deviceId: row.deviceId,
+      hostname: row.hostname,
+      os: row.os,
+      identitySource: row.identitySource,
+      agentVersion: row.agentVersion,
+      companyId: row.companyId,
+      companyName,
+      firstSeenAt: row.firstSeenAt.toISOString(),
+      lastHeartbeatAt: lastHeartbeat ? lastHeartbeat.toISOString() : null,
+      lastRegisteredAt: row.lastRegisteredAt ? row.lastRegisteredAt.toISOString() : null,
+      isOnline,
+      heartbeatLagSeconds,
     };
   }
 }
