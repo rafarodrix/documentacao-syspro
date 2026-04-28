@@ -11,7 +11,7 @@ import {
 } from '@dosc-syspro/contracts/agent';
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
-import { getRemoteModuleSettingsSnapshot } from '../remote-admin/support/module-settings-server';
+import { getRemoteModuleSettingsSnapshot } from '../../common/system-settings/remote-module-settings-snapshot';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 
@@ -211,7 +211,7 @@ export class AgentsService {
     rawHeaders: Record<string, unknown> | undefined,
     query: Partial<AgentDeviceListQuery>,
   ): Promise<{ success: true; data: AgentDeviceListResult }> {
-    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:view');
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
 
     const page = Math.max(1, Math.trunc(query.page ?? 1));
     const pageSize = Math.min(200, Math.max(1, Math.trunc(query.pageSize ?? 50)));
@@ -273,7 +273,7 @@ export class AgentsService {
     rawHeaders: Record<string, unknown> | undefined,
     deviceId: string,
   ): Promise<{ success: true; data: AgentDeviceSummary }> {
-    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:view');
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
 
     const normalizedDeviceId = deviceId?.trim();
     if (!normalizedDeviceId) {
@@ -296,7 +296,7 @@ export class AgentsService {
   async getFleetStats(
     rawHeaders: Record<string, unknown> | undefined,
   ): Promise<{ success: true; data: AgentFleetStats }> {
-    await this.authorizationService.assertPermission(rawHeaders as any, 'remote:view');
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
 
     const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
 

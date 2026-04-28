@@ -42,6 +42,8 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "crm:manage", label: "Gerenciar leads e pipeline", module: "crm", description: "Permite criar, editar e conduzir leads no CRM." },
   { key: "remote:view", label: "Visualizar plataforma remota", module: "remote", description: "Permite acessar a plataforma remota e consultar hosts e sessoes." },
   { key: "remote:manage", label: "Gerenciar plataforma remota", module: "remote", description: "Permite operar hosts, sessoes e configuracoes remotas." },
+  { key: "agents:view", label: "Visualizar dispositivos do agente", module: "agents", description: "Permite consultar a frota de agentes Trilink instalados." },
+  { key: "agents:manage", label: "Gerenciar dispositivos do agente", module: "agents", description: "Permite vincular, desvincular e operar dispositivos do agente Trilink." },
   { key: "atendimento:view", label: "Acessar central de atendimento", module: "atendimento", description: "Permite abrir a central de atendimento integrada." },
   { key: "settings:view", label: "Visualizar configuracoes", module: "settings", description: "Permite acessar a area de configuracoes." },
   { key: "settings:edit", label: "Editar configuracoes", module: "settings", description: "Permite alterar configuracoes globais." },
