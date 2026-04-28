@@ -114,7 +114,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     total: data.length,
   };
   const safeQueueCounts = queueCounts ?? { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 };
-  const safeStatusCounts = statusCounts ?? { open: 0, pending: 0, closed: 0 };
+  const safeStatusCounts = statusCounts ?? { open: 0, development: 0, testing: 0, closed: 0 };
 
   console.info("[TicketsDiag][page] load_success", {
     at: new Date().toISOString(),

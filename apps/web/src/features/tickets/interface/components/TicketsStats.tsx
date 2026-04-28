@@ -1,7 +1,7 @@
 "use client";
 
 import type { ElementType } from "react";
-import { Inbox, Clock, CheckCircle2 } from "lucide-react";
+import { Inbox, Wrench, FlaskConical, CheckCircle2 } from "lucide-react";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { cn } from "@/lib/utils";
 import type { TicketStatusCounts } from "./types";
@@ -68,7 +68,7 @@ function StatCard({
 
 export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsStatsProps) {
     return (
-        <div className="grid gap-3 md:grid-cols-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="grid gap-3 md:grid-cols-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <StatCard
                 title="Novos & Abertos"
                 value={counts.open}
@@ -81,14 +81,25 @@ export function TicketsStats({ counts, activeStatus, onSelectStatus }: TicketsSt
             />
 
             <StatCard
-                title="Em Analise"
-                value={counts.pending}
-                icon={Clock}
-                colorClass="text-amber-600 dark:text-amber-400"
-                bgClass="bg-amber-500/10"
-                description="Chamados aguardando andamento ou resposta."
-                active={activeStatus === "pending"}
-                onClick={() => onSelectStatus("pending")}
+                title="Em Desenvolvimento"
+                value={counts.development}
+                icon={Wrench}
+                colorClass="text-blue-600 dark:text-blue-400"
+                bgClass="bg-blue-500/10"
+                description="Itens atualmente em execucao tecnica."
+                active={activeStatus === "development"}
+                onClick={() => onSelectStatus("development")}
+            />
+
+            <StatCard
+                title="Em Testes"
+                value={counts.testing}
+                icon={FlaskConical}
+                colorClass="text-violet-600 dark:text-violet-400"
+                bgClass="bg-violet-500/10"
+                description="Analise, validacao e demais etapas intermediarias."
+                active={activeStatus === "testing"}
+                onClick={() => onSelectStatus("testing")}
             />
 
             <StatCard

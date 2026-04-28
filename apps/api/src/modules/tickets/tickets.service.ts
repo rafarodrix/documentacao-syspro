@@ -483,9 +483,10 @@ export class TicketsService {
     if (input.status && Object.values(TicketStatus).includes(input.status as TicketStatus)) {
       where.status = input.status as TicketStatus;
     } else if (input.statusGroup && input.statusGroup !== 'all') {
-      const statusesByGroup: Record<'open' | 'pending' | 'closed', TicketStatus[]> = {
+      const statusesByGroup: Record<'open' | 'development' | 'testing' | 'closed', TicketStatus[]> = {
         open: [TicketStatus.NEW, TicketStatus.UNASSIGNED],
-        pending: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER],
+        development: [TicketStatus.IN_PROGRESS],
+        testing: [TicketStatus.TRIAGE, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL],
         closed: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED],
       };
       where.status = { in: statusesByGroup[input.statusGroup] };
@@ -533,7 +534,11 @@ export class TicketsService {
     }
 
     const openStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.NEW, TicketStatus.UNASSIGNED] } };
-    const pendingStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.TRIAGE, TicketStatus.IN_PROGRESS, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER] } };
+    const developmentStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.IN_PROGRESS] } };
+    const testingStatusWhere: Prisma.ConversationWhereInput = {
+      ...teamScopeWhere,
+      status: { in: [TicketStatus.TRIAGE, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL] },
+    };
     const closedStatusWhere: Prisma.ConversationWhereInput = {
       ...teamScopeWhere,
       status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
@@ -554,7 +559,7 @@ export class TicketsService {
           ? [{ company: { nomeFantasia: sortOrder } }, { company: { razaoSocial: sortOrder } }, { updatedAt: 'desc' }]
           : [{ updatedAt: sortOrder }];
 
-    const [items, total, baseTotal, openCount, pendingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount] = await Promise.all([
+    const [items, total, baseTotal, openCount, developmentCount, testingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
         orderBy,
@@ -569,7 +574,8 @@ export class TicketsService {
       this.prisma.conversation.count({ where }),
       this.prisma.conversation.count({ where: queueBaseWhere }),
       this.prisma.conversation.count({ where: openStatusWhere }),
-      this.prisma.conversation.count({ where: pendingStatusWhere }),
+      this.prisma.conversation.count({ where: developmentStatusWhere }),
+      this.prisma.conversation.count({ where: testingStatusWhere }),
       this.prisma.conversation.count({ where: closedStatusWhere }),
       this.prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: requester.userId } }),
       this.prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: null } }),
@@ -591,7 +597,8 @@ export class TicketsService {
       requesterUserId: requester.userId,
       statusCounts: {
         open: openCount,
-        pending: pendingCount,
+        development: developmentCount,
+        testing: testingCount,
         closed: closedCount,
       },
       queueCounts: {
@@ -783,7 +790,7 @@ export class TicketsService {
     }
 
     if (settings.requireTestingReturnReason && isTestingReturn && (!handoffNote || handoffNote.length < 20)) {
-      throw new BadRequestException('Motivo obrigatorio ao retornar de Em testes para Em andamento (min. 20 caracteres).');
+      throw new BadRequestException('Motivo obrigatorio ao retornar de Em testes para Em desenvolvimento (min. 20 caracteres).');
     }
 
     if (releaseType && !normalizeReleaseType(releaseType)) {

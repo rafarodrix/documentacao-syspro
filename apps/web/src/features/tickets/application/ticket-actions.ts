@@ -120,7 +120,7 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
       total: 0,
     },
     queueCounts: { all: 0, my_queue: 0, unassigned: 0, critical: 0, no_response: 0 },
-    statusCounts: { open: 0, pending: 0, closed: 0 },
+    statusCounts: { open: 0, development: 0, testing: 0, closed: 0 },
   };
 
   try {

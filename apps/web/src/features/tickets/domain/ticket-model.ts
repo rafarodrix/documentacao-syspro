@@ -50,7 +50,8 @@ export type TicketSortOrder = "asc" | "desc";
 
 export interface TicketStatusCounts {
     open: number;
-    pending: number;
+    development: number;
+    testing: number;
     closed: number;
 }
 

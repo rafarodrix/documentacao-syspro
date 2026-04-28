@@ -19,15 +19,15 @@ function mapStatusLabel(status: TicketModuleRecord["status"] | string): string {
     case "UNASSIGNED":
       return "Sem dono";
     case "TRIAGE":
-      return "Triagem";
+      return "Em analise";
     case "IN_PROGRESS":
-      return "Em andamento";
+      return "Em desenvolvimento";
     case "WAITING_CUSTOMER":
-      return "Pendente cliente";
+      return "Em analise";
     case "WAITING_INTERNAL":
-      return "Aguardando interno";
+      return "Em analise";
     case "TESTING":
-      return "Em teste";
+      return "Em testes";
     case "RESOLVED":
       return "Resolvido";
     case "ARCHIVED":

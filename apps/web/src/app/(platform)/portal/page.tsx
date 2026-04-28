@@ -674,7 +674,7 @@ export default async function DashboardPage() {
               <p className="text-3xl font-bold">
                 <NumberTicker value={data.totalOpen} />
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">{data.kpis.pending} em analise/pendentes</p>
+              <p className="mt-1 text-xs text-muted-foreground">{data.kpis.pending} em desenvolvimento/testes</p>
             </CardContent>
           </Card>
         </MagicCard>

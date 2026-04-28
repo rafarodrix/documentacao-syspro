@@ -38,7 +38,8 @@ const optionalTrimmedEmailSchema = z.preprocess(
 
 export const ticketModuleStatusCountsSchema = z.object({
   open: z.number().int().nonnegative(),
-  pending: z.number().int().nonnegative(),
+  development: z.number().int().nonnegative(),
+  testing: z.number().int().nonnegative(),
   closed: z.number().int().nonnegative(),
 });
 
@@ -104,7 +105,7 @@ export const ticketModuleTriageRequestSchema = z.object({
 export const ticketModuleListQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
   status: z.string().optional(),
-  statusGroup: z.enum(["open", "pending", "closed", "all"]).optional(),
+  statusGroup: z.enum(["open", "development", "testing", "closed", "all"]).optional(),
   queue: z.enum(["all", "my_queue", "unassigned", "critical", "no_response"]).optional(),
   team: z.enum(["SUPORTE", "DESENVOLVIMENTO"]).optional(),
   closedWindow: z.enum(["30d", "60d", "90d", "180d", "365d", "all"]).optional(),

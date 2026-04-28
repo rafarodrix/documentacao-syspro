@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Search } from "lucide-react";
+import { CalendarDays, Filter, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { formatModuleOptionLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { type TicketStatusGroup, type QueueKey } from "@dosc-syspro/core";
@@ -57,8 +59,15 @@ export function TicketsFilters({
     module,
     setModuleFilter,
 }: TicketsFiltersProps) {
+    const [showFilters, setShowFilters] = useState(false);
     const ticketSettings = useTicketModuleSettings();
     const categoryOptions = ticketSettings.categories.filter((item) => team === "all" || item.defaultTeam === team);
+    const hasAdvancedFilters =
+        team !== "all" ||
+        queue !== "all" ||
+        Boolean(category.trim()) ||
+        Boolean(module.trim()) ||
+        (statusFilter === "closed" && closedWindow !== "all");
 
     return (
         <div className="flex w-full flex-col gap-3">
@@ -68,8 +77,11 @@ export function TicketsFilters({
                         <Button type="button" variant={statusFilter === "open" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "open" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("open")}>
                             Abertos ({counts.open})
                         </Button>
-                        <Button type="button" variant={statusFilter === "pending" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "pending" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("pending")}>
-                            Em analise ({counts.pending})
+                        <Button type="button" variant={statusFilter === "development" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "development" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("development")}>
+                            Em desenvolvimento ({counts.development})
+                        </Button>
+                        <Button type="button" variant={statusFilter === "testing" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "testing" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("testing")}>
+                            Em testes ({counts.testing})
                         </Button>
                         <Button type="button" variant={statusFilter === "closed" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "closed" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("closed")}>
                             Fechados ({counts.closed})
@@ -90,8 +102,46 @@ export function TicketsFilters({
                     </div>
                     {isAdmin && (
                         <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                                type="button"
+                                variant={showFilters ? "secondary" : "outline"}
+                                size="icon"
+                                className="h-10 w-10 shrink-0"
+                                onClick={() => setShowFilters((current) => !current)}
+                                title="Filtros avancados"
+                            >
+                                <Filter className="h-4 w-4" />
+                            </Button>
+                            {hasAdvancedFilters && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-10 px-3 text-muted-foreground hover:text-foreground"
+                                    onClick={() => {
+                                        setTeamFilter("all");
+                                        setQueueFilter("all");
+                                        setCategoryFilter("all");
+                                        setModuleFilter("all");
+                                        if (statusFilter === "closed") setClosedWindow("all");
+                                    }}
+                                >
+                                    <X className="mr-2 h-3.5 w-3.5" />
+                                    Limpar
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {isAdmin && showFilters && (
+                <div className="rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Equipe</Label>
                             <Select value={team} onValueChange={(val) => setTeamFilter(val as TicketTeamFilter)}>
-                                <SelectTrigger className="h-10 w-35 bg-background">
+                                <SelectTrigger className="h-9 bg-background">
                                     <SelectValue placeholder="Equipe" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -100,10 +150,13 @@ export function TicketsFilters({
                                     <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
 
-                            {statusFilter !== "closed" && (
+                        {statusFilter !== "closed" ? (
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Fila</Label>
                                 <Select value={queue} onValueChange={(val) => setQueueFilter(val as QueueKey)}>
-                                    <SelectTrigger className="h-10 w-40 bg-background">
+                                    <SelectTrigger className="h-9 bg-background">
                                         <SelectValue placeholder="Fila" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -114,10 +167,29 @@ export function TicketsFilters({
                                         <SelectItem value="no_response">Sem resposta ({queueCounts.no_response})</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            )}
+                            </div>
+                        ) : (
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Periodo</Label>
+                                <Select value={closedWindow} onValueChange={(value) => setClosedWindow(value as ClosedTicketsWindow)}>
+                                    <SelectTrigger className="h-9 bg-background">
+                                        <SelectValue placeholder="Selecione o periodo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(CLOSED_WINDOW_LABELS).map(([value, label]) => (
+                                            <SelectItem key={value} value={value}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Categoria</Label>
                             <Select value={category || "all"} onValueChange={setCategoryFilter}>
-                                <SelectTrigger className="h-10 w-45 bg-background">
+                                <SelectTrigger className="h-9 bg-background">
                                     <SelectValue placeholder="Categoria" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -129,9 +201,12 @@ export function TicketsFilters({
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
 
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Modulo</Label>
                             <Select value={module || "all"} onValueChange={setModuleFilter}>
-                                <SelectTrigger className="h-10 w-52 bg-background">
+                                <SelectTrigger className="h-9 bg-background">
                                     <SelectValue placeholder="Modulo" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -144,11 +219,11 @@ export function TicketsFilters({
                                 </SelectContent>
                             </Select>
                         </div>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {statusFilter === "closed" && (
+            {!isAdmin && statusFilter === "closed" && (
                 <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3 px-1">
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
                         <CalendarDays className="h-3.5 w-3.5" /> Periodo dos fechados

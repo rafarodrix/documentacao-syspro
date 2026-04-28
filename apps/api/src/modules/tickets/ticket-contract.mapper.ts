@@ -206,7 +206,7 @@ export function serializeTicketListResponse(input: {
       critical: criticalCount,
       no_response: noResponseCount,
     },
-    statusCounts: input.statusCounts ?? { open: 0, pending: 0, closed: 0 },
+    statusCounts: input.statusCounts ?? { open: 0, development: 0, testing: 0, closed: 0 },
   };
 }
 

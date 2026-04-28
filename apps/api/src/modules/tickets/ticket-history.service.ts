@@ -45,13 +45,13 @@ export class TicketHistoryService {
       case TicketStatus.UNASSIGNED:
         return 'Sem dono';
       case TicketStatus.TRIAGE:
-        return 'Triagem';
+        return 'Em analise';
       case TicketStatus.IN_PROGRESS:
-        return 'Em andamento';
+        return 'Em desenvolvimento';
       case TicketStatus.WAITING_CUSTOMER:
-        return 'Pendente cliente';
+        return 'Em analise';
       case TicketStatus.WAITING_INTERNAL:
-        return 'Aguardando interno';
+        return 'Em analise';
       case TicketStatus.TESTING:
         return 'Em testes';
       case TicketStatus.RESOLVED:

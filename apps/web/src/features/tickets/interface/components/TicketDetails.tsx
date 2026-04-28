@@ -431,7 +431,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                     )}
                                     {requiresTestingReturnNote && (
                                         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-muted-foreground">
-                                            Ao voltar de <span className="font-medium text-foreground">Em teste</span> para <span className="font-medium text-foreground">Em andamento</span>, o sistema abre uma tela para registrar o motivo como nota interna e disparar a automacao.
+                                            Ao voltar de <span className="font-medium text-foreground">Em teste</span> para <span className="font-medium text-foreground">Em desenvolvimento</span>, o sistema abre uma tela para registrar o motivo como nota interna e disparar a automacao.
                                         </div>
                                     )}
                                     {isAdmin && classificationDirty && (
@@ -1099,8 +1099,8 @@ function PriorityDropdown({
 
 const statusOptions: Array<{ value: TicketModuleStatus; label: string }> = [
     { value: "TRIAGE", label: "Triagem" },
-    { value: "IN_PROGRESS", label: "Em andamento" },
-    { value: "TESTING", label: "Em teste" },
+    { value: "IN_PROGRESS", label: "Em desenvolvimento" },
+    { value: "TESTING", label: "Em testes" },
     { value: "WAITING_CUSTOMER", label: "Pendente cliente" },
     { value: "WAITING_INTERNAL", label: "Aguardando interno" },
     { value: "RESOLVED", label: "Resolvido" },
@@ -1111,8 +1111,8 @@ function normalizeStatusValue(status?: string | null): TicketModuleStatus | null
     if (normalized === "novo" || normalized === "new") return "NEW";
     if (normalized === "sem dono" || normalized === "unassigned") return "UNASSIGNED";
     if (normalized === "triagem" || normalized === "triage") return "TRIAGE";
-    if (normalized === "em andamento" || normalized === "in_progress") return "IN_PROGRESS";
-    if (normalized === "em teste" || normalized === "testing") return "TESTING";
+    if (normalized === "em andamento" || normalized === "em desenvolvimento" || normalized === "in_progress") return "IN_PROGRESS";
+    if (normalized === "em teste" || normalized === "em testes" || normalized === "testing") return "TESTING";
     if (normalized === "pendente cliente" || normalized === "waiting_customer") return "WAITING_CUSTOMER";
     if (normalized === "aguardando interno" || normalized === "waiting_internal") return "WAITING_INTERNAL";
     if (normalized === "resolvido" || normalized === "resolved") return "RESOLVED";

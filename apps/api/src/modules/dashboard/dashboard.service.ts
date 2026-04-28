@@ -555,7 +555,7 @@ export class DashboardService {
       const tickets = normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
       const totalOpen =
         ticketsResponse?.success && ticketsResponse.statusCounts
-          ? ticketsResponse.statusCounts.open + ticketsResponse.statusCounts.pending
+          ? ticketsResponse.statusCounts.open + ticketsResponse.statusCounts.development + ticketsResponse.statusCounts.testing
           : normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').length;
 
       const mapCompany = (company: any) => ({
@@ -706,7 +706,7 @@ export class DashboardService {
       ticketsResponse?.success && ticketsResponse.statusCounts
         ? {
             open: ticketsResponse.statusCounts.open,
-            pending: ticketsResponse.statusCounts.pending,
+            pending: ticketsResponse.statusCounts.development + ticketsResponse.statusCounts.testing,
             resolved: ticketsResponse.statusCounts.closed,
           }
         : buildTicketKpis(normalizedTickets);
