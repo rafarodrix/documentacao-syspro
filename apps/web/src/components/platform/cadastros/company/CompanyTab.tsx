@@ -74,6 +74,16 @@ const COMPANIES_PAGE_SIZE = 50
 const DEFAULT_INACTIVATION_REASON: CompanyInactivationReasonValue =
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS[0]?.key ?? "SOLICITACAO_CLIENTE"
 
+function companyHasKnownLinks(company: CompanyListItem) {
+  return (
+    (company._count?.memberships ?? company.usersCount ?? 0) > 0 ||
+    (company._count?.contactLinks ?? company.contactsCount ?? 0) > 0 ||
+    (company._count?.contracts ?? 0) > 0 ||
+    (company._count?.branches ?? 0) > 0 ||
+    (company._count?.accountingClients ?? 0) > 0
+  )
+}
+
 const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: string }> = {
   ACTIVE: {
     label: "Ativo",
@@ -644,7 +654,7 @@ export function CompanyTab({
                         company={company}
                         canEdit={canEdit}
                         canToggleStatus={canToggleStatus}
-                        canDelete={canDelete}
+                        canDelete={canDelete && !companyHasKnownLinks(company)}
                         isLoading={loadingId === company.id}
                         onToggleStatus={() => {
                           setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
@@ -798,11 +808,11 @@ export function CompanyTab({
                       </TableCell>
 
                       <TableCell className="text-right px-6">
-                        <CompanyActionsMenu
+                      <CompanyActionsMenu
                           company={company}
                           canEdit={canEdit}
                           canToggleStatus={canToggleStatus}
-                          canDelete={canDelete}
+                          canDelete={canDelete && !companyHasKnownLinks(company)}
                           isLoading={loadingId === company.id}
                           onToggleStatus={() => {
                             setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)

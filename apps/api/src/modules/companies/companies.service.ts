@@ -71,6 +71,10 @@ function firstString(...values: unknown[]) {
   return undefined;
 }
 
+function sumValues(values: number[]) {
+  return values.reduce((acc, value) => acc + value, 0);
+}
+
 function normalizeDate(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const raw = value.trim();
@@ -1110,10 +1114,16 @@ export class CompaniesService {
         where: { id: companyId },
         select: {
           id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
           _count: {
             select: {
               memberships: true,
+              contactLinks: true,
+              addresses: true,
+              userContactLinks: true,
               contracts: true,
+              remoteHosts: true,
               branches: true,
               accountingClients: true,
             },
@@ -1125,16 +1135,54 @@ export class CompaniesService {
         return { success: false, message: 'Empresa nao encontrada.' };
       }
 
-      const linkedRecords =
-        company._count.memberships +
-        company._count.contracts +
-        company._count.branches +
-        company._count.accountingClients;
+      const [
+        userAccessProfilesCount,
+        remoteSessionsCount,
+        conversationsCount,
+        conversationLinksCount,
+        messageLinksCount,
+        integrationConnectionsCount,
+        agentDevicesCount,
+        remoteAddressBookCredentialsCount,
+        remoteHostSysproUpdatesCount,
+      ] = await Promise.all([
+        this.prisma.userAccessProfile.count({ where: { companyId } }),
+        this.prisma.remoteSession.count({ where: { companyId } }),
+        this.prisma.conversation.count({ where: { companyId } }),
+        this.prisma.conversationLink.count({ where: { companyId } }),
+        this.prisma.messageLink.count({ where: { companyId } }),
+        this.prisma.integrationConnection.count({ where: { companyId } }),
+        this.prisma.agentDevice.count({ where: { companyId } }),
+        this.prisma.remoteAddressBookCredential.count({ where: { companyId } }),
+        this.prisma.remoteHostSysproUpdate.count({ where: { companyId } }),
+      ]);
 
-      if (linkedRecords > 0) {
+      const operationalLinks =
+        company._count.memberships +
+        company._count.contactLinks +
+        company._count.userContactLinks +
+        company._count.contracts +
+        company._count.remoteHosts +
+        company._count.branches +
+        company._count.accountingClients +
+        userAccessProfilesCount;
+
+      const historicalLinks = sumValues([
+        remoteSessionsCount,
+        conversationsCount,
+        conversationLinksCount,
+        messageLinksCount,
+        integrationConnectionsCount,
+        agentDevicesCount,
+        remoteAddressBookCredentialsCount,
+        remoteHostSysproUpdatesCount,
+      ]);
+
+      if (operationalLinks > 0 || historicalLinks > 0) {
+        const companyLabel = company.nomeFantasia?.trim() || company.razaoSocial;
         return {
           success: false,
-          message: 'Empresa possui registros vinculados. Inative em vez de excluir.',
+          message: `A empresa ${companyLabel} possui historico ou registros vinculados. Use a inativacao em vez da exclusao.`,
         };
       }
 
