@@ -93,7 +93,7 @@ function DashboardMetricCard({
   }[tone];
 
   return (
-    <Card className="border-border/50 bg-card/70">
+    <Card className="h-full border-border/50 bg-card/70">
       <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
         <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
         <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", toneClass)}>
@@ -139,6 +139,7 @@ export default async function DashboardPage() {
     const canViewContacts = adminData.canViewContacts ?? true;
     const canViewUsers = adminData.canViewUsers ?? true;
     const hasCadastrosAccess = canViewCompanies || canViewContacts || canViewUsers;
+    const cadastroTabsCount = [canViewCompanies, canViewContacts, canViewUsers].filter(Boolean).length;
     const showUsersMetric = canViewUsers;
     const showPeopleMetric = canViewUsers || canViewContacts;
     const recentContacts = adminData.recentContacts ?? [];
@@ -147,9 +148,15 @@ export default async function DashboardPage() {
 
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight sm:text-xl">Painel operacional</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Dashboard administrativo
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight sm:text-xl">Painel operacional</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Visao operacional do sistema em tempo real.</p>
+          </div>
         </div>
 
         <Tabs defaultValue="operacional" className="space-y-4">
@@ -157,17 +164,26 @@ export default async function DashboardPage() {
             <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
               <Zap className="h-4 w-4" />
               Operacional
+              <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {sefazGroups.length + 2}
+              </span>
             </TabsTrigger>
             {hasCadastrosAccess ? (
               <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
                 <Building2 className="h-4 w-4" />
                 Cadastros
+                <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {cadastroTabsCount}
+                </span>
               </TabsTrigger>
             ) : null}
             {canAccessCrm ? (
               <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
                 <Target className="h-4 w-4" />
                 Comercial
+                <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {adminData.crm?.activeLeads ?? 0}
+                </span>
               </TabsTrigger>
             ) : null}
           </TabsList>
@@ -180,17 +196,18 @@ export default async function DashboardPage() {
 
               {/* CARDS DE CADASTROS MOVIDOS PARA ABA CADASTROS */}
 
-              <Card className="border-border/50 bg-card/70">
+              <Card className="border-border/50 bg-muted/30 shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <KeyRound className="h-4 w-4" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <KeyRound className="h-4 w-4 text-amber-500" />
                     Senha do dia
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-center font-mono text-xl font-semibold tracking-[0.18em]">
+                  <div className="rounded-lg border border-border/50 bg-background/80 px-3 py-2 text-center font-mono text-lg font-semibold tracking-[0.16em]">
                     {dailyPassword?.password ?? "-----"}
                   </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Uso operacional interno do dia.</p>
                 </CardContent>
               </Card>
             </div>
@@ -307,7 +324,7 @@ export default async function DashboardPage() {
           <TabsContent value="cadastros" className="space-y-6">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {canViewCompanies ? (
-                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                <Card className="relative h-full overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
                   <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
                     <Building2 className="h-20 w-20 -rotate-12 text-blue-500" />
                   </div>
@@ -332,7 +349,7 @@ export default async function DashboardPage() {
               ) : null}
 
               {canViewContacts ? (
-                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                <Card className="relative h-full overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
                   <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
                     <Users className="h-20 w-20 rotate-12 text-orange-500" />
                   </div>
@@ -359,7 +376,7 @@ export default async function DashboardPage() {
               ) : null}
 
               {canViewUsers ? (
-                <Card className="relative overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
+                <Card className="relative h-full overflow-hidden border-border/50 bg-card/70 transition-all hover:border-border/80 hover:shadow-sm">
                   <div className="absolute right-0 top-0 p-3 opacity-[0.04]">
                     <Users className="h-20 w-20 rotate-12 text-violet-500" />
                   </div>
