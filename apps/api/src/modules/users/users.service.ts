@@ -15,14 +15,19 @@ import { IntegrationContextService, type ResolvedIntegrationContext } from '../s
 import { AuthorizationService } from '../authorization/authorization.service';
 import { UserContactAccessService } from './user-contact-access.service';
 import {
+  currentUserProfileSchema,
   createUserSchema,
+  updateCurrentUserProfileSchema,
   updateUserSchema,
   userAccessListItemSchema,
   type CreateUserInput,
+  type CurrentUserProfile,
+  type UpdateCurrentUserProfileInput,
   type UpdateUserInput,
   type UserAccessListItem,
   type UserEmailAvailabilityResult,
 } from '@dosc-syspro/contracts/user';
+import { buildCompanySearchText } from '../shared/search/search-index';
 import { SYSTEM_ROLES, CLIENT_ROLES, ROLE_LABELS } from '@dosc-syspro/core';
 
 @Injectable()
@@ -573,30 +578,289 @@ export class UsersService {
 
   async getCurrentProfile(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: requester.userId },
-      select: {
-        name: true,
-        email: true,
-        image: true,
-        role: true,
-      },
-    });
+    const [user, canEditPersonal, canEditCompany] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: requester.userId },
+        select: {
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          memberships: {
+            select: {
+              companyId: true,
+              company: {
+                select: {
+                  id: true,
+                  cnpj: true,
+                  razaoSocial: true,
+                  nomeFantasia: true,
+                  emailContato: true,
+                  emailFinanceiro: true,
+                  telefone: true,
+                  whatsapp: true,
+                  website: true,
+                  addresses: {
+                    take: 1,
+                    orderBy: { id: 'asc' },
+                    select: {
+                      description: true,
+                      cep: true,
+                      logradouro: true,
+                      numero: true,
+                      complemento: true,
+                      bairro: true,
+                      cidade: true,
+                      estado: true,
+                      pais: true,
+                      codigoIbgeCidade: true,
+                      codigoIbgeEstado: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          contact: {
+            select: {
+              companyLinks: {
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                select: {
+                  companyId: true,
+                  isPrimary: true,
+                  company: {
+                    select: {
+                      id: true,
+                      cnpj: true,
+                      razaoSocial: true,
+                      nomeFantasia: true,
+                      emailContato: true,
+                      emailFinanceiro: true,
+                      telefone: true,
+                      whatsapp: true,
+                      website: true,
+                      addresses: {
+                        take: 1,
+                        orderBy: { id: 'asc' },
+                        select: {
+                          description: true,
+                          cep: true,
+                          logradouro: true,
+                          numero: true,
+                          complemento: true,
+                          bairro: true,
+                          cidade: true,
+                          estado: true,
+                          pais: true,
+                          codigoIbgeCidade: true,
+                          codigoIbgeEstado: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.canEditOwnPersonalProfile(requester),
+      this.canEditOwnCompanyProfile(requester),
+    ]);
 
     if (!user) {
       throw new NotFoundException('Usuario nao encontrado.');
     }
 
+    const companies = this.collectProfileCompanies(user);
+    const selectedCompanyId = companies[0]?.id ?? null;
+    const payload = currentUserProfileSchema.parse({
+      name: user.name || 'Usuario',
+      email: user.email,
+      image: user.image ?? null,
+      role: user.role,
+      permissions: {
+        canEditPersonal,
+        canEditCompany,
+      },
+      selectedCompanyId,
+      companies,
+    });
+
     return {
       success: true,
-      data: {
-        name: user.name || 'Usuario',
-        email: user.email,
-        image: user.image ?? null,
-        role: user.role,
-        twoFactorEnabled: true,
-      },
+      data: payload,
+    };
+  }
+
+  async updateCurrentProfile(input: UpdateCurrentUserProfileInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const parsed = updateCurrentUserProfileSchema.safeParse(input);
+
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten().fieldErrors);
+    }
+
+    const [user, canEditPersonal, canEditCompany] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: requester.userId },
+        select: {
+          id: true,
+          memberships: {
+            select: {
+              companyId: true,
+              company: {
+                select: {
+                  id: true,
+                  cnpj: true,
+                  razaoSocial: true,
+                  nomeFantasia: true,
+                  emailContato: true,
+                  emailFinanceiro: true,
+                  telefone: true,
+                  whatsapp: true,
+                  website: true,
+                  addresses: {
+                    take: 1,
+                    orderBy: { id: 'asc' },
+                    select: { id: true },
+                  },
+                },
+              },
+            },
+          },
+          contact: {
+            select: {
+              companyLinks: {
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                select: {
+                  companyId: true,
+                  isPrimary: true,
+                  company: {
+                    select: {
+                      id: true,
+                      cnpj: true,
+                      razaoSocial: true,
+                      nomeFantasia: true,
+                      emailContato: true,
+                      emailFinanceiro: true,
+                      telefone: true,
+                      whatsapp: true,
+                      website: true,
+                      addresses: {
+                        take: 1,
+                        orderBy: { id: 'asc' },
+                        select: { id: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.canEditOwnPersonalProfile(requester),
+      this.canEditOwnCompanyProfile(requester),
+    ]);
+
+    if (!user) {
+      throw new NotFoundException('Usuario nao encontrado.');
+    }
+
+    const companies = this.collectProfileCompanies(user);
+    const data = parsed.data;
+    let shouldSyncPortalUser = false;
+
+    if (data.name !== undefined) {
+      if (!canEditPersonal) {
+        throw new ForbiddenException('Sem permissao para alterar os dados pessoais do perfil.');
+      }
+
+      await this.prisma.user.update({
+        where: { id: requester.userId },
+        data: {
+          name: data.name.trim(),
+        },
+      });
+
+      shouldSyncPortalUser = true;
+    }
+
+    if (data.company) {
+      if (!canEditCompany) {
+        throw new ForbiddenException('Sem permissao para alterar os dados da empresa no perfil.');
+      }
+
+      const targetCompanyId = String(data.companyId ?? companies[0]?.id ?? '').trim();
+      const targetCompany = companies.find((company) => company.id === targetCompanyId);
+
+      if (!targetCompany) {
+        throw new BadRequestException('Empresa do perfil nao encontrada para este usuario.');
+      }
+
+      const existingAddressId =
+        user.contact?.companyLinks.find((link) => link.companyId === targetCompanyId)?.company.addresses[0]?.id ??
+        user.memberships.find((membership) => membership.companyId === targetCompanyId)?.company.addresses[0]?.id ??
+        null;
+
+      const nextAddress = this.normalizeProfileCompanyAddress(data.company.address?.cep ? data.company.address : null);
+
+      await this.prisma.company.update({
+        where: { id: targetCompanyId },
+        data: {
+          razaoSocial: data.company.razaoSocial.trim(),
+          nomeFantasia: this.normalizeNullableString(data.company.nomeFantasia),
+          emailContato: this.normalizeNullableString(data.company.emailContato),
+          emailFinanceiro: this.normalizeNullableString(data.company.emailFinanceiro),
+          telefone: this.normalizeNullableString(data.company.telefone),
+          whatsapp: this.normalizeNullableString(data.company.whatsapp),
+          website: this.normalizeNullableString(data.company.website),
+          searchText: buildCompanySearchText({
+            cnpj: targetCompany.cnpj,
+            razaoSocial: data.company.razaoSocial.trim(),
+            nomeFantasia: this.normalizeNullableString(data.company.nomeFantasia),
+            emailContato: this.normalizeNullableString(data.company.emailContato),
+            telefone: this.normalizeNullableString(data.company.telefone),
+            whatsapp: this.normalizeNullableString(data.company.whatsapp),
+          }),
+          addresses: nextAddress
+            ? existingAddressId
+              ? {
+                  update: {
+                    where: { id: existingAddressId },
+                    data: nextAddress,
+                  },
+                }
+              : {
+                  create: nextAddress,
+                }
+            : existingAddressId
+              ? {
+                  delete: {
+                    id: existingAddressId,
+                  },
+                }
+              : undefined,
+        } as any,
+      });
+
+      void this.contactsService.syncChatwootContactsForCompany(targetCompanyId).catch((error: any) => {
+        this.logger.error(
+          `Falha ao sincronizar contatos da empresa ${targetCompanyId} apos atualizacao no perfil: ${error?.message ?? 'unknown_error'}`,
+        );
+      });
+
+      shouldSyncPortalUser = true;
+    }
+
+    if (shouldSyncPortalUser) {
+      await this.syncPortalUserToChatwootSafe(requester.userId);
+    }
+
+    return {
+      success: true,
+      message: 'Perfil atualizado com sucesso.',
     };
   }
 
@@ -864,6 +1128,101 @@ export class UsersService {
         'Sem Vinculo',
       companyId: primaryContactLink?.companyId ?? user.memberships?.[0]?.companyId ?? null,
     });
+  }
+
+  private collectProfileCompanies(user: any): CurrentUserProfile['companies'] {
+    const companies = new Map<string, CurrentUserProfile['companies'][number]>();
+
+    const registerCompany = (company: any, isPrimary: boolean) => {
+      if (!company?.id || companies.has(company.id)) return;
+      const address = company.addresses?.[0] ?? null;
+
+      companies.set(company.id, {
+        id: company.id,
+        isPrimary,
+        cnpj: company.cnpj,
+        razaoSocial: company.razaoSocial,
+        nomeFantasia: company.nomeFantasia ?? null,
+        emailContato: company.emailContato ?? null,
+        emailFinanceiro: company.emailFinanceiro ?? null,
+        telefone: company.telefone ?? null,
+        whatsapp: company.whatsapp ?? null,
+        website: company.website ?? null,
+        address: address
+          ? {
+              description: address.description ?? 'Sede',
+              cep: address.cep ?? '',
+              logradouro: address.logradouro ?? '',
+              numero: address.numero ?? '',
+              complemento: address.complemento ?? '',
+              bairro: address.bairro ?? '',
+              cidade: address.cidade ?? '',
+              estado: address.estado ?? '',
+              pais: address.pais ?? 'BR',
+              codigoIbgeCidade: address.codigoIbgeCidade ?? '',
+              codigoIbgeEstado: address.codigoIbgeEstado ?? '',
+            }
+          : null,
+      });
+    };
+
+    for (const link of user.contact?.companyLinks ?? []) {
+      registerCompany(link.company, Boolean(link.isPrimary));
+    }
+
+    for (const membership of user.memberships ?? []) {
+      registerCompany(membership.company, false);
+    }
+
+    return Array.from(companies.values()).sort((left, right) => Number(right.isPrimary) - Number(left.isPrimary));
+  }
+
+  private async canEditOwnPersonalProfile(requester: Requester) {
+    return (
+      (await this.authorizationService.userHasPermission(requester, 'profile:edit_personal')) ||
+      (await this.authorizationService.userHasPermission(requester, 'users:edit', { acceptCompanyScope: true }))
+    );
+  }
+
+  private async canEditOwnCompanyProfile(requester: Requester) {
+    return (
+      (await this.authorizationService.userHasPermission(requester, 'profile:edit_company')) ||
+      (await this.authorizationService.userHasPermission(requester, 'companies:edit', { acceptCompanyScope: true }))
+    );
+  }
+
+  private normalizeNullableString(value?: string | null) {
+    const normalized = String(value ?? '').trim();
+    return normalized.length ? normalized : null;
+  }
+
+  private normalizeProfileCompanyAddress(address: CurrentUserProfile['companies'][number]['address']) {
+    if (!address) return null;
+
+    const cep = String(address.cep ?? '').replace(/\D/g, '').trim();
+    const logradouro = String(address.logradouro ?? '').trim();
+    const numero = String(address.numero ?? '').trim();
+    const bairro = String(address.bairro ?? '').trim();
+    const cidade = String(address.cidade ?? '').trim();
+    const estado = String(address.estado ?? '').trim().toUpperCase();
+
+    if (!cep || !logradouro || !numero || !bairro || !cidade || !estado) {
+      return null;
+    }
+
+    return {
+      description: String(address.description ?? 'Sede').trim() || 'Sede',
+      cep,
+      logradouro,
+      numero,
+      complemento: String(address.complemento ?? '').trim() || null,
+      bairro,
+      cidade,
+      estado,
+      pais: String(address.pais ?? 'BR').trim() || 'BR',
+      codigoIbgeCidade: String(address.codigoIbgeCidade ?? '').trim() || null,
+      codigoIbgeEstado: String(address.codigoIbgeEstado ?? '').trim() || null,
+    };
   }
 
   private mapRoleToChatwoot(role: Role): 'agent' | 'administrator' {

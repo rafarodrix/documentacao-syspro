@@ -6,3 +6,9 @@ export async function GET(request: NextRequest) {
     path: "/users/me/profile",
   });
 }
+
+export async function PUT(request: NextRequest) {
+  return proxyToBackend(request, {
+    path: "/users/me/profile",
+  });
+}

@@ -1,7 +1,11 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 import type { Request } from 'express';
-import type { CreateUserInput, UpdateUserInput } from '@dosc-syspro/contracts/user';
+import type {
+  CreateUserInput,
+  UpdateCurrentUserProfileInput,
+  UpdateUserInput,
+} from '@dosc-syspro/contracts/user';
 
 @Controller('users')
 export class UsersController {
@@ -33,6 +37,11 @@ export class UsersController {
   @Get('me/profile')
   getCurrentProfile(@Req() req: Request) {
     return this.usersService.getCurrentProfile(req.headers);
+  }
+
+  @Put('me/profile')
+  updateCurrentProfile(@Req() req: Request, @Body() body: UpdateCurrentUserProfileInput) {
+    return this.usersService.updateCurrentProfile(body, req.headers);
   }
 
   @Get(':id')

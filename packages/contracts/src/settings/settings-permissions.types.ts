@@ -40,6 +40,8 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "users:status", label: "Ativar ou desativar acesso", module: "users", description: "Permite bloquear ou reativar acesso." },
   { key: "users:view_internal", label: "Visualizar equipe interna", module: "users", description: "Permite visualizar administradores e desenvolvedores." },
   { key: "users:manage_internal", label: "Gerenciar equipe interna", module: "users", description: "Permite criar e editar perfis de sistema." },
+  { key: "profile:edit_personal", label: "Alterar dados pessoais do proprio perfil", module: "profile", description: "Permite editar nome e informacoes pessoais do proprio perfil." },
+  { key: "profile:edit_company", label: "Alterar dados da empresa no proprio perfil", module: "profile", description: "Permite editar os dados da empresa vinculada ao proprio acesso." },
   { key: "contracts:view", label: "Visualizar contratos", module: "contracts", description: "Permite consultar contratos." },
   { key: "contracts:create", label: "Criar contrato", module: "contracts", description: "Permite cadastrar contrato." },
   { key: "contracts:edit", label: "Editar contrato", module: "contracts", description: "Permite alterar contrato existente." },

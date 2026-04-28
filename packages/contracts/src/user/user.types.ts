@@ -28,6 +28,83 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+const emptyStringToNull = z.preprocess(
+  (value) => {
+    if (value === null || value === undefined) return null;
+    const normalized = String(value).trim();
+    return normalized.length ? normalized : null;
+  },
+  z.string().nullable(),
+);
+
+const userProfileCompanyAddressSchema = z.object({
+  description: z.string().trim().default("Sede"),
+  cep: z.string().trim().default(""),
+  logradouro: z.string().trim().default(""),
+  numero: z.string().trim().default(""),
+  complemento: z.string().trim().default(""),
+  bairro: z.string().trim().default(""),
+  cidade: z.string().trim().default(""),
+  estado: z.string().trim().default(""),
+  pais: z.string().trim().default("BR"),
+  codigoIbgeCidade: z.string().trim().default(""),
+  codigoIbgeEstado: z.string().trim().default(""),
+});
+
+export const userProfileCompanySchema = z.object({
+  id: z.string().min(1),
+  isPrimary: z.boolean().default(false),
+  cnpj: z.string().min(1),
+  razaoSocial: z.string().min(1),
+  nomeFantasia: z.string().nullable(),
+  emailContato: z.string().nullable(),
+  emailFinanceiro: z.string().nullable(),
+  telefone: z.string().nullable(),
+  whatsapp: z.string().nullable(),
+  website: z.string().nullable(),
+  address: userProfileCompanyAddressSchema.nullable(),
+});
+
+export const currentUserProfileSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().min(1),
+  image: z.string().nullable(),
+  role: userRoleSchema,
+  permissions: z.object({
+    canEditPersonal: z.boolean(),
+    canEditCompany: z.boolean(),
+  }),
+  selectedCompanyId: z.string().nullable(),
+  companies: z.array(userProfileCompanySchema),
+});
+
+export const updateCurrentUserProfileSchema = z
+  .object({
+    name: z.string().min(3, "O nome deve ter no minimo 3 caracteres").trim().optional(),
+    companyId: z.string().trim().min(1).nullable().optional(),
+    company: z
+      .object({
+        razaoSocial: z.string().min(3, "Razao social obrigatoria").trim(),
+        nomeFantasia: emptyStringToNull,
+        emailContato: z.email("E-mail invalido").nullable().or(z.literal("")).transform((value) => {
+          if (value === "") return null;
+          return value;
+        }),
+        emailFinanceiro: z.email("E-mail invalido").nullable().or(z.literal("")).transform((value) => {
+          if (value === "") return null;
+          return value;
+        }),
+        telefone: emptyStringToNull,
+        whatsapp: emptyStringToNull,
+        website: emptyStringToNull,
+        address: userProfileCompanyAddressSchema.nullable().optional(),
+      })
+      .optional(),
+  })
+  .refine((input) => Boolean(input.name !== undefined || input.company !== undefined), {
+    message: "Informe ao menos uma alteracao.",
+  });
+
 export const userEmailAvailabilityCodeSchema = z.enum([
   "AVAILABLE",
   "INVALID_EMAIL",
@@ -112,6 +189,10 @@ export type CreateUserInput = z.input<typeof createUserSchema>;
 export type CreateUserOutput = z.output<typeof createUserSchema>;
 export type UpdateUserInput = z.input<typeof updateUserSchema>;
 export type UpdateUserOutput = z.output<typeof updateUserSchema>;
+export type UserProfileCompany = z.output<typeof userProfileCompanySchema>;
+export type CurrentUserProfile = z.output<typeof currentUserProfileSchema>;
+export type UpdateCurrentUserProfileInput = z.input<typeof updateCurrentUserProfileSchema>;
+export type UpdateCurrentUserProfileOutput = z.output<typeof updateCurrentUserProfileSchema>;
 export type UserEmailAvailabilityCode = z.output<typeof userEmailAvailabilityCodeSchema>;
 export type UserEmailAvailabilityResult = z.output<typeof userEmailAvailabilitySchema>;
 export type UserAccessCompanyOption = z.output<typeof userAccessCompanyOptionSchema>;

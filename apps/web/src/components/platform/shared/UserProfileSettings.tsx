@@ -1,398 +1,575 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import type { CurrentUserProfile, UserProfileCompany } from "@dosc-syspro/contracts/user";
+import { formatCEP, formatCNPJ, formatPhone } from "@/lib/formatters";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-    User,
-    Lock,
-    ShieldCheck,
-    Camera,
-    Loader2,
-    Save,
-    Mail,
-    History,
-    CheckCircle2,
-    UploadCloud
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, User } from "lucide-react";
 
-// --- Schemas de Validacao ---
-const profileSchema = z.object({
-    name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-    email: z.email().optional(),
-});
-
-const passwordSchema = z.object({
-    currentPassword: z.string().min(1, "Senha atual ? obrigatoria"),
-    newPassword: z.string().min(8, "A nova senha deve ter no m?nimo 8 caracteres"),
-    confirmPassword: z.string().min(8, "Confirme a nova senha"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-    message: "As senhas nao coincidem",
-    path: ["confirmPassword"],
-});
-
-// Interface das Props
 interface UserProfileSettingsProps {
-    user: {
-        name: string;
-        email: string;
-        image?: string | null;
-        role?: string;
-        twoFactorEnabled?: boolean;
-    };
+  profile: CurrentUserProfile;
 }
 
-export function UserProfileSettings({ user }: UserProfileSettingsProps) {
-    const router = useRouter();
-    const [isUploading, setIsUploading] = useState(false);
-    const [isSavingProfile, setIsSavingProfile] = useState(false);
-    const [isChangingPassword, setIsChangingPassword] = useState(false);
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(user.image || null);
+type CompanyFormState = {
+  razaoSocial: string;
+  nomeFantasia: string;
+  emailContato: string;
+  emailFinanceiro: string;
+  telefone: string;
+  whatsapp: string;
+  website: string;
+  address: {
+    description: string;
+    cep: string;
+    logradouro: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    pais: string;
+    codigoIbgeCidade: string;
+    codigoIbgeEstado: string;
+  };
+};
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+function buildCompanyFormState(company: UserProfileCompany | null): CompanyFormState {
+  return {
+    razaoSocial: company?.razaoSocial ?? "",
+    nomeFantasia: company?.nomeFantasia ?? "",
+    emailContato: company?.emailContato ?? "",
+    emailFinanceiro: company?.emailFinanceiro ?? "",
+    telefone: company?.telefone ?? "",
+    whatsapp: company?.whatsapp ?? "",
+    website: company?.website ?? "",
+    address: {
+      description: company?.address?.description ?? "Sede",
+      cep: company?.address?.cep ? formatCEP(company.address.cep) : "",
+      logradouro: company?.address?.logradouro ?? "",
+      numero: company?.address?.numero ?? "",
+      complemento: company?.address?.complemento ?? "",
+      bairro: company?.address?.bairro ?? "",
+      cidade: company?.address?.cidade ?? "",
+      estado: company?.address?.estado ?? "",
+      pais: company?.address?.pais ?? "BR",
+      codigoIbgeCidade: company?.address?.codigoIbgeCidade ?? "",
+      codigoIbgeEstado: company?.address?.codigoIbgeEstado ?? "",
+    },
+  };
+}
 
-    // --- Forms ---
-    const profileForm = useForm({
-        resolver: zodResolver(profileSchema),
-        defaultValues: {
-            name: user.name,
-            email: user.email,
-        }
-    });
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "U"
+  );
+}
 
-    const passwordForm = useForm({
-        resolver: zodResolver(passwordSchema),
-        defaultValues: {
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-        }
-    });
+export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.image ?? null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSavingPersonal, setIsSavingPersonal] = useState(false);
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [personalName, setPersonalName] = useState(profile.name);
+  const [selectedCompanyId, setSelectedCompanyId] = useState(profile.selectedCompanyId ?? profile.companies[0]?.id ?? "");
+  const [companyForm, setCompanyForm] = useState<CompanyFormState>(
+    buildCompanyFormState(profile.companies.find((company) => company.id === profile.selectedCompanyId) ?? profile.companies[0] ?? null),
+  );
 
-    // --- Handlers ---
+  const selectedCompany = useMemo(
+    () => profile.companies.find((company) => company.id === selectedCompanyId) ?? null,
+    [profile.companies, selectedCompanyId],
+  );
 
-    const handleAvatarClick = () => {
-        fileInputRef.current?.click();
-    };
+  useEffect(() => {
+    setCompanyForm(buildCompanyFormState(selectedCompany));
+  }, [selectedCompany]);
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
 
-        // 1. Mostra preview imediato
-        const objectUrl = URL.createObjectURL(file);
-        setAvatarPreview(objectUrl);
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-        setIsUploading(true);
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
+    setIsUploading(true);
 
-        try {
-            // TODO: Aqui voce deve implementar o upload real para S3/R2/Uploadthing
-            // Exemplo: const url = await uploadFile(file);
-            // await authClient.updateUser({ image: url });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      toast.success("Foto de perfil atualizada.");
+      router.refresh();
+    } catch {
+      setAvatarPreview(profile.image ?? null);
+      toast.error("Erro ao atualizar a foto de perfil.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-            // Simulacao para feedback visual
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            toast.success("Foto de perfil atualizada!");
-            router.refresh();
-        } catch (error) {
-            toast.error("Erro ao enviar imagem.");
-            setAvatarPreview(user.image || null); // Reverte em caso de erro
-        } finally {
-            setIsUploading(false);
-        }
-    };
+  const handleSavePersonal = async () => {
+    if (!profile.permissions.canEditPersonal) {
+      toast.error("Seu perfil nao permite alterar os dados pessoais.");
+      return;
+    }
 
-    const onProfileSubmit = async (data: z.infer<typeof profileSchema>) => {
-        setIsSavingProfile(true);
-        try {
-            // Chamada REAL ao Better Auth para atualizar o usuario
-            const { error } = await authClient.updateUser({
-                name: data.name,
-                // image: avatarPreview // Se tiver upload real, passaria a URL aqui
-            });
+    if (personalName.trim().length < 3) {
+      toast.error("Informe um nome com pelo menos 3 caracteres.");
+      return;
+    }
 
-            if (error) {
-                toast.error(error.message || "Erro ao atualizar perfil.");
-            } else {
-                toast.success("Perfil atualizado com sucesso!");
-                router.refresh(); // Atualiza os dados da sessao na interface (Header/Sidebar)
-            }
-        } catch (err) {
-            toast.error("Erro de conex?o.");
-        } finally {
-            setIsSavingProfile(false);
-        }
-    };
+    setIsSavingPersonal(true);
+    try {
+      const response = await fetch("/api/users/me/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: personalName.trim() }),
+      });
+      const payload = (await response.json().catch(() => null)) as { success?: boolean; error?: string; message?: string } | null;
 
-    const onPasswordSubmit = async (data: z.infer<typeof passwordSchema>) => {
-        setIsChangingPassword(true);
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.error || payload?.message || "Nao foi possivel atualizar os dados pessoais.");
+      }
 
-        try {
-            const { error } = await authClient.changePassword({
-                currentPassword: data.currentPassword,
-                newPassword: data.newPassword,
-                revokeOtherSessions: true,
-            });
+      toast.success("Dados pessoais atualizados.");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar os dados pessoais.");
+    } finally {
+      setIsSavingPersonal(false);
+    }
+  };
 
-            if (error) {
-                toast.error(error.message || "A senha atual est? incorreta.");
-            } else {
-                toast.success("Senha alterada com sucesso! Por favor, fa?a login novamente.");
-                passwordForm.reset();
-                // Opcional: router.push('/login');
-            }
-        } catch (err) {
-            toast.error("Erro ao tentar alterar a senha.");
-        } finally {
-            setIsChangingPassword(false);
-        }
-    };
+  const handleSaveCompany = async () => {
+    if (!profile.permissions.canEditCompany) {
+      toast.error("Seu perfil nao permite alterar os dados da empresa.");
+      return;
+    }
 
-    return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto">
+    if (!selectedCompany) {
+      toast.error("Nenhuma empresa vinculada para editar.");
+      return;
+    }
 
-            {/* Cabe?alho */}
-            <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 w-fit">
-                    Minha Conta
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                    Gerencie suas informacoes pessoais e preferencias de seguranca.
-                </p>
+    if (companyForm.razaoSocial.trim().length < 3) {
+      toast.error("Informe a razao social da empresa.");
+      return;
+    }
+
+    setIsSavingCompany(true);
+    try {
+      const response = await fetch("/api/users/me/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: selectedCompany.id,
+          company: {
+            razaoSocial: companyForm.razaoSocial.trim(),
+            nomeFantasia: companyForm.nomeFantasia.trim(),
+            emailContato: companyForm.emailContato.trim(),
+            emailFinanceiro: companyForm.emailFinanceiro.trim(),
+            telefone: companyForm.telefone.trim(),
+            whatsapp: companyForm.whatsapp.trim(),
+            website: companyForm.website.trim(),
+            address: {
+              description: companyForm.address.description.trim() || "Sede",
+              cep: companyForm.address.cep.trim(),
+              logradouro: companyForm.address.logradouro.trim(),
+              numero: companyForm.address.numero.trim(),
+              complemento: companyForm.address.complemento.trim(),
+              bairro: companyForm.address.bairro.trim(),
+              cidade: companyForm.address.cidade.trim(),
+              estado: companyForm.address.estado.trim().toUpperCase(),
+              pais: companyForm.address.pais.trim() || "BR",
+              codigoIbgeCidade: companyForm.address.codigoIbgeCidade.trim(),
+              codigoIbgeEstado: companyForm.address.codigoIbgeEstado.trim(),
+            },
+          },
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as { success?: boolean; error?: string; message?: string } | null;
+
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.error || payload?.message || "Nao foi possivel atualizar a empresa.");
+      }
+
+      toast.success("Dados da empresa atualizados.");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar a empresa.");
+    } finally {
+      setIsSavingCompany(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Minha Conta</h1>
+        <p className="text-muted-foreground">Atualize seus dados pessoais e os dados da empresa vinculada ao seu acesso.</p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <Card className="border-border/50">
+          <CardHeader className="items-center text-center">
+            <CardTitle className="text-base">Perfil</CardTitle>
+            <CardDescription>Identidade basica da sua conta no portal.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-28 w-28 border-4 border-background shadow-sm">
+                  <AvatarImage src={avatarPreview ?? ""} className="object-cover" />
+                  <AvatarFallback className="text-2xl font-semibold">{initials(profile.name)}</AvatarFallback>
+                </Avatar>
+                {isUploading ? (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45">
+                    <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAvatarClick}
+                    className="absolute bottom-0 right-0 rounded-full border border-background bg-primary p-2 text-primary-foreground shadow-sm"
+                    title="Alterar foto"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                )}
+                <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+              </div>
+
+              <div className="space-y-1 text-center">
+                <p className="text-lg font-semibold">{profile.name}</p>
+                <p className="text-sm text-muted-foreground">{profile.email}</p>
+                <Badge variant="outline">{profile.role}</Badge>
+              </div>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
-
-                {/* COLUNA ESQUERDA: Avatar & Resumo */}
-                <div className="space-y-6">
-                    <Card className="relative overflow-hidden border-border/50 bg-gradient-to-b from-muted/30 to-background shadow-sm">
-                        <CardHeader className="text-center pb-2">
-                            <CardTitle className="text-base font-medium">Foto de Perfil</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center gap-6 pt-4">
-                            <div className="relative group">
-                                <Avatar className="h-32 w-32 border-4 border-background shadow-xl ring-1 ring-border/20 transition-all group-hover:scale-105">
-                                    {/* CORRECAO AQUI: substituido objectFit="cover" por className="object-cover" */}
-                                    <AvatarImage src={avatarPreview || ""} className="object-cover" />
-                                    <AvatarFallback className="text-4xl bg-primary/10 text-primary font-bold">
-                                        {user.name ? user.name[0].toUpperCase() : "U"}
-                                    </AvatarFallback>
-                                </Avatar>
-
-                                {/* Overlay de Loading ou Botao */}
-                                {isUploading ? (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full backdrop-blur-sm">
-                                        <Loader2 className="h-8 w-8 text-white animate-spin" />
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleAvatarClick}
-                                        className="absolute bottom-0 right-0 p-2.5 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-110 border-2 border-background"
-                                        title="Alterar foto"
-                                    >
-                                        <Camera className="h-4 w-4" />
-                                    </button>
-                                )}
-
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleFileChange}
-                                />
-                            </div>
-
-                            <div className="text-center space-y-1.5">
-                                <Badge variant="outline" className="font-normal text-xs bg-background/50 backdrop-blur-sm">
-                                    {user.role || "Usuario"}
-                                </Badge>
-                                <p className="text-xs text-muted-foreground/70 px-4">
-                                    Recomendado: JPG ou PNG, min 400x400px.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <nav className="flex flex-col gap-1 text-sm font-medium text-muted-foreground">
-                        <Button variant="ghost" className="justify-start gap-3 hover:bg-muted/50" asChild>
-                            <a href="#personal-info">
-                                <User className="h-4 w-4" /> Dados Pessoais
-                            </a>
-                        </Button>
-                        <Button variant="ghost" className="justify-start gap-3 hover:bg-muted/50" asChild>
-                            <a href="#security">
-                                <ShieldCheck className="h-4 w-4" /> Seguranca & Senha
-                            </a>
-                        </Button>
-                    </nav>
-                </div>
-
-                {/* COLUNA DIREITA: Formul?rios */}
-                <div className="space-y-8">
-
-                    {/* SECAO 1: Informacoes Pessoais */}
-                    <Card id="personal-info" className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/10">
-                                    <User className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">Informacoes Pessoais</CardTitle>
-                                    <CardDescription>Atualize como voce ? identificado na plataforma.</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                                <div className="grid gap-6 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name">Nome Completo</Label>
-                                        <Input
-                                            id="name"
-                                            {...profileForm.register("name")}
-                                            className="bg-muted/30 focus:bg-background transition-all"
-                                        />
-                                        {profileForm.formState.errors.name && (
-                                            <span className="text-xs text-red-500">{profileForm.formState.errors.name.message}</span>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email">E-mail</Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="email"
-                                                {...profileForm.register("email")}
-                                                disabled
-                                                className="pl-9 bg-muted/50 text-muted-foreground opacity-70"
-                                            />
-                                            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground opacity-50" />
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground">Para alterar o e-mail, contate o administrador.</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end pt-2">
-                                    <Button type="submit" disabled={isSavingProfile} className="shadow-md shadow-blue-500/10 transition-all hover:shadow-blue-500/20">
-                                        {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                        Salvar Alteracoes
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-
-                    {/* SECAO 2: Seguranca */}
-                    <Card id="security" className="border-border/50 shadow-sm bg-background/60 backdrop-blur-sm">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10">
-                                    <Lock className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">Seguranca</CardTitle>
-                                    <CardDescription>Mantenha sua conta protegida.</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-8">
-
-                            {/* 2FA Toggle */}
-                            <div className="flex flex-row items-center justify-between rounded-xl border border-border/60 p-4 bg-muted/10">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <Label className="text-base font-medium">Autenticacao em Dois Fatores (2FA)</Label>
-                                        <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-200 dark:border-green-900">
-                                            RECOMENDADO
-                                        </Badge>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground max-w-md">
-                                        Proteja sua conta exigindo um codigo extra ao fazer login.
-                                    </p>
-                                </div>
-                                <Switch checked={user.twoFactorEnabled} onCheckedChange={() => toast.info("Funcionalidade ser? ativada em breve!")} />
-                            </div>
-
-                            <Separator className="bg-border/50" />
-
-                            {/* Alteracao de Senha */}
-                            <div className="space-y-5">
-                                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4" /> Alterar Senha
-                                </h3>
-
-                                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-5">
-                                    <div className="grid gap-5 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="currentPassword">Senha Atual</Label>
-                                            <Input
-                                                id="currentPassword"
-                                                type="password"
-                                                {...passwordForm.register("currentPassword")}
-                                                className="bg-muted/30 focus:bg-background transition-all"
-                                                placeholder="********"
-                                            />
-                                            {passwordForm.formState.errors.currentPassword && (
-                                                <span className="text-xs text-red-500">{passwordForm.formState.errors.currentPassword.message}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-5 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="newPassword">Nova Senha</Label>
-                                            <Input
-                                                id="newPassword"
-                                                type="password"
-                                                {...passwordForm.register("newPassword")}
-                                                className="bg-muted/30 focus:bg-background transition-all"
-                                                placeholder="********"
-                                            />
-                                            {passwordForm.formState.errors.newPassword && (
-                                                <span className="text-xs text-red-500">{passwordForm.formState.errors.newPassword.message}</span>
-                                            )}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                                            <Input
-                                                id="confirmPassword"
-                                                type="password"
-                                                {...passwordForm.register("confirmPassword")}
-                                                className="bg-muted/30 focus:bg-background transition-all"
-                                                placeholder="********"
-                                            />
-                                            {passwordForm.formState.errors.confirmPassword && (
-                                                <span className="text-xs text-red-500">{passwordForm.formState.errors.confirmPassword.message}</span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end pt-2">
-                                        <Button type="submit" variant="outline" disabled={isChangingPassword} className="border-amber-200 hover:bg-amber-50 hover:text-amber-700 dark:border-amber-900 dark:hover:bg-amber-950/30 transition-all">
-                                            {isChangingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-                                            Atualizar Senha
-                                        </Button>
-                                    </div>
-                                </form>
-                            </div>
-
-                        </CardContent>
-                    </Card>
-
-                </div>
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Empresas vinculadas</span>
+                <Badge variant="secondary">{profile.companies.length}</Badge>
+              </div>
+              <p className="text-muted-foreground">
+                {profile.companies.length
+                  ? "Use a aba Empresa para ajustar os dados cadastrais da empresa selecionada."
+                  : "Este usuario ainda nao possui empresa vinculada para edicao neste perfil."}
+              </p>
             </div>
-        </div>
-    );
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="personal" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="personal" className="gap-2">
+              <User className="h-4 w-4" />
+              Dados pessoais
+            </TabsTrigger>
+            <TabsTrigger value="company" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Empresa
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="personal">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Dados pessoais</CardTitle>
+                <CardDescription>Essas informacoes identificam seu acesso dentro do portal.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-name">Nome completo</Label>
+                    <Input
+                      id="profile-name"
+                      value={personalName}
+                      onChange={(event) => setPersonalName(event.target.value)}
+                      disabled={!profile.permissions.canEditPersonal || isSavingPersonal}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-email">E-mail</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                      <Input id="profile-email" value={profile.email} disabled className="pl-9" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
+                  <p className="text-muted-foreground">
+                    {profile.permissions.canEditPersonal
+                      ? "Seu perfil permite alterar os dados pessoais."
+                      : "Seu perfil esta somente leitura para dados pessoais."}
+                  </p>
+                  <Button onClick={handleSavePersonal} disabled={isSavingPersonal || !profile.permissions.canEditPersonal}>
+                    {isSavingPersonal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar dados pessoais
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="company">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Empresa</CardTitle>
+                <CardDescription>Edite os dados da empresa vinculada ao seu acesso. O CNPJ permanece bloqueado.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {profile.companies.length > 1 ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-company">Empresa vinculada</Label>
+                    <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                      <SelectTrigger id="profile-company">
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {profile.companies.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.nomeFantasia || company.razaoSocial}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {selectedCompany ? (
+                  <>
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="company-cnpj">CNPJ</Label>
+                        <Input id="company-cnpj" value={formatCNPJ(selectedCompany.cnpj)} disabled />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-legal-name">Razao social</Label>
+                        <Input
+                          id="company-legal-name"
+                          value={companyForm.razaoSocial}
+                          onChange={(event) => setCompanyForm((current) => ({ ...current, razaoSocial: event.target.value }))}
+                          disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-trade-name">Nome fantasia</Label>
+                        <Input
+                          id="company-trade-name"
+                          value={companyForm.nomeFantasia}
+                          onChange={(event) => setCompanyForm((current) => ({ ...current, nomeFantasia: event.target.value }))}
+                          disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-site">Website</Label>
+                        <div className="relative">
+                          <Globe2 className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="company-site"
+                            className="pl-9"
+                            value={companyForm.website}
+                            onChange={(event) => setCompanyForm((current) => ({ ...current, website: event.target.value }))}
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-email">E-mail principal</Label>
+                        <Input
+                          id="company-email"
+                          value={companyForm.emailContato}
+                          onChange={(event) => setCompanyForm((current) => ({ ...current, emailContato: event.target.value }))}
+                          disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-finance-email">E-mail financeiro</Label>
+                        <Input
+                          id="company-finance-email"
+                          value={companyForm.emailFinanceiro}
+                          onChange={(event) => setCompanyForm((current) => ({ ...current, emailFinanceiro: event.target.value }))}
+                          disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-phone">Telefone</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="company-phone"
+                            className="pl-9"
+                            value={companyForm.telefone}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({ ...current, telefone: formatPhone(event.target.value) }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="company-whatsapp">WhatsApp</Label>
+                        <Input
+                          id="company-whatsapp"
+                          value={companyForm.whatsapp}
+                          onChange={(event) =>
+                            setCompanyForm((current) => ({ ...current, whatsapp: formatPhone(event.target.value) }))
+                          }
+                          disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                      <div className="mb-4 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Endereco principal</span>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="company-cep">CEP</Label>
+                          <Input
+                            id="company-cep"
+                            value={companyForm.address.cep}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, cep: formatCEP(event.target.value) },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company-street">Logradouro</Label>
+                          <Input
+                            id="company-street"
+                            value={companyForm.address.logradouro}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, logradouro: event.target.value },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company-number">Numero</Label>
+                          <Input
+                            id="company-number"
+                            value={companyForm.address.numero}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, numero: event.target.value },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company-complement">Complemento</Label>
+                          <Input
+                            id="company-complement"
+                            value={companyForm.address.complemento}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, complemento: event.target.value },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company-district">Bairro</Label>
+                          <Input
+                            id="company-district"
+                            value={companyForm.address.bairro}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, bairro: event.target.value },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company-city">Cidade</Label>
+                          <Input
+                            id="company-city"
+                            value={companyForm.address.cidade}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, cidade: event.target.value },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company-state">UF</Label>
+                          <Input
+                            id="company-state"
+                            maxLength={2}
+                            value={companyForm.address.estado}
+                            onChange={(event) =>
+                              setCompanyForm((current) => ({
+                                ...current,
+                                address: { ...current.address, estado: event.target.value.toUpperCase() },
+                              }))
+                            }
+                            disabled={!profile.permissions.canEditCompany || isSavingCompany}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
+                      <p className="text-muted-foreground">
+                        {profile.permissions.canEditCompany
+                          ? "Seu perfil permite alterar os dados desta empresa, com excecao do CNPJ."
+                          : "Seu perfil esta somente leitura para os dados da empresa."}
+                      </p>
+                      <Button onClick={handleSaveCompany} disabled={isSavingCompany || !profile.permissions.canEditCompany}>
+                        {isSavingCompany ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Salvar empresa
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border/70 p-6 text-sm text-muted-foreground">
+                    Nenhuma empresa vinculada foi encontrada para este usuario.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
 }

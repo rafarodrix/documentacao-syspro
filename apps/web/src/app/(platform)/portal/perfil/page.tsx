@@ -7,15 +7,20 @@ export default async function AdminProfilePage() {
   const response = await callWebApi("/api/users/me/profile").catch(() => null);
 
   const payload = response ? await response.json().catch(() => null) : null;
-  const user = response?.ok ? payload?.data : null;
+  const profile = response?.ok
+    ? payload?.data
+    : {
+        name: session.name || "Usuario",
+        email: session.email,
+        image: session.image ?? null,
+        role: session.role,
+        permissions: {
+          canEditPersonal: true,
+          canEditCompany: false,
+        },
+        selectedCompanyId: null,
+        companies: [],
+      };
 
-  const userData = {
-    name: user?.name || session.name || "Usuario",
-    email: user?.email || session.email,
-    image: user?.image ?? session.image,
-    role: user?.role ?? session.role,
-    twoFactorEnabled: true,
-  };
-
-  return <UserProfileSettings user={userData} />;
+  return <UserProfileSettings profile={profile} />;
 }

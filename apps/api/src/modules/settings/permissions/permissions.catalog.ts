@@ -17,6 +17,8 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
   ADMIN: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
   DEVELOPER: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
   SUPORTE: [
+    "profile:edit_personal",
+    "profile:edit_company",
     "dashboard:view",
     "dashboard:stats_full",
     "dashboard:view_daily_password",
@@ -55,6 +57,8 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "users:view_internal",
   ],
   CLIENTE_ADMIN: [
+    "profile:edit_personal",
+    "profile:edit_company",
     "dashboard:view",
     "dashboard:view_daily_password",
     "companies:view",
@@ -79,6 +83,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "tools:basic",
   ],
   CLIENTE_USER: [
+    "profile:edit_personal",
     "dashboard:view",
     "dashboard:view_daily_password",
     "tickets:view_own",
