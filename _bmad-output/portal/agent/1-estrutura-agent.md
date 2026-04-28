@@ -1,6 +1,6 @@
 # Master Agent Trilink - Estado atual da arquitetura
 
-Atualizado em 2026-04-26.
+Atualizado em 2026-04-28.
 
 ## Visao geral
 
@@ -362,15 +362,42 @@ Estrutural. Participa do reconcile sem executar nada real.
 
 ## Endpoints do portal em uso
 
+Endpoints remotos (sempre ativos, independem de `PORTAL_AGENT_API_ENABLED`):
+
 | Endpoint | Descricao |
 |----------|-----------|
 | `POST /api/remote/agents/discover` | Discover com token de discovery |
 | `POST /api/remote/rustdesk/bootstrap` | Bootstrap com install token |
 | `POST /api/remote/rustdesk/sync` | Sync periodico com snapshot de estado |
 | `POST /api/remote/rustdesk/ack` | Confirmacao de comandos recebidos |
-| `POST /api/agents/register` | Registro do dispositivo (quando `PORTAL_AGENT_API_ENABLED=true`) |
-| `POST /api/agents/heartbeat` | Heartbeat (quando `PORTAL_AGENT_API_ENABLED=true`) |
-| `GET /api/agents/:id/desired-state` | Desired state (quando `PORTAL_AGENT_API_ENABLED=true`) |
+
+Endpoints genericos (opt-in via `PORTAL_AGENT_API_ENABLED=true`):
+
+| Endpoint | Descricao |
+|----------|-----------|
+| `POST /api/agents/register` | Registro do dispositivo; aciona vinculo automatico com RemoteHost |
+| `POST /api/agents/heartbeat` | Heartbeat periodico; aciona vinculo automatico com RemoteHost se ainda nao vinculado |
+| `GET  /api/agents/:deviceId/desired-state` | Desired state para o dispositivo |
+| `GET  /api/agents` | Lista paginada de dispositivos (suporta filtro por `remoteHostId`, `companyId`, `status`, `search`) |
+| `GET  /api/agents/stats` | Estatisticas da frota (total, online, offline, sem empresa) |
+
+## Vinculo automatico com RemoteHost
+
+Quando `PORTAL_AGENT_API_ENABLED=true`, o portal tenta vincular o `AgentDevice` a um `RemoteHost` existente a cada `register` e a cada `heartbeat` (enquanto nao houver vinculo). A logica e best-effort: erros nunca bloqueiam o heartbeat.
+
+Regras do match:
+
+1. Busca `RemoteHost` cujo `machineName` seja igual ao `hostname` do agente (case-insensitive)
+2. Exige exatamente 1 resultado; se houver 0 ou 2+, nenhum link e criado (evita ambiguidade)
+3. Se o `RemoteHost` tiver `companyId` e o `AgentDevice` ainda nao tiver, copia o `companyId` automaticamente (PR-3)
+4. A operacao usa uma unica transacao (`agentDevice.update`) com `remoteHostId` e, condicionalmente, `companyId`
+
+Campos adicionados ao `AgentDeviceSummary` (contrato):
+
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| `remoteHostId` | `string \| null` | ID do RemoteHost vinculado |
+| `remoteHostName` | `string \| null` | Nome do RemoteHost vinculado |
 
 ## Instalador Windows
 
@@ -416,6 +443,8 @@ Todos os pacotes compilam. Ainda nao ha testes unitarios dedicados.
 - `agent-ui` abre janela automaticamente apenas quando provisionamento esta incompleto
 - endpoints genericos de agente sao opt-in (`PORTAL_AGENT_API_ENABLED`)
 - remote module opera por discover/bootstrap/sync independentemente do ciclo generico
+- vinculo `AgentDevice <-> RemoteHost` e automatico por hostname (best-effort, sem intervencao manual necessaria)
+- `companyId` do `RemoteHost` e propagado ao `AgentDevice` no momento do vinculo automatico, se o device nao tiver empresa ainda
 - `agent_token` ainda em JSON plano (DPAPI pendente)
 
 ## Gaps e proximos investimentos
