@@ -41,6 +41,11 @@ function getScopeDescription(scopeMode: TicketScopeMode) {
   return "Tickets abertos no escopo operacional carregado para este perfil.";
 }
 
+function getAreaShare(value: number, total: number) {
+  if (total <= 0) return "0%";
+  return `${Math.round((value / total) * 100)}%`;
+}
+
 function groupRecords(
   records: DashboardOpenTicketRecord[],
   key: "module" | "category",
@@ -117,6 +122,40 @@ export function OpenTicketsInsights({
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <Card className="border-border/60 bg-linear-to-br from-card via-card to-primary/5 xl:col-span-3">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Tickets abertos agora</CardTitle>
+              <p className="text-sm text-muted-foreground">{getScopeDescription(scopeMode)}</p>
+            </div>
+            <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+              {filteredRecords.length} ativos no recorte
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <SummaryMetric
+            label="Total em aberto"
+            value={areaCounts.total}
+            tone="default"
+            helper={scopeMode === "own" ? "Chamados do seu contexto atual" : "Volume aberto disponivel agora"}
+          />
+          <SummaryMetric
+            label="Fila de suporte"
+            value={areaCounts.support}
+            tone="support"
+            helper={`${getAreaShare(areaCounts.support, areaCounts.total)} do volume aberto`}
+          />
+          <SummaryMetric
+            label="Fila de desenvolvimento"
+            value={areaCounts.development}
+            tone="development"
+            helper={`${getAreaShare(areaCounts.development, areaCounts.total)} do volume aberto`}
+          />
+        </CardContent>
+      </Card>
+
       <Card className="border-border/50 bg-card/70">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm">Tickets abertos por area</CardTitle>
@@ -215,6 +254,32 @@ function BreakdownLine({ item }: { item: GroupedItem }) {
         <span className="text-sm font-semibold tabular-nums text-foreground">{item.value}</span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{item.hint}</p>
+    </div>
+  );
+}
+
+function SummaryMetric({
+  label,
+  value,
+  helper,
+  tone,
+}: {
+  label: string;
+  value: number;
+  helper: string;
+  tone: "default" | "support" | "development";
+}) {
+  const toneClass = {
+    default: "border-primary/15 bg-primary/5 text-foreground",
+    support: "border-sky-500/15 bg-sky-500/5 text-sky-500",
+    development: "border-violet-500/15 bg-violet-500/5 text-violet-500",
+  }[tone];
+
+  return (
+    <div className={cn("rounded-xl border px-4 py-3", toneClass)}>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{value}</div>
+      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
     </div>
   );
 }

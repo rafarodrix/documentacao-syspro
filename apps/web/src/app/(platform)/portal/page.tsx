@@ -204,15 +204,22 @@ export default async function DashboardPage() {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-              <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
-            </div>
-
             <OpenTicketsInsights
               records={adminData.openTicketRecords}
               scopeMode={adminTicketScopeMode}
               allowAreaFilter={allowAdminTicketAreaFilter}
             />
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+              <TicketsSummary tickets={adminData.tickets} totalOpen={adminData.totalOpen} />
+              <ActivityChart
+                title="Atualizacoes de tickets"
+                description="Movimento operacional dos ultimos 7 dias"
+                points={adminData.activity}
+                badgeLabel="Fila operacional"
+                emptyLabel="Sem atividade recente no periodo"
+              />
+            </div>
 
               {/* RECENT RECORDS MOVIDOS PARA ABA CADASTROS */}
           </TabsContent>
@@ -617,18 +624,19 @@ export default async function DashboardPage() {
         ) : null}
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
-        <ShineBorder borderWidth={1} duration={16} shineColor={["#38bdf855", "#60a5fa44"]} className="opacity-70" />
-        <div className="relative z-10 grid grid-cols-1 gap-4 xl:grid-cols-4">
-          <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
-        </div>
-      </div>
-
       <OpenTicketsInsights records={data.openTicketRecords} scopeMode="own" />
 
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
-        <ShineBorder borderWidth={1} duration={18} shineColor={["#22d3ee40", "#a78bfa44"]} className="opacity-60" />
-        <div className="relative z-10 grid grid-cols-1 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
+          <ShineBorder borderWidth={1} duration={16} shineColor={["#38bdf855", "#60a5fa44"]} className="opacity-70" />
+          <div className="relative z-10 grid grid-cols-1 gap-4">
+            <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 p-1">
+          <ShineBorder borderWidth={1} duration={18} shineColor={["#22d3ee40", "#a78bfa44"]} className="opacity-60" />
+          <div className="relative z-10 grid grid-cols-1 gap-4">
           <ActivityChart
             title="Atualizacoes de chamados"
             description="Movimento dos seus chamados nos ultimos 7 dias"
@@ -636,6 +644,7 @@ export default async function DashboardPage() {
             badgeLabel="Meu historico"
             emptyLabel="Nenhuma atualizacao recente"
           />
+          </div>
         </div>
       </div>
 
