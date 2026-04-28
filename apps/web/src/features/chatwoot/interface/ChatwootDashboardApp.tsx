@@ -276,14 +276,14 @@ export function ChatwootDashboardApp() {
       accountId,
       currentAgentName: pickFirstValue(context?.currentAgent?.name),
       ticketHref: `/portal/tickets/novo?${ticketParams.toString()}`,
-        remoteDirectoryHref: remoteDirectoryParams.toString()
+        infrastructureHostsHref: remoteDirectoryParams.toString()
         ? `/portal/infraestrutura?tab=hosts&${remoteDirectoryParams.toString()}`
         : "/portal/infraestrutura?tab=hosts",
     };
   }, [context, manualLinkedCompany]);
 
   const canCreateTicket = Boolean(resolved.companyId);
-  const canOpenRemoteDirectory = Boolean(resolved.companyId);
+  const canOpenInfrastructureHosts = Boolean(resolved.companyId);
   const matchedExistingTicket = useMemo(
     () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
     [latestTickets, resolved.ticketNumber],
@@ -598,7 +598,7 @@ export function ChatwootDashboardApp() {
       setManualLinkedCompany(selectedCompanyOption);
       setCompanyBindingFeedback({
         tone: "success",
-        message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)}. Agora o painel ja pode abrir ticket e remoto sem sair do Chatwoot.`,
+        message: `Contato vinculado a ${getCompanyLabel(selectedCompanyOption)}. Agora o painel ja pode abrir ticket e infraestrutura sem sair do Chatwoot.`,
       });
       requestChatwootContext();
       setTicketReloadToken((current) => current + 1);
@@ -937,8 +937,8 @@ export function ChatwootDashboardApp() {
                     </span>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger value="remote" className="gap-2 py-2">
-                  Remoto
+                <TabsTrigger value="infrastructure" className="gap-2 py-2">
+                  Infraestrutura
                   {companyHosts.length > 0 ? (
                     <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
                       {companyHosts.length}
@@ -1531,17 +1531,17 @@ export function ChatwootDashboardApp() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="remote" className="space-y-3">
+              <TabsContent value="infrastructure" className="space-y-3">
                 <Card className="border-border/60">
-                    <CardHeader className="pb-3">
+                  <CardHeader className="pb-3">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <CardTitle className="flex items-center gap-2 text-sm">
                             <Monitor className="h-4 w-4 text-primary" />
-                            Hosts da empresa
+                            Infraestrutura da empresa
                           </CardTitle>
                           <CardDescription>
-                            Lista completa dos hosts vinculados a esta empresa para acesso rapido ou abertura no portal.
+                            Hosts vinculados a esta empresa para acesso rapido e abertura na Infraestrutura do portal.
                           </CardDescription>
                         </div>
                         <Button
@@ -1556,7 +1556,7 @@ export function ChatwootDashboardApp() {
                     </CardHeader>
                   <CardContent className="space-y-3">
                     {isLoadingHosts ? (
-                      <InlineLoading label="Carregando hosts reais da empresa..." />
+                      <InlineLoading label="Carregando hosts reais da infraestrutura da empresa..." />
                     ) : null}
                     {hostError ? (
                       <InlineWarning message={hostError} />
@@ -1608,10 +1608,10 @@ export function ChatwootDashboardApp() {
                         ))}
                       </div>
                     ) : null}
-                    <Button asChild variant="secondary" className="w-full gap-2">
-                      <Link href={resolved.remoteDirectoryHref} target="_blank" rel="noreferrer">
+                    <Button asChild variant="secondary" className="w-full gap-2" disabled={!canOpenInfrastructureHosts}>
+                      <Link href={resolved.infrastructureHostsHref} target="_blank" rel="noreferrer">
                         <Waypoints className="h-4 w-4" />
-                        Abrir listagem completa de remotos
+                        Abrir infraestrutura completa
                       </Link>
                     </Button>
                   </CardContent>
