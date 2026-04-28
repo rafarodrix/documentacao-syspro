@@ -272,10 +272,10 @@ export class AuthorizationService {
     ]);
 
     const visiblePermissionKeys = new Set<SettingsPermissionKey>();
-    const visiblePermissions = permissions
+    const visiblePermissions: SettingsPermissionsCatalog['permissions'] = permissions
       .filter((permission) => isVisiblePermissionKey(permission.key))
       .map((permission) => {
-        const key = permission.key;
+        const key = permission.key as SettingsPermissionKey;
         visiblePermissionKeys.add(key);
         return {
           key,

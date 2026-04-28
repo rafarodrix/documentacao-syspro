@@ -247,8 +247,9 @@ export class AgentsService {
     if (status === 'online') {
       where.lastHeartbeatAt = { gte: onlineSince };
     } else if (status === 'offline') {
+      const currentOr = Array.isArray(where.OR) ? where.OR : [];
       where.OR = [
-        ...(where.OR ?? []),
+        ...currentOr,
         { lastHeartbeatAt: null },
         { lastHeartbeatAt: { lt: onlineSince } },
       ];
@@ -356,7 +357,7 @@ export class AgentsService {
       os: row.os,
       identitySource: row.identitySource,
       agentVersion: row.agentVersion,
-      companyId: row.companyId,
+      companyId: row.companyId ?? null,
       companyName,
       firstSeenAt: row.firstSeenAt.toISOString(),
       lastHeartbeatAt: lastHeartbeat ? lastHeartbeat.toISOString() : null,
