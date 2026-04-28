@@ -173,7 +173,7 @@ export class TicketNotificationService {
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const statusLabel = this.ticketHistoryService.formatTicketStatusLabel(input.status as TicketStatus);
     const message = [
-      input.notificationType === 'testing' ? '[Tickets] Em testes' : '[Tickets] Retorno dos testes',
+      input.notificationType === 'testing' ? '[Tickets] Em testes' : '[Tickets] Retorno dos Testes',
       `Estagio: ${statusLabel}`,
       `Ticket: ${input.ticketNumber}`,
       `Empresa: ${companyName}`,
