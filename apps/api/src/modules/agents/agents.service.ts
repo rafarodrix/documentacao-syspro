@@ -155,19 +155,27 @@ export class AgentsService {
         where.companyId = companyId;
       }
 
-      const matches = await this.prisma.remoteHost.findMany({ where, select: { id: true }, take: 2 });
+      const matches = await this.prisma.remoteHost.findMany({
+        where,
+        select: { id: true, companyId: true },
+        take: 2,
+      });
       if (matches.length !== 1) return;
 
-      await this.prisma.agentDevice.update({
-        where: { deviceId },
-        data: { remoteHostId: matches[0].id },
-      });
+      const match = matches[0];
+      const data: Prisma.AgentDeviceUpdateInput = { remoteHostId: match.id };
+      if (match.companyId && !companyId) {
+        data.companyId = match.companyId;
+      }
+
+      await this.prisma.agentDevice.update({ where: { deviceId }, data });
 
       this.logger.log({
         event: 'agent.host_linked',
         deviceId,
         hostname,
-        remoteHostId: matches[0].id,
+        remoteHostId: match.id,
+        companyIdPropagated: !!(match.companyId && !companyId),
       });
     } catch (err) {
       // Match is best-effort — never fail the heartbeat/register because of this
