@@ -37,7 +37,7 @@ export async function updateRemoteModuleSettingsAction(
     }
 
     revalidatePath("/portal/configuracoes");
-    revalidatePath("/portal/plataforma-remota");
+    revalidatePath("/portal/infraestrutura");
     return { success: true, message: response.message || "Configuracoes do modulo remoto salvas." };
   } catch (error) {
     console.error("Erro ao salvar configuracoes do modulo remoto:", error);
