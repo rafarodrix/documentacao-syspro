@@ -26,7 +26,7 @@ func Load() (Config, error) {
 		},
 		Support: SupportConfig{
 			ChatwootBaseURL:      getEnvAny([]string{"SUPPORT_CHATWOOT_BASE_URL", "CHATWOOT_URL"}, "https://chat.trilinksoftware.com.br"),
-			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", "GoMFRV3pyJf4sh9CKYqQpWkh"),
+			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", ""),
 		},
 		Agent: AgentConfig{
 			Version:    getEnv("AGENT_VERSION", "go-agent-v1"),

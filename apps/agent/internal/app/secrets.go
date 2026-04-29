@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -69,6 +70,7 @@ func migrateSecretsFromEnvFile(envFilePath, stateDir string) {
 	}
 
 	if err := store.SaveJSON(ctx, agentSecretsFile, merged); err != nil {
+		log.Printf("warn: failed to save protected secrets, .env not redacted: %v", err)
 		return
 	}
 
@@ -78,6 +80,7 @@ func migrateSecretsFromEnvFile(envFilePath, stateDir string) {
 // extractAndRedactSecrets parses .env content, extracts sensitive plaintext values,
 // and returns the values found plus a redacted version of the content.
 func extractAndRedactSecrets(content string) (map[string]string, string) {
+	content = strings.ReplaceAll(content, "\r\n", "\n")
 	found := make(map[string]string)
 	var out []string
 

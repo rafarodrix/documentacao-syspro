@@ -15,6 +15,6 @@ type SupportConversationContext struct {
 	OS               string   `json:"os,omitempty"`
 	LocalUsername    string   `json:"localUsername,omitempty"`
 	AgentVersion string   `json:"agentVersion,omitempty"`
-	ContactName      string   `json:"contactName,omitempty"`
+	ContactName  string   `json:"contactName,omitempty"`
 	Description      string   `json:"description,omitempty"`
 }
