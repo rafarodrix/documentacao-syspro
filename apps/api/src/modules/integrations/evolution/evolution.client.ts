@@ -348,7 +348,21 @@ export class EvolutionClient {
 
   private normalizeNumber(number: string): string {
     const recipient = String(number ?? '').trim();
-    if (recipient.includes('@')) return recipient;
+    if (recipient.includes('@')) {
+      const [rawLocalPart, rawDomain = ''] = recipient.split('@');
+      const normalizedLocalPart = rawLocalPart.replace(/\D/g, '');
+      if (!normalizedLocalPart) {
+        return recipient;
+      }
+
+      const normalizedDigits = normalizedLocalPart.startsWith('55')
+        ? normalizedLocalPart
+        : `55${normalizedLocalPart}`;
+      const normalizedDomain = rawDomain.trim();
+      return normalizedDomain
+        ? `${normalizedDigits}@${normalizedDomain}`
+        : normalizedDigits;
+    }
 
     const digits = recipient.replace(/\D/g, '');
     if (!digits) return digits;
