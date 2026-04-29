@@ -192,7 +192,7 @@ export function AutomationSettingsTab() {
   return (
     <div className="w-full min-w-0 animate-in fade-in duration-500">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pb-10">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pb-24">
           <section className="space-y-1">
             <h2 className="text-xl font-semibold tracking-tight text-foreground">Automacoes</h2>
             <p className="text-sm text-muted-foreground">
@@ -421,8 +421,8 @@ export function AutomationSettingsTab() {
             </TabsContent>
           </Tabs>
 
-          <div className="sticky bottom-4 z-10 flex justify-end">
-            <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur">
+          <div className="flex justify-end pt-2">
+            <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg">
               <Button type="submit" disabled={isPending} className="h-10 gap-2">
                 {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
