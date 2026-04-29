@@ -312,7 +312,12 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
                 <StatusDot online={item.isOnline} />
               </td>
               <td className="py-2.5 pr-3 font-medium">
-                {item.hostname ?? <span className="text-muted-foreground">—</span>}
+                <Link
+                  href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
+                  className="hover:text-primary hover:underline transition-colors"
+                >
+                  {item.hostname ?? <span className="text-muted-foreground font-normal">—</span>}
+                </Link>
               </td>
               <td className="py-2.5 pr-3 text-muted-foreground">{item.os ?? "—"}</td>
               <td className="py-2.5 pr-3">
