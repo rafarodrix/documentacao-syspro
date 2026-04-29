@@ -22,6 +22,7 @@ interface ClientHeaderProps {
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
   initialActiveSessionsCount?: number
+  canWatchRemoteSessions?: boolean
   navigationAccess?: NavigationAccess
 }
 
@@ -31,6 +32,7 @@ export function ClientHeader({
   sidebarCollapsed,
   onToggleSidebar,
   initialActiveSessionsCount,
+  canWatchRemoteSessions = false,
   navigationAccess,
 }: ClientHeaderProps) {
   const isSystemUser = SYSTEM_ROLES.includes(user.role)
@@ -55,7 +57,7 @@ export function ClientHeader({
 
       <div className="flex flex-1 items-center justify-center gap-2">
         <CommandPaletteTrigger navigationAccess={navigationAccess} />
-        {isSystemUser && (
+        {isSystemUser && canWatchRemoteSessions && (
           <RemoteActiveSessionsCounter initialCount={initialActiveSessionsCount} />
         )}
       </div>

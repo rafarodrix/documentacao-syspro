@@ -19,6 +19,7 @@ interface AppShellProps {
   user: AppShellUser
   children: ReactNode
   initialActiveSessionsCount?: number
+  canWatchRemoteSessions?: boolean
   navigationAccess?: NavigationAccess
   contentClassName?: string
   contentContainerClassName?: string
@@ -30,6 +31,7 @@ export function AppShell({
   user,
   children,
   initialActiveSessionsCount,
+  canWatchRemoteSessions,
   navigationAccess,
   contentClassName,
   contentContainerClassName,
@@ -69,6 +71,7 @@ export function AppShell({
           sidebarCollapsed={collapsed} 
           onToggleSidebar={() => setCollapsed((prev) => !prev)} 
           initialActiveSessionsCount={initialActiveSessionsCount}
+          canWatchRemoteSessions={canWatchRemoteSessions}
           navigationAccess={navigationAccess}
         />
 
@@ -83,5 +86,4 @@ export function AppShell({
     </div>
   )
 }
-
 

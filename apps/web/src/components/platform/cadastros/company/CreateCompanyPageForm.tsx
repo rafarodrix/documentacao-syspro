@@ -195,6 +195,26 @@ export function CreateCompanyPageForm({
   const canSubmit = isDirty;
   const currentCnpj = form.watch("cnpj");
 
+  function resolvePostSaveHref(data: CreateCompanyInput) {
+    const companyLabel =
+      String(data.nomeFantasia ?? "").trim() ||
+      String(data.razaoSocial ?? "").trim() ||
+      String(data.cnpj ?? "").trim() ||
+      ""
+    if (!companyLabel) return backHref
+
+    try {
+      const url = new URL(backHref, "https://local.portal")
+      if (url.pathname === "/portal/cadastros/empresa") {
+        url.searchParams.set("empresa", companyLabel)
+        url.searchParams.delete("page")
+      }
+      return `${url.pathname}${url.search}${url.hash}`
+    } catch {
+      return backHref
+    }
+  }
+
   async function importCompanyByCnpj(options?: { force?: boolean }) {
     const force = options?.force === true;
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
@@ -286,7 +306,7 @@ export function CreateCompanyPageForm({
       return;
     }
     toast.success(result.message ?? (mode === "edit" ? "Empresa atualizada com sucesso." : "Empresa cadastrada com sucesso."));
-    router.replace(backHref);
+    router.replace(resolvePostSaveHref(data));
     router.refresh();
   };
 

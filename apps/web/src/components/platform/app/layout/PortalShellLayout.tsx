@@ -23,11 +23,14 @@ export async function PortalShellLayout({
   if (!session) redirect("/login")
 
   let initialActiveSessionsCount = 0
-  try {
-    const tenantScope = await getRemoteTenantScope()
-    initialActiveSessionsCount = await getActiveSessionsCount(tenantScope)
-  } catch (error) {
-    console.error("[PortalShellLayout] Falha ao carregar contador de sessoes remotas:", error)
+  const canWatchRemoteSessions = await currentUserHasPermission("tools:all")
+  if (canWatchRemoteSessions) {
+    try {
+      const tenantScope = await getRemoteTenantScope()
+      initialActiveSessionsCount = await getActiveSessionsCount(tenantScope)
+    } catch (error) {
+      console.error("[PortalShellLayout] Falha ao carregar contador de sessoes remotas:", error)
+    }
   }
 
   const navigationAccess = {
@@ -81,6 +84,7 @@ export async function PortalShellLayout({
       <AppShell
         user={user}
         initialActiveSessionsCount={initialActiveSessionsCount}
+        canWatchRemoteSessions={canWatchRemoteSessions}
         navigationAccess={navigationAccess}
         contentClassName={contentClassName}
         contentContainerClassName={contentContainerClassName}
