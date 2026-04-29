@@ -22,6 +22,7 @@ export type {
   CompanyListItem,
   CompanyListResponse,
   CompanyOption,
+  CompanyRemoteConnectionInput,
   CompanyRegistryLookupResponse,
 } from "@dosc-syspro/contracts/company";
 
