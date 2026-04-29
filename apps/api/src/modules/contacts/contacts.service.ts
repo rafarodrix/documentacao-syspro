@@ -42,7 +42,19 @@ type ChatwootCompanySummary = {
   nomeFantasia?: string | null;
   razaoSocial?: string | null;
   cnpj?: string | null;
+  serverType?: 'SYSPRO_SERVER' | 'IIS' | null;
+  serverPort?: number | null;
+  serverHost?: string | null;
+  serverProtocol?: 'HTTP' | 'HTTPS' | null;
+  iisIsapiPath?: string | null;
+  installationDirectory?: string | null;
+  remoteConnections?: Array<{ type?: string | null; details?: string | null }> | null;
   addresses?: Array<{ cidade?: string | null; pais?: string | null }> | null;
+};
+
+type ChatwootRemoteConnection = {
+  type?: string | null;
+  details?: string | null;
 };
 
 @Injectable()
@@ -533,6 +545,13 @@ export class ContactsService {
               razaoSocial: true,
               nomeFantasia: true,
               cnpj: true,
+              serverType: true,
+              serverPort: true,
+              serverHost: true,
+              serverProtocol: true,
+              iisIsapiPath: true,
+              installationDirectory: true,
+              remoteConnections: true,
               addresses: {
                 select: {
                   cidade: true,
@@ -550,7 +569,7 @@ export class ContactsService {
 
   private serializeContact(contact: any) {
     const companies = (contact?.companyLinks ?? [])
-      .map((link: any) => link.company)
+      .map((link: any) => this.normalizeChatwootCompanySummary(link.company))
       .filter(Boolean);
 
     const primaryCompany = companies[0] ?? null;
@@ -705,16 +724,23 @@ export class ContactsService {
           whatsappNumber: updatedContact.whatsapp,
         },
         include: {
-          company: {
+      company: {
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          cnpj: true,
+          serverType: true,
+          serverPort: true,
+          serverHost: true,
+          serverProtocol: true,
+          iisIsapiPath: true,
+          installationDirectory: true,
+          remoteConnections: true,
+          addresses: {
             select: {
-              id: true,
-              razaoSocial: true,
-              nomeFantasia: true,
-              cnpj: true,
-              addresses: {
-                select: {
-                  cidade: true,
-                  pais: true,
+              cidade: true,
+              pais: true,
                 },
                 take: 1,
               },
@@ -740,7 +766,11 @@ export class ContactsService {
           continue;
         }
 
-        const companies = this.resolveChatwootContactCompanies(updatedContact, companyOverride, link.company);
+        const companies = this.resolveChatwootContactCompanies(
+          updatedContact,
+          companyOverride,
+          this.normalizeChatwootCompanySummary(link.company),
+        );
         const primaryCompany = companies[0] ?? null;
         const primaryCompanyName = this.formatCompanyDisplayName(primaryCompany);
         const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
@@ -772,6 +802,18 @@ export class ContactsService {
             legalName: company.razaoSocial ?? null,
             tradeName: company.nomeFantasia ?? null,
             cnpj: company.cnpj ?? null,
+            serverType: company.serverType ?? null,
+            serverHost: company.serverHost ?? null,
+            serverPort: company.serverPort ?? null,
+            serverProtocol: company.serverProtocol ?? null,
+            iisIsapiPath: company.iisIsapiPath ?? null,
+            installationDirectory: company.installationDirectory ?? null,
+            remoteConnections: Array.isArray(company.remoteConnections)
+              ? company.remoteConnections.map((connection) => ({
+                  type: connection?.type ?? null,
+                  details: connection?.details ?? null,
+                }))
+              : [],
           })),
         };
         const conversationCustomAttributes = {
@@ -906,10 +948,10 @@ export class ContactsService {
     linkCompany?: ChatwootCompanySummary | null,
   ) {
     const companies = [
-      companyOverride,
+      this.normalizeChatwootCompanySummary(companyOverride),
       ...(updatedContact.companies ?? []),
-      updatedContact.company,
-      linkCompany,
+      this.normalizeChatwootCompanySummary(updatedContact.company),
+      this.normalizeChatwootCompanySummary(linkCompany),
     ].filter(Boolean) as ChatwootCompanySummary[];
 
     const seen = new Set<string>();
@@ -923,6 +965,52 @@ export class ContactsService {
 
   private formatCompanyDisplayName(company?: { nomeFantasia?: string | null; razaoSocial?: string | null } | null) {
     return String(company?.nomeFantasia || company?.razaoSocial || '').trim();
+  }
+
+  private normalizeRemoteConnections(value: unknown): ChatwootRemoteConnection[] {
+    if (!Array.isArray(value)) return [];
+
+    return value
+      .filter((entry) => entry && typeof entry === 'object')
+      .map((entry) => {
+        const record = entry as Record<string, unknown>;
+        return {
+          type: typeof record.type === 'string' ? record.type : null,
+          details: typeof record.details === 'string' ? record.details : null,
+        };
+      });
+  }
+
+  private normalizeChatwootCompanySummary(company: unknown): ChatwootCompanySummary | null {
+    if (!company || typeof company !== 'object') return null;
+
+    const record = company as Record<string, unknown>;
+    const addresses = Array.isArray(record.addresses)
+      ? record.addresses
+          .filter((entry) => entry && typeof entry === 'object')
+          .map((entry) => {
+            const address = entry as Record<string, unknown>;
+            return {
+              cidade: typeof address.cidade === 'string' ? address.cidade : null,
+              pais: typeof address.pais === 'string' ? address.pais : null,
+            };
+          })
+      : [];
+
+    return {
+      id: typeof record.id === 'string' ? record.id : null,
+      nomeFantasia: typeof record.nomeFantasia === 'string' ? record.nomeFantasia : null,
+      razaoSocial: typeof record.razaoSocial === 'string' ? record.razaoSocial : null,
+      cnpj: typeof record.cnpj === 'string' ? record.cnpj : null,
+      serverType: record.serverType === 'SYSPRO_SERVER' || record.serverType === 'IIS' ? record.serverType : null,
+      serverPort: typeof record.serverPort === 'number' ? record.serverPort : null,
+      serverHost: typeof record.serverHost === 'string' ? record.serverHost : null,
+      serverProtocol: record.serverProtocol === 'HTTP' || record.serverProtocol === 'HTTPS' ? record.serverProtocol : null,
+      iisIsapiPath: typeof record.iisIsapiPath === 'string' ? record.iisIsapiPath : null,
+      installationDirectory: typeof record.installationDirectory === 'string' ? record.installationDirectory : null,
+      remoteConnections: this.normalizeRemoteConnections(record.remoteConnections),
+      addresses,
+    };
   }
 
   private normalizeCpf(value?: string | null): string | null {

@@ -286,7 +286,7 @@ export function CreateCompanyPageForm({
       return;
     }
     toast.success(result.message ?? (mode === "edit" ? "Empresa atualizada com sucesso." : "Empresa cadastrada com sucesso."));
-    router.push(backHref);
+    router.replace(backHref);
     router.refresh();
   };
 

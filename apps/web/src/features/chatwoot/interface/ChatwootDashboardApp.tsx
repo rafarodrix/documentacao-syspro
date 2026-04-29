@@ -72,6 +72,7 @@ type RemoteHostEntry = Pick<
 >;
 
 type ContactLookupEntry = ContactOption;
+type ContactCompanyEntry = NonNullable<ContactLookupEntry["companies"]>[number];
 
 type TicketPriorityOption = "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
 
@@ -102,6 +103,34 @@ function normalizeDigits(value: string) {
 
 function getCompanyLabel(company: CompanyOption | null | undefined) {
   return company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || "Empresa sem nome";
+}
+
+function formatCompanyServerType(value?: ContactCompanyEntry["serverType"] | null) {
+  return value === "IIS" ? "IIS / ISAPI" : value === "SYSPRO_SERVER" ? "Syspro Server" : "Nao informado";
+}
+
+function formatCompanyEndpoint(company: ContactCompanyEntry) {
+  const host = readString(company.serverHost);
+  if (!host) return "Nao informado";
+  const protocol = readString(company.serverProtocol).toLowerCase() || "http";
+  const port = typeof company.serverPort === "number" ? `:${company.serverPort}` : "";
+  return `${protocol}://${host}${port}`;
+}
+
+function formatRemoteConnectionType(value?: string | null) {
+  if (value === "DDNS_NOIP") return "DDNS / No-IP";
+  if (value === "RADMIN_VPN") return "Radmin VPN";
+  return "Conexao remota";
+}
+
+function hasOperationalSettings(company: ContactCompanyEntry) {
+  return Boolean(
+    company.serverType ||
+    company.serverHost ||
+    company.installationDirectory ||
+    company.iisIsapiPath ||
+    (Array.isArray(company.remoteConnections) && company.remoteConnections.length > 0),
+  );
 }
 
 function parseChatwootContext(raw: unknown): ChatwootAppContext | null {
@@ -340,18 +369,18 @@ export function ChatwootDashboardApp() {
   );
   const contactEditHref = portalContactMatch?.id ? `/portal/contatos/${portalContactMatch.id}/editar` : "";
   const linkedCompanies = useMemo(() => {
-    const byId = new Map<string, CompanyOption>();
+    const byId = new Map<string, ContactCompanyEntry>();
     for (const company of portalContactMatch?.companies ?? []) {
       if (company?.id) {
-        byId.set(company.id, {
-          id: company.id,
-          razaoSocial: company.razaoSocial,
-          nomeFantasia: company.nomeFantasia ?? null,
-        });
+        byId.set(company.id, company);
       }
     }
     if (manualLinkedCompany?.id) {
-      byId.set(manualLinkedCompany.id, manualLinkedCompany);
+      byId.set(manualLinkedCompany.id, {
+        id: manualLinkedCompany.id,
+        razaoSocial: manualLinkedCompany.razaoSocial,
+        nomeFantasia: manualLinkedCompany.nomeFantasia ?? null,
+      });
     }
     if (byId.size === 0 && resolved.companyId) {
       byId.set(resolved.companyId, {
@@ -374,6 +403,10 @@ export function ChatwootDashboardApp() {
     [linkedCompanies, primaryCompany?.id],
   );
   const effectiveContactName = contactNameDraft.trim() || portalContactMatch?.name || resolved.contactName || "Contato Chatwoot";
+  const orderedLinkedCompanies = useMemo(
+    () => (primaryCompany ? [primaryCompany, ...additionalLinkedCompanies] : []),
+    [additionalLinkedCompanies, primaryCompany],
+  );
 
   useEffect(() => {
     setHasAutoSelectedTab(false);
@@ -515,12 +548,6 @@ export function ChatwootDashboardApp() {
   }, [hasLoadedCompanyOptions, resolved.companyId, shouldSearchCompanies]);
 
   useEffect(() => {
-    if (resolved.companyId) {
-      setPortalContactMatch(null);
-      setContactLookupError(null);
-      return;
-    }
-
     const phone = normalizeDigits(resolved.customerPhone);
     const email = resolved.customerEmail.trim().toLowerCase();
     const q = phone || email;
@@ -577,7 +604,7 @@ export function ChatwootDashboardApp() {
 
     void loadPortalContact();
     return () => controller.abort();
-  }, [resolved.companyId, resolved.customerEmail, resolved.customerPhone]);
+  }, [resolved.customerEmail, resolved.customerPhone]);
 
   async function handleBindCompany() {
     if (!selectedCompanyOption || isBindingCompany || resolved.companyId) return;
@@ -1106,19 +1133,18 @@ export function ChatwootDashboardApp() {
                             </div>
                           </div>
 
-                          {additionalLinkedCompanies.length > 0 ? (
-                            <div className="space-y-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                Outras empresas ligadas ao contato
-                              </p>
-                              {additionalLinkedCompanies.map((company) => (
-                                <div key={company.id} className="rounded-lg border border-border/60 bg-card px-3 py-2">
-                                  <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
-                                  <p className="mt-1 text-xs text-muted-foreground">{company.razaoSocial}</p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Configuracoes relevantes para o suporte
+                            </p>
+                            {orderedLinkedCompanies.map((company) => (
+                              <CompanyOperationalSettingsCard
+                                key={company.id}
+                                company={company}
+                                isActive={company.id === resolved.companyId}
+                              />
+                            ))}
+                          </div>
                         </>
                       ) : (
                         <EmptyState label="Nenhuma empresa vinculada encontrada para este contato." />
@@ -1954,6 +1980,82 @@ function QuickStatCard({
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-2 truncate text-sm font-semibold text-foreground">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+    </div>
+  );
+}
+
+function CompanyOperationalSettingsCard({
+  company,
+  isActive,
+}: {
+  company: ContactCompanyEntry;
+  isActive: boolean;
+}) {
+  const remoteConnections = Array.isArray(company.remoteConnections) ? company.remoteConnections : [];
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-3 py-3",
+        isActive ? "border-primary/20 bg-primary/5" : "border-border/60 bg-card",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{company.razaoSocial}</p>
+        </div>
+        <Badge variant="outline">{isActive ? "Em contexto" : "Vinculada"}</Badge>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <DetailItem
+          label="Servidor"
+          value={formatCompanyServerType(company.serverType)}
+          helper={formatCompanyEndpoint(company)}
+        />
+        <DetailItem
+          label="Instalacao"
+          value={readString(company.installationDirectory) || "Nao informado"}
+          breakAll
+        />
+        {company.serverType === "IIS" ? (
+          <DetailItem
+            label="ISAPI"
+            value={readString(company.iisIsapiPath) || "Nao informado"}
+            breakAll
+          />
+        ) : null}
+        <DetailItem
+          label="Conexoes remotas"
+          value={remoteConnections.length ? `${remoteConnections.length}` : "Nenhuma"}
+          helper={
+            remoteConnections.length
+              ? remoteConnections.map((connection) => formatRemoteConnectionType(connection.type)).join(" | ")
+              : hasOperationalSettings(company)
+                ? "Sem conexoes cadastradas"
+                : "Configuracoes ainda nao preenchidas"
+          }
+        />
+      </div>
+
+      {remoteConnections.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {remoteConnections.map((connection, index) => (
+            <div
+              key={`${company.id}-${connection.type}-${index}`}
+              className="rounded-md border border-border/60 bg-background px-3 py-2"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {formatRemoteConnectionType(connection.type)}
+              </p>
+              <p className="mt-1 break-all text-sm text-foreground">
+                {readString(connection.details) || "Sem detalhes"}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

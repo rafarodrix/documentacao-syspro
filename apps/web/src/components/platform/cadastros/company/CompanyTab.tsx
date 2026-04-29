@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { CompanyStatus } from "@prisma/client"
 import {
   companyListResponseSchema,
@@ -123,6 +123,7 @@ function CompanyActionsMenu({
   canToggleStatus,
   canDelete,
   isLoading,
+  returnHref,
   onToggleStatus,
   onDelete,
 }: {
@@ -131,12 +132,13 @@ function CompanyActionsMenu({
   canToggleStatus: boolean
   canDelete: boolean
   isLoading: boolean
+  returnHref: string
   onToggleStatus: () => void
   onDelete: () => void
 }) {
   const router = useRouter()
   const [isNavigating, startNavigation] = useTransition()
-  const editHref = `/portal/cadastros/empresa/${company.id}/editar`
+  const editHref = `/portal/cadastros/empresa/${company.id}/editar?returnTo=${encodeURIComponent(returnHref)}`
 
   if (!canEdit && !canToggleStatus && !canDelete) return null
 
@@ -233,6 +235,8 @@ export function CompanyTab({
   canDelete,
 }: CompanyTabProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
   const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">(initialStatusFilter)
@@ -384,6 +388,31 @@ export function CompanyTab({
     [items],
   );
 
+  const currentListHref = useMemo(() => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "")
+
+    if (searchTerm.trim()) {
+      params.set("empresa", searchTerm.trim())
+    } else {
+      params.delete("empresa")
+    }
+
+    if (filterStatus !== "ALL") {
+      params.set("status", filterStatus)
+    } else {
+      params.delete("status")
+    }
+
+    if (page > 1) {
+      params.set("page", String(page))
+    } else {
+      params.delete("page")
+    }
+
+    const query = params.toString()
+    return query ? `${pathname}?${query}` : pathname
+  }, [filterStatus, page, pathname, searchParams, searchTerm])
+
   const handleToggleStatus = async (company: CompanyListItem) => {
     setLoadingId(company.id)
     try {
@@ -429,7 +458,7 @@ export function CompanyTab({
 
   const openEdit = (company: CompanyListItem) => {
     if (!canEdit) return
-    router.push(`/portal/cadastros/empresa/${company.id}/editar`)
+    router.push(`/portal/cadastros/empresa/${company.id}/editar?returnTo=${encodeURIComponent(currentListHref)}`)
   }
 
   const selectedInactivationReason = companyReasonOptions.find((item) => item.key === inactivationReason) ?? null
@@ -613,7 +642,7 @@ export function CompanyTab({
           actions={
             canCreate ? (
               <Button asChild size="sm" className="h-9 gap-2">
-                <Link href="/portal/cadastros/empresa/novo">
+                <Link href={`/portal/cadastros/empresa/novo?returnTo=${encodeURIComponent(currentListHref)}`}>
                   <Plus className="h-4 w-4" />
                   Nova empresa
                 </Link>
@@ -656,6 +685,7 @@ export function CompanyTab({
                         canToggleStatus={canToggleStatus}
                         canDelete={canDelete && !companyHasKnownLinks(company)}
                         isLoading={loadingId === company.id}
+                        returnHref={currentListHref}
                         onToggleStatus={() => {
                           setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
                           setInactivationDetails("")
@@ -814,6 +844,7 @@ export function CompanyTab({
                           canToggleStatus={canToggleStatus}
                           canDelete={canDelete && !companyHasKnownLinks(company)}
                           isLoading={loadingId === company.id}
+                          returnHref={currentListHref}
                           onToggleStatus={() => {
                             setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
                             setInactivationDetails("")

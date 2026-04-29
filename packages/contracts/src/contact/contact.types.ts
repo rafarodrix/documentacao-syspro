@@ -5,6 +5,21 @@ const contactOptionCompanySchema = z.object({
   id: z.string(),
   razaoSocial: z.string(),
   nomeFantasia: z.string().nullable().optional(),
+  cnpj: z.string().nullable().optional(),
+  serverType: z.enum(["SYSPRO_SERVER", "IIS"]).nullable().optional(),
+  serverPort: z.number().int().nullable().optional(),
+  serverHost: z.string().nullable().optional(),
+  serverProtocol: z.enum(["HTTP", "HTTPS"]).nullable().optional(),
+  iisIsapiPath: z.string().nullable().optional(),
+  installationDirectory: z.string().nullable().optional(),
+  remoteConnections: z
+    .array(
+      z.object({
+        type: z.enum(["DDNS_NOIP", "RADMIN_VPN"]),
+        details: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export const contactOptionSchema = z.object({
