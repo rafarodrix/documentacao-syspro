@@ -15,6 +15,23 @@ export type EvolutionContact = {
   profilePictureUrl?: string | null;
 };
 
+export type EvolutionOutboundErrorCode =
+  | 'WHATSAPP_NUMBER_NOT_REGISTERED'
+  | 'EVOLUTION_PROVIDER_ERROR';
+
+export class EvolutionOutboundError extends Error {
+  constructor(
+    message: string,
+    public readonly code: EvolutionOutboundErrorCode,
+    public readonly providerStatus: number,
+    public readonly providerBody: string,
+    public readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = 'EvolutionOutboundError';
+  }
+}
+
 export function readEvolutionConfigFromRuntime(): EvolutionConnectionConfig {
   const config = readEvolutionRuntimeConfig();
   return {
@@ -172,9 +189,7 @@ export class EvolutionClient {
       diagnostics: this.buildProviderDiagnostics(primaryResponse.status),
       durationMs: Date.now() - requestStartedAt,
     }));
-    throw new Error(
-      `Evolution send failed via /send/text: status=${primaryResponse.status} body=${primaryError}`
-    );
+    throw this.buildOutboundError(primaryResponse.status, primaryError, '/send/text');
   }
 
   async sendMedia(
@@ -269,9 +284,7 @@ export class EvolutionClient {
       diagnostics: this.buildProviderDiagnostics(primaryResponse.status),
       durationMs: Date.now() - requestStartedAt,
     }));
-    throw new Error(
-      `Evolution sendMedia failed via /send/media: status=${primaryResponse.status} body=${primaryError}`
-    );
+    throw this.buildOutboundError(primaryResponse.status, primaryError, '/send/media');
   }
 
   async fetchProfilePicture(
@@ -486,6 +499,32 @@ export class EvolutionClient {
     }
 
     return [];
+  }
+
+  private buildOutboundError(
+    status: number,
+    providerBody: string,
+    route: '/send/text' | '/send/media',
+  ): EvolutionOutboundError {
+    const normalizedBody = String(providerBody ?? '').toLowerCase();
+
+    if (normalizedBody.includes('not registered on whatsapp')) {
+      return new EvolutionOutboundError(
+        'Numero nao cadastrado no WhatsApp.',
+        'WHATSAPP_NUMBER_NOT_REGISTERED',
+        status,
+        providerBody,
+        false,
+      );
+    }
+
+    return new EvolutionOutboundError(
+      `Evolution send failed via ${route}: status=${status} body=${providerBody}`,
+      'EVOLUTION_PROVIDER_ERROR',
+      status,
+      providerBody,
+      status >= 500,
+    );
   }
 
   private buildRequestMessageId(candidate?: string): string {

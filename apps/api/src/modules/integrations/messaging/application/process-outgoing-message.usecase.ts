@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EvolutionClient } from '../../evolution/evolution.client';
+import { EvolutionClient, EvolutionOutboundError } from '../../evolution/evolution.client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IntegrationWebhookDedupService } from './integration-webhook-dedup.service';
@@ -307,15 +307,28 @@ export class ProcessOutgoingMessageUseCase {
         messageId ?? undefined,
       );
     } catch (error: any) {
+      const knownProviderCode =
+        error instanceof EvolutionOutboundError ? error.code : null;
       this.logger.error(JSON.stringify({
         flow: 'chatwoot_to_evolution',
-        stage: 'send_failed',
+        stage:
+          knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED'
+            ? 'send_failed_unregistered_number'
+            : 'send_failed',
         messageId,
         chatwootConversationId,
         whatsappNumber: phone,
         connectionKey: link.connectionKey,
         error: error?.message ?? 'unknown_error',
+        providerCode: knownProviderCode,
+        providerStatus:
+          error instanceof EvolutionOutboundError ? error.providerStatus : null,
+        retryable:
+          error instanceof EvolutionOutboundError ? error.retryable : null,
       }));
+      if (knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED') {
+        throw new Error('Numero nao cadastrado no WhatsApp.');
+      }
       throw error;
     }
     this.logger.log(JSON.stringify({
