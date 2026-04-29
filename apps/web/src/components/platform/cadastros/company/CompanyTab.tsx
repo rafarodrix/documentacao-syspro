@@ -46,8 +46,6 @@ import {
   RegistryEmptyState,
   RegistryFeedback,
   RegistryFilterGroup,
-  RegistryMetricCard,
-  RegistryMetrics,
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
@@ -600,12 +598,6 @@ export function CompanyTab({
 
       <div className="space-y-4">
         {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
-
-        <RegistryMetrics>
-          <RegistryMetricCard title="Total" value={pagination.total} description="Empresas cadastradas" icon={Building2} tone="info" />
-          <RegistryMetricCard title="Ativas" value={statusCounts.ACTIVE ?? 0} description="Disponiveis para operacao" icon={Users} tone="success" />
-          <RegistryMetricCard title="Bloqueadas" value={blockedCount} description="Com restricao contratual" icon={CircleAlert} tone={blockedCount > 0 ? "warning" : "neutral"} />
-        </RegistryMetrics>
 
         <RegistryToolbar
           searchValue={searchTerm}

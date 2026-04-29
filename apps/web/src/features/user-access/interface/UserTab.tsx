@@ -28,8 +28,6 @@ import {
   RegistryEmptyState,
   RegistryFeedback,
   RegistryFilterGroup,
-  RegistryMetricCard,
-  RegistryMetrics,
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
@@ -340,12 +338,6 @@ export function UserTab({ data, isAdmin, canManage, canViewInternal = true }: Us
 
       <div className="space-y-4">
         {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
-
-        <RegistryMetrics>
-          <RegistryMetricCard title="Total" value={counts.all} description="Acessos cadastrados" icon={Users} tone="info" />
-          <RegistryMetricCard title="Ativos" value={counts.active} description="Podem acessar o portal" icon={UserCheck} tone="success" />
-          <RegistryMetricCard title="Sem contato" value={counts.withoutContact} description="Precisam de vinculo" icon={Link2} tone={counts.withoutContact > 0 ? "warning" : "neutral"} />
-        </RegistryMetrics>
 
         <RegistryToolbar
           searchValue={searchTerm}

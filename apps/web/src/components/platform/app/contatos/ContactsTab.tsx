@@ -47,8 +47,6 @@ import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
-  RegistryMetricCard,
-  RegistryMetrics,
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
@@ -311,12 +309,6 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       />
 
       <div className="space-y-5">
-        <RegistryMetrics>
-          <RegistryMetricCard title="Total" value={counts.all} description="Contatos cadastrados" icon={Users} tone="info" />
-          <RegistryMetricCard title="Vinculados" value={counts.linked} description="Com ao menos uma empresa" icon={Building2} tone="success" />
-          <RegistryMetricCard title="Sem empresa" value={counts.unlinked} description="Pendentes de vinculo" icon={UserRound} tone="neutral" />
-        </RegistryMetrics>
-
         <RegistryToolbar
           searchValue={searchTerm}
           searchPlaceholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
