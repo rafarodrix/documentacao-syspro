@@ -1315,10 +1315,11 @@ export class ProcessIncomingMessageUseCase {
               connectionId: connection.connectionId,
               connectionKey: connection.connectionKey,
               whatsappNumber: phone,
+              lastInboundWhatsappNumber: phone,
               chatwootContactId: contactIdentifier,
               chatwootConversationId: conversationId!,
             },
-          });
+          } as any);
         } catch (error: any) {
           if (error?.code === 'P2002') {
             link =
@@ -1347,6 +1348,15 @@ export class ProcessIncomingMessageUseCase {
 
       if (!contactIdentifier || !conversationId) {
         throw new Error(`Vinculo de conversa invalido para ${phone}`);
+      }
+
+      if (link && (link as any).lastInboundWhatsappNumber !== phone) {
+        link = await this.prisma.conversationLink.update({
+          where: { id: link.id },
+          data: {
+            lastInboundWhatsappNumber: phone,
+          },
+        } as any);
       }
 
       await this.reactivateArchivedContactIfNeeded(phone, connection, {

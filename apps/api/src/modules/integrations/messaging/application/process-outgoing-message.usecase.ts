@@ -162,13 +162,17 @@ export class ProcessOutgoingMessageUseCase {
       }));
     }
 
-    const phone = link.whatsappNumber;
+    const phone = this.resolvePreferredOutboundWhatsappNumber(link);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'link_resolved',
       messageId,
       chatwootConversationId,
       whatsappNumber: phone,
+      storedWhatsappNumber: link.whatsappNumber,
+      lastInboundWhatsappNumber: this.toOptionalString((link as any).lastInboundWhatsappNumber) ?? null,
+      lastSuccessfulOutboundWhatsappNumber:
+        this.toOptionalString((link as any).lastSuccessfulOutboundWhatsappNumber) ?? null,
       connectionKey: link.connectionKey,
       chatwootContactId: link.chatwootContactId,
     }));
@@ -540,6 +544,20 @@ export class ProcessOutgoingMessageUseCase {
     return `${digits.slice(0, 4)}${digits.slice(5)}`;
   }
 
+  private resolvePreferredOutboundWhatsappNumber(link: {
+    whatsappNumber: string;
+    lastInboundWhatsappNumber?: string | null;
+    lastSuccessfulOutboundWhatsappNumber?: string | null;
+  }): string {
+    const candidates = [
+      this.toOptionalString(link.lastSuccessfulOutboundWhatsappNumber),
+      this.toOptionalString(link.lastInboundWhatsappNumber),
+      this.toOptionalString(link.whatsappNumber),
+    ].filter((value, index, list): value is string => Boolean(value) && list.indexOf(value as string) === index);
+
+    return candidates[0] ?? link.whatsappNumber;
+  }
+
   private async persistFallbackConversationLink(
     connection: ResolvedIntegrationContext,
     whatsappNumber: string,
@@ -642,7 +660,10 @@ export class ProcessOutgoingMessageUseCase {
 
     await this.prisma.conversationLink.update({
       where: { id: link.id },
-      data: { whatsappNumber: normalizedResolved },
+      data: {
+        whatsappNumber: normalizedResolved,
+        lastSuccessfulOutboundWhatsappNumber: normalizedResolved,
+      },
     });
 
     const linkedContact = await this.prisma.companyContact.findFirst({
@@ -694,6 +715,7 @@ export class ProcessOutgoingMessageUseCase {
     }));
 
     link.whatsappNumber = normalizedResolved;
+    (link as any).lastSuccessfulOutboundWhatsappNumber = normalizedResolved;
   }
 
   private toArray<T>(value: T | T[] | null | undefined): T[] {

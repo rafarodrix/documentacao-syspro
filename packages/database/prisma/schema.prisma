@@ -1566,6 +1566,14 @@ model ConversationLink {
   chatwootContactId      String
   chatwootConversationId String
 
+  whatsappDeliveryStatus              String    @default("UNKNOWN")
+  lastDeliveryFailureCode             String?
+  lastDeliveryFailureAt               DateTime?
+  lastDeliveryOriginalNumber          String?
+  lastDeliveryFallbackNumber          String?
+  lastInboundWhatsappNumber           String?
+  lastSuccessfulOutboundWhatsappNumber String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
