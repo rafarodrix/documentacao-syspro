@@ -1,15 +1,74 @@
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
+import type { RemoteConfiguredHostItem, RemoteAgentCommandType, RemoteAgentCommandStatus } from "@dosc-syspro/contracts/remote";
+import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { AgentLinkSection } from "./AgentLinkSection";
 import { Copy, Fingerprint, HardDriveDownload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, formatDateOnly, getCommandStatusMeta, extractStringFromPayload } from "../utils";
+import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, getCommandStatusMeta, extractStringFromPayload } from "../utils";
 import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL } from "../constants";
 import type { RemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
 import { isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
 import { AGENT_ACK_REASON_LABEL } from "../constants";
+
+type StatusIconMeta = { Icon: LucideIcon; tone: string; label: string };
+
+export interface HostAgentTabProps {
+  host: RemoteConfiguredHostItem;
+  orchestrationStrategy: string;
+  productStatusMeta: { label: string; description: string; className: string };
+  contractValidationError: string | null;
+  agentHealthCard: {
+    status: { label: string; tone: string };
+    autoHeal: {
+      label: string;
+      status: string | null;
+      lastAttemptAt: string | null;
+      beforeStatus: string | null;
+      afterStatus: string;
+    };
+    erp: { version: string | null; paths: string[] };
+  };
+  serviceStatusIcon: StatusIconMeta;
+  autoHealStatusIcon: StatusIconMeta;
+  details: RemoteHostDetails;
+  bootstrapRateMetrics: { ratePct: number | null; cycles: number | null; bootstrapCycles: number | null };
+  contractSchemaVersions: { discover: string | null; sync: string | null; ack: string | null };
+  agentMetrics: Record<string, unknown> | null;
+  isRevokingAgentToken: boolean;
+  handleRotateAgentToken: () => void;
+  isRequestingResendConfig: boolean;
+  handleRequestRemoteAction: (action: "RESEND_CONFIG" | "REAPPLY_ALIAS") => void;
+  isRequestingSelfHeal: boolean;
+  handleCopy: (value: string | null, label: string) => Promise<void>;
+  rustDeskCompliance: {
+    lastSyncAt: string | null;
+    items: Array<{ id: string; label: string; expected: string; reported: string | null; match: boolean }>;
+  };
+  visibleAgentCommands: Array<{
+    id: string;
+    type: RemoteAgentCommandType;
+    status: RemoteAgentCommandStatus;
+    reason: string | null;
+    payload: Record<string, unknown> | null;
+    attemptCount: number;
+    resultMessage: string | null;
+    resultPayload: Record<string, unknown> | null;
+    createdAt: string;
+    updatedAt: string;
+    deliveredAt: string | null;
+    executedAt: string | null;
+    failedAt: string | null;
+  }>;
+  hiddenAcknowledgedCount: number;
+  ackQueueMetrics: { pending: number; reprocessed: number };
+  hasPendingInstallGuide: boolean;
+  linkedDevice?: AgentDeviceSummary | null;
+  hostId: string;
+}
 
 export function HostAgentTab({
   host,
@@ -36,7 +95,7 @@ export function HostAgentTab({
   hasPendingInstallGuide,
   linkedDevice = null,
   hostId,
-}: any & { linkedDevice?: AgentDeviceSummary | null; hostId: string }) {
+}: HostAgentTabProps) {
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
 
@@ -247,7 +306,7 @@ export function HostAgentTab({
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                  {rustDeskCompliance.items.map((item: any) => (
+                  {rustDeskCompliance.items.map((item) => (
                     <div key={item.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{item.label}</p>
@@ -296,7 +355,7 @@ export function HostAgentTab({
 
                 {visibleAgentCommands.length ? (
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {visibleAgentCommands.map((command: any) => {
+                    {visibleAgentCommands.map((command) => {
                       const statusMeta = getCommandStatusMeta(command);
                       const structuredReasonCode = extractStringFromPayload(command.resultPayload, ["reasonCode", "reason_code"]);
                       const structuredReasonLabel = structuredReasonCode
@@ -391,17 +450,12 @@ export function HostAgentTab({
                 </div>
                 {details.commandTimeline.length ? (
                   <div className="mt-4 space-y-4">
-                    {details.commandTimeline.map((item: any) => (
+                    {details.commandTimeline.map((item) => (
                       <div key={item.id} className="relative pl-6">
                         <div className="absolute left-0 top-1 h-3 w-3 rounded-full bg-muted-foreground" />
                         <div className="absolute bottom-0 left-[5px] top-4 w-[2px] bg-border/50 last:hidden" />
-                        <p className="text-sm font-medium text-foreground">{item.description ?? AGENT_COMMAND_LABEL[item.type as keyof typeof AGENT_COMMAND_LABEL]}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.timestamp ?? item.createdAt)}</p>
-                        {item.payload ? (
-                          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-background/60 p-2 text-xs text-muted-foreground">
-                            {JSON.stringify(item.payload, null, 2)}
-                          </pre>
-                        ) : null}
+                        <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[item.type as keyof typeof AGENT_COMMAND_LABEL]}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
                       </div>
                     ))}
                   </div>
@@ -417,7 +471,7 @@ export function HostAgentTab({
                   Checklist de prontidão
                 </summary>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {details.installGuide.map((step: any) => (
+                  {details.installGuide.map((step) => (
                     <div key={step.id} className="rounded-xl border border-border/50 bg-muted/15 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-medium text-foreground">{step.title}</p>
