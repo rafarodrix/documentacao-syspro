@@ -1,10 +1,8 @@
-import { callWebApi } from "@/lib/web-api";
-
 export async function patchAgentDevice(
   deviceId: string,
   patch: { remoteHostId: string | null },
 ): Promise<void> {
-  const res = await callWebApi(`/api/agents/${encodeURIComponent(deviceId)}`, {
+  const res = await fetch(`/api/agents/${encodeURIComponent(deviceId)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
