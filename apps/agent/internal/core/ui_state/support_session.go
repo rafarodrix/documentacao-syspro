@@ -20,8 +20,7 @@ type SupportContext struct {
 	Hostname             string   `json:"hostname,omitempty"`
 	OS                   string   `json:"os,omitempty"`
 	LocalUsername        string   `json:"localUsername,omitempty"`
-	AgentVersion         string   `json:"agentVersion,omitempty"`
-	AgentEnvironment     string   `json:"agentEnvironment,omitempty"`
-	ContactName          string   `json:"contactName,omitempty"`
+	AgentVersion string   `json:"agentVersion,omitempty"`
+	ContactName  string   `json:"contactName,omitempty"`
 	Description          string   `json:"description,omitempty"`
 }

@@ -75,26 +75,23 @@ type SupportContextPublisher interface {
 
 // Service is the future state composer for tray/window rendering.
 type Service struct {
-	stateDir         string
-	chatwoot         ChatwootConfig
-	agentVersion     string
-	agentEnvironment string
-	publisher        SupportContextPublisher
+	stateDir     string
+	chatwoot     ChatwootConfig
+	agentVersion string
+	publisher    SupportContextPublisher
 }
 
 func NewService(
 	stateDir string,
 	chatwoot ChatwootConfig,
-	agentVersion,
-	agentEnvironment string,
+	agentVersion string,
 	publisher SupportContextPublisher,
 ) *Service {
 	return &Service{
-		stateDir:         stateDir,
-		chatwoot:         chatwoot,
-		agentVersion:     strings.TrimSpace(agentVersion),
-		agentEnvironment: strings.TrimSpace(agentEnvironment),
-		publisher:        publisher,
+		stateDir:     stateDir,
+		chatwoot:     chatwoot,
+		agentVersion: strings.TrimSpace(agentVersion),
+		publisher:    publisher,
 	}
 }
 
@@ -316,7 +313,6 @@ func (s *Service) SyncSupportConversationContext(ctx context.Context, conversati
 		OS:               supportContext.OS,
 		LocalUsername:    supportContext.LocalUsername,
 		AgentVersion:     supportContext.AgentVersion,
-		AgentEnvironment: supportContext.AgentEnvironment,
 		ContactName:      supportContext.ContactName,
 		Description:      supportContext.Description,
 	}
@@ -354,8 +350,7 @@ type persistedRemoteState struct {
 func (s *Service) buildSupportContext() SupportContext {
 	context := SupportContext{
 		LocalUsername:    currentLocalUsername(),
-		AgentVersion:     s.agentVersion,
-		AgentEnvironment: s.agentEnvironment,
+		AgentVersion: s.agentVersion,
 	}
 
 	if identity, err := loadJSON[domain.DeviceIdentity](filepath.Join(s.stateDir, "identity.json")); err == nil {

@@ -55,7 +55,7 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 	uiStateService := uistate.NewService(cfg.Paths.StateDir, uistate.ChatwootConfig{
 		BaseURL:      cfg.Support.ChatwootBaseURL,
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
-	}, cfg.Agent.Version, cfg.Agent.Environment, portalClient)
+	}, cfg.Agent.Version, portalClient)
 
 	modules := []reconcile.Module{
 		remotemodule.New(
@@ -66,7 +66,6 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 			remotemodule.WithDiscoveryToken(cfg.Remote.DiscoveryToken),
 			remotemodule.WithInstallToken(cfg.Remote.InstallToken),
 			remotemodule.WithAgentVersion(cfg.Agent.Version),
-			remotemodule.WithEnvironment(cfg.Agent.Environment),
 			remotemodule.WithStateDir(cfg.Paths.StateDir),
 		),
 		tunnelmodule.New(),
