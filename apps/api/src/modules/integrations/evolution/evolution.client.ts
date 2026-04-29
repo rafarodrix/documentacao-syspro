@@ -424,6 +424,15 @@ export class EvolutionClient {
     const recipient = String(number ?? '').trim();
     if (recipient.includes('@')) {
       const [rawLocalPart, rawDomain = ''] = recipient.split('@');
+      const normalizedDomain = rawDomain.trim().toLowerCase();
+
+      if (normalizedDomain === 'g.us') {
+        const normalizedGroupLocalPart = rawLocalPart.replace(/\s+/g, '');
+        return normalizedGroupLocalPart
+          ? `${normalizedGroupLocalPart}@${normalizedDomain}`
+          : recipient;
+      }
+
       const normalizedLocalPart = rawLocalPart.replace(/\D/g, '');
       if (!normalizedLocalPart) {
         return recipient;
@@ -432,7 +441,6 @@ export class EvolutionClient {
       const normalizedDigits = normalizedLocalPart.startsWith('55')
         ? normalizedLocalPart
         : `55${normalizedLocalPart}`;
-      const normalizedDomain = rawDomain.trim();
       return normalizedDomain
         ? `${normalizedDigits}@${normalizedDomain}`
         : normalizedDigits;
@@ -454,6 +462,7 @@ export class EvolutionClient {
 
     const [localPart, domain] = normalizedNumber.split('@');
     if (!localPart) return null;
+    if (domain?.trim().toLowerCase() === 'g.us') return null;
 
     const digits = localPart.replace(/\D/g, '');
     if (!(digits.startsWith('55') && digits.length === 13 && digits[4] === '9')) {
