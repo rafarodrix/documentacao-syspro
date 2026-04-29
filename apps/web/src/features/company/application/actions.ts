@@ -1,12 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
 import type {
   CompanyInactivationReasonValue,
   CompanyStatusValue,
   CreateCompanyInput,
   CreateCompanyOutput,
 } from "@dosc-syspro/contracts/company";
-import { callWebApi } from "@/lib/web-api";
+import { getBackendApiBaseUrl } from "@/lib/backend-api";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
@@ -14,7 +15,23 @@ import type {
 } from "@/features/company/application/types";
 
 async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
+  const upstreamHeaders = new Headers(init?.headers ?? {});
+
+  if (cookie) {
+    upstreamHeaders.set("cookie", cookie);
+  }
+
+  if (!upstreamHeaders.has("content-type") && init?.body) {
+    upstreamHeaders.set("content-type", "application/json");
+  }
+
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: upstreamHeaders,
+    cache: "no-store",
+  });
 }
 
 async function parseActionResponse<T = void>(response: Response, fallbackMessage: string): Promise<ActionResponse<T>> {
