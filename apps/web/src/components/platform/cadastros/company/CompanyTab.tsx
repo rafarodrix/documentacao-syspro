@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { CompanyStatus } from "@prisma/client"
 import {
+  COMPANY_STATUS_VALUES,
   companyListResponseSchema,
   type CompanyInactivationReasonValue,
   type CompanyListResponse,
+  type CompanyStatusValue,
 } from "@dosc-syspro/contracts/company"
 import {
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
@@ -59,7 +60,7 @@ interface CompanyTabProps {
   data: CompanyListItem[]
   initialPagination?: RegistryPaginationState
   initialSearchTerm?: string
-  initialStatusFilter?: CompanyStatus | "ALL"
+  initialStatusFilter?: CompanyStatusValue | "ALL"
   canCreate: boolean
   canEdit: boolean
   canToggleStatus: boolean
@@ -82,7 +83,7 @@ function companyHasKnownLinks(company: CompanyListItem) {
   )
 }
 
-const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: string }> = {
+const STATUS_CONFIG: Record<CompanyStatusValue, { label: string; dot: string; badge: string }> = {
   ACTIVE: {
     label: "Ativo",
     dot: "bg-emerald-500",
@@ -105,7 +106,7 @@ const STATUS_CONFIG: Record<CompanyStatus, { label: string; dot: string; badge: 
   },
 }
 
-function StatusBadge({ status }: { status: CompanyStatus }) {
+function StatusBadge({ status }: { status: CompanyStatusValue }) {
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.INACTIVE
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border tracking-wide", config.badge)}>
@@ -237,7 +238,7 @@ export function CompanyTab({
   const searchParams = useSearchParams()
   const [items, setItems] = useState(data)
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
-  const [filterStatus, setFilterStatus] = useState<CompanyStatus | "ALL">(initialStatusFilter)
+  const [filterStatus, setFilterStatus] = useState<CompanyStatusValue | "ALL">(initialStatusFilter)
   const [filterBlocked, setFilterBlocked] = useState<"ALL" | "BLOCKED">("ALL")
   const [page, setPage] = useState(initialPagination?.page ?? 1)
   const [pagination, setPagination] = useState<RegistryPaginationState>(
@@ -414,12 +415,13 @@ export function CompanyTab({
   const handleToggleStatus = async (company: CompanyListItem) => {
     setLoadingId(company.id)
     try {
-      const nextStatus = company.status === "INACTIVE" ? CompanyStatus.ACTIVE : CompanyStatus.INACTIVE
+      const nextStatus: CompanyStatusValue =
+        company.status === "INACTIVE" ? COMPANY_STATUS_VALUES[0] : COMPANY_STATUS_VALUES[1]
       const result = await updateCompanyStatusAction(
         company.id,
         nextStatus,
-        nextStatus === CompanyStatus.INACTIVE ? inactivationReason : null,
-        nextStatus === CompanyStatus.INACTIVE ? inactivationDetails : null,
+        nextStatus === "INACTIVE" ? inactivationReason : null,
+        nextStatus === "INACTIVE" ? inactivationDetails : null,
       )
       if (result.success) {
         toast.success(result.message ?? "Status atualizado")
@@ -612,7 +614,7 @@ export function CompanyTab({
                 onChange={setFilterStatus}
                 options={[
                   { value: "ALL", label: "Todas", count: items.length },
-                  ...(Object.keys(STATUS_CONFIG) as CompanyStatus[])
+                  ...(Object.keys(STATUS_CONFIG) as CompanyStatusValue[])
                     .filter((status) => (statusCounts[status] ?? 0) > 0)
                     .map((status) => ({
                       value: status,

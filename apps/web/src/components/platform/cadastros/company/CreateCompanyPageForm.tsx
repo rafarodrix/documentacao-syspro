@@ -6,12 +6,14 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import {
+  COMPANY_STATUS_VALUES,
   createCompanySchema,
   DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
   DEFAULT_COMPANY_SERVER_HOST,
   DEFAULT_COMPANY_SERVER_PORT,
   DEFAULT_COMPANY_SERVER_PROTOCOL,
   DEFAULT_COMPANY_SERVER_TYPE,
+  INDICADOR_IE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
 import type {
@@ -19,7 +21,6 @@ import type {
   CompanyRegistryLookupResponse,
   CompanyOption,
 } from "@/features/company/application/types";
-import { CompanyStatus, IndicadorIE } from "@prisma/client";
 import { createCompanyAction, updateCompanyAction } from "@/features/company/application/actions";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
 import { useAddressLookup } from "@/features/company/interface";
@@ -142,7 +143,7 @@ export function CreateCompanyPageForm({
       nomeFantasia: "",
       segment: undefined,
       logoUrl: "",
-      status: CompanyStatus.ACTIVE,
+      status: COMPANY_STATUS_VALUES[0],
       serverType: DEFAULT_COMPANY_SERVER_TYPE,
       serverPort: DEFAULT_COMPANY_SERVER_PORT,
       serverHost: DEFAULT_COMPANY_SERVER_HOST,
@@ -150,7 +151,7 @@ export function CreateCompanyPageForm({
       iisIsapiPath: "SYSPROSERVERISAPI.DLL",
       installationDirectory: DEFAULT_COMPANY_INSTALLATION_DIRECTORY,
       remoteConnections: [],
-      indicadorIE: IndicadorIE.NAO_CONTRIBUINTE,
+      indicadorIE: INDICADOR_IE_VALUES[2],
       regimeTributario: undefined,
       inscricaoEstadual: "",
       inscricaoMunicipal: "",

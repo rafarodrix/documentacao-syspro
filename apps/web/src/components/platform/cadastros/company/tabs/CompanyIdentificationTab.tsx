@@ -1,8 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { CompanySegment } from "@prisma/client";
-import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
+import { COMPANY_SEGMENT_VALUES, type CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -128,7 +127,7 @@ export function CompanyIdentificationTab({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="__none__">Nao definido</SelectItem>
-                    {Object.values(CompanySegment).map((segment) => (
+                    {COMPANY_SEGMENT_VALUES.map((segment) => (
                       <SelectItem key={segment} value={segment}>
                         {COMPANY_SEGMENT_LABELS[segment]}
                       </SelectItem>

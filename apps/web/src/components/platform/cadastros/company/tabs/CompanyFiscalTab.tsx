@@ -1,8 +1,11 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { IndicadorIE, TaxRegime } from "@prisma/client";
-import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
+import {
+  INDICADOR_IE_VALUES,
+  TAX_REGIME_VALUES,
+  type CreateCompanyInput,
+} from "@dosc-syspro/contracts/company";
 import type { CompanyOption } from "@/features/company/application/types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -58,7 +61,7 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="__none__">Nao definido</SelectItem>
-                    {Object.values(TaxRegime).map((regime) => (
+                    {TAX_REGIME_VALUES.map((regime) => (
                       <SelectItem key={regime} value={regime}>
                         {regime.replace(/_/g, " ")}
                       </SelectItem>
@@ -82,9 +85,9 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={IndicadorIE.CONTRIBUINTE}>Contribuinte</SelectItem>
-                    <SelectItem value={IndicadorIE.ISENTO}>Isento</SelectItem>
-                    <SelectItem value={IndicadorIE.NAO_CONTRIBUINTE}>Nao contribuinte</SelectItem>
+                    <SelectItem value={INDICADOR_IE_VALUES[0]}>Contribuinte</SelectItem>
+                    <SelectItem value={INDICADOR_IE_VALUES[1]}>Isento</SelectItem>
+                    <SelectItem value={INDICADOR_IE_VALUES[2]}>Nao contribuinte</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
