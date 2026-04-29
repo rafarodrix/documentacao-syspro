@@ -314,6 +314,32 @@ export class DashboardService {
     };
   }
 
+  private buildScopedContractsWhere(companyIds?: string[]) {
+    if (!companyIds) {
+      return {
+        company: {
+          deletedAt: null as null,
+        },
+      };
+    }
+
+    if (companyIds.length === 0) {
+      return {
+        companyId: { in: ['__no_company_scope__'] },
+        company: {
+          deletedAt: null as null,
+        },
+      };
+    }
+
+    return {
+      companyId: { in: companyIds },
+      company: {
+        deletedAt: null as null,
+      },
+    };
+  }
+
   async getDashboard(rawHeaders?: IncomingHttpHeaders): Promise<DashboardResponse> {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const dailyPassword = await this.resolveDailyPassword(rawHeaders);
@@ -356,6 +382,7 @@ export class DashboardService {
       const scopedContactIds = contactScope.isGlobal ? undefined : contactScope.companyIds;
       const scopedUserIds = userScope.isGlobal ? undefined : userScope.companyIds;
       const companyBaseWhere = this.buildScopedCompaniesWhere(scopedCompanyIds);
+      const contractsBaseWhere = this.buildScopedContractsWhere(scopedCompanyIds);
       const userBaseWhere = this.buildScopedUsersWhere(scopedUserIds);
       const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
 
@@ -503,7 +530,7 @@ export class DashboardService {
           : Promise.resolve([]),
         canViewCrm
           ? this.prisma.contract.findMany({
-              where: { status: 'ACTIVE', ...companyBaseWhere },
+              where: { status: 'ACTIVE', ...contractsBaseWhere },
               select: { totalValue: true },
             }).catch(() => [])
           : Promise.resolve([]),
