@@ -63,26 +63,22 @@ function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {
 
 const TAB_META: Record<
   InfrastructureTab,
-  { label: string; description: string; icon: typeof Monitor }
+  { label: string; icon: typeof Monitor }
 > = {
   hosts: {
     label: "Hosts",
-    description: "Diretorio operacional dos hosts remotos vinculados as empresas.",
     icon: Monitor,
   },
   sessoes: {
     label: "Sessoes",
-    description: "Auditoria centralizada das conexoes remotas e historico tecnico.",
     icon: Activity,
   },
   relatorios: {
     label: "Relatorios",
-    description: "Indicadores de eficiencia do suporte remoto.",
     icon: BarChart3,
   },
   agentes: {
     label: "Agentes",
-    description: "Frota de devices com heartbeat, versao e vinculo operacional.",
     icon: Cpu,
   },
 };
@@ -205,33 +201,30 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
       </div>
 
       <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
-        <div className="flex flex-col gap-3">
-          <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-w-max rounded-md bg-muted/40 p-1">
-              {availableTabs.map((tab) => {
-                const meta = TAB_META[tab];
-                const Icon = meta.icon;
-                const href = buildTabHref(tab, tabParams);
-                const isActive = activeTab === tab;
-                return (
-                  <Link
-                    key={tab}
-                    href={href}
-                    className={cn(
-                      "inline-flex h-8 items-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {meta.label}
-                  </Link>
-                );
-              })}
-            </div>
+        <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max rounded-md bg-muted/40 p-1">
+            {availableTabs.map((tab) => {
+              const meta = TAB_META[tab];
+              const Icon = meta.icon;
+              const href = buildTabHref(tab, tabParams);
+              const isActive = activeTab === tab;
+              return (
+                <Link
+                  key={tab}
+                  href={href}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {meta.label}
+                </Link>
+              );
+            })}
           </div>
-          <p className="px-1 text-sm text-muted-foreground">{TAB_META[activeTab].description}</p>
         </div>
       </section>
 

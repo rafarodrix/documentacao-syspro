@@ -74,6 +74,10 @@ export function RemoteSessionsPanel({ sessions, pagination, hostOptions, filters
 
   const activeSessions = sessions.filter((s) => s.status === "REQUESTED" || s.status === "STARTED");
   const pastSessions = sessions.filter((s) => s.status !== "REQUESTED" && s.status !== "STARTED");
+  const requestedSessions = sessions.filter((s) => s.status === "REQUESTED").length;
+  const startedSessions = sessions.filter((s) => s.status === "STARTED").length;
+  const uniqueHosts = new Set(sessions.map((session) => session.hostId)).size;
+  const linkedTickets = new Set(sessions.map((session) => session.ticketNumber).filter(Boolean)).size;
 
   const updateParams = (mutate: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -152,6 +156,13 @@ export function RemoteSessionsPanel({ sessions, pagination, hostOptions, filters
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SessionStatCard label="Sessoes visiveis" value={sessions.length} icon={<Activity className="h-4 w-4" />} accent="slate" />
+        <SessionStatCard label="Solicitadas" value={requestedSessions} icon={<Clock className="h-4 w-4" />} accent="amber" />
+        <SessionStatCard label="Conectadas" value={startedSessions} icon={<Monitor className="h-4 w-4" />} accent="emerald" />
+        <SessionStatCard label="Hosts envolvidos" value={uniqueHosts} hint={`${linkedTickets} tickets com remoto`} icon={<Ticket className="h-4 w-4" />} accent="violet" />
+      </div>
+
       <Card className="border-border/50 bg-background/70">
         <CardContent className="p-4 grid gap-3 md:grid-cols-[180px_220px_1fr_auto_auto] md:items-end">
           <div className="space-y-1">
@@ -269,6 +280,36 @@ export function RemoteSessionsPanel({ sessions, pagination, hostOptions, filters
         onPageChange={goToPage}
       />
     </div>
+  );
+}
+
+function SessionStatCard(props: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  hint?: string;
+  accent: "slate" | "emerald" | "amber" | "violet";
+}) {
+  const accentClass = {
+    slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    violet: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+  } as const;
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {props.label}
+          </span>
+          <span className={cn("rounded-md p-1.5", accentClass[props.accent])}>{props.icon}</span>
+        </div>
+        <div className="mt-2 text-2xl font-bold leading-none tabular-nums">{props.value}</div>
+        {props.hint ? <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div> : null}
+      </CardContent>
+    </Card>
   );
 }
 

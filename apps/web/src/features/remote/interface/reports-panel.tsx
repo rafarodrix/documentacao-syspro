@@ -29,75 +29,44 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Badge variant="outline" className="h-fit px-4 py-1 text-sm bg-muted/30 border-primary/20 text-primary">
+        <Badge variant="outline" className="h-fit border-border/60 bg-background px-4 py-1 text-sm text-muted-foreground">
           <Calendar className="mr-2 h-4 w-4" />
           Ultimos 100 atendimentos
         </Badge>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="relative overflow-hidden border-border/50 bg-linear-to-br from-background to-muted/20 shadow-lg">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <Clock className="h-20 w-20 text-primary" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-sm font-medium uppercase tracking-wider">Tempo ate o remoto</CardDescription>
-            <CardTitle className="text-3xl font-bold tracking-tight text-primary">
-              {formatDuration(metrics.averageTimeToRemoteSeconds)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">Media entre abertura do ticket e primeiro acesso.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-border/50 bg-linear-to-br from-background to-muted/20 shadow-lg">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <Monitor className="h-20 w-20 text-indigo-500" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-sm font-medium uppercase tracking-wider">Duracao media</CardDescription>
-            <CardTitle className="text-3xl font-bold tracking-tight text-indigo-500">
-              {formatDuration(metrics.averageSessionDurationSeconds)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">Tempo medio conectado nas maquinas.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-border/50 bg-linear-to-br from-background to-muted/20 shadow-lg">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <Users className="h-20 w-20 text-emerald-500" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-sm font-medium uppercase tracking-wider">Total de sessoes</CardDescription>
-            <CardTitle className="text-3xl font-bold tracking-tight text-emerald-500">
-              {metrics.totalSessionsCount}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">Sessoes remotas finalizadas.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-border/50 bg-linear-to-br from-background to-muted/20 shadow-lg">
-          <div className="absolute top-0 right-0 p-3 opacity-10">
-            <BarChart3 className="h-20 w-20 text-violet-500" />
-          </div>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-sm font-medium uppercase tracking-wider">Tickets impactados</CardDescription>
-            <CardTitle className="text-3xl font-bold tracking-tight text-violet-500">
-              {metrics.totalTicketsWithRemote}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">Chamados que precisaram de acesso remoto.</p>
-          </CardContent>
-        </Card>
+        <ReportStatCard
+          icon={<Clock className="h-4 w-4" />}
+          label="Tempo ate o remoto"
+          value={formatDuration(metrics.averageTimeToRemoteSeconds)}
+          hint="Media entre abertura do ticket e primeiro acesso."
+          accent="slate"
+        />
+        <ReportStatCard
+          icon={<Monitor className="h-4 w-4" />}
+          label="Duracao media"
+          value={formatDuration(metrics.averageSessionDurationSeconds)}
+          hint="Tempo medio conectado nas maquinas."
+          accent="indigo"
+        />
+        <ReportStatCard
+          icon={<Users className="h-4 w-4" />}
+          label="Total de sessoes"
+          value={String(metrics.totalSessionsCount)}
+          hint="Sessoes remotas finalizadas."
+          accent="emerald"
+        />
+        <ReportStatCard
+          icon={<BarChart3 className="h-4 w-4" />}
+          label="Tickets impactados"
+          value={String(metrics.totalTicketsWithRemote)}
+          hint="Chamados que precisaram de acesso remoto."
+          accent="violet"
+        />
       </div>
 
-      <Card className="overflow-hidden border-border/40 bg-background/50 shadow-xl backdrop-blur-md">
+      <Card className="overflow-hidden border-border/40 bg-background/50 shadow-sm">
         <CardHeader className="border-b border-border/40 bg-muted/10">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
@@ -177,5 +146,43 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ReportStatCard(props: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint: string;
+  accent: "slate" | "indigo" | "emerald" | "violet";
+}) {
+  const accentClass = {
+    slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+    indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
+    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    violet: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+  } as const;
+  const valueClass = {
+    slate: "text-slate-700 dark:text-slate-300",
+    indigo: "text-indigo-700 dark:text-indigo-400",
+    emerald: "text-emerald-700 dark:text-emerald-400",
+    violet: "text-violet-700 dark:text-violet-400",
+  } as const;
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {props.label}
+          </span>
+          <span className={cn("rounded-md p-1.5", accentClass[props.accent])}>{props.icon}</span>
+        </div>
+        <div className={cn("mt-2 text-2xl font-bold leading-none", valueClass[props.accent])}>
+          {props.value}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div>
+      </CardContent>
+    </Card>
   );
 }
