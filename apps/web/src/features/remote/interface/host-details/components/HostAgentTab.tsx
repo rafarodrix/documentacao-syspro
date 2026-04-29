@@ -41,13 +41,19 @@ export function HostAgentTab({
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
 
   return (
-    <div className="space-y-4">
-    <AgentLinkSection hostId={hostId} linkedDevice={linkedDevice} />
-    <Card className="border-border/50">
-      <CardHeader>
-        <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
-        <CardDescription>Diagnóstico operacional: telemetria, saúde, conectividade e execução de comandos.</CardDescription>
-      </CardHeader>
+    <div className="space-y-6">
+      <div>
+        <SectionLabel title="Agente Enterprise" />
+        <AgentLinkSection hostId={hostId} linkedDevice={linkedDevice} />
+      </div>
+
+      <div>
+        <SectionLabel title="Módulo Remoto" />
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
+            <CardDescription>Diagnóstico operacional: telemetria, saúde, conectividade e execução de comandos.</CardDescription>
+          </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
           <p className="text-sm font-medium text-foreground">Resumo do agente</p>
@@ -432,7 +438,19 @@ export function HostAgentTab({
           </div>
         </details>
       </CardContent>
-    </Card>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ title }: { title: string }) {
+  return (
+    <div className="mb-3 flex items-center gap-3">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </span>
+      <div className="h-px flex-1 bg-border/40" />
     </div>
   );
 }
