@@ -25,7 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { fetchAgentDeviceList } from "@/features/agents/application/queries";
+import { fetchAgentDeviceListClient } from "@/features/agents/application/client-queries";
 import { patchAgentDevice } from "@/features/agents/application/mutations";
 import { LinkedDeviceCard } from "./LinkedDeviceCard";
 
@@ -47,7 +47,7 @@ export function AgentLinkSection({
   useEffect(() => {
     if (!pickerOpen) return;
     setIsLoadingDevices(true);
-    fetchAgentDeviceList({ search: search.trim() || undefined, pageSize: 20 })
+    fetchAgentDeviceListClient({ search: search.trim() || undefined, pageSize: 20 })
       .then((r) => setDevices(r.items))
       .catch(() => setDevices([]))
       .finally(() => setIsLoadingDevices(false));
