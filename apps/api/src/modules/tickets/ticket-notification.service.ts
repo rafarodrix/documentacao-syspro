@@ -1,5 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { TicketModuleSettings } from '@dosc-syspro/contracts/ticket';
+import {
+  automationModuleSettingsSchema,
+  type AutomationModuleSettings,
+  type WhatsAppAutomationBinding,
+  type WhatsAppAutomationEvent,
+} from '@dosc-syspro/contracts/automation';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
@@ -14,6 +20,7 @@ import {
 } from '@prisma/client';
 
 type TicketNotificationTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
+const AUTOMATION_SETTINGS_KEY = 'automation.module.settings';
 
 @Injectable()
 export class TicketNotificationService {
@@ -38,17 +45,11 @@ export class TicketNotificationService {
     developmentVideoUrl: string | null;
     rawHeaders?: IncomingHttpHeaders;
   }) {
-    const configuredGroups =
-      input.team === 'DESENVOLVIMENTO'
-        ? input.settings.developmentNotificationGroups
-        : input.settings.supportNotificationGroups;
-    const targetGroups = configuredGroups
-      .filter((group) => group.active)
-      .map((group) => ({
-        ...group,
-        jid: this.normalizeGroupRecipient(group.jid),
-      }))
-      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+    const automationSettings = await this.readAutomationSettings(input.settings);
+    const targetGroups = this.getTargetGroupsForEvent(
+      automationSettings,
+      input.team === 'DESENVOLVIMENTO' ? 'ticket_created_development' : 'ticket_created_support',
+    );
 
     if (!targetGroups.length) {
       this.logger.debug(JSON.stringify({
@@ -149,6 +150,7 @@ export class TicketNotificationService {
     note?: string | null;
     rawHeaders?: IncomingHttpHeaders;
   }) {
+    const automationSettings = await this.readAutomationSettings(input.settings);
     const targets: Array<{ audience: 'origin' | 'destination'; team: TicketNotificationTeam }> = [];
 
     if (input.previousTeam) {
@@ -181,17 +183,10 @@ export class TicketNotificationService {
       : 'Nao informado';
 
     for (const target of targets) {
-      const configuredGroups =
-        target.team === 'DESENVOLVIMENTO'
-          ? input.settings.developmentNotificationGroups
-          : input.settings.supportNotificationGroups;
-      const targetGroups = configuredGroups
-        .filter((group) => group.active)
-        .map((group) => ({
-          ...group,
-          jid: this.normalizeGroupRecipient(group.jid),
-        }))
-        .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+      const targetGroups = this.getTargetGroupsForEvent(
+        automationSettings,
+        this.resolveTeamRoutingEvent(target.audience, target.team),
+      );
 
       if (!targetGroups.length) {
         this.logger.debug(JSON.stringify({
@@ -279,17 +274,11 @@ export class TicketNotificationService {
     note?: string | null;
     rawHeaders?: IncomingHttpHeaders;
   }) {
-    const configuredGroups =
-      input.notificationType === 'testing'
-        ? input.settings.testingNotificationGroups
-        : input.settings.testingFailedNotificationGroups;
-    const targetGroups = configuredGroups
-      .filter((group) => group.active)
-      .map((group) => ({
-        ...group,
-        jid: this.normalizeGroupRecipient(group.jid),
-      }))
-      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+    const automationSettings = await this.readAutomationSettings(input.settings);
+    const targetGroups = this.getTargetGroupsForEvent(
+      automationSettings,
+      input.notificationType === 'testing' ? 'ticket_status_testing' : 'ticket_status_testing_failed',
+    );
 
     if (!targetGroups.length) {
       this.logger.debug(JSON.stringify({
@@ -419,6 +408,142 @@ export class TicketNotificationService {
       failed,
       errors,
     };
+  }
+
+  private async readAutomationSettings(legacyTicketSettings: TicketModuleSettings): Promise<AutomationModuleSettings> {
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: AUTOMATION_SETTINGS_KEY },
+        select: { value: true },
+      });
+
+      if (setting?.value) {
+        const parsed = automationModuleSettingsSchema.safeParse(JSON.parse(setting.value));
+        if (parsed.success) return parsed.data;
+      }
+    } catch {
+      // ignore and fall back
+    }
+
+    return this.deriveAutomationSettingsFromLegacyTicketSettings(legacyTicketSettings);
+  }
+
+  private deriveAutomationSettingsFromLegacyTicketSettings(settings: TicketModuleSettings): AutomationModuleSettings {
+    const bindingsByJid = new Map<string, WhatsAppAutomationBinding>();
+
+    const upsertBinding = (
+      group: { id: string; label: string; jid: string; active: boolean },
+      patch: Partial<WhatsAppAutomationBinding['automations']>,
+    ) => {
+      const normalizedJid = this.normalizeGroupRecipient(group.jid);
+      if (!normalizedJid) return;
+
+      const current = bindingsByJid.get(normalizedJid) ?? {
+        id: group.id,
+        label: group.label,
+        jid: normalizedJid,
+        active: group.active,
+        automations: {
+          ticketCreatedSupport: false,
+          ticketCreatedDevelopment: false,
+          ticketTeamTransferFromSupport: false,
+          ticketTeamTransferToSupport: false,
+          ticketTeamTransferFromDevelopment: false,
+          ticketTeamTransferToDevelopment: false,
+          ticketStatusTesting: false,
+          ticketStatusTestingFailed: false,
+        },
+      };
+
+      current.active = current.active || group.active;
+      current.label = current.label || group.label;
+      current.automations = {
+        ...current.automations,
+        ...patch,
+      };
+      bindingsByJid.set(normalizedJid, current);
+    };
+
+    for (const group of settings.supportNotificationGroups) {
+      upsertBinding(group, {
+        ticketCreatedSupport: true,
+        ticketTeamTransferFromSupport: true,
+        ticketTeamTransferToSupport: true,
+      });
+    }
+
+    for (const group of settings.developmentNotificationGroups) {
+      upsertBinding(group, {
+        ticketCreatedDevelopment: true,
+        ticketTeamTransferFromDevelopment: true,
+        ticketTeamTransferToDevelopment: true,
+      });
+    }
+
+    for (const group of settings.testingNotificationGroups) {
+      upsertBinding(group, { ticketStatusTesting: true });
+    }
+
+    for (const group of settings.testingFailedNotificationGroups) {
+      upsertBinding(group, { ticketStatusTestingFailed: true });
+    }
+
+    return {
+      autoAssignToCreator: settings.autoAssignToCreator,
+      autoResponseEnabled: settings.autoResponseEnabled,
+      autoResponseMessage: settings.autoResponseMessage,
+      requireTestingReturnReason: settings.requireTestingReturnReason,
+      whatsapp: {
+        bindings: Array.from(bindingsByJid.values()),
+      },
+    };
+  }
+
+  private getTargetGroupsForEvent(settings: AutomationModuleSettings, event: WhatsAppAutomationEvent) {
+    return settings.whatsapp.bindings
+      .filter((binding) => binding.active && this.bindingHasEvent(binding, event))
+      .map((binding) => ({
+        id: binding.id,
+        label: binding.label,
+        jid: this.normalizeGroupRecipient(binding.jid),
+        active: binding.active,
+      }))
+      .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+  }
+
+  private bindingHasEvent(binding: WhatsAppAutomationBinding, event: WhatsAppAutomationEvent) {
+    switch (event) {
+      case 'ticket_created_support':
+        return binding.automations.ticketCreatedSupport;
+      case 'ticket_created_development':
+        return binding.automations.ticketCreatedDevelopment;
+      case 'ticket_team_transfer_from_support':
+        return binding.automations.ticketTeamTransferFromSupport;
+      case 'ticket_team_transfer_to_support':
+        return binding.automations.ticketTeamTransferToSupport;
+      case 'ticket_team_transfer_from_development':
+        return binding.automations.ticketTeamTransferFromDevelopment;
+      case 'ticket_team_transfer_to_development':
+        return binding.automations.ticketTeamTransferToDevelopment;
+      case 'ticket_status_testing':
+        return binding.automations.ticketStatusTesting;
+      case 'ticket_status_testing_failed':
+        return binding.automations.ticketStatusTestingFailed;
+      default:
+        return false;
+    }
+  }
+
+  private resolveTeamRoutingEvent(audience: 'origin' | 'destination', team: TicketNotificationTeam): WhatsAppAutomationEvent {
+    if (audience === 'origin') {
+      return team === 'DESENVOLVIMENTO'
+        ? 'ticket_team_transfer_from_development'
+        : 'ticket_team_transfer_from_support';
+    }
+
+    return team === 'DESENVOLVIMENTO'
+      ? 'ticket_team_transfer_to_development'
+      : 'ticket_team_transfer_to_support';
   }
 
   private async resolveNotificationContext(

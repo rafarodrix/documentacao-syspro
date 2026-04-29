@@ -8,6 +8,7 @@ import type {
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
 import { DEFAULT_TICKET_MODULE_SETTINGS, ticketModuleSettingsSchema } from '@dosc-syspro/contracts/ticket';
+import { DEFAULT_AUTOMATION_MODULE_SETTINGS, automationModuleSettingsSchema } from '@dosc-syspro/contracts/automation';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
@@ -1326,20 +1327,62 @@ export class TicketsService {
 
   private async getTicketModuleSettings(): Promise<TicketModuleSettings> {
     try {
-      const setting = await this.prisma.systemSetting.findUnique({
-        where: { key: 'tickets.module.settings' },
-        select: { value: true },
-      });
+      const [setting, automationSetting] = await Promise.all([
+        this.prisma.systemSetting.findUnique({
+          where: { key: 'tickets.module.settings' },
+          select: { value: true },
+        }),
+        this.prisma.systemSetting.findUnique({
+          where: { key: 'automation.module.settings' },
+          select: { value: true },
+        }),
+      ]);
 
       if (!setting?.value) {
-        return DEFAULT_TICKET_MODULE_SETTINGS;
+        return {
+          ...DEFAULT_TICKET_MODULE_SETTINGS,
+          ...this.readLegacyAutomationFlags(automationSetting?.value),
+        };
       }
 
       const parsed = this.normalizeLegacyTicketModuleSettings(JSON.parse(setting.value));
       const validation = ticketModuleSettingsSchema.safeParse(parsed);
-      return validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
+      const base = validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
+      return {
+        ...base,
+        ...this.readLegacyAutomationFlags(automationSetting?.value),
+      };
     } catch {
       return DEFAULT_TICKET_MODULE_SETTINGS;
+    }
+  }
+
+  private readLegacyAutomationFlags(rawSettingValue?: string | null) {
+    if (!rawSettingValue?.trim()) {
+      return {
+        autoAssignToCreator: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoAssignToCreator,
+        autoResponseEnabled: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseEnabled,
+        autoResponseMessage: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseMessage,
+        requireTestingReturnReason: DEFAULT_AUTOMATION_MODULE_SETTINGS.requireTestingReturnReason,
+      };
+    }
+
+    try {
+      const parsed = automationModuleSettingsSchema.safeParse(JSON.parse(rawSettingValue));
+      if (!parsed.success) throw new Error('invalid_automation_settings');
+      return {
+        autoAssignToCreator: parsed.data.autoAssignToCreator,
+        autoResponseEnabled: parsed.data.autoResponseEnabled,
+        autoResponseMessage: parsed.data.autoResponseMessage,
+        requireTestingReturnReason: parsed.data.requireTestingReturnReason,
+      };
+    } catch {
+      return {
+        autoAssignToCreator: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoAssignToCreator,
+        autoResponseEnabled: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseEnabled,
+        autoResponseMessage: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseMessage,
+        requireTestingReturnReason: DEFAULT_AUTOMATION_MODULE_SETTINGS.requireTestingReturnReason,
+      };
     }
   }
 

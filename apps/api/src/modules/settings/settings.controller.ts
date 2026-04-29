@@ -49,6 +49,12 @@ import {
   ticketModuleSettingsSchema,
   type TicketModuleSettings,
 } from '@dosc-syspro/contracts/ticket';
+import {
+  DEFAULT_AUTOMATION_MODULE_SETTINGS,
+  automationModuleSettingsSchema,
+  type AutomationModuleSettings,
+  type WhatsAppAutomationBinding,
+} from '@dosc-syspro/contracts/automation';
 import { sefazRoutesSchema, type SefazRoutesInput } from '@dosc-syspro/contracts/sefaz-routes';
 import type { Request } from 'express';
 import { SettingsPermissionsService } from './permissions/permissions.service';
@@ -79,6 +85,7 @@ export class SettingsController {
   };
   private readonly logger = new Logger(SettingsController.name);
   private static readonly TICKETS_SETTINGS_KEY = 'tickets.module.settings';
+  private static readonly AUTOMATIONS_SETTINGS_KEY = 'automation.module.settings';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -326,31 +333,45 @@ export class SettingsController {
     await this.authorizationService.assertPermission(req.headers, 'settings:view');
 
     try {
-      const setting = await this.prisma.systemSetting.findUnique({
-        where: { key: SettingsController.TICKETS_SETTINGS_KEY },
-        select: { value: true },
-      });
+      const [setting, automationSettings] = await Promise.all([
+        this.prisma.systemSetting.findUnique({
+          where: { key: SettingsController.TICKETS_SETTINGS_KEY },
+          select: { value: true },
+        }),
+        this.readAutomationModuleSettings(),
+      ]);
 
       if (!setting?.value) {
-        return { success: true, data: DEFAULT_TICKET_MODULE_SETTINGS };
+        return {
+          success: true,
+          data: this.mergeAutomationSettingsIntoTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS, automationSettings),
+        };
       }
 
       const parsed = this.normalizeLegacyTicketSettings(JSON.parse(setting.value));
       const validation = ticketModuleSettingsSchema.safeParse(parsed);
+      const data = validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
 
       return {
         success: true,
-        data: validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS,
+        data: this.mergeAutomationSettingsIntoTicketSettings(data, automationSettings),
       };
     } catch {
-      return { success: true, data: DEFAULT_TICKET_MODULE_SETTINGS };
+      const automationSettings = await this.readAutomationModuleSettings();
+      return {
+        success: true,
+        data: this.mergeAutomationSettingsIntoTicketSettings(DEFAULT_TICKET_MODULE_SETTINGS, automationSettings),
+      };
     }
   }
 
   @Put('tickets')
   async updateTicketModuleSettings(@Req() req: Request, @Body() body: TicketModuleSettings) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
-    const parsed = ticketModuleSettingsSchema.parse(body);
+    const automationSettings = await this.readAutomationModuleSettings();
+    const parsed = ticketModuleSettingsSchema.parse(
+      this.mergeAutomationSettingsIntoTicketSettings(body, automationSettings),
+    );
 
     await this.prisma.systemSetting.upsert({
       where: { key: SettingsController.TICKETS_SETTINGS_KEY },
@@ -363,6 +384,65 @@ export class SettingsController {
     });
 
     return { success: true, message: 'Configuracoes do modulo de tickets salvas.', data: parsed };
+  }
+
+  @Get('automations')
+  async getAutomationModuleSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    const data = await this.readAutomationModuleSettings();
+    return { success: true, data };
+  }
+
+  @Put('automations')
+  async updateAutomationModuleSettings(@Req() req: Request, @Body() body: AutomationModuleSettings) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = automationModuleSettingsSchema.parse(body);
+
+    const currentTicketSetting = await this.prisma.systemSetting.findUnique({
+      where: { key: SettingsController.TICKETS_SETTINGS_KEY },
+      select: { value: true },
+    });
+
+    let ticketSettingsBase = DEFAULT_TICKET_MODULE_SETTINGS;
+    if (currentTicketSetting?.value) {
+      try {
+        const normalized = this.normalizeLegacyTicketSettings(JSON.parse(currentTicketSetting.value));
+        const validation = ticketModuleSettingsSchema.safeParse(normalized);
+        if (validation.success) {
+          ticketSettingsBase = validation.data;
+        }
+      } catch {
+        ticketSettingsBase = DEFAULT_TICKET_MODULE_SETTINGS;
+      }
+    }
+
+    const mergedTicketSettings = this.mergeAutomationSettingsIntoTicketSettings(
+      ticketSettingsBase,
+      parsed,
+    );
+
+    await this.prisma.$transaction([
+      this.prisma.systemSetting.upsert({
+        where: { key: SettingsController.AUTOMATIONS_SETTINGS_KEY },
+        update: { value: JSON.stringify(parsed) },
+        create: {
+          key: SettingsController.AUTOMATIONS_SETTINGS_KEY,
+          value: JSON.stringify(parsed),
+          description: 'Configuracoes globais do modulo de automacoes',
+        },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: SettingsController.TICKETS_SETTINGS_KEY },
+        update: { value: JSON.stringify(mergedTicketSettings) },
+        create: {
+          key: SettingsController.TICKETS_SETTINGS_KEY,
+          value: JSON.stringify(mergedTicketSettings),
+          description: 'Configuracoes globais do modulo de tickets',
+        },
+      }),
+    ]);
+
+    return { success: true, message: 'Configuracoes do modulo de automacoes salvas.', data: parsed };
   }
 
   private normalizeLegacyTicketSettings(raw: unknown): unknown {
@@ -398,6 +478,144 @@ export class SettingsController {
     }
 
     return parsed;
+  }
+
+  private async readAutomationModuleSettings(): Promise<AutomationModuleSettings> {
+    try {
+      const [automationSetting, ticketSetting] = await Promise.all([
+        this.prisma.systemSetting.findUnique({
+          where: { key: SettingsController.AUTOMATIONS_SETTINGS_KEY },
+          select: { value: true },
+        }),
+        this.prisma.systemSetting.findUnique({
+          where: { key: SettingsController.TICKETS_SETTINGS_KEY },
+          select: { value: true },
+        }),
+      ]);
+
+      if (automationSetting?.value) {
+        const parsed = automationModuleSettingsSchema.safeParse(JSON.parse(automationSetting.value));
+        if (parsed.success) return parsed.data;
+      }
+
+      if (ticketSetting?.value) {
+        return this.deriveAutomationSettingsFromLegacyTickets(JSON.parse(ticketSetting.value));
+      }
+    } catch {
+      // ignore and fall back
+    }
+
+    return DEFAULT_AUTOMATION_MODULE_SETTINGS;
+  }
+
+  private deriveAutomationSettingsFromLegacyTickets(raw: unknown): AutomationModuleSettings {
+    const normalized = this.normalizeLegacyTicketSettings(raw);
+    const parsed = ticketModuleSettingsSchema.safeParse(normalized);
+    if (!parsed.success) return DEFAULT_AUTOMATION_MODULE_SETTINGS;
+
+    const settings = parsed.data;
+    const bindingsByJid = new Map<string, WhatsAppAutomationBinding>();
+
+    const upsertBinding = (
+      group: { id: string; label: string; jid: string; active: boolean },
+      patch: Partial<WhatsAppAutomationBinding['automations']>,
+    ) => {
+      const normalizedJid = String(group.jid ?? '').trim();
+      if (!normalizedJid) return;
+
+      const current = bindingsByJid.get(normalizedJid) ?? {
+        id: group.id,
+        label: group.label,
+        jid: normalizedJid,
+        active: group.active,
+        automations: {
+          ticketCreatedSupport: false,
+          ticketCreatedDevelopment: false,
+          ticketTeamTransferFromSupport: false,
+          ticketTeamTransferToSupport: false,
+          ticketTeamTransferFromDevelopment: false,
+          ticketTeamTransferToDevelopment: false,
+          ticketStatusTesting: false,
+          ticketStatusTestingFailed: false,
+        },
+      };
+
+      current.label = current.label || group.label;
+      current.active = current.active || group.active;
+      current.automations = {
+        ...current.automations,
+        ...patch,
+      };
+      bindingsByJid.set(normalizedJid, current);
+    };
+
+    for (const group of settings.supportNotificationGroups) {
+      upsertBinding(group, {
+        ticketCreatedSupport: true,
+        ticketTeamTransferFromSupport: true,
+        ticketTeamTransferToSupport: true,
+      });
+    }
+
+    for (const group of settings.developmentNotificationGroups) {
+      upsertBinding(group, {
+        ticketCreatedDevelopment: true,
+        ticketTeamTransferFromDevelopment: true,
+        ticketTeamTransferToDevelopment: true,
+      });
+    }
+
+    for (const group of settings.testingNotificationGroups) {
+      upsertBinding(group, {
+        ticketStatusTesting: true,
+      });
+    }
+
+    for (const group of settings.testingFailedNotificationGroups) {
+      upsertBinding(group, {
+        ticketStatusTestingFailed: true,
+      });
+    }
+
+    return {
+      autoAssignToCreator: settings.autoAssignToCreator,
+      autoResponseEnabled: settings.autoResponseEnabled,
+      autoResponseMessage: settings.autoResponseMessage,
+      requireTestingReturnReason: settings.requireTestingReturnReason,
+      whatsapp: {
+        bindings: Array.from(bindingsByJid.values()),
+      },
+    };
+  }
+
+  private mergeAutomationSettingsIntoTicketSettings(
+    settings: TicketModuleSettings,
+    automationSettings: AutomationModuleSettings,
+  ): TicketModuleSettings {
+    const supportNotificationGroups = automationSettings.whatsapp.bindings
+      .filter((binding) => binding.active && binding.automations.ticketCreatedSupport)
+      .map((binding) => ({ id: binding.id, label: binding.label, jid: binding.jid, active: binding.active }));
+    const developmentNotificationGroups = automationSettings.whatsapp.bindings
+      .filter((binding) => binding.active && binding.automations.ticketCreatedDevelopment)
+      .map((binding) => ({ id: binding.id, label: binding.label, jid: binding.jid, active: binding.active }));
+    const testingNotificationGroups = automationSettings.whatsapp.bindings
+      .filter((binding) => binding.active && binding.automations.ticketStatusTesting)
+      .map((binding) => ({ id: binding.id, label: binding.label, jid: binding.jid, active: binding.active }));
+    const testingFailedNotificationGroups = automationSettings.whatsapp.bindings
+      .filter((binding) => binding.active && binding.automations.ticketStatusTestingFailed)
+      .map((binding) => ({ id: binding.id, label: binding.label, jid: binding.jid, active: binding.active }));
+
+    return {
+      ...settings,
+      autoAssignToCreator: automationSettings.autoAssignToCreator,
+      autoResponseEnabled: automationSettings.autoResponseEnabled,
+      autoResponseMessage: automationSettings.autoResponseMessage,
+      requireTestingReturnReason: automationSettings.requireTestingReturnReason,
+      supportNotificationGroups,
+      developmentNotificationGroups,
+      testingNotificationGroups,
+      testingFailedNotificationGroups,
+    };
   }
 
   @Put('remote/module-settings')

@@ -29,7 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
-import { getDashboardData } from "@/features/dashboard/application/queries";
+import { getDashboardData } from "@/features/dashboard/application";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { cn } from "@/lib/utils";
 import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";

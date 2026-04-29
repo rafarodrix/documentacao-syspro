@@ -217,8 +217,18 @@ export function TicketSettingsTab() {
               <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
             </div>
 
+            <Card className="border-border/60 bg-muted/10">
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                As automacoes e os grupos de WhatsApp foram movidos para
+                {" "}
+                <span className="font-medium text-foreground">Configuracoes &gt; Automacoes &gt; WhatsApp</span>.
+                {" "}
+                Esta tela permanece focada na estrutura, SLA e templates do modulo de tickets.
+              </CardContent>
+            </Card>
+
             <Tabs defaultValue="structure" className="w-full">
-              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-4">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-3">
                 <TabsTrigger value="structure" className="gap-1.5 text-xs">
                   <Layers3 className="h-3.5 w-3.5" />
                   Estrutura
@@ -230,10 +240,6 @@ export function TicketSettingsTab() {
                 <TabsTrigger value="templates" className="gap-1.5 text-xs">
                   <MessageSquareText className="h-3.5 w-3.5" />
                   Templates
-                </TabsTrigger>
-                <TabsTrigger value="automation" className="gap-1.5 text-xs">
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Automacao
                 </TabsTrigger>
               </TabsList>
 
