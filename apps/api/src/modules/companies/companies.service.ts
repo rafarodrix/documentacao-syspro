@@ -686,7 +686,7 @@ export class CompaniesService {
     companyId: string,
     payload: {
       data: CreateCompanyInput | CreateCompanyOutput;
-    },
+    } | null | undefined,
     rawHeaders?: IncomingHttpHeaders,
   ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
@@ -697,7 +697,15 @@ export class CompaniesService {
     const editScope = await this.getCompanyEditScope(requester);
     await this.assertCompanyAccess(companyId, editScope);
 
-    const validation = createCompanySchema.safeParse(payload.data);
+    const payloadData = payload?.data;
+    if (!payloadData || typeof payloadData !== 'object') {
+      return {
+        success: false,
+        message: 'Payload invalido. Envie os dados da empresa no campo data.',
+      };
+    }
+
+    const validation = createCompanySchema.safeParse(payloadData);
     if (!validation.success) {
       return {
         success: false,
