@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getCadastrosCompaniesAdminViewData } from "@/features/company/application/queries";
+import { getCadastrosCompaniesAdminViewData } from "@/features/company/application/company-read.queries";
 import { CompanyTab } from "@/features/company/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";

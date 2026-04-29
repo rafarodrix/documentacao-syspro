@@ -3,7 +3,7 @@ import type {
   CompanyEditViewData,
   CompanyListItem,
   CompanyOption,
-} from "@/features/company/application/types";
+} from "@/features/company/application/company-view.types";
 
 export type CompanyListFilters = {
   search?: string;

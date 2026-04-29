@@ -41,7 +41,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
-import type { CompanyListItem } from "@/features/company/application/types"
+import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord"
 import {
   RegistryEmptyState,
@@ -53,7 +53,7 @@ import {
   type RegistryPaginationState,
 } from "@/components/platform/shared/RegistryListScaffold"
 
-import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/actions"
+import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/company-write.actions"
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences"
 
 interface CompanyTabProps {
@@ -142,84 +142,91 @@ function CompanyActionsMenu({
   if (!canEdit && !canToggleStatus && !canDelete) return null
 
   return (
-    <DropdownMenu
-      onOpenChange={(open) => {
-        if (open && canEdit) {
-          router.prefetch(editHref)
-        }
-      }}
-    >
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8 rounded-md transition-all",
-            "text-muted-foreground hover:text-foreground",
-            "border border-transparent hover:border-border/50 hover:bg-muted",
-            "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
-          )}
-          disabled={isLoading}
-          onClick={stopRecordClick}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">Acoes da empresa</span>
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="w-56 p-1.5">
-        <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          {company.nomeFantasia || company.razaoSocial}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-
-        {canEdit && (
-          <DropdownMenuItem
-            className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
-            onPointerEnter={() => router.prefetch(editHref)}
-            onSelect={() => {
-              startNavigation(() => {
-                router.push(editHref)
-              })
-            }}
-            disabled={isNavigating}
+    <div onClick={stopRecordClick}>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open && canEdit) {
+            router.prefetch(editHref)
+          }
+        }}
+      >
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8 rounded-md transition-all",
+              "text-muted-foreground hover:text-foreground",
+              "border border-transparent hover:border-border/50 hover:bg-muted",
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
+            )}
+            disabled={isLoading}
+            onClick={stopRecordClick}
+            onPointerDown={stopRecordClick}
           >
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">Acoes da empresa</span>
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end" className="w-56 p-1.5">
+          <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            {company.nomeFantasia || company.razaoSocial}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+
+          {canEdit && (
+            <DropdownMenuItem
+              className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
+              onPointerEnter={() => router.prefetch(editHref)}
+              onSelect={(event) => {
+                event.preventDefault()
+                stopRecordClick(event)
+                startNavigation(() => {
+                  router.push(editHref)
+                })
+              }}
+              disabled={isNavigating}
+            >
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-sm">Editar empresa</span>
-          </DropdownMenuItem>
-        )}
+            </DropdownMenuItem>
+          )}
 
-        {canToggleStatus && (
-          <DropdownMenuItem
-            className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
-            onSelect={(event) => {
-              stopRecordClick(event)
-              onToggleStatus()
-            }}
-          >
-            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-sm">{company.status === "INACTIVE" ? "Reativar empresa" : "Inativar empresa"}</span>
-          </DropdownMenuItem>
-        )}
-
-        {canDelete && (
-          <>
-            <DropdownMenuSeparator />
-
+          {canToggleStatus && (
             <DropdownMenuItem
-              className="gap-2.5 cursor-pointer rounded-md text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+              className="gap-2.5 cursor-pointer focus:bg-primary/5 rounded-md"
               onSelect={(event) => {
+                event.preventDefault()
                 stopRecordClick(event)
-                onDelete()
+                onToggleStatus()
               }}
             >
-              <X className="h-3.5 w-3.5" />
-              <span className="text-sm font-medium">Excluir empresa</span>
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm">{company.status === "INACTIVE" ? "Reativar empresa" : "Inativar empresa"}</span>
             </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          )}
+
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                className="gap-2.5 cursor-pointer rounded-md text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+                onSelect={(event) => {
+                  event.preventDefault()
+                  stopRecordClick(event)
+                  onDelete()
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+                <span className="text-sm font-medium">Excluir empresa</span>
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
 

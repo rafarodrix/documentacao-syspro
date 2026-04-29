@@ -6,7 +6,7 @@ import type {
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
-} from "@/features/company/application/types";
+} from "@/features/company/application/company-view.types";
 
 export interface CompanyWriteContract {
   lookupCompanyProfileByCnpj(

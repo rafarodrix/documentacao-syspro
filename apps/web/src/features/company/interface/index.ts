@@ -1,3 +1,3 @@
-export { CreateCompanyPageForm } from "@/components/platform/cadastros/company/CreateCompanyPageForm";
-export { CompanyTab } from "@/components/platform/cadastros/company/CompanyTab";
+export { CreateCompanyPageForm } from "@/components/platform/cadastros/company/create-company-page-form";
+export { CompanyTab } from "@/components/platform/cadastros/company/company-tab";
 export * from "./hooks";

@@ -12,7 +12,7 @@ import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
   CompanyRegistryLookupResponse,
-} from "@/features/company/application/types";
+} from "@/features/company/application/company-view.types";
 
 async function apiRequest(path: string, init?: RequestInit) {
   const requestHeaders = await headers();

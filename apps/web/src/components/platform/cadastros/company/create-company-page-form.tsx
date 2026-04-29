@@ -20,8 +20,8 @@ import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
   CompanyOption,
-} from "@/features/company/application/types";
-import { createCompanyAction, updateCompanyAction } from "@/features/company/application/actions";
+} from "@/features/company/application/company-view.types";
+import { createCompanyAction, updateCompanyAction } from "@/features/company/application/company-write.actions";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
 import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
@@ -43,11 +43,11 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { CompanyIdentificationTab } from "./tabs/CompanyIdentificationTab";
-import { CompanyAddressTab } from "./tabs/CompanyAddressTab";
-import { CompanyFiscalTab } from "./tabs/CompanyFiscalTab";
-import { CompanyContactTab } from "./tabs/CompanyContactTab";
-import { CompanySettingsTab } from "./tabs/CompanySettingsTab";
+import { CompanyIdentificationTab } from "./tabs/company-identification-tab";
+import { CompanyAddressTab } from "./tabs/company-address-tab";
+import { CompanyFiscalTab } from "./tabs/company-fiscal-tab";
+import { CompanyContactTab } from "./tabs/company-contact-tab";
+import { CompanySettingsTab } from "./tabs/company-settings-tab";
 
 type SectionId = "geral" | "endereco" | "fiscal" | "contato" | "configuracoes";
 

@@ -6,7 +6,7 @@ import {
   TAX_REGIME_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { CompanyOption } from "@/features/company/application/types";
+import type { CompanyOption } from "@/features/company/application/company-view.types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

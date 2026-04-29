@@ -1,6 +1,6 @@
 "use client";
 
-import type { CompanyActionResponse, CompanyRegistryLookupResponse } from "@/features/company/application/types";
+import type { CompanyActionResponse, CompanyRegistryLookupResponse } from "@/features/company/application/company-view.types";
 
 function fallbackLookupErrorMessage(status: number) {
   return status > 0 ? `Falha HTTP ${status} ao consultar CNPJ.` : "Erro ao consultar CNPJ.";

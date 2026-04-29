@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getCompanyEditViewData } from "@/features/company/application/queries";
+import { getCompanyEditViewData } from "@/features/company/application/company-read.queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";

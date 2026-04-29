@@ -5,7 +5,7 @@ import type {
   CompanyEditViewData,
   CompanyListResponse,
   CompanyOption,
-} from "@/features/company/application/types";
+} from "@/features/company/application/company-view.types";
 
 async function apiRequest(path: string, init?: RequestInit) {
   return callWebApi(`/api${path}`, init);
