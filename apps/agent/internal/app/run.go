@@ -104,8 +104,17 @@ func loadEnvFile() {
 }
 
 func LoadEnvFile() {
+	stateDir := config.DefaultStateDir()
 	path := config.DefaultEnvFilePath()
+
+	// Load DPAPI-protected secrets first so encrypted values take precedence.
+	loadSecretsIntoEnv(stateDir)
+
+	// Load .env (skips keys already set by protected store).
 	if err := config.LoadEnvFile(path); err != nil {
 		log.Printf("warn: could not load env file at %s: %v", path, err)
 	}
+
+	// On first boot: migrate plaintext secrets from .env to DPAPI store and redact.
+	migrateSecretsFromEnvFile(path, stateDir)
 }

@@ -129,6 +129,11 @@ func LoadEnvFile(path string) error {
 	return nil
 }
 
+// DefaultStateDir returns the canonical state directory path for the current OS.
+func DefaultStateDir() string {
+	return getStateDir()
+}
+
 func getStateDir() string {
 	if value := strings.TrimSpace(os.Getenv("AGENT_STATE_DIR")); value != "" {
 		return value
