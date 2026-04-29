@@ -639,7 +639,7 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                           <TableHead>Perfil</TableHead>
                           <TableHead>Escopo</TableHead>
                           <TableHead>Motivo</TableHead>
-                          <TableHead className="w-[90px] text-right">Acao</TableHead>
+                          <TableHead className="w-22.5 text-right">Acao</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -670,11 +670,11 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                                   {assignment.scopeType === "GLOBAL" ? "Global" : "Empresa"}
                                 </Badge>
                                 {assignment.companyName ? (
-                                  <div className="text-[11px] text-muted-foreground truncate max-w-[150px]" title={assignment.companyName}>{assignment.companyName}</div>
+                                  <div className="max-w-37.5 truncate text-[11px] text-muted-foreground" title={assignment.companyName}>{assignment.companyName}</div>
                                 ) : null}
                               </div>
                             </TableCell>
-                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={assignment.reason || "Sem motivo informado."}>
+                            <TableCell className="max-w-50 truncate text-xs text-muted-foreground" title={assignment.reason || "Sem motivo informado."}>
                               {assignment.reason || "Sem motivo informado."}
                             </TableCell>
                             <TableCell className="text-right">
@@ -733,13 +733,13 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                           <Badge variant="outline">{modulePermissions.length}</Badge>
                         </div>
                       </div>
-                      <ScrollArea className="max-h-[500px]">
+                      <ScrollArea className="max-h-125">
                         <Table>
                           <TableHeader className="sticky top-0 z-20 bg-muted/80 backdrop-blur-md shadow-sm">
                             <TableRow>
                               <TableHead className="sticky left-0 z-20 w-[320px] bg-muted/80 backdrop-blur-md border-r">Funcionalidade / Permissao</TableHead>
                               {adminView.catalog.profiles.map((profile) => (
-                                <TableHead key={profile.key} className="min-w-[120px] text-center">
+                                <TableHead key={profile.key} className="min-w-30 text-center">
                                   <div className="flex flex-col items-center gap-1">
                                     <span className="text-[11px] font-semibold uppercase tracking-wider">{profile.label}</span>
                                     <Badge variant="outline" className="text-[9px] font-mono opacity-50 bg-background/50">
@@ -753,7 +753,7 @@ export function AccessControlTab({ adminView }: AccessControlTabProps) {
                           <TableBody>
                             {modulePermissions.map((permission) => (
                               <TableRow key={permission.key} className="hover:bg-muted/10">
-                                <TableCell className="sticky left-0 z-10 w-[320px] bg-background border-r font-medium text-sm text-muted-foreground shadow-[1px_0_0_0_theme(colors.border)]">
+                                <TableCell className="sticky left-0 z-10 w-[320px] border-r bg-background font-medium text-sm text-muted-foreground shadow-[1px_0_0_0_var(--color-border)]">
                                   {permission.label}
                                   <div className="text-[10px] font-mono text-muted-foreground/40">{permission.key}</div>
                                 </TableCell>

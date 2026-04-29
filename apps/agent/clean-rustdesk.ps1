@@ -39,28 +39,28 @@ function Invoke-UninstallString {
   Write-Host "Executando uninstall detectado: $trimmed"
 
   if ($trimmed -match 'msiexec(\.exe)?\s') {
-    $args = $trimmed -replace '^\s*"?[^"]*msiexec(?:\.exe)?"?\s*', ''
-    if ($args -notmatch '(^|\s)/x(\s|$)' -and $args -notmatch '(^|\s)/uninstall(\s|$)') {
-      $args = "/x $args"
+    $argumentList = $trimmed -replace '^\s*"?[^"]*msiexec(?:\.exe)?"?\s*', ''
+    if ($argumentList -notmatch '(^|\s)/x(\s|$)' -and $argumentList -notmatch '(^|\s)/uninstall(\s|$)') {
+      $argumentList = "/x $argumentList"
     }
-    if ($args -notmatch '(^|\s)/qn(\s|$)') {
-      $args = "$args /qn"
+    if ($argumentList -notmatch '(^|\s)/qn(\s|$)') {
+      $argumentList = "$argumentList /qn"
     }
-    if ($args -notmatch '(^|\s)/norestart(\s|$)') {
-      $args = "$args /norestart"
+    if ($argumentList -notmatch '(^|\s)/norestart(\s|$)') {
+      $argumentList = "$argumentList /norestart"
     }
-    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $args -WindowStyle Hidden -Wait -PassThru
+    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $argumentList -WindowStyle Hidden -Wait -PassThru
     Write-Host "msiexec finalizado com exit code $($process.ExitCode)"
     return $true
   }
 
   $exe = $null
-  $args = ""
+  $argumentList = ""
   if ($trimmed.StartsWith('"')) {
     $closingQuote = $trimmed.IndexOf('"', 1)
     if ($closingQuote -gt 1) {
       $exe = $trimmed.Substring(1, $closingQuote - 1)
-      $args = $trimmed.Substring($closingQuote + 1).Trim()
+      $argumentList = $trimmed.Substring($closingQuote + 1).Trim()
     }
   }
 
@@ -68,7 +68,7 @@ function Invoke-UninstallString {
     $parts = $trimmed.Split(' ', 2)
     $exe = $parts[0]
     if ($parts.Count -gt 1) {
-      $args = $parts[1]
+      $argumentList = $parts[1]
     }
   }
 
@@ -77,11 +77,11 @@ function Invoke-UninstallString {
     return $false
   }
 
-  if ($args -notmatch '(^|\s)/S(\s|$)' -and $args -notmatch '(^|\s)/quiet(\s|$)' -and $args -notmatch '(^|\s)/qn(\s|$)') {
-    $args = "$args /S".Trim()
+  if ($argumentList -notmatch '(^|\s)/S(\s|$)' -and $argumentList -notmatch '(^|\s)/quiet(\s|$)' -and $argumentList -notmatch '(^|\s)/qn(\s|$)') {
+    $argumentList = "$argumentList /S".Trim()
   }
 
-  $process = Start-Process -FilePath $exe -ArgumentList $args -WindowStyle Hidden -Wait -PassThru
+  $process = Start-Process -FilePath $exe -ArgumentList $argumentList -WindowStyle Hidden -Wait -PassThru
   Write-Host "Uninstall finalizado com exit code $($process.ExitCode)"
   return $true
 }

@@ -470,12 +470,8 @@ export function RemotePlatformDirectoryPanel({
   }, [filteredItems, hasHydrated]);
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-            Hosts remotos
-          </h1>
+      <div className="flex justify-end">
+        <div className="hidden">
           <p className="text-sm text-muted-foreground">
             Gestão centralizada de hosts e conectividade remota.
           </p>
@@ -620,7 +616,7 @@ export function RemotePlatformDirectoryPanel({
         <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Monitor className="h-3.5 w-3.5 text-sky-500" />
+              <Cpu className="h-3.5 w-3.5 text-sky-500" />
               Fluxo de Trabalho
             </CardTitle>
           </CardHeader>
@@ -632,7 +628,7 @@ export function RemotePlatformDirectoryPanel({
             <p className="mt-1 text-[11px] text-muted-foreground">Sessoes em uso ou solicitadas</p>
           </CardContent>
           <div className="absolute top-0 right-0 p-3 opacity-10">
-            <Monitor className="h-12 w-12" />
+            <Cpu className="h-12 w-12" />
           </div>
         </Card>
 

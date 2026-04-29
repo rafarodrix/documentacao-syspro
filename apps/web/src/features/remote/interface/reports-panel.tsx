@@ -28,13 +28,7 @@ function formatDuration(seconds: number | null) {
 export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyMetrics }) {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Relatorios do remoto</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Metricas de performance para o suporte remoto e tempo de resposta aos chamados.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Badge variant="outline" className="h-fit px-4 py-1 text-sm bg-muted/30 border-primary/20 text-primary">
           <Calendar className="mr-2 h-4 w-4" />
           Ultimos 100 atendimentos
