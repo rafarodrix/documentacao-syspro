@@ -409,11 +409,8 @@ export class AutomationWhatsappService {
   }
 
   private async readAutomationSettings(legacyTicketSettings: TicketModuleSettings): Promise<AutomationModuleSettings> {
-    const storedSettings = await this.automationSettingsService.readAutomationModuleSettings();
-    if (storedSettings.whatsapp.bindings.length > 0) {
-      return storedSettings;
-    }
-    return this.automationSettingsService.deriveAutomationSettingsFromLegacyTickets(legacyTicketSettings);
+    void legacyTicketSettings;
+    return this.automationSettingsService.readAutomationModuleSettings();
   }
 
   private getTargetGroupsForEvent(settings: AutomationModuleSettings, event: WhatsAppAutomationEvent) {

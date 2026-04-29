@@ -366,49 +366,15 @@ export class SettingsController {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
     const parsed = automationModuleSettingsSchema.parse(body);
 
-    const currentTicketSetting = await this.prisma.systemSetting.findUnique({
-      where: { key: SettingsController.TICKETS_SETTINGS_KEY },
-      select: { value: true },
+    await this.prisma.systemSetting.upsert({
+      where: { key: AutomationSettingsService.AUTOMATIONS_SETTINGS_KEY },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: AutomationSettingsService.AUTOMATIONS_SETTINGS_KEY,
+        value: JSON.stringify(parsed),
+        description: 'Configuracoes globais do modulo de automacoes',
+      },
     });
-
-    let ticketSettingsBase = DEFAULT_TICKET_MODULE_SETTINGS;
-    if (currentTicketSetting?.value) {
-      try {
-        const normalized = this.automationSettingsService.normalizeLegacyTicketSettings(JSON.parse(currentTicketSetting.value));
-        const validation = ticketModuleSettingsSchema.safeParse(normalized);
-        if (validation.success) {
-          ticketSettingsBase = validation.data;
-        }
-      } catch {
-        ticketSettingsBase = DEFAULT_TICKET_MODULE_SETTINGS;
-      }
-    }
-
-    const mergedTicketSettings = this.automationSettingsService.mergeAutomationSettingsIntoTicketSettings(
-      ticketSettingsBase,
-      parsed,
-    );
-
-    await this.prisma.$transaction([
-      this.prisma.systemSetting.upsert({
-        where: { key: AutomationSettingsService.AUTOMATIONS_SETTINGS_KEY },
-        update: { value: JSON.stringify(parsed) },
-        create: {
-          key: AutomationSettingsService.AUTOMATIONS_SETTINGS_KEY,
-          value: JSON.stringify(parsed),
-          description: 'Configuracoes globais do modulo de automacoes',
-        },
-      }),
-      this.prisma.systemSetting.upsert({
-        where: { key: SettingsController.TICKETS_SETTINGS_KEY },
-        update: { value: JSON.stringify(mergedTicketSettings) },
-        create: {
-          key: SettingsController.TICKETS_SETTINGS_KEY,
-          value: JSON.stringify(mergedTicketSettings),
-          description: 'Configuracoes globais do modulo de tickets',
-        },
-      }),
-    ]);
 
     return { success: true, message: 'Configuracoes do modulo de automacoes salvas.', data: parsed };
   }

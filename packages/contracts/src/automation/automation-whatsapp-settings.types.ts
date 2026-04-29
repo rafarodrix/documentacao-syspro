@@ -22,12 +22,23 @@ export const whatsappAutomationEventFlagsSchema = z.object({
   ticketStatusTestingFailed: z.boolean().default(false),
 });
 
+const DEFAULT_WHATSAPP_AUTOMATION_FLAGS = {
+  ticketCreatedSupport: false,
+  ticketCreatedDevelopment: false,
+  ticketTeamTransferFromSupport: false,
+  ticketTeamTransferToSupport: false,
+  ticketTeamTransferFromDevelopment: false,
+  ticketTeamTransferToDevelopment: false,
+  ticketStatusTesting: false,
+  ticketStatusTestingFailed: false,
+} as const;
+
 export const whatsappAutomationBindingSchema = z.object({
   id: z.string().trim().min(1),
   label: z.string().trim().min(1),
   jid: z.string().trim().min(1),
   active: z.boolean().default(true),
-  automations: whatsappAutomationEventFlagsSchema.default({}),
+  automations: whatsappAutomationEventFlagsSchema.default(DEFAULT_WHATSAPP_AUTOMATION_FLAGS),
 });
 
 export const automationModuleSettingsSchema = z.object({
@@ -62,4 +73,3 @@ export const DEFAULT_AUTOMATION_MODULE_SETTINGS: AutomationModuleSettings = {
     bindings: [],
   },
 };
-

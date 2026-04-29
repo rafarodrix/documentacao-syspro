@@ -11,37 +11,25 @@ import {
   MessageSquareText,
   Plus,
   Save,
-  Settings2,
   Trash2,
 } from "lucide-react";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
   ticketModuleSettingsSchema,
-  type TicketNotificationGroup,
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 
 function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-function createNotificationGroup(label = ""): TicketNotificationGroup {
-  return {
-    id: createOptionId("group"),
-    label,
-    jid: "",
-    active: true,
-  };
 }
 
 const ticketSettingsResolver = zodResolver(ticketModuleSettingsSchema) as Resolver<TicketModuleSettings>;
@@ -59,28 +47,9 @@ function getCategoryTypeOptions(team?: string) {
 }
 
 function normalizeTicketSettings(settings: TicketModuleSettings): TicketModuleSettings {
-  const legacySupportGroupJid = (settings as TicketModuleSettings & { supportNotificationGroupJid?: string }).supportNotificationGroupJid;
-  const legacyDevelopmentGroupJid =
-    (settings as TicketModuleSettings & { developmentNotificationGroupJid?: string }).developmentNotificationGroupJid;
-
   return {
     ...settings,
     quickReplyTemplates: settings.quickReplyTemplates ?? DEFAULT_TICKET_MODULE_SETTINGS.quickReplyTemplates,
-    requireTestingReturnReason: settings.requireTestingReturnReason ?? DEFAULT_TICKET_MODULE_SETTINGS.requireTestingReturnReason,
-    supportNotificationGroups:
-      settings.supportNotificationGroups?.length
-        ? settings.supportNotificationGroups
-        : legacySupportGroupJid?.trim()
-          ? [{ ...createNotificationGroup("Grupo legado de suporte"), jid: legacySupportGroupJid.trim() }]
-          : [],
-    developmentNotificationGroups:
-      settings.developmentNotificationGroups?.length
-        ? settings.developmentNotificationGroups
-        : legacyDevelopmentGroupJid?.trim()
-          ? [{ ...createNotificationGroup("Grupo legado de desenvolvimento"), jid: legacyDevelopmentGroupJid.trim() }]
-          : [],
-    testingNotificationGroups: settings.testingNotificationGroups ?? [],
-    testingFailedNotificationGroups: settings.testingFailedNotificationGroups ?? [],
     categories: [...settings.categories].sort((left, right) => {
       const leftTeam = left.defaultTeam === "DESENVOLVIMENTO" ? 1 : 0;
       const rightTeam = right.defaultTeam === "DESENVOLVIMENTO" ? 1 : 0;
@@ -120,13 +89,8 @@ export function TicketSettingsTab() {
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
-  const supportNotificationGroupsArray = useFieldArray({ control: form.control, name: "supportNotificationGroups" });
-  const developmentNotificationGroupsArray = useFieldArray({ control: form.control, name: "developmentNotificationGroups" });
-  const testingNotificationGroupsArray = useFieldArray({ control: form.control, name: "testingNotificationGroups" });
-  const testingFailedNotificationGroupsArray = useFieldArray({ control: form.control, name: "testingFailedNotificationGroups" });
 
   const priorities = form.watch("priorities");
-  const autoResponseEnabled = form.watch("autoResponseEnabled");
 
   useEffect(() => {
     let active = true;
@@ -217,16 +181,6 @@ export function TicketSettingsTab() {
               <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
             </div>
 
-            <Card className="border-border/60 bg-muted/10">
-              <CardContent className="p-4 text-sm text-muted-foreground">
-                As automacoes e os grupos de WhatsApp foram movidos para
-                {" "}
-                <span className="font-medium text-foreground">Configuracoes &gt; Automacoes &gt; WhatsApp</span>.
-                {" "}
-                Esta tela permanece focada na estrutura, SLA e templates do modulo de tickets.
-              </CardContent>
-            </Card>
-
             <Tabs defaultValue="structure" className="w-full">
               <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-3">
                 <TabsTrigger value="structure" className="gap-1.5 text-xs">
@@ -244,6 +198,45 @@ export function TicketSettingsTab() {
               </TabsList>
 
               <TabsContent value="structure" className="mt-5 space-y-5">
+                <Card className="border-border/60 bg-card/95">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Layers3 className="h-4 w-4 text-primary/70" />
+                      Padroes operacionais
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 xl:grid-cols-2">
+                    <FormField control={form.control} name="defaultTeam" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fila padrao</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="SUPORTE">Suporte</SelectItem>
+                            <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="defaultPriority" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prioridade inbound</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {priorities.map((priority) => (
+                              <SelectItem key={priority.id} value={priority.value}>{priority.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </CardContent>
+                </Card>
+
                 <Tabs defaultValue="categories" className="w-full">
                   <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
                     <TabsTrigger value="categories" className="text-xs">Categorias</TabsTrigger>
@@ -556,168 +549,6 @@ export function TicketSettingsTab() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="automation" className="mt-5 space-y-5">
-                <Tabs defaultValue="rules" className="w-full">
-                  <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
-                    <TabsTrigger value="rules" className="gap-1.5 text-xs">
-                      <Settings2 className="h-3.5 w-3.5" />
-                      Regras
-                    </TabsTrigger>
-                    <TabsTrigger value="notifications" className="gap-1.5 text-xs">
-                      <MessageSquareText className="h-3.5 w-3.5" />
-                      Notificacoes WhatsApp
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="rules" className="mt-5 space-y-5">
-                    <Card className="border-border/60 bg-card/95">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                          <Settings2 className="h-4 w-4 text-primary/70" />
-                          Regras gerais
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="grid gap-4 xl:grid-cols-2">
-                        <FormField control={form.control} name="defaultTeam" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Fila padrao</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="SUPORTE">Suporte</SelectItem>
-                                <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="defaultPriority" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Prioridade inbound</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                {priorities.map((priority) => (
-                                  <SelectItem key={priority.id} value={priority.value}>{priority.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-border/60 bg-card/95">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Automacoes</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField control={form.control} name="autoAssignToCreator" render={({ field }) => (
-                          <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
-                            <div className="space-y-0.5">
-                              <FormLabel>Auto-atribuir internos</FormLabel>
-                              <FormDescription className="text-xs">Operador vira responsavel ao abrir chamado pelo portal.</FormDescription>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                          </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="autoResponseEnabled" render={({ field }) => (
-                          <FormItem className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="space-y-0.5">
-                                <FormLabel>Auto resposta</FormLabel>
-                                <FormDescription className="text-xs">Mensagem enviada na abertura pelo cliente.</FormDescription>
-                              </div>
-                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </div>
-                          </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="requireTestingReturnReason" render={({ field }) => (
-                          <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
-                            <div className="space-y-0.5">
-                              <FormLabel>Motivo obrigatorio no retorno dos testes</FormLabel>
-                              <FormDescription className="text-xs">
-                                Exige justificativa ao voltar de Em teste para Em andamento e registra o texto como nota interna.
-                              </FormDescription>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                          </FormItem>
-                        )} />
-
-                        {autoResponseEnabled && (
-                          <FormField control={form.control} name="autoResponseMessage" render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Mensagem automatica</FormLabel>
-                              <FormControl><Textarea rows={4} {...field} /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="notifications" className="mt-5">
-                    <Card className="border-border/60 bg-card/95">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Notificacoes e automacoes</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-1">
-                          <h3 className="text-sm font-medium">Grupos de notificacao no WhatsApp</h3>
-                          <p className="text-xs text-muted-foreground">
-                            O envio usa o identificador real do grupo no WhatsApp. Preencha o ID/JID do grupo, por exemplo <span className="font-mono">1203630...@g.us</span>.
-                          </p>
-                        </div>
-
-                        <NotificationGroupsSection
-                          title="Grupos do Suporte"
-                          description="Recebem tickets abertos com fila em Suporte."
-                          fields={supportNotificationGroupsArray.fields}
-                          baseName="supportNotificationGroups"
-                          form={form}
-                          onAdd={() => supportNotificationGroupsArray.append(createNotificationGroup())}
-                          onRemove={(index) => supportNotificationGroupsArray.remove(index)}
-                        />
-
-                        <NotificationGroupsSection
-                          title="Grupos do Desenvolvimento"
-                          description="Recebem tickets abertos com fila em Desenvolvimento."
-                          fields={developmentNotificationGroupsArray.fields}
-                          baseName="developmentNotificationGroups"
-                          form={form}
-                          onAdd={() => developmentNotificationGroupsArray.append(createNotificationGroup())}
-                          onRemove={(index) => developmentNotificationGroupsArray.remove(index)}
-                        />
-
-                        <NotificationGroupsSection
-                          title="Grupos de Em testes"
-                          description="Recebem aviso quando o ticket muda de estagio para Em testes."
-                          fields={testingNotificationGroupsArray.fields}
-                          baseName="testingNotificationGroups"
-                          form={form}
-                          onAdd={() => testingNotificationGroupsArray.append(createNotificationGroup())}
-                          onRemove={(index) => testingNotificationGroupsArray.remove(index)}
-                        />
-
-                        <NotificationGroupsSection
-                          title="Grupos de Retorno dos testes"
-                          description="Recebem aviso quando o ticket volta de Em testes para Em andamento."
-                          fields={testingFailedNotificationGroupsArray.fields}
-                          baseName="testingFailedNotificationGroups"
-                          form={form}
-                          onAdd={() => testingFailedNotificationGroupsArray.append(createNotificationGroup())}
-                          onRemove={(index) => testingFailedNotificationGroupsArray.remove(index)}
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </TabsContent>
             </Tabs>
             <div className="sticky bottom-4 z-10 flex justify-end">
               <div className="rounded-xl border border-border/60 bg-background/95 p-2 shadow-lg backdrop-blur">
@@ -730,77 +561,6 @@ export function TicketSettingsTab() {
           </section>
         </form>
       </Form>
-    </div>
-  );
-}
-
-function NotificationGroupsSection({
-  title,
-  description,
-  fields,
-  baseName,
-  form,
-  onAdd,
-  onRemove,
-}: {
-  title: string;
-  description: string;
-  fields: Array<{ id: string }>;
-  baseName:
-    | "supportNotificationGroups"
-    | "developmentNotificationGroups"
-    | "testingNotificationGroups"
-    | "testingFailedNotificationGroups";
-  form: UseFormReturn<TicketModuleSettings>;
-  onAdd: () => void;
-  onRemove: (index: number) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onAdd}>
-          <Plus className="h-3.5 w-3.5" />
-          Grupo
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        {fields.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-xs text-muted-foreground">
-            Nenhum grupo configurado.
-          </div>
-        ) : null}
-
-        {fields.map((fieldItem, index) => (
-          <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-background p-3 xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_6rem_2.5rem]">
-            <div className="space-y-1">
-              <p className="text-[11px] font-medium text-muted-foreground">Nome interno</p>
-              <Input placeholder="Nome do grupo" {...form.register(`${baseName}.${index}.label`)} />
-            </div>
-            <div className="space-y-1">
-              <p className="text-[11px] font-medium text-muted-foreground">ID/JID do grupo</p>
-              <Input placeholder="1203630...@g.us" {...form.register(`${baseName}.${index}.jid`)} />
-            </div>
-            <FormField
-              control={form.control}
-              name={`${baseName}.${index}.active`}
-              render={({ field }) => (
-                <FormItem className="flex h-10 items-center justify-between rounded-md border border-border/60 px-3">
-                  <FormLabel className="text-xs">Ativo</FormLabel>
-                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                </FormItem>
-              )}
-            />
-            <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => onRemove(index)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
