@@ -115,11 +115,10 @@ type Module struct {
 	store           StateStore
 	logger          Logger
 	events          EventBus
-	discoveryToken  string
-	installToken    string
-	agentVersion    string
-	environment     string
-	stateDir        string
+	discoveryToken string
+	installToken   string
+	agentVersion   string
+	stateDir       string
 	rustDeskFactory func() rustDeskController
 }
 
@@ -137,10 +136,6 @@ func WithAgentVersion(version string) Option {
 	return func(m *Module) { m.agentVersion = version }
 }
 
-func WithEnvironment(environment string) Option {
-	return func(m *Module) { m.environment = environment }
-}
-
 func WithStateDir(stateDir string) Option {
 	return func(m *Module) { m.stateDir = stateDir }
 }
@@ -152,7 +147,6 @@ func New(client PortalClient, store StateStore, logger Logger, events EventBus, 
 		logger:       logger,
 		events:       events,
 		agentVersion: "go-agent-v1",
-		environment:  "Producao",
 	}
 	for _, opt := range opts {
 		opt(m)
@@ -262,7 +256,6 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 		MachineName:    hostname,
 		AgentVersion:   m.agentVersion,
 		ServiceStatus:  firstNonEmpty(st.ServiceStatus, "unknown"),
-		Environment:    m.environment,
 		Provider:       "go-agent",
 	})
 	if err != nil {
@@ -327,7 +320,6 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		RustDeskID:     st.RustDeskID,
 		MachineName:    hostname,
 		AgentVersion:   m.agentVersion,
-		Environment:    m.environment,
 		CurrentAlias:   st.Alias,
 		CurrentVersion: st.CurrentVersion,
 		ServerHost:     st.ServerHost,

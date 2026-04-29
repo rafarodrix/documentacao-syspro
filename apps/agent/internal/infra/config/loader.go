@@ -29,10 +29,9 @@ func Load() (Config, error) {
 			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", "GoMFRV3pyJf4sh9CKYqQpWkh"),
 		},
 		Agent: AgentConfig{
-			Version:     getEnv("AGENT_VERSION", "go-agent-v1"),
-			Environment: getEnv("AGENT_ENVIRONMENT", "Producao"),
-			IPCAddress:  getEnv("AGENT_IPC_ADDRESS", `\\.\pipe\trilink-agent-ipc`),
-			IPCToken:    getEnv("AGENT_IPC_TOKEN", "trilink-agent-local"),
+			Version:    getEnv("AGENT_VERSION", "go-agent-v1"),
+			IPCAddress: getEnv("AGENT_IPC_ADDRESS", `\\.\pipe\trilink-agent-ipc`),
+			IPCToken:   getEnv("AGENT_IPC_TOKEN", "trilink-agent-local"),
 		},
 	}
 
