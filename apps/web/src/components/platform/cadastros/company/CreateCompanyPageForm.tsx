@@ -307,7 +307,6 @@ export function CreateCompanyPageForm({
     }
     toast.success(result.message ?? (mode === "edit" ? "Empresa atualizada com sucesso." : "Empresa cadastrada com sucesso."));
     router.replace(resolvePostSaveHref(data));
-    router.refresh();
   };
 
   const currentIndex = Math.max(
