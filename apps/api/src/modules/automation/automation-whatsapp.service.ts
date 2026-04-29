@@ -373,7 +373,19 @@ export class AutomationWhatsappService {
 
     for (const group of groups) {
       try {
-        await this.evolutionClient.sendTextMessage(evolution as never, group.jid, message);
+        await this.sendTextMessageWithRetry(
+          evolution,
+          group.jid,
+          message,
+          {
+            ...baseLog,
+            connectionKey: connection.connectionKey,
+            connectionSource: connection.connectionSource,
+            companyId: connection.companyId,
+            groupJid: group.jid,
+            groupLabel: group.label,
+          },
+        );
         sent += 1;
         this.logger.log(JSON.stringify({
           ...baseLog,
@@ -421,6 +433,7 @@ export class AutomationWhatsappService {
     ) {
       return {
         kind: 'group_metadata_timeout',
+        retryable: true,
         summary:
           'Grupo WhatsApp inacessivel ou instavel na instancia atual. A Evolution nao conseguiu consultar os metadados do grupo a tempo.',
       };
@@ -429,6 +442,7 @@ export class AutomationWhatsappService {
     if (lowercase.includes('timed out') || lowercase.includes('timeout')) {
       return {
         kind: 'provider_timeout',
+        retryable: true,
         summary: 'Timeout do provider ao tentar enviar a notificacao para o WhatsApp.',
       };
     }
@@ -436,6 +450,7 @@ export class AutomationWhatsappService {
     if (lowercase.includes('not-authorized') || lowercase.includes('unauthorized')) {
       return {
         kind: 'provider_unauthorized',
+        retryable: false,
         summary: 'A instancia Evolution nao esta autorizada para concluir este envio.',
       };
     }
@@ -443,6 +458,7 @@ export class AutomationWhatsappService {
     if (lowercase.includes('not found') && lowercase.includes('@g.us')) {
       return {
         kind: 'group_not_found',
+        retryable: false,
         summary: 'Grupo WhatsApp nao encontrado para a instancia atual.',
       };
     }
@@ -450,14 +466,69 @@ export class AutomationWhatsappService {
     if (normalized) {
       return {
         kind: 'provider_error',
+        retryable: false,
         summary: normalized,
       };
     }
 
     return {
       kind: 'unknown_error',
+      retryable: false,
       summary: 'Falha desconhecida ao enviar a notificacao para o WhatsApp.',
     };
+  }
+
+  private async sendTextMessageWithRetry(
+    evolution: unknown,
+    groupJid: string,
+    message: string,
+    logContext: Record<string, unknown>,
+  ) {
+    const maxAttempts = 3;
+    const retryDelayMs = 1500;
+    let lastError: unknown = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.evolutionClient.sendTextMessage(evolution as never, groupJid, message);
+        if (attempt > 1) {
+          this.logger.log(JSON.stringify({
+            ...logContext,
+            stage: 'ticket_notification_retry_recovered',
+            attempt,
+            maxAttempts,
+          }));
+        }
+        return;
+      } catch (error: any) {
+        lastError = error;
+        const classifiedError = this.classifyAutomationDispatchError(error?.message);
+        const isLastAttempt = attempt >= maxAttempts;
+
+        this.logger.warn(JSON.stringify({
+          ...logContext,
+          stage: isLastAttempt ? 'ticket_notification_retry_exhausted' : 'ticket_notification_retry_scheduled',
+          attempt,
+          maxAttempts,
+          errorKind: classifiedError.kind,
+          errorSummary: classifiedError.summary,
+          retryable: classifiedError.retryable,
+          error: error?.message ?? 'unknown_error',
+        }));
+
+        if (!classifiedError.retryable || isLastAttempt) {
+          throw error;
+        }
+
+        await this.sleep(retryDelayMs * attempt);
+      }
+    }
+
+    throw lastError;
+  }
+
+  private async sleep(ms: number) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async readAutomationSettings(legacyTicketSettings: TicketModuleSettings): Promise<AutomationModuleSettings> {
