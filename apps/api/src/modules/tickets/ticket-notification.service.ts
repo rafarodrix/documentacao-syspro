@@ -13,6 +13,8 @@ import {
   ConversationStatus as TicketStatus,
 } from '@prisma/client';
 
+type TicketNotificationTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
+
 @Injectable()
 export class TicketNotificationService {
   private readonly logger = new Logger(TicketNotificationService.name);
@@ -133,6 +135,136 @@ export class TicketNotificationService {
         `Falhas: ${dispatch.failed}`,
         ...dispatch.errors.slice(0, 5).map((item) => `- ${item}`),
       ]);
+    }
+  }
+
+  async sendTicketTeamRoutingGroupNotifications(input: {
+    settings: TicketModuleSettings;
+    ticketId: string;
+    ticketNumber: string;
+    title: string;
+    companyId: string | null;
+    previousTeam: TicketNotificationTeam | null;
+    nextTeam: TicketNotificationTeam | null;
+    note?: string | null;
+    rawHeaders?: IncomingHttpHeaders;
+  }) {
+    const targets: Array<{ audience: 'origin' | 'destination'; team: TicketNotificationTeam }> = [];
+
+    if (input.previousTeam) {
+      targets.push({ audience: 'origin', team: input.previousTeam });
+    }
+
+    if (input.nextTeam && input.nextTeam !== input.previousTeam) {
+      targets.push({ audience: 'destination', team: input.nextTeam });
+    }
+
+    if (!targets.length) return;
+
+    const company = input.companyId
+      ? await this.prisma.company.findUnique({
+          where: { id: input.companyId },
+          select: {
+            nomeFantasia: true,
+            razaoSocial: true,
+          },
+        })
+      : null;
+
+    const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
+    const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
+    const previousTeamLabel = input.previousTeam
+      ? this.ticketHistoryService.formatTicketTeamLabel(input.previousTeam)
+      : 'Nao informado';
+    const nextTeamLabel = input.nextTeam
+      ? this.ticketHistoryService.formatTicketTeamLabel(input.nextTeam)
+      : 'Nao informado';
+
+    for (const target of targets) {
+      const configuredGroups =
+        target.team === 'DESENVOLVIMENTO'
+          ? input.settings.developmentNotificationGroups
+          : input.settings.supportNotificationGroups;
+      const targetGroups = configuredGroups
+        .filter((group) => group.active)
+        .map((group) => ({
+          ...group,
+          jid: this.normalizeGroupRecipient(group.jid),
+        }))
+        .filter((group): group is { id: string; label: string; jid: string; active: boolean } => Boolean(group.jid));
+
+      if (!targetGroups.length) {
+        this.logger.debug(JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'ticket_team_routing_notification_skipped_no_group',
+          ticketId: input.ticketId,
+          ticketNumber: input.ticketNumber,
+          audience: target.audience,
+          team: target.team,
+        }));
+        continue;
+      }
+
+      const connection = await this.resolveNotificationContext(input.companyId, targetGroups.map((group) => group.jid));
+      if (!connection) {
+        this.logger.warn(JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'ticket_team_routing_notification_skipped_no_connection',
+          ticketId: input.ticketId,
+          ticketNumber: input.ticketNumber,
+          audience: target.audience,
+          team: target.team,
+          groupCount: targetGroups.length,
+        }));
+        await this.registerAutomationFailureNote(input.ticketId, [
+          '[Automacao] Notificacao de transferencia nao enviada ao WhatsApp.',
+          `Ticket: ${input.ticketNumber}`,
+          `Destino logico: ${target.audience === 'destination' ? nextTeamLabel : previousTeamLabel}`,
+          `Motivo: nenhuma conexao ativa da Evolution foi encontrada para o contexto atual.`,
+        ]);
+        continue;
+      }
+
+      const message = [
+        target.audience === 'destination' ? '[Tickets] Encaminhado para o setor' : '[Tickets] Saiu do setor',
+        `Ticket: ${input.ticketNumber}`,
+        `Empresa: ${companyName}`,
+        `Titulo: ${input.title}`,
+        `Origem: ${previousTeamLabel}`,
+        `Destino: ${nextTeamLabel}`,
+        input.note?.trim() ? `Contexto: ${input.note.trim()}` : undefined,
+        ticketUrl ? `Link: ${ticketUrl}` : undefined,
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const dispatch = await this.dispatchToGroups(targetGroups, connection.evolution, {
+        connectionKey: connection.connectionKey,
+        connectionSource: connection.source,
+        companyId: connection.companyId,
+      }, message, {
+        flow: 'portal_to_evolution',
+        sentStage: 'ticket_team_routing_notification_sent',
+        failedStage: 'ticket_team_routing_notification_failed',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        audience: target.audience,
+        team: target.team,
+        previousTeam: input.previousTeam,
+        nextTeam: input.nextTeam,
+      });
+
+      if (dispatch.sent === 0) {
+        await this.registerAutomationFailureNote(input.ticketId, [
+          '[Automacao] Notificacao de transferencia nao entregue a nenhum grupo do WhatsApp.',
+          `Ticket: ${input.ticketNumber}`,
+          `Publico: ${target.audience === 'destination' ? nextTeamLabel : previousTeamLabel}`,
+          `Conexao: ${connection.connectionKey}`,
+          `Tentativas: ${dispatch.attempted}`,
+          `Falhas: ${dispatch.failed}`,
+          ...dispatch.errors.slice(0, 5).map((item) => `- ${item}`),
+        ]);
+      }
     }
   }
 

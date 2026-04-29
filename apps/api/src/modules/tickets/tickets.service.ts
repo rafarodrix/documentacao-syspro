@@ -772,6 +772,8 @@ export class TicketsService {
     const handoffNote = input.note?.trim();
     const requesterDisplayName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const isTestingReturn = exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS;
+    let resolvedNextTeam = previousTeam;
+    let resolvedNextStatus = exists.status as TicketStatus;
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
@@ -1043,6 +1045,8 @@ export class TicketsService {
           ? currentMetadata.currentTeam.trim().toUpperCase()
           : previousTeam;
       const nextStatus = (requestedStatus ?? exists.status) as TicketStatus;
+      resolvedNextTeam = nextTeam;
+      resolvedNextStatus = nextStatus;
       const nextCategory =
         typeof currentMetadata.category === 'string' && currentMetadata.category.trim()
           ? currentMetadata.category.trim()
@@ -1125,7 +1129,27 @@ export class TicketsService {
       }
     });
 
-    if (exists.status !== requestedStatus && requestedStatus === TicketStatus.TESTING) {
+    if (
+      previousTeam &&
+      resolvedNextTeam &&
+      previousTeam !== resolvedNextTeam &&
+      (previousTeam === 'SUPORTE' || previousTeam === 'DESENVOLVIMENTO') &&
+      (resolvedNextTeam === 'SUPORTE' || resolvedNextTeam === 'DESENVOLVIMENTO')
+    ) {
+      await this.ticketNotificationService.sendTicketTeamRoutingGroupNotifications({
+        settings,
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: exists.subject?.trim() || 'Sem titulo',
+        companyId: exists.companyId,
+        previousTeam,
+        nextTeam: resolvedNextTeam,
+        note: handoffNote,
+        rawHeaders,
+      });
+    }
+
+    if (exists.status !== resolvedNextStatus && resolvedNextStatus === TicketStatus.TESTING) {
       await this.ticketNotificationService.sendTicketStatusGroupNotification({
         settings,
         ticketId: exists.id,
