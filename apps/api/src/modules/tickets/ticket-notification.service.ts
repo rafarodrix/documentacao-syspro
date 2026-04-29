@@ -5,7 +5,13 @@ import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import type { IncomingHttpHeaders } from 'node:http';
 import { TicketHistoryService } from './ticket-history.service';
-import { ConversationStatus as TicketStatus } from '@prisma/client';
+import {
+  ConversationMessageDirection as TicketMessageDirection,
+  ConversationMessageStatus as TicketMessageStatus,
+  ConversationMessageType as TicketMessageType,
+  ConversationParticipantKind as TicketParticipantKind,
+  ConversationStatus as TicketStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class TicketNotificationService {
@@ -53,7 +59,7 @@ export class TicketNotificationService {
       return;
     }
 
-    const connection = await this.integrationContext.getDefaultContext();
+    const connection = await this.resolveNotificationContext(input.companyId, targetGroups.map((group) => group.jid));
     if (!connection) {
       this.logger.warn(JSON.stringify({
         flow: 'portal_to_evolution',
@@ -63,6 +69,11 @@ export class TicketNotificationService {
         team: input.team,
         groupCount: targetGroups.length,
       }));
+      await this.registerAutomationFailureNote(input.ticketId, [
+        '[Automacao] Notificacao de abertura nao enviada ao WhatsApp.',
+        `Ticket: ${input.ticketNumber}`,
+        `Motivo: nenhuma conexao ativa da Evolution foi encontrada para o contexto atual.`,
+      ]);
       return;
     }
 
@@ -100,7 +111,11 @@ export class TicketNotificationService {
       .filter(Boolean)
       .join('\n');
 
-    await this.dispatchToGroups(targetGroups, connection.evolution, message, {
+    const dispatch = await this.dispatchToGroups(targetGroups, connection.evolution, {
+      connectionKey: connection.connectionKey,
+      connectionSource: connection.source,
+      companyId: connection.companyId,
+    }, message, {
       flow: 'portal_to_evolution',
       sentStage: 'ticket_group_notification_sent',
       failedStage: 'ticket_group_notification_failed',
@@ -108,6 +123,17 @@ export class TicketNotificationService {
       ticketNumber: input.ticketNumber,
       team: input.team,
     });
+
+    if (dispatch.sent === 0) {
+      await this.registerAutomationFailureNote(input.ticketId, [
+        '[Automacao] Notificacao de abertura nao entregue a nenhum grupo do WhatsApp.',
+        `Ticket: ${input.ticketNumber}`,
+        `Conexao: ${connection.connectionKey}`,
+        `Tentativas: ${dispatch.attempted}`,
+        `Falhas: ${dispatch.failed}`,
+        ...dispatch.errors.slice(0, 5).map((item) => `- ${item}`),
+      ]);
+    }
   }
 
   async sendTicketStatusGroupNotification(input: {
@@ -145,7 +171,7 @@ export class TicketNotificationService {
       return;
     }
 
-    const connection = await this.integrationContext.getDefaultContext();
+    const connection = await this.resolveNotificationContext(input.companyId, targetGroups.map((group) => group.jid));
     if (!connection) {
       this.logger.warn(JSON.stringify({
         flow: 'portal_to_evolution',
@@ -156,6 +182,11 @@ export class TicketNotificationService {
         status: input.status,
         groupCount: targetGroups.length,
       }));
+      await this.registerAutomationFailureNote(input.ticketId, [
+        '[Automacao] Notificacao de status nao enviada ao WhatsApp.',
+        `Ticket: ${input.ticketNumber}`,
+        `Motivo: nenhuma conexao ativa da Evolution foi encontrada para o contexto atual.`,
+      ]);
       return;
     }
 
@@ -184,7 +215,11 @@ export class TicketNotificationService {
       .filter(Boolean)
       .join('\n');
 
-    await this.dispatchToGroups(targetGroups, connection.evolution, message, {
+    const dispatch = await this.dispatchToGroups(targetGroups, connection.evolution, {
+      connectionKey: connection.connectionKey,
+      connectionSource: connection.source,
+      companyId: connection.companyId,
+    }, message, {
       flow: 'portal_to_evolution',
       sentStage: 'ticket_status_notification_sent',
       failedStage: 'ticket_status_notification_failed',
@@ -193,33 +228,139 @@ export class TicketNotificationService {
       notificationType: input.notificationType,
       status: input.status,
     });
+
+    if (dispatch.sent === 0) {
+      await this.registerAutomationFailureNote(input.ticketId, [
+        '[Automacao] Notificacao de status nao entregue a nenhum grupo do WhatsApp.',
+        `Ticket: ${input.ticketNumber}`,
+        `Conexao: ${connection.connectionKey}`,
+        `Tentativas: ${dispatch.attempted}`,
+        `Falhas: ${dispatch.failed}`,
+        ...dispatch.errors.slice(0, 5).map((item) => `- ${item}`),
+      ]);
+    }
   }
 
   private async dispatchToGroups(
     groups: Array<{ id: string; label: string; jid: string; active: boolean }>,
     evolution: unknown,
+    connection: { connectionKey: string; connectionSource: string; companyId: string | null },
     message: string,
     baseLog: Record<string, unknown>,
   ) {
+    const errors: string[] = [];
+    let sent = 0;
+    let failed = 0;
+
     for (const group of groups) {
       try {
         await this.evolutionClient.sendTextMessage(evolution as never, group.jid, message);
+        sent += 1;
         this.logger.log(JSON.stringify({
           ...baseLog,
           stage: baseLog.sentStage,
+          connectionKey: connection.connectionKey,
+          connectionSource: connection.connectionSource,
+          companyId: connection.companyId,
           groupJid: group.jid,
           groupLabel: group.label,
         }));
       } catch (error: any) {
+        failed += 1;
+        errors.push(`${group.label} (${group.jid}): ${error?.message ?? 'unknown_error'}`);
         this.logger.warn(JSON.stringify({
           ...baseLog,
           stage: baseLog.failedStage,
+          connectionKey: connection.connectionKey,
+          connectionSource: connection.connectionSource,
+          companyId: connection.companyId,
           groupJid: group.jid,
           groupLabel: group.label,
           error: error?.message ?? 'unknown_error',
         }));
       }
     }
+
+    return {
+      attempted: groups.length,
+      sent,
+      failed,
+      errors,
+    };
+  }
+
+  private async resolveNotificationContext(
+    companyId: string | null,
+    targetGroupJids: string[],
+  ) {
+    const normalizedCompanyId = String(companyId ?? '').trim();
+    const normalizedGroupJids = Array.from(
+      new Set(targetGroupJids.map((jid) => String(jid ?? '').trim().toLowerCase()).filter(Boolean)),
+    );
+
+    const companyContexts = normalizedCompanyId
+      ? await this.integrationContext.listActiveContexts({ companyIds: [normalizedCompanyId] })
+      : [];
+
+    const scoredCompanyContext = this.pickBestContext(companyContexts, normalizedCompanyId, normalizedGroupJids);
+    if (scoredCompanyContext) return scoredCompanyContext;
+
+    const defaultContext = await this.integrationContext.getDefaultContext();
+    if (defaultContext) return defaultContext;
+
+    const allContexts = await this.integrationContext.listActiveContexts();
+    return this.pickBestContext(allContexts, normalizedCompanyId, normalizedGroupJids);
+  }
+
+  private pickBestContext(
+    contexts: Array<{
+      connectionKey: string;
+      source: string;
+      companyId: string | null;
+      evolution: { allowedGroupJids?: string[]; allowedGroups?: Array<{ jid: string; name?: string }> };
+    }>,
+    companyId: string,
+    targetGroupJids: string[],
+  ) {
+    if (!contexts.length) return null;
+
+    const scored = contexts.map((context) => {
+      const allowedGroups = [
+        ...(context.evolution.allowedGroupJids ?? []),
+        ...(context.evolution.allowedGroups ?? []).map((item) => item.jid),
+      ].map((jid) => String(jid ?? '').trim().toLowerCase()).filter(Boolean);
+      const hasGroupMatch =
+        targetGroupJids.length > 0 &&
+        allowedGroups.length > 0 &&
+        targetGroupJids.some((jid) => allowedGroups.includes(jid));
+
+      const score =
+        (companyId && context.companyId === companyId ? 100 : 0) +
+        (hasGroupMatch ? 20 : 0) +
+        (context.source === 'database' ? 10 : 0);
+
+      return { context, score };
+    });
+
+    scored.sort((left, right) => right.score - left.score);
+    return scored[0]?.context ?? null;
+  }
+
+  private async registerAutomationFailureNote(ticketId: string, lines: string[]) {
+    const body = lines.map((line) => line.trim()).filter(Boolean).join('\n');
+    if (!body) return;
+
+    await this.prisma.conversationMessage.create({
+      data: {
+        conversationId: ticketId,
+        direction: TicketMessageDirection.INTERNAL,
+        type: TicketMessageType.SYSTEM_EVENT,
+        authorKind: TicketParticipantKind.EXTERNAL,
+        body,
+        status: TicketMessageStatus.SENT,
+        sentAt: new Date(),
+      },
+    });
   }
 
   private normalizeGroupRecipient(value?: string | null): string | null {
