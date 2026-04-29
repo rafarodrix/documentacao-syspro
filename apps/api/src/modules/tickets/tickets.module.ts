@@ -2,15 +2,13 @@ import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
-import { EvolutionModule } from '../integrations/evolution/evolution.module';
-import { SettingsModule } from '../settings/settings.module';
+import { AutomationModule } from '../automation/automation.module';
 import { TicketHistoryService } from './ticket-history.service';
-import { TicketNotificationService } from './ticket-notification.service';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => EvolutionModule), forwardRef(() => SettingsModule)],
+  imports: [PrismaModule, forwardRef(() => AutomationModule)],
   controllers: [TicketsController],
-  providers: [TicketsService, TicketHistoryService, TicketNotificationService],
+  providers: [TicketsService, TicketHistoryService],
   exports: [TicketsService],
 })
 export class TicketsModule {}

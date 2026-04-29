@@ -20,6 +20,7 @@ import { ReleasesModule } from './modules/releases/releases.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { DocumentosModule } from './modules/documentos/documentos.module';
+import { AutomationModule } from './modules/automation/automation.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { DocumentosModule } from './modules/documentos/documentos.module';
     CrmModule,
     AgentsModule,
     DocumentosModule,
+    AutomationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

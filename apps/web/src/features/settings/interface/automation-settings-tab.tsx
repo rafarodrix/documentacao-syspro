@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import {
   BellRing,
@@ -101,11 +102,14 @@ const WHATSAPP_AUTOMATION_FIELDS = [
   },
 ] as const;
 
+type AutomationSettingsFormInput = z.input<typeof automationModuleSettingsSchema>;
+type AutomationSettingsFormOutput = z.output<typeof automationModuleSettingsSchema>;
+
 export function AutomationSettingsTab() {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
 
-  const form = useForm<AutomationModuleSettings>({
+  const form = useForm<AutomationSettingsFormInput, unknown, AutomationSettingsFormOutput>({
     resolver: zodResolver(automationModuleSettingsSchema),
     defaultValues: DEFAULT_AUTOMATION_MODULE_SETTINGS,
   });

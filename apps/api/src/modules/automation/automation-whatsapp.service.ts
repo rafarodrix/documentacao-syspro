@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { TicketModuleSettings } from '@dosc-syspro/contracts/ticket';
 import {
-  automationModuleSettingsSchema,
   type AutomationModuleSettings,
   type WhatsAppAutomationBinding,
   type WhatsAppAutomationEvent,
@@ -10,7 +9,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import type { IncomingHttpHeaders } from 'node:http';
-import { TicketHistoryService } from './ticket-history.service';
 import {
   ConversationMessageDirection as TicketMessageDirection,
   ConversationMessageStatus as TicketMessageStatus,
@@ -18,19 +16,19 @@ import {
   ConversationParticipantKind as TicketParticipantKind,
   ConversationStatus as TicketStatus,
 } from '@prisma/client';
+import { AutomationSettingsService } from './automation-settings.service';
 
 type TicketNotificationTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
-const AUTOMATION_SETTINGS_KEY = 'automation.module.settings';
 
 @Injectable()
-export class TicketNotificationService {
-  private readonly logger = new Logger(TicketNotificationService.name);
+export class AutomationWhatsappService {
+  private readonly logger = new Logger(AutomationWhatsappService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly evolutionClient: EvolutionClient,
     private readonly integrationContext: IntegrationContextService,
-    private readonly ticketHistoryService: TicketHistoryService,
+    private readonly automationSettingsService: AutomationSettingsService,
   ) {}
 
   async sendTicketCreatedGroupNotification(input: {
@@ -94,8 +92,8 @@ export class TicketNotificationService {
     const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
     const companyCnpj = this.formatCnpj(company?.cnpj);
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
-    const categoryLabel = this.ticketHistoryService.resolveCategoryLabel(input.settings, input.category);
-    const teamLabel = this.ticketHistoryService.formatTicketTeamLabel(input.team);
+    const categoryLabel = this.resolveCategoryLabel(input.settings, input.category);
+    const teamLabel = this.formatTicketTeamLabel(input.team);
     const resourceLines = [
       input.databaseUrl ? `Base de Dados: ${input.databaseUrl}` : undefined,
       input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
@@ -176,10 +174,10 @@ export class TicketNotificationService {
     const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const previousTeamLabel = input.previousTeam
-      ? this.ticketHistoryService.formatTicketTeamLabel(input.previousTeam)
+      ? this.formatTicketTeamLabel(input.previousTeam)
       : 'Nao informado';
     const nextTeamLabel = input.nextTeam
-      ? this.ticketHistoryService.formatTicketTeamLabel(input.nextTeam)
+      ? this.formatTicketTeamLabel(input.nextTeam)
       : 'Nao informado';
 
     for (const target of targets) {
@@ -323,7 +321,7 @@ export class TicketNotificationService {
 
     const companyName = company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || 'Empresa nao informada';
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
-    const statusLabel = this.ticketHistoryService.formatTicketStatusLabel(input.status as TicketStatus);
+    const statusLabel = this.formatTicketStatusLabel(input.status as TicketStatus);
     const message = [
       input.notificationType === 'testing' ? '[Tickets] Em testes' : '[Tickets] Retorno dos Testes',
       `Estagio: ${statusLabel}`,
@@ -411,92 +409,11 @@ export class TicketNotificationService {
   }
 
   private async readAutomationSettings(legacyTicketSettings: TicketModuleSettings): Promise<AutomationModuleSettings> {
-    try {
-      const setting = await this.prisma.systemSetting.findUnique({
-        where: { key: AUTOMATION_SETTINGS_KEY },
-        select: { value: true },
-      });
-
-      if (setting?.value) {
-        const parsed = automationModuleSettingsSchema.safeParse(JSON.parse(setting.value));
-        if (parsed.success) return parsed.data;
-      }
-    } catch {
-      // ignore and fall back
+    const storedSettings = await this.automationSettingsService.readAutomationModuleSettings();
+    if (storedSettings.whatsapp.bindings.length > 0) {
+      return storedSettings;
     }
-
-    return this.deriveAutomationSettingsFromLegacyTicketSettings(legacyTicketSettings);
-  }
-
-  private deriveAutomationSettingsFromLegacyTicketSettings(settings: TicketModuleSettings): AutomationModuleSettings {
-    const bindingsByJid = new Map<string, WhatsAppAutomationBinding>();
-
-    const upsertBinding = (
-      group: { id: string; label: string; jid: string; active: boolean },
-      patch: Partial<WhatsAppAutomationBinding['automations']>,
-    ) => {
-      const normalizedJid = this.normalizeGroupRecipient(group.jid);
-      if (!normalizedJid) return;
-
-      const current = bindingsByJid.get(normalizedJid) ?? {
-        id: group.id,
-        label: group.label,
-        jid: normalizedJid,
-        active: group.active,
-        automations: {
-          ticketCreatedSupport: false,
-          ticketCreatedDevelopment: false,
-          ticketTeamTransferFromSupport: false,
-          ticketTeamTransferToSupport: false,
-          ticketTeamTransferFromDevelopment: false,
-          ticketTeamTransferToDevelopment: false,
-          ticketStatusTesting: false,
-          ticketStatusTestingFailed: false,
-        },
-      };
-
-      current.active = current.active || group.active;
-      current.label = current.label || group.label;
-      current.automations = {
-        ...current.automations,
-        ...patch,
-      };
-      bindingsByJid.set(normalizedJid, current);
-    };
-
-    for (const group of settings.supportNotificationGroups) {
-      upsertBinding(group, {
-        ticketCreatedSupport: true,
-        ticketTeamTransferFromSupport: true,
-        ticketTeamTransferToSupport: true,
-      });
-    }
-
-    for (const group of settings.developmentNotificationGroups) {
-      upsertBinding(group, {
-        ticketCreatedDevelopment: true,
-        ticketTeamTransferFromDevelopment: true,
-        ticketTeamTransferToDevelopment: true,
-      });
-    }
-
-    for (const group of settings.testingNotificationGroups) {
-      upsertBinding(group, { ticketStatusTesting: true });
-    }
-
-    for (const group of settings.testingFailedNotificationGroups) {
-      upsertBinding(group, { ticketStatusTestingFailed: true });
-    }
-
-    return {
-      autoAssignToCreator: settings.autoAssignToCreator,
-      autoResponseEnabled: settings.autoResponseEnabled,
-      autoResponseMessage: settings.autoResponseMessage,
-      requireTestingReturnReason: settings.requireTestingReturnReason,
-      whatsapp: {
-        bindings: Array.from(bindingsByJid.values()),
-      },
-    };
+    return this.automationSettingsService.deriveAutomationSettingsFromLegacyTickets(legacyTicketSettings);
   }
 
   private getTargetGroupsForEvent(settings: AutomationModuleSettings, event: WhatsAppAutomationEvent) {
@@ -682,6 +599,43 @@ export class TicketNotificationService {
     } catch {
       this.logger.warn(`Origem invalida ignorada ao montar link de ticket: ${trimmed}`);
       return null;
+    }
+  }
+
+  private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {
+    const normalizedCategory = category?.trim();
+    if (!normalizedCategory) return null;
+
+    return settings.categories.find((item) => item.value === normalizedCategory)?.label || normalizedCategory;
+  }
+
+  private formatTicketTeamLabel(team?: string | null): string {
+    if (team === 'DESENVOLVIMENTO') return 'Desenvolvimento';
+    if (team === 'SUPORTE') return 'Suporte';
+    return 'Nao definida';
+  }
+
+  private formatTicketStatusLabel(status: TicketStatus): string {
+    switch (status) {
+      case TicketStatus.NEW:
+        return 'Novo';
+      case TicketStatus.UNASSIGNED:
+        return 'Sem dono';
+      case TicketStatus.TRIAGE:
+        return 'Em analise';
+      case TicketStatus.IN_PROGRESS:
+        return 'Em desenvolvimento';
+      case TicketStatus.WAITING_CUSTOMER:
+      case TicketStatus.WAITING_INTERNAL:
+        return 'Em analise';
+      case TicketStatus.TESTING:
+        return 'Em testes';
+      case TicketStatus.RESOLVED:
+        return 'Resolvido';
+      case TicketStatus.ARCHIVED:
+        return 'Arquivado';
+      default:
+        return status;
     }
   }
 }

@@ -7,8 +7,6 @@ import type {
   TicketModuleTriageRequest,
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
-import { DEFAULT_TICKET_MODULE_SETTINGS, ticketModuleSettingsSchema } from '@dosc-syspro/contracts/ticket';
-import { DEFAULT_AUTOMATION_MODULE_SETTINGS, automationModuleSettingsSchema } from '@dosc-syspro/contracts/automation';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
@@ -44,7 +42,8 @@ import {
 } from '../shared/search/domain-search';
 import { buildConversationSearchText } from '../shared/search/search-index';
 import { TicketHistoryService } from './ticket-history.service';
-import { TicketNotificationService } from './ticket-notification.service';
+import { AutomationSettingsService } from '../automation/automation-settings.service';
+import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
 
 function escapeHtml(value: string) {
   return value
@@ -61,7 +60,8 @@ export class TicketsService {
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
     private readonly ticketHistoryService: TicketHistoryService,
-    private readonly ticketNotificationService: TicketNotificationService,
+    private readonly automationSettingsService: AutomationSettingsService,
+    private readonly automationWhatsappService: AutomationWhatsappService,
   ) {}
 
   async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
@@ -291,7 +291,7 @@ export class TicketsService {
       },
     });
 
-    await this.ticketNotificationService.sendTicketCreatedGroupNotification({
+    await this.automationWhatsappService.sendTicketCreatedGroupNotification({
       settings,
       ticketId: createdTicket.id,
       ticketNumber: createdTicket.ticketNumber || ticketNumber,
@@ -1137,7 +1137,7 @@ export class TicketsService {
       (previousTeam === 'SUPORTE' || previousTeam === 'DESENVOLVIMENTO') &&
       (resolvedNextTeam === 'SUPORTE' || resolvedNextTeam === 'DESENVOLVIMENTO')
     ) {
-      await this.ticketNotificationService.sendTicketTeamRoutingGroupNotifications({
+      await this.automationWhatsappService.sendTicketTeamRoutingGroupNotifications({
         settings,
         ticketId: exists.id,
         ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
@@ -1151,7 +1151,7 @@ export class TicketsService {
     }
 
     if (exists.status !== resolvedNextStatus && resolvedNextStatus === TicketStatus.TESTING) {
-      await this.ticketNotificationService.sendTicketStatusGroupNotification({
+      await this.automationWhatsappService.sendTicketStatusGroupNotification({
         settings,
         ticketId: exists.id,
         ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
@@ -1164,7 +1164,7 @@ export class TicketsService {
     }
 
     if (isTestingReturn) {
-      await this.ticketNotificationService.sendTicketStatusGroupNotification({
+      await this.automationWhatsappService.sendTicketStatusGroupNotification({
         settings,
         ticketId: exists.id,
         ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
@@ -1326,99 +1326,7 @@ export class TicketsService {
   }
 
   private async getTicketModuleSettings(): Promise<TicketModuleSettings> {
-    try {
-      const [setting, automationSetting] = await Promise.all([
-        this.prisma.systemSetting.findUnique({
-          where: { key: 'tickets.module.settings' },
-          select: { value: true },
-        }),
-        this.prisma.systemSetting.findUnique({
-          where: { key: 'automation.module.settings' },
-          select: { value: true },
-        }),
-      ]);
-
-      if (!setting?.value) {
-        return {
-          ...DEFAULT_TICKET_MODULE_SETTINGS,
-          ...this.readLegacyAutomationFlags(automationSetting?.value),
-        };
-      }
-
-      const parsed = this.normalizeLegacyTicketModuleSettings(JSON.parse(setting.value));
-      const validation = ticketModuleSettingsSchema.safeParse(parsed);
-      const base = validation.success ? validation.data : DEFAULT_TICKET_MODULE_SETTINGS;
-      return {
-        ...base,
-        ...this.readLegacyAutomationFlags(automationSetting?.value),
-      };
-    } catch {
-      return DEFAULT_TICKET_MODULE_SETTINGS;
-    }
-  }
-
-  private readLegacyAutomationFlags(rawSettingValue?: string | null) {
-    if (!rawSettingValue?.trim()) {
-      return {
-        autoAssignToCreator: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoAssignToCreator,
-        autoResponseEnabled: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseEnabled,
-        autoResponseMessage: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseMessage,
-        requireTestingReturnReason: DEFAULT_AUTOMATION_MODULE_SETTINGS.requireTestingReturnReason,
-      };
-    }
-
-    try {
-      const parsed = automationModuleSettingsSchema.safeParse(JSON.parse(rawSettingValue));
-      if (!parsed.success) throw new Error('invalid_automation_settings');
-      return {
-        autoAssignToCreator: parsed.data.autoAssignToCreator,
-        autoResponseEnabled: parsed.data.autoResponseEnabled,
-        autoResponseMessage: parsed.data.autoResponseMessage,
-        requireTestingReturnReason: parsed.data.requireTestingReturnReason,
-      };
-    } catch {
-      return {
-        autoAssignToCreator: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoAssignToCreator,
-        autoResponseEnabled: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseEnabled,
-        autoResponseMessage: DEFAULT_AUTOMATION_MODULE_SETTINGS.autoResponseMessage,
-        requireTestingReturnReason: DEFAULT_AUTOMATION_MODULE_SETTINGS.requireTestingReturnReason,
-      };
-    }
-  }
-
-  private normalizeLegacyTicketModuleSettings(raw: unknown): unknown {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-      return raw;
-    }
-
-    const parsed = { ...(raw as Record<string, unknown>) };
-    const supportLegacyJid = typeof parsed.supportNotificationGroupJid === 'string' ? parsed.supportNotificationGroupJid.trim() : '';
-    const developmentLegacyJid =
-      typeof parsed.developmentNotificationGroupJid === 'string' ? parsed.developmentNotificationGroupJid.trim() : '';
-
-    if (!Array.isArray(parsed.supportNotificationGroups) && supportLegacyJid) {
-      parsed.supportNotificationGroups = [
-        {
-          id: 'support-legacy',
-          label: 'Grupo legado de suporte',
-          jid: supportLegacyJid,
-          active: true,
-        },
-      ];
-    }
-
-    if (!Array.isArray(parsed.developmentNotificationGroups) && developmentLegacyJid) {
-      parsed.developmentNotificationGroups = [
-        {
-          id: 'development-legacy',
-          label: 'Grupo legado de desenvolvimento',
-          jid: developmentLegacyJid,
-          active: true,
-        },
-      ];
-    }
-
-    return parsed;
+    return this.automationSettingsService.readMergedTicketModuleSettings();
   }
 
 

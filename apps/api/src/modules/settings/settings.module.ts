@@ -7,9 +7,10 @@ import { SettingsPermissionsService } from './permissions/permissions.service';
 import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 import { TicketsModule } from '../tickets/tickets.module';
 import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
+import { AutomationModule } from '../automation/automation.module';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => TicketsModule), forwardRef(() => ChatwootModule)],
+  imports: [PrismaModule, forwardRef(() => TicketsModule), forwardRef(() => ChatwootModule), forwardRef(() => AutomationModule)],
   controllers: [SettingsController],
   providers: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService],
   exports: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService],
