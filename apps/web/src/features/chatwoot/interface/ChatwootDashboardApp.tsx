@@ -101,7 +101,16 @@ function normalizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function getCompanyLabel(company: CompanyOption | null | undefined) {
+function getCompanyLabel(
+  company:
+    | Pick<CompanyOption, "razaoSocial">
+    | {
+        razaoSocial: string;
+        nomeFantasia?: string | null;
+      }
+    | null
+    | undefined,
+) {
   return company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || "Empresa sem nome";
 }
 
