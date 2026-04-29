@@ -594,7 +594,12 @@ export class CompaniesService {
 
   async lookupCompanyProfileByCnpj(cnpj: string, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    if (!(await this.authorizationService.userHasPermission(requester, 'companies:edit', { acceptCompanyScope: true }))) {
+    const [canCreateCompanies, canEditCompanies] = await Promise.all([
+      this.authorizationService.userHasPermission(requester, 'companies:create'),
+      this.authorizationService.userHasPermission(requester, 'companies:edit', { acceptCompanyScope: true }),
+    ]);
+
+    if (!canCreateCompanies && !canEditCompanies) {
       return { success: false, message: 'Permissao negada.' };
     }
 
