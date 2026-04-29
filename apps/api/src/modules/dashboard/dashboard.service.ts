@@ -599,7 +599,11 @@ export class DashboardService {
       });
       const mapContact = (contact: any) => ({
         id: contact.id,
-        name: contact.name,
+        name:
+          contact.name?.trim() ||
+          contact.email?.trim() ||
+          contact.whatsapp?.trim() ||
+          'Contato sem nome',
         email: contact.email ?? null,
         whatsapp: contact.whatsapp ?? null,
         createdAt: contact.createdAt.toISOString(),
