@@ -1,7 +1,9 @@
 import {
   agentDeviceListResultSchema,
+  agentDeviceSummarySchema,
   agentFleetStatsSchema,
   type AgentDeviceListResult,
+  type AgentDeviceSummary,
   type AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
 import { callWebApi } from "@/lib/web-api";
@@ -46,4 +48,8 @@ export async function fetchAgentDeviceList(params?: {
 export async function fetchLinkedAgentDevice(remoteHostId: string) {
   const result = await fetchAgentDeviceList({ remoteHostId, pageSize: 1 });
   return result.items[0] ?? null;
+}
+
+export async function fetchAgentDevice(deviceId: string): Promise<AgentDeviceSummary> {
+  return fetchEnvelope(`/api/agents/${encodeURIComponent(deviceId)}`, agentDeviceSummarySchema);
 }

@@ -21,13 +21,22 @@ export function LinkedDeviceCard({ device }: { device: AgentDeviceSummary }) {
             <Cpu className="h-4 w-4 text-primary" />
             Dispositivo vinculado
           </span>
-          <Link
-            href={`/portal/infraestrutura?tab=agentes`}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            Ver todos
-            <ExternalLink className="h-3 w-3" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/portal/infraestrutura/agentes/${encodeURIComponent(device.deviceId)}`}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Ver detalhes
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+            <Link
+              href="/portal/infraestrutura?tab=agentes"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Ver todos
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
