@@ -6,6 +6,7 @@ const contactOptionCompanySchema = z.object({
   razaoSocial: z.string(),
   nomeFantasia: z.string().nullable().optional(),
   cnpj: z.string().nullable().optional(),
+  observacoes: z.string().nullable().optional(),
   serverType: z.enum(["SYSPRO_SERVER", "IIS"]).nullable().optional(),
   serverPort: z.number().int().nullable().optional(),
   serverHost: z.string().nullable().optional(),

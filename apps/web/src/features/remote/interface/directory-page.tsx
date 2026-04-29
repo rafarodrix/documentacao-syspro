@@ -677,7 +677,7 @@ export function RemotePlatformDirectoryPanel({
         <CardContent className="space-y-4 p-5 sm:p-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[300px]">
+              <div className="relative flex-1 min-w-75">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchTerm}
@@ -936,7 +936,7 @@ export function RemotePlatformDirectoryPanel({
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nome do host</Label>
                         <Input
-                          className="min-w-[280px]"
+                          className="min-w-70"
                           value={pendingNameById[item.id] ?? item.machineName ?? ""}
                           onChange={(event) =>
                             setPendingNameById((current) => ({ ...current, [item.id]: event.target.value }))
@@ -944,7 +944,7 @@ export function RemotePlatformDirectoryPanel({
                           placeholder="Ex.: Servidor matriz fiscal"
                         />
                       </div>
-                      <Button className="xl:min-w-[120px]" type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}>
+                      <Button className="xl:min-w-30" type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}>
                         Vincular
                       </Button>
                     </div>
@@ -1071,7 +1071,7 @@ export function RemotePlatformDirectoryPanel({
                         <Button
                           type="button"
                           size="sm"
-                          className="h-9 min-w-[140px] font-semibold shadow-sm"
+                          className="h-9 min-w-35 font-semibold shadow-sm"
                           onClick={() => handleQuickConnect(item)}
                           disabled={!item.rustdeskId || connectingHostId === item.id}
                         >
@@ -1083,18 +1083,18 @@ export function RemotePlatformDirectoryPanel({
                           Conectar
                         </Button>
                         {rustdeskHref ? (
-                          <Button asChild variant="outline" size="sm" className="h-9 min-w-[140px] font-semibold shadow-sm">
+                          <Button asChild variant="outline" size="sm" className="h-9 min-w-35 font-semibold shadow-sm">
                             <a href={rustdeskHref}>
                               <ExternalLink className="mr-2 h-3.5 w-3.5" />
                               {isMobileClient ? "Abrir App" : "Acesso Rápido"}
                             </a>
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm" disabled className="h-9 min-w-[140px] border-dashed">
+                          <Button variant="outline" size="sm" disabled className="h-9 min-w-35 border-dashed">
                             Sem Conexão
                           </Button>
                         )}
-                        <Button asChild variant="outline" size="sm" className="h-9 min-w-[140px] bg-background/50 hover:bg-muted/50">
+                        <Button asChild variant="outline" size="sm" className="h-9 min-w-35 bg-background/50 hover:bg-muted/50">
                           <Link
                             href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
                           >

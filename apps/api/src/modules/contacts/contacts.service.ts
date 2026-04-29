@@ -42,6 +42,7 @@ type ChatwootCompanySummary = {
   nomeFantasia?: string | null;
   razaoSocial?: string | null;
   cnpj?: string | null;
+  observacoes?: string | null;
   serverType?: 'SYSPRO_SERVER' | 'IIS' | null;
   serverPort?: number | null;
   serverHost?: string | null;
@@ -545,6 +546,7 @@ export class ContactsService {
               razaoSocial: true,
               nomeFantasia: true,
               cnpj: true,
+              observacoes: true,
               serverType: true,
               serverPort: true,
               serverHost: true,
@@ -730,6 +732,7 @@ export class ContactsService {
           razaoSocial: true,
           nomeFantasia: true,
           cnpj: true,
+          observacoes: true,
           serverType: true,
           serverPort: true,
           serverHost: true,
@@ -802,6 +805,7 @@ export class ContactsService {
             legalName: company.razaoSocial ?? null,
             tradeName: company.nomeFantasia ?? null,
             cnpj: company.cnpj ?? null,
+            notes: company.observacoes ?? null,
             serverType: company.serverType ?? null,
             serverHost: company.serverHost ?? null,
             serverPort: company.serverPort ?? null,
@@ -1002,6 +1006,7 @@ export class ContactsService {
       nomeFantasia: typeof record.nomeFantasia === 'string' ? record.nomeFantasia : null,
       razaoSocial: typeof record.razaoSocial === 'string' ? record.razaoSocial : null,
       cnpj: typeof record.cnpj === 'string' ? record.cnpj : null,
+      observacoes: typeof record.observacoes === 'string' ? record.observacoes : null,
       serverType: record.serverType === 'SYSPRO_SERVER' || record.serverType === 'IIS' ? record.serverType : null,
       serverPort: typeof record.serverPort === 'number' ? record.serverPort : null,
       serverHost: typeof record.serverHost === 'string' ? record.serverHost : null,

@@ -103,7 +103,7 @@ function normalizeDigits(value: string) {
 
 function getCompanyLabel(
   company:
-    | Pick<CompanyOption, "razaoSocial">
+    | Pick<CompanyOption, "razaoSocial" | "nomeFantasia">
     | {
         razaoSocial: string;
         nomeFantasia?: string | null;
@@ -2047,6 +2047,17 @@ function CompanyOperationalSettingsCard({
           }
         />
       </div>
+
+      {readString(company.observacoes) ? (
+        <div className="mt-3 rounded-md border border-border/60 bg-background px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Observacoes
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+            {readString(company.observacoes)}
+          </p>
+        </div>
+      ) : null}
 
       {remoteConnections.length > 0 ? (
         <div className="mt-3 space-y-2">
