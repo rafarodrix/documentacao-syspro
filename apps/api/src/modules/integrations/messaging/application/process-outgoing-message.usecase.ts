@@ -162,19 +162,24 @@ export class ProcessOutgoingMessageUseCase {
       }));
     }
 
-    const phone = this.resolvePreferredOutboundWhatsappNumber(link);
+    const resolvedLink = await this.enrichLinkWithSiblingConfirmedNumbers(link);
+    const phone = this.resolvePreferredOutboundWhatsappNumber(resolvedLink);
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'link_resolved',
       messageId,
       chatwootConversationId,
       whatsappNumber: phone,
-      storedWhatsappNumber: link.whatsappNumber,
-      lastInboundWhatsappNumber: this.toOptionalString((link as any).lastInboundWhatsappNumber) ?? null,
+      storedWhatsappNumber: resolvedLink.whatsappNumber,
+      lastInboundWhatsappNumber: this.toOptionalString((resolvedLink as any).lastInboundWhatsappNumber) ?? null,
       lastSuccessfulOutboundWhatsappNumber:
-        this.toOptionalString((link as any).lastSuccessfulOutboundWhatsappNumber) ?? null,
-      connectionKey: link.connectionKey,
-      chatwootContactId: link.chatwootContactId,
+        this.toOptionalString((resolvedLink as any).lastSuccessfulOutboundWhatsappNumber) ?? null,
+      siblingDerivedInboundWhatsappNumber:
+        this.toOptionalString((resolvedLink as any).siblingDerivedInboundWhatsappNumber) ?? null,
+      siblingDerivedSuccessfulOutboundWhatsappNumber:
+        this.toOptionalString((resolvedLink as any).siblingDerivedSuccessfulOutboundWhatsappNumber) ?? null,
+      connectionKey: resolvedLink.connectionKey,
+      chatwootContactId: resolvedLink.chatwootContactId,
     }));
 
     this.logger.log(JSON.stringify({
@@ -336,7 +341,7 @@ export class ProcessOutgoingMessageUseCase {
         whatsappNumber: phone,
         originalWhatsappNumber: phone,
         fallbackWhatsappNumber,
-        connectionKey: link.connectionKey,
+        connectionKey: resolvedLink.connectionKey,
         error: error?.message ?? 'unknown_error',
         providerCode: knownProviderCode,
         providerStatus:
@@ -355,7 +360,7 @@ export class ProcessOutgoingMessageUseCase {
       throw error;
     }
     await this.reconcileWhatsappNumberIfNeeded(
-      link,
+      resolvedLink,
       phone,
       sendResult.resolvedWhatsappNumber,
       linkContext,
@@ -378,9 +383,9 @@ export class ProcessOutgoingMessageUseCase {
             chatwootMessageId: messageId,
             chatwootConversationId: chatwootConversationId,
             evolutionMessageId: sendResult.messageId,
-            companyId: link.companyId ?? null,
-            connectionId: link.connectionId ?? null,
-            connectionKey: link.connectionKey,
+            companyId: resolvedLink.companyId ?? null,
+            connectionId: resolvedLink.connectionId ?? null,
+            connectionKey: resolvedLink.connectionKey,
           }
         });
       } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }
@@ -548,14 +553,65 @@ export class ProcessOutgoingMessageUseCase {
     whatsappNumber: string;
     lastInboundWhatsappNumber?: string | null;
     lastSuccessfulOutboundWhatsappNumber?: string | null;
+    siblingDerivedInboundWhatsappNumber?: string | null;
+    siblingDerivedSuccessfulOutboundWhatsappNumber?: string | null;
   }): string {
     const candidates = [
       this.toOptionalString(link.lastSuccessfulOutboundWhatsappNumber),
+      this.toOptionalString(link.siblingDerivedSuccessfulOutboundWhatsappNumber),
       this.toOptionalString(link.lastInboundWhatsappNumber),
+      this.toOptionalString(link.siblingDerivedInboundWhatsappNumber),
       this.toOptionalString(link.whatsappNumber),
     ].filter((value, index, list): value is string => Boolean(value) && list.indexOf(value as string) === index);
 
     return candidates[0] ?? link.whatsappNumber;
+  }
+
+  private async enrichLinkWithSiblingConfirmedNumbers(link: {
+    id: string;
+    companyId: string | null;
+    connectionId: string | null;
+    connectionKey: string;
+    whatsappNumber: string;
+    chatwootContactId: string;
+    chatwootConversationId: string;
+    lastInboundWhatsappNumber?: string | null;
+    lastSuccessfulOutboundWhatsappNumber?: string | null;
+  }) {
+    if (!link.chatwootContactId || link.chatwootContactId === 'unknown') {
+      return link;
+    }
+
+    const siblingLinks = await this.prisma.conversationLink.findMany({
+      where: {
+        connectionKey: link.connectionKey,
+        chatwootContactId: link.chatwootContactId,
+        id: { not: link.id },
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        lastInboundWhatsappNumber: true,
+        lastSuccessfulOutboundWhatsappNumber: true,
+      },
+    } as any);
+
+    const siblingDerivedSuccessfulOutboundWhatsappNumber = this.toOptionalString(
+      siblingLinks
+        .map((item: any) => item?.lastSuccessfulOutboundWhatsappNumber)
+        .find((value: unknown) => this.toOptionalString(value)),
+    );
+    const siblingDerivedInboundWhatsappNumber = this.toOptionalString(
+      siblingLinks
+        .map((item: any) => item?.lastInboundWhatsappNumber)
+        .find((value: unknown) => this.toOptionalString(value)),
+    );
+
+    return {
+      ...link,
+      siblingDerivedInboundWhatsappNumber,
+      siblingDerivedSuccessfulOutboundWhatsappNumber,
+    };
   }
 
   private async persistFallbackConversationLink(
