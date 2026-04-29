@@ -1072,6 +1072,10 @@ export class ChatwootClient {
         return '.webm';
       case 'application/pdf':
         return '.pdf';
+      case 'application/x-rar':
+      case 'application/x-rar-compressed':
+      case 'application/vnd.rar':
+        return '.rar';
       default:
         return '';
     }
@@ -1100,6 +1104,10 @@ export class ChatwootClient {
     if (normalized === 'aac') return 'audio/aac';
     if (normalized === 'amr') return 'audio/amr';
     if (normalized === 'wav') return 'audio/wav';
+    if (normalized === 'rar') return 'application/vnd.rar';
+    if (normalized === 'x-rar') return 'application/x-rar';
+    if (normalized === 'x-rar-compressed') return 'application/x-rar-compressed';
+    if (normalized === 'vnd.rar') return 'application/vnd.rar';
     return normalized;
   }
 

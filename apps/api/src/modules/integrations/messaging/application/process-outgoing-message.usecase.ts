@@ -41,6 +41,7 @@ export class ProcessOutgoingMessageUseCase {
       hasContent: Boolean(messagePayload.content),
       contentLength: messagePayload.content?.length ?? 0,
       hasAttachment: messagePayload.attachments.length > 0,
+      attachmentCount: messagePayload.attachments.length,
       isPrivateNote: messagePayload.isPrivateNote,
     }));
 
@@ -192,10 +193,6 @@ export class ProcessOutgoingMessageUseCase {
 
     // Se houver arquivo anexado pelo atendente do Chatwoot
     if (hasAttachment) {
-      const attachment = attachments[0];
-      const fileType = attachment?.file_type || attachment?.data?.content_type || 'document';
-      const fileName = attachment?.data?.filename || attachment?.file_name || 'arquivo';
-
       const linkContext =
         resolvedConnection ??
         await this.integrationContext.resolveByConnectionKey(link.connectionKey);
@@ -211,91 +208,120 @@ export class ProcessOutgoingMessageUseCase {
         return;
       }
 
-      let mediaPayload: { dataUrl: string; mimetype: string; filename: string } | null = null;
-      try {
-        mediaPayload = await this.resolveAttachmentPayloadWithRetry(
-          linkContext.chatwoot,
-          attachment,
-          {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'sending_media_batch',
+        messageId,
+        chatwootConversationId,
+        whatsappNumber: phone,
+        attachmentCount: attachments.length,
+      }));
+
+      for (let attachmentIndex = 0; attachmentIndex < attachments.length; attachmentIndex += 1) {
+        const attachment = attachments[attachmentIndex];
+        const fileType = attachment?.file_type || attachment?.data?.content_type || 'document';
+        const fileName = attachment?.data?.filename || attachment?.file_name || 'arquivo';
+
+        let mediaPayload: { dataUrl: string; mimetype: string; filename: string } | null = null;
+        try {
+          mediaPayload = await this.resolveAttachmentPayloadWithRetry(
+            linkContext.chatwoot,
+            attachment,
+            {
+              messageId,
+              chatwootConversationId,
+              attachmentId: attachment?.id?.toString?.() ?? null,
+            },
+          );
+        } catch (error: any) {
+          this.logger.warn(JSON.stringify({
+            flow: 'chatwoot_to_evolution',
+            stage: 'attachment_download_failed',
             messageId,
             chatwootConversationId,
             attachmentId: attachment?.id?.toString?.() ?? null,
-          },
+            attachmentType: fileType,
+            attachmentFileName: fileName,
+            attachmentIndex,
+            attachmentCount: attachments.length,
+            error: error?.message ?? 'unknown_error',
+          }));
+          return;
+        }
+
+        if (!mediaPayload?.dataUrl) {
+          this.logger.warn(JSON.stringify({
+            flow: 'chatwoot_to_evolution',
+            stage: 'missing_attachment_url',
+            messageId,
+            chatwootConversationId,
+            attachmentId: attachment?.id?.toString?.() ?? null,
+            attachmentType: fileType,
+            attachmentFileName: fileName,
+            attachmentIndex,
+            attachmentCount: attachments.length,
+          }));
+          return;
+        }
+
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'attachment_reused_without_r2_copy',
+          messageId,
+          chatwootConversationId,
+          attachmentId: attachment?.id?.toString?.() ?? null,
+          attachmentIndex,
+          attachmentCount: attachments.length,
+          mimetype: mediaPayload.mimetype || fileType,
+          filename: mediaPayload.filename || fileName,
+        }));
+
+        const sendResult = await this.evolutionClient.sendMedia(
+          linkContext.evolution,
+          phone,
+          mediaPayload.dataUrl,
+          mediaPayload.mimetype || fileType,
+          mediaPayload.filename || fileName,
+          attachmentIndex === 0 ? (content || '') : '',
+          this.buildAttachmentClientMessageId(messageId, attachmentIndex, attachments.length),
         );
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'attachment_download_failed',
+        await this.reconcileWhatsappNumberIfNeeded(
+          link,
+          phone,
+          sendResult.resolvedWhatsappNumber,
+          linkContext,
           messageId,
           chatwootConversationId,
-          attachmentId: attachment?.id?.toString?.() ?? null,
-          attachmentType: fileType,
-          attachmentFileName: fileName,
-          error: error?.message ?? 'unknown_error',
-        }));
-        return;
-      }
-
-      if (!mediaPayload?.dataUrl) {
-        this.logger.warn(JSON.stringify({
+        );
+        this.logger.log(JSON.stringify({
           flow: 'chatwoot_to_evolution',
-          stage: 'missing_attachment_url',
+          stage: 'sent_media',
           messageId,
+          providerMessageId: sendResult.messageId,
           chatwootConversationId,
-          attachmentId: attachment?.id?.toString?.() ?? null,
-          attachmentType: fileType,
-          attachmentFileName: fileName,
+          whatsappNumber: sendResult.resolvedWhatsappNumber ?? phone,
+          attachmentIndex,
+          attachmentCount: attachments.length,
+          filename: mediaPayload.filename || fileName,
         }));
-        return;
+
+        if (sendResult.messageId && messageId) {
+          try {
+            await this.prisma.messageLink.create({
+              data: {
+                chatwootMessageId: messageId,
+                chatwootConversationId: chatwootConversationId,
+                evolutionMessageId: sendResult.messageId,
+                companyId: link.companyId ?? null,
+                connectionId: link.connectionId ?? null,
+                connectionKey: link.connectionKey,
+              }
+            });
+          } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }
+        }
       }
 
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'attachment_reused_without_r2_copy',
-        messageId,
-        chatwootConversationId,
-        attachmentId: attachment?.id?.toString?.() ?? null,
-        mimetype: mediaPayload.mimetype || fileType,
-        filename: mediaPayload.filename || fileName,
-      }));
-
-      const sendResult = await this.evolutionClient.sendMedia(
-        linkContext.evolution,
-        phone,
-        mediaPayload.dataUrl,
-        mediaPayload.mimetype || fileType,
-        mediaPayload.filename || fileName,
-        content || '',
-        messageId ?? undefined,
-      );
-      await this.reconcileWhatsappNumberIfNeeded(
-        link,
-        phone,
-        sendResult.resolvedWhatsappNumber,
-        linkContext,
-        messageId,
-        chatwootConversationId,
-      );
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: sendResult.resolvedWhatsappNumber ?? phone,
-      }));
-
-      if (sendResult.messageId && messageId) {
-        try {
-          await this.prisma.messageLink.create({
-            data: {
-              chatwootMessageId: messageId,
-              chatwootConversationId: chatwootConversationId,
-              evolutionMessageId: sendResult.messageId,
-              companyId: link.companyId ?? null,
-              connectionId: link.connectionId ?? null,
-              connectionKey: link.connectionKey,
-            }
-          });
-        } catch (e: any) { /* ignora erro caso a mensagem ja esteja vinculada */ }
-      }
-
-      return; // Encerra, pois sendMedia ja envia texto junto (caption)
+      return;
     }
 
     // Dispara para o WhatsApp
@@ -783,6 +809,16 @@ export class ProcessOutgoingMessageUseCase {
   private toOptionalString(value: unknown): string | undefined {
     const normalized = String(value ?? '').trim();
     return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private buildAttachmentClientMessageId(
+    messageId: string | undefined,
+    attachmentIndex: number,
+    attachmentCount: number,
+  ): string | undefined {
+    if (!messageId) return undefined;
+    if (attachmentCount <= 1) return messageId;
+    return `${messageId}-att-${attachmentIndex + 1}`;
   }
 
   private async resolveAttachmentPayloadWithRetry(
