@@ -57,7 +57,7 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
     description: "Dados cadastrais",
     icon: Building2 as ElementType,
     fields: [
-      "cnpj", "segment", "status", "razaoSocial", "nomeFantasia", "logoUrl",
+      "cnpj", "segment", "razaoSocial", "nomeFantasia", "logoUrl",
       "dataFundacao", "naturezaJuridica", "porte", "matrizFilial", "situacaoCadastral",
     ],
   },
@@ -393,7 +393,6 @@ export function CreateCompanyPageForm({
             >
               {currentSection === "geral" && (
                 <CompanyIdentificationTab
-                  mode={mode}
                   canEditCnpj={canEditCnpj}
                   isImportingCnpj={isImportingCnpj}
                   lastImportedCnpj={lastImportedCnpj}

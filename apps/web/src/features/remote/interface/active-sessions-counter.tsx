@@ -46,7 +46,9 @@ export function RemoteActiveSessionsCounter({ initialCount = 0 }: { initialCount
     };
 
     eventSource.onerror = (error) => {
-      console.error("Erro no stream de sessoes remoto:", error);
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("Stream de sessoes remoto encerrado:", error);
+      }
       eventSource.close();
     };
 

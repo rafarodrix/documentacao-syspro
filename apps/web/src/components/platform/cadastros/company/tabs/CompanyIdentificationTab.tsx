@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { CompanySegment, CompanyStatus } from "@prisma/client";
+import { CompanySegment } from "@prisma/client";
 import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ import { formatCNPJ } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 interface CompanyIdentificationTabProps {
-  mode: "create" | "edit";
   canEditCnpj: boolean;
   isImportingCnpj: boolean;
   lastImportedCnpj: string | null;
@@ -25,7 +24,6 @@ interface CompanyIdentificationTabProps {
 }
 
 export function CompanyIdentificationTab({
-  mode,
   canEditCnpj,
   isImportingCnpj,
   lastImportedCnpj,
@@ -34,7 +32,6 @@ export function CompanyIdentificationTab({
   setLastImportedCnpj,
 }: CompanyIdentificationTabProps) {
   const form = useFormContext<CreateCompanyInput>();
-  const { errors } = form.formState;
 
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
@@ -65,7 +62,7 @@ export function CompanyIdentificationTab({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
           <FormField
             control={form.control}
             name="cnpj"
@@ -77,7 +74,7 @@ export function CompanyIdentificationTab({
                     <Input
                       placeholder="00.000.000/0000-00"
                       {...field}
-                      disabled={mode === "edit" && !canEditCnpj}
+                      disabled={!canEditCnpj}
                       value={toInputValue(field.value)}
                       className={cn(justImported && "ring-1 ring-primary/30")}
                       onChange={(e) => {
@@ -109,43 +106,6 @@ export function CompanyIdentificationTab({
                 <p className="text-[11px] text-muted-foreground">
                   Ao informar um CNPJ valido, os dados sao preenchidos automaticamente.
                 </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    form.setValue("status", value as CompanyStatus, {
-                      shouldDirty: true,
-                      shouldTouch: true,
-                      shouldValidate: true,
-                    });
-                  }}
-                  value={toInputValue(field.value)}
-                  disabled={mode === "edit"}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={CompanyStatus.ACTIVE}>Ativo</SelectItem>
-                    <SelectItem value={CompanyStatus.INACTIVE}>Inativo</SelectItem>
-                  </SelectContent>
-                </Select>
-                {mode === "edit" ? (
-                  <p className="text-[11px] text-muted-foreground">
-                    Use a acao de ativar/inativar na listagem da empresa para alterar o status operacional.
-                  </p>
-                ) : null}
                 <FormMessage />
               </FormItem>
             )}
@@ -249,7 +209,7 @@ export function CompanyIdentificationTab({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
             name="dataFundacao"

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ElementType, ReactNode } from "react";
-import { ArrowLeft, CheckCircle2, AlertCircle, ChevronRight, Loader2, Save } from "lucide-react";
+import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Save } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,21 +64,17 @@ export function RegistryFormScaffold<TId extends string = string>({
   const hasSections = Boolean(sections?.length && currentSection && onSectionChange);
 
   return (
-    <div className="relative w-full min-h-[calc(100vh-140px)] overflow-hidden rounded-2xl border border-border/50 bg-card/95 shadow-xl">
+    <div className="relative w-full min-h-[calc(100vh-112px)] overflow-hidden rounded-2xl border border-border/50 bg-card/95 shadow-xl">
       <ShineBorder borderWidth={1} duration={16} shineColor={["#2dd4bf", "#60a5fa", "#a78bfa"]} />
 
-      <div className="flex items-start justify-between gap-4 border-b border-border/50 bg-linear-to-r from-muted/30 via-background to-muted/20 px-6 py-4">
+      <div className="border-b border-border/50 bg-linear-to-r from-muted/30 via-background to-muted/20 px-5 py-4 md:px-6">
         <div className="min-w-0">
           <h2 className="truncate text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
-        <Button type="button" variant="outline" className="h-9 shrink-0 gap-2" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
       </div>
 
-      <div className="border-b border-border/50 bg-muted/20 px-6 py-3">
+      <div className="border-b border-border/50 bg-muted/20 px-5 py-2.5 md:px-6">
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{progressLabel}</span>
           <span className="font-medium text-foreground">{progressText ?? `${safeProgress}%`}</span>
@@ -94,9 +90,9 @@ export function RegistryFormScaffold<TId extends string = string>({
         </div>
       </div>
 
-      <div className={cn("flex min-h-[calc(100vh-260px)] flex-col", hasSections && "md:flex-row")}>
+      <div className={cn("flex min-h-[calc(100vh-220px)] flex-col", hasSections && "md:flex-row")}>
         {hasSections ? (
-          <aside className="hide-scrollbar flex w-full gap-2 overflow-x-auto border-b border-border/50 bg-muted/20 p-3 backdrop-blur-sm md:w-56 md:flex-col md:gap-1 md:overflow-x-visible md:border-b-0 md:border-r">
+          <aside className="hide-scrollbar flex w-full gap-2 overflow-x-auto border-b border-border/50 bg-muted/20 p-3 backdrop-blur-sm md:w-52 md:flex-col md:gap-1 md:overflow-x-visible md:border-b-0 md:border-r">
             {sections!.map((section) => {
               const Icon = section.icon;
               const isCurrent = section.id === currentSection;
@@ -157,9 +153,9 @@ export function RegistryFormScaffold<TId extends string = string>({
         ) : null}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className={cn("flex-1 overflow-y-auto p-6", contentClassName)}>{children}</div>
+          <div className={cn("flex-1 overflow-y-auto px-5 py-5 pb-8 md:px-6 md:py-6 md:pb-10", contentClassName)}>{children}</div>
 
-          <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border/50 bg-card/95 px-6 py-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-border/50 bg-card/95 px-5 py-4 pr-24 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between md:px-6 md:pr-32">
             <div className="flex min-w-0 flex-wrap items-center gap-3">{footerLeft}</div>
             {footerCenter ? <div className="flex items-center gap-1">{footerCenter}</div> : null}
             <div className="flex items-center justify-end gap-2">
