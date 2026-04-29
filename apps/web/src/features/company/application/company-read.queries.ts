@@ -1,6 +1,7 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { callWebApi } from "@/lib/web-api";
 import { companyListResponseSchema } from "@dosc-syspro/contracts/company";
+import { getBackendApiBaseUrl } from "@/lib/backend-api";
 import type {
   CompanyEditViewData,
   CompanyListResponse,
@@ -8,7 +9,23 @@ import type {
 } from "@/features/company/application/company-view.types";
 
 async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
+  const upstreamHeaders = new Headers(init?.headers ?? {});
+
+  if (cookie) {
+    upstreamHeaders.set("cookie", cookie);
+  }
+
+  if (!upstreamHeaders.has("content-type") && init?.body) {
+    upstreamHeaders.set("content-type", "application/json");
+  }
+
+  return fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    headers: upstreamHeaders,
+    cache: "no-store",
+  });
 }
 
 export async function getCompaniesQuery(filters?: {

@@ -699,6 +699,13 @@ export class CompaniesService {
 
     const payloadData = payload?.data;
     if (!payloadData || typeof payloadData !== 'object') {
+      this.logger.warn({
+        event: 'company.update.invalid_payload',
+        companyId,
+        requesterId: requester.userId,
+        hasPayload: Boolean(payload),
+        payloadType: typeof payloadData,
+      });
       return {
         success: false,
         message: 'Payload invalido. Envie os dados da empresa no campo data.',
@@ -707,6 +714,12 @@ export class CompaniesService {
 
     const validation = createCompanySchema.safeParse(payloadData);
     if (!validation.success) {
+      this.logger.warn({
+        event: 'company.update.validation_failed',
+        companyId,
+        requesterId: requester.userId,
+        errorFields: Object.keys(validation.error.flatten().fieldErrors),
+      });
       return {
         success: false,
         errors: validation.error.flatten().fieldErrors,
@@ -715,6 +728,25 @@ export class CompaniesService {
     }
 
     try {
+      this.logger.log({
+        event: 'company.update.received',
+        companyId,
+        requesterId: requester.userId,
+        isGlobalEditor: editScope.isGlobal,
+        payloadSnapshot: {
+          cnpj: (payloadData as any).cnpj ?? null,
+          razaoSocial: (payloadData as any).razaoSocial ?? null,
+          nomeFantasia: (payloadData as any).nomeFantasia ?? null,
+          status: (payloadData as any).status ?? null,
+          parentCompanyId: (payloadData as any).parentCompanyId ?? null,
+          accountingFirmId: (payloadData as any).accountingFirmId ?? null,
+          hasAddress: Boolean((payloadData as any).address),
+          remoteConnectionsCount: Array.isArray((payloadData as any).remoteConnections)
+            ? (payloadData as any).remoteConnections.length
+            : 0,
+        },
+      });
+
       const existing = await this.prisma.company.findUnique({
         where: { id: companyId },
         select: {
@@ -744,6 +776,24 @@ export class CompaniesService {
       const nextCnpj = editScope.isGlobal ? validData.cnpj : existing.cnpj;
       const nextParentCompanyId = parentCompanyId || null;
       const nextAccountingFirmId = accountingFirmId || null;
+
+      this.logger.log({
+        event: 'company.update.validated',
+        companyId,
+        requesterId: requester.userId,
+        currentSnapshot: {
+          cnpj: existing.cnpj,
+          status: existing.status,
+          hasAddress: Boolean(existing.addresses[0]),
+        },
+        nextSnapshot: {
+          cnpj: nextCnpj,
+          status: validation.data.status,
+          parentCompanyId: nextParentCompanyId,
+          accountingFirmId: nextAccountingFirmId,
+          hasAddress: Boolean(address && typeof address === 'object' && address.cep),
+        },
+      });
 
       if (nextParentCompanyId && nextParentCompanyId === companyId) {
         return { success: false, message: 'A empresa nao pode ser vinculada como propria matriz.' };
@@ -810,6 +860,37 @@ export class CompaniesService {
             where: { id: existing.addresses[0].id },
           });
         }
+      });
+
+      const persisted = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          id: true,
+          cnpj: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          status: true,
+          parentCompanyId: true,
+          accountingFirmId: true,
+          addresses: {
+            take: 1,
+            orderBy: { id: 'asc' },
+            select: {
+              cep: true,
+              logradouro: true,
+              numero: true,
+              cidade: true,
+              estado: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log({
+        event: 'company.update.persisted',
+        companyId,
+        requesterId: requester.userId,
+        persisted,
       });
 
       void this.contactsService.syncChatwootContactsForCompany(companyId).catch((error: any) => {
