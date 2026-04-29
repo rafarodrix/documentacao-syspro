@@ -175,7 +175,7 @@ function ChatwootDiagnosticsTab() {
               ))}
             </div>
 
-            <pre className="max-h-72 overflow-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <pre className="overflow-x-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
             </pre>
 
