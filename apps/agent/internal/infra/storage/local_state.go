@@ -57,5 +57,5 @@ func (s *LocalStateStore) readJSONFile(name string) ([]byte, error) {
 
 func (s *LocalStateStore) writeJSONFile(name string, data []byte) error {
 	path := filepath.Join(s.baseDir, name)
-	return writeFileAtomic(path, data, 0o644)
+	return writeFileAtomic(path, data, 0o600)
 }
