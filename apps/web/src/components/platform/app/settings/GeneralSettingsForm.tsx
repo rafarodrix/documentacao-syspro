@@ -107,8 +107,8 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
     }
 
     return (
-        <div className="animate-in fade-in duration-500">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="min-w-0 overflow-x-hidden animate-in fade-in duration-500">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0 space-y-6">
                 <TabsList className="inline-flex w-full sm:w-auto p-1 bg-muted/50 border border-border/40">
                     <TabsTrigger value="general" className="px-6 py-2">Geral</TabsTrigger>
                     <TabsTrigger value="preferences" className="px-6 py-2">Motivos de Cancelamento</TabsTrigger>

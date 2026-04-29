@@ -84,7 +84,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const sefazRoutes = settingsView.sefazRoutes;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 p-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-8 px-6 pt-6 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-foreground">
           <Sliders className="h-8 w-8 text-primary/80" />
@@ -97,7 +97,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </p>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="space-y-6">
+      <Tabs defaultValue={defaultTab} className="w-full min-w-0 space-y-6">
         <div className="flex items-center">
           <TabsList className="h-auto flex-wrap border border-border/40 bg-muted/50 p-1">
             <TabsTrigger
@@ -160,7 +160,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent
           value="general"
-          className="space-y-4 animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
             <GeneralSettingsForm adminView={settingsView.permissionsAdminView} />
@@ -169,7 +169,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent
           value="agent"
-          className="space-y-4 animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
             {remoteAdminView ? (
@@ -184,7 +184,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent
           value="integrations"
-          className="space-y-4 animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
             <IntegrationsSettingsTab />
@@ -193,14 +193,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent
           value="automations"
-          className="space-y-4 animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
             <AutomationSettingsTab />
           </div>
         </TabsContent>
 
-        <TabsContent value="tax" className="space-y-4 outline-none focus-visible:ring-0">
+        <TabsContent value="tax" className="min-w-0 space-y-4 overflow-x-hidden outline-none focus-visible:ring-0">
           <div className="max-w-6xl">
             <h3 className="mb-4 text-lg font-medium">
               Sincronizacao de Tabelas Fiscais
@@ -292,7 +292,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent
           value="sefaz"
-          className="space-y-4 animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
             <SefazRoutesTab initialRoutes={sefazRoutes} />
@@ -301,7 +301,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent
           value="tickets"
-          className="space-y-4 animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
             <TicketSettingsTab />

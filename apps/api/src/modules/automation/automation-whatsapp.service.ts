@@ -658,11 +658,16 @@ export class AutomationWhatsappService {
   }
 
   private normalizeGroupRecipient(value?: string | null): string | null {
-    const normalized = String(value ?? '').trim();
+    const normalized = String(value ?? '').trim().toLowerCase();
     if (!normalized) return null;
     if (normalized.endsWith('@g.us')) return normalized;
 
-    const digits = normalized.replace(/\D/g, '');
+    const candidate = normalized.replace(/\s+/g, '');
+    if (/^\d+-\d+$/.test(candidate)) {
+      return `${candidate}@g.us`;
+    }
+
+    const digits = candidate.replace(/\D/g, '');
     return digits ? `${digits}@g.us` : null;
   }
 
