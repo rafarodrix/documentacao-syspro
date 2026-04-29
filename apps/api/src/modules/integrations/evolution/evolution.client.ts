@@ -117,7 +117,7 @@ export class EvolutionClient {
     number: string,
     text: string,
     clientMessageId?: string,
-  ): Promise<{ messageId?: string }> {
+  ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de mensagem ignorado.');
       return {};
@@ -178,7 +178,7 @@ export class EvolutionClient {
           totalAttempts: normalizedNumbers.length,
           durationMs: Date.now() - requestStartedAt,
         }));
-        return { messageId };
+        return { messageId, resolvedWhatsappNumber: attemptNumber };
       }
 
       const responseError = await response.text().catch(() => 'unknown_error');
@@ -237,7 +237,7 @@ export class EvolutionClient {
     fileName?: string,
     caption?: string,
     clientMessageId?: string,
-  ): Promise<{ messageId?: string }> {
+  ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
     if (!config.apiUrl || !config.apiKey) {
       console.warn('[EvolutionClient] Credenciais ausentes. Envio de midia ignorado.');
       return {};
@@ -310,7 +310,7 @@ export class EvolutionClient {
           totalAttempts: normalizedNumbers.length,
           durationMs: Date.now() - requestStartedAt,
         }));
-        return { messageId };
+        return { messageId, resolvedWhatsappNumber: attemptNumber };
       }
 
       const responseError = await response.text().catch(() => 'unknown_error');

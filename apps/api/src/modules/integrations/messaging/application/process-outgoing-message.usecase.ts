@@ -259,8 +259,16 @@ export class ProcessOutgoingMessageUseCase {
         content || '',
         messageId ?? undefined,
       );
+      await this.reconcileWhatsappNumberIfNeeded(
+        link,
+        phone,
+        sendResult.resolvedWhatsappNumber,
+        linkContext,
+        messageId,
+        chatwootConversationId,
+      );
       this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: phone,
+        flow: 'chatwoot_to_evolution', stage: 'sent_media', messageId, providerMessageId: sendResult.messageId, chatwootConversationId, whatsappNumber: sendResult.resolvedWhatsappNumber ?? phone,
       }));
 
       if (sendResult.messageId && messageId) {
@@ -298,7 +306,7 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     const outboundContent = content ?? '';
-    let sendResult: { messageId?: string };
+    let sendResult: { messageId?: string; resolvedWhatsappNumber?: string };
     try {
       sendResult = await this.evolutionClient.sendTextMessage(
         linkContext.evolution,
@@ -336,13 +344,21 @@ export class ProcessOutgoingMessageUseCase {
       }
       throw error;
     }
+    await this.reconcileWhatsappNumberIfNeeded(
+      link,
+      phone,
+      sendResult.resolvedWhatsappNumber,
+      linkContext,
+      messageId,
+      chatwootConversationId,
+    );
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_evolution',
       stage: 'sent',
       messageId,
       providerMessageId: sendResult.messageId,
       chatwootConversationId,
-      whatsappNumber: phone,
+      whatsappNumber: sendResult.resolvedWhatsappNumber ?? phone,
     }));
 
     if (sendResult.messageId && messageId) {
@@ -586,6 +602,83 @@ export class ProcessOutgoingMessageUseCase {
         chatwootContactId,
       },
     });
+  }
+
+  private async reconcileWhatsappNumberIfNeeded(
+    link: {
+      id: string;
+      companyId: string | null;
+      connectionId: string | null;
+      connectionKey: string;
+      whatsappNumber: string;
+      chatwootContactId: string;
+      chatwootConversationId: string;
+    },
+    originalWhatsappNumber: string,
+    resolvedWhatsappNumber: string | undefined,
+    connection: ResolvedIntegrationContext,
+    messageId: string | undefined,
+    chatwootConversationId: string,
+  ) {
+    const normalizedResolved = String(resolvedWhatsappNumber ?? '').trim();
+    if (!normalizedResolved || normalizedResolved === originalWhatsappNumber) {
+      return;
+    }
+
+    await this.prisma.conversationLink.update({
+      where: { id: link.id },
+      data: { whatsappNumber: normalizedResolved },
+    });
+
+    const linkedContact = await this.prisma.companyContact.findFirst({
+      where: { whatsapp: originalWhatsappNumber },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    if (linkedContact) {
+      await this.prisma.companyContact.update({
+        where: { id: linkedContact.id },
+        data: { whatsapp: normalizedResolved },
+      });
+    }
+
+    const formattedResolvedPhone = normalizedResolved.startsWith('+')
+      ? normalizedResolved
+      : `+${normalizedResolved}`;
+    try {
+      await this.chatwootClient.updateContact(
+        connection.chatwoot,
+        link.chatwootContactId,
+        { phone_number: formattedResolvedPhone },
+      );
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'phone_reconciliation_chatwoot_update_failed',
+        messageId: messageId ?? null,
+        chatwootConversationId,
+        chatwootContactId: link.chatwootContactId,
+        previousWhatsappNumber: originalWhatsappNumber,
+        resolvedWhatsappNumber: normalizedResolved,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+
+    this.logger.warn(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'phone_reconciled_with_provider',
+      messageId: messageId ?? null,
+      chatwootConversationId,
+      chatwootContactId: link.chatwootContactId,
+      previousWhatsappNumber: originalWhatsappNumber,
+      resolvedWhatsappNumber: normalizedResolved,
+      connectionKey: link.connectionKey,
+      companyId: link.companyId,
+      connectionId: link.connectionId,
+      contactUpdated: Boolean(linkedContact),
+    }));
+
+    link.whatsappNumber = normalizedResolved;
   }
 
   private toArray<T>(value: T | T[] | null | undefined): T[] {
