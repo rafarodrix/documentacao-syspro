@@ -1141,6 +1141,9 @@ export class TicketsService {
       (previousTeam === 'SUPORTE' || previousTeam === 'DESENVOLVIMENTO') &&
       (resolvedNextTeam === 'SUPORTE' || resolvedNextTeam === 'DESENVOLVIMENTO')
     ) {
+      const previousRoutingTeam: 'SUPORTE' | 'DESENVOLVIMENTO' = previousTeam;
+      const nextRoutingTeam: 'SUPORTE' | 'DESENVOLVIMENTO' = resolvedNextTeam;
+
       this.runAutomationInBackground('ticket_team_routing_group_notification', exists.id, async () => {
         await this.automationWhatsappService.sendTicketTeamRoutingGroupNotifications({
           settings,
@@ -1148,8 +1151,8 @@ export class TicketsService {
           ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
           title: exists.subject?.trim() || 'Sem titulo',
           companyId: exists.companyId,
-          previousTeam,
-          nextTeam: resolvedNextTeam,
+          previousTeam: previousRoutingTeam,
+          nextTeam: nextRoutingTeam,
           note: handoffNote,
           rawHeaders,
         });
