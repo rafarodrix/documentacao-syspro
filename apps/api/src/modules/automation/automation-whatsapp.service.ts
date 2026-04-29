@@ -386,7 +386,8 @@ export class AutomationWhatsappService {
         }));
       } catch (error: any) {
         failed += 1;
-        errors.push(`${group.label} (${group.jid}): ${error?.message ?? 'unknown_error'}`);
+        const classifiedError = this.classifyAutomationDispatchError(error?.message);
+        errors.push(`${group.label} (${group.jid}): ${classifiedError.summary}`);
         this.logger.warn(JSON.stringify({
           ...baseLog,
           stage: baseLog.failedStage,
@@ -395,6 +396,8 @@ export class AutomationWhatsappService {
           companyId: connection.companyId,
           groupJid: group.jid,
           groupLabel: group.label,
+          errorKind: classifiedError.kind,
+          errorSummary: classifiedError.summary,
           error: error?.message ?? 'unknown_error',
         }));
       }
@@ -405,6 +408,55 @@ export class AutomationWhatsappService {
       sent,
       failed,
       errors,
+    };
+  }
+
+  private classifyAutomationDispatchError(rawMessage?: string | null) {
+    const normalized = String(rawMessage ?? '').trim();
+    const lowercase = normalized.toLowerCase();
+
+    if (
+      lowercase.includes('failed to get group members') ||
+      lowercase.includes('info query timed out')
+    ) {
+      return {
+        kind: 'group_metadata_timeout',
+        summary:
+          'Grupo WhatsApp inacessivel ou instavel na instancia atual. A Evolution nao conseguiu consultar os metadados do grupo a tempo.',
+      };
+    }
+
+    if (lowercase.includes('timed out') || lowercase.includes('timeout')) {
+      return {
+        kind: 'provider_timeout',
+        summary: 'Timeout do provider ao tentar enviar a notificacao para o WhatsApp.',
+      };
+    }
+
+    if (lowercase.includes('not-authorized') || lowercase.includes('unauthorized')) {
+      return {
+        kind: 'provider_unauthorized',
+        summary: 'A instancia Evolution nao esta autorizada para concluir este envio.',
+      };
+    }
+
+    if (lowercase.includes('not found') && lowercase.includes('@g.us')) {
+      return {
+        kind: 'group_not_found',
+        summary: 'Grupo WhatsApp nao encontrado para a instancia atual.',
+      };
+    }
+
+    if (normalized) {
+      return {
+        kind: 'provider_error',
+        summary: normalized,
+      };
+    }
+
+    return {
+      kind: 'unknown_error',
+      summary: 'Falha desconhecida ao enviar a notificacao para o WhatsApp.',
     };
   }
 
