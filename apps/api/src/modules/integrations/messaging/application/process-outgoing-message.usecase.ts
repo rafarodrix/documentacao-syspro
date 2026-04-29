@@ -317,6 +317,10 @@ export class ProcessOutgoingMessageUseCase {
     } catch (error: any) {
       const knownProviderCode =
         error instanceof EvolutionOutboundError ? error.code : null;
+      const fallbackWhatsappNumber =
+        knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED'
+          ? this.buildLegacyBrazilianNumberVariant(phone)
+          : null;
       this.logger.error(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage:
@@ -326,6 +330,8 @@ export class ProcessOutgoingMessageUseCase {
         messageId,
         chatwootConversationId,
         whatsappNumber: phone,
+        originalWhatsappNumber: phone,
+        fallbackWhatsappNumber,
         connectionKey: link.connectionKey,
         error: error?.message ?? 'unknown_error',
         providerCode: knownProviderCode,
@@ -523,6 +529,15 @@ export class ProcessOutgoingMessageUseCase {
     }
 
     return null;
+  }
+
+  private buildLegacyBrazilianNumberVariant(number: string): string | null {
+    const digits = String(number ?? '').replace(/\D/g, '');
+    if (!/^55\d{2}9\d{8}$/.test(digits)) {
+      return null;
+    }
+
+    return `${digits.slice(0, 4)}${digits.slice(5)}`;
   }
 
   private async persistFallbackConversationLink(
