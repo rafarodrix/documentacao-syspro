@@ -236,19 +236,22 @@ export class AgentsService {
       });
     }
 
+    let hostCompanyId: string | undefined;
     if (parsed.data.remoteHostId !== null) {
       const host = await this.prisma.remoteHost.findUnique({
         where: { id: parsed.data.remoteHostId },
-        select: { id: true },
+        select: { id: true, companyId: true },
       });
       if (!host) {
         throw new NotFoundException({ success: false, error: 'REMOTE_HOST_NOT_FOUND' });
       }
+      hostCompanyId = host.companyId;
     }
 
     try {
       const updateData: Prisma.AgentDeviceUncheckedUpdateInput = {
         remoteHostId: parsed.data.remoteHostId,
+        ...(hostCompanyId ? { companyId: hostCompanyId } : {}),
       };
       const row = await this.prisma.agentDevice.update({
         where: { deviceId: normalizedDeviceId },

@@ -236,6 +236,11 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         },
       });
 
+      await prisma.agentDevice.updateMany({
+        where: { remoteHostId: input.hostId },
+        data: { companyId: input.companyId },
+      });
+
       return { host };
     },
 
