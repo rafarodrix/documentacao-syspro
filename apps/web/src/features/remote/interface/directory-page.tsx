@@ -957,7 +957,14 @@ export function RemotePlatformDirectoryPanel({
           ) : null}
 
           {filteredItems.length ? (
-            <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-border/40 bg-background/40">
+              <div className="hidden grid-cols-[minmax(0,1.5fr)_170px_180px_220px] items-center gap-4 border-b border-border/40 bg-muted/20 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid">
+                <span>Host</span>
+                <span>Heartbeat</span>
+                <span>ID remoto</span>
+                <span className="text-right">Acoes</span>
+              </div>
+              <div className="divide-y divide-border/30">
               {filteredItems.map((item) => {
                 const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, hasHydrated ? Date.now() : null);
                 const productStatus = getRemoteProductStatusMeta(item.productStatus);
@@ -971,10 +978,11 @@ export function RemotePlatformDirectoryPanel({
                 return (
                   <div
                     key={item.id}
-                    className="group relative rounded-xl border border-border/40 bg-background/50 p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-muted/5 hover:shadow-md"
+                    className="group relative px-4 py-4 transition-colors hover:bg-muted/10"
                   >
-                    <div className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-center">
-                      <div className="flex items-start gap-4 min-w-0">
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_170px_180px_220px] lg:items-center">
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-start gap-4">
                         <div className={`mt-1 h-3 w-3 shrink-0 rounded-full border-2 ${heartbeat.bucket === "recent" ? "animate-pulse border-emerald-500 bg-emerald-500" : "border-muted-foreground/30 bg-muted-foreground/20"}`} />
                         
                         <div className="flex-1 min-w-0 space-y-2">
@@ -1007,7 +1015,7 @@ export function RemotePlatformDirectoryPanel({
                           </div>
 
                           <div className="space-y-0.5">
-                            <p className="truncate text-lg font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
+                            <p className="truncate text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
                               {item.name}
                             </p>
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -1017,10 +1025,6 @@ export function RemotePlatformDirectoryPanel({
                                   {installationNames[0]} {installationNames.length > 1 && `+${installationNames.length - 1}`}
                                 </span>
                               )}
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatHeartbeatTime(item.lastHeartbeatAt, hasHydrated)}
-                              </span>
                               {item.lastTicketNumber && (
                                 <span className="flex items-center gap-1 text-primary/80 font-medium">
                                   <Ticket className="h-3 w-3" />
@@ -1031,9 +1035,22 @@ export function RemotePlatformDirectoryPanel({
                           </div>
                         </div>
                       </div>
+                      </div>
 
-                      <div className="lg:px-4">
-                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">ID Remoto</p>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:hidden">Heartbeat</p>
+                        <div className="space-y-1">
+                          <Badge variant="outline" className={heartbeat.className}>
+                            {heartbeat.shortLabel}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground" title={formatHeartbeatDateTime(item.lastHeartbeatAt, hasHydrated)}>
+                            {formatHeartbeatTime(item.lastHeartbeatAt, hasHydrated)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:hidden">ID Remoto</p>
                         <div className="relative group/id">
                           <code className="block w-full rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-sm font-mono tracking-tight text-foreground/80 transition-all group-hover/id:border-primary/20 group-hover/id:bg-muted/30">
                             {item.rustdeskId ?? "---"}
@@ -1050,11 +1067,11 @@ export function RemotePlatformDirectoryPanel({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
+                      <div className="flex flex-col gap-2 lg:items-end">
                         <Button
                           type="button"
                           size="sm"
-                          className="h-9 font-semibold shadow-sm"
+                          className="h-9 min-w-[140px] font-semibold shadow-sm"
                           onClick={() => handleQuickConnect(item)}
                           disabled={!item.rustdeskId || connectingHostId === item.id}
                         >
@@ -1066,18 +1083,18 @@ export function RemotePlatformDirectoryPanel({
                           Conectar
                         </Button>
                         {rustdeskHref ? (
-                          <Button asChild variant="outline" size="sm" className="h-9 font-semibold shadow-sm">
+                          <Button asChild variant="outline" size="sm" className="h-9 min-w-[140px] font-semibold shadow-sm">
                             <a href={rustdeskHref}>
                               <ExternalLink className="mr-2 h-3.5 w-3.5" />
                               {isMobileClient ? "Abrir App" : "Acesso Rápido"}
                             </a>
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm" disabled className="h-9 border-dashed">
+                          <Button variant="outline" size="sm" disabled className="h-9 min-w-[140px] border-dashed">
                             Sem Conexão
                           </Button>
                         )}
-                        <Button asChild variant="outline" size="sm" className="h-9 bg-background/50 hover:bg-muted/50">
+                        <Button asChild variant="outline" size="sm" className="h-9 min-w-[140px] bg-background/50 hover:bg-muted/50">
                           <Link
                             href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
                           >
@@ -1089,7 +1106,7 @@ export function RemotePlatformDirectoryPanel({
 
                     {/* Signals Bar */}
                     {(item.inventorySignals.rebootPending || item.inventorySignals.diskLow || item.inventorySignals.sysproProcessDown || item.contractErrorCode) && (
-                      <div className="mt-3 flex flex-wrap gap-2 pt-3 border-t border-border/20">
+                      <div className="mt-3 flex flex-wrap gap-2 border-t border-border/20 pt-3">
                         {item.inventorySignals.rebootPending && (
                           <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px]">
                             <RefreshCw className="mr-1 h-3 w-3 animate-spin-slow" />
@@ -1111,6 +1128,7 @@ export function RemotePlatformDirectoryPanel({
                   </div>
                 );
               })}
+              </div>
             </div>
           ) : !filteredPendingItems.length ? (
             <p className="text-sm text-muted-foreground">
