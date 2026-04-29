@@ -1,4 +1,60 @@
-﻿# Padrão de Nomenclatura de Arquivos, Tipos, Módulos e Imports do Monorepo
+# Padrão de Nomenclatura de Arquivos, Tipos, Módulos e Imports do Monorepo
+
+## Status do Documento
+
+Este documento passa a ser tratado como a referência normativa principal para nomenclatura técnica do monorepo.
+
+Ele deve ser consultado:
+
+* ao criar novos módulos
+* ao renomear arquivos existentes
+* ao revisar PRs
+* ao extrair código para `packages`
+* ao alinhar fronteiras entre frontend, backend e contratos
+
+## Grau de maturidade
+
+Este padrão já está em nível compatível com práticas enterprise de mercado porque cobre:
+
+* separação por camada
+* nomenclatura por responsabilidade
+* fronteira pública por `index.ts`
+* previsibilidade de símbolos
+* previsibilidade de imports
+
+Ele não é apenas um guia estético.
+Ele define uma linguagem estrutural para o monorepo.
+
+## Refinamentos oficiais incorporados
+
+Além das regras detalhadas ao longo do documento, passam a valer também estas diretrizes:
+
+1. arquivos React em `apps/web` devem usar `kebab-case`
+2. o símbolo exportado do componente continua em `PascalCase`
+3. evitar nomes genéricos como `types.ts`, `actions.ts`, `queries.ts` e `helpers.ts` quando o domínio puder ser explicitado
+4. `apps/web` não deve depender de `@prisma/client`
+5. tipos compartilhados entre apps devem nascer em `packages/contracts`
+6. novos módulos devem preferir domínio em singular
+
+## Leitura prática
+
+Interprete este documento assim:
+
+* **obrigatório**
+  * `kebab-case` para arquivos
+  * `PascalCase` para tipos, componentes e classes
+  * `camelCase` para funções e variáveis
+  * alias público para imports
+* **recomendado**
+  * singular para domínio
+  * evitar profundidade excessiva
+  * evitar duplicidade de tipos entre `web` e `contracts`
+* **exceção controlada**
+  * legado
+  * limitações de framework
+  * custo alto de rename em módulo estável
+
+---
 
 ## Visão Geral
 
@@ -65,7 +121,7 @@ Exemplo pior:
 
 ## 4. O mesmo conceito deve ter nome consistente em todo o monorepo
 
-Se o domínio usa “ticket”, não alternar entre:
+Se o domínio usa `ticket`, não alternar entre:
 
 * `ticket`
 * `chamado`
@@ -82,6 +138,10 @@ Exemplo:
 * `.dto.ts`
 * `.service.ts`
 * `.repository.ts`
+
+## 6. Fronteira arquitetural deve aparecer no nome
+
+Se o arquivo pertence a leitura, escrita, contrato, mapper ou gateway, isso deve ser inferível sem abrir o arquivo.
 
 ---
 
@@ -137,6 +197,29 @@ ticket-provider-api.types.ts
 agent-heartbeat.dto.ts
 create-ticket.use-case.ts
 ticket.repository.ts
+```
+
+## Anti-pattern obrigatório de evitar
+
+Evitar arquivos genéricos demais como:
+
+```text
+types.ts
+actions.ts
+queries.ts
+helpers.ts
+utils.ts
+```
+
+quando o domínio puder ser explicitado.
+
+### Preferir
+
+```text
+company-view.types.ts
+company-write.actions.ts
+company-read.queries.ts
+ticket-filters.helpers.ts
 ```
 
 ---
@@ -361,6 +444,12 @@ http-exception.filter.ts
 
 No `apps/api`, o sufixo deve refletir o papel dentro do NestJS.
 
+### Observação
+
+Uso de Prisma no `apps/api` é esperado.
+O problema não é o ORM existir no backend.
+O problema é ele atravessar fronteira para a UI.
+
 ---
 
 ## 7. `apps/web`
@@ -376,6 +465,9 @@ Aplicação web.
 * helper local: `*.ts`
 * feature service local: `*.service.ts`
 * mapper de view: `*.mapper.ts`
+* actions de escrita: `*-write.actions.ts`
+* queries de leitura: `*-read.queries.ts`
+* tipos locais de view: `*-view.types.ts`
 
 ### Exemplos
 
@@ -385,6 +477,9 @@ ticket-form.tsx
 use-ticket-filters.ts
 ticket-view.mapper.ts
 ticket-page.service.ts
+company-write.actions.ts
+company-read.queries.ts
+company-view.types.ts
 ```
 
 ### Regra
@@ -395,6 +490,19 @@ No `web`, separar claramente:
 * hook
 * mapper de apresentação
 * serviço local de feature
+* leitura
+* escrita
+* tipos de view
+
+### Regra adicional
+
+`apps/web` não deve importar:
+
+```ts
+@prisma/client
+```
+
+salvo em exceção controlada e documentada.
 
 ---
 
@@ -408,8 +516,6 @@ Runtime do Master Agent em Go.
 
 * arquivos em `snake_case.go` ou `lowercase.go`
 
-Como em Go é comum usar nomes simples, o importante aqui é consistência.
-
 ### Recomendado
 
 ```text
@@ -418,9 +524,6 @@ register.go
 heartbeat.go
 desired_state.go
 service_manager.go
-backup_manager.go
-upload.go
-hash.go
 ```
 
 ### Regra
@@ -449,18 +552,6 @@ interface DesiredState
 ### Prefixo `I`
 
 Evitar `I`.
-
-### Bom
-
-```ts
-interface Ticket
-```
-
-### Evitar
-
-```ts
-interface ITicket
-```
 
 ---
 
@@ -491,31 +582,9 @@ Valores internos:
 * preferir `UPPER_SNAKE_CASE` quando fizer sentido semântico
 * ou string literal clara em minúsculo, se esse for o padrão do projeto
 
-### Exemplo com enum
-
-```ts
-export enum TicketStatus {
-  OPEN = 'open',
-  IN_PROGRESS = 'in_progress',
-  CLOSED = 'closed',
-}
-```
-
 ### Recomendação atual
 
-Preferir **string unions** ou `as const` quando enum não for estritamente necessário.
-
-### Exemplo preferido em muitos casos
-
-```ts
-export const TicketStatus = {
-  OPEN: 'open',
-  IN_PROGRESS: 'in_progress',
-  CLOSED: 'closed',
-} as const;
-
-export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus];
-```
+Preferir string unions ou objetos `as const` quando enum não for estritamente necessário.
 
 ---
 
@@ -525,15 +594,6 @@ export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus];
 
 Classes usam `PascalCase`.
 
-### Exemplos
-
-```ts
-class CreateTicketUseCase
-class TicketRepository
-class HttpClient
-class RatholeAdapter
-```
-
 ---
 
 ## Funções
@@ -542,15 +602,6 @@ class RatholeAdapter
 
 Funções usam `camelCase`.
 
-### Exemplos
-
-```ts
-createTicket
-mapTicketToResponse
-buildDesiredState
-sendHeartbeat
-```
-
 ---
 
 ## Variáveis
@@ -558,15 +609,6 @@ sendHeartbeat
 ### Regra
 
 Variáveis usam `camelCase`.
-
-### Exemplos
-
-```ts
-ticketStatus
-desiredState
-backupPolicy
-heartbeatPayload
-```
 
 ---
 
@@ -578,13 +620,6 @@ Constantes podem seguir:
 
 * `camelCase` para constantes locais
 * `UPPER_SNAKE_CASE` para constantes globais e semânticas
-
-### Exemplos
-
-```ts
-const defaultPageSize = 20;
-const MAX_RETRY_ATTEMPTS = 5;
-```
 
 ---
 
@@ -611,17 +646,6 @@ DataDto
 PayloadDto
 ```
 
-## Arquivos
-
-### Bom
-
-```text
-create-ticket.dto.ts
-update-ticket-status.dto.ts
-agent-heartbeat.dto.ts
-register-agent.dto.ts
-```
-
 ---
 
 # Convenção de Use Cases
@@ -637,15 +661,6 @@ CreateTicketUseCase
 UpdateTicketStatusUseCase
 RegisterAgentUseCase
 ApplyDesiredStateUseCase
-```
-
-## Arquivos
-
-```text
-create-ticket.use-case.ts
-update-ticket-status.use-case.ts
-register-agent.use-case.ts
-apply-desired-state.use-case.ts
 ```
 
 ---
@@ -665,14 +680,6 @@ TunnelManagerPort
 RemoteAccessPort
 ```
 
-## Arquivos
-
-```text
-ticket-repository.port.ts
-backup-uploader.port.ts
-tunnel-manager.port.ts
-```
-
 ---
 
 # Convenção de Repositories
@@ -689,23 +696,13 @@ CompanyRepository
 AgentRepository
 ```
 
-## Quando houver implementação específica
+### Quando houver implementação específica
 
 Pode explicitar a tecnologia.
-
-### Exemplos
 
 ```ts
 PrismaTicketRepository
 PrismaCompanyRepository
-```
-
-## Arquivos
-
-```text
-ticket.repository.ts
-company.repository.ts
-prisma-ticket.repository.ts
 ```
 
 ---
@@ -725,45 +722,19 @@ CompanyPersistenceMapper
 AgentHeartbeatMapper
 ```
 
-## Arquivos
-
-```text
-ticket.mapper.ts
-ticket-response.mapper.ts
-company-persistence.mapper.ts
-```
-
 ---
 
 # Convenção de Services
 
 ## Regra
 
-Service deve ser usado com cuidado.
+`service` deve ser usado com cuidado.
 
 Use `service` quando a abstração realmente for um serviço.
 
-### Exemplos válidos
+### Observação
 
-```ts
-AgentHeartbeatService
-BackupOrchestrationService
-NotificationService
-```
-
-### Evitar
-
-Usar `service` para tudo.
-
-### Ruim
-
-```ts
-TicketService
-ThingService
-ManagerService
-```
-
-salvo quando estiver em `apps/api`, onde `service` é um papel técnico do NestJS.
+No `apps/api`, `service` também é um papel técnico do NestJS e por isso é aceitável.
 
 ---
 
@@ -773,23 +744,6 @@ salvo quando estiver em `apps/api`, onde `service` é um papel técnico do NestJ
 
 Policies devem representar regra explícita.
 
-### Exemplos
-
-```ts
-TicketSlaPolicy
-BackupRetentionPolicy
-RemoteAccessPolicy
-DesiredStatePolicy
-```
-
-## Arquivos
-
-```text
-ticket-sla.policy.ts
-backup-retention.policy.ts
-desired-state.policy.ts
-```
-
 ---
 
 # Convenção de Value Objects
@@ -797,23 +751,6 @@ desired-state.policy.ts
 ## Regra
 
 Value objects devem representar conceito de domínio.
-
-### Exemplos
-
-```ts
-TicketPriority
-AgentVersion
-HardwareId
-BackupWindow
-```
-
-## Arquivos
-
-```text
-ticket-priority.value-object.ts
-agent-version.value-object.ts
-hardware-id.value-object.ts
-```
 
 ---
 
@@ -826,22 +763,6 @@ Eventos e webhooks devem deixar claro:
 * origem
 * contexto
 * natureza do payload
-
-### Exemplos
-
-```ts
-EvolutionWebhookPayload
-TicketCreatedEvent
-AgentHeartbeatReceivedEvent
-```
-
-## Arquivos
-
-```text
-evolution-webhook.types.ts
-ticket-created.event.types.ts
-agent-heartbeat-received.event.types.ts
-```
 
 ---
 
@@ -871,7 +792,9 @@ general
 data
 ```
 
-salvo quando o módulo realmente for transversal.
+### Preferência adicional
+
+Para novos módulos, preferir singular.
 
 ---
 
@@ -886,14 +809,6 @@ Cada pasta relevante deve ter `index.ts`.
 * expor API pública
 * esconder estrutura interna
 * evitar imports profundos
-
-## Exemplo
-
-```ts
-export * from './ticket.types';
-export * from './ticket-form.types';
-export * from './ticket-api.types';
-```
 
 ## Regra importante
 
@@ -922,44 +837,15 @@ import { Button } from '@trilink/ui';
 import { Ticket } from '../../../../packages/contracts/src/ticket/ticket.types';
 ```
 
----
-
 ## Regra de profundidade
 
 Evitar import profundo em arquivos internos do package, salvo quando o package definir isso como público.
 
-### Bom
-
-```ts
-import { Ticket } from '@trilink/contracts/ticket';
-```
-
-### Evitar
-
-```ts
-import { Ticket } from '@trilink/contracts/src/ticket/ticket.types';
-```
-
----
-
-## Ordem recomendada de imports
-
-### Ordem sugerida
+## Ordem recomendada
 
 1. bibliotecas externas
 2. aliases do monorepo
 3. imports relativos locais
-
-### Exemplo
-
-```ts
-import { z } from 'zod';
-
-import { Ticket } from '@trilink/contracts/ticket';
-import { createTicket } from '@trilink/application/ticket';
-
-import { mapTicketToView } from './ticket-view.mapper';
-```
 
 ---
 
@@ -1019,33 +905,13 @@ export function ThemeProvider() {}
 
 Usar nomes simples e previsíveis.
 
-### Exemplos
-
-```text
-main.go
-identity.go
-register.go
-heartbeat.go
-desired_state.go
-reconcile.go
-service_manager.go
-```
-
 ## Tipos
 
 Usar `PascalCase`.
 
-### Exemplos
-
-```go
-type AgentConfig struct {}
-type HeartbeatPayload struct {}
-type DesiredState struct {}
-```
-
 ## Funções
 
-Usar `PascalCase` para exportadas e `camelCase` implícito do Go para internas, conforme convenção da linguagem.
+Usar `PascalCase` para exportadas e convenção interna da linguagem para funções locais.
 
 ---
 
@@ -1064,22 +930,6 @@ HeartbeatRequest
 HeartbeatResponse
 BackupResultPayload
 DesiredStatePayload
-```
-
-## Quando usar `Request` e `Response`
-
-Usar em contratos de API claramente orientados a transporte.
-
-## Quando usar só nome de domínio
-
-Usar quando o tipo representa o conceito em si.
-
-### Exemplo
-
-```ts
-DesiredState
-BackupPolicy
-TunnelPolicy
 ```
 
 ---
@@ -1134,18 +984,7 @@ companies
 users
 ```
 
-salvo em contextos muito específicos de coleção.
-
-## Para listas ou coleções
-
-O símbolo pode indicar plural quando for realmente uma coleção.
-
-### Exemplo
-
-```ts
-type TicketListItem
-type TicketCollectionResponse
-```
+salvo em contextos muito específicos de coleção ou quando o legado já estiver consolidado e o custo de rename for alto.
 
 ---
 
@@ -1193,6 +1032,12 @@ Exemplo ruim:
 
 Escolher um idioma técnico principal e manter consistência.
 
+## 6. ORM atravessando fronteira
+
+Exemplo ruim:
+
+* `apps/web` importando `@prisma/client`
+
 ---
 
 # Idioma recomendado
@@ -1201,7 +1046,7 @@ Escolher um idioma técnico principal e manter consistência.
 
 Como a base técnica costuma usar convenções globais, a recomendação mais sólida é:
 
-* **nomes técnicos e estruturais em inglês**
+* nomes técnicos e estruturais em inglês
 * textos de documentação e negócio podem ficar em português
 
 ### Exemplos recomendados
@@ -1213,8 +1058,6 @@ desired-state.types.ts
 heartbeat.client.ts
 ```
 
-Isso evita mistura estranha e melhora interoperabilidade com bibliotecas, padrões e onboarding técnico.
-
 ---
 
 # Regra oficial resumida
@@ -1223,10 +1066,11 @@ Isso evita mistura estranha e melhora interoperabilidade com bibliotecas, padrõ
 
 * `kebab-case`
 * sufixo semântico por camada
+* evitar nomes genéricos sem contexto de domínio
 
 ## Símbolos
 
-* `PascalCase` para tipos, classes, interfaces, enums, componentes
+* `PascalCase` para tipos, classes, interfaces, enums e componentes
 * `camelCase` para funções e variáveis
 
 ## Módulos
@@ -1234,16 +1078,24 @@ Isso evita mistura estranha e melhora interoperabilidade com bibliotecas, padrõ
 * nome do domínio
 * minúsculo
 * curto e claro
+* singular preferencialmente em novos módulos
 
 ## Imports
 
 * sempre por alias público do package
 * evitar caminhos profundos
+* frontend não deve importar ORM quando houver contrato compartilhado
 
 ## Barrel exports
 
 * obrigatórios nos módulos relevantes
 * expor somente a API pública desejada
+
+## Fronteiras
+
+* `apps/web` depende de `contracts`, não de persistência
+* `apps/api` pode depender de Prisma e infraestrutura
+* `packages/contracts` define a linguagem compartilhada
 
 ---
 
@@ -1277,7 +1129,7 @@ ticket.mapper.ts
 ticket-summary.query.ts
 ```
 
-## SDK
+## Application
 
 ```text
 ticket.client.ts
@@ -1294,13 +1146,16 @@ create-ticket.dto.ts
 ticket.presenter.ts
 ```
 
-## UI
+## Web
 
 ```text
 ticket-list.tsx
 page-header.tsx
 use-ticket-filters.ts
 theme.provider.tsx
+company-read.queries.ts
+company-write.actions.ts
+company-view.types.ts
 ```
 
 ---
@@ -1317,3 +1172,7 @@ Quando isso é respeitado, o monorepo ganha:
 * previsibilidade
 * consistência
 * escalabilidade
+
+E, a partir desta revisão, ganha também uma diretriz enterprise mais explícita:
+
+> nomes devem refletir domínio, fronteira arquitetural e responsabilidade sem depender de contexto implícito.
