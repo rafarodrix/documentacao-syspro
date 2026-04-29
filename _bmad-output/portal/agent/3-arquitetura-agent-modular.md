@@ -1,6 +1,6 @@
 # Master Agent Trilink - Arquitetura modular
 
-Atualizado em 2026-04-26.
+Atualizado em 2026-04-28.
 
 ## Estado atual vs. plano original
 
@@ -240,9 +240,11 @@ POST /api/remote/rustdesk/ack
 Endpoints genericos (opt-in via `PORTAL_AGENT_API_ENABLED=true`):
 
 ```
-POST /api/agents/register
-POST /api/agents/heartbeat
+POST /api/agents/register          <- registro; aciona tryLinkRemoteHost por hostname
+POST /api/agents/heartbeat         <- heartbeat; aciona tryLinkRemoteHost se nao vinculado ainda
 GET  /api/agents/:deviceId/desired-state
+GET  /api/agents                   <- lista paginada; filtros: remoteHostId, companyId, status, search
+GET  /api/agents/stats             <- frota: total, online, offline, sem empresa
 ```
 
 Endpoints de suporte (planejados, nao ativos ainda):
@@ -320,19 +322,32 @@ type AgentDesiredState = {
 
 ## Papel do portal web
 
-Telas que o `apps/web` deve expor (ainda pendentes):
+Rota principal: `/portal/infraestrutura` (tabs: `hosts`, `sessoes`, `relatorios`, `agentes`)
 
-- Detalhe do dispositivo/agente
-- Status por modulo (remote, backup, device)
-- Timeline operacional do agente
+### Implementado
+
+- **Aba `agentes`**: `AgentDevicesPanel` com lista paginada, filtros (status, empresa, busca), estatisticas de frota (total, online, offline, sem empresa) e link para o `RemoteHost` vinculado
+- **`LinkedDeviceCard`** no detalhe do host (`/portal/infraestrutura/hosts/[hostId]`): aparece na aba "Visao Geral" e na aba "Agente"; exibe status online/offline com animacao pulsante, hostname, SO, versao do agente e Device ID
+
+### Ainda pendente
+
+- Pagina de detalhe do dispositivo (`/portal/infraestrutura/agentes/[deviceId]`)
+- Status por modulo (remote, backup, device) no detalhe
+- Timeline de heartbeats e eventos
 - Tickets vinculados ao dispositivo
 - Sessoes remotas do dispositivo
 - Historico e politicas de backup
 - Comandos pendentes/executados
+- Link/unlink manual entre `AgentDevice` e `RemoteHost`
 
-Componentes sugeridos:
+Componentes implementados:
 
-- `AgentCard`
+- `LinkedDeviceCard` — vinculo do dispositivo dentro do detalhe do host
+- `AgentDevicesPanel` — lista de frota com paginacao e filtros
+
+Componentes ainda pendentes:
+
+- `AgentDetailPage`
 - `AgentModulesPanel`
 - `AgentCommandTimeline`
 - `AgentRemoteStatusCard`
@@ -437,12 +452,17 @@ enrolled device
 - [ ] Report de resultados ao portal
 - [ ] Exibir estado de backup no `agent-ui`
 
-### Fase 5 - operacao unificada no portal - PENDENTE
+### Fase 5 - operacao unificada no portal - EM ANDAMENTO
 
-- [ ] Detalhe unico do dispositivo no `apps/web`
-- [ ] Cards de support, remote e backup
+- [x] Aba "Agentes" em `/portal/infraestrutura` com lista paginada, filtros e estatisticas de frota
+- [x] Vinculo automatico `AgentDevice <-> RemoteHost` por hostname (register/heartbeat)
+- [x] Propagacao automatica de `companyId` no vinculo automatico
+- [x] `LinkedDeviceCard` no detalhe do host (abas "Visao Geral" e "Agente")
+- [ ] Pagina de detalhe do `AgentDevice` (`/portal/infraestrutura/agentes/[deviceId]`)
+- [ ] Cards de backup e suporte vinculados ao dispositivo
 - [ ] Linha do tempo de comandos e eventos
 - [ ] Correlacao entre atendimento, remoto e backup
+- [ ] Link/unlink manual na UI
 
 ## Riscos ativos
 

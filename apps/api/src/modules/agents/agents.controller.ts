@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AgentsService } from './agents.service';
 
@@ -45,6 +45,11 @@ export class AgentsController {
       companyId,
       remoteHostId,
     });
+  }
+
+  @Patch(':deviceId')
+  linkDevice(@Req() req: Request, @Param('deviceId') deviceId: string, @Body() body: unknown) {
+    return this.agentsService.linkDevice(req.headers as Record<string, unknown>, deviceId, body);
   }
 
   @Get(':deviceId')

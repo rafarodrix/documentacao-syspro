@@ -47,7 +47,12 @@ export const agentFleetStatsSchema = z.object({
   onlineThresholdSeconds: z.number().int().min(1),
 });
 
+export const agentDevicePatchSchema = z.object({
+  remoteHostId: z.string().nullable(),
+});
+
 export type AgentDeviceSummary = z.infer<typeof agentDeviceSummarySchema>;
 export type AgentDeviceListQuery = z.infer<typeof agentDeviceListQuerySchema>;
 export type AgentDeviceListResult = z.infer<typeof agentDeviceListResultSchema>;
 export type AgentFleetStats = z.infer<typeof agentFleetStatsSchema>;
+export type AgentDevicePatch = z.infer<typeof agentDevicePatchSchema>;

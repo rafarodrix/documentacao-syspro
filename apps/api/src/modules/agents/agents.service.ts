@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
+  agentDevicePatchSchema,
   agentHeartbeatPayloadSchema,
   agentRegisterPayloadSchema,
   type AgentDesiredState,
@@ -211,6 +212,68 @@ export class AgentsService {
     } catch (err) {
       // Match is best-effort — never fail the heartbeat/register because of this
       this.logger.warn({ event: 'agent.host_link_failed', deviceId, error: String(err) });
+    }
+  }
+
+  async linkDevice(
+    rawHeaders: Record<string, unknown> | undefined,
+    deviceId: string,
+    body: unknown,
+  ): Promise<{ success: true; data: AgentDeviceSummary }> {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'agents:view');
+
+    const normalizedDeviceId = deviceId?.trim();
+    if (!normalizedDeviceId) {
+      throw new BadRequestException({ success: false, error: 'INVALID_DEVICE_ID' });
+    }
+
+    const parsed = agentDevicePatchSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        success: false,
+        error: 'INVALID_PATCH_PAYLOAD',
+        details: parsed.error.flatten(),
+      });
+    }
+
+    if (parsed.data.remoteHostId !== null) {
+      const host = await this.prisma.remoteHost.findUnique({
+        where: { id: parsed.data.remoteHostId },
+        select: { id: true },
+      });
+      if (!host) {
+        throw new NotFoundException({ success: false, error: 'REMOTE_HOST_NOT_FOUND' });
+      }
+    }
+
+    try {
+      const updateData: Prisma.AgentDeviceUncheckedUpdateInput = {
+        remoteHostId: parsed.data.remoteHostId,
+      };
+      const row = await this.prisma.agentDevice.update({
+        where: { deviceId: normalizedDeviceId },
+        data: updateData,
+        include: DEVICE_INCLUDE,
+      });
+      const onlineSince = new Date(Date.now() - ONLINE_THRESHOLD_SECONDS * 1000);
+
+      this.logger.log({
+        event: parsed.data.remoteHostId ? 'agent.host_linked_manual' : 'agent.host_unlinked_manual',
+        deviceId: normalizedDeviceId,
+        remoteHostId: parsed.data.remoteHostId,
+      });
+
+      return { success: true, data: this.toSummary(row, onlineSince) };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        if (err.code === 'P2002') {
+          throw new ConflictException({ success: false, error: 'HOST_ALREADY_LINKED' });
+        }
+        if (err.code === 'P2025') {
+          throw new NotFoundException({ success: false, error: 'AGENT_DEVICE_NOT_FOUND' });
+        }
+      }
+      throw err;
     }
   }
 
