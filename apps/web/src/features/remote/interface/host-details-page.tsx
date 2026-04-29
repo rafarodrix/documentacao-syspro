@@ -74,7 +74,7 @@ import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
-import { LinkedDeviceCard } from "./host-details/components/LinkedDeviceCard";
+import { AgentLinkSection } from "./host-details/components/AgentLinkSection";
 
 
 
@@ -881,7 +881,7 @@ export function RemoteHostDetailsPanel({
         </div>
 
         <TabsContent value="geral" className="space-y-6">
-          <div className={`grid gap-6 ${ticketNumber || linkedDevice ? "lg:grid-cols-2" : ""}`}>
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Health & Performance Snapshot */}
             <Card className="border-border/40 bg-muted/5 shadow-sm">
               <CardHeader className="pb-3 px-6 pt-6">
@@ -914,7 +914,7 @@ export function RemoteHostDetailsPanel({
             </Card>
 
             {/* Linked Agent Device */}
-            {linkedDevice && <LinkedDeviceCard device={linkedDevice} />}
+            <AgentLinkSection hostId={host.id} linkedDevice={linkedDevice} />
 
             {/* Support Ticket Context */}
             {ticketNumber && (
@@ -1145,6 +1145,7 @@ export function RemoteHostDetailsPanel({
             ackQueueMetrics={ackQueueMetrics}
             hasPendingInstallGuide={hasPendingInstallGuide}
             linkedDevice={linkedDevice}
+            hostId={host.id}
           />
         </TabsContent>
 
