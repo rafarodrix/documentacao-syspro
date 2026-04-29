@@ -25,7 +25,7 @@ import {
     Zap,
 } from "lucide-react";
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
+import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
@@ -35,6 +35,17 @@ import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
@@ -508,6 +519,57 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                 <section className="space-y-3">
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
                                 </section>
+
+                                {isAdmin && !isClosedTicket && (
+                                    <>
+                                        <Separator />
+                                        <section className="space-y-2">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes</p>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="h-9 w-full justify-start border-red-500/30 text-xs text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                                        disabled={isPending}
+                                                    >
+                                                        Excluir ticket
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Excluir ticket?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Esta acao arquiva o ticket e remove ele da fila ativa. O historico permanece disponivel para auditoria.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            className="bg-red-600 text-white hover:bg-red-700"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                startTransition(async () => {
+                                                                    const res = await archiveTicketAction(String(ticket.id));
+                                                                    if (res.success) {
+                                                                        toast.success(res.message || "Ticket arquivado com sucesso.");
+                                                                        router.push(backUrl);
+                                                                        router.refresh();
+                                                                    } else {
+                                                                        toast.error(res.error || "Erro ao excluir ticket.");
+                                                                    }
+                                                                });
+                                                            }}
+                                                        >
+                                                            {isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                                                            Confirmar exclusao
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </section>
+                                    </>
+                                )}
                             </CardContent>
                         </Card>
 

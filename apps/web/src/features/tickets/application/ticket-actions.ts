@@ -424,6 +424,27 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
   }
 }
 
+export async function archiveTicketAction(ticketId: string): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
+  try {
+    const result = await updateTicketGateway(ticketId, { status: "ARCHIVED" });
+    if (!result.success) {
+      return { success: false, error: result.error || "Falha ao arquivar ticket." };
+    }
+
+    revalidateTicketCollections();
+    revalidateTicketViews(ticketId);
+    return { success: true, message: "Ticket arquivado com sucesso." };
+  } catch (error) {
+    console.error("Erro em archiveTicketAction:", error);
+    return { success: false, error: "Falha ao arquivar ticket." };
+  }
+}
+
 export async function updateTicketClassificationAction(
   ticketId: string,
   payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority; status?: TicketModuleStatus; note?: string },
