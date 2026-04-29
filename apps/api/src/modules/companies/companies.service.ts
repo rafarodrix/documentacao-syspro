@@ -734,41 +734,74 @@ export class CompaniesService {
 
       const { address, parentCompanyId, accountingFirmId, ...validData } = validation.data;
       const nextCnpj = editScope.isGlobal ? validData.cnpj : existing.cnpj;
+      const nextParentCompanyId = parentCompanyId || null;
+      const nextAccountingFirmId = accountingFirmId || null;
 
-      await this.prisma.company.update({
-        where: { id: companyId },
-        data: {
-          ...validData,
-          cnpj: nextCnpj,
-          searchText: buildCompanySearchText({ ...validData, cnpj: nextCnpj }),
-          accountingFirm: accountingFirmId ? { connect: { id: accountingFirmId } } : { disconnect: true },
-          parentCompany: parentCompanyId ? { connect: { id: parentCompanyId } } : { disconnect: true },
-          addresses:
-            address && typeof address === 'object' && address.cep
-              ? existing.addresses[0]
-                ? {
-                    update: {
-                      where: { id: existing.addresses[0].id },
-                      data: {
-                        ...address,
-                        description: address.description || 'Sede',
-                      },
-                    },
-                  }
-                : {
-                    create: {
-                      ...address,
-                      description: address.description || 'Sede',
-                    },
-                  }
-              : existing.addresses[0]
-                ? {
-                    delete: {
-                      id: existing.addresses[0].id,
-                    },
-                  }
-                : undefined,
-        } as any,
+      if (nextParentCompanyId && nextParentCompanyId === companyId) {
+        return { success: false, message: 'A empresa nao pode ser vinculada como propria matriz.' };
+      }
+
+      if (nextAccountingFirmId && nextAccountingFirmId === companyId) {
+        return { success: false, message: 'A empresa nao pode ser vinculada como proprio escritorio contabil.' };
+      }
+
+      const referencedIds = [nextParentCompanyId, nextAccountingFirmId].filter(
+        (value): value is string => Boolean(value),
+      );
+      if (referencedIds.length > 0) {
+        const referencedCompanies = await this.prisma.company.findMany({
+          where: {
+            id: { in: referencedIds },
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+        const existingReferencedIds = new Set(referencedCompanies.map((company) => company.id));
+
+        if (nextParentCompanyId && !existingReferencedIds.has(nextParentCompanyId)) {
+          return { success: false, message: 'A empresa matriz selecionada nao foi encontrada.' };
+        }
+
+        if (nextAccountingFirmId && !existingReferencedIds.has(nextAccountingFirmId)) {
+          return { success: false, message: 'O escritorio contabil selecionado nao foi encontrado.' };
+        }
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.company.update({
+          where: { id: companyId },
+          data: {
+            ...validData,
+            cnpj: nextCnpj,
+            searchText: buildCompanySearchText({ ...validData, cnpj: nextCnpj }),
+            parentCompanyId: nextParentCompanyId,
+            accountingFirmId: nextAccountingFirmId,
+          } as any,
+        });
+
+        if (address && typeof address === 'object' && address.cep) {
+          if (existing.addresses[0]) {
+            await tx.address.update({
+              where: { id: existing.addresses[0].id },
+              data: {
+                ...address,
+                description: address.description || 'Sede',
+              },
+            });
+          } else {
+            await tx.address.create({
+              data: {
+                ...address,
+                description: address.description || 'Sede',
+                companyId,
+              },
+            });
+          }
+        } else if (existing.addresses[0]) {
+          await tx.address.delete({
+            where: { id: existing.addresses[0].id },
+          });
+        }
       });
 
       void this.contactsService.syncChatwootContactsForCompany(companyId).catch((error: any) => {
@@ -779,6 +812,10 @@ export class CompaniesService {
 
       return { success: true, message: 'Empresa atualizada com sucesso!' };
     } catch (error: any) {
+      this.logger.error(
+        `Falha ao atualizar empresa ${companyId}: ${error?.message ?? 'unknown_error'}`,
+        error?.stack,
+      );
       return this.toMutationError(error);
     }
   }
