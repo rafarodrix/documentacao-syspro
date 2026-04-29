@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type {
   TicketModuleSettings,
   TicketModuleCreateRequest,
@@ -56,6 +56,8 @@ function escapeHtml(value: string) {
 
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
@@ -291,17 +293,19 @@ export class TicketsService {
       },
     });
 
-    await this.automationWhatsappService.sendTicketCreatedGroupNotification({
-      settings,
-      ticketId: createdTicket.id,
-      ticketNumber: createdTicket.ticketNumber || ticketNumber,
-      title: data.title,
-      team: normalizedTeam,
-      category: normalizedCategory,
-      companyId: resolvedCompanyId ?? null,
-      databaseUrl,
-      developmentVideoUrl,
-      rawHeaders,
+    this.runAutomationInBackground('ticket_created_group_notification', createdTicket.id, async () => {
+      await this.automationWhatsappService.sendTicketCreatedGroupNotification({
+        settings,
+        ticketId: createdTicket.id,
+        ticketNumber: createdTicket.ticketNumber || ticketNumber,
+        title: data.title,
+        team: normalizedTeam,
+        category: normalizedCategory,
+        companyId: resolvedCompanyId ?? null,
+        databaseUrl,
+        developmentVideoUrl,
+        rawHeaders,
+      });
     });
 
     return serializeMutationResponse('Ticket criado com sucesso.');
@@ -1137,43 +1141,49 @@ export class TicketsService {
       (previousTeam === 'SUPORTE' || previousTeam === 'DESENVOLVIMENTO') &&
       (resolvedNextTeam === 'SUPORTE' || resolvedNextTeam === 'DESENVOLVIMENTO')
     ) {
-      await this.automationWhatsappService.sendTicketTeamRoutingGroupNotifications({
-        settings,
-        ticketId: exists.id,
-        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-        title: exists.subject?.trim() || 'Sem titulo',
-        companyId: exists.companyId,
-        previousTeam,
-        nextTeam: resolvedNextTeam,
-        note: handoffNote,
-        rawHeaders,
+      this.runAutomationInBackground('ticket_team_routing_group_notification', exists.id, async () => {
+        await this.automationWhatsappService.sendTicketTeamRoutingGroupNotifications({
+          settings,
+          ticketId: exists.id,
+          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+          title: exists.subject?.trim() || 'Sem titulo',
+          companyId: exists.companyId,
+          previousTeam,
+          nextTeam: resolvedNextTeam,
+          note: handoffNote,
+          rawHeaders,
+        });
       });
     }
 
     if (exists.status !== resolvedNextStatus && resolvedNextStatus === TicketStatus.TESTING) {
-      await this.automationWhatsappService.sendTicketStatusGroupNotification({
-        settings,
-        ticketId: exists.id,
-        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-        title: exists.subject?.trim() || 'Sem titulo',
-        companyId: exists.companyId,
-        status: TicketStatus.TESTING,
-        notificationType: 'testing',
-        rawHeaders,
+      this.runAutomationInBackground('ticket_status_testing_notification', exists.id, async () => {
+        await this.automationWhatsappService.sendTicketStatusGroupNotification({
+          settings,
+          ticketId: exists.id,
+          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+          title: exists.subject?.trim() || 'Sem titulo',
+          companyId: exists.companyId,
+          status: TicketStatus.TESTING,
+          notificationType: 'testing',
+          rawHeaders,
+        });
       });
     }
 
     if (isTestingReturn) {
-      await this.automationWhatsappService.sendTicketStatusGroupNotification({
-        settings,
-        ticketId: exists.id,
-        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-        title: exists.subject?.trim() || 'Sem titulo',
-        companyId: exists.companyId,
-        status: TicketStatus.IN_PROGRESS,
-        notificationType: 'testing_failed',
-        note: handoffNote,
-        rawHeaders,
+      this.runAutomationInBackground('ticket_status_testing_failed_notification', exists.id, async () => {
+        await this.automationWhatsappService.sendTicketStatusGroupNotification({
+          settings,
+          ticketId: exists.id,
+          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+          title: exists.subject?.trim() || 'Sem titulo',
+          companyId: exists.companyId,
+          status: TicketStatus.IN_PROGRESS,
+          notificationType: 'testing_failed',
+          note: handoffNote,
+          rawHeaders,
+        });
       });
     }
 
@@ -1327,6 +1337,24 @@ export class TicketsService {
 
   private async getTicketModuleSettings(): Promise<TicketModuleSettings> {
     return this.automationSettingsService.readMergedTicketModuleSettings();
+  }
+
+  private runAutomationInBackground(
+    automationName: string,
+    ticketId: string,
+    task: () => Promise<void>,
+  ) {
+    void Promise.resolve()
+      .then(task)
+      .catch((error: any) => {
+        this.logger.error(JSON.stringify({
+          flow: 'portal_to_automation',
+          stage: 'background_automation_failed',
+          automationName,
+          ticketId,
+          error: error?.message ?? 'unknown_error',
+        }));
+      });
   }
 
 
