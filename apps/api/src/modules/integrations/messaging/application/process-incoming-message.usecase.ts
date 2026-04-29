@@ -1359,6 +1359,13 @@ export class ProcessIncomingMessageUseCase {
         } as any);
       }
 
+      await this.reconcileSiblingConversationLinksFromInbound({
+        connectionKey: connection.connectionKey,
+        currentLinkId: link?.id ?? null,
+        chatwootContactId: contactIdentifier,
+        inboundWhatsappNumber: phone,
+      });
+
       await this.reactivateArchivedContactIfNeeded(phone, connection, {
         contactIdentifier,
         conversationId,
@@ -1376,6 +1383,55 @@ export class ProcessIncomingMessageUseCase {
 
       return { contactIdentifier, conversationId };
     });
+  }
+
+  private async reconcileSiblingConversationLinksFromInbound(input: {
+    connectionKey: string;
+    currentLinkId: string | null;
+    chatwootContactId: string;
+    inboundWhatsappNumber: string;
+  }) {
+    const siblingLinks = await this.prisma.conversationLink.findMany({
+      where: {
+        connectionKey: input.connectionKey,
+        chatwootContactId: input.chatwootContactId,
+        ...(input.currentLinkId ? { id: { not: input.currentLinkId } } : {}),
+      },
+      select: {
+        id: true,
+        whatsappNumber: true,
+        lastInboundWhatsappNumber: true,
+        chatwootConversationId: true,
+      },
+    });
+
+    const linksToUpdate = siblingLinks.filter(
+      (link) => (link as any).lastInboundWhatsappNumber !== input.inboundWhatsappNumber,
+    );
+
+    if (linksToUpdate.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      linksToUpdate.map((link) =>
+        this.prisma.conversationLink.update({
+          where: { id: link.id },
+          data: {
+            lastInboundWhatsappNumber: input.inboundWhatsappNumber,
+          },
+        } as any),
+      ),
+    );
+
+    this.logger.log(JSON.stringify({
+      flow: 'evolution_to_chatwoot',
+      stage: 'sibling_links_reconciled_from_inbound',
+      connectionKey: input.connectionKey,
+      chatwootContactId: input.chatwootContactId,
+      inboundWhatsappNumber: input.inboundWhatsappNumber,
+      updatedConversationIds: linksToUpdate.map((link) => link.chatwootConversationId),
+    }));
   }
 
   private async reactivateArchivedContactIfNeeded(
