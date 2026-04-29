@@ -123,73 +123,110 @@ export class EvolutionClient {
       return {};
     }
 
-    const normalizedNumber = this.normalizeNumber(number);
+    const normalizedNumbers = this.buildOutboundNumberCandidates(number);
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const requestStartedAt = Date.now();
     const sharedHeaders = this.buildAuthHeaders(config.apiKey);
     const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
     const requestMessageId = this.buildRequestMessageId(clientMessageId);
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'provider_request_text',
-      providerFlavor: 'evolution_go',
-      route: '/send/text',
-      authHeaderMode,
-      requestMessageId,
-      evolutionBaseUrl: baseUrl,
-      evolutionInstance: instance,
-      whatsappNumber: normalizedNumber,
-      contentLength: text.length,
-    }));
+    let lastError: EvolutionOutboundError | null = null;
 
-    const primaryResponse = await fetch(`${baseUrl}/send/text`, {
-      method: 'POST',
-      headers: sharedHeaders,
-      body: JSON.stringify({
-        id: requestMessageId,
-        number: normalizedNumber,
-        text,
-        delay: 1200,
-      }),
-    });
-
-    if (primaryResponse.ok) {
-      const payload = await primaryResponse.json().catch(() => ({}));
-      const messageId = this.extractMessageId(payload);
+    for (let index = 0; index < normalizedNumbers.length; index += 1) {
+      const attemptNumber = normalizedNumbers[index];
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
-        stage: 'provider_response_text',
+        stage: 'provider_request_text',
         providerFlavor: 'evolution_go',
         route: '/send/text',
         authHeaderMode,
         requestMessageId,
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
-        whatsappNumber: normalizedNumber,
-        providerMessageId: messageId ?? null,
+        whatsappNumber: attemptNumber,
+        contentLength: text.length,
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
+      }));
+
+      const response = await fetch(`${baseUrl}/send/text`, {
+        method: 'POST',
+        headers: sharedHeaders,
+        body: JSON.stringify({
+          id: requestMessageId,
+          number: attemptNumber,
+          text,
+          delay: 1200,
+        }),
+      });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const messageId = this.extractMessageId(payload);
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_response_text',
+          providerFlavor: 'evolution_go',
+          route: '/send/text',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          providerMessageId: messageId ?? null,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+          durationMs: Date.now() - requestStartedAt,
+        }));
+        return { messageId };
+      }
+
+      const responseError = await response.text().catch(() => 'unknown_error');
+      const outboundError = this.buildOutboundError(response.status, responseError, '/send/text');
+      lastError = outboundError;
+      const hasFallbackCandidate = index < normalizedNumbers.length - 1;
+
+      if (outboundError.code === 'WHATSAPP_NUMBER_NOT_REGISTERED' && hasFallbackCandidate) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_retry_text_with_legacy_brazilian_variant',
+          providerFlavor: 'evolution_go',
+          route: '/send/text',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          fallbackWhatsappNumber: normalizedNumbers[index + 1],
+          status: response.status,
+          error: responseError,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+        }));
+        continue;
+      }
+
+      this.logger.error(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_error_text',
+        providerFlavor: 'evolution_go',
+        route: '/send/text',
+        authHeaderMode,
+        requestMessageId,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: attemptNumber,
+        status: response.status,
+        error: responseError,
+        diagnostics: this.buildProviderDiagnostics(response.status),
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
         durationMs: Date.now() - requestStartedAt,
       }));
-      return { messageId };
+      throw outboundError;
     }
 
-    const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
-    this.logger.error(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'provider_error_text',
-      providerFlavor: 'evolution_go',
-      route: '/send/text',
-      authHeaderMode,
-      requestMessageId,
-      evolutionBaseUrl: baseUrl,
-      evolutionInstance: instance,
-      whatsappNumber: normalizedNumber,
-      status: primaryResponse.status,
-      error: primaryError,
-      diagnostics: this.buildProviderDiagnostics(primaryResponse.status),
-      durationMs: Date.now() - requestStartedAt,
-    }));
-    throw this.buildOutboundError(primaryResponse.status, primaryError, '/send/text');
+    throw lastError ?? new Error('Evolution send failed via /send/text: no candidates available.');
   }
 
   async sendMedia(
@@ -206,7 +243,7 @@ export class EvolutionClient {
       return {};
     }
 
-    const normalizedNumber = this.normalizeNumber(number);
+    const normalizedNumbers = this.buildOutboundNumberCandidates(number);
     const instance = this.resolveInstance(config.instance);
     const baseUrl = config.apiUrl.replace(/\/+$/, '');
     const requestStartedAt = Date.now();
@@ -218,73 +255,110 @@ export class EvolutionClient {
     const resolvedFileName = fileName || 'arquivo';
     const normalizedMedia = this.normalizeMediaInput(mediaUrlOrBase64);
 
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'provider_request_media',
-      providerFlavor: 'evolution_go',
-      route: '/send/media',
-      authHeaderMode,
-      requestMessageId,
-      evolutionBaseUrl: baseUrl,
-      evolutionInstance: instance,
-      whatsappNumber: normalizedNumber,
-      mediaType: evMediaType,
-      fileName: resolvedFileName,
-      hasCaption: Boolean(caption),
-      mediaInputKind: normalizedMedia.kind,
-      mediaLength: normalizedMedia.value.length,
-    }));
+    let lastError: EvolutionOutboundError | null = null;
 
-    const primaryResponse = await fetch(`${baseUrl}/send/media`, {
-      method: 'POST',
-      headers: sharedHeaders,
-      body: JSON.stringify({
-        id: requestMessageId,
-        number: normalizedNumber,
-        type: evMediaType,
-        url: normalizedMedia.value,
-        filename: resolvedFileName,
-        caption: caption || '',
-        delay: 1200,
-      }),
-    });
-
-    if (primaryResponse.ok) {
-      const payload = await primaryResponse.json().catch(() => ({}));
-      const messageId = this.extractMessageId(payload);
+    for (let index = 0; index < normalizedNumbers.length; index += 1) {
+      const attemptNumber = normalizedNumbers[index];
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
-        stage: 'provider_response_media',
+        stage: 'provider_request_media',
         providerFlavor: 'evolution_go',
         route: '/send/media',
         authHeaderMode,
         requestMessageId,
         evolutionBaseUrl: baseUrl,
         evolutionInstance: instance,
-        whatsappNumber: normalizedNumber,
-        providerMessageId: messageId ?? null,
+        whatsappNumber: attemptNumber,
+        mediaType: evMediaType,
+        fileName: resolvedFileName,
+        hasCaption: Boolean(caption),
+        mediaInputKind: normalizedMedia.kind,
+        mediaLength: normalizedMedia.value.length,
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
+      }));
+
+      const response = await fetch(`${baseUrl}/send/media`, {
+        method: 'POST',
+        headers: sharedHeaders,
+        body: JSON.stringify({
+          id: requestMessageId,
+          number: attemptNumber,
+          type: evMediaType,
+          url: normalizedMedia.value,
+          filename: resolvedFileName,
+          caption: caption || '',
+          delay: 1200,
+        }),
+      });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const messageId = this.extractMessageId(payload);
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_response_media',
+          providerFlavor: 'evolution_go',
+          route: '/send/media',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          providerMessageId: messageId ?? null,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+          durationMs: Date.now() - requestStartedAt,
+        }));
+        return { messageId };
+      }
+
+      const responseError = await response.text().catch(() => 'unknown_error');
+      const outboundError = this.buildOutboundError(response.status, responseError, '/send/media');
+      lastError = outboundError;
+      const hasFallbackCandidate = index < normalizedNumbers.length - 1;
+
+      if (outboundError.code === 'WHATSAPP_NUMBER_NOT_REGISTERED' && hasFallbackCandidate) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_retry_media_with_legacy_brazilian_variant',
+          providerFlavor: 'evolution_go',
+          route: '/send/media',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          fallbackWhatsappNumber: normalizedNumbers[index + 1],
+          status: response.status,
+          error: responseError,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+        }));
+        continue;
+      }
+
+      this.logger.error(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_error_media',
+        providerFlavor: 'evolution_go',
+        route: '/send/media',
+        authHeaderMode,
+        requestMessageId,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: attemptNumber,
+        status: response.status,
+        error: responseError,
+        diagnostics: this.buildProviderDiagnostics(response.status),
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
         durationMs: Date.now() - requestStartedAt,
       }));
-      return { messageId };
+      throw outboundError;
     }
 
-    const primaryError = await primaryResponse.text().catch(() => 'unknown_error');
-    this.logger.error(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'provider_error_media',
-      providerFlavor: 'evolution_go',
-      route: '/send/media',
-      authHeaderMode,
-      requestMessageId,
-      evolutionBaseUrl: baseUrl,
-      evolutionInstance: instance,
-      whatsappNumber: normalizedNumber,
-      status: primaryResponse.status,
-      error: primaryError,
-      diagnostics: this.buildProviderDiagnostics(primaryResponse.status),
-      durationMs: Date.now() - requestStartedAt,
-    }));
-    throw this.buildOutboundError(primaryResponse.status, primaryError, '/send/media');
+    throw lastError ?? new Error('Evolution send failed via /send/media: no candidates available.');
   }
 
   async fetchProfilePicture(
@@ -367,6 +441,27 @@ export class EvolutionClient {
     const digits = recipient.replace(/\D/g, '');
     if (!digits) return digits;
     return digits.startsWith('55') ? digits : `55${digits}`;
+  }
+
+  private buildOutboundNumberCandidates(number: string): string[] {
+    const primary = this.normalizeNumber(number);
+    const fallback = this.buildLegacyBrazilianNumberVariant(primary);
+    return fallback && fallback !== primary ? [primary, fallback] : [primary];
+  }
+
+  private buildLegacyBrazilianNumberVariant(normalizedNumber: string): string | null {
+    if (!normalizedNumber) return null;
+
+    const [localPart, domain] = normalizedNumber.split('@');
+    if (!localPart) return null;
+
+    const digits = localPart.replace(/\D/g, '');
+    if (!(digits.startsWith('55') && digits.length === 13 && digits[4] === '9')) {
+      return null;
+    }
+
+    const legacyDigits = `${digits.slice(0, 4)}${digits.slice(5)}`;
+    return domain ? `${legacyDigits}@${domain}` : legacyDigits;
   }
 
   private resolveEvolutionMediaType(mediaType: string): 'image' | 'video' | 'audio' | 'document' {
