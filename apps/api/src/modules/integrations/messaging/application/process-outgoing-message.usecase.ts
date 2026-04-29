@@ -327,7 +327,12 @@ export class ProcessOutgoingMessageUseCase {
           error instanceof EvolutionOutboundError ? error.retryable : null,
       }));
       if (knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED') {
-        throw new Error('Numero nao cadastrado no WhatsApp.');
+        const businessError = new Error('Numero nao cadastrado no WhatsApp.') as Error & {
+          code?: string;
+        };
+        businessError.name = 'KnownOutboundMessageError';
+        businessError.code = knownProviderCode;
+        throw businessError;
       }
       throw error;
     }

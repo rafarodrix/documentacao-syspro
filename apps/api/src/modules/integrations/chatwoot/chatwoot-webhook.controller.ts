@@ -185,15 +185,30 @@ export class ChatwootWebhookController {
             messageType: payload?.message_type ?? message?.message_type ?? null,
           }));
         } catch (error: any) {
-          this.logger.error(JSON.stringify({
+          const knownProviderCode =
+            typeof error?.code === 'string' ? error.code : null;
+          const isKnownOutboundError =
+            knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED';
+          const payloadLog = JSON.stringify({
             flow: 'chatwoot_to_evolution',
             stage: 'processing_failed',
             event: payload?.event,
             messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
             error: error?.message ?? 'unknown_error',
             errorName: error?.name ?? 'Error',
+            providerCode: knownProviderCode,
             stack: this.serializeErrorStack(error),
-          }));
+          });
+          if (isKnownOutboundError) {
+            this.logger.warn(payloadLog);
+            return {
+              ok: true,
+              acknowledged: true,
+              warning: error?.message ?? 'unknown_error',
+            };
+          }
+
+          this.logger.error(payloadLog);
           return {
             ok: false,
             acknowledged: true,
