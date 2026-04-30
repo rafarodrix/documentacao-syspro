@@ -483,70 +483,26 @@
   }
 }
 
-/* Custom ReactQuill Styles */
-.quill {
-  @apply rounded-xl overflow-hidden border border-border/50 bg-muted/20 transition-all;
+.ticket-rich-text-editor__content {
+  white-space: pre-wrap;
 }
 
-.quill:focus-within {
-  @apply border-primary/40 ring-1 ring-primary/20;
+.ticket-rich-text-editor__content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground) / 0.68);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
 }
 
-.ql-toolbar.ql-snow {
-  @apply border-none bg-muted/40 px-3 py-2;
+.ticket-rich-text-editor__content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
 }
 
-.ql-container.ql-snow {
-  @apply border-none text-sm font-sans min-h-24 max-h-60;
-}
-
-.ql-editor {
-  @apply p-4 leading-relaxed;
-}
-
-.ql-editor.ql-blank::before {
-  @apply text-muted-foreground/60 italic left-4;
-}
-
-.dark .ql-snow .ql-stroke {
-  stroke: oklch(0.985 0 0 / 80%);
-}
-
-.dark .ql-snow .ql-fill {
-  fill: oklch(0.985 0 0 / 80%);
-}
-
-.dark .ql-snow .ql-picker {
-  color: oklch(0.985 0 0 / 80%);
-}
-
-.dark .ql-snow .ql-picker-options {
-  @apply bg-card border-border shadow-lg rounded-md;
-}
-
-.ticket-create-editor .ql-toolbar.ql-snow {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  border: 0;
-  border-bottom: 1px solid hsl(var(--border) / 0.6);
-  background: hsl(var(--muted) / 0.32);
-  backdrop-filter: blur(10px);
-}
-
-.ticket-create-editor .ql-container.ql-snow {
-  min-height: 20rem;
-  max-height: none;
-  overflow: visible;
-  border: 0;
-}
-
-.ticket-create-editor .ql-editor {
-  min-height: 20rem;
-  padding: 1rem;
-}
-
-.ticket-create-editor .ql-editor.ql-blank::before {
-  left: 1rem;
-  right: 1rem;
+.ticket-rich-text-editor__content pre {
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
 }

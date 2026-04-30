@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent } from "react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -57,13 +56,7 @@ import {
   getSuggestedCategoryForTeam,
   useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
-
-import "react-quill-new/dist/quill.snow.css";
-
-const ReactQuill = dynamic(() => import("react-quill-new"), {
-  ssr: false,
-  loading: () => <div className="h-44 rounded-md border border-border/60 bg-muted/20" />,
-});
+import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
 
 type CustomerEmailOption = {
   companyId: string;
@@ -561,23 +554,13 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                       </Button>
                     </div>
                   </div>
-                  <div className="ticket-create-editor overflow-hidden rounded-md border border-border/60 bg-background">
-                    <ReactQuill
-                      className="ticket-create-editor__quill"
-                      theme="snow"
-                      value={descriptionHtml}
-                      onChange={setDescriptionHtml}
-                      placeholder="Informe o passo a passo, resultado esperado, mensagens de erro e usuarios afetados."
-                      modules={{
-                        toolbar: [
-                          ["bold", "italic", "underline"],
-                          [{ list: "ordered" }, { list: "bullet" }],
-                          ["blockquote", "code-block"],
-                          ["clean"],
-                        ],
-                      }}
-                    />
-                  </div>
+                  <TicketRichTextEditor
+                    value={descriptionHtml}
+                    onChange={setDescriptionHtml}
+                    placeholder="Informe o passo a passo, resultado esperado, mensagens de erro, ambiente e usuarios afetados."
+                    className="ticket-create-editor"
+                    minHeightClassName="min-h-80"
+                  />
                   <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.json,.log" onChange={handleFileChange} />
                   {form.formState.errors.description ? (
                     <p className="text-[0.8rem] font-medium text-destructive">{form.formState.errors.description.message}</p>

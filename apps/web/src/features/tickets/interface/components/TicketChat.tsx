@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import dynamic from "next/dynamic";
 import { DEFAULT_TICKET_MODULE_SETTINGS } from "@dosc-syspro/contracts/ticket";
 import { useTicketChat } from "@/features/tickets/interface";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
@@ -22,12 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Bot, FileText, Headset, History, Loader2, MessageSquareText, Paperclip, Send, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketMessagePagination } from "./types";
-import "react-quill-new/dist/quill.snow.css";
-
-const ReactQuill = dynamic(() => import("react-quill-new"), {
-    ssr: false,
-    loading: () => <div className="h-24 w-full animate-pulse rounded-lg border border-border/50 bg-muted/20" />,
-});
+import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
 
 interface TicketChatProps {
     ticketId: string;
@@ -215,14 +209,18 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
 
                             <div className="flex gap-3">
                                 <div id="ticket-reply-input" className="min-w-0 flex-1" tabIndex={-1}>
-                                    <ReactQuill
-                                        theme="snow"
+                                    <TicketRichTextEditor
                                         value={message}
                                         onChange={setMessage}
                                         placeholder={composerIsInternal ? "Registre uma nota visivel apenas para a equipe..." : "Digite sua resposta ao cliente..."}
-                                        modules={{
-                                            toolbar: [[{ header: [2, 3, false] }], ["bold", "italic", "underline"], [{ list: "ordered" }, { list: "bullet" }], ["blockquote", "clean"]],
-                                        }}
+                                        minHeightClassName="min-h-28"
+                                        compact
+                                        showTemplates={false}
+                                        templates={quickTemplates.map((template) => ({
+                                            id: template.id,
+                                            label: template.label,
+                                            html: template.value.trim().startsWith("<") ? template.value : `<p>${template.value}</p>`,
+                                        }))}
                                     />
                                 </div>
 
