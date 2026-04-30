@@ -161,14 +161,7 @@ export default function EvolutionSettingsTab() {
   const qrCodeImageSrc = useMemo(() => normalizeQrCodeImage(qrCodeResult?.qrCode), [qrCodeResult?.qrCode]);
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col gap-2 mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">WhatsApp / Evolution Go</h1>
-        <p className="text-muted-foreground">
-          Configuracao administrativa da integracao Evolution Go para webhook e eventos assinados.
-        </p>
-      </div>
-
+    <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -418,10 +411,12 @@ export default function EvolutionSettingsTab() {
             Resumo do que o backend utiliza hoje no fluxo principal.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>- Webhook inbound processa `MESSAGE`, `messages.upsert`, `GROUP` para grupos permitidos, `READ_RECEIPT` e `Receipt`.</p>
-          <p>- O QR Code segue o fluxo oficial da Evolution Go: `POST /instance/connect` e evento `QRCode` recebido no webhook.</p>
-          <p>- Outbound prioriza as rotas `/send/text` e `/send/media` da Evolution Go.</p>
+        <CardContent>
+          <ul className="space-y-1.5 text-sm text-muted-foreground list-disc list-inside">
+            <li>Webhook inbound processa <code className="text-xs">MESSAGE</code>, <code className="text-xs">messages.upsert</code>, <code className="text-xs">GROUP</code> para grupos permitidos, <code className="text-xs">READ_RECEIPT</code> e <code className="text-xs">Receipt</code>.</li>
+            <li>O QR Code segue o fluxo oficial da Evolution Go: <code className="text-xs">POST /instance/connect</code> e evento <code className="text-xs">QRCode</code> recebido no webhook.</li>
+            <li>Outbound prioriza as rotas <code className="text-xs">/send/text</code> e <code className="text-xs">/send/media</code> da Evolution Go.</li>
+          </ul>
         </CardContent>
       </Card>
 
@@ -432,13 +427,15 @@ export default function EvolutionSettingsTab() {
             Itens necessarios para o primeiro teste ponta a ponta funcionar.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>- Evolution Go deve apontar para `POST /api/webhooks/evolution` com `MESSAGE`, `READ_RECEIPT`, `CONNECTION` e `QRCODE` habilitados; para grupos sem `ALL`, habilite tambem `GROUP`.</p>
-          <p>- O backend precisa ter `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` configurados.</p>
-          <p>- `Instance ID` e obrigatorio para aplicar `POST /instance/connect` na Evolution Go.</p>
-          <p>- Os campos `Instance`, `Instance ID` e `Instance Token` desta tela sao a fonte de verdade para o casamento exato do webhook.</p>
-          <p>- O Chatwoot precisa apontar webhook para `POST /api/webhooks/chatwoot`; `/webhooks/chatwoot` tambem e aceito como alias.</p>
-          <p>- O fluxo principal atual depende de `message_created` no Chatwoot para enviar respostas ao WhatsApp.</p>
+        <CardContent>
+          <ul className="space-y-1.5 text-sm text-muted-foreground list-disc list-inside">
+            <li>Evolution Go deve apontar para <code className="text-xs">POST /api/webhooks/evolution</code> com <code className="text-xs">MESSAGE</code>, <code className="text-xs">READ_RECEIPT</code>, <code className="text-xs">CONNECTION</code> e <code className="text-xs">QRCODE</code> habilitados; para grupos sem <code className="text-xs">ALL</code>, habilite também <code className="text-xs">GROUP</code>.</li>
+            <li>O backend precisa ter <code className="text-xs">EVOLUTION_API_URL</code> e <code className="text-xs">EVOLUTION_API_KEY</code> configurados.</li>
+            <li><code className="text-xs">Instance ID</code> é obrigatório para aplicar <code className="text-xs">POST /instance/connect</code> na Evolution Go.</li>
+            <li>Os campos <code className="text-xs">Instance</code>, <code className="text-xs">Instance ID</code> e <code className="text-xs">Instance Token</code> desta tela são a fonte de verdade para o casamento exato do webhook.</li>
+            <li>O Chatwoot precisa apontar webhook para <code className="text-xs">POST /api/webhooks/chatwoot</code>; <code className="text-xs">/webhooks/chatwoot</code> também é aceito como alias.</li>
+            <li>O fluxo principal atual depende de <code className="text-xs">message_created</code> no Chatwoot para enviar respostas ao WhatsApp.</li>
+          </ul>
         </CardContent>
       </Card>
     </div>

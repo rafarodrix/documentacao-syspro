@@ -128,40 +128,41 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" className="gap-2" onClick={addRow}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={addRow}>
               <Plus className="h-4 w-4" />
               Adicionar rota
             </Button>
-            <Button type="button" variant="outline" className="gap-2" onClick={mergeWithDefaults}>
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={mergeWithDefaults}>
               <ListChecks className="h-4 w-4" />
-              Mesclar catalogo
+              Mesclar catálogo
             </Button>
-            <Button type="button" variant="outline" className="gap-2" onClick={replaceWithDefaults}>
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={replaceWithDefaults}>
               <RefreshCw className="h-4 w-4" />
-              Carregar padrao
+              Carregar padrão
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" className="gap-2" onClick={handleCheckNow} disabled={isChecking}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={handleCheckNow} disabled={isChecking}>
               {isChecking ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Verificar agora
             </Button>
-            <Button type="button" className="gap-2" onClick={handleSave} disabled={isSaving || hasInvalidRows || routes.length === 0}>
+            <Button type="button" size="sm" className="gap-2" onClick={handleSave} disabled={isSaving || hasInvalidRows || routes.length === 0}>
               {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvar rotas
             </Button>
           </div>
         </div>
 
-        <div className="rounded-lg border border-border/60 overflow-hidden">
-          <div className="grid grid-cols-[90px_130px_1fr_90px_70px] gap-2 bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="overflow-x-auto rounded-lg border border-border/60">
+          <div className="min-w-[640px]">
+          <div className="grid grid-cols-[90px_130px_1fr_100px_56px] gap-2 bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <span>UF</span>
-            <span>Servico</span>
+            <span>Serviço</span>
             <span>URL</span>
             <span>Ativo</span>
-            <span>Acoes</span>
+            <span></span>
           </div>
 
           <div className="divide-y divide-border/50">
@@ -169,7 +170,7 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
               const ufInvalid = !/^[A-Za-z]{2,6}$/.test(route.uf.trim());
               const urlInvalid = !/^https:\/\//i.test(route.url.trim());
               return (
-                <div key={`${route.uf}-${route.service}-${index}`} className="grid grid-cols-[90px_130px_1fr_90px_70px] gap-2 px-3 py-3 items-center">
+                <div key={`${route.uf}-${route.service}-${index}`} className="grid grid-cols-[90px_130px_1fr_100px_56px] gap-2 px-3 py-3 items-center">
                   <div className="space-y-1">
                     <Input
                       value={route.uf}
@@ -178,11 +179,11 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
                       className="h-9 uppercase"
                       list="sefaz-ufs"
                     />
-                    {ufInvalid && <p className="text-[10px] text-red-500">UF/Autorizador invalido</p>}
+                    {ufInvalid && <p className="text-[10px] text-red-500">UF inválido</p>}
                   </div>
 
                   <select
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     value={route.service}
                     onChange={(event) => updateRow(index, "service", event.target.value)}
                   >
@@ -223,6 +224,7 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
                 </div>
               );
             })}
+          </div>
           </div>
         </div>
 
