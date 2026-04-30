@@ -49,13 +49,16 @@ export function inferReleaseTypeFromMetadata(metadata: unknown): ReleaseKind | n
 export function buildReleaseFromTicket(ticket: ReleaseProjectionSource): Release | null {
   if (ticket.publishToReleases !== true) return null;
 
-  const summary = ticket.resolutionSummary?.trim();
-  if (!summary) return null;
-
+  const releaseTitle = readReleaseMetadataString(ticket.metadata, "releaseTitle");
+  const releaseModule = ticket.releaseModule || readReleaseMetadataString(ticket.metadata, "module");
   const releaseType =
     normalizeReleaseType(ticket.releaseType) ||
     inferReleaseTypeFromMetadata(ticket.metadata) ||
     "MELHORIA";
+
+  const summary = ticket.resolutionSummary?.trim();
+  if (!summary) return null;
+
   const date = ticket.closedAt || ticket.updatedAt;
   const isoDate = date instanceof Date ? date.toISOString() : new Date(date).toISOString();
 
@@ -63,11 +66,11 @@ export function buildReleaseFromTicket(ticket: ReleaseProjectionSource): Release
     id: ticket.ticketNumber || ticket.id,
     type: releaseType === "BUG" ? "Bug" : releaseType === "NOVA_FUNCIONALIDADE" ? "Nova Funcionalidade" : "Melhoria",
     isoDate: isoDate.slice(0, 10),
-    title: readReleaseMetadataString(ticket.metadata, "releaseTitle") || ticket.subject || "Atualizacao sem titulo",
+    title: releaseTitle || ticket.subject || "Atualizacao sem titulo",
     summary,
     link: `/portal/tickets/${ticket.id}`,
     videoLink: ticket.resolutionVideoUrl || null,
-    tags: [ticket.releaseModule || readReleaseMetadataString(ticket.metadata, "module")].filter(
+    tags: [releaseModule].filter(
       (tag): tag is string => Boolean(tag),
     ),
   };

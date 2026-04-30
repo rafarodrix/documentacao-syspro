@@ -12,10 +12,8 @@ export class ReleasesService {
       where: {
         publishToReleases: true,
         resolutionSummary: { not: null },
-        OR: [
-          { status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] } },
-          { closedAt: { not: null } },
-        ],
+        metadata: { path: ['currentTeam'], equals: 'DESENVOLVIMENTO' },
+        status: TicketStatus.RESOLVED,
       },
       orderBy: [{ closedAt: 'desc' }, { updatedAt: 'desc' }],
       select: {
