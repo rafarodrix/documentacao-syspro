@@ -5,6 +5,8 @@ import {
   type SettingsProfileKey,
 } from '@dosc-syspro/contracts/settings';
 
+const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
+
 const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
   ADMIN: 'Administrador',
   DEVELOPER: 'Desenvolvedor',
@@ -21,6 +23,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "profile:edit_company",
     "dashboard:view",
     "dashboard:stats_full",
+    DASHBOARD_VIEW_AVAILABILITY,
     "dashboard:view_daily_password",
     "companies:view",
     "companies:view_all",
@@ -59,6 +62,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "profile:edit_personal",
     "profile:edit_company",
     "dashboard:view",
+    DASHBOARD_VIEW_AVAILABILITY,
     "dashboard:view_daily_password",
     "companies:view",
     "companies:view_own",

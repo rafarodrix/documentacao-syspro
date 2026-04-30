@@ -86,11 +86,13 @@ export function SefazOperationsPanel({
   scopedStatuses,
   nationalStatuses,
   configuredRoutes,
+  canViewAvailability = false,
 }: {
   focusUfs: string[];
   scopedStatuses: DashboardSefazStatus[];
   nationalStatuses: DashboardSefazStatus[];
   configuredRoutes: DashboardSefazConfiguredRoute[];
+  canViewAvailability?: boolean;
 }) {
   const groupedFocus = useMemo(() => groupSefazByUF(scopedStatuses), [scopedStatuses]);
   const availableFocusUfs = groupedFocus.map((item) => item.uf);
@@ -163,7 +165,7 @@ export function SefazOperationsPanel({
         <Tabs defaultValue="operacional" className="space-y-4">
           <TabsList className="h-auto flex-wrap bg-muted/40 p-1">
             <TabsTrigger value="operacional">Operacional</TabsTrigger>
-            <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger>
+            {canViewAvailability ? <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger> : null}
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
@@ -238,13 +240,15 @@ export function SefazOperationsPanel({
             </div>
           </TabsContent>
 
-          <TabsContent value="disponibilidade" className="space-y-4">
-            <SefazNationalGrid
-              data={nationalStatuses}
-              focusUfs={orderedFocusUfs}
-              activeRouteKeys={Array.from(activeRouteSet)}
-            />
-          </TabsContent>
+          {canViewAvailability ? (
+            <TabsContent value="disponibilidade" className="space-y-4">
+              <SefazNationalGrid
+                data={nationalStatuses}
+                focusUfs={orderedFocusUfs}
+                activeRouteKeys={Array.from(activeRouteSet)}
+              />
+            </TabsContent>
+          ) : null}
         </Tabs>
       </CardContent>
     </Card>

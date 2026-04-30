@@ -5,6 +5,8 @@ import {
   type SettingsPermissionKey,
 } from "@dosc-syspro/contracts/settings";
 
+const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
+
 export const ROLE_LABELS: Record<UserRoleValue, string> = APP_ROLE_LABELS as Record<UserRoleValue, string>;
 
 export const SYSTEM_PERMISSIONS = Object.fromEntries(
@@ -21,6 +23,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
   SUPORTE: [
     "dashboard:view",
     "dashboard:stats_full",
+    DASHBOARD_VIEW_AVAILABILITY,
     "dashboard:view_daily_password",
     "companies:view",
     "companies:view_all",
@@ -56,6 +59,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
 
   CLIENTE_ADMIN: [
     "dashboard:view",
+    DASHBOARD_VIEW_AVAILABILITY,
     "dashboard:view_daily_password",
     "companies:view",
     "companies:view_own",

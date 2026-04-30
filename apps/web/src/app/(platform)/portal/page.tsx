@@ -10,6 +10,7 @@ import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { ShineBorder } from "@/components/magicui/ShineBorder";
+import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import {
   ArrowUpRight,
   BookOpen,
@@ -29,8 +30,10 @@ import {
 } from "lucide-react";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application";
-import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { cn } from "@/lib/utils";
+
+const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
 
 function SefazOperationsPanel(props: any) {
   return null;
@@ -186,6 +189,9 @@ export default async function DashboardPage() {
   const canAccessCrm = await currentUserHasAnyPermission(["crm:view", "crm:manage"], {
     acceptCompanyScope: true,
   });
+  const canViewAvailability = await currentUserHasPermission(DASHBOARD_VIEW_AVAILABILITY, {
+    acceptCompanyScope: true,
+  });
   const data = await getDashboardData();
   const dailyPassword = data.dailyPassword ?? null;
 
@@ -248,6 +254,7 @@ export default async function DashboardPage() {
               scopedStatuses={adminData.sefazStatuses ?? []}
               nationalStatuses={adminData.sefazNationalStatuses ?? []}
               configuredRoutes={adminData.sefazConfiguredRoutes ?? []}
+              canViewAvailability={canViewAvailability}
             />
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -631,6 +638,7 @@ export default async function DashboardPage() {
         scopedStatuses={data.sefazStatuses ?? []}
         nationalStatuses={data.sefazNationalStatuses ?? []}
         configuredRoutes={data.sefazConfiguredRoutes ?? []}
+        canViewAvailability={canViewAvailability}
       />
 
       <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
@@ -731,4 +739,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
