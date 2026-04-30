@@ -104,11 +104,10 @@ export class AutomationWhatsappService {
       categoryLabel
         ? `*Categoria:* ${categoryLabel}`
         : undefined,
+      `*Empresa:* ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
+      `*Titulo:* ${input.title}`,
       `*Ticket:* ${input.ticketNumber}`,
       `*Setor:* ${teamLabel}`,
-      `*Empresa:* ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
-      '',
-      `*Titulo:* ${input.title}`,
       ...(resourceLines.length ? ['', ...resourceLines] : []),
     ]
       .filter(Boolean)
@@ -221,14 +220,14 @@ export class AutomationWhatsappService {
       }
 
       const message = [
-        target.audience === 'destination' ? '[Tickets] Encaminhado para o setor' : '[Tickets] Saiu do setor',
-        `Ticket: ${input.ticketNumber}`,
-        `Empresa: ${companyName}`,
-        `Titulo: ${input.title}`,
-        `Origem: ${previousTeamLabel}`,
-        `Destino: ${nextTeamLabel}`,
-        input.note?.trim() ? `Contexto: ${input.note.trim()}` : undefined,
-        ticketUrl ? `Link: ${ticketUrl}` : undefined,
+        target.audience === 'destination' ? '*Ticket Encaminhado*' : '*Ticket Saiu do Setor*',
+        `*Empresa:* ${companyName}`,
+        `*Titulo:* ${input.title}`,
+        `*Ticket:* ${input.ticketNumber}`,
+        `*Origem:* ${previousTeamLabel}`,
+        `*Destino:* ${nextTeamLabel}`,
+        input.note?.trim() ? `*Contexto:* ${input.note.trim()}` : undefined,
+        ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
       ]
         .filter(Boolean)
         .join('\n');
@@ -325,13 +324,15 @@ export class AutomationWhatsappService {
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const statusLabel = this.formatTicketStatusLabel(input.status as TicketStatus);
     const message = [
-      input.notificationType === 'testing' ? '[Tickets] Em testes' : '[Tickets] Retorno dos Testes',
-      `Estagio: ${statusLabel}`,
-      `Ticket: ${input.ticketNumber}`,
-      `Empresa: ${companyName}`,
-      `Titulo: ${input.title}`,
-      input.notificationType === 'testing_failed' && input.note?.trim() ? `Motivo: ${input.note.trim()}` : undefined,
-      ticketUrl ? `Link: ${ticketUrl}` : undefined,
+      input.notificationType === 'testing'
+        ? '*Em Desenvolvimento > Testes*'
+        : '*Retornado de Testes > Desenvolvimento*',
+      `*Empresa:* ${companyName}`,
+      `*Titulo:* ${input.title}`,
+      `*Ticket:* ${input.ticketNumber}`,
+      `*Estagio:* ${statusLabel}`,
+      input.notificationType === 'testing_failed' && input.note?.trim() ? `*Motivo:* ${input.note.trim()}` : undefined,
+      ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
     ]
       .filter(Boolean)
       .join('\n');
