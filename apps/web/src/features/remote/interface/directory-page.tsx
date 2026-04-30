@@ -136,7 +136,7 @@ function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number
 
   return {
     label: "Heartbeat antigo",
-    shortLabel: "Instavel",
+    shortLabel: "Instável",
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     bucket: "stale" as const,
   };
@@ -202,7 +202,7 @@ export function RemotePlatformDirectoryPanel({
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
-  const [quickEnvironment, setQuickEnvironment] = useState("Producao");
+  const [quickEnvironment, setQuickEnvironment] = useState("Produção");
   const [quickDescription, setQuickDescription] = useState("");
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
@@ -270,7 +270,7 @@ export function RemotePlatformDirectoryPanel({
             companyId: quickCompanyId,
             name: quickHostName.trim(),
             provider: "RustDesk",
-            environment: quickEnvironment.trim() || "Producao",
+            environment: quickEnvironment.trim() || "Produção",
             description: quickDescription.trim(),
             agentExternalId: rustdeskId.normalized,
             status: "ACTIVE",
@@ -284,7 +284,7 @@ export function RemotePlatformDirectoryPanel({
       toast.success(result.message ?? "Host criado com sucesso.");
       setQuickHostName("");
       setQuickRustdeskId("");
-      setQuickEnvironment("Producao");
+      setQuickEnvironment("Produção");
       setQuickDescription("");
       setShowQuickCreate(false);
       startTransition(() => router.refresh());
@@ -344,7 +344,7 @@ export function RemotePlatformDirectoryPanel({
   async function handleQuickConnect(item: DirectoryItem) {
     const normalizedRustdeskId = item.agent.rustdeskId?.replace(/\s+/g, "").trim() ?? "";
     if (!normalizedRustdeskId) {
-      toast.error("Host sem identificador remoto. Nao e possivel iniciar sessao.");
+      toast.error("Host sem identificador remoto. Não é possível iniciar sessão.");
       return;
     }
 
@@ -862,6 +862,12 @@ export function RemotePlatformDirectoryPanel({
               </div>
 
               {filteredPendingItems.map((item) => (
+                (() => {
+                  const selectedCompanyId = pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? "";
+                  const proposedHostName = (pendingNameById[item.id] ?? item.machineName ?? "").trim();
+                  const canLinkPendingHost = Boolean(selectedCompanyId && proposedHostName);
+
+                  return (
                 <div
                   key={item.id}
                   className="rounded-2xl border border-amber-500/20 bg-linear-to-r from-background via-background to-amber-500/5 p-5 shadow-sm"
@@ -896,7 +902,7 @@ export function RemotePlatformDirectoryPanel({
                         )}
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-foreground">{item.machineName ?? "Maquina sem nome"}</p>
+                        <p className="text-lg font-semibold text-foreground">{item.machineName ?? "Máquina sem nome"}</p>
                         <p className="text-xs text-muted-foreground">
                           ID remoto: {item.rustdeskId ?? "Não informado"}
                           {item.agentVersion ? ` | Agente: ${item.agentVersion}` : ""}
@@ -919,7 +925,7 @@ export function RemotePlatformDirectoryPanel({
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Empresa</Label>
                         <SearchableCompanyPicker
-                          value={pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? ""}
+                          value={selectedCompanyId}
                           options={directory.companyOptions}
                           searchUrl="/api/remote/companies/search"
                           onChange={(value) =>
@@ -938,12 +944,19 @@ export function RemotePlatformDirectoryPanel({
                           placeholder="Ex.: Servidor matriz fiscal"
                         />
                       </div>
-                      <Button className="xl:min-w-30" type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}>
+                      <Button
+                        className="xl:min-w-30"
+                        type="button"
+                        onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}
+                        disabled={!canLinkPendingHost}
+                      >
                         Vincular
                       </Button>
                     </div>
                   </div>
                 </div>
+                  );
+                })()
               ))}
               </div>
               )}
@@ -956,7 +969,7 @@ export function RemotePlatformDirectoryPanel({
                 <span>Host</span>
                 <span>Heartbeat</span>
                 <span>ID remoto</span>
-                <span className="text-right">Acoes</span>
+                <span className="text-right">Ações</span>
               </div>
               <div className="divide-y divide-border/30">
               {filteredItems.map((item) => {
