@@ -10,10 +10,8 @@ import {
   ShieldCheck,
   X,
   Filter,
-  Cpu,
   Building2,
   Ticket,
-  RefreshCw,
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -189,6 +187,7 @@ export function RemotePlatformDirectoryPanel({
   const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "online" | "offline" | "discovered">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
@@ -442,17 +441,6 @@ export function RemotePlatformDirectoryPanel({
       });
   }, [companyFilter, directory.pendingItems, searchTerm, selectedCompanyLabel]);
 
-  const directoryStats = useMemo(() => {
-    const ready = directory.items.filter((item) => item.productStatus === "REMOTE_READY").length;
-    const attention = directory.items.filter((item) => item.productStatus === "ATTENTION_REQUIRED").length;
-    const openSessions = directory.items.filter((item) => item.productStatus === "IN_SERVICE").length;
-    const pendingSetup = directory.items.filter((item) => item.productStatus === "PROVISIONING_REMOTE").length;
-
-    return { ready, attention, openSessions, pendingSetup };
-  }, [directory.items]);
-
-  const activeResultCount = filteredItems.length;
-  const activePendingCount = filteredPendingItems.length;
   const filteredQuickIndicators = useMemo(() => {
     const referenceNow = hasHydrated ? Date.now() : null;
     const online = filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent").length;
@@ -461,48 +449,31 @@ export function RemotePlatformDirectoryPanel({
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
     return { online, stale, offline, rebootPending };
   }, [filteredItems, hasHydrated]);
+  const displayedItems = useMemo(() => {
+    const referenceNow = hasHydrated ? Date.now() : null;
+
+    if (scopeFilter === "online") {
+      return filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent");
+    }
+
+    if (scopeFilter === "offline") {
+      return filteredItems.filter((item) => {
+        const bucket = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket;
+        return bucket === "stale" || bucket === "missing";
+      });
+    }
+
+    if (scopeFilter === "discovered") {
+      return [];
+    }
+
+    return filteredItems;
+  }, [filteredItems, hasHydrated, scopeFilter]);
+  const visibleHostCount = scopeFilter === "discovered" ? filteredPendingItems.length : displayedItems.length;
+  const shouldShowPendingItems =
+    canCreateHosts && filteredPendingItems.length > 0 && (scopeFilter === "all" || scopeFilter === "discovered");
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-border/50 bg-background/50 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Online</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">{filteredQuickIndicators.online}</span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400">heartbeat recente</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border/50 bg-background/50 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Atencao</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">{filteredQuickIndicators.stale + filteredQuickIndicators.offline}</span>
-            <span className="text-xs text-amber-600 dark:text-amber-400">instavel ou offline</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border/50 bg-background/50 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fluxo</p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">{directoryStats.openSessions}</span>
-            <span className="text-xs text-sky-600 dark:text-sky-400">em atendimento</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border/50 bg-background/50 px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {canCreateHosts ? "Descobertas" : "Setup"}
-          </p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">
-              {canCreateHosts ? activePendingCount : directoryStats.pendingSetup}
-            </span>
-            <span className="text-xs text-amber-600 dark:text-amber-400">
-              {canCreateHosts ? "aguardando vínculo" : "sem configuração completa"}
-            </span>
-          </div>
-        </div>
-      </div>
-
       <div className="rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
@@ -529,6 +500,7 @@ export function RemotePlatformDirectoryPanel({
               </Button>
 
               {(searchTerm ||
+                scopeFilter !== "all" ||
                 companyFilter !== "all" ||
                 statusFilter !== "all" ||
                 environmentFilter !== "all" ||
@@ -541,6 +513,7 @@ export function RemotePlatformDirectoryPanel({
                   className="h-10 px-3 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setSearchTerm("");
+                    setScopeFilter("all");
                     setCompanyFilter("all");
                     setStatusFilter("all");
                     setEnvironmentFilter("all");
@@ -677,6 +650,35 @@ export function RemotePlatformDirectoryPanel({
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { value: "all", label: "Todas", count: filteredItems.length },
+              { value: "online", label: "Online", count: filteredQuickIndicators.online },
+              {
+                value: "offline",
+                label: "Offline",
+                count: filteredQuickIndicators.stale + filteredQuickIndicators.offline,
+              },
+              { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
+            ]
+              .filter((option) => !option.hidden)
+              .map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={scopeFilter === option.value ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-8 rounded-full px-3"
+                  onClick={() => setScopeFilter(option.value as typeof scopeFilter)}
+                >
+                  {option.label}
+                  <span className="ml-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold">
+                    {option.count}
+                  </span>
+                </Button>
+              ))}
+          </div>
+
           {showFilters && (
             <div className="rounded-xl border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -765,7 +767,7 @@ export function RemotePlatformDirectoryPanel({
 
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="h-6 border-border/50 bg-background/50 font-medium">
-              {activeResultCount} hosts
+              {visibleHostCount} {scopeFilter === "discovered" ? "descobertas" : "hosts"}
             </Badge>
             {selectedCompanyLabel ? (
               <Badge variant="outline" className="h-6 border-primary/20 bg-primary/10 text-primary">
@@ -779,9 +781,8 @@ export function RemotePlatformDirectoryPanel({
                 Ticket #{initialTicketNumber}
               </Badge>
             ) : null}
-            {filteredQuickIndicators.rebootPending > 0 ? (
+            {scopeFilter !== "discovered" && filteredQuickIndicators.rebootPending > 0 ? (
               <Badge variant="outline" className="h-6 border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400">
-                <RefreshCw className="mr-1 h-3 w-3" />
                 {filteredQuickIndicators.rebootPending} reboot pendente
               </Badge>
             ) : null}
@@ -789,7 +790,7 @@ export function RemotePlatformDirectoryPanel({
         </div>
       </div>
 
-      {canCreateHosts && filteredPendingItems.length ? (
+      {shouldShowPendingItems ? (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5">
           <button
             type="button"
@@ -807,7 +808,7 @@ export function RemotePlatformDirectoryPanel({
             </Badge>
           </button>
 
-          {showPendingItems ? (
+          {showPendingItems || scopeFilter === "discovered" ? (
             <div className="space-y-2 border-t border-amber-500/20 px-4 py-4">
               {filteredPendingItems.map((item) => {
                 const selectedCompanyId = pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? "";
@@ -898,9 +899,9 @@ export function RemotePlatformDirectoryPanel({
         </div>
       ) : null}
 
-      {filteredItems.length ? (
+      {displayedItems.length ? (
         <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/70 shadow-sm">
-          <div className="hidden grid-cols-[minmax(0,1.7fr)_180px_180px_260px] items-center gap-4 border-b border-border/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid">
+          <div className="hidden grid-cols-[minmax(0,1.9fr)_160px_180px_260px] items-center gap-4 border-b border-border/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid">
             <span>Host</span>
             <span>Heartbeat</span>
             <span>ID remoto</span>
@@ -908,7 +909,7 @@ export function RemotePlatformDirectoryPanel({
           </div>
 
           <div className="divide-y divide-border/30">
-            {filteredItems.map((item) => {
+            {displayedItems.map((item) => {
               const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, hasHydrated ? Date.now() : null);
               const productStatus = getRemoteProductStatusMeta(item.productStatus);
               const rustdeskHref = item.agent.rustdeskId ? `rustdesk://${item.agent.rustdeskId.replace(/\s+/g, "")}` : null;
@@ -920,7 +921,7 @@ export function RemotePlatformDirectoryPanel({
 
               return (
                 <div key={item.id} className="px-4 py-4 transition-colors hover:bg-muted/10">
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_180px_180px_260px] lg:items-center">
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.9fr)_160px_180px_260px] lg:items-center">
                     <div className="min-w-0">
                       <div className="flex items-start gap-3">
                         <div
@@ -946,16 +947,6 @@ export function RemotePlatformDirectoryPanel({
                             <Badge variant="outline" className={`h-5 text-[10px] ${productStatus.className}`}>
                               {productStatus.label}
                             </Badge>
-                            {item.lastAgentMetrics?.cpuLoad !== undefined ? (
-                              <Badge variant="outline" className="h-5 border-border/40 bg-background/40 font-mono text-[10px]">
-                                CPU {item.lastAgentMetrics.cpuLoad}%
-                              </Badge>
-                            ) : null}
-                            {item.lastAgentMetrics?.ramUsedPc !== undefined ? (
-                              <Badge variant="outline" className="h-5 border-border/40 bg-background/40 font-mono text-[10px]">
-                                RAM {item.lastAgentMetrics.ramUsedPc}%
-                              </Badge>
-                            ) : null}
                           </div>
 
                           <div className="space-y-1">
@@ -973,7 +964,8 @@ export function RemotePlatformDirectoryPanel({
                                   <Ticket className="h-3 w-3" />#{item.lastTicketNumber}
                                 </span>
                               ) : null}
-                              {item.agent.agentVersion ? <span>Agente {item.agent.agentVersion}</span> : null}
+                              {item.agent.agentVersion ? <span>{item.agent.agentVersion}</span> : null}
+                              {item.agent.lastKnownIp ? <span>{item.agent.lastKnownIp}</span> : null}
                             </div>
                           </div>
 
@@ -1035,7 +1027,7 @@ export function RemotePlatformDirectoryPanel({
                       <Button
                         type="button"
                         size="sm"
-                        className="h-9 min-w-28"
+                        className="h-9 min-w-24"
                         onClick={() => handleQuickConnect(item)}
                         disabled={!item.agent.rustdeskId || connectingHostId === item.id}
                       >
@@ -1048,19 +1040,19 @@ export function RemotePlatformDirectoryPanel({
                       </Button>
 
                       {rustdeskHref ? (
-                        <Button asChild variant="outline" size="sm" className="h-9 min-w-28">
+                        <Button asChild variant="outline" size="sm" className="h-9 min-w-24">
                           <a href={rustdeskHref}>
                             <ExternalLink className="mr-2 h-3.5 w-3.5" />
                             {isMobileClient ? "Abrir app" : "Acesso rápido"}
                           </a>
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" disabled className="h-9 min-w-28 border-dashed">
+                        <Button variant="outline" size="sm" disabled className="h-9 min-w-24 border-dashed">
                           Sem conexao
                         </Button>
                       )}
 
-                      <Button asChild variant="outline" size="sm" className="h-9 min-w-28 bg-background/70">
+                      <Button asChild variant="outline" size="sm" className="h-9 min-w-24 bg-background/70">
                         <Link
                           href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
                         >
@@ -1074,7 +1066,7 @@ export function RemotePlatformDirectoryPanel({
             })}
           </div>
         </div>
-      ) : !filteredPendingItems.length ? (
+      ) : !shouldShowPendingItems ? (
         <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-10 text-center">
           <Search className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-4 text-sm font-medium text-foreground">Nenhum item encontrado</p>
