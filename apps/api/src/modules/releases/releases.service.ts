@@ -12,7 +12,10 @@ export class ReleasesService {
       where: {
         publishToReleases: true,
         resolutionSummary: { not: null },
-        status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
+        OR: [
+          { status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] } },
+          { closedAt: { not: null } },
+        ],
       },
       orderBy: [{ closedAt: 'desc' }, { updatedAt: 'desc' }],
       select: {

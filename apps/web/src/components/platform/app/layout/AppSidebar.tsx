@@ -100,8 +100,8 @@ const NAV_COMMERCIAL: NavItemType[] = [
 
 const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: "/portal/docs", icon: BookOpen },
-  { title: "Releases", href: "/portal/releases", icon: Rocket },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
+  { title: "Releases", href: "/portal/releases", icon: Rocket },
 ]
 
 function filterByAccess(items: NavItemType[], accessByHref: Partial<Record<string, boolean>>): NavItemType[] {
