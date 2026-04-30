@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConversationStatus as TicketStatus } from '@prisma/client';
-import { buildReleaseFromTicket, type Release } from '@dosc-syspro/core';
+import { buildReleaseFromTicket, readReleaseMetadataString, type Release } from '@dosc-syspro/core';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -12,7 +12,6 @@ export class ReleasesService {
       where: {
         publishToReleases: true,
         resolutionSummary: { not: null },
-        metadata: { path: ['currentTeam'], equals: 'DESENVOLVIMENTO' },
         status: TicketStatus.RESOLVED,
       },
       orderBy: [{ closedAt: 'desc' }, { updatedAt: 'desc' }],
@@ -32,9 +31,15 @@ export class ReleasesService {
     });
 
     const releases = tickets
+      .filter((ticket) => this.isDevelopmentReleaseTicket(ticket.metadata))
       .map(buildReleaseFromTicket)
       .filter((release): release is Release => Boolean(release));
 
     return { success: true, data: releases };
+  }
+
+  private isDevelopmentReleaseTicket(metadata: unknown) {
+    const currentTeam = readReleaseMetadataString(metadata, 'currentTeam');
+    return currentTeam?.trim().toUpperCase() === 'DESENVOLVIMENTO';
   }
 }
