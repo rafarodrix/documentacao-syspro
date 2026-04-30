@@ -1,9 +1,9 @@
-export { TicketDialog } from "@/features/tickets/interface/components/TicketDialog";
-export { TicketDetails } from "@/features/tickets/interface/components/TicketDetails";
-export { TicketChat } from "@/features/tickets/interface/components/TicketChat";
-export { TicketsContainer } from "@/features/tickets/interface/components/TicketsContainer";
-export { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
-export { TicketsStats } from "@/features/tickets/interface/components/TicketsStats";
-export { TicketsTable } from "@/features/tickets/interface/components/TicketsTable";
-export { TicketsSummary } from "@/features/tickets/interface/components/TicketsSummary";
+export { TicketDialog } from "@/features/tickets/interface/components/ticket-dialog";
+export { TicketDetails } from "@/features/tickets/interface/components/ticket-details";
+export { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
+export { TicketsContainer } from "@/features/tickets/interface/components/tickets-container";
+export { TicketsFilters } from "@/features/tickets/interface/components/tickets-filters";
+export { TicketsStats } from "@/features/tickets/interface/components/tickets-stats";
+export { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
+export { TicketsSummary } from "@/features/tickets/interface/components/tickets-summary";
 export * from "./hooks";

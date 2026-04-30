@@ -48,9 +48,9 @@ import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tic
 import {
   TicketCompanyPicker,
   type TicketCompanyPickerOption,
-} from "@/features/tickets/interface/components/TicketCompanyPicker";
-import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
-import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
+} from "@/features/tickets/interface/components/ticket-company-picker";
+import { TicketAttachmentField } from "@/features/tickets/interface/components/ticket-attachment-field";
+import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import {
   getSuggestedCategoryForTeam,
   useTicketModuleSettings,

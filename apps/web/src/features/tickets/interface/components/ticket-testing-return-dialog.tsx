@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { TicketDetailsItem } from "./types";
+import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketTestingReturnDialogProps {
   ticket: TicketDetailsItem;

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { formatModuleOptionLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { type TicketStatusGroup, type QueueKey } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow, TicketStatusCounts, TicketTeamFilter } from "./types";
+import type { ClosedTicketsWindow, TicketStatusCounts, TicketTeamFilter } from "./ticket-view.types";
 
 interface TicketsFiltersProps {
     searchTerm: string;

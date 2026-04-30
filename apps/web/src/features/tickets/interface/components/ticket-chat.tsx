@@ -20,7 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Bot, FileText, Headset, History, Loader2, MessageSquareText, Paperclip, Send, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TicketArticleItem, TicketMessagePagination } from "./types";
+import type { TicketArticleItem, TicketMessagePagination } from "./ticket-view.types";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
 import { sanitizeTicketRenderedHtml } from "@/features/tickets/interface/lib/ticket-rich-html";
 

@@ -2,7 +2,7 @@ import type { MouseEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { TicketListItem, TicketPriorityLevel } from "./types";
+import type { TicketListItem, TicketPriorityLevel } from "./ticket-view.types";
 
 const STATUS_STYLES: Record<string, string> = {
   NEW: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800",

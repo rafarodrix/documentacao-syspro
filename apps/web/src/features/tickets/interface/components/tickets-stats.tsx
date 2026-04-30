@@ -4,7 +4,7 @@ import type { ElementType } from "react";
 import { Inbox, Wrench, FlaskConical, CheckCircle2 } from "lucide-react";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
 import { cn } from "@/lib/utils";
-import type { TicketStatusCounts } from "./types";
+import type { TicketStatusCounts } from "./ticket-view.types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsStatsProps {

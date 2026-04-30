@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { replyTicketAction } from "@/features/tickets/application/ticket-actions";
 import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
 import { useSession } from "@/lib/auth-client";
-import { fileToBase64 } from "@/features/tickets/application/utils";
+import { fileToBase64 } from "@/features/tickets/application/ticket-base64.helpers";
 
 export function useTicketChat(ticketId: string, articles: TicketArticleItem[], autoScrollEnabled = true) {
     const [message, setMessage] = useState("");
