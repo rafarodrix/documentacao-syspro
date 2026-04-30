@@ -250,6 +250,58 @@ function ChatwootDiagnosticsTab() {
 
                 <div className="grid min-w-0 gap-4 rounded-lg border bg-background p-4">
                   <div className="min-w-0">
+                    <h4 className="text-sm font-semibold">Identidade tecnica das mensagens do sistema</h4>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Use um bot tecnico para CSAT e outras mensagens automaticas, evitando que o nome do admin apareca no Chatwoot e no WhatsApp.
+                    </p>
+                  </div>
+
+                  <div className="grid min-w-0 gap-3 md:grid-cols-2">
+                    <BehaviorToggle
+                      id="systemMessagesUseBotIdentity"
+                      label="Usar bot tecnico nas mensagens automaticas"
+                      description="Quando ativo, o backend tenta enviar as mensagens de sistema com o token dedicado configurado abaixo."
+                      checked={behavior.systemMessagesUseBotIdentity}
+                      onCheckedChange={(checked) =>
+                        setBehavior((prev) => ({ ...prev, systemMessagesUseBotIdentity: checked }))
+                      }
+                    />
+
+                    <div className="min-w-0 space-y-2">
+                      <Label htmlFor="systemMessageSenderName">Nome exibido</Label>
+                      <Input
+                        id="systemMessageSenderName"
+                        value={behavior.systemMessageSenderName}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({ ...prev, systemMessageSenderName: event.target.value }))
+                        }
+                        placeholder="Trilink Bot"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Usado como identificacao tecnica no WhatsApp quando a mensagem for automatica.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="systemMessageApiToken">Token do bot no Chatwoot</Label>
+                    <Input
+                      id="systemMessageApiToken"
+                      type="password"
+                      value={behavior.systemMessageApiToken}
+                      onChange={(event) =>
+                        setBehavior((prev) => ({ ...prev, systemMessageApiToken: event.target.value }))
+                      }
+                      placeholder="Cole aqui o access token do AgentBot"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Token dedicado do AgentBot/usuario tecnico. Fica salvo no backend e deixa de depender de variavel de ambiente.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid min-w-0 gap-4 rounded-lg border bg-background p-4">
+                  <div className="min-w-0">
                     <h4 className="text-sm font-semibold">CSAT no WhatsApp</h4>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Envia avaliacao automatica quando a conversa for resolvida no Chatwoot e trata a resposta do cliente no webhook.

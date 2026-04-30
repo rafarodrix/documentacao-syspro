@@ -101,7 +101,7 @@ export async function fetchSefazRoutesGateway(): Promise<SettingsGatewayResponse
   return response;
 }
 
-export async function fetchInterstateIcmsSettingsGateway(): Promise<SettingsGatewayResponse<InterstateIcmsSettings>> {
+export const fetchInterstateIcmsSettingsGateway = async (): Promise<SettingsGatewayResponse<InterstateIcmsSettings>> => {
   const response = await callSettingsApi<SettingsGatewayResponse<InterstateIcmsSettings>>("/tax/interstate-icms");
   if (response.data) {
     response.data = interstateIcmsSettingsSchema.parse(response.data);
@@ -109,7 +109,7 @@ export async function fetchInterstateIcmsSettingsGateway(): Promise<SettingsGate
     response.data = buildDefaultInterstateIcmsSettings();
   }
   return response;
-}
+};
 
 export async function updateSefazRoutesGateway(
   input: SefazRoutesInput,

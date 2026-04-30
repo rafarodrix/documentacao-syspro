@@ -13,7 +13,6 @@ import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/s
 import {
   getSettingsPermissionsAdminViewAction,
 } from "@/features/settings/permissions/application/permissions-actions";
-import { buildFallbackSettingsPermissionsCatalog } from "@/features/settings/permissions/domain/catalog";
 import {
   fetchSettingsContractsAdminViewGateway,
   fetchSettingsRemoteAdminViewGateway,
@@ -83,36 +82,14 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
     throw new Error(interstateIcmsRes.error || "Falha ao carregar configuracao interestadual.");
   }
 
-  if (!permissionsAdminViewRes.success) {
-    throw new Error(permissionsAdminViewRes.error || "Falha ao carregar a administracao de acessos.");
-  }
-
-  if (!permissionsAdminViewRes.data) {
-    throw new Error("Falha ao carregar a administracao de acessos.");
-  }
-
   const matrixEnabled = settingsRes.data.rbacMatrixEnabled;
-  const fallbackCatalog = buildFallbackSettingsPermissionsCatalog(matrixEnabled);
+  const canManagePermissions = permissionsAdminViewRes.success && Boolean(permissionsAdminViewRes.data);
 
   return {
     rbacMatrixEnabled: matrixEnabled,
     sefazRoutes: sefazRoutesRes.data ?? buildDefaultSefazRoutes(),
     interstateIcmsSettings: interstateIcmsRes.data ?? buildDefaultInterstateIcmsSettings(),
-    permissionsAdminView: permissionsAdminViewRes.data ?? {
-      catalog: fallbackCatalog,
-      profiles: fallbackCatalog.profiles.map((profile) => ({
-        id: profile.key,
-        key: profile.key,
-        label: profile.label,
-        description: "Perfil padrao em modo fallback.",
-        isSystem: true,
-        isActive: true,
-        permissions: profile.permissions,
-      })),
-      users: [],
-      companies: [],
-      assignments: [],
-    },
+    permissionsAdminView: canManagePermissions ? permissionsAdminViewRes.data ?? null : null,
   };
 }
 

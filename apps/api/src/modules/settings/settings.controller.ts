@@ -1,5 +1,6 @@
 import { Controller, Get, Put, Body, Param, Post, Delete, Query, NotFoundException, Req, Logger, Patch, ForbiddenException } from '@nestjs/common';
 import { CompanyStatus, ContractStatus, Role } from '@prisma/client';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IntegrationConnectionsService } from './integration-connections.service';
 import {
@@ -74,6 +75,7 @@ export class SettingsController {
   private static readonly EVOLUTION_QRCODE_KEY_PREFIX = 'evolution_qrcode:';
   private static readonly EVOLUTION_STATUS_KEY_PREFIX = 'evolution_status:';
   private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
+  private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -678,20 +680,44 @@ export class SettingsController {
   async setChatwootBehaviorSettings(@Req() req: Request, @Body() input: ChatwootBehaviorSettingsInput) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
     const parsed = chatwootBehaviorSettingsSchema.parse(input);
+    const normalizedBotToken = parsed.systemMessageApiToken.trim();
+    const sanitized = {
+      ...parsed,
+      systemMessageApiToken: normalizedBotToken,
+    };
+    const { systemMessageApiToken, ...storedBehavior } = sanitized;
 
-    await this.prisma.systemSetting.upsert({
-      where: { key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
-      update: { value: JSON.stringify(parsed) },
-      create: {
-        key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY,
-        value: JSON.stringify(parsed),
-        description: 'Configuracoes operacionais do webhook Chatwoot',
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+        update: { value: JSON.stringify(storedBehavior) },
+        create: {
+          key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY,
+          value: JSON.stringify(storedBehavior),
+          description: 'Configuracoes operacionais do webhook Chatwoot',
+        },
+      });
+
+      if (systemMessageApiToken) {
+        await tx.systemSetting.upsert({
+          where: { key: SettingsController.CHATWOOT_SYSTEM_BOT_TOKEN_KEY },
+          update: { value: this.encrypt(systemMessageApiToken) },
+          create: {
+            key: SettingsController.CHATWOOT_SYSTEM_BOT_TOKEN_KEY,
+            value: this.encrypt(systemMessageApiToken),
+            description: 'Token criptografado da identidade tecnica do Chatwoot',
+          },
+        });
+      } else {
+        await tx.systemSetting.deleteMany({
+          where: { key: SettingsController.CHATWOOT_SYSTEM_BOT_TOKEN_KEY },
+        });
+      }
     });
 
     return {
       success: true,
-      data: parsed,
+      data: sanitized,
       message: 'Configuracoes do Chatwoot salvas.',
     };
   }
@@ -738,6 +764,7 @@ export class SettingsController {
           hasAccountId: Boolean(chatwootRuntime.accountId),
           hasApiToken: Boolean(chatwootRuntime.apiToken),
           hasPlatformApiToken: Boolean(chatwootRuntime.platformApiToken),
+          hasSystemMessageBotToken: Boolean(chatwootBehavior.systemMessageApiToken),
           hasInboxId: Boolean(chatwootRuntime.inboxId),
           hasInboxIdentifier: Boolean(chatwootRuntime.inboxIdentifier),
           hasWebhookSecret: Boolean(chatwootRuntime.webhookSecret),
@@ -1634,22 +1661,71 @@ export class SettingsController {
   }
 
   private async readStoredChatwootBehaviorSettings() {
-    const setting = await this.prisma.systemSetting.findUnique({
-      where: { key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
-      select: { value: true },
-    });
+    const [behaviorSetting, systemBotTokenSetting] = await Promise.all([
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.CHATWOOT_SYSTEM_BOT_TOKEN_KEY },
+        select: { value: true },
+      }),
+    ]);
 
-    if (!setting?.value) {
-      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    const fallback = {
+      ...DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+      systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? "" : "",
+    };
+
+    if (!behaviorSetting?.value) {
+      return fallback;
     }
 
     try {
-      const parsed = JSON.parse(setting.value);
-      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
-      return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+      const parsed = JSON.parse(behaviorSetting.value);
+      const validation = chatwootBehaviorSettingsSchema.safeParse({
+        ...parsed,
+        systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? "" : "",
+      });
+      return validation.success ? validation.data : fallback;
     } catch {
-      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+      return fallback;
     }
+  }
+
+  private resolveEncryptionKey(): Buffer {
+    const raw = process.env.INTEGRATION_CONFIG_ENCRYPTION_KEY || process.env.BETTER_AUTH_SECRET;
+    if (!raw || !raw.trim()) {
+      throw new Error('INTEGRATION_CONFIG_ENCRYPTION_KEY (ou BETTER_AUTH_SECRET) obrigatoria para criptografia');
+    }
+    return createHash('sha256').update(raw).digest();
+  }
+
+  private encrypt(plain: string): string {
+    const key = this.resolveEncryptionKey();
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const ciphertext = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `${iv.toString('base64')}:${tag.toString('base64')}:${ciphertext.toString('base64')}`;
+  }
+
+  private decrypt(payload: string): string {
+    const [ivB64, tagB64, dataB64] = String(payload || '').split(':');
+    if (!ivB64 || !tagB64 || !dataB64) throw new Error('Payload criptografado invalido');
+    const key = this.resolveEncryptionKey();
+    const iv = Buffer.from(ivB64, 'base64');
+    const tag = Buffer.from(tagB64, 'base64');
+    const encrypted = Buffer.from(dataB64, 'base64');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const plain = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return plain.toString('utf8');
+  }
+
+  private decryptOptional(payload?: string | null): string | null {
+    if (!payload) return null;
+    return this.decrypt(payload);
   }
 
   private async readStoredEvolutionSettings() {

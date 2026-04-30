@@ -31,5 +31,5 @@ export interface SettingsAdminViewData {
   rbacMatrixEnabled: boolean;
   sefazRoutes: SefazRoutesSnapshot;
   interstateIcmsSettings: InterstateIcmsSettingsSnapshot;
-  permissionsAdminView: SettingsPermissionsAdminView;
+  permissionsAdminView: SettingsPermissionsAdminView | null;
 }

@@ -13,7 +13,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../settings/integration-context.service';
-import { ChatwootClient } from './chatwoot.client';
+import { ChatwootClient, type ChatwootConnectionConfig } from './chatwoot.client';
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
   chatwootBehaviorSettingsSchema,
@@ -26,6 +26,8 @@ export class ChatwootWebhookController {
   private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
   private static readonly CSAT_RATING_MIN = 1;
   private static readonly CSAT_RATING_MAX = 5;
+  private static readonly SYSTEM_MESSAGE_FLAG = 'syspro_system_message';
+  private static readonly SYSTEM_MESSAGE_SENDER_LABEL = 'syspro_system_sender_label';
 
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
@@ -172,7 +174,9 @@ export class ChatwootWebhookController {
             }));
             break;
           }
-          await this.applyMessageBehaviorRules(payload, behaviorSettings, resolvedContext);
+          if (!this.isSystemManagedOutgoingMessage(payload)) {
+            await this.applyMessageBehaviorRules(payload, behaviorSettings, resolvedContext);
+          }
           await this.processOutgoingMessage.execute(payload, {
             connection: resolvedContext ?? undefined,
             prependAgentNameOnOutbound: behaviorSettings.prependAgentNameOnOutbound,
@@ -465,9 +469,13 @@ export class ChatwootWebhookController {
 
     if (settings.csatThankYouMessage.trim()) {
       await this.chatwootClient.createOutgoingMessage(
-        resolvedContext.chatwoot,
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
         conversationId,
         settings.csatThankYouMessage.trim(),
+        {
+          useSystemBot: settings.systemMessagesUseBotIdentity,
+          contentAttributes: this.buildSystemMessageAttributes(settings),
+        },
       );
     }
 
@@ -519,9 +527,13 @@ export class ChatwootWebhookController {
     const contact = this.extractContactPhone(payload);
 
     await this.chatwootClient.createOutgoingMessage(
-      resolvedContext.chatwoot,
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
       conversationId,
       settings.csatRequestMessage.trim(),
+      {
+        useSystemBot: settings.systemMessagesUseBotIdentity,
+        contentAttributes: this.buildSystemMessageAttributes(settings),
+      },
     );
     await this.chatwootClient.updateConversationCustomAttributes(resolvedContext.chatwoot, conversationId, {
       ...customAttributes,
@@ -875,6 +887,34 @@ export class ChatwootWebhookController {
     if (normalized === 'resolved' || normalized === 'archived') return normalized;
     if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
     return normalized;
+  }
+
+  private isSystemManagedOutgoingMessage(payload: any): boolean {
+    const { message, conversationMessage } = this.resolveMessageContext(payload);
+    return this.readBoolean(
+      payload?.content_attributes?.[ChatwootWebhookController.SYSTEM_MESSAGE_FLAG] ??
+      message?.content_attributes?.[ChatwootWebhookController.SYSTEM_MESSAGE_FLAG] ??
+      conversationMessage?.content_attributes?.[ChatwootWebhookController.SYSTEM_MESSAGE_FLAG]
+    );
+  }
+
+  private buildSystemMessageAttributes(settings: ChatwootBehaviorSettings): Record<string, unknown> {
+    const senderLabel = this.toOptionalString(settings.systemMessageSenderName) ?? 'Trilink Bot';
+    return {
+      [ChatwootWebhookController.SYSTEM_MESSAGE_FLAG]: true,
+      [ChatwootWebhookController.SYSTEM_MESSAGE_SENDER_LABEL]: senderLabel,
+    };
+  }
+
+  private withSystemMessageConfig(
+    config: ResolvedIntegrationContext['chatwoot'],
+    settings: ChatwootBehaviorSettings,
+  ): ChatwootConnectionConfig {
+    return {
+      ...config,
+      systemBotApiToken: settings.systemMessageApiToken.trim() || undefined,
+      systemBotName: settings.systemMessageSenderName.trim() || undefined,
+    };
   }
 
   private normalizeMessageType(value: unknown): 'incoming' | 'outgoing' | 'template' | 'unknown' {

@@ -4,6 +4,8 @@ export type ChatwootConnectionConfig = {
   url: string;
   apiToken: string;
   platformApiToken?: string;
+  systemBotApiToken?: string;
+  systemBotName?: string;
   accountId: string;
   inboxId: string;
   inboxIdentifier: string;
@@ -100,9 +102,11 @@ export class ChatwootClient {
     endpoint: string,
     method: string = 'GET',
     body?: any,
-    retries: number = 3
+    retries: number = 3,
+    authTokenOverride?: string,
   ): Promise<any> {
-    if (!config.url || !config.apiToken) {
+    const authToken = String(authTokenOverride ?? config.apiToken ?? '').trim();
+    if (!config.url || !authToken) {
       this.logger.warn('CHATWOOT_URL ou CHATWOOT_API_TOKEN nao configurados.');
       return null;
     }
@@ -111,7 +115,7 @@ export class ChatwootClient {
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const headers: any = { api_access_token: config.apiToken };
+        const headers: any = { api_access_token: authToken };
         let requestBody: any;
 
         if (body instanceof FormData) {
@@ -411,8 +415,14 @@ export class ChatwootClient {
   async createOutgoingMessage(
     config: ChatwootConnectionConfig,
     conversationId: string,
-    content: string
+    content: string,
+    options?: {
+      useSystemBot?: boolean;
+      contentAttributes?: Record<string, unknown>;
+    },
   ) {
+    const useSystemBot = options?.useSystemBot === true && Boolean(config.systemBotApiToken);
+    const authToken = useSystemBot ? config.systemBotApiToken : undefined;
     return this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
@@ -422,8 +432,10 @@ export class ChatwootClient {
         message_type: 'outgoing',
         private: false,
         content_type: 'text',
-        content_attributes: {},
-      }
+        content_attributes: options?.contentAttributes ?? {},
+      },
+      3,
+      authToken,
     );
   }
 

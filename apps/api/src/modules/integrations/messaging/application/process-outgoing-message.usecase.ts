@@ -47,7 +47,7 @@ export class ProcessOutgoingMessageUseCase {
 
     const content = this.buildOutboundContent(
       messagePayload.content,
-      messagePayload.senderName,
+      messagePayload.systemSenderName ?? messagePayload.senderName,
       context?.prependAgentNameOnOutbound === true,
     );
     const messageId = messagePayload.messageId;
@@ -437,6 +437,7 @@ export class ProcessOutgoingMessageUseCase {
     isPrivateNote: boolean;
     content?: string;
     senderName?: string;
+    systemSenderName?: string;
     chatwootConversationId?: string;
     attachments: any[];
   } {
@@ -456,6 +457,7 @@ export class ProcessOutgoingMessageUseCase {
       isPrivateNote: Boolean(payload?.private ?? message?.private),
       content,
       senderName: this.extractSenderName(payload, message, conversationMessage),
+      systemSenderName: this.extractSystemSenderName(payload, message, conversationMessage),
       chatwootConversationId: this.toOptionalString(
         payload?.conversation?.id ??
         payload?.conversation_id ??
@@ -998,6 +1000,21 @@ export class ProcessOutgoingMessageUseCase {
       payload?.conversation?.meta?.assignee?.display_name,
       sender?.email,
       payload?.conversation?.meta?.assignee?.name,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = this.normalizeAgentName(candidate);
+      if (normalized) return normalized;
+    }
+
+    return undefined;
+  }
+
+  private extractSystemSenderName(payload: any, message: any, conversationMessage: any): string | undefined {
+    const candidates = [
+      payload?.content_attributes?.syspro_system_sender_label,
+      message?.content_attributes?.syspro_system_sender_label,
+      conversationMessage?.content_attributes?.syspro_system_sender_label,
     ];
 
     for (const candidate of candidates) {

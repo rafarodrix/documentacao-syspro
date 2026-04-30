@@ -40,7 +40,7 @@ const defaultValues: SettingsInput = {
 };
 
 interface GeneralSettingsFormProps {
-  adminView: SettingsPermissionsAdminView;
+  adminView: SettingsPermissionsAdminView | null;
 }
 
 export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormProps) {
@@ -289,20 +289,22 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
         </div>
       </form>
 
-      <section className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-2 text-violet-600">
-            <SlidersHorizontal className="h-5 w-5" />
+      {adminView ? (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-2 text-violet-600">
+              <SlidersHorizontal className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Perfis de Acesso</h2>
+              <p className="text-sm text-muted-foreground">
+                Gerencie perfis, atribuicoes e visibilidade diretamente nesta pagina, sem uma segunda barra de navegacao.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">Perfis de Acesso</h2>
-            <p className="text-sm text-muted-foreground">
-              Gerencie perfis, atribuicoes e visibilidade diretamente nesta pagina, sem uma segunda barra de navegacao.
-            </p>
-          </div>
-        </div>
-        <AccessControlTab adminView={adminView} />
-      </section>
+          <AccessControlTab adminView={adminView} />
+        </section>
+      ) : null}
     </div>
   );
 }
