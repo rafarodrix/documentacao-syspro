@@ -1,5 +1,31 @@
+import type { RemoteHostDetails } from "@/features/remote/domain/model";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { formatDateTime } from "../host-details.helpers";
+
+type AgentTelemetry = RemoteHostDetails["agentTelemetry"];
+type SnapshotRecord = Record<string, unknown> | null;
+
+type HostInfraTabProps = {
+  details: RemoteHostDetails;
+  systemSnapshot: AgentTelemetry["systemSnapshot"];
+  networkSnapshot: AgentTelemetry["networkSnapshot"];
+  softwareSnapshot: AgentTelemetry["softwareSnapshot"];
+  hardwareIdentity: AgentTelemetry["hardwareIdentity"];
+  diskSnapshot: AgentTelemetry["diskSnapshot"];
+  sysproProcessSnapshot: AgentTelemetry["sysproProcessSnapshot"];
+  windowsUpdateStatus: AgentTelemetry["windowsUpdateStatus"];
+  rebootPending: AgentTelemetry["rebootPending"];
+};
+
+function readString(snapshot: SnapshotRecord, key: string): string | null {
+  const value = snapshot?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readNumber(snapshot: SnapshotRecord, key: string): number | null {
+  const value = snapshot?.[key];
+  return typeof value === "number" ? value : null;
+}
 
 export function HostInfraTab({
   details,
@@ -11,17 +37,11 @@ export function HostInfraTab({
   sysproProcessSnapshot,
   windowsUpdateStatus,
   rebootPending,
-}: {
-  details: any;
-  systemSnapshot: any;
-  networkSnapshot: any;
-  softwareSnapshot: any[];
-  hardwareIdentity: any;
-  diskSnapshot: any[];
-  sysproProcessSnapshot: any[];
-  windowsUpdateStatus: any;
-  rebootPending: boolean | null;
-}) {
+}: HostInfraTabProps) {
+  const downSysproProcessCount = sysproProcessSnapshot.filter((entry) => entry["running"] === false).length;
+  const pendingWindowsUpdates =
+    typeof windowsUpdateStatus?.["pendingCount"] === "number" ? windowsUpdateStatus["pendingCount"] : null;
+
   return (
     <Card className="border-border/50">
       <CardHeader>
@@ -34,43 +54,37 @@ export function HostInfraTab({
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
-              <p className="mt-2 text-sm text-foreground">
-                {typeof systemSnapshot?.osCaption === "string" && systemSnapshot.osCaption.trim()
-                  ? systemSnapshot.osCaption
-                  : "Sem leitura"}
+              <p className="mt-2 text-sm text-foreground">{readString(systemSnapshot, "osCaption") ?? "Sem leitura"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Atualizado em {formatDateTime(details.agentTelemetry.systemSnapshotAt)}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.systemSnapshotAt)}</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Memoria / Disco</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Memória / Disco</p>
               <p className="mt-2 text-sm text-foreground">
-                RAM livre: {typeof systemSnapshot?.freeRamMb === "number" ? `${systemSnapshot.freeRamMb} MB` : "-"}
+                RAM livre: {readNumber(systemSnapshot, "freeRamMb") !== null ? `${readNumber(systemSnapshot, "freeRamMb")} MB` : "-"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Disco livre C: {typeof systemSnapshot?.diskFreeGb === "number" ? `${systemSnapshot.diskFreeGb} GB` : "-"}
+                Disco livre C: {readNumber(systemSnapshot, "diskFreeGb") !== null ? `${readNumber(systemSnapshot, "diskFreeGb")} GB` : "-"}
               </p>
             </div>
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rede</p>
-              <p className="mt-2 text-sm text-foreground">
-                Gateway: {typeof networkSnapshot?.defaultGateway === "string" && networkSnapshot.defaultGateway.trim()
-                  ? networkSnapshot.defaultGateway
-                  : "Sem leitura"}
+              <p className="mt-2 text-sm text-foreground">{readString(networkSnapshot, "defaultGateway") ?? "Sem leitura"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventário de software</p>
               <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
-              <p className="mt-1 text-xs text-muted-foreground">Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}
+              </p>
             </div>
             <div className="rounded-xl border border-border/50 bg-background/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hardware e discos</p>
-              <p className="mt-2 text-sm text-foreground">
-                Modelo: {typeof hardwareIdentity?.systemModel === "string" && hardwareIdentity.systemModel.trim()
-                  ? hardwareIdentity.systemModel
-                  : "Sem leitura"}
-              </p>
+              <p className="mt-2 text-sm text-foreground">{readString(hardwareIdentity, "systemModel") ?? "Sem leitura"}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Volumes: {diskSnapshot.length} | Atualizado em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}
               </p>
@@ -81,11 +95,9 @@ export function HostInfraTab({
                 Reinicialização pendente: {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim" : "Não"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Processos Syspro em alerta: {sysproProcessSnapshot.filter((entry) => entry["running"] === false).length}
+                Processos Syspro em alerta: {downSysproProcessCount}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Updates pendentes: {typeof windowsUpdateStatus?.["pendingCount"] === "number" ? windowsUpdateStatus["pendingCount"] : "-"}
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">Updates pendentes: {pendingWindowsUpdates ?? "-"}</p>
             </div>
           </div>
         </div>

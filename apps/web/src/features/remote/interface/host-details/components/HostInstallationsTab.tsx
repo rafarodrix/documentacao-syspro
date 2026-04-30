@@ -1,11 +1,16 @@
 import { ArrowRightLeft, Building2, HardDriveDownload, Loader2 } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { RemoteHostDetails } from "@/features/remote/domain/model";
 import { SearchableCompanyPicker } from "./SearchableCompanyPicker";
 import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
 import { COMPANY_SERVER_TYPE_LABEL, DEFAULT_INSTALLATION_DIRECTORY, MACHINE_PROFILE_LABEL, REMOTE_CONNECTION_LABEL, UNLINKED_COMPANY_VALUE } from "../host-details.constants";
+
+type InstallationContext = RemoteHostDetails["installationContexts"][number];
+type HostInstallationsPanelDetails = Pick<RemoteHostDetails, "host" | "company" | "companyOptions">;
 
 export function HostInstallationsTab({
   details,
@@ -30,7 +35,7 @@ export function HostInstallationsTab({
   isSavingHostIdentity,
   handleSaveHostIdentity,
 }: {
-  details: any;
+  details: HostInstallationsPanelDetails;
   installationFilter: "all" | "unlinked";
   setInstallationFilter: (v: "all" | "unlinked") => void;
   canManageInstallations: boolean;
@@ -38,11 +43,11 @@ export function HostInstallationsTab({
   setBulkInstallationCompanyId: (v: string) => void;
   isBulkRelinkingInstallations: boolean;
   handleBulkRelinkInstallations: (id: string | null) => void;
-  dedupedInstallationContexts: any[];
+  dedupedInstallationContexts: InstallationContext[];
   unlinkedInstallationsCount: number;
-  installationContextsForDisplay: any[];
+  installationContextsForDisplay: InstallationContext[];
   selectedCompanyByUpdateId: Record<string, string>;
-  setSelectedCompanyByUpdateId: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setSelectedCompanyByUpdateId: Dispatch<SetStateAction<Record<string, string>>>;
   isRelinkingInstallation: boolean;
   handleRelinkInstallation: (updateId: string, companyId: string | null) => void;
   machineProfileDraft: string;
@@ -294,7 +299,7 @@ export function HostInstallationsTab({
                     <summary className="cursor-pointer text-sm font-medium text-foreground">Conexao remota</summary>
                     <div className="mt-3 space-y-3">
                       {entry.companyId && companyContext?.remoteConnections.length ? (
-                        companyContext.remoteConnections.map((connection: any, connectionIndex: number) => (
+                        companyContext.remoteConnections.map((connection, connectionIndex: number) => (
                           <div key={`${connection.type}-${connectionIndex}`} className="rounded-lg border border-border/40 bg-background/40 p-3">
                             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo</p>
                             <p className="mt-1 text-sm font-medium text-foreground">{REMOTE_CONNECTION_LABEL[connection.type as keyof typeof REMOTE_CONNECTION_LABEL]}</p>
