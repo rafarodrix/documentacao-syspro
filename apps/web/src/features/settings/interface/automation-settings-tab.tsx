@@ -72,6 +72,8 @@ function createWhatsAppBinding(): WhatsAppAutomationBinding {
       ticketStatusTesting: false,
       ticketStatusTestingFailed: false,
       releasePublished: false,
+      sefazRouteDown: false,
+      sefazRouteRecovered: false,
     },
   };
 }
@@ -124,6 +126,16 @@ const PUBLIC_CHANNEL_AUTOMATION_FIELDS = [
     key: "releasePublished",
     label: "Release publicada",
     description: "Dispara quando um ticket resolvido entra na listagem de releases.",
+  },
+  {
+    key: "sefazRouteDown",
+    label: "SEFAZ indisponivel",
+    description: "Dispara quando uma rota SEFAZ entra em falha e abre uma janela de indisponibilidade.",
+  },
+  {
+    key: "sefazRouteRecovered",
+    label: "SEFAZ normalizada",
+    description: "Dispara quando uma rota SEFAZ volta ao normal e encerra a janela de indisponibilidade.",
   },
 ] as const;
 

@@ -1,9 +1,10 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import type { SefazServiceType, SefazStatusType } from '@prisma/client';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import type { Prisma, SefazServiceType, SefazStatusType } from '@prisma/client';
 import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts/sefaz-endpoints';
 import { sefazRoutesSchema } from '@dosc-syspro/contracts/sefaz-routes';
 import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
 import * as https from 'https';
 
 type SefazCheckResult = {
@@ -16,7 +17,30 @@ type SefazCheckResult = {
   checkedAt: Date;
 };
 
-const SEFAZ_MONITOR_INTERVAL_MINUTES = Math.max(1, Number(process.env.SEFAZ_MONITOR_INTERVAL_MINUTES ?? 5));
+type SefazOutageWindowState = {
+  active: boolean;
+  openedAt: string | null;
+  lastFailureAt: string | null;
+  lastRecoveryAt: string | null;
+  lastStatus: SefazStatusType | null;
+};
+
+type SefazOutageNotification = {
+  uf: string;
+  service: SefazServiceType;
+  notificationType: 'down' | 'recovered';
+  openedAt?: string | null;
+  recoveredAt?: string | null;
+};
+
+const SEFAZ_MONITOR_NORMAL_INTERVAL_MINUTES = Math.max(
+  1,
+  Number(process.env.SEFAZ_MONITOR_NORMAL_INTERVAL_MINUTES ?? process.env.SEFAZ_MONITOR_INTERVAL_MINUTES ?? 5),
+);
+const SEFAZ_MONITOR_DEGRADED_INTERVAL_MINUTES = Math.max(
+  1,
+  Number(process.env.SEFAZ_MONITOR_DEGRADED_INTERVAL_MINUTES ?? 2),
+);
 const SEFAZ_MONITOR_RETENTION_HOURS = Math.max(1, Number(process.env.SEFAZ_MONITOR_RETENTION_HOURS ?? 24));
 const SEFAZ_MONITOR_TIMEOUT_MS = Math.max(1000, Number(process.env.SEFAZ_MONITOR_TIMEOUT_MS ?? 8000));
 const SEFAZ_MONITOR_ENABLED = process.env.SEFAZ_MONITOR_ENABLED !== 'false';
@@ -53,12 +77,15 @@ function classifySefazResponse(latency: number, statusCode: number, body: string
   return 'ONLINE';
 }
 
-function changedMeaningfully(previous: {
-  status: SefazStatusType;
-  statusCode: number | null;
-  errorMessage: string | null;
-  latency: number;
-} | null, current: SefazCheckResult) {
+function changedMeaningfully(
+  previous: {
+    status: SefazStatusType;
+    statusCode: number | null;
+    errorMessage: string | null;
+    latency: number;
+  } | null,
+  current: SefazCheckResult,
+) {
   if (!previous) return true;
   if (previous.status !== current.status) return true;
   if ((previous.statusCode ?? null) !== (current.statusCode ?? null)) return true;
@@ -67,13 +94,55 @@ function changedMeaningfully(previous: {
   return false;
 }
 
+function buildOutageWindowKey(uf: string, service: SefazServiceType) {
+  return `sefaz.outage.window.${uf}.${service}`;
+}
+
+function parseOutageWindowState(rawValue?: string | null): SefazOutageWindowState {
+  if (!rawValue) {
+    return {
+      active: false,
+      openedAt: null,
+      lastFailureAt: null,
+      lastRecoveryAt: null,
+      lastStatus: null,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<SefazOutageWindowState>;
+    return {
+      active: parsed.active === true,
+      openedAt: typeof parsed.openedAt === 'string' ? parsed.openedAt : null,
+      lastFailureAt: typeof parsed.lastFailureAt === 'string' ? parsed.lastFailureAt : null,
+      lastRecoveryAt: typeof parsed.lastRecoveryAt === 'string' ? parsed.lastRecoveryAt : null,
+      lastStatus:
+        parsed.lastStatus === 'ONLINE' || parsed.lastStatus === 'UNSTABLE' || parsed.lastStatus === 'OFFLINE'
+          ? parsed.lastStatus
+          : null,
+    };
+  } catch {
+    return {
+      active: false,
+      openedAt: null,
+      lastFailureAt: null,
+      lastRecoveryAt: null,
+      lastStatus: null,
+    };
+  }
+}
+
 @Injectable()
 export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SettingsSefazMonitorService.name);
   private timer?: NodeJS.Timeout;
   private running = false;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AutomationWhatsappService))
+    private readonly automationWhatsappService: AutomationWhatsappService,
+  ) {}
 
   onModuleInit() {
     if (!SEFAZ_MONITOR_ENABLED) {
@@ -82,18 +151,14 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
     }
 
     this.logger.log(
-      `Monitor SEFAZ habilitado. Intervalo=${SEFAZ_MONITOR_INTERVAL_MINUTES}min Retencao=${SEFAZ_MONITOR_RETENTION_HOURS}h Timeout=${SEFAZ_MONITOR_TIMEOUT_MS}ms`,
+      `Monitor SEFAZ habilitado. IntervaloNormal=${SEFAZ_MONITOR_NORMAL_INTERVAL_MINUTES}min IntervaloFalha=${SEFAZ_MONITOR_DEGRADED_INTERVAL_MINUTES}min Retencao=${SEFAZ_MONITOR_RETENTION_HOURS}h Timeout=${SEFAZ_MONITOR_TIMEOUT_MS}ms`,
     );
-
-    this.timer = setInterval(() => {
-      void this.runScheduledCheck();
-    }, SEFAZ_MONITOR_INTERVAL_MINUTES * 60 * 1000);
 
     void this.runScheduledCheck();
   }
 
   onModuleDestroy() {
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer) clearTimeout(this.timer);
   }
 
   async getConfiguredRoutes() {
@@ -130,19 +195,23 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
 
         try {
           const response = await new Promise<{ status: number; body: string }>((resolve, reject) => {
-            const req = https.request(probeUrl, {
-              method: 'GET',
-              rejectUnauthorized: false,
-              timeout: SEFAZ_MONITOR_TIMEOUT_MS,
-              headers: {
-                Accept: 'application/wsdl+xml, text/xml, application/xml, text/html;q=0.8, */*;q=0.5',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            const req = https.request(
+              probeUrl,
+              {
+                method: 'GET',
+                rejectUnauthorized: false,
+                timeout: SEFAZ_MONITOR_TIMEOUT_MS,
+                headers: {
+                  Accept: 'application/wsdl+xml, text/xml, application/xml, text/html;q=0.8, */*;q=0.5',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                },
               },
-            }, (res) => {
-              let responseBody = '';
-              res.on('data', chunk => responseBody += chunk);
-              res.on('end', () => resolve({ status: res.statusCode || 500, body: responseBody }));
-            });
+              (res) => {
+                let responseBody = '';
+                res.on('data', (chunk) => (responseBody += chunk));
+                res.on('end', () => resolve({ status: res.statusCode || 500, body: responseBody }));
+              },
+            );
 
             req.on('error', reject);
             req.on('timeout', () => {
@@ -167,17 +236,15 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
           } satisfies SefazCheckResult;
         } catch (error) {
           const errMessage = normalizeErrorMessage(error);
-          
-          // Muitas rotas da SEFAZ (especialmente autorizacao) exigem certificado cliente.
-          // Se o servidor rejeitar no handshake SSL, significa que ele esta no ar respondendo.
-          const isSslHandshakeFailure = errMessage.includes('handshake failure') || errMessage.includes('SSL alert number 40');
+          const isSslHandshakeFailure =
+            errMessage.includes('handshake failure') || errMessage.includes('SSL alert number 40');
           const status = isSslHandshakeFailure ? 'ONLINE' : 'OFFLINE';
-          
+
           return {
             uf: endpoint.uf,
             service: endpoint.service,
             status,
-            latency: isSslHandshakeFailure ? 100 : 0, // mock latency
+            latency: isSslHandshakeFailure ? 100 : 0,
             statusCode: null,
             errorMessage: errMessage,
             checkedAt,
@@ -187,6 +254,7 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
     );
 
     let changedCount = 0;
+    const notifications: SefazOutageNotification[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       for (const result of results) {
@@ -243,6 +311,11 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
             },
           });
         }
+
+        const outageWindow = await this.syncOutageWindow(tx, result);
+        if (outageWindow) {
+          notifications.push(outageWindow);
+        }
       }
 
       const retentionStart = new Date(Date.now() - SEFAZ_MONITOR_RETENTION_HOURS * 60 * 60 * 1000);
@@ -253,24 +326,154 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
       });
     });
 
-    return { count: results.length, changedCount };
+    const groupedNotifications = notifications.reduce<Record<'down' | 'recovered', SefazOutageNotification[]>>(
+      (accumulator, notification) => {
+        accumulator[notification.notificationType].push(notification);
+        return accumulator;
+      },
+      { down: [], recovered: [] },
+    );
+
+    for (const notificationType of ['down', 'recovered'] as const) {
+      const batch = groupedNotifications[notificationType];
+      if (!batch.length) continue;
+
+      try {
+        await this.automationWhatsappService.sendSefazRouteStatusDigestNotification({
+          notificationType,
+          routes: batch.map((notification) => ({
+            uf: notification.uf,
+            service: notification.service,
+            openedAt: notification.openedAt,
+            recoveredAt: notification.recoveredAt,
+          })),
+        });
+      } catch (error) {
+        this.logger.warn(
+          JSON.stringify({
+            stage: 'sefaz_notification_dispatch_failed',
+            notificationType,
+            routeCount: batch.length,
+            error: normalizeErrorMessage(error),
+          }),
+        );
+      }
+    }
+
+    return {
+      count: results.length,
+      changedCount,
+      hasFailures: results.some((result) => result.status !== 'ONLINE'),
+      notificationsCount: notifications.length,
+    };
+  }
+
+  private async syncOutageWindow(
+    tx: Prisma.TransactionClient,
+    result: SefazCheckResult,
+  ): Promise<SefazOutageNotification | null> {
+    const key = buildOutageWindowKey(result.uf, result.service);
+    const existingSetting = await tx.systemSetting.findUnique({
+      where: { key },
+      select: { value: true },
+    });
+
+    const previous = parseOutageWindowState(existingSetting?.value);
+    const checkedAtIso = result.checkedAt.toISOString();
+    let next: SefazOutageWindowState = {
+      ...previous,
+      lastStatus: result.status,
+    };
+    let notification: SefazOutageNotification | null = null;
+
+    if (!previous.active && result.status === 'OFFLINE') {
+      next = {
+        active: true,
+        openedAt: checkedAtIso,
+        lastFailureAt: checkedAtIso,
+        lastRecoveryAt: previous.lastRecoveryAt,
+        lastStatus: result.status,
+      };
+      notification = {
+        uf: result.uf,
+        service: result.service,
+        notificationType: 'down',
+        openedAt: next.openedAt,
+      };
+    } else if (previous.active && result.status === 'ONLINE') {
+      next = {
+        active: false,
+        openedAt: previous.openedAt,
+        lastFailureAt: previous.lastFailureAt,
+        lastRecoveryAt: checkedAtIso,
+        lastStatus: result.status,
+      };
+      notification = {
+        uf: result.uf,
+        service: result.service,
+        notificationType: 'recovered',
+        openedAt: previous.openedAt,
+        recoveredAt: checkedAtIso,
+      };
+    } else if (previous.active) {
+      next = {
+        active: true,
+        openedAt: previous.openedAt ?? checkedAtIso,
+        lastFailureAt: result.status === 'OFFLINE' ? checkedAtIso : previous.lastFailureAt,
+        lastRecoveryAt: previous.lastRecoveryAt,
+        lastStatus: result.status,
+      };
+    }
+
+    if (JSON.stringify(previous) !== JSON.stringify(next)) {
+      await tx.systemSetting.upsert({
+        where: { key },
+        update: {
+          value: JSON.stringify(next),
+          description: `Janela de indisponibilidade SEFAZ para ${result.uf}/${result.service}`,
+        },
+        create: {
+          key,
+          value: JSON.stringify(next),
+          description: `Janela de indisponibilidade SEFAZ para ${result.uf}/${result.service}`,
+        },
+      });
+    }
+
+    return notification;
+  }
+
+  private scheduleNextRun(intervalMinutes: number) {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      void this.runScheduledCheck();
+    }, intervalMinutes * 60 * 1000);
   }
 
   private async runScheduledCheck() {
     if (this.running) {
       this.logger.warn('Monitor SEFAZ ainda em execucao; ciclo atual ignorado.');
+      this.scheduleNextRun(SEFAZ_MONITOR_DEGRADED_INTERVAL_MINUTES);
       return;
     }
 
     this.running = true;
+    let nextIntervalMinutes = SEFAZ_MONITOR_NORMAL_INTERVAL_MINUTES;
 
     try {
       const result = await this.runFullCheck();
-      this.logger.log(`Monitor SEFAZ concluido. Rotas=${result.count} Alteracoes=${result.changedCount}`);
+      nextIntervalMinutes = result.hasFailures
+        ? SEFAZ_MONITOR_DEGRADED_INTERVAL_MINUTES
+        : SEFAZ_MONITOR_NORMAL_INTERVAL_MINUTES;
+      this.logger.log(
+        `Monitor SEFAZ concluido. Rotas=${result.count} Alteracoes=${result.changedCount} Notificacoes=${result.notificationsCount} ProximoCiclo=${nextIntervalMinutes}min`,
+      );
     } catch (error) {
+      nextIntervalMinutes = SEFAZ_MONITOR_DEGRADED_INTERVAL_MINUTES;
       this.logger.error(`Falha no monitor SEFAZ: ${normalizeErrorMessage(error)}`);
     } finally {
       this.running = false;
+      this.scheduleNextRun(nextIntervalMinutes);
     }
   }
 }

@@ -417,6 +417,173 @@ export class AutomationWhatsappService {
     });
   }
 
+  async sendSefazRouteStatusNotification(input: {
+    uf: string;
+    service: 'NFE' | 'NFCE';
+    notificationType: 'down' | 'recovered';
+    openedAt?: Date | string | null;
+    recoveredAt?: Date | string | null;
+    rawHeaders?: IncomingHttpHeaders;
+  }) {
+    const automationSettings = await this.readAutomationSettings();
+    const targetGroups = this.getTargetGroupsForEvent(
+      automationSettings,
+      input.notificationType === 'down' ? 'sefaz_route_down' : 'sefaz_route_recovered',
+    );
+
+    if (!targetGroups.length) {
+      this.logger.debug(
+        JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'sefaz_notification_skipped_no_group',
+          notificationType: input.notificationType,
+          uf: input.uf,
+          service: input.service,
+        }),
+      );
+      return;
+    }
+
+    const connection = await this.resolveNotificationContext(null, targetGroups.map((group) => group.jid));
+    if (!connection) {
+      this.logger.warn(
+        JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'sefaz_notification_skipped_no_connection',
+          notificationType: input.notificationType,
+          uf: input.uf,
+          service: input.service,
+          groupCount: targetGroups.length,
+        }),
+      );
+      return;
+    }
+
+    const link = this.buildPortalSefazRoutesUrl(input.rawHeaders);
+    const durationLabel =
+      input.notificationType === 'recovered'
+        ? this.formatDurationBetween(input.openedAt, input.recoveredAt)
+        : null;
+    const message = [
+      input.notificationType === 'down' ? '`SEFAZ indisponivel`' : '`SEFAZ normalizada`',
+      `*Estado:* ${input.uf}`,
+      `*Modalidade:* ${this.formatSefazServiceLabel(input.service)}`,
+      ...(durationLabel ? [`*Duracao:* ${durationLabel}`] : []),
+      '',
+      input.notificationType === 'down'
+        ? 'A rota apresentou falha nas ultimas verificacoes.'
+        : 'A consulta voltou a responder normalmente.',
+      ...(link ? ['', `*Link:* ${link}`] : []),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await this.dispatchToGroups(targetGroups, connection.evolution, {
+      connectionKey: connection.connectionKey,
+      connectionSource: connection.source,
+      companyId: connection.companyId,
+    }, message, {
+      flow: 'portal_to_evolution',
+      sentStage: 'sefaz_notification_sent',
+      failedStage: 'sefaz_notification_failed',
+      notificationType: input.notificationType,
+      uf: input.uf,
+      service: input.service,
+    });
+  }
+
+  async sendSefazRouteStatusDigestNotification(input: {
+    notificationType: 'down' | 'recovered';
+    routes: Array<{
+      uf: string;
+      service: 'NFE' | 'NFCE';
+      openedAt?: Date | string | null;
+      recoveredAt?: Date | string | null;
+    }>;
+    rawHeaders?: IncomingHttpHeaders;
+  }) {
+    if (!input.routes.length) return;
+
+    const automationSettings = await this.readAutomationSettings();
+    const targetGroups = this.getTargetGroupsForEvent(
+      automationSettings,
+      input.notificationType === 'down' ? 'sefaz_route_down' : 'sefaz_route_recovered',
+    );
+
+    if (!targetGroups.length) {
+      this.logger.debug(
+        JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'sefaz_digest_notification_skipped_no_group',
+          notificationType: input.notificationType,
+          routeCount: input.routes.length,
+        }),
+      );
+      return;
+    }
+
+    const connection = await this.resolveNotificationContext(null, targetGroups.map((group) => group.jid));
+    if (!connection) {
+      this.logger.warn(
+        JSON.stringify({
+          flow: 'portal_to_evolution',
+          stage: 'sefaz_digest_notification_skipped_no_connection',
+          notificationType: input.notificationType,
+          routeCount: input.routes.length,
+          groupCount: targetGroups.length,
+        }),
+      );
+      return;
+    }
+
+    const link = this.buildPortalSefazRoutesUrl(input.rawHeaders);
+    const sortedRoutes = [...input.routes].sort((left, right) => {
+      const byUf = left.uf.localeCompare(right.uf, 'pt-BR');
+      if (byUf !== 0) return byUf;
+      return this.formatSefazServiceLabel(left.service).localeCompare(
+        this.formatSefazServiceLabel(right.service),
+        'pt-BR',
+      );
+    });
+    const routeLines = sortedRoutes.map((route) => {
+      const duration =
+        input.notificationType === 'recovered'
+          ? this.formatDurationBetween(route.openedAt, route.recoveredAt)
+          : null;
+
+      return input.notificationType === 'recovered' && duration
+        ? `- ${route.uf} · ${this.formatSefazServiceLabel(route.service)} (${duration})`
+        : `- ${route.uf} · ${this.formatSefazServiceLabel(route.service)}`;
+    });
+
+    const message = [
+      input.notificationType === 'down' ? '`SEFAZ indisponivel`' : '`SEFAZ normalizada`',
+      input.notificationType === 'down'
+        ? '*Rotas afetadas:*'
+        : '*Rotas normalizadas:*',
+      ...routeLines,
+      '',
+      input.notificationType === 'down'
+        ? 'A consulta foi interrompida nas rotas listadas acima.'
+        : 'As rotas listadas acima voltaram a responder normalmente.',
+      ...(link ? ['', `*Link:* ${link}`] : []),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await this.dispatchToGroups(targetGroups, connection.evolution, {
+      connectionKey: connection.connectionKey,
+      connectionSource: connection.source,
+      companyId: connection.companyId,
+    }, message, {
+      flow: 'portal_to_evolution',
+      sentStage: 'sefaz_digest_notification_sent',
+      failedStage: 'sefaz_digest_notification_failed',
+      notificationType: input.notificationType,
+      routeCount: input.routes.length,
+    });
+  }
+
   private async dispatchToGroups(
     groups: Array<{ id: string; label: string; jid: string; active: boolean }>,
     evolution: unknown,
@@ -588,7 +755,7 @@ export class AutomationWhatsappService {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private async readAutomationSettings(legacyTicketSettings: TicketModuleSettings): Promise<AutomationModuleSettings> {
+  private async readAutomationSettings(legacyTicketSettings?: TicketModuleSettings): Promise<AutomationModuleSettings> {
     void legacyTicketSettings;
     return this.automationSettingsService.readAutomationModuleSettings();
   }
@@ -625,6 +792,10 @@ export class AutomationWhatsappService {
         return binding.automations.ticketStatusTestingFailed;
       case 'release_published':
         return binding.automations.releasePublished;
+      case 'sefaz_route_down':
+        return binding.automations.sefazRouteDown;
+      case 'sefaz_route_recovered':
+        return binding.automations.sefazRouteRecovered;
       default:
         return false;
     }
@@ -790,6 +961,11 @@ export class AutomationWhatsappService {
     return `${origin}/portal/releases/${year}/${month}`;
   }
 
+  private buildPortalSefazRoutesUrl(rawHeaders?: IncomingHttpHeaders): string | null {
+    const origin = this.resolvePortalOrigin(rawHeaders);
+    return origin ? `${origin}/portal/configuracoes?tab=sefaz` : null;
+  }
+
   private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {
     const header = rawHeaders?.[key];
     if (Array.isArray(header)) {
@@ -862,6 +1038,27 @@ export class AutomationWhatsappService {
     if (normalized === 'BUG') return 'Bug';
     if (normalized === 'NOVA_FUNCIONALIDADE') return 'Novos recursos';
     return 'Melhoria';
+  }
+
+  private formatSefazServiceLabel(value: 'NFE' | 'NFCE'): string {
+    return value === 'NFCE' ? 'NFCe' : 'NFe';
+  }
+
+  private formatDurationBetween(start?: Date | string | null, end?: Date | string | null): string | null {
+    if (!start || !end) return null;
+
+    const startedAt = new Date(start);
+    const endedAt = new Date(end);
+    if (Number.isNaN(startedAt.getTime()) || Number.isNaN(endedAt.getTime())) return null;
+
+    const diffMs = Math.max(0, endedAt.getTime() - startedAt.getTime());
+    const totalMinutes = Math.max(1, Math.round(diffMs / 60000));
+
+    if (totalMinutes < 60) return `${totalMinutes} min`;
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes ? `${hours}h ${minutes}min` : `${hours}h`;
   }
 
   private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {
