@@ -148,18 +148,54 @@ export function TicketRichTextEditor({
 
   function applyBlockType(value: string) {
     const chain = activeEditor.chain().focus();
+    const { from, to, empty } = activeEditor.state.selection;
 
     if (value === "heading-2") {
+      if (!empty) {
+        convertSelectionToHeading(2, from, to);
+        return;
+      }
       chain.toggleHeading({ level: 2 }).run();
       return;
     }
 
     if (value === "heading-3") {
+      if (!empty) {
+        convertSelectionToHeading(3, from, to);
+        return;
+      }
       chain.toggleHeading({ level: 3 }).run();
       return;
     }
 
     chain.setParagraph().run();
+  }
+
+  function convertSelectionToHeading(level: 2 | 3, from: number, to: number) {
+    const selectedText = activeEditor.state.doc.textBetween(from, to, "\n").trim();
+
+    if (!selectedText) {
+      activeEditor.chain().focus().toggleHeading({ level }).run();
+      return;
+    }
+
+    activeEditor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from, to },
+        [
+          {
+            type: "heading",
+            attrs: { level },
+            content: [{ type: "text", text: selectedText }],
+          },
+          {
+            type: "paragraph",
+          },
+        ],
+      )
+      .run();
   }
 
   function insertTemplate(templateHtml: string) {
