@@ -27,10 +27,10 @@ import {
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
-import { TicketChat } from "@/features/tickets/interface/components/TicketChat";
-import { TicketFinalizeDialog } from "@/features/tickets/interface/components/TicketFinalizeDialog";
-import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
-import { TicketTestingReturnDialog } from "@/features/tickets/interface/components/TicketTestingReturnDialog";
+import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
+import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
+import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
+import { TicketTestingReturnDialog } from "@/features/tickets/interface/components/ticket-testing-return-dialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/feature
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./types";
+import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./ticket-view.types";
 
 interface TicketDetailsProps {
     ticket?: TicketDetailsItem;

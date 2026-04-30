@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 
-import { TicketsFilters } from "@/features/tickets/interface/components/TicketsFilters";
-import { TicketsTable } from "@/features/tickets/interface/components/TicketsTable";
+import { TicketsFilters } from "@/features/tickets/interface/components/tickets-filters";
+import { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
-import type { ClosedTicketsWindow, TicketListItem, TicketSortBy, TicketSortOrder, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./types";
+import type { ClosedTicketsWindow, TicketListItem, TicketSortBy, TicketSortOrder, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./ticket-view.types";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsContainerProps {

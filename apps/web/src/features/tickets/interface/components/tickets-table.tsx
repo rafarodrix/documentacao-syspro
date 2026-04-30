@@ -7,10 +7,9 @@ import { formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { TicketListItem } from "./types";
-import type { TicketSortBy, TicketSortOrder } from "./types";
+import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
-import { StatusBadge, PriorityBadge } from "./badges";
+import { StatusBadge, PriorityBadge } from "./ticket-badges";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 

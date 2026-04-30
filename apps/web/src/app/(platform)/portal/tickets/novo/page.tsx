@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { CreateTicketPageForm } from "@/features/tickets/interface/components/CreateTicketPageForm";
+import { CreateTicketPageForm } from "@/features/tickets/interface/components/create-ticket-page-form";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 type NovoTicketPageProps = {
