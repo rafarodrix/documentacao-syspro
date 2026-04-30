@@ -616,6 +616,13 @@ const remoteCompanyOptionSchema = z.object({
   searchText: z.string().optional(),
 });
 
+const remotePlatformHostOptionSchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  label: z.string(),
+  status: remoteHostStatusSchema,
+});
+
 const remoteLastAgentMetricsSchema = z.object({
   cpuLoad: z.number().nullable(),
   ramUsedPc: z.number().nullable(),
@@ -888,17 +895,18 @@ export const remotePlatformOverviewSchema = z.object({
     }),
   ),
   recentSessions: z.array(
-    remoteSessionSummarySchema.extend({
-      hostName: z.string(),
-      companyName: remoteStringOrNullSchema,
-      requestedByName: remoteStringOrNullSchema,
+      remoteSessionSummarySchema.extend({
+        hostName: z.string(),
+        companyName: remoteStringOrNullSchema,
+        requestedByName: remoteStringOrNullSchema,
       createdAt: z.string(),
       startedAt: remoteStringOrNullSchema,
       endedAt: remoteStringOrNullSchema,
-    }),
-  ),
-  companyOptions: z.array(remoteCompanyOptionSchema),
-});
+      }),
+    ),
+    companyOptions: z.array(remoteCompanyOptionSchema),
+    hostOptions: z.array(remotePlatformHostOptionSchema),
+  });
 
 export const remotePlatformDirectorySchema = z.object({
   tenantScope: remoteTenantScopeSchema,
