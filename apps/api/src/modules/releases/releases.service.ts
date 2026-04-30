@@ -12,8 +12,6 @@ export class ReleasesService {
   async findAll(): Promise<{ success: true; data: Release[] }> {
     const tickets = await this.prisma.conversation.findMany({
       where: {
-        publishToReleases: true,
-        resolutionSummary: { not: null },
         status: TicketStatus.RESOLVED,
       },
       orderBy: [{ closedAt: 'desc' }, { updatedAt: 'desc' }],
@@ -33,21 +31,36 @@ export class ReleasesService {
       },
     });
 
-    const developmentTickets = tickets.filter((ticket) => this.isDevelopmentReleaseTicket(ticket.metadata));
-    const projectedCandidates = developmentTickets.filter((ticket) => Boolean(buildReleaseFromTicket(ticket)));
-    const releases = developmentTickets
+    const markedTickets = tickets.filter((ticket) => ticket.publishToReleases === true);
+    const developmentTickets = markedTickets.filter((ticket) => this.isDevelopmentReleaseTicket(ticket.metadata));
+    const summarizedTickets = developmentTickets.filter((ticket) => Boolean(ticket.resolutionSummary?.trim()));
+    const releases = summarizedTickets
       .map(buildReleaseFromTicket)
       .filter((release): release is Release => Boolean(release));
 
     this.logger.debug(
       JSON.stringify({
         stage: 'release_projection_diagnostics',
-        totalResolvedMarkedTickets: tickets.length,
-        developmentResolvedMarkedTickets: developmentTickets.length,
+        totalResolvedTickets: tickets.length,
+        markedForPublishTickets: markedTickets.length,
+        developmentMarkedTickets: developmentTickets.length,
+        developmentMarkedWithSummaryTickets: summarizedTickets.length,
         projectedReleases: releases.length,
-        excludedByTeam: tickets.length - developmentTickets.length,
-        excludedByProjection: developmentTickets.length - projectedCandidates.length,
-        samplesExcludedByTeam: tickets
+        excludedByPublishFlag: tickets.length - markedTickets.length,
+        excludedByTeam: markedTickets.length - developmentTickets.length,
+        excludedBySummary: developmentTickets.length - summarizedTickets.length,
+        excludedByProjection: summarizedTickets.length - releases.length,
+        samplesExcludedByPublishFlag: tickets
+          .filter((ticket) => ticket.publishToReleases !== true)
+          .slice(0, 5)
+          .map((ticket) => ({
+            id: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            publishToReleases: ticket.publishToReleases,
+            currentTeam: readReleaseMetadataString(ticket.metadata, 'currentTeam'),
+            hasSummary: Boolean(ticket.resolutionSummary?.trim()),
+          })),
+        samplesExcludedByTeam: markedTickets
           .filter((ticket) => !this.isDevelopmentReleaseTicket(ticket.metadata))
           .slice(0, 5)
           .map((ticket) => ({
@@ -56,6 +69,15 @@ export class ReleasesService {
             status: ticket.status,
             publishToReleases: ticket.publishToReleases,
             currentTeam: readReleaseMetadataString(ticket.metadata, 'currentTeam'),
+          })),
+        samplesExcludedBySummary: developmentTickets
+          .filter((ticket) => !ticket.resolutionSummary?.trim())
+          .slice(0, 5)
+          .map((ticket) => ({
+            id: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            currentTeam: readReleaseMetadataString(ticket.metadata, 'currentTeam'),
+            resolutionSummary: ticket.resolutionSummary,
           })),
       }),
     );
