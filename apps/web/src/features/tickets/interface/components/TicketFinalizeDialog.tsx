@@ -7,6 +7,13 @@ import { AlertCircle, Loader2, Flag, Video } from "lucide-react";
 import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -27,9 +34,19 @@ interface TicketFinalizeDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-function inferReleaseType(ticket: TicketDetailsItem): "BUG" | "MELHORIA" | "" {
+type ReleaseTypeValue = "BUG" | "MELHORIA" | "NOVA_FUNCIONALIDADE";
+
+function inferReleaseType(ticket: TicketDetailsItem): ReleaseTypeValue | "" {
   const category = ticket.operations?.category?.toLowerCase() || "";
   if (category.includes("bug") || category.includes("incident") || category.includes("erro")) return "BUG";
+  if (
+    category.includes("nova funcionalidade") ||
+    category.includes("nova_funcionalidade") ||
+    category.includes("feature request") ||
+    category.includes("new feature")
+  ) {
+    return "NOVA_FUNCIONALIDADE";
+  }
   if (
     category.includes("melhoria") ||
     category.includes("enhancement") ||
@@ -60,7 +77,13 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   const [releaseTitle, setReleaseTitle] = useState(ticket.releaseTitle || ticket.title || "");
   const [releaseModule, setReleaseModule] = useState(ticket.releaseModule || ticket.operations?.module || "");
   const [publishToReleases, setPublishToReleases] = useState(shouldSuggestRelease);
-  const releaseType = ticket.releaseType === "BUG" || ticket.releaseType === "MELHORIA" ? ticket.releaseType : effectiveReleaseType;
+  const [releaseType, setReleaseType] = useState<ReleaseTypeValue>(
+    ticket.releaseType === "BUG" ||
+      ticket.releaseType === "MELHORIA" ||
+      ticket.releaseType === "NOVA_FUNCIONALIDADE"
+      ? ticket.releaseType
+      : effectiveReleaseType,
+  );
 
   const shouldRequireReleaseFields = publishToReleases;
   const canFinalize = useMemo(() => {
@@ -76,10 +99,19 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
     setReleaseTitle(ticket.releaseTitle || ticket.title || "");
     setReleaseModule(ticket.releaseModule || ticket.operations?.module || "");
     setPublishToReleases(shouldSuggestRelease);
+    setReleaseType(
+      ticket.releaseType === "BUG" ||
+        ticket.releaseType === "MELHORIA" ||
+        ticket.releaseType === "NOVA_FUNCIONALIDADE"
+        ? ticket.releaseType
+        : effectiveReleaseType,
+    );
   }, [
+    effectiveReleaseType,
     open,
     shouldSuggestRelease,
     ticket.releaseModule,
+    ticket.releaseType,
     ticket.releaseTitle,
     ticket.resolutionSummary,
     ticket.resolutionVideoUrl,
@@ -202,6 +234,23 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
 
               {publishToReleases && (
                 <>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo da release *</Label>
+                    <Select
+                      value={releaseType}
+                      onValueChange={(value) => setReleaseType(value as ReleaseTypeValue)}
+                      disabled={isPending}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Selecione o tipo da entrega" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BUG">Bug</SelectItem>
+                        <SelectItem value="MELHORIA">Melhoria</SelectItem>
+                        <SelectItem value="NOVA_FUNCIONALIDADE">Nova funcionalidade</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da release *</Label>
                     <Input

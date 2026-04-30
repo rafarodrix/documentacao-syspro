@@ -23,8 +23,18 @@ export function readReleaseMetadataString(metadata: unknown, key: string): strin
 }
 
 export function normalizeReleaseType(value: unknown): ReleaseKind | null {
-  const normalized = typeof value === "string" ? value.trim().toUpperCase() : "";
+  const normalized =
+    typeof value === "string"
+      ? value
+          .trim()
+          .toUpperCase()
+          .replace(/\s+/g, "_")
+          .replace(/-/g, "_")
+      : "";
   if (normalized === "BUG" || normalized === "MELHORIA" || normalized === "NOVA_FUNCIONALIDADE") return normalized;
+  if (normalized === "FEATURE" || normalized === "NEW_FEATURE" || normalized === "NOVA_FUNCIONALIDADES") {
+    return "NOVA_FUNCIONALIDADE";
+  }
   return null;
 }
 
@@ -42,8 +52,10 @@ export function buildReleaseFromTicket(ticket: ReleaseProjectionSource): Release
   const summary = ticket.resolutionSummary?.trim();
   if (!summary) return null;
 
-  const releaseType = normalizeReleaseType(ticket.releaseType) || inferReleaseTypeFromMetadata(ticket.metadata);
-  if (!releaseType) return null;
+  const releaseType =
+    normalizeReleaseType(ticket.releaseType) ||
+    inferReleaseTypeFromMetadata(ticket.metadata) ||
+    "MELHORIA";
   const date = ticket.closedAt || ticket.updatedAt;
   const isoDate = date instanceof Date ? date.toISOString() : new Date(date).toISOString();
 

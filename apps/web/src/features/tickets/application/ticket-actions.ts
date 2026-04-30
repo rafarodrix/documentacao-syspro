@@ -35,7 +35,7 @@ export async function finalizeTicketAction(input: {
   ticketId: string | number;
   resolutionSummary?: string;
   resolutionVideoUrl?: string;
-  releaseType?: "BUG" | "MELHORIA";
+  releaseType?: "BUG" | "MELHORIA" | "NOVA_FUNCIONALIDADE";
   releaseTitle?: string;
   releaseModule?: string;
   publishToReleases?: boolean;
