@@ -93,19 +93,15 @@ export class AutomationWhatsappService {
     const companyCnpj = this.formatCnpj(company?.cnpj);
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const categoryLabel = this.resolveCategoryLabel(input.settings, input.category);
-    const resourceLines = [
-      input.databaseUrl ? `*Base de Dados:* ${input.databaseUrl}` : undefined,
-      input.developmentVideoUrl ? `*Video Explicativo:* ${input.developmentVideoUrl}` : undefined,
-      ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
+    const detailLines = [
+      input.developmentVideoUrl ? `*Video explicativo:* ${input.developmentVideoUrl}` : undefined,
     ].filter(Boolean);
     const message = [
-      '*Ticket Aberto*',
-      categoryLabel
-        ? `*Categoria:* ${categoryLabel}`
-        : undefined,
+      categoryLabel ? `*Ticket Aberto* como \`${categoryLabel}\`` : '*Ticket Aberto*',
       `*Empresa:* ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
       `*Titulo:* ${input.title}`,
-      ...(resourceLines.length ? ['', ...resourceLines] : []),
+      ...(detailLines.length ? ['', ...detailLines] : []),
+      ...(ticketUrl ? ['', `*Link:* ${ticketUrl}`] : []),
     ]
       .filter(Boolean)
       .join('\n');
@@ -217,13 +213,15 @@ export class AutomationWhatsappService {
       }
 
       const message = [
-        target.audience === 'destination' ? '*Ticket Encaminhado*' : '*Ticket Saiu do Setor*',
+        target.audience === 'destination'
+          ? `*Ticket Encaminhado* para \`${nextTeamLabel}\``
+          : `*Ticket Saiu do Setor* \`${previousTeamLabel}\``,
         `*Empresa:* ${companyName}`,
         `*Titulo:* ${input.title}`,
         `*Origem:* ${previousTeamLabel}`,
         `*Destino:* ${nextTeamLabel}`,
         input.note?.trim() ? `*Contexto:* ${input.note.trim()}` : undefined,
-        ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
+        ...(ticketUrl ? ['', `*Link:* ${ticketUrl}`] : []),
       ]
         .filter(Boolean)
         .join('\n');
@@ -321,13 +319,13 @@ export class AutomationWhatsappService {
     const statusLabel = this.formatTicketStatusLabel(input.status as TicketStatus);
     const message = [
       input.notificationType === 'testing'
-        ? '*Em Desenvolvimento > Testes*'
-        : '*Retornado de Testes > Desenvolvimento*',
+        ? '*Em Desenvolvimento* para `Testes`'
+        : '*Retornado de Testes* para `Desenvolvimento`',
       `*Empresa:* ${companyName}`,
       `*Titulo:* ${input.title}`,
       `*Estagio:* ${statusLabel}`,
       input.notificationType === 'testing_failed' && input.note?.trim() ? `*Motivo:* ${input.note.trim()}` : undefined,
-      ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
+      ...(ticketUrl ? ['', `*Link:* ${ticketUrl}`] : []),
     ]
       .filter(Boolean)
       .join('\n');
