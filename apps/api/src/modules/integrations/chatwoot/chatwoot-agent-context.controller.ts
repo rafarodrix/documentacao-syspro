@@ -44,15 +44,22 @@ export class ChatwootAgentContextController {
     }
 
     const context = body?.context && typeof body.context === 'object' ? body.context : {};
-    const resolved =
-      (context.companyId
-        ? (await this.integrationContext.listActiveContexts({ companyIds: [context.companyId] }))[0] ?? null
-        : null) ??
-      (await this.integrationContext.getDefaultContext());
+    const companyScopedContext = context.companyId
+      ? (await this.integrationContext.listActiveContexts({ companyIds: [context.companyId] }))[0] ?? null
+      : null;
+    const resolved = companyScopedContext ?? (await this.integrationContext.getDefaultContext());
 
     if (!resolved) {
       throw new BadRequestException('Nenhuma conexao Chatwoot ativa encontrada.');
     }
+    const systemBotApiToken = await this.integrationContext.getChatwootSystemBotApiToken();
+    const chatwootConfig = systemBotApiToken
+      ? {
+          ...resolved.chatwoot,
+          apiToken: systemBotApiToken,
+          systemBotApiToken,
+        }
+      : resolved.chatwoot;
 
     const customAttributes = {
       agent_source: 'desktop_agent',
@@ -77,20 +84,16 @@ export class ChatwootAgentContextController {
 
     const technicalNote = this.buildTechnicalNote(customAttributes);
 
-    await this.chatwootClient.updateConversationCustomAttributes(
-      resolved.chatwoot,
-      conversationId,
-      customAttributes,
-    );
+    await this.chatwootClient.updateConversationCustomAttributes(chatwootConfig, conversationId, customAttributes);
 
     if (technicalNote) {
-      await this.chatwootClient.createPrivateNote(resolved.chatwoot, conversationId, technicalNote);
+      await this.chatwootClient.createPrivateNote(chatwootConfig, conversationId, technicalNote);
     }
 
     if (requestedTags.length) {
-      const existingTags = await this.chatwootClient.listConversationLabels(resolved.chatwoot, conversationId);
+      const existingTags = await this.chatwootClient.listConversationLabels(chatwootConfig, conversationId);
       const mergedTags = Array.from(new Set([...existingTags, ...requestedTags]));
-      await this.chatwootClient.setConversationLabels(resolved.chatwoot, conversationId, mergedTags);
+      await this.chatwootClient.setConversationLabels(chatwootConfig, conversationId, mergedTags);
     }
 
     return {

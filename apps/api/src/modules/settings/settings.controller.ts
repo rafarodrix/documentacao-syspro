@@ -13,9 +13,12 @@ import {
   type EvolutionSettingsInput,
 } from '@dosc-syspro/contracts/evolution';
 import {
+  DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
   chatwootBehaviorSettingsSchema,
+  chatwootIntegrationSettingsSchema,
   type ChatwootBehaviorSettingsInput,
+  type ChatwootIntegrationSettingsInput,
 } from '@dosc-syspro/contracts/chatwoot';
 import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig, readR2RuntimeConfig } from '@dosc-syspro/config';
 import {
@@ -75,7 +78,11 @@ export class SettingsController {
   private static readonly EVOLUTION_QRCODE_KEY_PREFIX = 'evolution_qrcode:';
   private static readonly EVOLUTION_STATUS_KEY_PREFIX = 'evolution_status:';
   private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
+  private static readonly CHATWOOT_CONFIG_KEY = 'chatwoot_integration_config';
+  private static readonly CHATWOOT_API_TOKEN_KEY = 'chatwoot_api_token';
+  private static readonly CHATWOOT_PLATFORM_API_TOKEN_KEY = 'chatwoot_platform_api_token';
   private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
+  private static readonly CHATWOOT_WEBHOOK_SECRET_KEY = 'chatwoot_webhook_secret';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -676,6 +683,60 @@ export class SettingsController {
     };
   }
 
+  @Get('chatwoot/config')
+  async getChatwootIntegrationSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    return {
+      success: true,
+      data: await this.readStoredChatwootIntegrationSettings(),
+    };
+  }
+
+  @Put('chatwoot/config')
+  async setChatwootIntegrationSettings(@Req() req: Request, @Body() input: ChatwootIntegrationSettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = chatwootIntegrationSettingsSchema.parse(input);
+    const sanitized = {
+      ...parsed,
+      apiToken: parsed.apiToken.trim(),
+      platformApiToken: parsed.platformApiToken.trim(),
+      webhookSecret: parsed.webhookSecret.trim(),
+    };
+    const { apiToken, platformApiToken, webhookSecret, ...storedConfig } = sanitized;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { key: SettingsController.CHATWOOT_CONFIG_KEY },
+        update: { value: JSON.stringify(storedConfig) },
+        create: {
+          key: SettingsController.CHATWOOT_CONFIG_KEY,
+          value: JSON.stringify(storedConfig),
+          description: 'Configuracao principal da integracao Chatwoot',
+        },
+      });
+
+      await this.upsertEncryptedOptionalSetting(tx, SettingsController.CHATWOOT_API_TOKEN_KEY, apiToken, 'API token principal do Chatwoot');
+      await this.upsertEncryptedOptionalSetting(
+        tx,
+        SettingsController.CHATWOOT_PLATFORM_API_TOKEN_KEY,
+        platformApiToken,
+        'Platform API token do Chatwoot',
+      );
+      await this.upsertEncryptedOptionalSetting(
+        tx,
+        SettingsController.CHATWOOT_WEBHOOK_SECRET_KEY,
+        webhookSecret,
+        'Webhook secret do Chatwoot',
+      );
+    });
+
+    return {
+      success: true,
+      data: sanitized,
+      message: 'Configuracoes da integracao Chatwoot salvas.',
+    };
+  }
+
   @Put('chatwoot/behavior')
   async setChatwootBehaviorSettings(@Req() req: Request, @Body() input: ChatwootBehaviorSettingsInput) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
@@ -726,13 +787,13 @@ export class SettingsController {
   async getIntegrationDiagnostics(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'settings:view');
 
-    const [defaultContext, activeContexts, chatwootBehavior] = await Promise.all([
+    const [defaultContext, activeContexts, chatwootBehavior, chatwootConfig] = await Promise.all([
       this.integrationContext.getDefaultContext(),
       this.integrationContext.listActiveContexts(),
       this.readStoredChatwootBehaviorSettings(),
+      this.readStoredChatwootIntegrationSettings(),
     ]);
 
-    const chatwootRuntime = readChatwootRuntimeConfig();
     const r2Runtime = readR2RuntimeConfig();
     const chatwootDiagnostics = defaultContext
       ? await this.chatwootClient.inspectInboxConfiguration(defaultContext.chatwoot)
@@ -760,14 +821,14 @@ export class SettingsController {
         source: defaultContext?.source ?? null,
         activeConnections: activeContexts.length,
         runtime: {
-          hasUrl: Boolean(chatwootRuntime.url),
-          hasAccountId: Boolean(chatwootRuntime.accountId),
-          hasApiToken: Boolean(chatwootRuntime.apiToken),
-          hasPlatformApiToken: Boolean(chatwootRuntime.platformApiToken),
+          hasUrl: Boolean(chatwootConfig.url),
+          hasAccountId: Boolean(chatwootConfig.accountId),
+          hasApiToken: Boolean(chatwootConfig.apiToken),
+          hasPlatformApiToken: Boolean(chatwootConfig.platformApiToken),
           hasSystemMessageBotToken: Boolean(chatwootBehavior.systemMessageApiToken),
-          hasInboxId: Boolean(chatwootRuntime.inboxId),
-          hasInboxIdentifier: Boolean(chatwootRuntime.inboxIdentifier),
-          hasWebhookSecret: Boolean(chatwootRuntime.webhookSecret),
+          hasInboxId: Boolean(chatwootConfig.inboxId),
+          hasInboxIdentifier: Boolean(chatwootConfig.inboxIdentifier),
+          hasWebhookSecret: Boolean(chatwootConfig.webhookSecret),
         },
         diagnostics: chatwootDiagnostics,
         behavior: chatwootBehavior,
@@ -1691,6 +1752,88 @@ export class SettingsController {
     } catch {
       return fallback;
     }
+  }
+
+  private async readStoredChatwootIntegrationSettings() {
+    const [configSetting, apiTokenSetting, platformApiTokenSetting, webhookSecretSetting] = await Promise.all([
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.CHATWOOT_CONFIG_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.CHATWOOT_API_TOKEN_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.CHATWOOT_PLATFORM_API_TOKEN_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.CHATWOOT_WEBHOOK_SECRET_KEY },
+        select: { value: true },
+      }),
+    ]);
+
+    const runtime = readChatwootRuntimeConfig();
+    const fallback = {
+      ...DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
+      url: runtime.url,
+      accountId: runtime.accountId,
+      apiToken: apiTokenSetting?.value ? this.decryptOptional(apiTokenSetting.value) ?? '' : runtime.apiToken,
+      platformApiToken: platformApiTokenSetting?.value
+        ? this.decryptOptional(platformApiTokenSetting.value) ?? ''
+        : runtime.platformApiToken,
+      inboxId: runtime.inboxId,
+      inboxIdentifier: runtime.inboxIdentifier,
+      webhookSecret: webhookSecretSetting?.value ? this.decryptOptional(webhookSecretSetting.value) ?? '' : runtime.webhookSecret,
+      webhookMaxSkewSeconds: runtime.webhookMaxSkewSeconds ?? DEFAULT_CHATWOOT_INTEGRATION_SETTINGS.webhookMaxSkewSeconds,
+      incomingMediaMode: runtime.incomingMediaMode,
+    };
+
+    if (!configSetting?.value) {
+      return fallback;
+    }
+
+    try {
+      const parsed = JSON.parse(configSetting.value);
+      const validation = chatwootIntegrationSettingsSchema.safeParse({
+        ...parsed,
+        apiToken: apiTokenSetting?.value ? this.decryptOptional(apiTokenSetting.value) ?? '' : runtime.apiToken,
+        platformApiToken: platformApiTokenSetting?.value
+          ? this.decryptOptional(platformApiTokenSetting.value) ?? ''
+          : runtime.platformApiToken,
+        webhookSecret: webhookSecretSetting?.value
+          ? this.decryptOptional(webhookSecretSetting.value) ?? ''
+          : runtime.webhookSecret,
+      });
+      return validation.success ? validation.data : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private async upsertEncryptedOptionalSetting(
+    tx: any,
+    key: string,
+    value: string,
+    description: string,
+  ) {
+    if (value) {
+      await tx.systemSetting.upsert({
+        where: { key },
+        update: { value: this.encrypt(value) },
+        create: {
+          key,
+          value: this.encrypt(value),
+          description,
+        },
+      });
+      return;
+    }
+
+    await tx.systemSetting.deleteMany({
+      where: { key },
+    });
   }
 
   private resolveEncryptionKey(): Buffer {

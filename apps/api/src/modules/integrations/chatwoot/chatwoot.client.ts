@@ -395,8 +395,11 @@ export class ChatwootClient {
   async createPrivateNote(
     config: ChatwootConnectionConfig,
     conversationId: string,
-    content: string
+    content: string,
+    options?: { useSystemBot?: boolean },
   ) {
+    const useSystemBot = options?.useSystemBot === true && Boolean(config.systemBotApiToken);
+    const authToken = useSystemBot ? config.systemBotApiToken : undefined;
     return this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages`,
@@ -407,7 +410,9 @@ export class ChatwootClient {
         private: true,
         content_type: 'text',
         content_attributes: {},
-      }
+      },
+      3,
+      authToken,
     );
   }
 
@@ -441,8 +446,11 @@ export class ChatwootClient {
   async assignConversation(
     config: ChatwootConnectionConfig,
     conversationId: string,
-    input: { assigneeId?: string; teamId?: string }
+    input: { assigneeId?: string; teamId?: string },
+    options?: { useSystemBot?: boolean },
   ) {
+    const useSystemBot = options?.useSystemBot === true && Boolean(config.systemBotApiToken);
+    const authToken = useSystemBot ? config.systemBotApiToken : undefined;
     return this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/assignments`,
@@ -450,33 +458,45 @@ export class ChatwootClient {
       {
         ...(input.assigneeId ? { assignee_id: Number(input.assigneeId) } : {}),
         ...(input.teamId ? { team_id: Number(input.teamId) } : {}),
-      }
+      },
+      3,
+      authToken,
     );
   }
 
   async toggleConversationStatus(
     config: ChatwootConnectionConfig,
     conversationId: string,
-    status: 'open' | 'resolved' | 'pending' | 'snoozed'
+    status: 'open' | 'resolved' | 'pending' | 'snoozed',
+    options?: { useSystemBot?: boolean },
   ) {
+    const useSystemBot = options?.useSystemBot === true && Boolean(config.systemBotApiToken);
+    const authToken = useSystemBot ? config.systemBotApiToken : undefined;
     return this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/toggle_status`,
       'POST',
-      { status }
+      { status },
+      3,
+      authToken,
     );
   }
 
   async updateConversationCustomAttributes(
     config: ChatwootConnectionConfig,
     conversationId: string,
-    customAttributes: Record<string, unknown>
+    customAttributes: Record<string, unknown>,
+    options?: { useSystemBot?: boolean },
   ) {
+    const useSystemBot = options?.useSystemBot === true && Boolean(config.systemBotApiToken);
+    const authToken = useSystemBot ? config.systemBotApiToken : undefined;
     return this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/custom_attributes`,
       'POST',
-      { custom_attributes: customAttributes }
+      { custom_attributes: customAttributes },
+      3,
+      authToken,
     );
   }
 
@@ -505,12 +525,17 @@ export class ChatwootClient {
     config: ChatwootConnectionConfig,
     conversationId: string,
     labels: string[],
+    options?: { useSystemBot?: boolean },
   ) {
+    const useSystemBot = options?.useSystemBot === true && Boolean(config.systemBotApiToken);
+    const authToken = useSystemBot ? config.systemBotApiToken : undefined;
     return this.request(
       config,
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/labels`,
       'POST',
       { labels },
+      3,
+      authToken,
     );
   }
 

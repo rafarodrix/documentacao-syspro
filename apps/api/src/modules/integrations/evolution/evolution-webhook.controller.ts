@@ -462,12 +462,17 @@ export class EvolutionWebhookController {
     }
 
     const content = this.buildOperationalChatwootNote(input.status, input.event, input.instanceId);
+    const systemBotApiToken = await this.integrationContext.getChatwootSystemBotApiToken();
+    const chatwootConfig = systemBotApiToken
+      ? { ...input.connection.chatwoot, systemBotApiToken }
+      : input.connection.chatwoot;
     const results = await Promise.allSettled(
       links.map((link) =>
         this.chatwootClient.createPrivateNote(
-          input.connection.chatwoot,
+          chatwootConfig,
           link.chatwootConversationId,
           content,
+          { useSystemBot: Boolean(systemBotApiToken) },
         )
       )
     );

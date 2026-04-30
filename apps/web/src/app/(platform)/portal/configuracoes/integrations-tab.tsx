@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+  DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
   chatwootBehaviorSettingsSchema,
+  chatwootIntegrationSettingsSchema,
   type ChatwootBehaviorSettings,
+  type ChatwootIntegrationSettings,
 } from "@dosc-syspro/contracts/chatwoot";
 import { toast } from "sonner";
 
@@ -88,6 +91,13 @@ export function IntegrationsSettingsTab() {
 
 function ChatwootDiagnosticsTab() {
   const { diagnostics, isLoading, reload } = useIntegrationDiagnostics();
+  const {
+    integrationSettings,
+    isLoading: isIntegrationSettingsLoading,
+    isSaving: isIntegrationSettingsSaving,
+    setIntegrationSettings,
+    save: saveIntegrationSettings,
+  } = useChatwootIntegrationSettings();
   const {
     behavior,
     isLoading: isBehaviorLoading,
@@ -181,6 +191,110 @@ function ChatwootDiagnosticsTab() {
             <pre className="overflow-x-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
             </pre>
+
+            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-base font-semibold">Conexao principal do Chatwoot</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configuracao persistida para URL, inbox, credenciais e webhook. Em SaaS, isso substitui o uso exclusivo de variaveis de ambiente.
+                  </p>
+                </div>
+                <Button size="sm" onClick={saveIntegrationSettings} disabled={isIntegrationSettingsLoading || isIntegrationSettingsSaving}>
+                  {isIntegrationSettingsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar conexao
+                </Button>
+              </div>
+
+              {isIntegrationSettingsLoading ? (
+                <LoadingState label="Carregando configuracao principal do Chatwoot..." />
+              ) : (
+                <div className="grid min-w-0 gap-4 md:grid-cols-2">
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-url">URL</Label>
+                    <Input
+                      id="chatwoot-url"
+                      value={integrationSettings.url}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, url: event.target.value }))}
+                      placeholder="https://chatwoot.seudominio.com"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-account-id">Account ID</Label>
+                    <Input
+                      id="chatwoot-account-id"
+                      value={integrationSettings.accountId}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, accountId: event.target.value }))}
+                      placeholder="1"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-api-token">API Token</Label>
+                    <Input
+                      id="chatwoot-api-token"
+                      type="password"
+                      value={integrationSettings.apiToken}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, apiToken: event.target.value }))}
+                      placeholder="Token principal do Chatwoot"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-platform-api-token">Platform API Token</Label>
+                    <Input
+                      id="chatwoot-platform-api-token"
+                      type="password"
+                      value={integrationSettings.platformApiToken}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, platformApiToken: event.target.value }))}
+                      placeholder="Token da Platform API"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-inbox-id">Inbox ID</Label>
+                    <Input
+                      id="chatwoot-inbox-id"
+                      value={integrationSettings.inboxId}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, inboxId: event.target.value }))}
+                      placeholder="123"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-inbox-identifier">Inbox Identifier</Label>
+                    <Input
+                      id="chatwoot-inbox-identifier"
+                      value={integrationSettings.inboxIdentifier}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, inboxIdentifier: event.target.value }))}
+                      placeholder="whatsapp-suporte"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-webhook-secret">Webhook Secret</Label>
+                    <Input
+                      id="chatwoot-webhook-secret"
+                      type="password"
+                      value={integrationSettings.webhookSecret}
+                      onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, webhookSecret: event.target.value }))}
+                      placeholder="Secret do webhook"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="chatwoot-webhook-skew">Tolerancia do webhook (segundos)</Label>
+                    <Input
+                      id="chatwoot-webhook-skew"
+                      type="number"
+                      min={1}
+                      max={3600}
+                      value={integrationSettings.webhookMaxSkewSeconds}
+                      onChange={(event) =>
+                        setIntegrationSettings((prev) => ({
+                          ...prev,
+                          webhookMaxSkewSeconds: Number(event.target.value || prev.webhookMaxSkewSeconds),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -777,6 +891,76 @@ function useChatwootBehaviorSettings() {
   }
 
   return { behavior, isLoading, isSaving, setBehavior, save };
+}
+
+function useChatwootIntegrationSettings() {
+  const [integrationSettings, setIntegrationSettings] = useState<ChatwootIntegrationSettings>(
+    DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/platform/settings/chatwoot-config", { method: "GET", cache: "no-store" });
+        const json = await response.json().catch(() => ({}));
+        const parsed = chatwootIntegrationSettingsSchema.safeParse(json?.data);
+        if (active) {
+          setIntegrationSettings(parsed.success ? parsed.data : DEFAULT_CHATWOOT_INTEGRATION_SETTINGS);
+        }
+      } catch {
+        if (active) {
+          setIntegrationSettings(DEFAULT_CHATWOOT_INTEGRATION_SETTINGS);
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function save() {
+    setIsSaving(true);
+    const parsed = chatwootIntegrationSettingsSchema.safeParse(integrationSettings);
+    if (!parsed.success) {
+      toast.error("Configuracao principal do Chatwoot invalida.");
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/platform/settings/chatwoot-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || !json?.success) {
+        toast.error(json?.error || "Falha ao salvar conexao principal do Chatwoot.");
+        return;
+      }
+
+      const saved = chatwootIntegrationSettingsSchema.safeParse(json.data);
+      if (saved.success) {
+        setIntegrationSettings(saved.data);
+      }
+      toast.success(json?.message || "Configuracao principal do Chatwoot salva.");
+    } catch {
+      toast.error("Falha ao salvar conexao principal do Chatwoot.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return { integrationSettings, isLoading, isSaving, setIntegrationSettings, save };
 }
 
 async function requestIntegrationDiagnostics(

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createDecipheriv, createHash } from 'crypto';
 import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig } from '@dosc-syspro/config';
+import { DEFAULT_CHATWOOT_INTEGRATION_SETTINGS, chatwootIntegrationSettingsSchema } from '@dosc-syspro/contracts/chatwoot';
 import { DEFAULT_EVOLUTION_SETTINGS, evolutionSettingsSchema } from '@dosc-syspro/contracts/evolution';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -15,7 +16,7 @@ function readTrimmedString(...values: unknown[]): string {
 }
 
 export type ResolvedIntegrationContext = {
-  source: 'database' | 'env';
+  source: 'database' | 'settings' | 'env';
   connectionId: string | null;
   connectionKey: string;
   companyId: string | null;
@@ -34,6 +35,7 @@ export type ResolvedIntegrationContext = {
     url: string;
     apiToken: string;
     platformApiToken?: string;
+    systemBotApiToken?: string;
     accountId: string;
     inboxId: string;
     inboxIdentifier: string;
@@ -46,10 +48,16 @@ export type ResolvedIntegrationContext = {
 @Injectable()
 export class IntegrationContextService {
   private readonly logger = new Logger(IntegrationContextService.name);
+  private static readonly CHATWOOT_CONFIG_KEY = 'chatwoot_integration_config';
+  private static readonly CHATWOOT_API_TOKEN_KEY = 'chatwoot_api_token';
+  private static readonly CHATWOOT_PLATFORM_API_TOKEN_KEY = 'chatwoot_platform_api_token';
+  private static readonly CHATWOOT_WEBHOOK_SECRET_KEY = 'chatwoot_webhook_secret';
+  private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
 
   constructor(private readonly prisma: PrismaService) {}
 
   async getDefaultContext(): Promise<ResolvedIntegrationContext | null> {
+    const storedChatwoot = await this.readStoredChatwootSettings();
     let connection: any = null;
     try {
       connection = await (this.prisma as any).integrationConnection.findFirst({
@@ -62,10 +70,11 @@ export class IntegrationContextService {
       );
     }
 
-    return this.toResolvedContext(connection) ?? await this.readEnvFallback();
+    return this.toResolvedContext(connection, storedChatwoot) ?? await this.readEnvFallback(storedChatwoot);
   }
 
   async listActiveContexts(filters?: { companyIds?: string[] | null }): Promise<ResolvedIntegrationContext[]> {
+    const storedChatwoot = await this.readStoredChatwootSettings();
     const companyIds = Array.isArray(filters?.companyIds)
       ? Array.from(new Set(filters!.companyIds.map((item) => String(item ?? '').trim()).filter(Boolean)))
       : [];
@@ -86,21 +95,22 @@ export class IntegrationContextService {
     }
 
     const contexts = rows
-      .map((row) => this.toResolvedContext(row))
+      .map((row) => this.toResolvedContext(row, storedChatwoot))
       .filter((item): item is ResolvedIntegrationContext => item !== null);
 
     if (contexts.length > 0) {
       return contexts;
     }
 
-    const fallback = await this.readEnvFallback();
+    const fallback = await this.readEnvFallback(storedChatwoot);
     return fallback ? [fallback] : [];
   }
 
   async resolveByConnectionKey(connectionKey?: string | null): Promise<ResolvedIntegrationContext | null> {
+    const storedChatwoot = await this.readStoredChatwootSettings();
     const normalized = String(connectionKey ?? '').trim();
     if (!normalized || normalized === ENV_DEFAULT_CONNECTION_KEY) {
-      return this.readEnvFallback();
+      return this.readEnvFallback(storedChatwoot);
     }
 
     let connection: any = null;
@@ -114,10 +124,11 @@ export class IntegrationContextService {
       );
     }
 
-    return this.toResolvedContext(connection) ?? await this.readEnvFallback();
+    return this.toResolvedContext(connection, storedChatwoot) ?? await this.readEnvFallback(storedChatwoot);
   }
 
   async resolveForEvolutionWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
+    const storedChatwoot = await this.readStoredChatwootSettings();
     const instanceId = readTrimmedString(
       payload?.instanceId,
       payload?.data?.instanceId,
@@ -168,14 +179,14 @@ export class IntegrationContextService {
 
     const groupMatched = groupJid.endsWith('@g.us')
       ? candidates
-          .map((row) => this.toResolvedContext(row))
+          .map((row) => this.toResolvedContext(row, storedChatwoot))
           .find((context): context is ResolvedIntegrationContext =>
             Boolean(context && this.contextAllowsGroup(context, groupJid))
           )
       : null;
     if (groupMatched) return groupMatched;
 
-    const matched = this.toResolvedContext(candidates?.[0]);
+    const matched = this.toResolvedContext(candidates?.[0], storedChatwoot);
     if (matched) return matched;
 
     const allActiveContexts = await this.listActiveContexts();
@@ -185,10 +196,11 @@ export class IntegrationContextService {
     }
 
     if (hasExplicitMatchInput) return null;
-    return await this.readEnvFallback();
+    return await this.readEnvFallback(storedChatwoot);
   }
 
   async resolveForChatwootWebhook(payload: any): Promise<ResolvedIntegrationContext | null> {
+    const storedChatwoot = await this.readStoredChatwootSettings();
     const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
     const accountId = String(
       payload?.account?.id ??
@@ -233,12 +245,19 @@ export class IntegrationContextService {
       return !inboxId && !inboxIdentifier;
     });
 
-    return this.toResolvedContext(matched ?? candidates?.[0]) ?? await this.readEnvFallback();
+    return this.toResolvedContext(matched ?? candidates?.[0], storedChatwoot) ?? await this.readEnvFallback(storedChatwoot);
   }
 
-  private toResolvedContext(row: any): ResolvedIntegrationContext | null {
+  async getChatwootSystemBotApiToken(): Promise<string | undefined> {
+    const stored = await this.readStoredChatwootSettings();
+    return stored.systemBotApiToken || undefined;
+  }
+
+  private toResolvedContext(
+    row: any,
+    storedChatwoot: Awaited<ReturnType<IntegrationContextService['readStoredChatwootSettings']>>,
+  ): ResolvedIntegrationContext | null {
     if (!row) return null;
-    const runtimeChatwoot = readChatwootRuntimeConfig();
 
     const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {};
     const evolutionMetadata =
@@ -265,13 +284,14 @@ export class IntegrationContextService {
       chatwoot: {
         url: String(row.chatwootUrl ?? '').trim(),
         apiToken: this.decrypt(row.chatwootApiTokenEncrypted),
-        platformApiToken: runtimeChatwoot.platformApiToken || undefined,
+        platformApiToken: storedChatwoot.platformApiToken || undefined,
+        systemBotApiToken: storedChatwoot.systemBotApiToken || undefined,
         accountId: String(row.chatwootAccountId ?? '').trim(),
         inboxId: String(row.chatwootInboxId ?? '').trim(),
         inboxIdentifier: String(row.chatwootInboxIdentifier ?? '').trim(),
         webhookSecret: this.decryptOptional(row.chatwootWebhookSecretEncrypted) ?? undefined,
         webhookMaxSkewSeconds: this.readWebhookSkew(metadata),
-        incomingMediaMode: runtimeChatwoot.incomingMediaMode,
+        incomingMediaMode: storedChatwoot.incomingMediaMode,
       },
     };
   }
@@ -284,9 +304,18 @@ export class IntegrationContextService {
     return allowed.map((item) => item.toLowerCase()).includes(groupJid.trim().toLowerCase());
   }
 
-  private async readEnvFallback(): Promise<ResolvedIntegrationContext | null> {
+  private async readEnvFallback(
+    storedChatwoot: Awaited<ReturnType<IntegrationContextService['readStoredChatwootSettings']>>,
+  ): Promise<ResolvedIntegrationContext | null> {
     const evolution = readEvolutionRuntimeConfig();
     const chatwoot = readChatwootRuntimeConfig();
+    const resolvedChatwoot = {
+      ...DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
+      ...chatwoot,
+      ...storedChatwoot,
+      webhookMaxSkewSeconds: storedChatwoot.webhookMaxSkewSeconds || chatwoot.webhookMaxSkewSeconds || 300,
+      incomingMediaMode: storedChatwoot.incomingMediaMode || chatwoot.incomingMediaMode,
+    };
     const storedEvolution = await this.readStoredEvolutionSettings();
     const resolvedEvolutionInstance = readTrimmedString(
       evolution.instance,
@@ -305,17 +334,17 @@ export class IntegrationContextService {
       resolvedEvolutionInstance ||
       resolvedEvolutionInstanceId ||
       resolvedEvolutionInstanceToken ||
-      chatwoot.url ||
-      chatwoot.apiToken ||
-      chatwoot.accountId ||
-      chatwoot.inboxId ||
-      chatwoot.inboxIdentifier
+      resolvedChatwoot.url ||
+      resolvedChatwoot.apiToken ||
+      resolvedChatwoot.accountId ||
+      resolvedChatwoot.inboxId ||
+      resolvedChatwoot.inboxIdentifier
     );
 
     if (!hasAnyValue) return null;
 
     return {
-      source: 'env',
+      source: storedChatwoot.isStored ? 'settings' : 'env',
       connectionId: null,
       connectionKey: ENV_DEFAULT_CONNECTION_KEY,
       companyId: null,
@@ -331,17 +360,91 @@ export class IntegrationContextService {
         allowedGroups: [],
       },
       chatwoot: {
-        url: chatwoot.url,
-        apiToken: chatwoot.apiToken,
-        platformApiToken: chatwoot.platformApiToken || undefined,
-        accountId: chatwoot.accountId,
-        inboxId: chatwoot.inboxId,
-        inboxIdentifier: chatwoot.inboxIdentifier,
-        webhookSecret: chatwoot.webhookSecret || undefined,
-        webhookMaxSkewSeconds: chatwoot.webhookMaxSkewSeconds ?? 300,
-        incomingMediaMode: chatwoot.incomingMediaMode,
+        url: resolvedChatwoot.url,
+        apiToken: resolvedChatwoot.apiToken,
+        platformApiToken: resolvedChatwoot.platformApiToken || undefined,
+        systemBotApiToken: resolvedChatwoot.systemBotApiToken || undefined,
+        accountId: resolvedChatwoot.accountId,
+        inboxId: resolvedChatwoot.inboxId,
+        inboxIdentifier: resolvedChatwoot.inboxIdentifier,
+        webhookSecret: resolvedChatwoot.webhookSecret || undefined,
+        webhookMaxSkewSeconds: resolvedChatwoot.webhookMaxSkewSeconds ?? 300,
+        incomingMediaMode: resolvedChatwoot.incomingMediaMode,
       },
     };
+  }
+
+  private async readStoredChatwootSettings() {
+    const [configSetting, apiTokenSetting, platformApiTokenSetting, webhookSecretSetting, systemBotTokenSetting] = await Promise.all([
+      this.prisma.systemSetting.findUnique({
+        where: { key: IntegrationContextService.CHATWOOT_CONFIG_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: IntegrationContextService.CHATWOOT_API_TOKEN_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: IntegrationContextService.CHATWOOT_PLATFORM_API_TOKEN_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: IntegrationContextService.CHATWOOT_WEBHOOK_SECRET_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: IntegrationContextService.CHATWOOT_SYSTEM_BOT_TOKEN_KEY },
+        select: { value: true },
+      }),
+    ]);
+
+    const runtime = readChatwootRuntimeConfig();
+    const fallback = {
+      ...DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
+      url: runtime.url,
+      accountId: runtime.accountId,
+      apiToken: apiTokenSetting?.value ? this.decryptOptional(apiTokenSetting.value) ?? '' : runtime.apiToken,
+      platformApiToken: platformApiTokenSetting?.value
+        ? this.decryptOptional(platformApiTokenSetting.value) ?? ''
+        : runtime.platformApiToken,
+      inboxId: runtime.inboxId,
+      inboxIdentifier: runtime.inboxIdentifier,
+      webhookSecret: webhookSecretSetting?.value ? this.decryptOptional(webhookSecretSetting.value) ?? '' : runtime.webhookSecret,
+      webhookMaxSkewSeconds: runtime.webhookMaxSkewSeconds ?? DEFAULT_CHATWOOT_INTEGRATION_SETTINGS.webhookMaxSkewSeconds,
+      incomingMediaMode: runtime.incomingMediaMode,
+      systemBotApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
+      isStored: false,
+    };
+
+    if (!configSetting?.value) {
+      return fallback;
+    }
+
+    try {
+      const parsed = JSON.parse(configSetting.value);
+      const validation = chatwootIntegrationSettingsSchema.safeParse({
+        ...parsed,
+        apiToken: apiTokenSetting?.value ? this.decryptOptional(apiTokenSetting.value) ?? '' : runtime.apiToken,
+        platformApiToken: platformApiTokenSetting?.value
+          ? this.decryptOptional(platformApiTokenSetting.value) ?? ''
+          : runtime.platformApiToken,
+        webhookSecret: webhookSecretSetting?.value
+          ? this.decryptOptional(webhookSecretSetting.value) ?? ''
+          : runtime.webhookSecret,
+      });
+
+      if (!validation.success) {
+        return fallback;
+      }
+
+      return {
+        ...validation.data,
+        systemBotApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
+        isStored: true,
+      };
+    } catch {
+      return fallback;
+    }
   }
 
   private async readStoredEvolutionSettings() {
