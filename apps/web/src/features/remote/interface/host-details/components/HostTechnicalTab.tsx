@@ -1,5 +1,5 @@
 ﻿import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { formatDateTime, getSysproUpdateHealthMeta } from "../utils";
+import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { useAckStream } from "@/features/remote/interface/hooks";
 import { Progress } from "@/components/ui/progress";

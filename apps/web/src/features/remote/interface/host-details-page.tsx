@@ -64,11 +64,11 @@ import {
   extractContractValidationError,
   copyTextWithFallback,
   resolveExpectedRustDeskAlias,
-} from "./host-details/utils";
+} from "./host-details/host-details.helpers";
 import {
   DEFAULT_INSTALLATION_DIRECTORY,
   UNLINKED_COMPANY_VALUE,
-} from "./host-details/constants";
+} from "./host-details/host-details.constants";
 import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInfraTab } from "./host-details/components/HostInfraTab";

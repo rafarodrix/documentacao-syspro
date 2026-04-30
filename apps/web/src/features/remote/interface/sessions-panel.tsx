@@ -13,7 +13,7 @@ import { Activity, Clock, History, Monitor, Ticket, User, Filter } from "lucide-
 import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
 import { cn } from "@/lib/utils";
 import type { RemotePaginationMeta, RemoteSessionSummary, RemoteSessionStatus } from "@/features/remote/domain/model";
-import { formatDateOnly, formatDateTime } from "./host-details/utils";
+import { formatDateOnly, formatDateTime } from "./host-details/host-details.helpers";
 
 interface SessionItem extends RemoteSessionSummary {
   hostName: string;

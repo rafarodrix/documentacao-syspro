@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { formatDateTime } from "../utils";
+import { formatDateTime } from "../host-details.helpers";
 
 export function HostInfraTab({
   details,

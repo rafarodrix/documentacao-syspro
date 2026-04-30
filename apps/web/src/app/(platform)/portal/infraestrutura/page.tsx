@@ -4,10 +4,10 @@ import type { ReactNode } from "react";
 import { Activity, BarChart3, Cpu, Monitor } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
-import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/queries";
+import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
 import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
 import { getRemoteEfficiencyMetrics } from "@/features/remote/application/report-queries";
-import { getRemotePlatformDirectory } from "@/features/remote/application/queries";
+import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import type { RemoteSessionStatus } from "@/features/remote/domain/model";
@@ -70,11 +70,11 @@ const TAB_META: Record<
     icon: Monitor,
   },
   sessoes: {
-    label: "Sessoes",
+    label: "Sessões",
     icon: Activity,
   },
   relatorios: {
-    label: "Relatorios",
+    label: "Relatórios",
     icon: BarChart3,
   },
   agentes: {
@@ -195,7 +195,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Infraestrutura</h1>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Centralize hosts, sessoes remotas, relatorios operacionais e agentes em uma unica rota.
+            Centralize hosts, sessões remotas, relatórios operacionais e agentes em uma única visão.
           </p>
         </div>
       </div>
