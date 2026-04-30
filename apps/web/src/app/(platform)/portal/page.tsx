@@ -3,7 +3,7 @@ import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompa
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTicketsInsights";
-import { SefazStatusWidget } from "@/components/platform/app/dashboard/SefazStatusWidget";
+import { SefazOperationsPanel } from "@/components/sefaz/SefazOperationsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,18 +32,6 @@ import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { cn } from "@/lib/utils";
-import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";
-
-type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
-
-function groupSefazByUF(sefazStatuses: DashboardSefazStatus[]) {
-  const ufs = Array.from(new Set(sefazStatuses.map(s => s.uf)));
-  return ufs.map(uf => ({
-    uf,
-    nfe: sefazStatuses.find(s => s.uf === uf && s.service === "NFE"),
-    nfce: sefazStatuses.find(s => s.uf === uf && s.service === "NFCE"),
-  }));
-}
 
 function GrowthIndicator({ value }: { value: number }) {
   if (value === 0) {
@@ -209,7 +197,6 @@ export default async function DashboardPage() {
     const showPeopleMetric = canViewUsers || canViewContacts;
     const recentContacts = adminData.recentContacts ?? [];
     const recentUsers = adminData.recentUsers ?? [];
-    const sefazGroups = groupSefazByUF(adminData.sefazStatuses || []);
     const adminTicketScopeMode = session.role === "DEVELOPER" ? "development" : "all";
     const allowAdminTicketAreaFilter = session.role === "ADMIN";
     const scopedOpenTicketRecords =
@@ -229,7 +216,7 @@ export default async function DashboardPage() {
               <Zap className="h-4 w-4" />
               Operacional
               <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                {sefazGroups.length + 2}
+                {(adminData.sefazFocusUfs?.length ?? 0) + 2}
               </span>
             </TabsTrigger>
             {hasCadastrosAccess ? (
@@ -253,11 +240,13 @@ export default async function DashboardPage() {
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {sefazGroups.map(({ uf, nfe, nfce }) => (
-                <SefazStatusWidget key={uf} uf={uf} nfe={nfe} nfce={nfce} />
-              ))}
+            <SefazOperationsPanel
+              focusUfs={adminData.sefazFocusUfs ?? []}
+              scopedStatuses={adminData.sefazStatuses ?? []}
+              nationalStatuses={adminData.sefazNationalStatuses ?? []}
+            />
 
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {/* CARDS DE CADASTROS MOVIDOS PARA ABA CADASTROS */}
 
               <Card className="border-border/50 bg-muted/30 shadow-none">
@@ -595,8 +584,6 @@ export default async function DashboardPage() {
   const hasMultipleCompanies = data.companyCount > 1;
   const previewCompanies = data.companyNames.slice(0, 2).join(" • ");
   const extraCompaniesCount = Math.max(data.companyCount - 2, 0);
-  const clientSefazGroups = groupSefazByUF(data.sefazStatuses || []);
-
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
       <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-linear-to-br from-card via-card to-primary/10 p-5 sm:p-6">
@@ -635,13 +622,11 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {clientSefazGroups.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {clientSefazGroups.map(({ uf, nfe, nfce }) => (
-            <SefazStatusWidget key={uf} uf={uf} nfe={nfe} nfce={nfce} />
-          ))}
-        </div>
-      )}
+      <SefazOperationsPanel
+        focusUfs={data.sefazFocusUfs ?? []}
+        scopedStatuses={data.sefazStatuses ?? []}
+        nationalStatuses={data.sefazNationalStatuses ?? []}
+      />
 
       <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
         <MagicCard className="rounded-xl">

@@ -15,6 +15,16 @@ export {
   analyzeSefazResponse,
 } from "./sefaz/sefaz-endpoints.types";
 export type { SefazConfig, SefazRoutePreset } from "./sefaz/sefaz-endpoints.types";
+export {
+  SEFAZ_UFS,
+  SEFAZ_OPERATIONAL_PROFILES,
+  getSefazOperationalProfile,
+} from "./sefaz/sefaz-topology.types";
+export type {
+  SefazUfCode,
+  SefazOperationalProfile,
+  SefazContingencyAuthorizer,
+} from "./sefaz/sefaz-topology.types";
 
 export { addressSchema } from "./shared/address.types";
 export type { AddressInput } from "./shared/address.types";

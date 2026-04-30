@@ -65,13 +65,15 @@ export const dashboardRecentUserSchema = z.object({
 });
 
 export const dashboardSefazStatusSchema = z.object({
-  uf: z.string().min(2).max(2),
+  uf: z.string().min(2).max(4),
   service: z.enum(["NFE", "NFCE"]),
   status: z.enum(["ONLINE", "UNSTABLE", "OFFLINE"]),
   latency: z.number().int().nonnegative(),
   checkedAt: z.string().min(1),
   changedAt: z.string().min(1),
 });
+
+export const dashboardSefazFocusUfSchema = z.string().min(2).max(2);
 
 export const dashboardDailyPasswordSchema = z.object({
   day: z.number().int().positive(),
@@ -145,7 +147,9 @@ export const adminDashboardViewSchema = dashboardViewBaseSchema.extend({
   companies: z.array(dashboardCompanySummarySchema),
   recentContacts: z.array(dashboardRecentContactSchema).default([]),
   recentUsers: z.array(dashboardRecentUserSchema).default([]),
+  sefazFocusUfs: z.array(dashboardSefazFocusUfSchema).default([]),
   sefazStatuses: z.array(dashboardSefazStatusSchema).default([]),
+  sefazNationalStatuses: z.array(dashboardSefazStatusSchema).default([]),
   tickets: z.array(dashboardTicketSummarySchema),
   openTicketRecords: z.array(dashboardOpenTicketRecordSchema).default([]),
   totalOpen: z.number().int().nonnegative(),
@@ -161,7 +165,9 @@ export const clientDashboardViewSchema = dashboardViewBaseSchema.extend({
   companyUsers: z.number().int().nonnegative(),
   companyCount: z.number().int().nonnegative(),
   companyNames: z.array(z.string().min(1)),
+  sefazFocusUfs: z.array(dashboardSefazFocusUfSchema).default([]),
   sefazStatuses: z.array(dashboardSefazStatusSchema).default([]),
+  sefazNationalStatuses: z.array(dashboardSefazStatusSchema).default([]),
   tickets: z.array(dashboardTicketSummarySchema),
   openTicketRecords: z.array(dashboardOpenTicketRecordSchema).default([]),
   totalOpen: z.number().int().nonnegative(),
@@ -225,6 +231,7 @@ export type DashboardCompanySummary = z.infer<typeof dashboardCompanySummarySche
 export type DashboardRecentContact = z.infer<typeof dashboardRecentContactSchema>;
 export type DashboardRecentUser = z.infer<typeof dashboardRecentUserSchema>;
 export type DashboardSefazStatus = z.infer<typeof dashboardSefazStatusSchema>;
+export type DashboardSefazFocusUf = z.infer<typeof dashboardSefazFocusUfSchema>;
 export type DashboardDailyPassword = z.infer<typeof dashboardDailyPasswordSchema>;
 export type DashboardCrmStageSummary = z.infer<typeof dashboardCrmStageSummarySchema>;
 export type DashboardCrmSummary = z.infer<typeof dashboardCrmSummarySchema>;

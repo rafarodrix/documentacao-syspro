@@ -400,6 +400,7 @@ export class DashboardService {
         companyActivity,
         crmLeads,
         activeContracts,
+        nationalSefazRecords,
         usersThisMonth,
         contactsThisMonth,
         inactivatedCompaniesThisMonth,
@@ -534,6 +535,9 @@ export class DashboardService {
               select: { totalValue: true },
             }).catch(() => [])
           : Promise.resolve([]),
+        this.prisma.sefazStatusCurrent.findMany({
+          orderBy: { checkedAt: 'desc' },
+        }).catch(() => []),
         this.prisma.user.count({ where: { ...userBaseWhere, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
         canViewContactsModule
           ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { companyLinks: { some: { companyId: { in: scopedContactIds } } }, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } : { createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } })
@@ -647,6 +651,14 @@ export class DashboardService {
         checkedAt: record.checkedAt.toISOString(),
         changedAt: record.changedAt.toISOString(),
       }));
+      const sefazNationalStatuses = nationalSefazRecords.map((record) => ({
+        uf: record.uf,
+        service: record.service,
+        status: record.status,
+        latency: record.latency,
+        checkedAt: record.checkedAt.toISOString(),
+        changedAt: record.changedAt.toISOString(),
+      }));
 
       return {
         success: true,
@@ -665,7 +677,9 @@ export class DashboardService {
           companies,
           recentContacts: contacts,
           recentUsers: users,
+          sefazFocusUfs: dashboardUFs,
           sefazStatuses,
+          sefazNationalStatuses,
           tickets,
           openTicketRecords,
           totalOpen,
@@ -758,12 +772,25 @@ export class DashboardService {
     }
     const dashboardUFs = states.size > 0 ? Array.from(states) : ['MG'];
 
-    const sefazRecords = await this.prisma.sefazStatusCurrent.findMany({
-      where: { uf: { in: dashboardUFs } },
-      orderBy: { checkedAt: 'desc' },
-    }).catch(() => []);
+    const [sefazRecords, nationalSefazRecords] = await Promise.all([
+      this.prisma.sefazStatusCurrent.findMany({
+        where: { uf: { in: dashboardUFs } },
+        orderBy: { checkedAt: 'desc' },
+      }).catch(() => []),
+      this.prisma.sefazStatusCurrent.findMany({
+        orderBy: { checkedAt: 'desc' },
+      }).catch(() => []),
+    ]);
 
     const sefazStatuses = sefazRecords.map((record) => ({
+      uf: record.uf,
+      service: record.service,
+      status: record.status,
+      latency: record.latency,
+      checkedAt: record.checkedAt.toISOString(),
+      changedAt: record.changedAt.toISOString(),
+    }));
+    const sefazNationalStatuses = nationalSefazRecords.map((record) => ({
       uf: record.uf,
       service: record.service,
       status: record.status,
@@ -782,7 +809,9 @@ export class DashboardService {
         companyUsers: primaryMembership?.company?._count?.memberships || 0,
         companyCount: companyNames.length,
         companyNames,
+        sefazFocusUfs: dashboardUFs,
         sefazStatuses,
+        sefazNationalStatuses,
         tickets,
         openTicketRecords,
         totalOpen: kpis.open + kpis.pending,
