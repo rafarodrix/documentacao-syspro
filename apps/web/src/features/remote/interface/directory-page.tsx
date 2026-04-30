@@ -470,110 +470,6 @@ export function RemotePlatformDirectoryPanel({
   }, [filteredItems, hasHydrated]);
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
-        <div className="hidden">
-          <p className="text-sm text-muted-foreground">
-            Gestão centralizada de hosts e conectividade remota.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {canCreateHosts && (
-            <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
-              <DialogTrigger asChild>
-                <Button type="button" size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Novo Host
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Adicionar host manualmente</DialogTitle>
-                  <DialogDescription>
-                    Cadastro assistido para criar um host operacional com empresa pesquisável, identidade do acesso remoto e contexto técnico claro.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label>Empresa</Label>
-                      <SearchableCompanyPicker
-                        value={quickCompanyId}
-                        options={directory.companyOptions}
-                        searchUrl="/api/remote/companies/search"
-                        onChange={setQuickCompanyId}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Pesquise por razão social, nome fantasia ou código operacional para localizar a empresa.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Nome do host</Label>
-                      <Input value={quickHostName} onChange={(event) => setQuickHostName(event.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Ambiente</Label>
-                      <Input
-                        list="quick-environment-options"
-                        value={quickEnvironment}
-                        onChange={(event) => setQuickEnvironment(event.target.value)}
-                        placeholder="Producao"
-                      />
-                      <datalist id="quick-environment-options">
-                        {QUICK_ENVIRONMENT_TEMPLATES.map((option) => (
-                          <option key={option} value={option} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>RustDesk ID</Label>
-                      <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
-                      <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Descricao operacional</Label>
-                      <Input
-                        list="quick-description-options"
-                        value={quickDescription}
-                        onChange={(event) => setQuickDescription(event.target.value)}
-                        placeholder="ERP matriz / servidor fiscal"
-                      />
-                      <datalist id="quick-description-options">
-                        {QUICK_DESCRIPTION_TEMPLATES.map((option) => (
-                          <option key={option} value={option} />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-border/50 bg-muted/10 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
-                    <div className="mt-2 grid gap-2 text-sm text-foreground md:grid-cols-2">
-                      <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Não selecionada"}</p>
-                      <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Não informado"}</p>
-                      <p><span className="text-muted-foreground">Ambiente:</span> {quickEnvironment.trim() || "Não informado"}</p>
-                      <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Não informado"}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">
-                      Para máquinas sem empresa definida no momento da instalação, prefira o fluxo de descoberta automática. Elas aparecem em <strong>Máquinas aguardando vínculo</strong> e podem ser vinculadas depois.
-                    </p>
-                    <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
-                      {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      {isCreatingQuickHost ? "Criando..." : "Criar host"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="relative overflow-hidden border-border/50 bg-background/50 shadow-sm backdrop-blur-sm">
           <CardHeader className="pb-2">
@@ -695,6 +591,101 @@ export function RemotePlatformDirectoryPanel({
               >
                 <Filter className="h-4 w-4" />
               </Button>
+              {canCreateHosts && (
+                <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
+                  <DialogTrigger asChild>
+                    <Button type="button" size="sm" className="h-10 gap-2 shrink-0">
+                      <Plus className="h-4 w-4" />
+                      Novo Host
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar host manualmente</DialogTitle>
+                      <DialogDescription>
+                        Cadastro assistido para criar um host operacional com empresa pesquisável, identidade do acesso remoto e contexto técnico claro.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Empresa</Label>
+                          <SearchableCompanyPicker
+                            value={quickCompanyId}
+                            options={directory.companyOptions}
+                            searchUrl="/api/remote/companies/search"
+                            onChange={setQuickCompanyId}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Pesquise por razão social, nome fantasia ou código operacional para localizar a empresa.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Nome do host</Label>
+                          <Input value={quickHostName} onChange={(event) => setQuickHostName(event.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Ambiente</Label>
+                          <Input
+                            list="quick-environment-options"
+                            value={quickEnvironment}
+                            onChange={(event) => setQuickEnvironment(event.target.value)}
+                            placeholder="Producao"
+                          />
+                          <datalist id="quick-environment-options">
+                            {QUICK_ENVIRONMENT_TEMPLATES.map((option) => (
+                              <option key={option} value={option} />
+                            ))}
+                          </datalist>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>RustDesk ID</Label>
+                          <Input value={quickRustdeskId} onChange={(event) => setQuickRustdeskId(event.target.value)} placeholder="21187620068" />
+                          <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Descrição operacional</Label>
+                          <Input
+                            list="quick-description-options"
+                            value={quickDescription}
+                            onChange={(event) => setQuickDescription(event.target.value)}
+                            placeholder="ERP matriz / servidor fiscal"
+                          />
+                          <datalist id="quick-description-options">
+                            {QUICK_DESCRIPTION_TEMPLATES.map((option) => (
+                              <option key={option} value={option} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-border/50 bg-muted/10 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
+                        <div className="mt-2 grid gap-2 text-sm text-foreground md:grid-cols-2">
+                          <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Não selecionada"}</p>
+                          <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Não informado"}</p>
+                          <p><span className="text-muted-foreground">Ambiente:</span> {quickEnvironment.trim() || "Não informado"}</p>
+                          <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Não informado"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-muted-foreground">
+                          Para máquinas sem empresa definida no momento da instalação, prefira o fluxo de descoberta automática. Elas aparecem em <strong>Máquinas aguardando vínculo</strong> e podem ser vinculadas depois.
+                        </p>
+                        <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
+                          {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                          {isCreatingQuickHost ? "Criando..." : "Criar host"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
               {(searchTerm ||
                 companyFilter !== "all" ||
                 statusFilter !== "all" ||

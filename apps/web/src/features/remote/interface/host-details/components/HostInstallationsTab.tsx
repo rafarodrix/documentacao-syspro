@@ -4,8 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { SearchableCompanyPicker } from "./SearchableCompanyPicker";
-import { formatDateTime, getSysproUpdateHealthMeta } from "../utils";
-import { COMPANY_SERVER_TYPE_LABEL, DEFAULT_INSTALLATION_DIRECTORY, MACHINE_PROFILE_LABEL, REMOTE_CONNECTION_LABEL, UNLINKED_COMPANY_VALUE } from "../constants";
+import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
+import { COMPANY_SERVER_TYPE_LABEL, DEFAULT_INSTALLATION_DIRECTORY, MACHINE_PROFILE_LABEL, REMOTE_CONNECTION_LABEL, UNLINKED_COMPANY_VALUE } from "../host-details.constants";
 
 export function HostInstallationsTab({
   details,

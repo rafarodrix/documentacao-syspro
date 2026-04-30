@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
-import { fetchAgentDevice } from "@/features/agents/application/queries";
+import { fetchAgentDevice } from "@/features/agents/application/agent.queries";
 import { AgentDeviceDetailPanel } from "@/features/agents/interface/device-detail-page";
 
 export default async function AgentDeviceDetailPage({

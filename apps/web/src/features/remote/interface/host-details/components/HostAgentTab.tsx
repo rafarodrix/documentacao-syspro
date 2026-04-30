@@ -8,11 +8,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { AgentLinkSection } from "./AgentLinkSection";
 import { Copy, Fingerprint, HardDriveDownload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, getCommandStatusMeta, extractStringFromPayload } from "../utils";
-import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL } from "../constants";
+import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, getCommandStatusMeta, extractStringFromPayload } from "../host-details.helpers";
+import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL, AGENT_ACK_REASON_LABEL } from "../host-details.constants";
 import type { RemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
 import { isRemoteAgentAckReasonCode } from "@dosc-syspro/remote-domain/ack-reason-codes";
-import { AGENT_ACK_REASON_LABEL } from "../constants";
 
 type StatusIconMeta = { Icon: LucideIcon; tone: string; label: string };
 

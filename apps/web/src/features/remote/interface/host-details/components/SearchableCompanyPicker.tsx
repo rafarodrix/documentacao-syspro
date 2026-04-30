@@ -4,7 +4,7 @@ import { includesNormalizedSearch } from "@dosc-syspro/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { UNLINKED_COMPANY_VALUE } from "../constants";
+import { UNLINKED_COMPANY_VALUE } from "../host-details.constants";
 import { requestRemoteQuery } from "@/features/remote/interface/remote-api";
 
 export function SearchableCompanyPicker({

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { fetchAgentDeviceListClient } from "@/features/agents/application/client-queries";
-import { patchAgentDevice } from "@/features/agents/application/mutations";
+import { patchAgentDevice } from "@/features/agents/application/agent-write.actions";
 import { LinkedDeviceCard } from "./LinkedDeviceCard";
 
 export function AgentLinkSection({

@@ -1,6 +1,6 @@
 export * from './agent-token';
 export * from './module-settings-actions';
-export * from './queries';
+export * from './remote-platform.queries';
 export * from './remote-access';
 export * from './remote-domain-error';
 export * from './report-queries';
