@@ -9,7 +9,7 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createDecipheriv, createHash, createHmac, timingSafeEqual } from 'crypto';
 import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../settings/integration-context.service';
@@ -24,6 +24,7 @@ import {
 export class ChatwootWebhookController {
   private readonly logger = new Logger(ChatwootWebhookController.name);
   private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
+  private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
   private static readonly CSAT_RATING_MIN = 1;
   private static readonly CSAT_RATING_MAX = 5;
   private static readonly SYSTEM_MESSAGE_FLAG = 'syspro_system_message';
@@ -1020,22 +1021,62 @@ export class ChatwootWebhookController {
   }
 
   private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
-    const setting = await this.prisma.systemSetting.findUnique({
-      where: { key: ChatwootWebhookController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
-      select: { value: true },
-    });
+    const [setting, systemBotTokenSetting] = await Promise.all([
+      this.prisma.systemSetting.findUnique({
+        where: { key: ChatwootWebhookController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: ChatwootWebhookController.CHATWOOT_SYSTEM_BOT_TOKEN_KEY },
+        select: { value: true },
+      }),
+    ]);
+
+    const fallback = {
+      ...DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+      systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
+    };
 
     if (!setting?.value) {
-      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+      return fallback;
     }
 
     try {
       const parsed = JSON.parse(setting.value);
-      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
-      return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+      const validation = chatwootBehaviorSettingsSchema.safeParse({
+        ...parsed,
+        systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
+      });
+      return validation.success ? validation.data : fallback;
     } catch {
-      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+      return fallback;
     }
+  }
+
+  private resolveEncryptionKey(): Buffer {
+    const raw = process.env.INTEGRATION_CONFIG_ENCRYPTION_KEY || process.env.BETTER_AUTH_SECRET;
+    if (!raw || !raw.trim()) {
+      throw new Error('INTEGRATION_CONFIG_ENCRYPTION_KEY (ou BETTER_AUTH_SECRET) obrigatoria para criptografia');
+    }
+    return createHash('sha256').update(raw).digest();
+  }
+
+  private decrypt(payload: string): string {
+    const [ivB64, tagB64, dataB64] = String(payload || '').split(':');
+    if (!ivB64 || !tagB64 || !dataB64) throw new Error('Payload criptografado invalido');
+    const key = this.resolveEncryptionKey();
+    const iv = Buffer.from(ivB64, 'base64');
+    const tag = Buffer.from(tagB64, 'base64');
+    const encrypted = Buffer.from(dataB64, 'base64');
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    const plain = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return plain.toString('utf8');
+  }
+
+  private decryptOptional(payload?: string | null): string | null {
+    if (!payload) return null;
+    return this.decrypt(payload);
   }
 
   private toOptionalString(value: unknown): string | undefined {
