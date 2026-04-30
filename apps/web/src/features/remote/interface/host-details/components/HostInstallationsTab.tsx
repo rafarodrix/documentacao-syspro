@@ -70,9 +70,20 @@ export function HostInstallationsTab({
     <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Instalacoes detectadas</CardTitle>
+          <CardTitle className="text-lg">Empresas e instalações detectadas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-2xl border border-border/50 bg-primary/5 p-5">
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Modelo operacional</p>
+              <p className="text-sm font-medium text-foreground">
+                Um host pode atender mais de uma empresa. A empresa principal organiza o host no portal, e cada
+                instalação abaixo pode ser vinculada a uma empresa diferente para orientar diretórios, bancos e contexto
+                do agente.
+              </p>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-border/50 bg-background/40 p-5">
             <div className="flex items-start gap-3">
               <div className="rounded-xl border border-border/50 bg-muted/30 p-2 text-primary">
@@ -81,6 +92,10 @@ export function HostInstallationsTab({
               <div className="space-y-1">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
                 <p className="text-base font-semibold text-foreground">{primaryCompanyName}</p>
+                <p className="text-xs text-muted-foreground">
+                  Este vínculo é o contexto administrativo principal do host. As demais empresas ficam mapeadas por
+                  instalação logo abaixo.
+                </p>
               </div>
             </div>
           </div>
@@ -88,7 +103,7 @@ export function HostInstallationsTab({
           <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
               <div className="space-y-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa principal do host</p>
                 <SearchableCompanyPicker
                   value={primaryCompanyDraft}
                   options={details.companyOptions}
@@ -130,7 +145,7 @@ export function HostInstallationsTab({
                 className="gap-2"
               >
                 {isSavingHostIdentity ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                {isSavingHostIdentity ? "Salvando..." : "Salvar empresa e perfil"}
+                {isSavingHostIdentity ? "Salvando..." : "Salvar host principal"}
               </Button>
               {!canManageInstallations ? (
                 <span className="text-xs text-muted-foreground">Seu perfil tem acesso somente leitura para este ajuste.</span>
@@ -211,6 +226,9 @@ export function HostInstallationsTab({
                 {installationFilter === "unlinked"
                   ? `${installationContextsForDisplay.length} instalacao(oes) sem vinculo exibida(s).`
                   : `${dedupedInstallationContexts.length} instalacao(oes) detectada(s), ${unlinkedInstallationsCount} sem vinculo.`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use este bloco para distribuir as instalações entre empresas diferentes hospedadas no mesmo servidor.
               </p>
             </div>
           </div>

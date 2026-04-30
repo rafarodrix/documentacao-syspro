@@ -335,9 +335,6 @@ export type RemoteDiscoveredAgentItem = {
   lastAgentMetricsAt: string | null;
 };
 
-/** @deprecated Use `RemoteDiscoveredAgentItem`. */
-export type RemoteDiscoveredHostItem = RemoteDiscoveredAgentItem;
-
 export type RemotePlatformDirectory = {
   tenantScope: RemoteTenantScope;
   moduleSettings: RemoteDirectoryModuleSettings;

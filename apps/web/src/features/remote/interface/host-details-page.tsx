@@ -218,31 +218,36 @@ export function RemoteHostDetailsPanel({
     [details.installGuide]
   );
   const dedupedInstallationContexts = useMemo(() => {
-    const byPath = new Map<string, RemoteHostDetails["installationContexts"][number]>();
+    const byInstallationKey = new Map<string, RemoteHostDetails["installationContexts"][number]>();
 
     for (const context of details.installationContexts) {
       const pathKey = context.update.path.trim().toLowerCase();
-      const current = byPath.get(pathKey);
+      const companyKey =
+        context.update.companyId?.trim().toLowerCase() ||
+        (context.update.resolvedCompanyName ?? context.update.companyLabel).trim().toLowerCase() ||
+        "unlinked";
+      const installationKey = `${companyKey}::${pathKey}`;
+      const current = byInstallationKey.get(installationKey);
       if (!current) {
-        byPath.set(pathKey, context);
+        byInstallationKey.set(installationKey, context);
         continue;
       }
 
       const currentHasLink = !!current.update.companyId;
       const nextHasLink = !!context.update.companyId;
       if (nextHasLink && !currentHasLink) {
-        byPath.set(pathKey, context);
+        byInstallationKey.set(installationKey, context);
         continue;
       }
 
       const currentHeartbeat = Date.parse(current.update.lastHeartbeatAt);
       const nextHeartbeat = Date.parse(context.update.lastHeartbeatAt);
       if (Number.isFinite(nextHeartbeat) && (!Number.isFinite(currentHeartbeat) || nextHeartbeat > currentHeartbeat)) {
-        byPath.set(pathKey, context);
+        byInstallationKey.set(installationKey, context);
       }
     }
 
-    return Array.from(byPath.values());
+    return Array.from(byInstallationKey.values());
   }, [details.installationContexts]);
 
   const installations = useMemo(() => {
@@ -873,7 +878,7 @@ export function RemoteHostDetailsPanel({
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:w-auto md:grid-cols-5">
             <TabsTrigger value="geral">Visão Geral</TabsTrigger>
             <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
-            <TabsTrigger value="instalacoes">Instalações</TabsTrigger>
+            <TabsTrigger value="instalacoes">Empresas e Instalações</TabsTrigger>
             <TabsTrigger value="infra">Infraestrutura</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>
