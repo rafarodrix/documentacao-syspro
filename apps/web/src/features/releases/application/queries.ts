@@ -1,6 +1,5 @@
 import type { Release } from "@dosc-syspro/core";
-import { headers } from "next/headers";
-import { resolveServerOrigin } from "@/lib/server-origin";
+import { getBackendApiBaseUrl } from "@/lib/backend-api";
 
 type ReleasesResponse = {
   success: boolean;
@@ -8,14 +7,7 @@ type ReleasesResponse = {
 };
 
 async function fetchPublicReleases(): Promise<Release[]> {
-  const requestHeaders = await headers();
-  const origin = resolveServerOrigin(requestHeaders);
-  const cookie = requestHeaders.get("cookie");
-
-  const response = await fetch(`${origin}/api/releases`, {
-    headers: {
-      ...(cookie ? { cookie } : {}),
-    },
+  const response = await fetch(`${getBackendApiBaseUrl()}/releases`, {
     next: {
       revalidate: 3600,
       tags: ["releases"],
