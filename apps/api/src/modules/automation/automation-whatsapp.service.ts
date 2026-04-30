@@ -16,6 +16,7 @@ import {
   ConversationParticipantKind as TicketParticipantKind,
   ConversationStatus as TicketStatus,
 } from '@prisma/client';
+import { normalizeReleaseType } from '@dosc-syspro/core';
 import { AutomationSettingsService } from './automation-settings.service';
 
 type TicketNotificationTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
@@ -356,6 +357,66 @@ export class AutomationWhatsappService {
     }
   }
 
+  async sendReleasePublishedNotification(input: {
+    settings: TicketModuleSettings;
+    ticketId: string;
+    ticketNumber: string;
+    title: string;
+    summary: string;
+    releaseType: string | null;
+    companyId: string | null;
+    publishedAt?: Date | string | null;
+    rawHeaders?: IncomingHttpHeaders;
+  }) {
+    const automationSettings = await this.readAutomationSettings(input.settings);
+    const targetGroups = this.getTargetGroupsForEvent(automationSettings, 'release_published');
+
+    if (!targetGroups.length) {
+      this.logger.debug(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'release_notification_skipped_no_group',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+      }));
+      return;
+    }
+
+    const connection = await this.resolveNotificationContext(input.companyId, targetGroups.map((group) => group.jid));
+    if (!connection) {
+      this.logger.warn(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'release_notification_skipped_no_connection',
+        ticketId: input.ticketId,
+        ticketNumber: input.ticketNumber,
+        groupCount: targetGroups.length,
+      }));
+      return;
+    }
+
+    const releaseTypeLabel = this.formatReleaseTypeLabel(input.releaseType);
+    const releaseUrl = this.buildPortalReleaseMonthUrl(input.publishedAt, input.rawHeaders);
+    const message = [
+      releaseTypeLabel ? `\`${releaseTypeLabel}\`` : '`Release`',
+      `*${input.title}*`,
+      input.summary.trim(),
+      ...(releaseUrl ? ['', `Veja essa e outras atualizacoes em:\n${releaseUrl}`] : []),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await this.dispatchToGroups(targetGroups, connection.evolution, {
+      connectionKey: connection.connectionKey,
+      connectionSource: connection.source,
+      companyId: connection.companyId,
+    }, message, {
+      flow: 'portal_to_evolution',
+      sentStage: 'release_notification_sent',
+      failedStage: 'release_notification_failed',
+      ticketId: input.ticketId,
+      ticketNumber: input.ticketNumber,
+    });
+  }
+
   private async dispatchToGroups(
     groups: Array<{ id: string; label: string; jid: string; active: boolean }>,
     evolution: unknown,
@@ -562,6 +623,8 @@ export class AutomationWhatsappService {
         return binding.automations.ticketStatusTesting;
       case 'ticket_status_testing_failed':
         return binding.automations.ticketStatusTestingFailed;
+      case 'release_published':
+        return binding.automations.releasePublished;
       default:
         return false;
     }
@@ -657,10 +720,15 @@ export class AutomationWhatsappService {
     const normalized = String(value ?? '').trim().toLowerCase();
     if (!normalized) return null;
     if (normalized.endsWith('@g.us')) return normalized;
+    if (normalized.endsWith('@newsletter')) return normalized;
 
     const candidate = normalized.replace(/\s+/g, '');
     if (/^\d+-\d+$/.test(candidate)) {
       return `${candidate}@g.us`;
+    }
+
+    if (/^\d+@newsletter$/.test(candidate)) {
+      return candidate;
     }
 
     const digits = candidate.replace(/\D/g, '');
@@ -707,6 +775,21 @@ export class AutomationWhatsappService {
     return inferredOrigin ? `${inferredOrigin}/portal/tickets/${ticketId}` : null;
   }
 
+  private buildPortalReleaseMonthUrl(
+    publishedAt?: Date | string | null,
+    rawHeaders?: IncomingHttpHeaders,
+  ): string | null {
+    const origin = this.resolvePortalOrigin(rawHeaders);
+    if (!origin) return null;
+
+    const referenceDate = publishedAt ? new Date(publishedAt) : new Date();
+    if (Number.isNaN(referenceDate.getTime())) return null;
+
+    const year = referenceDate.getUTCFullYear();
+    const month = String(referenceDate.getUTCMonth() + 1).padStart(2, '0');
+    return `${origin}/portal/releases/${year}/${month}`;
+  }
+
   private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {
     const header = rawHeaders?.[key];
     if (Array.isArray(header)) {
@@ -740,6 +823,45 @@ export class AutomationWhatsappService {
     } catch {
       return null;
     }
+  }
+
+  private resolvePortalOrigin(rawHeaders?: IncomingHttpHeaders): string | null {
+    const explicitOrigin =
+      this.readHeader(rawHeaders, 'x-portal-origin') ||
+      this.readHeader(rawHeaders, 'origin') ||
+      this.readHeader(rawHeaders, 'referer');
+    if (explicitOrigin) {
+      const normalized = this.normalizePortalOrigin(explicitOrigin);
+      if (normalized) return normalized;
+    }
+
+    const configuredOrigins = [
+      process.env.NEXT_PUBLIC_APP_URL,
+      process.env.NEXT_PUBLIC_WEB_URL,
+      process.env.NEXT_PUBLIC_SITE_URL,
+      process.env.FRONTEND_URL,
+      process.env.WEB_URL,
+      process.env.PORTAL_URL,
+      process.env.APP_URL,
+    ];
+
+    for (const configuredOrigin of configuredOrigins) {
+      const normalized = this.normalizePortalOrigin(configuredOrigin);
+      if (normalized) return normalized;
+    }
+
+    const host = this.readHeader(rawHeaders, 'x-forwarded-host') || this.readHeader(rawHeaders, 'host');
+    if (!host) return null;
+
+    const protocol = this.readHeader(rawHeaders, 'x-forwarded-proto') || 'https';
+    return this.normalizePortalOrigin(`${protocol}://${host}`);
+  }
+
+  private formatReleaseTypeLabel(value?: string | null): string {
+    const normalized = normalizeReleaseType(value);
+    if (normalized === 'BUG') return 'Bug';
+    if (normalized === 'NOVA_FUNCIONALIDADE') return 'Novos recursos';
+    return 'Melhoria';
   }
 
   private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {

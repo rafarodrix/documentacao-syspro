@@ -9,6 +9,7 @@ export const whatsappAutomationEventSchema = z.enum([
   "ticket_team_transfer_to_development",
   "ticket_status_testing",
   "ticket_status_testing_failed",
+  "release_published",
 ]);
 
 export const whatsappAutomationEventFlagsSchema = z.object({
@@ -20,6 +21,7 @@ export const whatsappAutomationEventFlagsSchema = z.object({
   ticketTeamTransferToDevelopment: z.boolean().default(false),
   ticketStatusTesting: z.boolean().default(false),
   ticketStatusTestingFailed: z.boolean().default(false),
+  releasePublished: z.boolean().default(false),
 });
 
 const DEFAULT_WHATSAPP_AUTOMATION_FLAGS = {
@@ -31,6 +33,7 @@ const DEFAULT_WHATSAPP_AUTOMATION_FLAGS = {
   ticketTeamTransferToDevelopment: false,
   ticketStatusTesting: false,
   ticketStatusTestingFailed: false,
+  releasePublished: false,
 } as const;
 
 export const whatsappAutomationBindingSchema = z.object({

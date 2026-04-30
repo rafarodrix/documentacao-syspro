@@ -55,6 +55,7 @@ function createWhatsAppBinding(): WhatsAppAutomationBinding {
       ticketTeamTransferToDevelopment: false,
       ticketStatusTesting: false,
       ticketStatusTestingFailed: false,
+      releasePublished: false,
     },
   };
 }
@@ -99,6 +100,11 @@ const WHATSAPP_AUTOMATION_FIELDS = [
     key: "ticketStatusTestingFailed",
     label: "Retorno dos testes",
     description: "Dispara quando o ticket volta de Em testes.",
+  },
+  {
+    key: "releasePublished",
+    label: "Release publicada",
+    description: "Dispara quando um ticket resolvido entra na listagem de releases.",
   },
 ] as const;
 
@@ -298,11 +304,11 @@ export function AutomationSettingsTab() {
                     <div className="space-y-1">
                       <CardTitle className="flex items-center gap-2 text-sm">
                         <BellRing className="h-4 w-4 text-primary/70" />
-                        Vinculos de grupos
+                        Vinculos de grupos e canais
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
-                        Cada vinculo representa um grupo real do WhatsApp. Habilite so as
-                        automacoes que aquele grupo deve receber.
+                        Cada vinculo representa um grupo ou canal real do WhatsApp. Habilite so as
+                        automacoes que aquele destino deve receber.
                       </p>
                     </div>
                     <Button
@@ -320,7 +326,7 @@ export function AutomationSettingsTab() {
                 <CardContent className="space-y-4">
                   {bindingsArray.fields.length === 0 && (
                     <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-4 text-sm text-muted-foreground">
-                      Nenhum vinculo cadastrado. Crie um grupo e habilite as automacoes
+                      Nenhum vinculo cadastrado. Crie um grupo ou canal e habilite as automacoes
                       desejadas.
                     </div>
                   )}
@@ -350,9 +356,9 @@ export function AutomationSettingsTab() {
                           name={`whatsapp.bindings.${index}.jid`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>JID do grupo</FormLabel>
+                              <FormLabel>JID do grupo/canal</FormLabel>
                               <FormControl>
-                                <Input placeholder="1203630...@g.us" {...field} />
+                                <Input placeholder="1203630...@g.us ou 1203630...@newsletter" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

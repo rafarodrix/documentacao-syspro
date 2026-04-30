@@ -779,6 +779,11 @@ export class TicketsService {
     const isTestingReturn = exists.status === TicketStatus.TESTING && requestedStatus === TicketStatus.IN_PROGRESS;
     let resolvedNextTeam = previousTeam;
     let resolvedNextStatus = exists.status as TicketStatus;
+    let resolvedPublishToReleases = Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases);
+    let resolvedReleaseTitle = readReleaseMetadataString(existingMetadata, 'releaseTitle') || exists.subject?.trim() || 'Atualizacao sem titulo';
+    let resolvedReleaseType = normalizeReleaseType(exists.releaseType) || normalizeReleaseType(existingMetadata.categoryType);
+    let resolvedResolutionSummary = exists.resolutionSummary?.trim() || null;
+    let resolvedClosedAt: Date | null = null;
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
@@ -1073,6 +1078,14 @@ export class TicketsService {
         typeof data.publishToReleases === 'boolean'
           ? Boolean(data.publishToReleases)
           : Boolean((exists as { publishToReleases?: boolean | null }).publishToReleases);
+      resolvedPublishToReleases = nextPublishToReleases;
+      resolvedReleaseTitle = effectiveReleaseTitle || exists.subject?.trim() || 'Atualizacao sem titulo';
+      resolvedReleaseType = effectiveReleaseType;
+      resolvedResolutionSummary = effectiveResolutionSummary || null;
+      resolvedClosedAt =
+        nextStatus === TicketStatus.RESOLVED
+          ? ((data.closedAt as Date | undefined) ?? new Date())
+          : null;
       const historyBody = this.ticketHistoryService.buildUpdateBody({
         requesterDisplayName,
         settings,
@@ -1185,6 +1198,28 @@ export class TicketsService {
           status: TicketStatus.IN_PROGRESS,
           notificationType: 'testing_failed',
           note: handoffNote,
+          rawHeaders,
+        });
+      });
+    }
+
+    if (
+      exists.status !== TicketStatus.RESOLVED &&
+      resolvedNextStatus === TicketStatus.RESOLVED &&
+      resolvedNextTeam === 'DESENVOLVIMENTO' &&
+      resolvedPublishToReleases &&
+      resolvedResolutionSummary
+    ) {
+      this.runAutomationInBackground('release_published_notification', exists.id, async () => {
+        await this.automationWhatsappService.sendReleasePublishedNotification({
+          settings,
+          ticketId: exists.id,
+          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+          title: resolvedReleaseTitle,
+          summary: resolvedResolutionSummary as string,
+          releaseType: resolvedReleaseType ?? null,
+          companyId: exists.companyId,
+          publishedAt: resolvedClosedAt,
           rawHeaders,
         });
       });
