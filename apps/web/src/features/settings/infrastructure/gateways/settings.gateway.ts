@@ -21,10 +21,13 @@ import {
   type ChatwootBehaviorSettingsResponse,
 } from "@dosc-syspro/contracts/chatwoot";
 import {
+  buildDefaultInterstateIcmsSettings,
+  interstateIcmsSettingsSchema,
   settingsAuthorizationContextResponseSchema,
   settingsContractsAdminViewResponseSchema,
   settingsRemoteAdminViewResponseSchema,
   settingsSchema,
+  type InterstateIcmsSettings,
   type SettingsAuthorizationContextResponse,
   type SettingsContractsAdminViewResponse,
   type SettingsRemoteAdminViewResponse,
@@ -98,11 +101,32 @@ export async function fetchSefazRoutesGateway(): Promise<SettingsGatewayResponse
   return response;
 }
 
+export async function fetchInterstateIcmsSettingsGateway(): Promise<SettingsGatewayResponse<InterstateIcmsSettings>> {
+  const response = await callSettingsApi<SettingsGatewayResponse<InterstateIcmsSettings>>("/tax/interstate-icms");
+  if (response.data) {
+    response.data = interstateIcmsSettingsSchema.parse(response.data);
+  } else {
+    response.data = buildDefaultInterstateIcmsSettings();
+  }
+  return response;
+}
+
 export async function updateSefazRoutesGateway(
   input: SefazRoutesInput,
 ): Promise<SettingsGatewayResponse<void>> {
   const payload = sefazRoutesSchema.parse(input);
   return callSettingsApi<SettingsGatewayResponse<void>>("/sefaz-routes", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateInterstateIcmsSettingsGateway(
+  input: InterstateIcmsSettings,
+): Promise<SettingsGatewayResponse<void>> {
+  const payload = interstateIcmsSettingsSchema.parse(input);
+  return callSettingsApi<SettingsGatewayResponse<void>>("/tax/interstate-icms", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

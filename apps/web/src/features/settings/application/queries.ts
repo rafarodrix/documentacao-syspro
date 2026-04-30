@@ -2,7 +2,13 @@
 
 import type { SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts/sefaz-endpoints";
-import { type SettingsOutput, type SettingsContractsAdminView, type SettingsRemoteAdminView } from "@dosc-syspro/contracts/settings";
+import {
+  buildDefaultInterstateIcmsSettings,
+  type InterstateIcmsSettings,
+  type SettingsOutput,
+  type SettingsContractsAdminView,
+  type SettingsRemoteAdminView,
+} from "@dosc-syspro/contracts/settings";
 import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
 import {
   getSettingsPermissionsAdminViewAction,
@@ -12,6 +18,7 @@ import {
   fetchSettingsContractsAdminViewGateway,
   fetchSettingsRemoteAdminViewGateway,
   fetchGeneralSettingsGateway,
+  fetchInterstateIcmsSettingsGateway,
   fetchSefazRoutesGateway,
 } from "@/features/settings/infrastructure/gateways/settings.gateway";
 export async function getSettingsAction(): Promise<SettingsActionResponse<SettingsOutput>> {
@@ -42,10 +49,25 @@ export async function getSefazRoutesAction(): Promise<SettingsActionResponse<Sef
   }
 }
 
+export async function getInterstateIcmsSettingsAction(): Promise<SettingsActionResponse<InterstateIcmsSettings>> {
+  try {
+    const response = await fetchInterstateIcmsSettingsGateway();
+    if (!response.success || !response.data) {
+      return { success: false, error: response.error || "Erro ao carregar configuracao interestadual." };
+    }
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Erro ao carregar configuracao interestadual:", error);
+    return { success: false, error: "Erro ao carregar configuracao interestadual." };
+  }
+}
+
 export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData> {
-  const [settingsRes, sefazRoutesRes, permissionsAdminViewRes] = await Promise.all([
+  const [settingsRes, sefazRoutesRes, interstateIcmsRes, permissionsAdminViewRes] = await Promise.all([
     getSettingsAction(),
     getSefazRoutesAction(),
+    getInterstateIcmsSettingsAction(),
     getSettingsPermissionsAdminViewAction(),
   ]);
 
@@ -55,6 +77,10 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
 
   if (!sefazRoutesRes.success) {
     throw new Error(sefazRoutesRes.error || "Falha ao carregar rotas SEFAZ.");
+  }
+
+  if (!interstateIcmsRes.success) {
+    throw new Error(interstateIcmsRes.error || "Falha ao carregar configuracao interestadual.");
   }
 
   if (!permissionsAdminViewRes.success) {
@@ -71,6 +97,7 @@ export async function getSettingsAdminViewData(): Promise<SettingsAdminViewData>
   return {
     rbacMatrixEnabled: matrixEnabled,
     sefazRoutes: sefazRoutesRes.data ?? buildDefaultSefazRoutes(),
+    interstateIcmsSettings: interstateIcmsRes.data ?? buildDefaultInterstateIcmsSettings(),
     permissionsAdminView: permissionsAdminViewRes.data ?? {
       catalog: fallbackCatalog,
       profiles: fallbackCatalog.profiles.map((profile) => ({

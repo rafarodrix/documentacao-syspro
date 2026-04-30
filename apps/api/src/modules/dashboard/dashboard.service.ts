@@ -10,7 +10,10 @@ import type {
   DashboardTicketSummary,
 } from '@dosc-syspro/contracts/dashboard';
 import { getDailyPasswordForDate } from '@dosc-syspro/contracts/dashboard';
+import { buildDefaultSefazRoutes } from '@dosc-syspro/contracts/sefaz-endpoints';
+import { sefazRoutesSchema } from '@dosc-syspro/contracts/sefaz-routes';
 import type { TicketModuleRecord } from '@dosc-syspro/contracts/ticket';
+import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TicketsService } from '../tickets/tickets.service';
@@ -280,6 +283,23 @@ export class DashboardService {
     return allowed ? getDailyPasswordForDate() : null;
   }
 
+  private async getConfiguredSefazRoutes() {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: SETTING_KEYS.SEFAZ_ROUTES },
+      select: { value: true },
+    });
+
+    if (!setting?.value) return buildDefaultSefazRoutes();
+
+    try {
+      const parsed = JSON.parse(setting.value);
+      const validation = sefazRoutesSchema.safeParse(parsed);
+      return validation.success ? validation.data : buildDefaultSefazRoutes();
+    } catch {
+      return buildDefaultSefazRoutes();
+    }
+  }
+
   private buildScopedCompaniesWhere(companyIds?: string[]) {
     if (!companyIds) {
       return { deletedAt: null as null };
@@ -347,6 +367,7 @@ export class DashboardService {
 
     if (isSystemUser) {
       const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
+      const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
       const { start } = getLast7DaysRange();
       const now = new Date();
       const [
@@ -680,6 +701,7 @@ export class DashboardService {
           sefazFocusUfs: dashboardUFs,
           sefazStatuses,
           sefazNationalStatuses,
+          sefazConfiguredRoutes: configuredSefazRoutes,
           tickets,
           openTicketRecords,
           totalOpen,
@@ -771,6 +793,7 @@ export class DashboardService {
       }
     }
     const dashboardUFs = states.size > 0 ? Array.from(states) : ['MG'];
+    const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
 
     const [sefazRecords, nationalSefazRecords] = await Promise.all([
       this.prisma.sefazStatusCurrent.findMany({
@@ -812,6 +835,7 @@ export class DashboardService {
         sefazFocusUfs: dashboardUFs,
         sefazStatuses,
         sefazNationalStatuses,
+        sefazConfiguredRoutes: configuredSefazRoutes,
         tickets,
         openTicketRecords,
         totalOpen: kpis.open + kpis.pending,

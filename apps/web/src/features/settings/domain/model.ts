@@ -1,8 +1,13 @@
 import type { SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
-import type { SettingsInput, SettingsPermissionsAdminView } from "@dosc-syspro/contracts/settings";
+import type {
+  InterstateIcmsSettings,
+  SettingsInput,
+  SettingsPermissionsAdminView,
+} from "@dosc-syspro/contracts/settings";
 
 export type SettingsSnapshot = SettingsInput;
 export type SefazRoutesSnapshot = SefazRoutesInput;
+export type InterstateIcmsSettingsSnapshot = InterstateIcmsSettings;
 
 export type SettingsActionSuccess<T = void> = T extends void
   ? {
@@ -25,5 +30,6 @@ export type SettingsActionResponse<T = void> = SettingsActionSuccess<T> | Settin
 export interface SettingsAdminViewData {
   rbacMatrixEnabled: boolean;
   sefazRoutes: SefazRoutesSnapshot;
+  interstateIcmsSettings: InterstateIcmsSettingsSnapshot;
   permissionsAdminView: SettingsPermissionsAdminView;
 }

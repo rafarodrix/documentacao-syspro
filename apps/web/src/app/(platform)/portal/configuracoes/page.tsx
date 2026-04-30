@@ -37,6 +37,7 @@ import {
   TaxAnexosContainer,
   TaxClassificationList,
   TaxCredPresumidoContainer,
+  TaxInterstateRatesTab,
   TaxNcmContainer,
   TaxSyncStatusBar,
 } from "@/features/tax/interface";
@@ -82,6 +83,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       ? remoteAdminViewResult.value
       : { companyOptions: [] };
   const sefazRoutes = settingsView.sefazRoutes;
+  const interstateIcmsSettings = settingsView.interstateIcmsSettings;
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-8 px-6 pt-6 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -225,6 +227,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   <Boxes className="h-4 w-4" />
                   Rota NCM
                 </TabsTrigger>
+                <TabsTrigger value="interestadual" className="gap-2 px-4 py-2">
+                  <Landmark className="h-4 w-4" />
+                  Interestadual
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="class-trib" className="space-y-4">
@@ -285,6 +291,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                     <TaxNcmContainer />
                   </Suspense>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="interestadual" className="space-y-4">
+                <TaxInterstateRatesTab initialRows={interstateIcmsSettings} />
               </TabsContent>
             </Tabs>
           </div>

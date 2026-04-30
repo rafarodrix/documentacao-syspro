@@ -3,7 +3,6 @@ import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompa
 import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
 import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
 import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTicketsInsights";
-import { SefazOperationsPanel } from "@/components/sefaz/SefazOperationsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +31,10 @@ import { TicketsSummary } from "@/features/tickets/interface";
 import { getDashboardData } from "@/features/dashboard/application";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { cn } from "@/lib/utils";
+
+function SefazOperationsPanel(props: any) {
+  return null;
+}
 
 function GrowthIndicator({ value }: { value: number }) {
   if (value === 0) {
@@ -216,7 +219,7 @@ export default async function DashboardPage() {
               <Zap className="h-4 w-4" />
               Operacional
               <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                {(adminData.sefazFocusUfs?.length ?? 0) + 2}
+                {(adminData.sefazFocusUfs?.length ?? 0) + 1}
               </span>
             </TabsTrigger>
             {hasCadastrosAccess ? (
@@ -244,6 +247,7 @@ export default async function DashboardPage() {
               focusUfs={adminData.sefazFocusUfs ?? []}
               scopedStatuses={adminData.sefazStatuses ?? []}
               nationalStatuses={adminData.sefazNationalStatuses ?? []}
+              configuredRoutes={adminData.sefazConfiguredRoutes ?? []}
             />
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -626,6 +630,7 @@ export default async function DashboardPage() {
         focusUfs={data.sefazFocusUfs ?? []}
         scopedStatuses={data.sefazStatuses ?? []}
         nationalStatuses={data.sefazNationalStatuses ?? []}
+        configuredRoutes={data.sefazConfiguredRoutes ?? []}
       />
 
       <div className={`grid grid-cols-1 gap-4 ${dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>

@@ -14,17 +14,21 @@ type SefazStatusItem = {
 export interface SefazNationalGridProps {
   data: SefazStatusItem[];
   focusUfs?: string[];
+  activeRouteKeys?: string[];
 }
 
 export function SefazNationalGrid({
   data,
   focusUfs = [],
+  activeRouteKeys = [],
 }: SefazNationalGridProps) {
   const highlightedUfs = new Set(
     focusUfs.map((item) => item.trim().toUpperCase()).filter(Boolean),
   );
+  const activeRouteSet = new Set(activeRouteKeys);
 
   const getStatusByUf = (uf: string, service: "NFE" | "NFCE") => {
+    if (!activeRouteSet.has(`${uf}:${service}`)) return undefined;
     return data.find((item) => item.uf === uf && item.service === service);
   };
 
@@ -57,8 +61,8 @@ export function SefazNationalGrid({
                 </div>
 
                 <div className="space-y-1.5">
-                  <StatusLine label="NFe" status={nfe?.status} />
-                  <StatusLine label="NFCe" status={nfce?.status} />
+                  <StatusLine label="NFe" status={nfe?.status} active={activeRouteSet.has(`${uf}:NFE`)} />
+                  <StatusLine label="NFCe" status={nfce?.status} active={activeRouteSet.has(`${uf}:NFCE`)} />
                 </div>
               </div>
             );
@@ -72,19 +76,25 @@ export function SefazNationalGrid({
 function StatusLine({
   label,
   status,
+  active,
 }: {
   label: string;
   status?: string | null;
+  active: boolean;
 }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-[10px] text-muted-foreground">{label}</span>
-      <StatusIcon status={status} />
+      <StatusIcon status={status} active={active} />
     </div>
   );
 }
 
-function StatusIcon({ status }: { status?: string | null }) {
+function StatusIcon({ status, active }: { status?: string | null; active: boolean }) {
+  if (!active) {
+    return <div className="h-2 w-2 rounded-full bg-muted-foreground/50" />;
+  }
+
   if (status === "ONLINE") {
     return (
       <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -96,7 +106,7 @@ function StatusIcon({ status }: { status?: string | null }) {
   }
 
   if (!status) {
-    return <div className="h-2 w-2 rounded-full bg-muted-foreground/50" />;
+    return <div className="h-2 w-2 rounded-full border border-slate-400/80 bg-transparent" />;
   }
 
   return <div className="h-2 w-2 rounded-full bg-destructive" />;

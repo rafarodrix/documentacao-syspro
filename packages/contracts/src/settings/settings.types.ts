@@ -62,4 +62,5 @@ export const SETTING_KEYS = {
   RBAC_MATRIX_ENABLED: "rbacMatrixEnabled",
   PREFERENCES: "generalPreferences",
   SEFAZ_ROUTES: "sefazRoutes",
+  INTERSTATE_ICMS: "interstateIcmsSettings",
 } as const;

@@ -23,8 +23,11 @@ import {
   type RemoteModuleSettingsInput,
 } from '@dosc-syspro/contracts/remote';
 import {
+  buildDefaultInterstateIcmsSettings,
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
   DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+  interstateIcmsSettingsSchema,
+  type InterstateIcmsSettings,
   type SettingsContractsAdminView,
   SETTING_KEYS,
   settingsSchema,
@@ -277,6 +280,49 @@ export class SettingsController {
     });
 
     return { success: true, message: 'Rotas SEFAZ salvas com sucesso.' };
+  }
+
+  @Get('tax/interstate-icms')
+  async getInterstateIcmsSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: SETTING_KEYS.INTERSTATE_ICMS },
+      select: { value: true },
+    });
+
+    if (!setting?.value) {
+      return { success: true, data: buildDefaultInterstateIcmsSettings() };
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value);
+      const validation = interstateIcmsSettingsSchema.safeParse(parsed);
+      return {
+        success: true,
+        data: validation.success ? validation.data : buildDefaultInterstateIcmsSettings(),
+      };
+    } catch {
+      return { success: true, data: buildDefaultInterstateIcmsSettings() };
+    }
+  }
+
+  @Put('tax/interstate-icms')
+  async updateInterstateIcmsSettings(@Req() req: Request, @Body() body: InterstateIcmsSettings) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = interstateIcmsSettingsSchema.parse(body);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: SETTING_KEYS.INTERSTATE_ICMS },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: SETTING_KEYS.INTERSTATE_ICMS,
+        value: JSON.stringify(parsed),
+        description: 'Tabela interestadual de ICMS por origem e destino',
+      },
+    });
+
+    return { success: true, message: 'Configuracao interestadual salva com sucesso.' };
   }
 
   @Post('sefaz/check')
