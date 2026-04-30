@@ -1,23 +1,21 @@
 import type { Release } from "@dosc-syspro/core";
+import { headers } from "next/headers";
+import { resolveServerOrigin } from "@/lib/server-origin";
 
 type ReleasesResponse = {
-    success: boolean;
-    data?: Release[];
+  success: boolean;
+  data?: Release[];
 };
 
-function resolvePublicWebOrigin() {
-  const explicit =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.NEXT_PUBLIC_WEB_URL?.trim();
-
-  if (explicit) return explicit.replace(/\/+$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
-
 async function fetchPublicReleases(): Promise<Release[]> {
-  const origin = resolvePublicWebOrigin();
+  const requestHeaders = await headers();
+  const origin = resolveServerOrigin(requestHeaders);
+  const cookie = requestHeaders.get("cookie");
+
   const response = await fetch(`${origin}/api/releases`, {
+    headers: {
+      ...(cookie ? { cookie } : {}),
+    },
     next: {
       revalidate: 3600,
       tags: ["releases"],
@@ -25,6 +23,12 @@ async function fetchPublicReleases(): Promise<Release[]> {
   });
 
   if (!response.ok) return [];
+
+  const contentType = response.headers.get("content-type")?.toLowerCase() || "";
+  if (!contentType.includes("application/json")) {
+    const bodyPreview = (await response.text()).slice(0, 120);
+    throw new Error(`Unexpected releases response content-type: ${contentType || "unknown"} body=${bodyPreview}`);
+  }
 
   const payload = (await response.json()) as ReleasesResponse;
   return payload.success ? payload.data ?? [] : [];
@@ -38,6 +42,3 @@ export async function getReleases(): Promise<Release[]> {
     return [];
   }
 }
-
-
-

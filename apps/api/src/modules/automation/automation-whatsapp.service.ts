@@ -93,7 +93,6 @@ export class AutomationWhatsappService {
     const companyCnpj = this.formatCnpj(company?.cnpj);
     const ticketUrl = this.buildPortalTicketUrl(input.ticketId, input.rawHeaders);
     const categoryLabel = this.resolveCategoryLabel(input.settings, input.category);
-    const teamLabel = this.formatTicketTeamLabel(input.team);
     const resourceLines = [
       input.databaseUrl ? `*Base de Dados:* ${input.databaseUrl}` : undefined,
       input.developmentVideoUrl ? `*Video Explicativo:* ${input.developmentVideoUrl}` : undefined,
@@ -106,8 +105,6 @@ export class AutomationWhatsappService {
         : undefined,
       `*Empresa:* ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
       `*Titulo:* ${input.title}`,
-      `*Ticket:* ${input.ticketNumber}`,
-      `*Setor:* ${teamLabel}`,
       ...(resourceLines.length ? ['', ...resourceLines] : []),
     ]
       .filter(Boolean)
@@ -223,7 +220,6 @@ export class AutomationWhatsappService {
         target.audience === 'destination' ? '*Ticket Encaminhado*' : '*Ticket Saiu do Setor*',
         `*Empresa:* ${companyName}`,
         `*Titulo:* ${input.title}`,
-        `*Ticket:* ${input.ticketNumber}`,
         `*Origem:* ${previousTeamLabel}`,
         `*Destino:* ${nextTeamLabel}`,
         input.note?.trim() ? `*Contexto:* ${input.note.trim()}` : undefined,
@@ -329,7 +325,6 @@ export class AutomationWhatsappService {
         : '*Retornado de Testes > Desenvolvimento*',
       `*Empresa:* ${companyName}`,
       `*Titulo:* ${input.title}`,
-      `*Ticket:* ${input.ticketNumber}`,
       `*Estagio:* ${statusLabel}`,
       input.notificationType === 'testing_failed' && input.note?.trim() ? `*Motivo:* ${input.note.trim()}` : undefined,
       ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
@@ -681,23 +676,27 @@ export class AutomationWhatsappService {
   }
 
   private buildPortalTicketUrl(ticketId: string, rawHeaders?: IncomingHttpHeaders): string | null {
-    const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
+    const explicitOrigin =
+      this.readHeader(rawHeaders, 'x-portal-origin') ||
+      this.readHeader(rawHeaders, 'origin') ||
+      this.readHeader(rawHeaders, 'referer');
     if (explicitOrigin) {
-      const normalized = this.normalizeOrigin(explicitOrigin);
+      const normalized = this.normalizePortalOrigin(explicitOrigin);
       if (normalized) return `${normalized}/portal/tickets/${ticketId}`;
     }
 
     const configuredOrigins = [
-      process.env.PORTAL_URL,
-      process.env.NEXT_PUBLIC_WEB_URL,
       process.env.NEXT_PUBLIC_APP_URL,
-      process.env.WEB_URL,
+      process.env.NEXT_PUBLIC_WEB_URL,
+      process.env.NEXT_PUBLIC_SITE_URL,
       process.env.FRONTEND_URL,
+      process.env.WEB_URL,
+      process.env.PORTAL_URL,
       process.env.APP_URL,
     ];
 
     for (const configuredOrigin of configuredOrigins) {
-      const normalized = this.normalizeOrigin(configuredOrigin);
+      const normalized = this.normalizePortalOrigin(configuredOrigin);
       if (!normalized) continue;
       return `${normalized}/portal/tickets/${ticketId}`;
     }
@@ -706,7 +705,7 @@ export class AutomationWhatsappService {
     if (!host) return null;
 
     const protocol = this.readHeader(rawHeaders, 'x-forwarded-proto') || 'https';
-    const inferredOrigin = this.normalizeOrigin(`${protocol}://${host}`);
+    const inferredOrigin = this.normalizePortalOrigin(`${protocol}://${host}`);
     return inferredOrigin ? `${inferredOrigin}/portal/tickets/${ticketId}` : null;
   }
 
@@ -726,6 +725,21 @@ export class AutomationWhatsappService {
       return new URL(trimmed).origin;
     } catch {
       this.logger.warn(`Origem invalida ignorada ao montar link de ticket: ${trimmed}`);
+      return null;
+    }
+  }
+
+  private normalizePortalOrigin(value?: string | null): string | null {
+    const normalized = this.normalizeOrigin(value);
+    if (!normalized) return null;
+
+    try {
+      const url = new URL(normalized);
+      if (url.hostname.startsWith('backend.') || url.hostname.startsWith('api.')) {
+        url.hostname = url.hostname.replace(/^(backend|api)\./, 'ajuda.');
+      }
+      return url.origin;
+    } catch {
       return null;
     }
   }
