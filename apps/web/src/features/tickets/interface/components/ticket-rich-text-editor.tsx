@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { sanitizeTicketEditorHtml } from "@/features/tickets/interface/lib/ticket-rich-html";
 import { cn } from "@/lib/utils";
 
 type TicketRichTextEditorTemplate = {
@@ -57,13 +58,6 @@ type TicketRichTextEditorProps = {
   showTemplates?: boolean;
   compact?: boolean;
 };
-
-function sanitizeEditorHtml(html: string) {
-  return html
-    .replace(/\sstyle="[^"]*"/gi, "")
-    .replace(/\sclass="[^"]*"/gi, "")
-    .replace(/\sdata-[a-z0-9-]+="[^"]*"/gi, "");
-}
 
 const DEFAULT_TEMPLATES: TicketRichTextEditorTemplate[] = [
   {
@@ -111,7 +105,7 @@ export function TicketRichTextEditor({
     ],
     content: value,
     editorProps: {
-      transformPastedHTML: sanitizeEditorHtml,
+      transformPastedHTML: sanitizeTicketEditorHtml,
       transformPastedText: (text) => text.replace(/\r\n/g, "\n").replace(/\u00a0/g, " "),
       attributes: {
         class: cn(
@@ -124,7 +118,7 @@ export function TicketRichTextEditor({
       },
     },
     onUpdate: ({ editor: currentEditor }) => {
-      onChange(sanitizeEditorHtml(currentEditor.getHTML()));
+      onChange(sanitizeTicketEditorHtml(currentEditor.getHTML()));
     },
   });
 
