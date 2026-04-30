@@ -70,6 +70,73 @@ function buildInstallStages(input: {
   return stages;
 }
 
+function toIsoDate(value: Date | null | undefined) {
+  return value instanceof Date ? value.toISOString() : null;
+}
+
+function buildAgentProjection(input: {
+  rustdeskId: string | null;
+  machineName: string | null;
+  agentVersion: string | null;
+  lastHeartbeatAt: Date | null;
+  lastHeartbeatSuccessAt?: Date | null;
+  lastHeartbeatErrorAt?: Date | null;
+  lastHeartbeatErrorMessage?: string | null;
+  lastKnownIp?: string | null;
+  lastRegisterAt?: Date | null;
+  lastRegisterSource?: string | null;
+  agentTokenIssuedAt?: Date | null;
+  agentTokenLastUsedAt?: Date | null;
+  lastKnownRustDeskAlias?: string | null;
+  lastKnownRustDeskVersion?: string | null;
+  lastKnownRustDeskServerHost?: string | null;
+  lastKnownRustDeskApiHost?: string | null;
+  lastKnownRustDeskPublicKeyHash?: string | null;
+  lastRustDeskConfigSyncAt?: Date | null;
+  lifecycleStatus: RemoteAgentLifecycleStatus;
+  installStages: RemoteAgentInstallStage[];
+}): RemoteConfiguredHostItem["agent"] {
+  return {
+    rustdeskId: input.rustdeskId,
+    machineName: input.machineName,
+    agentVersion: input.agentVersion,
+    lastHeartbeatAt: toIsoDate(input.lastHeartbeatAt),
+    lastHeartbeatSuccessAt: toIsoDate(input.lastHeartbeatSuccessAt),
+    lastHeartbeatErrorAt: toIsoDate(input.lastHeartbeatErrorAt),
+    lastHeartbeatErrorMessage: input.lastHeartbeatErrorMessage ?? null,
+    lastKnownIp: input.lastKnownIp ?? null,
+    lastRegisterAt: toIsoDate(input.lastRegisterAt),
+    lastRegisterSource: input.lastRegisterSource ?? null,
+    agentTokenIssuedAt: toIsoDate(input.agentTokenIssuedAt),
+    agentTokenLastUsedAt: toIsoDate(input.agentTokenLastUsedAt),
+    lastKnownRustDeskAlias: input.lastKnownRustDeskAlias ?? null,
+    lastKnownRustDeskVersion: input.lastKnownRustDeskVersion ?? null,
+    lastKnownRustDeskServerHost: input.lastKnownRustDeskServerHost ?? null,
+    lastKnownRustDeskApiHost: input.lastKnownRustDeskApiHost ?? null,
+    lastKnownRustDeskPublicKeyHash: input.lastKnownRustDeskPublicKeyHash ?? null,
+    lastRustDeskConfigSyncAt: toIsoDate(input.lastRustDeskConfigSyncAt),
+    lifecycleStatus: input.lifecycleStatus,
+    installStages: input.installStages,
+  };
+}
+
+function buildLegacyAgentCompatibilityFields(agent: RemoteConfiguredHostItem["agent"]) {
+  return {
+    rustdeskId: agent.rustdeskId,
+    machineName: agent.machineName,
+    agentVersion: agent.agentVersion,
+    lastHeartbeatAt: agent.lastHeartbeatAt,
+    lastHeartbeatSuccessAt: agent.lastHeartbeatSuccessAt,
+    lastHeartbeatErrorAt: agent.lastHeartbeatErrorAt,
+    lastHeartbeatErrorMessage: agent.lastHeartbeatErrorMessage,
+    lastKnownIp: agent.lastKnownIp,
+    lastRegisterAt: agent.lastRegisterAt,
+    lastRegisterSource: agent.lastRegisterSource,
+    agentTokenIssuedAt: agent.agentTokenIssuedAt,
+    agentTokenLastUsedAt: agent.agentTokenLastUsedAt,
+  };
+}
+
 function resolveRemoteProductStatus(input: {
   bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"];
   lifecycleStatus: RemoteAgentLifecycleStatus;
@@ -170,6 +237,28 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     operationalStatus,
     contractErrorCode,
   });
+  const agent = buildAgentProjection({
+    rustdeskId: host.agentExternalId,
+    machineName: host.machineName,
+    agentVersion: host.agentVersion,
+    lastHeartbeatAt: host.lastHeartbeatAt,
+    lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt,
+    lastHeartbeatErrorAt: host.lastHeartbeatErrorAt,
+    lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage,
+    lastKnownIp: host.lastKnownIp,
+    lastRegisterAt: host.lastRegisterAt,
+    lastRegisterSource: host.lastRegisterSource,
+    agentTokenIssuedAt: host.agentTokenIssuedAt,
+    agentTokenLastUsedAt: host.agentTokenLastUsedAt,
+    lastKnownRustDeskAlias: host.lastKnownRustDeskAlias,
+    lastKnownRustDeskVersion: host.lastKnownRustDeskVersion,
+    lastKnownRustDeskServerHost: host.lastKnownRustDeskServerHost,
+    lastKnownRustDeskApiHost: host.lastKnownRustDeskApiHost,
+    lastKnownRustDeskPublicKeyHash: host.lastKnownRustDeskPublicKeyHash,
+    lastRustDeskConfigSyncAt: host.lastRustDeskConfigSyncAt,
+    lifecycleStatus,
+    installStages,
+  });
 
   return {
     id: host.id,
@@ -180,29 +269,17 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     machineProfile: (host.machineProfile ?? null) as RemoteConfiguredHostItem["machineProfile"],
     environment: host.environment,
     provider: host.provider,
-    rustdeskId: host.agentExternalId,
     status: host.status,
     description,
     notes: host.notes,
-    machineName: host.machineName,
-    agentVersion: host.agentVersion,
     serviceStatus: host.serviceStatus ?? null,
-    lastHeartbeatAt: host.lastHeartbeatAt instanceof Date ? host.lastHeartbeatAt.toISOString() : null,
-    lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt instanceof Date ? host.lastHeartbeatSuccessAt.toISOString() : null,
-    lastHeartbeatErrorAt: host.lastHeartbeatErrorAt instanceof Date ? host.lastHeartbeatErrorAt.toISOString() : null,
-    lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
     bootstrapFlow,
     contractErrorCode,
     bootstrapRate24hPct,
     pendingAckQueueSize,
     ackQueueFlushFailed,
-    lastKnownIp: host.lastKnownIp ?? null,
     lastAgentMetrics: host.lastAgentMetrics ? (host.lastAgentMetrics as any) : null,
-    lastAgentMetricsAt: host.lastAgentMetricsAt instanceof Date ? host.lastAgentMetricsAt.toISOString() : null,
-    lastRegisterAt: host.lastRegisterAt instanceof Date ? host.lastRegisterAt.toISOString() : null,
-    lastRegisterSource: host.lastRegisterSource ?? null,
-    agentTokenIssuedAt: host.agentTokenIssuedAt instanceof Date ? host.agentTokenIssuedAt.toISOString() : null,
-    agentTokenLastUsedAt: host.agentTokenLastUsedAt instanceof Date ? host.agentTokenLastUsedAt.toISOString() : null,
+    lastAgentMetricsAt: toIsoDate(host.lastAgentMetricsAt),
     openSessionCount,
     operationalStatus,
     productStatus,
@@ -216,28 +293,10 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
       windowsPendingCount,
       lastExtendedSnapshotAt,
     },
-    agent: {
-      rustdeskId: host.agentExternalId,
-      machineName: host.machineName,
-      agentVersion: host.agentVersion,
-      lastHeartbeatAt: host.lastHeartbeatAt instanceof Date ? host.lastHeartbeatAt.toISOString() : null,
-      lastHeartbeatSuccessAt: host.lastHeartbeatSuccessAt instanceof Date ? host.lastHeartbeatSuccessAt.toISOString() : null,
-      lastHeartbeatErrorAt: host.lastHeartbeatErrorAt instanceof Date ? host.lastHeartbeatErrorAt.toISOString() : null,
-      lastHeartbeatErrorMessage: host.lastHeartbeatErrorMessage ?? null,
-      lastKnownIp: host.lastKnownIp ?? null,
-      lastRegisterAt: host.lastRegisterAt instanceof Date ? host.lastRegisterAt.toISOString() : null,
-      lastRegisterSource: host.lastRegisterSource ?? null,
-      agentTokenIssuedAt: host.agentTokenIssuedAt instanceof Date ? host.agentTokenIssuedAt.toISOString() : null,
-      agentTokenLastUsedAt: host.agentTokenLastUsedAt instanceof Date ? host.agentTokenLastUsedAt.toISOString() : null,
-      lastKnownRustDeskAlias: host.lastKnownRustDeskAlias ?? null,
-      lastKnownRustDeskVersion: host.lastKnownRustDeskVersion ?? null,
-      lastKnownRustDeskServerHost: host.lastKnownRustDeskServerHost ?? null,
-      lastKnownRustDeskApiHost: host.lastKnownRustDeskApiHost ?? null,
-      lastKnownRustDeskPublicKeyHash: host.lastKnownRustDeskPublicKeyHash ?? null,
-      lastRustDeskConfigSyncAt: host.lastRustDeskConfigSyncAt instanceof Date ? host.lastRustDeskConfigSyncAt.toISOString() : null,
-      lifecycleStatus,
-      installStages,
-    },
+    // Legacy top-level agent mirrors remain here temporarily for old consumers.
+    // New UI should read only from `item.agent.*`.
+    ...buildLegacyAgentCompatibilityFields(agent),
+    agent,
   };
 }
 
@@ -1475,5 +1534,3 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
     })),
   };
 }
-
-
