@@ -269,28 +269,10 @@ export type RemoteConfiguredHostItem = {
   machineProfile: RemoteMachineProfile | null;
   environment: string | null;
   provider: string | null;
-  /**
-   * Legacy flattened agent fields kept for directory/fleet compatibility.
-   * Detail screens should prefer `agent.*` to avoid mixing host ownership with agent telemetry.
-   */
-  /** @deprecated Use `agent.rustdeskId`. */
-  rustdeskId: string | null;
   status: RemoteHostStatus;
   description: string;
   notes: string | null;
-  /** @deprecated Use `agent.machineName`. */
-  machineName: string | null;
-  /** @deprecated Use `agent.agentVersion`. */
-  agentVersion: string | null;
   serviceStatus: string | null;
-  /** @deprecated Use `agent.lastHeartbeatAt`. */
-  lastHeartbeatAt: string | null;
-  /** @deprecated Use `agent.lastHeartbeatSuccessAt`. */
-  lastHeartbeatSuccessAt: string | null;
-  /** @deprecated Use `agent.lastHeartbeatErrorAt`. */
-  lastHeartbeatErrorAt: string | null;
-  /** @deprecated Use `agent.lastHeartbeatErrorMessage`. */
-  lastHeartbeatErrorMessage: string | null;
   bootstrapFlow:
     | "pending_link"
     | "linked_host_detected"
@@ -302,8 +284,6 @@ export type RemoteConfiguredHostItem = {
   bootstrapRate24hPct: number | null;
   pendingAckQueueSize: number | null;
   ackQueueFlushFailed: number | null;
-  /** @deprecated Use `agent.lastKnownIp`. */
-  lastKnownIp: string | null;
   lastAgentMetrics: {
     cpuLoad: number | null;
     ramUsedPc: number | null;
@@ -311,14 +291,6 @@ export type RemoteConfiguredHostItem = {
     osInfo: string | null;
   } | null;
   lastAgentMetricsAt: string | null;
-  /** @deprecated Use `agent.lastRegisterAt`. */
-  lastRegisterAt: string | null;
-  /** @deprecated Use `agent.lastRegisterSource`. */
-  lastRegisterSource: string | null;
-  /** @deprecated Use `agent.agentTokenIssuedAt`. */
-  agentTokenIssuedAt: string | null;
-  /** @deprecated Use `agent.agentTokenLastUsedAt`. */
-  agentTokenLastUsedAt: string | null;
   openSessionCount: number;
   operationalStatus: RemoteOperationalStatus;
   productStatus: RemoteProductStatus;
@@ -761,17 +733,10 @@ export const remoteConfiguredHostItemSchema = z.object({
   machineProfile: remoteMachineProfileSchema.nullable(),
   environment: remoteStringOrNullSchema,
   provider: remoteStringOrNullSchema,
-  rustdeskId: remoteStringOrNullSchema,
   status: remoteHostStatusSchema,
   description: z.string(),
   notes: remoteStringOrNullSchema,
-  machineName: remoteStringOrNullSchema,
-  agentVersion: remoteStringOrNullSchema,
   serviceStatus: remoteStringOrNullSchema,
-  lastHeartbeatAt: remoteStringOrNullSchema,
-  lastHeartbeatSuccessAt: remoteStringOrNullSchema,
-  lastHeartbeatErrorAt: remoteStringOrNullSchema,
-  lastHeartbeatErrorMessage: remoteStringOrNullSchema,
   bootstrapFlow: z.enum([
     "pending_link",
     "linked_host_detected",
@@ -784,13 +749,8 @@ export const remoteConfiguredHostItemSchema = z.object({
   bootstrapRate24hPct: z.number().nullable(),
   pendingAckQueueSize: z.number().nullable(),
   ackQueueFlushFailed: z.number().nullable(),
-  lastKnownIp: remoteStringOrNullSchema,
   lastAgentMetrics: remoteLastAgentMetricsSchema.nullable(),
   lastAgentMetricsAt: remoteStringOrNullSchema,
-  lastRegisterAt: remoteStringOrNullSchema,
-  lastRegisterSource: remoteStringOrNullSchema,
-  agentTokenIssuedAt: remoteStringOrNullSchema,
-  agentTokenLastUsedAt: remoteStringOrNullSchema,
   openSessionCount: z.number(),
   operationalStatus: remoteOperationalStatusSchema,
   productStatus: remoteProductStatusSchema,

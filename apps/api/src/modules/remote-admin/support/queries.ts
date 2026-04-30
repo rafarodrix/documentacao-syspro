@@ -120,23 +120,6 @@ function buildAgentProjection(input: {
   };
 }
 
-function buildLegacyAgentCompatibilityFields(agent: RemoteConfiguredHostItem["agent"]) {
-  return {
-    rustdeskId: agent.rustdeskId,
-    machineName: agent.machineName,
-    agentVersion: agent.agentVersion,
-    lastHeartbeatAt: agent.lastHeartbeatAt,
-    lastHeartbeatSuccessAt: agent.lastHeartbeatSuccessAt,
-    lastHeartbeatErrorAt: agent.lastHeartbeatErrorAt,
-    lastHeartbeatErrorMessage: agent.lastHeartbeatErrorMessage,
-    lastKnownIp: agent.lastKnownIp,
-    lastRegisterAt: agent.lastRegisterAt,
-    lastRegisterSource: agent.lastRegisterSource,
-    agentTokenIssuedAt: agent.agentTokenIssuedAt,
-    agentTokenLastUsedAt: agent.agentTokenLastUsedAt,
-  };
-}
-
 function resolveRemoteProductStatus(input: {
   bootstrapFlow: RemoteConfiguredHostItem["bootstrapFlow"];
   lifecycleStatus: RemoteAgentLifecycleStatus;
@@ -286,18 +269,15 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     lastSessionAt,
     lastSessionStatus,
     lastTicketNumber,
-    inventorySignals: {
-      rebootPending,
-      diskLow,
-      sysproProcessDown,
-      windowsPendingCount,
-      lastExtendedSnapshotAt,
-    },
-    // Legacy top-level agent mirrors remain here temporarily for old consumers.
-    // New UI should read only from `item.agent.*`.
-    ...buildLegacyAgentCompatibilityFields(agent),
-    agent,
-  };
+      inventorySignals: {
+        rebootPending,
+        diskLow,
+        sysproProcessDown,
+        windowsPendingCount,
+        lastExtendedSnapshotAt,
+      },
+      agent,
+    };
 }
 
 function buildInstallGuide(item: RemoteConfiguredHostItem) {
