@@ -134,6 +134,9 @@ function ChatwootDiagnosticsTab() {
     const baseOrigin = portalOrigin || "https://SEU_PORTAL";
     return `${baseOrigin}/portal/infraestrutura/hosts/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
   }, [portalOrigin]);
+  const csatCanReopen = behavior.csatEnabled && behavior.csatReopenOnLowScore;
+  const csatRequestLength = behavior.csatRequestMessage.trim().length;
+  const csatThankYouLength = behavior.csatThankYouMessage.trim().length;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -251,6 +254,13 @@ function ChatwootDiagnosticsTab() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       Envia avaliacao automatica quando a conversa for resolvida no Chatwoot e trata a resposta do cliente no webhook.
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline">1 Pessimo</Badge>
+                      <Badge variant="outline">2 Ruim</Badge>
+                      <Badge variant="outline">3 Regular</Badge>
+                      <Badge variant="outline">4 Bom</Badge>
+                      <Badge variant="outline">5 Excelente</Badge>
+                    </div>
                   </div>
 
                   <div className="grid min-w-0 gap-3 md:grid-cols-2">
@@ -283,6 +293,7 @@ function ChatwootDiagnosticsTab() {
                         min={1}
                         max={5}
                         value={behavior.csatLowScoreThreshold}
+                        disabled={!csatCanReopen}
                         onChange={(event) =>
                           setBehavior((prev) => ({
                             ...prev,
@@ -290,7 +301,11 @@ function ChatwootDiagnosticsTab() {
                           }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">Notas ate esse valor podem reabrir a conversa quando a automacao estiver ativa.</p>
+                      <p className="text-xs text-muted-foreground">
+                        {csatCanReopen
+                          ? "Notas ate esse valor reabrem a conversa automaticamente."
+                          : "Disponivel apenas quando o CSAT estiver ativo e a reabertura por nota baixa estiver habilitada."}
+                      </p>
                     </div>
 
                     <div className="min-w-0 space-y-2">
@@ -314,7 +329,26 @@ function ChatwootDiagnosticsTab() {
 
                   <div className="grid min-w-0 gap-4 md:grid-cols-2">
                     <div className="min-w-0 space-y-2">
-                      <Label htmlFor="csatRequestMessage">Mensagem de solicitacao</Label>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="csatRequestMessage">Mensagem de solicitacao</Label>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span>{csatRequestLength}/2000</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() =>
+                              setBehavior((prev) => ({
+                                ...prev,
+                                csatRequestMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatRequestMessage,
+                              }))
+                            }
+                          >
+                            Restaurar
+                          </Button>
+                        </div>
+                      </div>
                       <Textarea
                         id="csatRequestMessage"
                         className="min-h-40"
@@ -323,9 +357,31 @@ function ChatwootDiagnosticsTab() {
                           setBehavior((prev) => ({ ...prev, csatRequestMessage: event.target.value }))
                         }
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Essa mensagem e enviada logo apos a conversa ser resolvida.
+                      </p>
                     </div>
                     <div className="min-w-0 space-y-2">
-                      <Label htmlFor="csatThankYouMessage">Mensagem pos-avaliacao</Label>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="csatThankYouMessage">Mensagem pos-avaliacao</Label>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span>{csatThankYouLength}/1000</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() =>
+                              setBehavior((prev) => ({
+                                ...prev,
+                                csatThankYouMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatThankYouMessage,
+                              }))
+                            }
+                          >
+                            Restaurar
+                          </Button>
+                        </div>
+                      </div>
                       <Textarea
                         id="csatThankYouMessage"
                         className="min-h-40"
@@ -334,7 +390,20 @@ function ChatwootDiagnosticsTab() {
                           setBehavior((prev) => ({ ...prev, csatThankYouMessage: event.target.value }))
                         }
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Enviada depois que o cliente responde com uma nota valida.
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                    Fluxo atual:
+                    <span className="ml-1 text-foreground">
+                      resolver conversa
+                      {" -> "}enviar CSAT
+                      {" -> "}aguardar resposta por ate {behavior.csatPendingTimeoutHours}h
+                      {csatCanReopen ? ` -> reabrir se nota <= ${behavior.csatLowScoreThreshold}` : ""}
+                    </span>
                   </div>
 
                   {behavior.ticketCreationAppEnabled && (
