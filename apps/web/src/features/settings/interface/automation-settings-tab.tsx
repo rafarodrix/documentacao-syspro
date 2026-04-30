@@ -7,6 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   BellRing,
+  Globe2,
   Loader2,
   MessageSquareText,
   Plus,
@@ -40,6 +41,21 @@ function createBindingId() {
   return `wa-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function inferBindingAudience(jid?: string) {
+  const normalized = String(jid ?? "").trim().toLowerCase();
+  if (normalized.endsWith("@newsletter")) {
+    return {
+      label: "Canal publico",
+      description: "Use para comunicacoes amplas como releases, avisos e novidades.",
+    };
+  }
+
+  return {
+    label: "Grupo interno",
+    description: "Use para fluxo operacional de tickets entre suporte, desenvolvimento e testes.",
+  };
+}
+
 function createWhatsAppBinding(): WhatsAppAutomationBinding {
   return {
     id: createBindingId(),
@@ -60,7 +76,7 @@ function createWhatsAppBinding(): WhatsAppAutomationBinding {
   };
 }
 
-const WHATSAPP_AUTOMATION_FIELDS = [
+const INTERNAL_WHATSAPP_AUTOMATION_FIELDS = [
   {
     key: "ticketCreatedSupport",
     label: "Abertura em Suporte",
@@ -101,6 +117,9 @@ const WHATSAPP_AUTOMATION_FIELDS = [
     label: "Retorno dos testes",
     description: "Dispara quando o ticket volta de Em testes.",
   },
+] as const;
+
+const PUBLIC_CHANNEL_AUTOMATION_FIELDS = [
   {
     key: "releasePublished",
     label: "Release publicada",
@@ -336,6 +355,14 @@ export function AutomationSettingsTab() {
                       key={fieldItem.id}
                       className="space-y-4 rounded-lg border border-border/60 bg-muted/10 p-4"
                     >
+                      <div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-[11px] text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                          {inferBindingAudience(form.watch(`whatsapp.bindings.${index}.jid`)).label}
+                        </span>
+                        {" · "}
+                        {inferBindingAudience(form.watch(`whatsapp.bindings.${index}.jid`)).description}
+                      </div>
+
                       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9rem_2.5rem]">
                         <FormField
                           control={form.control}
@@ -398,27 +425,64 @@ export function AutomationSettingsTab() {
                         </div>
                       </div>
 
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {WHATSAPP_AUTOMATION_FIELDS.map((automation) => (
-                          <FormField
-                            key={automation.key}
-                            control={form.control}
-                            name={`whatsapp.bindings.${index}.automations.${automation.key}`}
-                            render={({ field }) => (
-                              <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-background/60 p-3">
-                                <div className="space-y-0.5">
-                                  <FormLabel>{automation.label}</FormLabel>
-                                  <FormDescription className="text-[11px]">
-                                    {automation.description}
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        ))}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                            <BellRing className="h-3.5 w-3.5" />
+                            Automacoes internas
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {INTERNAL_WHATSAPP_AUTOMATION_FIELDS.map((automation) => (
+                              <FormField
+                                key={automation.key}
+                                control={form.control}
+                                name={`whatsapp.bindings.${index}.automations.${automation.key}`}
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-background/60 p-3">
+                                    <div className="space-y-0.5">
+                                      <FormLabel>{automation.label}</FormLabel>
+                                      <FormDescription className="text-[11px]">
+                                        {automation.description}
+                                      </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                            <Globe2 className="h-3.5 w-3.5" />
+                            Automacoes publicas de canal
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {PUBLIC_CHANNEL_AUTOMATION_FIELDS.map((automation) => (
+                              <FormField
+                                key={automation.key}
+                                control={form.control}
+                                name={`whatsapp.bindings.${index}.automations.${automation.key}`}
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-sky-500/15 bg-sky-500/5 p-3">
+                                    <div className="space-y-0.5">
+                                      <FormLabel>{automation.label}</FormLabel>
+                                      <FormDescription className="text-[11px]">
+                                        {automation.description}
+                                      </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
