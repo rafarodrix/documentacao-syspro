@@ -210,7 +210,12 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                     <input type="file" multiple hidden ref={fileInputRef} onChange={(event) => addFiles(event.target.files)} />
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button type="button" variant="outline" size="default" className="h-10 min-w-28 justify-start rounded-lg border-border/60">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="default"
+                                                className="h-9 min-w-32 justify-start rounded-lg border-border/60 bg-muted/35 text-foreground hover:bg-muted/60"
+                                            >
                                                 <FileText className="mr-2 h-4 w-4" />
                                                 Templates
                                             </Button>
@@ -230,7 +235,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                         variant="outline"
                                         size="default"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="h-10 min-w-28 justify-start rounded-lg border-border/60 hover:bg-muted"
+                                        className="h-9 min-w-32 justify-start rounded-lg border-border/60 bg-muted/35 text-foreground hover:bg-muted/60"
                                         title="Anexar arquivos"
                                     >
                                         <Paperclip className="mr-2 h-4 w-4" />
@@ -241,7 +246,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                         onClick={() => handleSend(messageMode)}
                                         disabled={isPending || (!message.trim() && files.length === 0)}
                                         size="default"
-                                        className="h-10 min-w-28 rounded-lg shadow"
+                                        className="h-9 min-w-32 rounded-lg bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
                                         title={composerIsInternal ? "Registrar nota interna" : "Enviar resposta ao cliente"}
                                     >
                                         {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
