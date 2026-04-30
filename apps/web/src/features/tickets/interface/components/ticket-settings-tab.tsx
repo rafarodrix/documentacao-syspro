@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
+import { invalidateTicketModuleSettingsCache } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 
 function createOptionId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -131,6 +132,7 @@ export function TicketSettingsTab() {
           return;
         }
 
+        invalidateTicketModuleSettingsCache(payload);
         toast.success(result.message || "Configuracoes do modulo de tickets salvas.");
         form.reset(payload);
       } catch (error) {

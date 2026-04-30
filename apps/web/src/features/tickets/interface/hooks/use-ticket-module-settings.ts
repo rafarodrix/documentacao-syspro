@@ -7,6 +7,11 @@ import {
 let cachedSettings: TicketModuleSettings | null = null;
 let pendingSettingsRequest: Promise<TicketModuleSettings> | null = null;
 
+export function invalidateTicketModuleSettingsCache(nextSettings?: TicketModuleSettings | null) {
+  cachedSettings = nextSettings ?? null;
+  pendingSettingsRequest = null;
+}
+
 async function requestTicketModuleSettings() {
   const response = await fetch("/api/platform/settings/tickets", {
     method: "GET",
@@ -51,7 +56,7 @@ export function useTicketModuleSettings() {
   useEffect(() => {
     let active = true;
 
-    fetchTicketModuleSettings()
+    fetchTicketModuleSettings(cachedSettings !== null)
       .then((settings) => {
         if (active) {
           setTicketSettings(settings);

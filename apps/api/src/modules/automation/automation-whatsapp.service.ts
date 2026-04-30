@@ -95,19 +95,21 @@ export class AutomationWhatsappService {
     const categoryLabel = this.resolveCategoryLabel(input.settings, input.category);
     const teamLabel = this.formatTicketTeamLabel(input.team);
     const resourceLines = [
-      input.databaseUrl ? `Base de Dados: ${input.databaseUrl}` : undefined,
-      input.developmentVideoUrl ? `Video: ${input.developmentVideoUrl}` : undefined,
-      ticketUrl ? `Link: ${ticketUrl}` : undefined,
+      input.databaseUrl ? `*Base de Dados:* ${input.databaseUrl}` : undefined,
+      input.developmentVideoUrl ? `*Video Explicativo:* ${input.developmentVideoUrl}` : undefined,
+      ticketUrl ? `*Link:* ${ticketUrl}` : undefined,
     ].filter(Boolean);
     const message = [
-      '[Tickets] Abertura',
+      '*Ticket Aberto*',
       categoryLabel
-        ? `Ticket: ${input.ticketNumber} | Status: Abertura | Setor: ${teamLabel} | Categoria: ${categoryLabel}`
-        : `Ticket: ${input.ticketNumber} | Status: Abertura | Setor: ${teamLabel}`,
-      `Empresa: ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
+        ? `*Categoria:* ${categoryLabel}`
+        : undefined,
+      `*Ticket:* ${input.ticketNumber}`,
+      `*Setor:* ${teamLabel}`,
+      `*Empresa:* ${companyName}${companyCnpj ? ` (${companyCnpj})` : ''}`,
       '',
-      `Titulo: ${input.title}`,
-      ...(resourceLines.length ? ['', 'Recursos para Analise', ...resourceLines] : []),
+      `*Titulo:* ${input.title}`,
+      ...(resourceLines.length ? ['', ...resourceLines] : []),
     ]
       .filter(Boolean)
       .join('\n');
@@ -678,6 +680,12 @@ export class AutomationWhatsappService {
   }
 
   private buildPortalTicketUrl(ticketId: string, rawHeaders?: IncomingHttpHeaders): string | null {
+    const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
+    if (explicitOrigin) {
+      const normalized = this.normalizeOrigin(explicitOrigin);
+      if (normalized) return `${normalized}/portal/tickets/${ticketId}`;
+    }
+
     const configuredOrigins = [
       process.env.PORTAL_URL,
       process.env.NEXT_PUBLIC_WEB_URL,
@@ -691,12 +699,6 @@ export class AutomationWhatsappService {
       const normalized = this.normalizeOrigin(configuredOrigin);
       if (!normalized) continue;
       return `${normalized}/portal/tickets/${ticketId}`;
-    }
-
-    const explicitOrigin = this.readHeader(rawHeaders, 'x-portal-origin') || this.readHeader(rawHeaders, 'origin');
-    if (explicitOrigin) {
-      const normalized = this.normalizeOrigin(explicitOrigin);
-      if (normalized) return `${normalized}/portal/tickets/${ticketId}`;
     }
 
     const host = this.readHeader(rawHeaders, 'x-forwarded-host') || this.readHeader(rawHeaders, 'host');
