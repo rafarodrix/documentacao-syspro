@@ -1,23 +1,48 @@
 import { callWebApi } from "@/lib/web-api";
-import type {
+import {
   RemoteHostDetails,
   RemotePaginationMeta,
   RemotePlatformDirectory,
   RemotePlatformOverview,
   RemoteSessionStatus,
+  remoteHostDetailsSchema,
+  remotePlatformDirectorySchema,
+  remotePlatformOverviewSchema,
+  remoteSessionsGatewayResponseSchema,
 } from "@/features/remote/domain/model";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
+import { efficiencyMetricsSchema } from "@/features/remote/application/report-queries";
+import type { ZodType } from "zod";
+
+async function parseRemoteGatewayResponse<T>(
+  path: string,
+  schema: ZodType<T>,
+): Promise<T> {
+  const response = await callWebApi(path);
+  const json = await response.json();
+  const parsed = schema.safeParse(json);
+
+  if (!parsed.success) {
+    const issueSummary = parsed.error.issues
+      .slice(0, 5)
+      .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+      .join("; ");
+    throw new Error(`Resposta remota invalida em ${path}: ${issueSummary}`);
+  }
+
+  return parsed.data;
+}
 
 export async function fetchRemotePlatformDirectoryGateway(): Promise<RemotePlatformDirectory> {
-  return callWebApi("/api/remote-admin/directory").then((res) => res.json() as Promise<RemotePlatformDirectory>);
+  return parseRemoteGatewayResponse("/api/remote-admin/directory", remotePlatformDirectorySchema);
 }
 
 export async function fetchRemotePlatformOverviewGateway(): Promise<RemotePlatformOverview> {
-  return callWebApi("/api/remote-admin/overview").then((res) => res.json() as Promise<RemotePlatformOverview>);
+  return parseRemoteGatewayResponse("/api/remote-admin/overview", remotePlatformOverviewSchema);
 }
 
 export async function fetchRemoteHostDetailsGateway(hostId: string): Promise<RemoteHostDetails | null> {
-  return callWebApi(`/api/remote-admin/hosts/${hostId}/details`).then((res) => res.json() as Promise<RemoteHostDetails | null>);
+  return parseRemoteGatewayResponse(`/api/remote-admin/hosts/${hostId}/details`, remoteHostDetailsSchema);
 }
 
 export async function fetchRemoteSessionsGateway(options?: {
@@ -35,13 +60,13 @@ export async function fetchRemoteSessionsGateway(options?: {
   if (options?.pageSize) params.set("pageSize", String(options.pageSize));
   const search = params.toString();
 
-  return callWebApi(`/api/remote-admin/sessions${search ? `?${search}` : ""}`).then((res) => res.json() as Promise<{
+  return parseRemoteGatewayResponse(`/api/remote-admin/sessions${search ? `?${search}` : ""}`, remoteSessionsGatewayResponseSchema) as Promise<{
     sessions: RemotePlatformOverview["recentSessions"];
     pagination: RemotePaginationMeta;
     hostOptions: Array<{ id: string; name: string }>;
-  }>);
+  }>;
 }
 
 export async function fetchRemoteEfficiencyMetricsGateway(): Promise<EfficiencyMetrics> {
-  return callWebApi("/api/remote-admin/reports/efficiency").then((res) => res.json() as Promise<EfficiencyMetrics>);
+  return parseRemoteGatewayResponse("/api/remote-admin/reports/efficiency", efficiencyMetricsSchema);
 }

@@ -1,5 +1,6 @@
-import type { RemoteModuleSettings } from "./remote-module-settings.types";
-import type { PaginationMeta } from "../shared/pagination.types";
+import { z } from "zod";
+import { paginationMetaSchema, type PaginationMeta } from "../shared/pagination.types";
+import { remoteModuleSettingsSchema, type RemoteModuleSettings } from "./remote-module-settings.types";
 
 type RemoteDirectoryModuleSettings = RemoteModuleSettings & {
   rustDeskPublicKeyHash: string | null;
@@ -272,16 +273,23 @@ export type RemoteConfiguredHostItem = {
    * Legacy flattened agent fields kept for directory/fleet compatibility.
    * Detail screens should prefer `agent.*` to avoid mixing host ownership with agent telemetry.
    */
+  /** @deprecated Use `agent.rustdeskId`. */
   rustdeskId: string | null;
   status: RemoteHostStatus;
   description: string;
   notes: string | null;
+  /** @deprecated Use `agent.machineName`. */
   machineName: string | null;
+  /** @deprecated Use `agent.agentVersion`. */
   agentVersion: string | null;
   serviceStatus: string | null;
+  /** @deprecated Use `agent.lastHeartbeatAt`. */
   lastHeartbeatAt: string | null;
+  /** @deprecated Use `agent.lastHeartbeatSuccessAt`. */
   lastHeartbeatSuccessAt: string | null;
+  /** @deprecated Use `agent.lastHeartbeatErrorAt`. */
   lastHeartbeatErrorAt: string | null;
+  /** @deprecated Use `agent.lastHeartbeatErrorMessage`. */
   lastHeartbeatErrorMessage: string | null;
   bootstrapFlow:
     | "pending_link"
@@ -294,6 +302,7 @@ export type RemoteConfiguredHostItem = {
   bootstrapRate24hPct: number | null;
   pendingAckQueueSize: number | null;
   ackQueueFlushFailed: number | null;
+  /** @deprecated Use `agent.lastKnownIp`. */
   lastKnownIp: string | null;
   lastAgentMetrics: {
     cpuLoad: number | null;
@@ -302,9 +311,13 @@ export type RemoteConfiguredHostItem = {
     osInfo: string | null;
   } | null;
   lastAgentMetricsAt: string | null;
+  /** @deprecated Use `agent.lastRegisterAt`. */
   lastRegisterAt: string | null;
+  /** @deprecated Use `agent.lastRegisterSource`. */
   lastRegisterSource: string | null;
+  /** @deprecated Use `agent.agentTokenIssuedAt`. */
   agentTokenIssuedAt: string | null;
+  /** @deprecated Use `agent.agentTokenLastUsedAt`. */
   agentTokenLastUsedAt: string | null;
   openSessionCount: number;
   operationalStatus: RemoteOperationalStatus;
@@ -553,3 +566,535 @@ export type RemoteHostDetails = {
     durationSeconds: number | null;
   }>;
 };
+
+export const remotePlatformStatusSchema = z.enum(["planned", "foundation", "in_progress", "blocked"]);
+export const remoteAccessScopeSchema = z.enum(["global", "company"]);
+export const remoteHostStatusSchema = z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE"]);
+export const remoteDiscoveredHostStatusSchema = z.enum(["PENDING_LINK", "LINKED", "IGNORED"]);
+export const remoteMachineProfileSchema = z.enum(["SERVER", "WORKSTATION", "TERMINAL", "BACKUP_NODE"]);
+export const remoteSessionStatusSchema = z.enum(["REQUESTED", "STARTED", "ENDED", "FAILED", "CANCELLED"]);
+export const remoteOperationalStatusSchema = z.enum(["ONLINE", "RECENT", "OFFLINE", "MISCONFIGURED", "SESSION_BUSY"]);
+export const remoteProductStatusSchema = z.enum([
+  "AWAITING_LINK",
+  "PROVISIONING_REMOTE",
+  "REMOTE_READY",
+  "ATTENTION_REQUIRED",
+  "IN_SERVICE",
+]);
+export const remoteAgentCommandTypeSchema = z.enum([
+  "REAPPLY_ALIAS",
+  "REAPPLY_CONFIG",
+  "UPGRADE_CLIENT",
+  "ROTATE_TOKEN_REQUIRED",
+]);
+export const remoteAgentCommandStatusSchema = z.enum(["PENDING", "DELIVERED", "ACKNOWLEDGED", "CANCELLED", "FAILED"]);
+export const remoteSessionAuditSourceSchema = z.enum(["UI", "WEBHOOK", "JOB", "AGENT", "API"]);
+export const remoteSessionAuditActionSchema = z.enum([
+  "REQUESTED",
+  "STARTED",
+  "ENDED",
+  "FAILED",
+  "CANCELLED",
+  "EXPIRED",
+  "HOST_RESOLVED",
+  "COMMENT_POSTED",
+]);
+export const remoteAgentInstallStageSchema = z.enum(["RUSTDESK_LINKED", "HEARTBEAT_OK"]);
+export const remoteAgentLifecycleStatusSchema = z.enum([
+  "PENDING_INSTALL",
+  "INSTALLED",
+  "ONLINE",
+  "STALE",
+  "UNLINKED",
+]);
+
+const remoteStringOrNullSchema = z.string().nullable();
+const remoteUnknownRecordSchema = z.record(z.string(), z.unknown());
+const remoteCompanyOptionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  searchText: z.string().optional(),
+});
+
+const remoteLastAgentMetricsSchema = z.object({
+  cpuLoad: z.number().nullable(),
+  ramUsedPc: z.number().nullable(),
+  diskFree: z.number().nullable(),
+  osInfo: z.string().nullable(),
+});
+
+const remoteDirectoryModuleSettingsSchema = remoteModuleSettingsSchema.extend({
+  rustDeskPublicKeyHash: remoteStringOrNullSchema,
+});
+
+const remoteHostDetailsModuleSettingsSchema = z.object({
+  rustDeskServerHost: z.string(),
+  rustDeskVersion: z.string(),
+  rustDeskPublicKeyHash: remoteStringOrNullSchema,
+});
+
+export const remoteAccessPolicySchema = z.object({
+  role: z.enum(["ADMIN", "SUPORTE", "DEVELOPER", "CLIENTE_ADMIN"]),
+  scope: remoteAccessScopeSchema,
+  description: z.string(),
+});
+
+export const remoteHostSummarySchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  name: z.string(),
+  environment: remoteStringOrNullSchema,
+  provider: remoteStringOrNullSchema,
+  description: remoteStringOrNullSchema.optional(),
+  notes: remoteStringOrNullSchema.optional(),
+  agentExternalId: remoteStringOrNullSchema.optional(),
+  machineName: remoteStringOrNullSchema.optional(),
+  agentVersion: remoteStringOrNullSchema.optional(),
+  status: remoteHostStatusSchema,
+});
+
+export const remoteSessionSummarySchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  ticketId: remoteStringOrNullSchema,
+  ticketNumber: remoteStringOrNullSchema,
+  hostId: z.string(),
+  requestedByUserId: z.string(),
+  startedByUserId: remoteStringOrNullSchema,
+  status: remoteSessionStatusSchema,
+});
+
+export const remoteSessionAuditModelSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  action: remoteSessionAuditActionSchema,
+  source: remoteSessionAuditSourceSchema,
+  actorUserId: remoteStringOrNullSchema,
+  hostId: remoteStringOrNullSchema,
+  ticketNumber: remoteStringOrNullSchema,
+  occurredAt: z.string(),
+  summary: z.string(),
+  metadata: z.string(),
+});
+
+export const remoteSessionAuditEventSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  companyId: z.string(),
+  hostId: remoteStringOrNullSchema,
+  ticketId: remoteStringOrNullSchema,
+  ticketNumber: remoteStringOrNullSchema,
+  action: remoteSessionAuditActionSchema,
+  source: remoteSessionAuditSourceSchema,
+  actorUserId: remoteStringOrNullSchema,
+  actorName: remoteStringOrNullSchema,
+  summary: z.string(),
+  metadata: remoteUnknownRecordSchema.nullable(),
+  occurredAt: z.string(),
+});
+
+export const remoteTenantScopeSchema = z.object({
+  role: z.enum(["ADMIN", "SUPORTE", "DEVELOPER", "CLIENTE_ADMIN"]),
+  isGlobalView: z.boolean(),
+  companyIds: z.array(z.string()),
+  companyCount: z.number(),
+  summary: z.string(),
+});
+
+export const remotePlatformModuleSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  status: remotePlatformStatusSchema,
+  nextStep: z.string(),
+});
+
+export const remotePlatformEndpointSchema = z.object({
+  method: z.enum(["GET", "POST"]),
+  path: z.string(),
+  purpose: z.string(),
+});
+
+export const remotePlatformRoadmapPhaseSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  status: remotePlatformStatusSchema,
+});
+
+export const remoteConfiguredHostAgentSchema = z.object({
+  rustdeskId: remoteStringOrNullSchema,
+  machineName: remoteStringOrNullSchema,
+  agentVersion: remoteStringOrNullSchema,
+  lastHeartbeatAt: remoteStringOrNullSchema,
+  lastHeartbeatSuccessAt: remoteStringOrNullSchema,
+  lastHeartbeatErrorAt: remoteStringOrNullSchema,
+  lastHeartbeatErrorMessage: remoteStringOrNullSchema,
+  lastKnownIp: remoteStringOrNullSchema,
+  lastRegisterAt: remoteStringOrNullSchema,
+  lastRegisterSource: remoteStringOrNullSchema,
+  agentTokenIssuedAt: remoteStringOrNullSchema,
+  agentTokenLastUsedAt: remoteStringOrNullSchema,
+  lastKnownRustDeskAlias: remoteStringOrNullSchema,
+  lastKnownRustDeskVersion: remoteStringOrNullSchema,
+  lastKnownRustDeskServerHost: remoteStringOrNullSchema,
+  lastKnownRustDeskApiHost: remoteStringOrNullSchema,
+  lastKnownRustDeskPublicKeyHash: remoteStringOrNullSchema,
+  lastRustDeskConfigSyncAt: remoteStringOrNullSchema,
+  lifecycleStatus: remoteAgentLifecycleStatusSchema,
+  installStages: z.array(remoteAgentInstallStageSchema),
+});
+
+export const remoteConfiguredHostItemSchema = z.object({
+  id: z.string(),
+  companyId: z.string(),
+  companyName: remoteStringOrNullSchema,
+  installationCompanies: z.array(z.string()),
+  name: z.string(),
+  machineProfile: remoteMachineProfileSchema.nullable(),
+  environment: remoteStringOrNullSchema,
+  provider: remoteStringOrNullSchema,
+  rustdeskId: remoteStringOrNullSchema,
+  status: remoteHostStatusSchema,
+  description: z.string(),
+  notes: remoteStringOrNullSchema,
+  machineName: remoteStringOrNullSchema,
+  agentVersion: remoteStringOrNullSchema,
+  serviceStatus: remoteStringOrNullSchema,
+  lastHeartbeatAt: remoteStringOrNullSchema,
+  lastHeartbeatSuccessAt: remoteStringOrNullSchema,
+  lastHeartbeatErrorAt: remoteStringOrNullSchema,
+  lastHeartbeatErrorMessage: remoteStringOrNullSchema,
+  bootstrapFlow: z.enum([
+    "pending_link",
+    "linked_host_detected",
+    "host_bootstrap_required",
+    "token_invalid",
+    "body_parse_failed",
+    "unknown",
+  ]),
+  contractErrorCode: remoteStringOrNullSchema,
+  bootstrapRate24hPct: z.number().nullable(),
+  pendingAckQueueSize: z.number().nullable(),
+  ackQueueFlushFailed: z.number().nullable(),
+  lastKnownIp: remoteStringOrNullSchema,
+  lastAgentMetrics: remoteLastAgentMetricsSchema.nullable(),
+  lastAgentMetricsAt: remoteStringOrNullSchema,
+  lastRegisterAt: remoteStringOrNullSchema,
+  lastRegisterSource: remoteStringOrNullSchema,
+  agentTokenIssuedAt: remoteStringOrNullSchema,
+  agentTokenLastUsedAt: remoteStringOrNullSchema,
+  openSessionCount: z.number(),
+  operationalStatus: remoteOperationalStatusSchema,
+  productStatus: remoteProductStatusSchema,
+  lastSessionAt: remoteStringOrNullSchema,
+  lastSessionStatus: remoteSessionStatusSchema.nullable(),
+  lastTicketNumber: remoteStringOrNullSchema,
+  agent: remoteConfiguredHostAgentSchema,
+  inventorySignals: z.object({
+    rebootPending: z.boolean().nullable(),
+    diskLow: z.boolean(),
+    sysproProcessDown: z.boolean(),
+    windowsPendingCount: z.number().nullable(),
+    lastExtendedSnapshotAt: remoteStringOrNullSchema,
+  }),
+});
+
+export const remoteDiscoveredAgentItemSchema = z.object({
+  id: z.string(),
+  machineName: remoteStringOrNullSchema,
+  machineProfile: remoteMachineProfileSchema.nullable(),
+  rustdeskId: remoteStringOrNullSchema,
+  agentVersion: remoteStringOrNullSchema,
+  provider: remoteStringOrNullSchema,
+  environment: remoteStringOrNullSchema,
+  description: remoteStringOrNullSchema,
+  serviceStatus: remoteStringOrNullSchema,
+  lastHeartbeatAt: remoteStringOrNullSchema,
+  status: remoteDiscoveredHostStatusSchema,
+  linkedHostId: remoteStringOrNullSchema,
+  installationCompanies: z.array(z.string()),
+  lastAgentMetrics: remoteLastAgentMetricsSchema.nullable(),
+  lastAgentMetricsAt: remoteStringOrNullSchema,
+});
+
+export const remoteHostSysproUpdateItemSchema = z.object({
+  id: z.string(),
+  companyId: remoteStringOrNullSchema,
+  companyLabel: z.string(),
+  resolvedCompanyName: remoteStringOrNullSchema,
+  path: z.string(),
+  lastFileWriteAt: remoteStringOrNullSchema,
+  isServerHost: z.boolean().nullable(),
+  hasClientFolder: z.boolean().nullable(),
+  hasDllFolder: z.boolean().nullable(),
+  firebirdVersion: remoteStringOrNullSchema,
+  firebirdPath: remoteStringOrNullSchema,
+  lastHeartbeatAt: z.string(),
+});
+
+export const remoteCompanyContextItemSchema = z.object({
+  id: z.string(),
+  razaoSocial: z.string(),
+  nomeFantasia: remoteStringOrNullSchema,
+  serverType: z.enum(["SYSPRO_SERVER", "IIS"]).nullable(),
+  serverPort: z.number().nullable(),
+  serverHost: remoteStringOrNullSchema,
+  serverProtocol: z.enum(["HTTP", "HTTPS"]).nullable(),
+  iisIsapiPath: remoteStringOrNullSchema,
+  installationDirectory: remoteStringOrNullSchema,
+  remoteConnections: z.array(
+    z.object({
+      type: z.enum(["DDNS_NOIP", "RADMIN_VPN"]),
+      details: z.string(),
+    }),
+  ),
+  observacoes: remoteStringOrNullSchema,
+});
+
+export const remotePlatformOverviewSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  recommendedEngine: z.string(),
+  secretVault: z.string(),
+  backupStrategy: z.string(),
+  companyFilterRule: z.string(),
+  accessPolicies: z.array(remoteAccessPolicySchema),
+  tenantScope: remoteTenantScopeSchema,
+  hostModel: remoteHostSummarySchema,
+  sessionModel: remoteSessionSummarySchema,
+  sessionAuditModel: remoteSessionAuditModelSchema,
+  modules: z.array(remotePlatformModuleSchema),
+  endpoints: z.array(remotePlatformEndpointSchema),
+  roadmap: z.array(remotePlatformRoadmapPhaseSchema),
+  hostStats: z.object({
+    total: z.number(),
+    active: z.number(),
+    maintenance: z.number(),
+    inactive: z.number(),
+  }),
+  sessionStats: z.object({
+    total: z.number(),
+    requested: z.number(),
+    started: z.number(),
+    ended: z.number(),
+    failed: z.number(),
+  }),
+  recentHosts: z.array(
+    remoteHostSummarySchema.extend({
+      companyName: remoteStringOrNullSchema,
+      createdAt: z.string(),
+      lastHeartbeatAt: remoteStringOrNullSchema,
+    }),
+  ),
+  recentSessions: z.array(
+    remoteSessionSummarySchema.extend({
+      hostName: z.string(),
+      companyName: remoteStringOrNullSchema,
+      requestedByName: remoteStringOrNullSchema,
+      createdAt: z.string(),
+      startedAt: remoteStringOrNullSchema,
+      endedAt: remoteStringOrNullSchema,
+    }),
+  ),
+  companyOptions: z.array(remoteCompanyOptionSchema),
+});
+
+export const remotePlatformDirectorySchema = z.object({
+  tenantScope: remoteTenantScopeSchema,
+  moduleSettings: remoteDirectoryModuleSettingsSchema,
+  stats: z.object({
+    totalHosts: z.number(),
+    activeHosts: z.number(),
+    companies: z.number(),
+    pendingInstall: z.number(),
+    linkedAgents: z.number(),
+    onlineAgents: z.number(),
+    pendingDiscovery: z.number(),
+  }),
+  commandObservability: z.object({
+    pendingTotal: z.number(),
+    pendingHosts: z.number(),
+    failedLast24h: z.number(),
+    acknowledgedLast24h: z.number(),
+    deliveredLast24h: z.number(),
+    hotspots: z.array(
+      z.object({
+        hostId: z.string(),
+        hostName: z.string(),
+        companyName: remoteStringOrNullSchema,
+        pendingCount: z.number(),
+        failedCount: z.number(),
+      }),
+    ),
+    successRates: z.object({
+      window24h: z.number(),
+      window7d: z.number(),
+      window30d: z.number(),
+    }),
+    orchestrationMix: z.object({
+      window24h: z.object({
+        syncTokenFirst: z.number(),
+        discoverBootstrap: z.number(),
+        unknown: z.number(),
+      }),
+    }),
+    timeline: z.array(
+      z.object({
+        commandId: z.string(),
+        hostId: z.string(),
+        hostName: z.string(),
+        companyName: remoteStringOrNullSchema,
+        type: remoteAgentCommandTypeSchema,
+        status: remoteAgentCommandStatusSchema,
+        createdAt: z.string(),
+        deliveredAt: remoteStringOrNullSchema,
+        executedAt: remoteStringOrNullSchema,
+        failedAt: remoteStringOrNullSchema,
+        durationSeconds: z.number().nullable(),
+      }),
+    ),
+  }),
+  companyOptions: z.array(remoteCompanyOptionSchema),
+  pendingItems: z.array(remoteDiscoveredAgentItemSchema),
+  items: z.array(remoteConfiguredHostItemSchema),
+});
+
+export const remoteHostDetailsSchema = z.object({
+  tenantScope: remoteTenantScopeSchema,
+  host: remoteConfiguredHostItemSchema,
+  agentHealth: z.object({
+    productStatus: remoteProductStatusSchema,
+    lastDiscoverAt: remoteStringOrNullSchema,
+    lastSyncAt: remoteStringOrNullSchema,
+    bootstrapFlow: z.enum([
+      "pending_link",
+      "linked_host_detected",
+      "host_bootstrap_required",
+      "token_invalid",
+      "body_parse_failed",
+      "unknown",
+    ]),
+    consecutiveFailures: z.number(),
+    agentVersion: remoteStringOrNullSchema,
+    tokenSource: remoteStringOrNullSchema,
+    serviceStatus: remoteStringOrNullSchema,
+    contractErrorCode: remoteStringOrNullSchema,
+  }),
+  agentTelemetry: z.object({
+    systemSnapshot: remoteUnknownRecordSchema.nullable(),
+    systemSnapshotAt: remoteStringOrNullSchema,
+    networkSnapshot: remoteUnknownRecordSchema.nullable(),
+    networkSnapshotAt: remoteStringOrNullSchema,
+    softwareSnapshot: z.array(remoteUnknownRecordSchema),
+    softwareSnapshotAt: remoteStringOrNullSchema,
+    hardwareIdentity: remoteUnknownRecordSchema.nullable(),
+    hardwareIdentityAt: remoteStringOrNullSchema,
+    diskSnapshot: z.array(remoteUnknownRecordSchema),
+    diskSnapshotAt: remoteStringOrNullSchema,
+    sysproProcessSnapshot: z.array(remoteUnknownRecordSchema),
+    sysproProcessSnapshotAt: remoteStringOrNullSchema,
+    windowsUpdateStatus: remoteUnknownRecordSchema.nullable(),
+    windowsUpdateStatusAt: remoteStringOrNullSchema,
+    rebootPending: z.boolean().nullable(),
+    rebootPendingAt: remoteStringOrNullSchema,
+    agentMetrics: remoteUnknownRecordSchema.nullable(),
+    agentMetricsAt: remoteStringOrNullSchema,
+  }),
+  moduleSettings: remoteHostDetailsModuleSettingsSchema,
+  companyOptions: z.array(remoteCompanyOptionSchema),
+  installGuide: z.array(
+    z.object({
+      id: remoteAgentInstallStageSchema,
+      title: z.string(),
+      description: z.string(),
+      done: z.boolean(),
+    }),
+  ),
+  company: z.object({
+    id: z.string(),
+    razaoSocial: z.string(),
+    nomeFantasia: remoteStringOrNullSchema,
+    installationDirectory: remoteStringOrNullSchema,
+  }),
+  installationContexts: z.array(
+    z.object({
+      update: remoteHostSysproUpdateItemSchema,
+      company: remoteCompanyContextItemSchema.nullable(),
+    }),
+  ),
+  linkedUsers: z.array(
+    z.object({
+      id: z.string(),
+      name: remoteStringOrNullSchema,
+      email: z.string(),
+      role: z.enum(["ADMIN", "SUPORTE", "DEVELOPER", "CLIENTE_ADMIN", "CLIENTE_USER"]),
+    }),
+  ),
+  recentSessions: z.array(
+    remoteSessionSummarySchema.extend({
+      hostName: z.string(),
+      companyName: remoteStringOrNullSchema,
+      requestedByName: remoteStringOrNullSchema,
+      createdAt: z.string(),
+      startedAt: remoteStringOrNullSchema,
+      endedAt: remoteStringOrNullSchema,
+    }),
+  ),
+  agentCommands: z.array(
+    z.object({
+      id: z.string(),
+      type: remoteAgentCommandTypeSchema,
+      status: remoteAgentCommandStatusSchema,
+      reason: remoteStringOrNullSchema,
+      payload: remoteUnknownRecordSchema.nullable(),
+      attemptCount: z.number(),
+      resultMessage: remoteStringOrNullSchema,
+      resultPayload: remoteUnknownRecordSchema.nullable(),
+      createdAt: z.string(),
+      updatedAt: z.string(),
+      deliveredAt: remoteStringOrNullSchema,
+      executedAt: remoteStringOrNullSchema,
+      failedAt: remoteStringOrNullSchema,
+    }),
+  ),
+  commandSuccessRates: z.object({
+    window24h: z.number(),
+    window7d: z.number(),
+    window30d: z.number(),
+  }),
+  commandTimeline: z.array(
+    z.object({
+      id: z.string(),
+      type: remoteAgentCommandTypeSchema,
+      status: remoteAgentCommandStatusSchema,
+      createdAt: z.string(),
+      deliveredAt: remoteStringOrNullSchema,
+      executedAt: remoteStringOrNullSchema,
+      failedAt: remoteStringOrNullSchema,
+      durationSeconds: z.number().nullable(),
+    }),
+  ),
+});
+
+export const remoteSessionsGatewayResponseSchema = z.object({
+  sessions: z.array(
+    remoteSessionSummarySchema.extend({
+      hostName: z.string(),
+      companyName: remoteStringOrNullSchema,
+      requestedByName: remoteStringOrNullSchema,
+      createdAt: z.string(),
+      startedAt: remoteStringOrNullSchema,
+      endedAt: remoteStringOrNullSchema,
+    }),
+  ),
+  pagination: paginationMetaSchema.extend({
+    totalPages: z.number(),
+  }),
+  hostOptions: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+    }),
+  ),
+});

@@ -1,3 +1,15 @@
+export {
+  remoteConfiguredHostAgentSchema,
+  remoteConfiguredHostItemSchema,
+  remoteDiscoveredAgentItemSchema,
+  remoteHostDetailsSchema,
+  remotePlatformDirectorySchema,
+  remotePlatformOverviewSchema,
+  remoteSessionsGatewayResponseSchema,
+  remoteSessionSummarySchema,
+  remoteTenantScopeSchema,
+} from "@dosc-syspro/contracts/remote";
+
 export type {
   RemoteAccessPolicy,
   RemoteAccessScope,
@@ -6,7 +18,9 @@ export type {
   RemoteAgentInstallStage,
   RemoteAgentLifecycleStatus,
   RemoteCompanyContextItem,
+  RemoteConfiguredHostAgent,
   RemoteConfiguredHostItem,
+  RemoteDiscoveredAgentItem,
   RemoteDiscoveredHostItem,
   RemoteDiscoveredHostStatus,
   RemoteHostDetails,

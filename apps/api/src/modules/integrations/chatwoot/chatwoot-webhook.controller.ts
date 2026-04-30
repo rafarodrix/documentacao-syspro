@@ -284,10 +284,91 @@ export class ChatwootWebhookController {
     }
 
     if (
+      settings.markConversationPendingOnAgentReply &&
+      !context.isPrivate &&
+      (context.messageType === 'outgoing' || context.messageType === 'template')
+    ) {
+      await this.markConversationPendingAfterAgentReply(payload, resolvedContext, settings);
+    } else if (settings.markConversationPendingOnAgentReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_mark_pending_skipped',
+        messageType: context.messageType,
+        isPrivate: context.isPrivate,
+        messageId: context.messageId ?? null,
+      }));
+    }
+
+    if (
       settings.reopenConversationOnCustomerReply &&
       context.messageType === 'incoming'
     ) {
       await this.reopenConversationForCustomerReply(payload, resolvedContext, settings);
+    }
+  }
+
+  private async markConversationPendingAfterAgentReply(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+  ) {
+    const conversationId = this.extractConversationId(payload);
+    if (!conversationId) {
+      return;
+    }
+
+    let status = this.normalizeConversationStatus(
+      payload?.conversation?.status ??
+      payload?.status ??
+      payload?.meta?.status
+    );
+    if (!status) {
+      try {
+        const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
+        status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
+      } catch (error: any) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'conversation_pending_status_lookup_failed',
+          conversationId,
+          error: error?.message ?? 'unknown_error',
+        }));
+        return;
+      }
+    }
+
+    if (status === 'pending' || status === 'resolved' || status === 'archived' || status === 'snoozed') {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_mark_pending_skipped_by_status',
+        conversationId,
+        status,
+      }));
+      return;
+    }
+
+    try {
+      await this.chatwootClient.toggleConversationStatus(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        'pending',
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_marked_pending_after_agent_reply',
+        conversationId,
+        previousStatus: status ?? null,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_mark_pending_failed',
+        conversationId,
+        previousStatus: status ?? null,
+        error: error?.message ?? 'unknown_error',
+      }));
     }
   }
 
