@@ -179,22 +179,25 @@ export function TicketRichTextEditor({
       return;
     }
 
+    const headingBlocks = selectedText
+      .split(/\n+/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => ({
+        type: "heading" as const,
+        attrs: { level },
+        content: [{ type: "text" as const, text: block }],
+      }));
+
+    if (!headingBlocks.length) {
+      activeEditor.chain().focus().toggleHeading({ level }).run();
+      return;
+    }
+
     activeEditor
       .chain()
       .focus()
-      .insertContentAt(
-        { from, to },
-        [
-          {
-            type: "heading",
-            attrs: { level },
-            content: [{ type: "text", text: selectedText }],
-          },
-          {
-            type: "paragraph",
-          },
-        ],
-      )
+      .insertContentAt({ from, to }, headingBlocks)
       .run();
   }
 
@@ -224,10 +227,10 @@ export function TicketRichTextEditor({
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border/60 bg-background shadow-sm", className)}>
       <div className={cn("flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/25 px-3 py-2", compact && "gap-1.5 px-2.5 py-2")}>
-        <div className="min-w-[9rem]">
+        <div className="min-w-[7.5rem]">
           <Select value={currentBlockType} onValueChange={applyBlockType}>
             <SelectTrigger
-              className="h-8 border-border/60 bg-background text-xs"
+              className="h-8 w-[7.5rem] border-border/60 bg-background px-2.5 text-xs"
               onMouseDown={(event) => event.preventDefault()}
             >
               <div className="flex items-center gap-2">
