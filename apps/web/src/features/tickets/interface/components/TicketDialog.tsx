@@ -9,6 +9,9 @@ import {
   Send,
   FileText,
   AlertCircle,
+  Building2,
+  Code2,
+  Headphones,
   MessageSquare,
   HelpCircle,
   Info,
@@ -16,15 +19,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/TicketCompanyPicker";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
+import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
 import { cn } from "@/lib/utils";
 
 interface TicketDialogProps {
@@ -90,6 +93,8 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setSelectedModule,
     selectedTeam,
     setSelectedTeam,
+    descriptionHtml,
+    setDescriptionHtml,
     databaseUrl,
     setDatabaseUrl,
     developmentVideoUrl,
@@ -151,6 +156,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
       type: form.getValues("type"),
       priority: priority || form.getValues("priority"),
     });
+    setDescriptionHtml(description);
 
     if (customerEmailParam) {
       setCustomerEmail(customerEmailParam.trim().toLowerCase());
@@ -167,7 +173,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     });
     setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, searchParams, setCustomerCompany, setCustomerEmail]);
+  }, [form, searchParams, setCustomerCompany, setCustomerEmail, setDescriptionHtml]);
 
   const source = searchParams?.get("source") || "";
   const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
@@ -177,6 +183,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
   const customerName = searchParams?.get("customerName") || "";
   const customerPhone = searchParams?.get("customerPhone") || "";
   const customerWhatsapp = searchParams?.get("customerWhatsapp") || "";
+  const showTechnicalContext = isSystemUser || source === "chatwoot";
 
   const clearNewTicketParams = () => {
     const params = new URLSearchParams(searchParams?.toString() || "");
@@ -285,17 +292,23 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     )}
                   />
 
-                   <FormField
+                  <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }) => (
+                    render={() => (
                       <FormItem className="flex-1 flex flex-col">
                         <FormLabel className="flex justify-between w-full">
                             Detalhamento TÃ©cnico
                             <span className="text-xs font-normal text-muted-foreground flex gap-1 items-center"><Info className="w-3 h-3"/> Passo a Passo</span>
                         </FormLabel>
                         <FormControl>
-                          <Textarea placeholder="1. Onde vocÃª estava?&#10;2. Em que tela clicou?&#10;3. O que esperava que acontecesse?&#10;4. Qual erro ocorreu no sistema?..." className="min-h-[280px] lg:h-full resize-none bg-white dark:bg-muted/30 focus:bg-background shadow-inner text-sm leading-relaxed" {...field} />
+                          <TicketRichTextEditor
+                            value={descriptionHtml}
+                            onChange={setDescriptionHtml}
+                            placeholder="Descreva o passo a passo, resultado esperado, mensagens de erro, impacto e evidencias relevantes."
+                            className="bg-white dark:bg-muted/30"
+                            minHeightClassName="min-h-[280px]"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -312,9 +325,24 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   />
                   
                   {source === "chatwoot" && (
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm mt-4">
-                      <p className="font-medium text-foreground">Recebido via Omnichannel</p>
-                      <p className="mt-1 text-muted-foreground">O chamado serÃ¡ vinculado automaticamente Ã  conversa do Chatwoot atual.</p>
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm mt-4 space-y-3">
+                      <div className="flex items-center gap-2 font-medium text-foreground">
+                        <Headphones className="h-4 w-4 text-primary" />
+                        Recebido via Omnichannel
+                      </div>
+                      <p className="text-muted-foreground">O chamado sera vinculado automaticamente a conversa atual do Chatwoot.</p>
+                      {(customerName || customerWhatsapp || customerPhone) ? (
+                        <div className="grid gap-2 rounded-lg border border-primary/10 bg-background/70 px-3 py-2 text-xs">
+                          {customerName ? (
+                            <p className="flex items-center gap-2">
+                              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="font-medium text-foreground">{customerName}</span>
+                            </p>
+                          ) : null}
+                          {customerWhatsapp ? <p>WhatsApp: <span className="font-mono text-foreground">{customerWhatsapp}</span></p> : null}
+                          {!customerWhatsapp && customerPhone ? <p>Telefone: <span className="font-mono text-foreground">{customerPhone}</span></p> : null}
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
@@ -476,29 +504,42 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   </div>
 
 
-                  {isSystemUser && (
+                  {showTechnicalContext && (
                     <div className="space-y-4 pt-6 mt-2 border-t border-dashed border-border/60">
                       <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-                        <Loader2 className="w-3 h-3" /> IntegraÃ§Ãµes e Debug
+                        <Code2 className="w-3 h-3" /> Contexto tecnico
                       </div>
-                      <FormItem>
-                        <Label className="text-xs">URL da Base de Dados</Label>
-                        <Input
-                          value={databaseUrl}
-                          onChange={(event) => setDatabaseUrl(event.target.value)}
-                          placeholder="https://console.pve... ou IP SSH"
-                          className="bg-white dark:bg-muted/30 border-border/60 text-xs"
-                        />
-                      </FormItem>
-                      <FormItem>
-                        <Label className="text-xs">GravaÃ§Ã£o de Erro (Loom/Youtube)</Label>
-                        <Input
-                          value={developmentVideoUrl}
-                          onChange={(event) => setDevelopmentVideoUrl(event.target.value)}
-                          placeholder="https://www.loom.com/share/..."
-                          className="bg-white dark:bg-muted/30 border-border/60 text-xs"
-                        />
-                      </FormItem>
+                      <div className="rounded-xl border border-border/60 bg-white p-4 shadow-sm dark:bg-background">
+                        <div className="mb-3 flex items-center gap-2">
+                          <Code2 className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-sm font-semibold text-foreground">Recursos operacionais</p>
+                        </div>
+                        <div className="grid gap-4">
+                          <FormItem>
+                            <Label className="text-xs">Link da base de dados</Label>
+                            <Input
+                              value={databaseUrl}
+                              onChange={(event) => setDatabaseUrl(event.target.value)}
+                              placeholder="URL, console, host interno ou acesso da base"
+                              className="bg-background border-border/60 text-xs"
+                            />
+                          </FormItem>
+                          <FormItem>
+                            <Label className="text-xs">Video explicativo</Label>
+                            <Input
+                              value={developmentVideoUrl}
+                              onChange={(event) => setDevelopmentVideoUrl(event.target.value)}
+                              placeholder="Loom, YouTube, Drive ou outra evidencia em video"
+                              className="bg-background border-border/60 text-xs"
+                            />
+                          </FormItem>
+                        </div>
+                      </div>
+                      {source === "chatwoot" ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          Esses links ajudam o time tecnico mesmo quando o chamado nasce direto do atendimento.
+                        </p>
+                      ) : null}
                     </div>
                   )}
 
