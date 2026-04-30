@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
-import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "../components/types";
+import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "../components/ticket-view.types";
 
 export function useTicketFilters(initialSearch: string) {
   const router = useRouter();
