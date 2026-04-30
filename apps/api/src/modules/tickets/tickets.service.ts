@@ -997,17 +997,13 @@ export class TicketsService {
             currentMetadata.currentOwnerUserId = assignee.id;
             currentMetadata.currentOwnerName = assigneeName;
             currentMetadata.currentOwnerRole = assignee.role;
-            const targetTeam =
-              input.team !== undefined
-                ? requestedTeam
-                : assignee.role === Role.DEVELOPER
-                  ? 'DESENVOLVIMENTO'
-                  : 'SUPORTE';
-            currentMetadata.currentTeam = targetTeam;
-            if (targetTeam === 'DESENVOLVIMENTO') {
+
+            if (assignee.role === Role.DEVELOPER || assignee.role === Role.ADMIN) {
               currentMetadata.developmentOwnerUserId = assignee.id;
               currentMetadata.developmentOwnerName = assigneeName;
-            } else {
+            }
+
+            if (assignee.role === Role.SUPORTE || assignee.role === Role.ADMIN) {
               currentMetadata.supportOwnerUserId = assignee.id;
               currentMetadata.supportOwnerName = assigneeName;
             }
