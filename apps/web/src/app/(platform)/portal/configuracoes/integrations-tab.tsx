@@ -46,7 +46,7 @@ type IntegrationDiagnostics = {
 
 export function IntegrationsSettingsTab() {
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Integracoes</h2>
         <p className="text-sm text-muted-foreground">
@@ -175,7 +175,7 @@ function ChatwootDiagnosticsTab() {
               ))}
             </div>
 
-            <pre className="max-h-72 overflow-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <pre className="overflow-x-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
               {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
             </pre>
 
