@@ -5,7 +5,6 @@ export type ChatwootConnectionConfig = {
   apiToken: string;
   platformApiToken?: string;
   systemBotApiToken?: string;
-  systemBotName?: string;
   accountId: string;
   inboxId: string;
   inboxIdentifier: string;

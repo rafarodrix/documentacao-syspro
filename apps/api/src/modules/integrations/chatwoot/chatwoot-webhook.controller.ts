@@ -27,7 +27,6 @@ export class ChatwootWebhookController {
   private static readonly CSAT_RATING_MIN = 1;
   private static readonly CSAT_RATING_MAX = 5;
   private static readonly SYSTEM_MESSAGE_FLAG = 'syspro_system_message';
-  private static readonly SYSTEM_MESSAGE_SENDER_LABEL = 'syspro_system_sender_label';
 
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
@@ -474,7 +473,7 @@ export class ChatwootWebhookController {
         settings.csatThankYouMessage.trim(),
         {
           useSystemBot: settings.systemMessagesUseBotIdentity,
-          contentAttributes: this.buildSystemMessageAttributes(settings),
+          contentAttributes: this.buildSystemMessageAttributes(),
         },
       );
     }
@@ -532,7 +531,7 @@ export class ChatwootWebhookController {
       settings.csatRequestMessage.trim(),
       {
         useSystemBot: settings.systemMessagesUseBotIdentity,
-        contentAttributes: this.buildSystemMessageAttributes(settings),
+          contentAttributes: this.buildSystemMessageAttributes(),
       },
     );
     await this.chatwootClient.updateConversationCustomAttributes(resolvedContext.chatwoot, conversationId, {
@@ -898,11 +897,9 @@ export class ChatwootWebhookController {
     );
   }
 
-  private buildSystemMessageAttributes(settings: ChatwootBehaviorSettings): Record<string, unknown> {
-    const senderLabel = this.toOptionalString(settings.systemMessageSenderName) ?? 'Trilink Bot';
+  private buildSystemMessageAttributes(): Record<string, unknown> {
     return {
       [ChatwootWebhookController.SYSTEM_MESSAGE_FLAG]: true,
-      [ChatwootWebhookController.SYSTEM_MESSAGE_SENDER_LABEL]: senderLabel,
     };
   }
 
@@ -913,7 +910,6 @@ export class ChatwootWebhookController {
     return {
       ...config,
       systemBotApiToken: settings.systemMessageApiToken.trim() || undefined,
-      systemBotName: settings.systemMessageSenderName.trim() || undefined,
     };
   }
 

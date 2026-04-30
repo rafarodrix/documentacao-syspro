@@ -266,21 +266,6 @@ function ChatwootDiagnosticsTab() {
                         setBehavior((prev) => ({ ...prev, systemMessagesUseBotIdentity: checked }))
                       }
                     />
-
-                    <div className="min-w-0 space-y-2">
-                      <Label htmlFor="systemMessageSenderName">Nome exibido</Label>
-                      <Input
-                        id="systemMessageSenderName"
-                        value={behavior.systemMessageSenderName}
-                        onChange={(event) =>
-                          setBehavior((prev) => ({ ...prev, systemMessageSenderName: event.target.value }))
-                        }
-                        placeholder="Trilink Bot"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Usado como identificacao tecnica no WhatsApp quando a mensagem for automatica.
-                      </p>
-                    </div>
                   </div>
 
                   <div className="min-w-0 space-y-2">
@@ -295,7 +280,7 @@ function ChatwootDiagnosticsTab() {
                       placeholder="Cole aqui o access token do AgentBot"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Token dedicado do AgentBot/usuario tecnico. Fica salvo no backend e deixa de depender de variavel de ambiente.
+                      Token dedicado do AgentBot/usuario tecnico. O nome usado nas mensagens passa a ser o proprio nome configurado no Chatwoot para esse bot.
                     </p>
                   </div>
                 </div>
