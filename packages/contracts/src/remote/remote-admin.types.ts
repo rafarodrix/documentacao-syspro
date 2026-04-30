@@ -335,6 +335,7 @@ export type RemoteDiscoveredAgentItem = {
   lastAgentMetricsAt: string | null;
 };
 
+/** @deprecated Use `RemoteDiscoveredAgentItem`. */
 export type RemoteDiscoveredHostItem = RemoteDiscoveredAgentItem;
 
 export type RemotePlatformDirectory = {
@@ -393,7 +394,7 @@ export type RemotePlatformDirectory = {
     label: string;
     searchText?: string;
   }>;
-  pendingItems: RemoteDiscoveredHostItem[];
+  pendingItems: RemoteDiscoveredAgentItem[];
   items: RemoteConfiguredHostItem[];
 };
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { Activity, BarChart3, Cpu, Monitor } from "lucide-react";
+import { Activity, Cpu, Monitor } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
 import { cn } from "@/lib/utils";
 import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
@@ -12,15 +12,16 @@ import { getRemoteSessions } from "@/features/remote/application/session-queries
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
 import type { RemoteSessionStatus } from "@/features/remote/domain/model";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
-import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";
 import { RemoteSessionsPanel } from "@/features/remote/interface/sessions-panel";
-import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type InfrastructureTab = "hosts" | "sessoes" | "relatorios" | "agentes";
+type InfrastructureTab = "hosts" | "operacao" | "agentes";
+type LegacyInfrastructureTab = InfrastructureTab | "sessoes" | "relatorios";
+type OperationsView = "todas" | "ativas" | "historico" | "eficiencia";
 
 function readParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
@@ -43,39 +44,55 @@ function parseSessionStatus(value: string): RemoteSessionStatus | "ACTIVE" | und
     : undefined;
 }
 
+function parseOperationsView(value: string): OperationsView {
+  return value === "todas" || value === "historico" || value === "eficiencia" ? value : "ativas";
+}
+
+function normalizeInfrastructureTab(tab: string, view: string): { tab: InfrastructureTab; view: OperationsView } {
+  if (tab === "sessoes") {
+    return { tab: "operacao", view: parseOperationsView(view || "ativas") };
+  }
+  if (tab === "relatorios") {
+    return { tab: "operacao", view: "eficiencia" };
+  }
+  if (tab === "operacao") {
+    return { tab: "operacao", view: parseOperationsView(view) };
+  }
+  if (tab === "agentes") {
+    return { tab: "agentes", view: parseOperationsView(view) };
+  }
+  return { tab: "hosts", view: parseOperationsView(view) };
+}
+
 function buildTabHref(tab: InfrastructureTab, params: Record<string, string>) {
   const next = new URLSearchParams({ tab });
   if (tab === "hosts") {
     if (params.companyId) next.set("companyId", params.companyId);
     if (params.ticketNumber) next.set("ticketNumber", params.ticketNumber);
   }
-  if (tab === "sessoes") {
+  if (tab === "operacao") {
+    next.set("view", parseOperationsView(params.view));
     if (params.status) next.set("status", params.status);
     if (params.host) next.set("host", params.host);
     if (params.ticket) next.set("ticket", params.ticket);
+    if (params.page) next.set("page", params.page);
   }
   if (tab === "agentes") {
     if (params.search) next.set("search", params.search);
     if (params.status) next.set("status", params.status);
+    if (params.page) next.set("page", params.page);
   }
   return `/portal/infraestrutura?${next.toString()}`;
 }
 
-const TAB_META: Record<
-  InfrastructureTab,
-  { label: string; icon: typeof Monitor }
-> = {
+const TAB_META: Record<InfrastructureTab, { label: string; icon: typeof Monitor }> = {
   hosts: {
     label: "Hosts",
     icon: Monitor,
   },
-  sessoes: {
-    label: "Sessões",
+  operacao: {
+    label: "Operação",
     icon: Activity,
-  },
-  relatorios: {
-    label: "Relatórios",
-    icon: BarChart3,
   },
   agentes: {
     label: "Agentes",
@@ -90,27 +107,21 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     acceptCompanyScope: true,
   });
   const canHosts = canRemote;
-  const canSessions = canRemote;
-  const canReports = canRemote;
+  const canOperations = canRemote;
   const canAgents = await currentUserHasAnyPermission(["agents:view", "agents:manage"], {
     acceptCompanyScope: true,
   });
 
-  const availableTabs = ([
-    canHosts && "hosts",
-    canSessions && "sessoes",
-    canReports && "relatorios",
-    canAgents && "agentes",
-  ].filter(Boolean) as InfrastructureTab[]);
+  const availableTabs = ([canHosts && "hosts", canOperations && "operacao", canAgents && "agentes"].filter(
+    Boolean,
+  ) as InfrastructureTab[]);
 
   if (availableTabs.length === 0) {
     redirect("/portal");
   }
 
   const params = searchParams ? await searchParams : undefined;
-  const requestedTab = readParam(params?.tab) as InfrastructureTab;
-  const activeTab = availableTabs.includes(requestedTab) ? requestedTab : availableTabs[0];
-
+  const requestedTab = readParam(params?.tab) as LegacyInfrastructureTab;
   const tabParams = {
     companyId: readParam(params?.companyId),
     ticketNumber: readParam(params?.ticketNumber),
@@ -118,10 +129,24 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     host: readParam(params?.host),
     ticket: readParam(params?.ticket),
     search: readParam(params?.search),
+    view: readParam(params?.view),
+    page: readParam(params?.page),
   };
 
-  if (requestedTab && requestedTab !== activeTab) {
-    redirect(buildTabHref(activeTab, tabParams));
+  const normalized = normalizeInfrastructureTab(requestedTab, tabParams.view);
+  const activeTab = availableTabs.includes(normalized.tab) ? normalized.tab : availableTabs[0];
+  const operationsView = activeTab === "operacao" ? normalized.view : parseOperationsView(tabParams.view);
+
+  if (
+    requestedTab &&
+    (requestedTab !== activeTab || normalized.tab !== activeTab || (activeTab === "operacao" && tabParams.view !== operationsView))
+  ) {
+    redirect(
+      buildTabHref(activeTab, {
+        ...tabParams,
+        view: activeTab === "operacao" ? operationsView : tabParams.view,
+      }),
+    );
   }
 
   let content: ReactNode = null;
@@ -138,23 +163,41 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
     );
   }
 
-  if (activeTab === "sessoes") {
+  if (activeTab === "operacao") {
     const tenantScope = await getRemoteTenantScope();
     const pageValue = Math.max(1, Number(readParam(params?.page)) || 1);
-    const statusFilter = parseSessionStatus(tabParams.status);
-    const { sessions, pagination, hostOptions } = await getRemoteSessions(tenantScope, {
-      status: statusFilter,
-      hostId: tabParams.host || undefined,
-      ticket: tabParams.ticket || undefined,
-      page: pageValue,
-      pageSize: 50,
-    });
+    const statusFilter = operationsView === "ativas" ? "ACTIVE" : parseSessionStatus(tabParams.status);
+    const [sessionsResult, metrics] = await Promise.all([
+      operationsView === "eficiencia"
+        ? Promise.resolve({
+            sessions: [],
+            pagination: {
+              page: 1,
+              pageSize: 50,
+              total: 0,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+            hostOptions: [] as Array<{ id: string; name: string }>,
+          })
+        : getRemoteSessions(tenantScope, {
+            status: statusFilter,
+            hostId: tabParams.host || undefined,
+            ticket: tabParams.ticket || undefined,
+            page: pageValue,
+            pageSize: 50,
+          }),
+      operationsView === "eficiencia" ? getRemoteEfficiencyMetrics(tenantScope) : Promise.resolve(null),
+    ]);
 
     content = (
       <RemoteSessionsPanel
-        sessions={sessions}
-        pagination={pagination}
-        hostOptions={hostOptions}
+        sessions={sessionsResult.sessions}
+        pagination={sessionsResult.pagination}
+        hostOptions={sessionsResult.hostOptions}
+        view={operationsView}
+        metrics={metrics ?? undefined}
         filters={{
           status: statusFilter ?? "ALL",
           hostId: tabParams.host,
@@ -162,12 +205,6 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         }}
       />
     );
-  }
-
-  if (activeTab === "relatorios") {
-    const tenantScope = await getRemoteTenantScope();
-    const metrics = await getRemoteEfficiencyMetrics(tenantScope);
-    content = <RemoteEfficiencyReportsPanel metrics={metrics} />;
   }
 
   if (activeTab === "agentes") {
@@ -195,7 +232,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Infraestrutura</h1>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Centralize hosts, sessões remotas, relatórios operacionais e agentes em uma única visão.
+            Centralize hosts, operação remota e agentes em uma única visão.
           </p>
         </div>
       </div>
@@ -206,7 +243,10 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
             {availableTabs.map((tab) => {
               const meta = TAB_META[tab];
               const Icon = meta.icon;
-              const href = buildTabHref(tab, tabParams);
+              const href = buildTabHref(tab, {
+                ...tabParams,
+                view: tab === "operacao" ? operationsView : tabParams.view,
+              });
               const isActive = activeTab === tab;
               return (
                 <Link

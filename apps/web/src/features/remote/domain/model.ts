@@ -21,7 +21,6 @@ export type {
   RemoteConfiguredHostAgent,
   RemoteConfiguredHostItem,
   RemoteDiscoveredAgentItem,
-  RemoteDiscoveredHostItem,
   RemoteDiscoveredHostStatus,
   RemoteHostDetails,
   RemoteHostStatus,

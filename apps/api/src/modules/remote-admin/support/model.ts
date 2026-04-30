@@ -7,7 +7,7 @@ export type {
   RemoteAgentLifecycleStatus,
   RemoteCompanyContextItem,
   RemoteConfiguredHostItem,
-  RemoteDiscoveredHostItem,
+  RemoteDiscoveredAgentItem,
   RemoteDiscoveredHostStatus,
   RemoteHostDetails,
   RemoteHostStatus,

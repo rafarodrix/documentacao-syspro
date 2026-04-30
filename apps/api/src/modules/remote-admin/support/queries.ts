@@ -5,7 +5,7 @@ import { getRemoteModuleSettingsSnapshot } from "../../../common/system-settings
 import { resolveRemoteOperationalStatus } from "./operational-status";
 import type {
   RemoteConfiguredHostItem,
-  RemoteDiscoveredHostItem,
+  RemoteDiscoveredAgentItem,
   RemoteHostDetails,
   RemotePlatformDirectory,
   RemotePlatformOverview,
@@ -981,7 +981,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     unknown: 0,
   };
 
-  const pendingItems: RemoteDiscoveredHostItem[] = discoveredHosts.map((host) => {
+  const pendingItems: RemoteDiscoveredAgentItem[] = discoveredHosts.map((host) => {
     const snapshot = Array.isArray(host.installationsSnapshot) ? host.installationsSnapshot : [];
     
     // Extrai o objeto de telemetria se existir (marcado com _telemetry: true/objeto)
@@ -1009,7 +1009,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
       description: host.description,
       serviceStatus: host.serviceStatus,
       lastHeartbeatAt: host.lastHeartbeatAt?.toISOString() ?? null,
-      status: host.status as RemoteDiscoveredHostItem["status"],
+      status: host.status as RemoteDiscoveredAgentItem["status"],
       linkedHostId: host.linkedHostId,
       installationCompanies,
       lastAgentMetrics,
