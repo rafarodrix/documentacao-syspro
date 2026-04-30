@@ -30,7 +30,7 @@ import {
   formatDateLong,
 } from '@/lib/docs-utils';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
-import { getReleases } from '@/features/releases/application/queries';
+import { getReleases } from '@/features/releases/application/release-read.queries';
 import { groupReleasesByMonth } from '@/features/releases/domain/release-grouping';
 
 const DOCS_BASE_PATH = "/portal/docs";

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Calendar, Bug, Rocket, Sparkles } from "lucide-react";
-import { getReleases } from "@/features/releases/application/queries";
+import { getReleases } from "@/features/releases/application/release-read.queries";
 import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/domain";
 import {
   Card,

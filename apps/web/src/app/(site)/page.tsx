@@ -7,7 +7,7 @@ import { DownloadsSection } from "@/components/site/DownloadsSection";
 import { FinalCTA } from "@/components/site/FinalCTA";
 
 // 2. Logica de negocio e tipos.
-import { getReleases } from "@/features/releases/application/queries";
+import { getReleases } from "@/features/releases/application/release-read.queries";
 import { groupReleasesByMonth } from "@/features/releases/domain/release-grouping";
 import { Release } from "@dosc-syspro/core";
 

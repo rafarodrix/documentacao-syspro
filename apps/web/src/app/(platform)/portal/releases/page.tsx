@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getReleases } from "@/features/releases/application/queries";
+import { getReleases } from "@/features/releases/application/release-read.queries";
 import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/domain";
 import { Calendar, Rocket, Bug, ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
