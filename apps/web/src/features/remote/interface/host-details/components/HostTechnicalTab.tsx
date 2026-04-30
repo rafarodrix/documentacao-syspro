@@ -36,6 +36,7 @@ export function HostTechnicalTab({
   firebirdData,
 }: HostTechnicalTabProps) {
   const { lastTelemetry, isConnected } = useAckStream(host.id);
+  const agent = host.agent;
 
   const currentMetrics: LiveMetrics = lastTelemetry || host.lastAgentMetrics || {};
   const cpuLoad = readMetricNumber(currentMetrics, "cpuLoad");
@@ -118,11 +119,11 @@ export function HostTechnicalTab({
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">IP reportado (agente)</p>
-              <p className="mt-1 text-sm text-foreground">{host.lastKnownIp ?? "Sem leitura"}</p>
+              <p className="mt-1 text-sm text-foreground">{agent.lastKnownIp ?? "Sem leitura"}</p>
             </div>
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-              <p className="mt-1 text-sm text-foreground">{host.rustdeskId ?? "Sem leitura"}</p>
+              <p className="mt-1 text-sm text-foreground">{agent.rustdeskId ?? "Sem leitura"}</p>
             </div>
           </div>
 

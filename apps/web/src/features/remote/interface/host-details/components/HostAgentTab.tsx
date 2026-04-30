@@ -97,6 +97,7 @@ export function HostAgentTab({
 }: HostAgentTabProps) {
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
+  const agent = host.agent;
 
   return (
     <div className="space-y-6">
@@ -118,8 +119,8 @@ export function HostAgentTab({
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
-              <p className="mt-1 text-sm text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
-              <p className="text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+              <p className="mt-1 text-sm text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
+              <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
             </div>
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia</p>

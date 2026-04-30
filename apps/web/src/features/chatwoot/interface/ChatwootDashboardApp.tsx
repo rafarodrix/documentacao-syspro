@@ -66,10 +66,14 @@ type TicketListEntry = Pick<
   "id" | "number" | "title" | "status" | "statusLabel" | "createdAt" | "updatedAt" | "customer"
 >;
 
+type RemoteHostDirectoryItem = RemotePlatformDirectory["items"][number];
+
 type RemoteHostEntry = Pick<
-  RemotePlatformDirectory["items"][number],
-  "id" | "name" | "rustdeskId" | "lastHeartbeatAt" | "productStatus" | "companyId" | "companyName"
->;
+  RemoteHostDirectoryItem,
+  "id" | "name" | "productStatus" | "companyId" | "companyName"
+> & {
+  agent: Pick<RemoteHostDirectoryItem["agent"], "rustdeskId" | "lastHeartbeatAt">;
+};
 
 type ContactLookupEntry = ContactOption;
 type ContactCompanyEntry = NonNullable<ContactLookupEntry["companies"]>[number];
@@ -806,13 +810,15 @@ export function ChatwootDashboardApp() {
             name: item.name.trim() || "Host sem nome",
             companyId: item.companyId,
             companyName: item.companyName,
-            rustdeskId: item.rustdeskId,
-            lastHeartbeatAt: item.lastHeartbeatAt,
             productStatus: item.productStatus,
+            agent: {
+              rustdeskId: item.agent.rustdeskId,
+              lastHeartbeatAt: item.agent.lastHeartbeatAt,
+            },
           }))
           .sort((a, b) => {
-            const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
-            const bHeartbeat = b.lastHeartbeatAt ? Date.parse(b.lastHeartbeatAt) : 0;
+            const aHeartbeat = a.agent.lastHeartbeatAt ? Date.parse(a.agent.lastHeartbeatAt) : 0;
+            const bHeartbeat = b.agent.lastHeartbeatAt ? Date.parse(b.agent.lastHeartbeatAt) : 0;
             return bHeartbeat - aHeartbeat;
           });
         setCompanyHosts(nextHosts);
@@ -830,7 +836,7 @@ export function ChatwootDashboardApp() {
   }, [resolved.companyId, hostReloadToken]);
 
   function handleStartHostSession(host: RemoteHostEntry) {
-    const rustdeskId = host.rustdeskId?.trim() || "";
+    const rustdeskId = host.agent.rustdeskId?.trim() || "";
     if (!rustdeskId) {
       toast.error("Host sem identificador remoto. Nao e possivel iniciar acesso.");
       return;
@@ -869,7 +875,7 @@ export function ChatwootDashboardApp() {
       `Contato: ${effectiveContactName || "Nao identificado"}`,
       `Telefone: ${resolved.customerPhone || "Sem telefone"}`,
       `Ticket: ${priorityTicket ? `#${priorityTicket.number} - ${priorityTicket.title}` : "Sem ticket em contexto"}`,
-      `Host recomendado: ${recommendedHost ? `${recommendedHost.name} (${recommendedHost.rustdeskId || "sem RustDesk ID"})` : "Sem host em contexto"}`,
+      `Host recomendado: ${recommendedHost ? `${recommendedHost.name} (${recommendedHost.agent.rustdeskId || "sem RustDesk ID"})` : "Sem host em contexto"}`,
     ];
 
     try {
@@ -1785,12 +1791,12 @@ export function ChatwootDashboardApp() {
                             </p>
                             <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedHost.name}</p>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-mono">{recommendedHost.rustdeskId || "Sem RustDesk ID"}</span>
-                              {recommendedHost.lastHeartbeatAt ? (
-                                <span>Heartbeat em {formatRelativeDate(recommendedHost.lastHeartbeatAt)}</span>
+                              <span className="font-mono">{recommendedHost.agent.rustdeskId || "Sem RustDesk ID"}</span>
+                              {recommendedHost.agent.lastHeartbeatAt ? (
+                                <span>Heartbeat em {formatRelativeDate(recommendedHost.agent.lastHeartbeatAt)}</span>
                               ) : null}
-                              <ContextBadge tone={recommendedHost.rustdeskId?.trim() ? "good" : "warn"}>
-                                {recommendedHost.rustdeskId?.trim() ? "Pronto para acesso" : "Sem acesso remoto"}
+                              <ContextBadge tone={recommendedHost.agent.rustdeskId?.trim() ? "good" : "warn"}>
+                                {recommendedHost.agent.rustdeskId?.trim() ? "Pronto para acesso" : "Sem acesso remoto"}
                               </ContextBadge>
                             </div>
                           </div>
@@ -1800,12 +1806,12 @@ export function ChatwootDashboardApp() {
                               size="sm"
                               className="gap-2"
                               onClick={() => handleStartHostSession(recommendedHost)}
-                              disabled={isStartingSession || !recommendedHost.rustdeskId?.trim()}
+                              disabled={isStartingSession || !recommendedHost.agent.rustdeskId?.trim()}
                             >
                               {isStartingSession && startingHostId === recommendedHost.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : null}
-                              {recommendedHost.rustdeskId?.trim() ? "Acessar host" : "Sem acesso remoto"}
+                              {recommendedHost.agent.rustdeskId?.trim() ? "Acessar host" : "Sem acesso remoto"}
                             </Button>
                             <Button asChild variant="outline" size="sm">
                               <Link href={`/portal/infraestrutura/hosts/${recommendedHost.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`} target="_blank" rel="noreferrer">
@@ -1837,11 +1843,11 @@ export function ChatwootDashboardApp() {
                                   {host.companyName || resolved.companyName || "Empresa nao identificada"}
                                 </p>
                                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                  <span className="break-all font-mono">{host.rustdeskId || "Sem RustDesk ID"}</span>
-                                  {host.lastHeartbeatAt ? (
+                                  <span className="break-all font-mono">{host.agent.rustdeskId || "Sem RustDesk ID"}</span>
+                                  {host.agent.lastHeartbeatAt ? (
                                     <span className="inline-flex items-center gap-1">
                                       <Clock3 className="h-3 w-3" />
-                                      {formatRelativeDate(host.lastHeartbeatAt)}
+                                      {formatRelativeDate(host.agent.lastHeartbeatAt)}
                                     </span>
                                   ) : null}
                                 </div>
@@ -1852,7 +1858,7 @@ export function ChatwootDashboardApp() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleStartHostSession(host)}
-                                  disabled={isStartingSession || !host.rustdeskId?.trim()}
+                                  disabled={isStartingSession || !host.agent.rustdeskId?.trim()}
                                 >
                                   {isStartingSession && startingHostId === host.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

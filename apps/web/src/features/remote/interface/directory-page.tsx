@@ -55,6 +55,7 @@ import {
 import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
+type PendingDirectoryItem = RemotePlatformDirectory["pendingItems"][number];
 type RemotePlatformDirectoryPanelProps = {
   directory: RemotePlatformDirectory;
   initialCompanyId?: string;
@@ -186,6 +187,8 @@ export function RemotePlatformDirectoryPanel({
   initialCompanyId,
   initialTicketNumber,
 }: RemotePlatformDirectoryPanelProps) {
+  // Configured hosts are managed portal entities and should read technical fields from `item.agent.*`.
+  // Pending items are pre-host discoveries and still intentionally use a flattened technical shape.
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isMobileClient, setIsMobileClient] = useState(false);
@@ -292,7 +295,7 @@ export function RemotePlatformDirectoryPanel({
     }
   }
 
-  async function handleLinkDiscoveredHost(id: string, fallbackName: string | null) {
+  async function handleLinkDiscoveredHost(id: PendingDirectoryItem["id"], fallbackName: PendingDirectoryItem["machineName"]) {
     const companyId = pendingCompanyById[id] ?? directory.companyOptions[0]?.id ?? "";
     const name = (pendingNameById[id] ?? fallbackName ?? "").trim();
 
@@ -339,7 +342,7 @@ export function RemotePlatformDirectoryPanel({
   }
 
   async function handleQuickConnect(item: DirectoryItem) {
-    const normalizedRustdeskId = item.rustdeskId?.replace(/\s+/g, "").trim() ?? "";
+    const normalizedRustdeskId = item.agent.rustdeskId?.replace(/\s+/g, "").trim() ?? "";
     if (!normalizedRustdeskId) {
       toast.error("Host sem identificador remoto. Nao e possivel iniciar sessao.");
       return;
@@ -384,10 +387,10 @@ export function RemotePlatformDirectoryPanel({
         item.installationCompanies.join(" "),
         item.environment,
         item.provider,
-        item.rustdeskId,
+        item.agent.rustdeskId,
         item.description,
-        item.machineName,
-        item.agentVersion,
+        item.agent.machineName,
+        item.agent.agentVersion,
         item.lastTicketNumber,
         item.lastSessionStatus,
         item.status,
@@ -396,7 +399,7 @@ export function RemotePlatformDirectoryPanel({
         .filter(Boolean)
         .join(" "));
 
-      const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow);
+      const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
       const matchesSearch = !term || haystack.includes(term);
       const matchesCompany = companyFilter === "all" || item.companyId === companyFilter;
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
@@ -462,9 +465,9 @@ export function RemotePlatformDirectoryPanel({
   const activePendingCount = filteredPendingItems.length;
   const filteredQuickIndicators = useMemo(() => {
     const referenceNow = hasHydrated ? Date.now() : null;
-    const online = filteredItems.filter((item) => getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow).bucket === "recent").length;
-    const stale = filteredItems.filter((item) => getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow).bucket === "stale").length;
-    const offline = filteredItems.filter((item) => getHeartbeatMetaAt(item.lastHeartbeatAt, referenceNow).bucket === "missing").length;
+    const online = filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent").length;
+    const stale = filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "stale").length;
+    const offline = filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "missing").length;
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
     return { online, stale, offline, rebootPending };
   }, [filteredItems, hasHydrated]);
@@ -957,9 +960,9 @@ export function RemotePlatformDirectoryPanel({
               </div>
               <div className="divide-y divide-border/30">
               {filteredItems.map((item) => {
-                const heartbeat = getHeartbeatMetaAt(item.lastHeartbeatAt, hasHydrated ? Date.now() : null);
+                const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, hasHydrated ? Date.now() : null);
                 const productStatus = getRemoteProductStatusMeta(item.productStatus);
-                const rustdeskHref = item.rustdeskId ? `rustdesk://${item.rustdeskId.replace(/\s+/g, "")}` : null;
+                const rustdeskHref = item.agent.rustdeskId ? `rustdesk://${item.agent.rustdeskId.replace(/\s+/g, "")}` : null;
                 const installationNames = item.installationCompanies.length
                   ? item.installationCompanies
                   : item.companyName
@@ -1034,8 +1037,8 @@ export function RemotePlatformDirectoryPanel({
                           <Badge variant="outline" className={heartbeat.className}>
                             {heartbeat.shortLabel}
                           </Badge>
-                          <p className="text-xs text-muted-foreground" title={formatHeartbeatDateTime(item.lastHeartbeatAt, hasHydrated)}>
-                            {formatHeartbeatTime(item.lastHeartbeatAt, hasHydrated)}
+                          <p className="text-xs text-muted-foreground" title={formatHeartbeatDateTime(item.agent.lastHeartbeatAt, hasHydrated)}>
+                            {formatHeartbeatTime(item.agent.lastHeartbeatAt, hasHydrated)}
                           </p>
                         </div>
                       </div>
@@ -1044,14 +1047,14 @@ export function RemotePlatformDirectoryPanel({
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:hidden">ID Remoto</p>
                         <div className="relative group/id">
                           <code className="block w-full rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-sm font-mono tracking-tight text-foreground/80 transition-all group-hover/id:border-primary/20 group-hover/id:bg-muted/30">
-                            {item.rustdeskId ?? "---"}
+                            {item.agent.rustdeskId ?? "---"}
                           </code>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 opacity-0 group-hover/id:opacity-100 transition-opacity"
-                            onClick={() => handleCopyRustDeskId(item.rustdeskId)}
-                            disabled={!item.rustdeskId}
+                            onClick={() => handleCopyRustDeskId(item.agent.rustdeskId)}
+                            disabled={!item.agent.rustdeskId}
                           >
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
@@ -1064,7 +1067,7 @@ export function RemotePlatformDirectoryPanel({
                           size="sm"
                           className="h-9 min-w-35 font-semibold shadow-sm"
                           onClick={() => handleQuickConnect(item)}
-                          disabled={!item.rustdeskId || connectingHostId === item.id}
+                          disabled={!item.agent.rustdeskId || connectingHostId === item.id}
                         >
                           {connectingHostId === item.id ? (
                             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

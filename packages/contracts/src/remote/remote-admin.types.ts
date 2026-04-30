@@ -227,6 +227,38 @@ export type RemotePaginationMeta = PaginationMeta & {
   totalPages: number;
 };
 
+/**
+ * Agent is the technical runtime installed on the machine.
+ * It executes commands, reports heartbeats/telemetry and consumes host-projected configuration.
+ */
+export type RemoteConfiguredHostAgent = {
+  rustdeskId: string | null;
+  machineName: string | null;
+  agentVersion: string | null;
+  lastHeartbeatAt: string | null;
+  lastHeartbeatSuccessAt: string | null;
+  lastHeartbeatErrorAt: string | null;
+  lastHeartbeatErrorMessage: string | null;
+  lastKnownIp: string | null;
+  lastRegisterAt: string | null;
+  lastRegisterSource: string | null;
+  agentTokenIssuedAt: string | null;
+  agentTokenLastUsedAt: string | null;
+  lastKnownRustDeskAlias: string | null;
+  lastKnownRustDeskVersion: string | null;
+  lastKnownRustDeskServerHost: string | null;
+  lastKnownRustDeskApiHost: string | null;
+  lastKnownRustDeskPublicKeyHash: string | null;
+  lastRustDeskConfigSyncAt: string | null;
+  lifecycleStatus: RemoteAgentLifecycleStatus;
+  installStages: RemoteAgentInstallStage[];
+};
+
+/**
+ * A configured host is the administrative projection of a machine inside the portal.
+ * It owns company linkage, operational naming and business context; its nested `agent`
+ * represents the technical runtime currently attached to that host.
+ */
 export type RemoteConfiguredHostItem = {
   id: string;
   companyId: string;
@@ -236,6 +268,10 @@ export type RemoteConfiguredHostItem = {
   machineProfile: RemoteMachineProfile | null;
   environment: string | null;
   provider: string | null;
+  /**
+   * Legacy flattened agent fields kept for directory/fleet compatibility.
+   * Detail screens should prefer `agent.*` to avoid mixing host ownership with agent telemetry.
+   */
   rustdeskId: string | null;
   status: RemoteHostStatus;
   description: string;
@@ -276,28 +312,7 @@ export type RemoteConfiguredHostItem = {
   lastSessionAt: string | null;
   lastSessionStatus: RemoteSessionStatus | null;
   lastTicketNumber: string | null;
-  agent: {
-    rustdeskId: string | null;
-    machineName: string | null;
-    agentVersion: string | null;
-    lastHeartbeatAt: string | null;
-    lastHeartbeatSuccessAt: string | null;
-    lastHeartbeatErrorAt: string | null;
-    lastHeartbeatErrorMessage: string | null;
-    lastKnownIp: string | null;
-    lastRegisterAt: string | null;
-    lastRegisterSource: string | null;
-    agentTokenIssuedAt: string | null;
-    agentTokenLastUsedAt: string | null;
-    lastKnownRustDeskAlias: string | null;
-    lastKnownRustDeskVersion: string | null;
-    lastKnownRustDeskServerHost: string | null;
-    lastKnownRustDeskApiHost: string | null;
-    lastKnownRustDeskPublicKeyHash: string | null;
-    lastRustDeskConfigSyncAt: string | null;
-    lifecycleStatus: RemoteAgentLifecycleStatus;
-    installStages: RemoteAgentInstallStage[];
-  };
+  agent: RemoteConfiguredHostAgent;
   inventorySignals: {
     rebootPending: boolean | null;
     diskLow: boolean;
@@ -307,7 +322,12 @@ export type RemoteConfiguredHostItem = {
   };
 };
 
-export type RemoteDiscoveredHostItem = {
+/**
+ * Discovered agent/pre-host record.
+ * This exists before full host governance is established and still uses a flattened
+ * technical shape because there is no consolidated host + agent boundary yet.
+ */
+export type RemoteDiscoveredAgentItem = {
   id: string;
   machineName: string | null;
   machineProfile: RemoteMachineProfile | null;
@@ -329,6 +349,8 @@ export type RemoteDiscoveredHostItem = {
   } | null;
   lastAgentMetricsAt: string | null;
 };
+
+export type RemoteDiscoveredHostItem = RemoteDiscoveredAgentItem;
 
 export type RemotePlatformDirectory = {
   tenantScope: RemoteTenantScope;

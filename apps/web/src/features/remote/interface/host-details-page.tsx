@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,13 +15,11 @@ import {
   PlayCircle,
   Cpu,
   Building2,
-  Server,
   Monitor,
   Clock,
   Activity,
   Database,
   AlertCircle,
-  Zap,
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -100,8 +98,9 @@ export function RemoteHostDetailsPanel({
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
   const [machineProfileDraft, setMachineProfileDraft] = useState(host.machineProfile ?? "");
   const [primaryCompanyDraft, setPrimaryCompanyDraft] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
-  const normalizedRustdeskId = host.rustdeskId ? host.rustdeskId.replace(/\s+/g, "") : null;
-  const windowsComputerName = host.machineName ?? host.agent.machineName ?? null;
+  const agent = host.agent;
+  const normalizedRustdeskId = agent.rustdeskId ? agent.rustdeskId.replace(/\s+/g, "") : null;
+  const windowsComputerName = agent.machineName ?? null;
   const rustdeskHref = normalizedRustdeskId ? `rustdesk://${normalizedRustdeskId}` : null;
   
   const ticketNumber = useSearchParams().get("ticketNumber");
@@ -131,17 +130,17 @@ export function RemoteHostDetailsPanel({
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
     normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim();
-  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutencao" : "Inativo";
+  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutenção" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const rustDeskCompliance = useMemo(() => {
     const expectedAlias = resolveExpectedRustDeskAlias({
       hostName: host.name,
-      machineName: host.machineName,
+      machineName: agent.machineName,
       companyName: host.companyName,
     });
-    const expectedServerHost = details.moduleSettings.rustDeskServerHost.trim() || "Sem configuracao";
-    const expectedApiHost = details.moduleSettings.rustDeskServerHost.trim() || "Sem configuracao";
-    const expectedVersion = details.moduleSettings.rustDeskVersion.trim() || "Sem configuracao";
+    const expectedServerHost = details.moduleSettings.rustDeskServerHost.trim() || "Sem configuração";
+    const expectedApiHost = details.moduleSettings.rustDeskServerHost.trim() || "Sem configuração";
+    const expectedVersion = details.moduleSettings.rustDeskVersion.trim() || "Sem configuração";
     const expectedPublicKeyHash = details.moduleSettings.rustDeskPublicKeyHash;
 
     const reportedAlias = host.agent.lastKnownRustDeskAlias;
@@ -162,7 +161,7 @@ export function RemoteHostDetailsPanel({
         },
         {
           id: "version",
-          label: "Versao",
+          label: "Versão",
           expected: expectedVersion,
           reported: reportedVersion,
           match: !!reportedVersion && reportedVersion.trim().toLowerCase() === expectedVersion.trim().toLowerCase(),
@@ -183,8 +182,8 @@ export function RemoteHostDetailsPanel({
         },
         {
           id: "publicKey",
-          label: "Chave publica",
-          expected: expectedPublicKeyHash ? "Hash oficial carregado" : "Sem configuracao",
+          label: "Chave pública",
+          expected: expectedPublicKeyHash ? "Hash oficial carregado" : "Sem configuração",
           reported: reportedPublicKeyHash ? "Hash reportado pelo agente" : null,
           match: !!reportedPublicKeyHash && !!expectedPublicKeyHash && reportedPublicKeyHash === expectedPublicKeyHash,
         },
@@ -200,8 +199,8 @@ export function RemoteHostDetailsPanel({
     host.agent.lastKnownRustDeskServerHost,
     host.agent.lastKnownRustDeskVersion,
     host.agent.lastRustDeskConfigSyncAt,
+    agent.machineName,
     host.companyName,
-    host.machineName,
     host.name,
   ]);
   const visibleAgentCommands = useMemo(() => {
@@ -443,8 +442,8 @@ export function RemoteHostDetailsPanel({
   const contractSchemaVersions = useMemo(() => readContractSchemaVersions(agentMetrics), [agentMetrics]);
   const contractValidationError = useMemo(() => {
     if (details.agentHealth.contractErrorCode) return details.agentHealth.contractErrorCode;
-    return extractContractValidationError(host.lastHeartbeatErrorMessage);
-  }, [details.agentHealth.contractErrorCode, host.lastHeartbeatErrorMessage]);
+    return extractContractValidationError(agent.lastHeartbeatErrorMessage);
+  }, [agent.lastHeartbeatErrorMessage, details.agentHealth.contractErrorCode]);
   const ackQueueMetrics = useMemo(() => {
     const pendingFromMetrics =
       agentMetrics && typeof agentMetrics["pendingAckQueueSize"] === "number"
@@ -493,8 +492,8 @@ export function RemoteHostDetailsPanel({
       "ipAddress",
       "localIp",
     ]);
-    return fromNetwork ?? host.lastKnownIp ?? null;
-  }, [host.lastKnownIp, networkSnapshot, systemSnapshot]);
+    return fromNetwork ?? agent.lastKnownIp ?? null;
+  }, [agent.lastKnownIp, networkSnapshot, systemSnapshot]);
   const sysproServerInstallations = useMemo(
     () => dedupedInstallationContexts.filter((context) => context.update.isServerHost === true),
     [dedupedInstallationContexts],
@@ -527,15 +526,15 @@ export function RemoteHostDetailsPanel({
     };
   }, [softwareSnapshot, sysproProcessSnapshot, sysproServerInstallations]);
   const heartbeat = useMemo(() => {
-    if (!host.lastHeartbeatAt) {
+    if (!agent.lastHeartbeatAt) {
       return {
         label: "Sem contato",
         tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-        description: "O agente ainda nao registrou atividade recente no portal.",
+        description: "O agente ainda não registrou atividade recente no portal.",
       };
     }
 
-    const diffMs = Date.now() - new Date(host.lastHeartbeatAt).getTime();
+    const diffMs = Date.now() - new Date(agent.lastHeartbeatAt).getTime();
     const diffMinutes = Math.floor(diffMs / 60000);
 
     if (diffMinutes <= 5) {
@@ -557,9 +556,9 @@ export function RemoteHostDetailsPanel({
     return {
       label: "Sem resposta recente",
       tone: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
-      description: "Ultimo contato muito antigo. Validar o onboarding e a conectividade do agente.",
+      description: "Último contato muito antigo. Validar o onboarding e a conectividade do agente.",
     };
-  }, [host.lastHeartbeatAt]);
+  }, [agent.lastHeartbeatAt]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -582,7 +581,7 @@ export function RemoteHostDetailsPanel({
 
   async function handleCopy(value: string | null, label: string) {
     if (!value) {
-      toast.error(`${label} nao configurado.`);
+      toast.error(`${label} não configurado.`);
       return;
     }
 
@@ -608,7 +607,7 @@ export function RemoteHostDetailsPanel({
 
   function handleSaveProjectedHostName() {
     if (!normalizedProjectedHostName) {
-      toast.error("Informe um nome valido para a maquina.");
+      toast.error("Informe um nome válido para a máquina.");
       return;
     }
 
@@ -620,18 +619,18 @@ export function RemoteHostDetailsPanel({
           body: {
             companyId: host.companyId,
             name: normalizedProjectedHostName,
-            machineName: host.machineName,
+            machineName: agent.machineName,
             machineProfile: host.machineProfile,
             environment: host.environment,
             provider: host.provider,
             description: host.description,
             notes: host.notes,
-            agentExternalId: host.rustdeskId,
+            agentExternalId: agent.rustdeskId,
             status: host.status,
           },
         });
 
-        toast.success("Nome da maquina atualizado.");
+        toast.success("Nome da máquina atualizado.");
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
       }
@@ -652,18 +651,18 @@ export function RemoteHostDetailsPanel({
           body: {
             companyId: nextCompanyId,
             name: host.name,
-            machineName: host.machineName,
+            machineName: agent.machineName,
             machineProfile: nextMachineProfile,
             environment: host.environment,
             provider: host.provider,
             description: host.description,
             notes: host.notes,
-            agentExternalId: host.rustdeskId,
+            agentExternalId: agent.rustdeskId,
             status: host.status,
           },
         });
 
-        toast.success("Empresa principal e perfil da maquina atualizados.");
+        toast.success("Empresa principal e perfil da máquina atualizados.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -694,7 +693,7 @@ export function RemoteHostDetailsPanel({
           method: "POST",
           body: { action },
         });
-        toast.success(result.message ?? "Acao remota enfileirada.");
+        toast.success(result.message ?? "Ação remota enfileirada.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -720,7 +719,7 @@ export function RemoteHostDetailsPanel({
             mode: "replace",
           },
         });
-        toast.success(companyId ? "Instalacao vinculada com sucesso." : "Vinculo removido com sucesso.");
+        toast.success(companyId ? "Instalação vinculada com sucesso." : "Vínculo removido com sucesso.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -730,7 +729,7 @@ export function RemoteHostDetailsPanel({
 
   function handleBulkRelinkInstallations(companyId: string | null) {
     if (!installationContextsForDisplay.length) {
-      toast.error("Nenhuma instalacao disponivel para a acao em lote.");
+      toast.error("Nenhuma instalação disponível para a ação em lote.");
       return;
     }
 
@@ -751,8 +750,8 @@ export function RemoteHostDetailsPanel({
 
         toast.success(
           companyId
-            ? `Vinculo aplicado em ${installationContextsForDisplay.length} instalacao(oes).`
-            : `Vinculo removido em ${installationContextsForDisplay.length} instalacao(oes).`
+            ? `Vínculo aplicado em ${installationContextsForDisplay.length} instalação(ões).`
+            : `Vínculo removido em ${installationContextsForDisplay.length} instalação(ões).`
         );
         router.refresh();
       } catch (error) {
@@ -775,7 +774,7 @@ export function RemoteHostDetailsPanel({
           hostId: host.id,
           companyId: host.companyId,
           ticketNumber: ticketNumber,
-          reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso tecnico via Portal",
+          reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso técnico via Portal",
         });
 
         if (result.success) {
@@ -863,7 +862,7 @@ export function RemoteHostDetailsPanel({
                 ) : (
                     <PlayCircle className="h-4 w-4" />
                 )}
-                {isStartingSession ? "Iniciando..." : (isMobileClient ? "App" : "Sessao auditada")}
+                {isStartingSession ? "Iniciando..." : (isMobileClient ? "App" : "Sessão auditada")}
             </Button>
           </div>
         </div>
@@ -950,7 +949,7 @@ export function RemoteHostDetailsPanel({
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
             <div className="space-y-6">
               {/* Inventory Signals */}
               {(rebootPending || (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) || contractValidationError) && (
@@ -958,20 +957,20 @@ export function RemoteHostDetailsPanel({
                    <CardHeader className="pb-2 px-4 pt-4">
                     <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      Alertas Críticos
+                      Alertas críticos
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 flex flex-wrap gap-2">
                     {rebootPending && (
                       <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
                         <RefreshCw className="mr-1.5 h-3 w-3 animate-spin-slow" />
-                        Reinicializacao necessaria
+                        Reinicialização necessária
                       </Badge>
                     )}
                     {(host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) && (
                       <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
                         <Database className="mr-1.5 h-3 w-3" />
-                        Espaco em disco critico
+                        Espaço em disco crítico
                       </Badge>
                     )}
                     {contractValidationError && (
@@ -984,7 +983,6 @@ export function RemoteHostDetailsPanel({
                 </Card>
               )}
 
-              {/* System Overview List */}
               <div className="grid gap-4 sm:grid-cols-2">
                  <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -992,80 +990,49 @@ export function RemoteHostDetailsPanel({
                       <span className="text-[10px] font-bold uppercase tracking-wider">Última atividade</span>
                     </div>
                     <div className="space-y-0.5">
-                      <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(host.lastHeartbeatAt)}</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(host.lastHeartbeatAt)}</p>
+                      <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
+                      <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
                     </div>
                  </div>
                  
                  <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10 text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Estado do Agente</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Estado do agente</span>
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-lg font-bold text-foreground capitalize">{serviceStatus.label}</p>
-                      <p className="text-xs text-muted-foreground">Versão: {host.agentVersion ?? "N/A"}</p>
+                      <p className="text-xs text-muted-foreground">Versão: {agent.agentVersion ?? "N/A"}</p>
                     </div>
                  </div>
               </div>
 
-               <Card className="border-border/40 bg-muted/5">
-                 <CardHeader className="pb-3 px-6 pt-6 uppercase tracking-widest font-bold text-muted-foreground text-[10px] border-b border-border/40 mb-4">
-                    Instalações Detectadas
-                 </CardHeader>
-                 <CardContent className="px-6 pb-6 p-0">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {installations.map((installation, idx) => (
-                          <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-background/50 hover:border-primary/30 transition-all group">
-                             <div className="mt-0.5 rounded-lg bg-primary/5 p-1.5 text-primary/70 group-hover:text-primary transition-colors">
-                                <Server className="h-4 w-4" />
-                             </div>
-                             <div className="min-w-0">
-                                <p className="text-xs font-bold text-foreground truncate">{installation.resolvedCompanyName ?? installation.companyLabel}</p>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate">{installation.path}</p>
-                             </div>
-                          </div>
-                        ))}
-                    </div>
-                 </CardContent>
-               </Card>
             </div>
 
-            {/* Quick Timeline / Operation Log Sidebar */}
-            <div className="w-full lg:w-72 space-y-4">
-                <Card className="border-border/40 bg-muted/5">
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ações Rápidas</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 flex flex-col gap-2">
-                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}>
-                      <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                      Reenviar configuração
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs" onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}>
-                      <Zap className="mr-2 h-3.5 w-3.5" />
-                      Reaplicar identidade
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full justify-start h-9 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/5 group" onClick={handleRotateAgentToken}>
-                      <Shield className="mr-2 h-3.5 w-3.5 transition-transform group-hover:rotate-180 duration-500" />
-                      Renovar credenciais
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <div className="rounded-xl border border-border/40 bg-background/40 p-4 space-y-4">
-                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sessões Ativas</p>
-                   <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                        <Monitor className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{host.openSessionCount || "Zero"} sessoes</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Em andamento</p>
-                      </div>
-                   </div>
+            <Card className="h-fit w-full border-border/40 bg-muted/5 lg:w-72">
+              <CardHeader className="px-4 pb-2 pt-4">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Foco operacional
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Esta visão geral mostra só sinais imediatos. As ações e o inventário detalhado ficam concentrados nos tabs para evitar duplicidade.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 px-4 pb-4 pt-0">
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-xs font-semibold text-foreground">Instalações</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Caminhos, vínculos e empresas associadas ficam no tab <span className="font-medium text-foreground">Instalações</span>.
+                  </p>
                 </div>
-            </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-xs font-semibold text-foreground">Agente</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Renovação de credenciais, reenvio de configuração e reaplicação de identidade ficam no tab <span className="font-medium text-foreground">Agente</span>.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
