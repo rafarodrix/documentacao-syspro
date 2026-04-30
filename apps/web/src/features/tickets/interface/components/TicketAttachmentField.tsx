@@ -39,7 +39,7 @@ export function TicketAttachmentField({
         </div>
         <Button type="button" variant="outline" size={compact ? "sm" : "default"} className="gap-2" onClick={() => inputRef.current?.click()}>
           <Upload className="h-4 w-4" />
-          Adicionar
+          Anexo
         </Button>
       </div>
 

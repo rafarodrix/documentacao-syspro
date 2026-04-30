@@ -173,24 +173,6 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                         <TabsTrigger value="INTERNAL" className="h-6 px-2 text-xs">Nota Interna</TabsTrigger>
                                     </TabsList>
                                 </Tabs>
-
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-                                            <FileText className="h-3.5 w-3.5" />
-                                            Templates
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-64">
-                                        <DropdownMenuLabel className="text-xs">Respostas rapidas</DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        {quickTemplates.map((template) => (
-                                            <DropdownMenuItem key={template.id} className="text-xs" onClick={() => insertTemplate(template.value)}>
-                                                {template.label}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
                             </div>
 
                             {files.length > 0 && (
@@ -224,17 +206,35 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                     />
                                 </div>
 
-                                <div className="flex shrink-0 flex-col gap-2">
+                                <div className="flex shrink-0 flex-col gap-2 self-start">
                                     <input type="file" multiple hidden ref={fileInputRef} onChange={(event) => addFiles(event.target.files)} />
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button type="button" variant="outline" size="default" className="h-10 min-w-28 justify-start rounded-lg border-border/60">
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Templates
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-64">
+                                            <DropdownMenuLabel className="text-xs">Respostas rapidas</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {quickTemplates.map((template) => (
+                                                <DropdownMenuItem key={template.id} className="text-xs" onClick={() => insertTemplate(template.value)}>
+                                                    {template.label}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="icon"
+                                        size="default"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="h-10 w-10 rounded-lg border-border/60 hover:bg-muted"
+                                        className="h-10 min-w-28 justify-start rounded-lg border-border/60 hover:bg-muted"
                                         title="Anexar arquivos"
                                     >
-                                        <Paperclip className="h-4 w-4" />
+                                        <Paperclip className="mr-2 h-4 w-4" />
+                                        Anexo
                                     </Button>
 
                                     <Button

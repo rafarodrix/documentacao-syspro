@@ -9,10 +9,8 @@ import {
   Code2,
   Headphones,
   Loader2,
-  Paperclip,
   Send,
   Tags,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -51,6 +49,7 @@ import {
   TicketCompanyPicker,
   type TicketCompanyPickerOption,
 } from "@/features/tickets/interface/components/TicketCompanyPicker";
+import { TicketAttachmentField } from "@/features/tickets/interface/components/TicketAttachmentField";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/TicketModuleCascadeSelect";
 import {
   getSuggestedCategoryForTeam,
@@ -92,11 +91,6 @@ type TicketTeam = "SUPORTE" | "DESENVOLVIMENTO";
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").trim();
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 function getTeamLabel(settings: TicketModuleSettings, team: string) {
@@ -545,14 +539,6 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Label>Descricao detalhada</Label>
-                    <div className="flex items-center gap-2">
-                      {files.length > 0 ? (
-                        <span className="text-xs text-muted-foreground">{files.length} anexo(s)</span>
-                      ) : null}
-                      <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => fileInputRef.current?.click()} title="Anexar evidencias">
-                        <Paperclip className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
                   </div>
                   <TicketRichTextEditor
                     value={descriptionHtml}
@@ -561,7 +547,6 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                     className="ticket-create-editor"
                     minHeightClassName="min-h-80"
                   />
-                  <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.json,.log" onChange={handleFileChange} />
                   {form.formState.errors.description ? (
                     <p className="text-[0.8rem] font-medium text-destructive">{form.formState.errors.description.message}</p>
                   ) : (
@@ -570,7 +555,13 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                       Minimo de 20 caracteres. Evite dados sensiveis quando anexar evidencias.
                     </p>
                   )}
-                  <AttachmentChips files={files} onRemove={removeFile} />
+                  <TicketAttachmentField
+                    files={files}
+                    inputRef={fileInputRef}
+                    onChange={handleFileChange}
+                    onRemove={removeFile}
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.json,.log"
+                  />
                 </div>
 
                 {isSystemUser && (
@@ -580,9 +571,6 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                         <Code2 className="h-4 w-4 text-muted-foreground" />
                         <h2 className="text-sm font-semibold text-foreground">Contexto tecnico</h2>
                       </div>
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => fileInputRef.current?.click()} title="Anexar evidencia tecnica">
-                        <Paperclip className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
@@ -716,25 +704,6 @@ function TeamPanel({ team, label }: { team: string; label: string }) {
         {label}
       </span>
       <p className="mt-1 text-xs text-muted-foreground">Chamados de cliente entram primeiro no suporte.</p>
-    </div>
-  );
-}
-
-function AttachmentChips({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
-  if (!files.length) return null;
-
-  return (
-    <div className="flex flex-wrap gap-2 pt-1">
-      {files.map((file, index) => (
-        <div key={`${file.name}:${file.size}:${index}`} className="flex max-w-full items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs">
-          <Paperclip className="h-3 w-3 shrink-0 text-primary" />
-          <span className="max-w-44 truncate font-medium text-foreground">{file.name}</span>
-          <span className="shrink-0 text-muted-foreground">{formatFileSize(file.size)}</span>
-          <button type="button" className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-primary/15 hover:text-destructive" onClick={() => onRemove(index)}>
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      ))}
     </div>
   );
 }
