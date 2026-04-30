@@ -6,6 +6,7 @@ import { requestRemoteSessionAction } from "@/features/remote/application/sessio
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ArrowLeft,
+  ArrowRightLeft,
   Copy,
   ExternalLink,
   Fingerprint,
@@ -27,13 +28,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
@@ -96,8 +90,11 @@ export function RemoteHostDetailsPanel({
   const [installationFilter, setInstallationFilter] = useState<"all" | "unlinked">("all");
   const [bulkInstallationCompanyId, setBulkInstallationCompanyId] = useState(details.companyOptions[0]?.id ?? "");
   const [selectedCompanyByUpdateId, setSelectedCompanyByUpdateId] = useState<Record<string, string>>({});
-  const [machineProfileDraft, setMachineProfileDraft] = useState(host.machineProfile ?? "");
-  const [primaryCompanyDraft, setPrimaryCompanyDraft] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
+  const [manualInstallationCompanyId, setManualInstallationCompanyId] = useState(host.companyId ?? details.companyOptions[0]?.id ?? "");
+  const [manualInstallationPath, setManualInstallationPath] = useState(
+    details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY
+  );
+  const [isCreatingManualInstallation, startCreatingManualInstallation] = useTransition();
   const agent = host.agent;
   const normalizedRustdeskId = agent.rustdeskId ? agent.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = agent.machineName ?? null;
@@ -120,12 +117,12 @@ export function RemoteHostDetailsPanel({
   }, [ticketNumber]);
 
   useEffect(() => {
-    setMachineProfileDraft(host.machineProfile ?? "");
-  }, [host.machineProfile]);
+    setManualInstallationCompanyId(host.companyId ?? details.companyOptions[0]?.id ?? "");
+  }, [details.companyOptions, host.companyId]);
 
   useEffect(() => {
-    setPrimaryCompanyDraft(host.companyId ?? details.companyOptions[0]?.id ?? "");
-  }, [details.companyOptions, host.companyId]);
+    setManualInstallationPath(details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY);
+  }, [details.company.installationDirectory]);
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
@@ -449,28 +446,6 @@ export function RemoteHostDetailsPanel({
     if (details.agentHealth.contractErrorCode) return details.agentHealth.contractErrorCode;
     return extractContractValidationError(agent.lastHeartbeatErrorMessage);
   }, [agent.lastHeartbeatErrorMessage, details.agentHealth.contractErrorCode]);
-  const ackQueueMetrics = useMemo(() => {
-    const pendingFromMetrics =
-      agentMetrics && typeof agentMetrics["pendingAckQueueSize"] === "number"
-        ? (agentMetrics["pendingAckQueueSize"] as number)
-        : null;
-    const ackQueueFlush =
-      agentMetrics && typeof agentMetrics["ackQueueFlush"] === "object" && !Array.isArray(agentMetrics["ackQueueFlush"])
-        ? (agentMetrics["ackQueueFlush"] as Record<string, unknown>)
-        : null;
-    const reprocessedFromMetrics =
-      ackQueueFlush && typeof ackQueueFlush["failed"] === "number" ? (ackQueueFlush["failed"] as number) : null;
-
-    const pendingFallback = details.agentCommands.filter(
-      (command) => command.status === "PENDING" || command.status === "DELIVERED"
-    ).length;
-    const reprocessedFallback = details.agentCommands.filter((command) => command.attemptCount > 1).length;
-
-    return {
-      pending: pendingFromMetrics ?? pendingFallback,
-      reprocessed: reprocessedFromMetrics ?? reprocessedFallback,
-    };
-  }, [agentMetrics, details.agentCommands]);
   const orchestrationStrategy = useMemo(() => {
     const raw =
       agentMetrics && typeof agentMetrics["orchestrationStrategy"] === "string"
@@ -482,22 +457,44 @@ export function RemoteHostDetailsPanel({
     return raw;
   }, [agentMetrics]);
   const machineIpv4 = useMemo(() => {
-    const fromSystem = extractStringFromPayload(systemSnapshot, [
-      "ipv4",
-      "ipV4",
-      "primaryIpv4",
-      "ipAddress",
-      "localIp",
-    ]);
-    if (fromSystem) return fromSystem;
-    const fromNetwork = extractStringFromPayload(networkSnapshot, [
-      "ipv4",
-      "ipV4",
-      "primaryIp",
-      "ipAddress",
-      "localIp",
-    ]);
-    return fromNetwork ?? agent.lastKnownIp ?? null;
+    const ipv4Pattern =
+      /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g;
+
+    const isPrivateIpv4 = (value: string) =>
+      /^10\./.test(value) ||
+      /^192\.168\./.test(value) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(value) ||
+      /^127\./.test(value);
+
+    const extractIpv4Candidates = (input: unknown): string[] => {
+      const found = new Set<string>();
+      const visit = (value: unknown) => {
+        if (typeof value === "string") {
+          const matches = value.match(ipv4Pattern) ?? [];
+          for (const match of matches) found.add(match);
+          return;
+        }
+        if (Array.isArray(value)) {
+          value.forEach(visit);
+          return;
+        }
+        if (value && typeof value === "object") {
+          Object.values(value as Record<string, unknown>).forEach(visit);
+        }
+      };
+      visit(input);
+      return Array.from(found);
+    };
+
+    const fromSnapshots = [...extractIpv4Candidates(networkSnapshot), ...extractIpv4Candidates(systemSnapshot)];
+    const privateFromSnapshots = fromSnapshots.find(isPrivateIpv4);
+    if (privateFromSnapshots) return privateFromSnapshots;
+
+    const explicitLocal = extractStringFromPayload(networkSnapshot, ["localIp", "localIpv4", "ipv4", "ipV4", "primaryIp"]);
+    if (explicitLocal && isPrivateIpv4(explicitLocal)) return explicitLocal;
+
+    if (agent.lastKnownIp && isPrivateIpv4(agent.lastKnownIp)) return agent.lastKnownIp;
+    return explicitLocal ?? agent.lastKnownIp ?? null;
   }, [agent.lastKnownIp, networkSnapshot, systemSnapshot]);
   const sysproServerInstallations = useMemo(
     () => dedupedInstallationContexts.filter((context) => context.update.isServerHost === true),
@@ -642,39 +639,6 @@ export function RemoteHostDetailsPanel({
     });
   }
 
-  function handleSaveHostIdentity(nextCompanyId: string, nextMachineProfile: string | null) {
-    if (!nextCompanyId) {
-      toast.error("Selecione a empresa principal do host.");
-      return;
-    }
-
-    startSavingMachineName(async () => {
-      try {
-        await requestRemoteMutation({
-          url: `/api/remote/hosts/${host.id}`,
-          method: "PATCH",
-          body: {
-            companyId: nextCompanyId,
-            name: host.name,
-            machineName: agent.machineName,
-            machineProfile: nextMachineProfile,
-            environment: host.environment,
-            provider: host.provider,
-            description: host.description,
-            notes: host.notes,
-            agentExternalId: agent.rustdeskId,
-            status: host.status,
-          },
-        });
-
-        toast.success("Empresa principal e perfil da máquina atualizados.");
-        router.refresh();
-      } catch (error) {
-        toast.error(getRemoteApiErrorMessage(error));
-      }
-    });
-  }
-
   function handleRotateAgentToken() {
     startRevokingAgentToken(async () => {
       try {
@@ -682,7 +646,7 @@ export function RemoteHostDetailsPanel({
           url: `/api/remote/hosts/${host.id}/agent-token`,
           method: "POST",
         });
-        toast.success(result.message ?? "Credencial renovada.");
+        toast.success(result.message ?? "Credencial do agente renovada.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -698,7 +662,7 @@ export function RemoteHostDetailsPanel({
           method: "POST",
           body: { action },
         });
-        toast.success(result.message ?? "Ação remota enfileirada.");
+        toast.success(result.message ?? "Ação manual do agente enfileirada.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -758,6 +722,36 @@ export function RemoteHostDetailsPanel({
             ? `Vínculo aplicado em ${installationContextsForDisplay.length} instalação(ões).`
             : `Vínculo removido em ${installationContextsForDisplay.length} instalação(ões).`
         );
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
+  function handleCreateManualInstallation() {
+    if (!manualInstallationCompanyId) {
+      toast.error("Selecione a empresa da instalação.");
+      return;
+    }
+
+    const normalizedPath = manualInstallationPath.trim();
+    if (!normalizedPath) {
+      toast.error("Informe o diretório monitorado da instalação.");
+      return;
+    }
+
+    startCreatingManualInstallation(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}/syspro-updates`,
+          method: "POST",
+          body: {
+            companyId: manualInstallationCompanyId,
+            path: normalizedPath,
+          },
+        });
+        toast.success("Instalação manual adicionada.");
         router.refresh();
       } catch (error) {
         toast.error(getRemoteApiErrorMessage(error));
@@ -956,6 +950,37 @@ export function RemoteHostDetailsPanel({
 
           <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
             <div className="space-y-6">
+              <Card className="border-border/40 bg-muted/5 shadow-sm">
+                <CardHeader className="pb-3 px-6 pt-6">
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Monitor className="h-4 w-4" />
+                    Identidade do host
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Use um nome operacional fácil de buscar, por exemplo <span className="font-medium text-foreground">Caixa 01 | Tudo Congelados</span>.
+                    </p>
+                    <Input
+                      value={projectedHostName}
+                      onChange={(event) => setProjectedHostName(event.target.value)}
+                      placeholder="Ex.: Caixa 01 | Tudo Congelados"
+                      disabled={isSavingMachineName}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleSaveProjectedHostName}
+                    disabled={isSavingMachineName || !canSaveProjectedHostName}
+                    className="gap-2"
+                  >
+                    {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                    {isSavingMachineName ? "Salvando..." : "Salvar nome"}
+                  </Button>
+                </CardContent>
+              </Card>
+
               {/* Inventory Signals */}
               {(rebootPending || (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) || contractValidationError) && (
                 <Card className="border-rose-500/20 bg-rose-500/5">
@@ -1083,12 +1108,12 @@ export function RemoteHostDetailsPanel({
             setSelectedCompanyByUpdateId={setSelectedCompanyByUpdateId}
             isRelinkingInstallation={isRelinkingInstallation}
             handleRelinkInstallation={handleRelinkInstallation}
-            machineProfileDraft={machineProfileDraft}
-            setMachineProfileDraft={setMachineProfileDraft}
-            primaryCompanyDraft={primaryCompanyDraft}
-            setPrimaryCompanyDraft={setPrimaryCompanyDraft}
-            isSavingHostIdentity={isSavingMachineName}
-            handleSaveHostIdentity={handleSaveHostIdentity}
+            manualInstallationCompanyId={manualInstallationCompanyId}
+            setManualInstallationCompanyId={setManualInstallationCompanyId}
+            manualInstallationPath={manualInstallationPath}
+            setManualInstallationPath={setManualInstallationPath}
+            isCreatingManualInstallation={isCreatingManualInstallation}
+            handleCreateManualInstallation={handleCreateManualInstallation}
           />
         </TabsContent>
 
@@ -1104,7 +1129,6 @@ export function RemoteHostDetailsPanel({
             details={details}
             bootstrapRateMetrics={bootstrapRateMetrics}
             contractSchemaVersions={contractSchemaVersions}
-            agentMetrics={agentMetrics}
             isRevokingAgentToken={isRevokingAgentToken}
             handleRotateAgentToken={handleRotateAgentToken}
             isRequestingResendConfig={isRequestingResendConfig}
@@ -1114,7 +1138,6 @@ export function RemoteHostDetailsPanel({
             rustDeskCompliance={rustDeskCompliance}
             visibleAgentCommands={visibleAgentCommands}
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
-            ackQueueMetrics={ackQueueMetrics}
             hasPendingInstallGuide={hasPendingInstallGuide}
             linkedDevice={linkedDevice}
             hostId={host.id}

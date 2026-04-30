@@ -36,7 +36,6 @@ export interface HostAgentTabProps {
   details: RemoteHostDetails;
   bootstrapRateMetrics: { ratePct: number | null; cycles: number | null; bootstrapCycles: number | null };
   contractSchemaVersions: { discover: string | null; sync: string | null; ack: string | null };
-  agentMetrics: Record<string, unknown> | null;
   isRevokingAgentToken: boolean;
   handleRotateAgentToken: () => void;
   isRequestingResendConfig: boolean;
@@ -63,7 +62,6 @@ export interface HostAgentTabProps {
     failedAt: string | null;
   }>;
   hiddenAcknowledgedCount: number;
-  ackQueueMetrics: { pending: number; reprocessed: number };
   hasPendingInstallGuide: boolean;
   linkedDevice?: AgentDeviceSummary | null;
   hostId: string;
@@ -80,7 +78,6 @@ export function HostAgentTab({
   details,
   bootstrapRateMetrics,
   contractSchemaVersions,
-  agentMetrics,
   isRevokingAgentToken,
   handleRotateAgentToken,
   isRequestingResendConfig,
@@ -90,7 +87,6 @@ export function HostAgentTab({
   rustDeskCompliance,
   visibleAgentCommands,
   hiddenAcknowledgedCount,
-  ackQueueMetrics,
   hasPendingInstallGuide,
   linkedDevice = null,
   hostId,
@@ -263,10 +259,16 @@ export function HostAgentTab({
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="rounded-xl border border-border/50 bg-background/40 p-4">
+              <p className="text-sm font-medium text-foreground">Ações manuais de recuperação</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use estas ações apenas quando houver divergência real no agente. O fluxo normal de sync já tenta
+                corrigir alias e configuração automaticamente.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
               <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
                 <Fingerprint className="h-4 w-4" />
-                {isRevokingAgentToken ? "Renovando..." : "Renovar identidade do agente"}
+                {isRevokingAgentToken ? "Renovando..." : "Renovar credencial do agente"}
               </Button>
               <Button
                 variant="outline"
@@ -275,7 +277,7 @@ export function HostAgentTab({
                 className="w-full gap-2 sm:w-auto"
               >
                 <Copy className="h-4 w-4" />
-                {isRequestingResendConfig ? "Solicitando..." : "Reenviar configuracao"}
+                {isRequestingResendConfig ? "Solicitando..." : "Reaplicar configuração do módulo"}
               </Button>
               <Button
                 variant="outline"
@@ -284,8 +286,9 @@ export function HostAgentTab({
                 className="w-full gap-2 sm:w-auto"
               >
                 <HardDriveDownload className="h-4 w-4" />
-                {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar identidade"}
+                {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias do RustDesk"}
               </Button>
+              </div>
             </div>
 
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
@@ -409,61 +412,6 @@ export function HostAgentTab({
               </div>
             </details>
 
-            <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
-              <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                Métricas de confiabilidade
-              </summary>
-              <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 24h</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window24h}%</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 7 dias</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window7d}%</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sucesso 30 dias</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{details.commandSuccessRates.window30d}%</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Ações pendentes</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{ackQueueMetrics.pending}</p>
-                  <p className="text-xs text-muted-foreground">Aguardando confirmação do agente</p>
-                </div>
-                <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tentativas extras</p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">{ackQueueMetrics.reprocessed}</p>
-                  <p className="text-xs text-muted-foreground">Ações com mais de 1 tentativa</p>
-                </div>
-              </div>
-
-              <div className="mt-3 rounded-xl border border-border/50 bg-muted/15 p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Linha do tempo de ações</p>
-                    <p className="text-sm text-muted-foreground">Histórico de criação, entrega, execução e falha por ação.</p>
-                  </div>
-                  <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
-                    {details.commandTimeline.length} evento(s)
-                  </Badge>
-                </div>
-                {details.commandTimeline.length ? (
-                  <div className="mt-4 space-y-4">
-                    {details.commandTimeline.map((item) => (
-                      <div key={item.id} className="relative pl-6">
-                        <div className="absolute left-0 top-1 h-3 w-3 rounded-full bg-muted-foreground" />
-                        <div className="absolute bottom-0 left-[5px] top-4 w-[2px] bg-border/50 last:hidden" />
-                        <p className="text-sm font-medium text-foreground">{AGENT_COMMAND_LABEL[item.type as keyof typeof AGENT_COMMAND_LABEL]}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-4 text-sm text-muted-foreground">Nenhum historico de diagnostico registrado.</p>
-                )}
-              </div>
-            </details>
 
             {hasPendingInstallGuide ? (
               <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">

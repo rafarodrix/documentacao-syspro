@@ -432,6 +432,89 @@ export class RemoteAdminService {
     return this.callRemoteProcedure('hostsRevokeAgentToken', { hostId }, rawHeaders);
   }
 
+  async createManualRemoteHostSysproUpdate(
+    hostId: string,
+    body: unknown,
+    rawHeaders?: Record<string, unknown>,
+  ) {
+    await this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
+    const tenantScope = await this.resolveTenantScope(rawHeaders);
+    const payload = this.asObject(body);
+    const companyId = typeof payload.companyId === 'string' ? payload.companyId.trim() : '';
+    const rawPath = typeof payload.path === 'string' ? payload.path.trim() : '';
+    const path = rawPath || DEFAULT_INSTALLATION_DIRECTORY;
+
+    if (!companyId) {
+      throw new HttpException('Selecione a empresa da instalacao.', 400);
+    }
+
+    const host = await prisma.remoteHost.findFirst({
+      where: tenantScope.isGlobalView
+        ? { id: hostId }
+        : { id: hostId, companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] } },
+      select: { id: true },
+    });
+
+    if (!host) {
+      throw new ForbiddenException('Host remoto nao encontrado no escopo.');
+    }
+
+    if (!tenantScope.isGlobalView && !tenantScope.companyIds.includes(companyId)) {
+      throw new ForbiddenException('Empresa nao encontrada no escopo para vinculacao.');
+    }
+
+    const company = await prisma.company.findFirst({
+      where: { id: companyId, deletedAt: null },
+      select: { id: true, nomeFantasia: true, razaoSocial: true },
+    });
+
+    if (!company) {
+      throw new ForbiddenException('Empresa nao encontrada no escopo para vinculacao.');
+    }
+
+    const companyLabel = company.nomeFantasia?.trim() || company.razaoSocial.trim();
+    const now = new Date();
+    const existing = await prisma.remoteHostSysproUpdate.findFirst({
+      where: {
+        hostId,
+        path,
+        OR: [{ companyId }, { companyLabel }],
+      },
+      select: { id: true },
+    });
+
+    const update = existing
+      ? await prisma.remoteHostSysproUpdate.update({
+          where: { id: existing.id },
+          data: {
+            companyId,
+            companyLabel,
+            path,
+            lastHeartbeatAt: now,
+          },
+        })
+      : await prisma.remoteHostSysproUpdate.create({
+          data: {
+            hostId,
+            companyId,
+            companyLabel,
+            path,
+            lastHeartbeatAt: now,
+          },
+        });
+
+    return {
+      success: true,
+      data: {
+        id: update.id,
+        companyId: update.companyId,
+        companyLabel: update.companyLabel,
+        path: update.path,
+      },
+      message: 'Instalacao cadastrada manualmente com sucesso.',
+    };
+  }
+
   relinkRemoteHostSysproUpdate(
     hostId: string,
     updateId: string,

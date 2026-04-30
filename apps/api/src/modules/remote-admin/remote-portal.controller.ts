@@ -66,6 +66,11 @@ export class RemotePortalController {
     return this.remoteAdminService.revokeRemoteHostAgentToken(id, req.headers);
   }
 
+  @Post('hosts/:id/syspro-updates')
+  createManualHostSysproUpdate(@Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
+    return this.remoteAdminService.createManualRemoteHostSysproUpdate(id, body, req.headers);
+  }
+
   @Patch('hosts/:id/syspro-updates/:updateId')
   relinkHostSysproUpdate(
     @Req() req: Request,
