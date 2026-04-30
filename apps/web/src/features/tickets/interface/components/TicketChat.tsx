@@ -308,7 +308,7 @@ const ALLOWED_HTML_TAGS = new Set([
     "ul",
 ]);
 
-const GLOBAL_ALLOWED_ATTRIBUTES = new Set(["class"]);
+const GLOBAL_ALLOWED_ATTRIBUTES = new Set<string>();
 const TAG_ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
     a: new Set(["href", "target", "rel"]),
     img: new Set(["src", "alt", "title"]),
