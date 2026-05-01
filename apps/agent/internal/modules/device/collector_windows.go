@@ -17,45 +17,58 @@ import (
 	"golang.org/x/sys/windows/svc/mgr"
 )
 
-// driveFixed e o tipo de unidade de disco fixo (DRIVE_FIXED = 3 na API Windows).
 const driveFixed = 3
 
-// kernel32 e a DLL de sistema base do Windows.
-// GlobalMemoryStatusEx nao e exposto em golang.org/x/sys/windows v0.38 —
-// chamamos via NewLazyProc, o mesmo padrao usado em infra/storage/protected_windows.go.
 var (
 	modKernel32              = windows.NewLazySystemDLL("kernel32.dll")
 	procGlobalMemoryStatusEx = modKernel32.NewProc("GlobalMemoryStatusEx")
+	procGetSystemTimes       = modKernel32.NewProc("GetSystemTimes")
+
+	modVersion                  = windows.NewLazySystemDLL("version.dll")
+	procGetFileVersionInfoSizeW = modVersion.NewProc("GetFileVersionInfoSizeW")
+	procGetFileVersionInfoW     = modVersion.NewProc("GetFileVersionInfoW")
+	procVerQueryValueW          = modVersion.NewProc("VerQueryValueW")
 )
 
-// memoryStatusEx espelha a struct MEMORYSTATUSEX da Win32 API.
-// Layout: 4+4+8*7 = 64 bytes, sem padding adicional necessario.
+// memoryStatusEx espelha a struct MEMORYSTATUSEX da Win32 API (64 bytes).
 type memoryStatusEx struct {
-	Length                uint32
-	MemoryLoad            uint32
-	TotalPhys             uint64
-	AvailPhys             uint64
-	TotalPageFile         uint64
-	AvailPageFile         uint64
-	TotalVirtual          uint64
-	AvailVirtual          uint64
-	AvailExtendedVirtual  uint64
+	Length               uint32
+	MemoryLoad           uint32
+	TotalPhys            uint64
+	AvailPhys            uint64
+	TotalPageFile        uint64
+	AvailPageFile        uint64
+	TotalVirtual         uint64
+	AvailVirtual         uint64
+	AvailExtendedVirtual uint64
 }
 
-// CollectMetrics coleta memoria via GlobalMemoryStatusEx (API nativa, ~0ms)
-// e CPU via PowerShell WMI (~50-80ms).
-// Total estimado: 50-100ms — reducao de ~60% em relacao a abordagem 100% PowerShell.
-func (c *Collector) CollectMetrics(ctx context.Context) (*AgentMetricsSnapshot, error) {
+// vsFixedFileInfo espelha VS_FIXEDFILEINFO de version.h.
+type vsFixedFileInfo struct {
+	Signature        uint32
+	StrucVersion     uint32
+	FileVersionMS    uint32
+	FileVersionLS    uint32
+	ProductVersionMS uint32
+	ProductVersionLS uint32
+	FileFlagsMask    uint32
+	FileFlags        uint32
+	FileOS           uint32
+	FileType         uint32
+	FileSubtype      uint32
+	FileDateMS       uint32
+	FileDateLS       uint32
+}
+
+// CollectMetrics coleta memoria, CPU e reboot pending via APIs nativas Win32.
+// Zero PowerShell, zero subprocess. Custo total < 1ms.
+func (c *Collector) CollectMetrics(_ context.Context) (*AgentMetricsSnapshot, error) {
 	totalMB, freeMB, err := c.collectMemoryNative()
 	if err != nil {
 		return nil, fmt.Errorf("collect memory: %w", err)
 	}
 
-	cpuLoad, err := c.collectCPU(ctx)
-	if err != nil {
-		c.logger.Warn("device: collect CPU failed, reporting 0", "error", err)
-		cpuLoad = 0
-	}
+	cpuLoad := c.collectCPUNative()
 
 	usedMB := totalMB - freeMB
 	usedPct := 0.0
@@ -74,8 +87,7 @@ func (c *Collector) CollectMetrics(ctx context.Context) (*AgentMetricsSnapshot, 
 	}, nil
 }
 
-// collectMemoryNative chama GlobalMemoryStatusEx diretamente via syscall.
-// Zero subprocess, zero PowerShell, ~0ms.
+// collectMemoryNative chama GlobalMemoryStatusEx via syscall. Zero subprocess, ~0ms.
 func (c *Collector) collectMemoryNative() (totalMB, freeMB uint64, err error) {
 	var stat memoryStatusEx
 	stat.Length = uint32(unsafe.Sizeof(stat))
@@ -86,8 +98,57 @@ func (c *Collector) collectMemoryNative() (totalMB, freeMB uint64, err error) {
 	return stat.TotalPhys / 1024 / 1024, stat.AvailPhys / 1024 / 1024, nil
 }
 
-// rebootPending verifica se ha reinicializacao pendente via chave de registro Windows.
-// Zero PowerShell — leitura direta via golang.org/x/sys/windows/registry.
+// collectCPUNative calcula o percentual de carga de CPU usando GetSystemTimes
+// com delta entre o ciclo atual e o anterior. Zero subprocess, ~0ms.
+//
+// GetSystemTimes retorna tempo acumulado em unidades de 100ns desde o boot:
+//   - kernelTime inclui idleTime
+//   - busy = (deltaKernel + deltaUser) - deltaIdle
+//   - cpuPct = busy / (deltaKernel + deltaUser) * 100
+//
+// Na primeira chamada nao ha delta: armazena o sample e retorna 0.
+func (c *Collector) collectCPUNative() float64 {
+	var idleTime, kernelTime, userTime windows.Filetime
+	r1, _, _ := procGetSystemTimes.Call(
+		uintptr(unsafe.Pointer(&idleTime)),
+		uintptr(unsafe.Pointer(&kernelTime)),
+		uintptr(unsafe.Pointer(&userTime)),
+	)
+	if r1 == 0 {
+		return 0
+	}
+
+	toU64 := func(ft windows.Filetime) uint64 {
+		return uint64(ft.HighDateTime)<<32 | uint64(ft.LowDateTime)
+	}
+	idle := toU64(idleTime)
+	kernel := toU64(kernelTime)
+	user := toU64(userTime)
+
+	if !c.hasPrevCPU {
+		c.prevCPUIdle = idle
+		c.prevCPUKernel = kernel
+		c.prevCPUUser = user
+		c.hasPrevCPU = true
+		return 0
+	}
+
+	deltaIdle := idle - c.prevCPUIdle
+	deltaKernel := kernel - c.prevCPUKernel
+	deltaUser := user - c.prevCPUUser
+
+	c.prevCPUIdle = idle
+	c.prevCPUKernel = kernel
+	c.prevCPUUser = user
+
+	deltaTotal := deltaKernel + deltaUser
+	if deltaTotal == 0 {
+		return 0
+	}
+	return round2(float64(deltaTotal-deltaIdle) / float64(deltaTotal) * 100)
+}
+
+// rebootPending verifica reinicializacao pendente via chave de registro. Zero PowerShell, ~0ms.
 func (c *Collector) rebootPending() bool {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired`,
@@ -99,9 +160,9 @@ func (c *Collector) rebootPending() bool {
 	return true
 }
 
-// CollectDisks enumera volumes de disco fixo usando APIs nativas do Windows.
+// CollectDisks enumera volumes de disco fixo via APIs nativas.
 // GetLogicalDriveStrings + GetDriveType + GetDiskFreeSpaceEx + GetVolumeInformation.
-// Zero PowerShell, ~0ms total independente do numero de volumes.
+// Zero PowerShell, ~0ms total.
 func (c *Collector) CollectDisks(_ context.Context) (*DiskVolumeSnapshot, error) {
 	snap := &DiskVolumeSnapshot{CollectedAt: nowRFC3339()}
 
@@ -115,8 +176,6 @@ func (c *Collector) CollectDisks(_ context.Context) (*DiskVolumeSnapshot, error)
 		if err != nil {
 			continue
 		}
-
-		// Ignora tudo que nao for disco fixo local (removivel, rede, CD, etc.)
 		if windows.GetDriveType(rootPtr) != driveFixed {
 			continue
 		}
@@ -144,9 +203,7 @@ func (c *Collector) CollectDisks(_ context.Context) (*DiskVolumeSnapshot, error)
 			usedPct = float64(usedMB) / float64(totalMB) * 100
 		}
 
-		// "C:\" → "C"
 		letter := strings.TrimSuffix(strings.TrimSuffix(root, `\`), ":")
-
 		snap.Volumes = append(snap.Volumes, DiskVolume{
 			Letter:  letter,
 			Label:   windows.UTF16ToString(volNameBuf[:]),
@@ -160,8 +217,7 @@ func (c *Collector) CollectDisks(_ context.Context) (*DiskVolumeSnapshot, error)
 	return snap, nil
 }
 
-// logicalDriveStrings chama GetLogicalDriveStrings e retorna a lista de raizes
-// no formato ["C:\", "D:\", ...].
+// logicalDriveStrings retorna raizes de drives no formato ["C:\", "D:\", ...].
 func logicalDriveStrings() ([]string, error) {
 	var buf [1024]uint16
 	n, err := windows.GetLogicalDriveStrings(uint32(len(buf)), &buf[0])
@@ -187,8 +243,7 @@ func logicalDriveStrings() ([]string, error) {
 	return result, nil
 }
 
-// CollectServices verifica o status dos servicos Windows via API nativa do SCM.
-// Custo total: < 5ms para todos os servicos. Zero PowerShell.
+// CollectServices verifica servicos Windows via SCM nativo. Custo < 5ms. Zero PowerShell.
 func (c *Collector) CollectServices(sysproInstalls []SysproInstallTarget) (*SysproProcessSnapshot, error) {
 	m, err := mgr.Connect()
 	if err != nil {
@@ -243,7 +298,7 @@ func queryService(m *mgr.Mgr, name string) (status string, pid uint32) {
 	return svcStateToString(q.State), q.ProcessId
 }
 
-// detectSysproServer localiza o servico do SysPro Server em tres camadas:
+// detectSysproServer localiza o servico SysPro Server em tres camadas:
 //  1. ServiceName fixo "SysproServer"
 //  2. DisplayName contendo "syspro" (cobre versoes com nome diferente)
 //  3. Existencia do SysproServer.exe no serverPath
@@ -252,6 +307,7 @@ func detectSysproServer(m *mgr.Mgr, serverPath string) (status string, pid uint3
 	if status != "not_installed" {
 		return
 	}
+
 	names, err := m.ListServices()
 	if err == nil {
 		for _, name := range names {
@@ -270,6 +326,7 @@ func detectSysproServer(m *mgr.Mgr, serverPath string) (status string, pid uint3
 			}
 		}
 	}
+
 	if serverPath != "" {
 		if _, statErr := os.Stat(filepath.Join(serverPath, "SysproServer.exe")); statErr == nil {
 			return "stopped", 0
@@ -291,4 +348,52 @@ func svcStateToString(state svc.State) string {
 	default:
 		return "unknown"
 	}
+}
+
+// readExeVersion le ProductVersion de um executavel PE via GetFileVersionInfoW + VerQueryValueW.
+// Zero PowerShell, zero subprocess, funciona em Session 0 (LocalSystem). Custo ~0ms.
+func (c *Collector) readExeVersion(exePath string) string {
+	pathPtr, err := windows.UTF16PtrFromString(exePath)
+	if err != nil {
+		return ""
+	}
+
+	var handle uintptr
+	size, _, _ := procGetFileVersionInfoSizeW.Call(
+		uintptr(unsafe.Pointer(pathPtr)),
+		uintptr(unsafe.Pointer(&handle)),
+	)
+	if size == 0 {
+		return ""
+	}
+
+	buf := make([]byte, size)
+	r1, _, _ := procGetFileVersionInfoW.Call(
+		uintptr(unsafe.Pointer(pathPtr)),
+		0,
+		size,
+		uintptr(unsafe.Pointer(&buf[0])),
+	)
+	if r1 == 0 {
+		return ""
+	}
+
+	var info *vsFixedFileInfo
+	var infoLen uint32
+	subBlock, _ := windows.UTF16PtrFromString(`\`)
+	r1, _, _ = procVerQueryValueW.Call(
+		uintptr(unsafe.Pointer(&buf[0])),
+		uintptr(unsafe.Pointer(subBlock)),
+		uintptr(unsafe.Pointer(&info)),
+		uintptr(unsafe.Pointer(&infoLen)),
+	)
+	if r1 == 0 || info == nil {
+		return ""
+	}
+
+	major := info.ProductVersionMS >> 16
+	minor := info.ProductVersionMS & 0xFFFF
+	patch := info.ProductVersionLS >> 16
+	build := info.ProductVersionLS & 0xFFFF
+	return fmt.Sprintf("%d.%d.%d.%d", major, minor, patch, build)
 }
