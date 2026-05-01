@@ -29,6 +29,24 @@ type CompanyContextDraft = {
   observacoes: string;
 };
 
+function normalizeInstallationPath(value: unknown) {
+  return typeof value === "string" ? value.trim().replace(/[\\/]+/g, "/").toLowerCase() : "";
+}
+
+export function resolveSysproVersionInfoForPath(
+  sysproVersionSnapshot: Record<string, unknown> | null,
+  installationPath: string,
+) {
+  const targetPath = normalizeInstallationPath(installationPath);
+  if (!targetPath) return null;
+
+  const installs = Array.isArray(sysproVersionSnapshot?.["installations"])
+    ? (sysproVersionSnapshot["installations"] as Record<string, unknown>[])
+    : [];
+
+  return installs.find((inst) => normalizeInstallationPath(inst["serverPath"]) === targetPath) ?? null;
+}
+
 type HostInstallationsTabProps = {
   details: HostInstallationsPanelDetails;
   installationFilter: "all" | "unlinked";
@@ -547,11 +565,10 @@ export function HostInstallationsTab({
                               <SearchableCompanyPicker
                                 value={addCompanyByUpdateId[entry.id] ?? ""}
                                 options={details.companyOptions.filter(
-                                  (opt) => opt.id !== entry.companyId
+                                  (opt) => opt.id !== entry.companyId && opt.id !== UNLINKED_COMPANY_VALUE
                                 )}
                                 onChange={(val) => setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: val }))}
                                 disabled={isRelinkingInstallation}
-                                placeholder="Selecionar empresa..."
                               />
                             </div>
                             <Button
@@ -576,12 +593,7 @@ export function HostInstallationsTab({
 
                     {/* Versão do SysproServer.exe */}
                     {(() => {
-                      const installs = Array.isArray(sysproVersionSnapshot?.["installations"])
-                        ? (sysproVersionSnapshot!["installations"] as Record<string, unknown>[])
-                        : [];
-                      const versionInfo = installs.find((inst) =>
-                        typeof inst["companyId"] === "string" && inst["companyId"] === entry.companyId
-                      );
+                      const versionInfo = resolveSysproVersionInfoForPath(sysproVersionSnapshot, entry.path);
                       if (!versionInfo) return null;
                       const exeVersion = typeof versionInfo["exeVersion"] === "string" ? versionInfo["exeVersion"] : null;
                       const exeExists = versionInfo["exeExists"] === true;

@@ -23,6 +23,23 @@ const DEVICE_INCLUDE = {
   remoteHost: { select: { id: true, name: true } },
 } as const;
 
+const DESIRED_STATE_DEVICE_INCLUDE = {
+  remoteHost: {
+    select: {
+      id: true,
+      remoteHostSysproUpdates: {
+        select: {
+          companyId: true,
+          companyLabel: true,
+          path: true,
+          company: { select: { nomeFantasia: true, razaoSocial: true } },
+        },
+        orderBy: [{ path: 'asc' }, { companyLabel: 'asc' }],
+      },
+    },
+  },
+} as const;
+
 type DeviceRow = {
   id: string;
   deviceId: string;
@@ -55,6 +72,21 @@ type AgentRemoteLinkContext = {
   companyId?: string;
   rustdeskId?: string;
 };
+
+type DesiredStateDeviceRow = {
+  remoteHost: {
+    id: string;
+    remoteHostSysproUpdates: Array<{
+      companyId: string | null;
+      companyLabel: string;
+      path: string;
+      company: {
+        nomeFantasia: string | null;
+        razaoSocial: string;
+      } | null;
+    }>;
+  } | null;
+} | null;
 
 @Injectable()
 export class AgentsService {
@@ -458,22 +490,27 @@ export class AgentsService {
       });
     }
 
-    const state = await this.buildDesiredState();
+    const state = await this.buildDesiredState(normalizedDeviceId);
     return {
       success: true,
       data: state,
     };
   }
 
-  private async buildDesiredState(): Promise<AgentDesiredState> {
+  private async buildDesiredState(deviceId: string): Promise<AgentDesiredState> {
     const remoteSettings = await getRemoteModuleSettingsSnapshot();
     const chatwoot = readChatwootRuntimeConfig();
+    const device = (await this.prisma.agentDevice.findUnique({
+      where: { deviceId },
+      select: DESIRED_STATE_DEVICE_INCLUDE,
+    })) as DesiredStateDeviceRow;
 
     const remoteEnabled = Boolean(
       remoteSettings.rustDeskServerHost &&
       remoteSettings.rustDeskServerConfig &&
       remoteSettings.defaultPassword,
     );
+    const sysproInstalls = this.buildDeviceSysproInstalls(device);
 
     return {
       version: 1,
@@ -513,10 +550,41 @@ export class AgentsService {
       device: {
         enabled: true,
         version: 'go-agent-v1',
-        collect_inventory: false,
-        collect_metrics: false,
+        collect_inventory: true,
+        collect_metrics: true,
+        syspro_installs: sysproInstalls,
       },
     };
+  }
+
+  private buildDeviceSysproInstalls(device: DesiredStateDeviceRow): NonNullable<AgentDesiredState['device']['syspro_installs']> {
+    const updates = device?.remoteHost?.remoteHostSysproUpdates ?? [];
+    const installs: NonNullable<AgentDesiredState['device']['syspro_installs']> = [];
+    const seen = new Set<string>();
+
+    for (const update of updates) {
+      const companyId = update.companyId?.trim();
+      const serverPath = update.path?.trim();
+      if (!companyId || !serverPath) continue;
+
+      const dedupeKey = `${companyId.toLowerCase()}::${serverPath.replace(/[\\/]+/g, '\\').toLowerCase()}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      const companyName =
+        update.company?.nomeFantasia?.trim() ||
+        update.company?.razaoSocial?.trim() ||
+        update.companyLabel.trim() ||
+        companyId;
+
+      installs.push({
+        company_id: companyId,
+        company_name: companyName,
+        server_path: serverPath,
+      });
+    }
+
+    return installs;
   }
 
   async listDevices(
