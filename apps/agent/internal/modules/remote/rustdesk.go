@@ -204,11 +204,11 @@ func (m *rustDeskManager) ensureInstalled(ctx context.Context, upgrade *rustDesk
 }
 
 func (m *rustDeskManager) ensureServiceRunning(ctx context.Context, exePath string) (string, error) {
-	if runtime.GOOS != "windows" {
+	if status := rustdeskServiceStatus(); status == "unsupported" {
 		return "unsupported", nil
 	}
 
-	status := m.getServiceStatus(ctx)
+	status := rustdeskServiceStatus()
 	if status == "running" {
 		return status, nil
 	}
@@ -219,14 +219,14 @@ func (m *rustDeskManager) ensureServiceRunning(ctx context.Context, exePath stri
 		}
 	}
 
-	if err := m.runPowerShell(ctx, "Start-Service -Name 'RustDesk' -ErrorAction Stop"); err != nil {
+	if err := rustdeskServiceStart(); err != nil {
 		return status, fmt.Errorf("start rustdesk service: %w", err)
 	}
 
 	// Poll until the service reports "running" or the deadline expires.
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
-		current := m.getServiceStatus(ctx)
+		current := rustdeskServiceStatus()
 		if current == "running" {
 			return current, nil
 		}
@@ -236,7 +236,7 @@ func (m *rustDeskManager) ensureServiceRunning(ctx context.Context, exePath stri
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-	return m.getServiceStatus(ctx), nil
+	return rustdeskServiceStatus(), nil
 }
 
 func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string, desired rustDeskDesiredConfig) error {
@@ -259,7 +259,7 @@ func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string
 	// Restart the service so it picks up the new config cleanly.  This also
 	// eliminates any residual white-screen state from a previous launch.
 	if desired.RestartServiceAfterApply {
-		_ = m.runPowerShell(ctx, "Restart-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
+		_ = rustdeskServiceRestart()
 	}
 	return nil
 }
@@ -275,9 +275,9 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 	const maxAttempts = 8
 	waitSeconds := 2
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("& '%s' --get-id 2>&1 | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | Out-String", escapePowerShellSingleQuoted(exePath)))
-		if err == nil {
-			if id := normalizeRustDeskID(output); id != "" {
+		cmd := exec.CommandContext(ctx, exePath, "--get-id")
+		if out, err := cmd.CombinedOutput(); err == nil {
+			if id := normalizeRustDeskID(string(out)); id != "" {
 				return id
 			}
 		} else {
@@ -317,13 +317,8 @@ func (m *rustDeskManager) getIDFromConfig() string {
 	return ""
 }
 
-func (m *rustDeskManager) getVersion(ctx context.Context, exePath string) string {
-	output, err := m.runPowerShellOutput(ctx, fmt.Sprintf("(Get-Item '%s').VersionInfo.ProductVersion | Out-String", escapePowerShellSingleQuoted(exePath)))
-	if err != nil {
-		m.logger.Warn("rustdesk version capture failed", "error", err)
-		return ""
-	}
-	return strings.TrimSpace(output)
+func (m *rustDeskManager) getVersion(_ context.Context, exePath string) string {
+	return readExeProductVersion(exePath)
 }
 
 func (m *rustDeskManager) getAccessPassword() string {
@@ -381,21 +376,8 @@ func (m *rustDeskManager) resolveExecutable() (string, error) {
 	return "", nil
 }
 
-func (m *rustDeskManager) getServiceStatus(ctx context.Context) string {
-	if runtime.GOOS != "windows" {
-		return "unsupported"
-	}
-
-	output, err := m.runPowerShellOutput(ctx, "$svc = Get-Service -Name 'RustDesk' -ErrorAction SilentlyContinue; if ($null -eq $svc) { 'missing' } else { $svc.Status.ToString().ToLowerInvariant() }")
-	if err != nil {
-		m.logger.Warn("rustdesk service status lookup failed", "error", err)
-		return "unknown"
-	}
-	status := strings.TrimSpace(strings.ToLower(output))
-	if status == "" {
-		return "unknown"
-	}
-	return status
+func (m *rustDeskManager) getServiceStatus(_ context.Context) string {
+	return rustdeskServiceStatus()
 }
 
 func (m *rustDeskManager) downloadInstaller(ctx context.Context, rawURL, checksum string) (string, error) {
@@ -583,11 +565,11 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 			return fmt.Errorf("run msi installer: agente nao esta rodando com privilegios de administrador; configure o servico do agente para rodar como SYSTEM ou Administrador")
 		}
 
-		_ = m.runPowerShell(ctx, "Stop-Service -Name 'RustDesk' -Force -ErrorAction SilentlyContinue")
-		_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
+		_ = rustdeskServiceStop()
+		killRustDeskProcesses()
 		stopDeadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(stopDeadline) {
-			if s := m.getServiceStatus(ctx); s == "stopped" || s == "missing" {
+			if s := rustdeskServiceStatus(); s == "stopped" || s == "missing" {
 				break
 			}
 			select {
@@ -596,7 +578,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 			}
 		}
 
-		if pending, _ := m.isRebootPending(ctx); pending {
+		if isRebootPendingNative() {
 			m.logger.Warn("system has a pending reboot; msi installation may fail — consider rebooting first")
 		}
 
@@ -617,7 +599,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		time.Sleep(3 * time.Second)
 		// Do not leave any auto-launched RustDesk process alive here. The caller
 		// will start the service in a controlled step before applying config.
-		_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
+		killRustDeskProcesses()
 		if logPath != "" {
 			m.logger.Info("rustdesk msi installer completed", "log_path", logPath)
 		}
@@ -630,7 +612,7 @@ func (m *rustDeskManager) runInstaller(ctx context.Context, installerPath, silen
 		// Kill any GUI/tray the EXE installer auto-launched; prevents the white
 		// screen the user would see if RustDesk opens before config is applied.
 		if m.suppressTrayShortcuts {
-			_ = m.runPowerShell(ctx, "Stop-Process -Name 'rustdesk' -Force -ErrorAction SilentlyContinue")
+			killRustDeskProcesses()
 			time.Sleep(2 * time.Second)
 		}
 	}
@@ -676,37 +658,17 @@ func (m *rustDeskManager) prepareInstallerLogPath(prefix string) (string, error)
 }
 
 func (m *rustDeskManager) runRustDeskCommand(ctx context.Context, exePath string, args ...string) error {
-	command := fmt.Sprintf("& '%s' %s | Out-String", escapePowerShellSingleQuoted(exePath), joinPowerShellArgs(args))
-	_, err := m.runPowerShellOutput(ctx, command)
-	return err
+	cmd := exec.CommandContext(ctx, exePath, args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func (m *rustDeskManager) runMSIInstaller(ctx context.Context, args []string) ([]byte, error) {
-	script := fmt.Sprintf(
-		"$p = Start-Process -FilePath 'msiexec.exe' -ArgumentList @(%s) -WindowStyle Hidden -Wait -PassThru; exit $p.ExitCode",
-		joinPowerShellStringArray(args),
-	)
-
-	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return output, err
-	}
-	return output, nil
-}
-
-func (m *rustDeskManager) runPowerShell(ctx context.Context, script string) error {
-	_, err := m.runPowerShellOutput(ctx, script)
-	return err
-}
-
-func (m *rustDeskManager) runPowerShellOutput(ctx context.Context, script string) (string, error) {
-	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(string(output)))
-	}
-	return string(output), nil
+	cmd := exec.CommandContext(ctx, "msiexec.exe", args...)
+	return cmd.CombinedOutput()
 }
 
 func normalizeRustDeskID(value string) string {
@@ -1049,49 +1011,6 @@ func resolveInstallerPackageType(source, configured string) string {
 	}
 }
 
-func joinPowerShellArgs(args []string) string {
-	escaped := make([]string, 0, len(args))
-	for _, arg := range args {
-		escaped = append(escaped, fmt.Sprintf("'%s'", escapePowerShellSingleQuoted(arg)))
-	}
-	return strings.Join(escaped, " ")
-}
-
-func joinPowerShellStringArray(args []string) string {
-	escaped := make([]string, 0, len(args))
-	for _, arg := range args {
-		escaped = append(escaped, fmt.Sprintf("'%s'", escapePowerShellSingleQuoted(arg)))
-	}
-	return strings.Join(escaped, ", ")
-}
-
-func escapePowerShellSingleQuoted(value string) string {
-	return strings.ReplaceAll(value, "'", "''")
-}
-
-func (m *rustDeskManager) isRunningElevated(ctx context.Context) (bool, error) {
-	if runtime.GOOS != "windows" {
-		return true, nil
-	}
-	out, err := m.runPowerShellOutput(ctx, "([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)")
-	if err != nil {
-		return false, err
-	}
-	return strings.TrimSpace(strings.ToLower(out)) == "true", nil
-}
-
-func (m *rustDeskManager) isRebootPending(ctx context.Context) (bool, error) {
-	if runtime.GOOS != "windows" {
-		return false, nil
-	}
-	out, err := m.runPowerShellOutput(ctx, `
-		$pending = $false
-		if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { $pending = $true }
-		if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name PendingFileRenameOperations -ErrorAction SilentlyContinue) -ne $null) { $pending = $true }
-		$pending
-	`)
-	if err != nil {
-		return false, err
-	}
-	return strings.TrimSpace(strings.ToLower(out)) == "true", nil
+func (m *rustDeskManager) isRunningElevated(_ context.Context) (bool, error) {
+	return isProcessElevated(), nil
 }
