@@ -547,7 +547,7 @@ export function HostInstallationsTab({
                               <SearchableCompanyPicker
                                 value={addCompanyByUpdateId[entry.id] ?? ""}
                                 options={details.companyOptions.filter(
-                                  (opt) => opt.value !== entry.companyId && opt.value !== UNLINKED_COMPANY_VALUE
+                                  (opt) => opt.id !== entry.companyId
                                 )}
                                 onChange={(val) => setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: val }))}
                                 disabled={isRelinkingInstallation}
