@@ -46,8 +46,19 @@ type SupportDesiredState struct {
 }
 
 type DeviceDesiredState struct {
-	Enabled          bool   `json:"enabled"`
-	Version          string `json:"version"`
-	CollectInventory bool   `json:"collect_inventory"`
-	CollectMetrics   bool   `json:"collect_metrics"`
+	Enabled          bool                  `json:"enabled"`
+	Version          string                `json:"version"`
+	CollectInventory bool                  `json:"collect_inventory"`
+	CollectMetrics   bool                  `json:"collect_metrics"`
+	SysproInstalls   []SysproInstallTarget `json:"syspro_installs,omitempty"`
+}
+
+// SysproInstallTarget descreve uma instalacao do Syspro que o agente deve monitorar.
+// O portal injeta essa lista no desired state; o agente nao descobre os caminhos por conta propria.
+// Isso suporta multiplas instalacoes na mesma maquina (uma por empresa).
+type SysproInstallTarget struct {
+	CompanyID   string `json:"company_id"`
+	CompanyName string `json:"company_name"`
+	ServerPath  string `json:"server_path"` // ex: "C:\Syspro\Server"
+	DataPath    string `json:"data_path"`   // ex: "C:\Syspro\Base" (opcional)
 }

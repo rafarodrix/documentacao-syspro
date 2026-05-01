@@ -1,6 +1,6 @@
 # Master Agent Trilink - Estado atual da arquitetura
 
-Atualizado em 2026-04-28.
+Atualizado em 2026-05-01.
 
 ## Visao geral
 
@@ -344,9 +344,9 @@ Fluxo completo implementado:
 
 Leitura do RustDesk ID: tenta arquivo de config primeiro (`RustDesk2.toml` no perfil SYSTEM), depois CLI `--get-id` com retry exponencial.
 
-### `device` - Funcional
+### `device` - Stub (integracao pendente)
 
-Coleta hostname, SO, usuario logado e versao do agente. Expoe snapshot via IPC para o modulo de suporte.
+O modulo existe e participa do ciclo de reconcile mas nao coleta dados reais da maquina. O `Apply` retorna mensagem fixa `"device module scaffolded; runtime integration pending"`. Coleta efetiva de metricas de sistema, discos e servicos ainda nao foi implementada. Ver `5-agent-monitoring-remoto.md` para o plano completo.
 
 ### `support` - Funcional
 
@@ -447,15 +447,22 @@ Todos os pacotes compilam. Ainda nao ha testes unitarios dedicados.
 - `companyId` do `RemoteHost` e propagado ao `AgentDevice` no momento do vinculo automatico, se o device nao tiver empresa ainda
 - `agent_token` ainda em JSON plano (DPAPI pendente)
 
+## Estado real do payload de sync
+
+O `RemoteSyncRequest` ja possui os campos `SystemSnapshot`, `NetworkSnapshot`, `SoftwareSnapshot`, `HardwareIdentity`, `DiskSnapshot`, `SysproProcesses`, `WindowsUpdateStatus`, `RebootPending` e `AgentMetrics`. No entanto, **nenhum desses campos e preenchido hoje**. O `runSync` envia apenas: `AgentToken`, `RustDeskID`, `MachineName`, `AgentVersion`, `CurrentAlias`, `CurrentVersion`, `ServerHost`, `APIHost`, `PublicKey`, `ServiceStatus`.
+
+O portal ja possui colunas para receber todos esses campos (`lastAgentMetrics`, `lastDiskSnapshot`, `lastSystemSnapshot`, `lastSysproProcessSnapshot`, `lastWindowsUpdateStatus`, `lastRebootPending`). A lacuna esta no lado do agente: o modulo `device` nao coleta nem injeta esses dados no payload de sync.
+
 ## Gaps e proximos investimentos
 
-1. Proteger `remote_state.json` com DPAPI (agent_token, senhas)
-2. Conectar `modules/backup` ao pipeline `internal/backup`
-3. Expandir `BackupDesiredState` para politicas reais
-4. Persistir fila de ACK remoto pendente
-5. Implementar upgrade controlado do agente (`UPGRADE_CLIENT`)
-6. Implementar `Report()` e `HandleCommand()` no contrato de modulo
-7. Adicionar testes unitarios do remote module com fake client/store
-8. Adicionar testes com `httptest` para `portal_client`
-9. Criar transporte duravel de telemetria para o portal
-10. Evoluir `modules/device` para coletar inventario mais completo
+1. Implementar coleta real no `modules/device`: memoria, CPU, discos por unidade, servicos (Firebird, SysPro Server, IIS) — ver `5-agent-monitoring-remoto.md`
+2. Injetar snapshots coletados pelo device no `RemoteSyncRequest` dentro do `runSync`
+3. Proteger `remote_state.json` com DPAPI (agent_token, senhas)
+4. Conectar `modules/backup` ao pipeline `internal/backup`
+5. Expandir `BackupDesiredState` para politicas reais
+6. Persistir fila de ACK remoto pendente
+7. Implementar upgrade controlado do agente (`UPGRADE_CLIENT`)
+8. Implementar `Report()` e `HandleCommand()` no contrato de modulo
+9. Adicionar testes unitarios do remote module com fake client/store
+10. Adicionar testes com `httptest` para `portal_client`
+11. Criar transporte duravel de telemetria para o portal

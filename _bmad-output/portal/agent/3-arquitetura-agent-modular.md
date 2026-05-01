@@ -1,6 +1,6 @@
 # Master Agent Trilink - Arquitetura modular
 
-Atualizado em 2026-04-28.
+Atualizado em 2026-05-01.
 
 ## Estado atual vs. plano original
 
@@ -101,9 +101,9 @@ Implementado via `agent-ui`:
 - Contexto tecnico (empresa, host, rustdeskId, usuario) sincronizado via IPC no inicio de cada conversa
 - Janela abre via tray ("Abrir suporte") ou via comando remoto
 
-### 3. `device` - FUNCIONAL
+### 3. `device` - STUB (coleta real pendente)
 
-Coleta hostname, SO, usuario logado e versao do agente. Expoe snapshot para o modulo de suporte e para o portal.
+O modulo existe e participa do reconcile, mas o `Apply` retorna mensagem fixa sem executar nada. Nao coleta memoria, CPU, discos nem status de servicos. O `DeviceDesiredState` ja tem as flags `CollectInventory` e `CollectMetrics`, e o `RemoteSyncRequest` ja tem os campos de destino (`DiskSnapshot`, `SystemSnapshot`, `SysproProcesses`, `AgentMetrics`, etc.). A lacuna e o corpo de coleta no proprio modulo. Ver `5-agent-monitoring-remoto.md`.
 
 ### 4. `backup` - STUB
 
@@ -452,6 +452,20 @@ enrolled device
 - [ ] Report de resultados ao portal
 - [ ] Exibir estado de backup no `agent-ui`
 
+### Fase 5b - monitoramento remoto da maquina - PENDENTE
+
+- [ ] Implementar coleta de memoria (total, usado, livre) no `modules/device`
+- [ ] Implementar coleta de CPU (load %) no `modules/device`
+- [ ] Implementar coleta de discos por unidade (letra, total, livre, label) no `modules/device`
+- [ ] Implementar verificacao de servicos: Firebird, SysPro Server, IIS (W3SVC)
+- [ ] Implementar verificacao de reboot pendente (registro Windows)
+- [ ] Injetar snapshots no `RemoteSyncRequest` dentro do `runSync`
+- [ ] Portal: confirmar que endpoint `/sync` persiste todos os campos snapshot
+- [ ] Portal web: exibir metricas de maquina na pagina de detalhe do host e do dispositivo
+- [ ] Definir frequencia de coleta (a cada sync? a cada N ciclos?)
+
+Ver `5-agent-monitoring-remoto.md` para spec completa.
+
 ### Fase 5 - operacao unificada no portal - EM ANDAMENTO
 
 - [x] Aba "Agentes" em `/portal/infraestrutura` com lista paginada, filtros e estatisticas de frota
@@ -472,6 +486,7 @@ enrolled device
 | Fila de ACK remoto perdida se servico reiniciar | Ativo - medio |
 | Backup sem fila duravel (jobs perdidos em restart) | Ativo - medio |
 | `UPGRADE_CLIENT` sem implementacao real | Ativo - baixo por ora |
+| `modules/device` nao coleta dados reais (stub) | Ativo - medio; bloqueia monitoramento remoto |
 | Logica critica de backup/remoto fora da UI | Seguido corretamente |
 | Dependencia do chat do RustDesk como canal oficial | Mitigado: UI propria via Chatwoot |
 

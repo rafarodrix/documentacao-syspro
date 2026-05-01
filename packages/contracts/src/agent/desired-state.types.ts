@@ -36,11 +36,19 @@ export const supportDesiredStateSchema = z.object({
   auto_attach_context: z.boolean(),
 });
 
+export const sysproInstallTargetSchema = z.object({
+  company_id: z.string(),
+  company_name: z.string(),
+  server_path: z.string(),
+  data_path: z.string().optional(),
+});
+
 export const deviceDesiredStateSchema = z.object({
   enabled: z.boolean(),
   version: z.string().trim(),
   collect_inventory: z.boolean(),
   collect_metrics: z.boolean(),
+  syspro_installs: z.array(sysproInstallTargetSchema).optional(),
 });
 
 export const agentDesiredStateSchema = z.object({
