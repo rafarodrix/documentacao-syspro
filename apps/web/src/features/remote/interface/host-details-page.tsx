@@ -10,6 +10,7 @@ import {
   Copy,
   ExternalLink,
   Fingerprint,
+  HardDriveDownload,
   Ticket,
   RefreshCcw,
   RefreshCw,
@@ -22,6 +23,7 @@ import {
   Database,
   AlertCircle,
   Shield,
+  Archive,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -460,8 +462,6 @@ export function RemoteHostDetailsPanel({
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
     [agentHealthCard.autoHeal.status]
   );
-  const ServiceStatusIcon = serviceStatusIcon.Icon;
-  const AutoHealStatusIcon = autoHealStatusIcon.Icon;
   const productStatusMeta = useMemo(
     () => getRemoteProductStatusMeta(details.agentHealth.productStatus),
     [details.agentHealth.productStatus]
@@ -669,12 +669,7 @@ export function RemoteHostDetailsPanel({
       return;
     }
 
-    const a = document.createElement("a");
-    a.href = rustdeskHref;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.location.href = rustdeskHref;
     window.setTimeout(() => {
       toast("Se o acesso remoto não abrir, copie o ID e conecte manualmente.");
     }, 600);
@@ -803,7 +798,7 @@ export function RemoteHostDetailsPanel({
               method: "PATCH",
               body: {
                 companyId,
-                mode: "replace",
+                mode: companyId ? "add" : "replace",
               },
             })
           )
@@ -811,7 +806,7 @@ export function RemoteHostDetailsPanel({
 
         toast.success(
           companyId
-            ? `Vínculo aplicado em ${installationContextsForDisplay.length} instalação(ões).`
+            ? `Empresa adicionada em ${installationContextsForDisplay.length} instalação(ões).`
             : `Vínculo removido em ${installationContextsForDisplay.length} instalação(ões).`
         );
         router.refresh();
@@ -887,11 +882,16 @@ export function RemoteHostDetailsPanel({
 
   const [isStartingSession, startSessionTransition] = useTransition();
 
-  const handleStartOrchestratedSession = async () => {
+  const handleStartOrchestratedSession = () => {
     if (!normalizedRustdeskId) {
       toast.error("Host sem identificador remoto. Não é possível iniciar sessão.");
       return;
     }
+
+    const href = isMobileClient
+      ? `rustdesk://[${normalizedRustdeskId}]`
+      : `rustdesk://${normalizedRustdeskId}`;
+    window.location.href = href;
 
     startSessionTransition(async () => {
       try {
@@ -902,18 +902,11 @@ export function RemoteHostDetailsPanel({
           reason: ticketNumber ? `Suporte via Portal para Ticket #${ticketNumber}` : "Acesso técnico via Portal",
         });
 
-        if (result.success) {
-          toast.success("Sessão auditada iniciada.");
-          const href = isMobileClient
-            ? `rustdesk://[${normalizedRustdeskId}]` 
-            : `rustdesk://${normalizedRustdeskId}`;
-          
-          window.location.href = href;
-        } else {
-          toast.error(result.error ?? "Falha ao iniciar sessão auditada.");
+        if (!result.success) {
+          toast.error(result.error ?? "Falha ao registrar sessão auditada.");
         }
-      } catch (error) {
-        toast.error("Erro ao processar início de sessão.");
+      } catch {
+        // Protocol already opened; audit failure is non-blocking
       }
     });
   };
@@ -994,48 +987,47 @@ export function RemoteHostDetailsPanel({
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
-        <div className="flex w-full md:justify-end">
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:w-auto md:grid-cols-5">
+        <div className="flex w-full">
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 md:grid-cols-6">
             <TabsTrigger value="geral">Visão Geral</TabsTrigger>
-            <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
-            <TabsTrigger value="instalacoes">Empresas e Instalações</TabsTrigger>
+            <TabsTrigger value="monitoramento">Monitoramento</TabsTrigger>
+            <TabsTrigger value="instalacoes">Instalações</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
+            <TabsTrigger value="bkp">BKP</TabsTrigger>
+            <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="geral" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Health & Performance Snapshot */}
-            <Card className="border-border/40 bg-muted/5 shadow-sm">
-              <CardHeader className="pb-3 px-6 pt-6">
-                <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Saúde do Host
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 pt-0 grid gap-6 sm:grid-cols-3">
-                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/40 bg-background/50 text-center gap-2">
-                  <Cpu className="h-6 w-6 text-primary" />
-                  <span className="text-2xl font-bold font-mono">{host.lastAgentMetrics?.cpuLoad ?? "--"}%</span>
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">CPU Load</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/40 bg-background/50 text-center gap-2">
-                  <Activity className="h-6 w-6 text-sky-500" />
-                  <span className="text-2xl font-bold font-mono">{host.lastAgentMetrics?.ramUsedPc ?? "--"}%</span>
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">RAM Usage</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/40 bg-background/50 text-center gap-2">
-                  <Database className="h-6 w-6 text-emerald-500" />
-                  <span className="text-2xl font-bold font-mono">
-                    {host.lastAgentMetrics?.diskFree != null 
-                      ? `${(host.lastAgentMetrics.diskFree / (1024 * 1024 * 1024)).toFixed(0)}GB` 
-                      : "--"}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Free Disk</span>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Identity summary */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Monitor className="h-3 w-3" /> Nome da máquina
+              </p>
+              <p className="text-sm font-medium text-foreground truncate">{windowsComputerName ?? host.name}</p>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Monitor className="h-3 w-3" /> IPv4
+              </p>
+              <p className="text-sm font-medium font-mono text-foreground">{machineIpv4 ?? "Sem leitura"}</p>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Fingerprint className="h-3 w-3" /> RustDesk ID
+              </p>
+              <p className="text-sm font-medium font-mono text-foreground">{normalizedRustdeskId ?? "Sem leitura"}</p>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Shield className="h-3 w-3" /> Versão do agente
+              </p>
+              <p className="text-sm font-medium text-foreground">{agent.agentVersion ?? "N/A"}</p>
+            </div>
+          </div>
 
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Linked Agent Device */}
             <AgentLinkSection hostId={host.id} linkedDevice={linkedDevice} />
 
@@ -1073,51 +1065,8 @@ export function RemoteHostDetailsPanel({
             )}
           </div>
 
-          <div className="space-y-6">
-              <Card className="border-border/40 bg-muted/5 shadow-sm">
-                <CardHeader className="pb-3 px-6 pt-6">
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <Monitor className="h-4 w-4" />
-                    Identidade do host
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Tipo do host</p>
-                    <Select
-                      value={projectedMachineProfile ?? "__none__"}
-                      onValueChange={(value) =>
-                        setProjectedMachineProfile(value === "__none__" ? null : (value as RemoteHostDetails["host"]["machineProfile"]))
-                      }
-                      disabled={isSavingMachineName}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Não definido</SelectItem>
-                        {Object.entries(MACHINE_PROFILE_LABEL).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={handleSaveProjectedHostName}
-                    disabled={isSavingMachineName || !canSaveProjectedHostName}
-                    className="gap-2"
-                  >
-                    {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                    {isSavingMachineName ? "Salvando..." : "Salvar host"}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Inventory Signals */}
-              {(rebootPending || (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) || contractValidationError) && (
+          {/* Inventory Signals */}
+          {(rebootPending || (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) || contractValidationError) && (
                 <Card className="border-rose-500/20 bg-rose-500/5">
                    <CardHeader className="pb-2 px-4 pt-4">
                     <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
@@ -1148,48 +1097,40 @@ export function RemoteHostDetailsPanel({
                 </Card>
               )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                 <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Última atividade</span>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
-                    </div>
-                 </div>
-                 
-                 <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10 text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Estado do agente</span>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-lg font-bold text-foreground capitalize">{serviceStatus.label}</p>
-                      <p className="text-xs text-muted-foreground">Versão: {agent.agentVersion ?? "N/A"}</p>
-                    </div>
-                 </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Última atividade</span>
               </div>
+              <div className="space-y-0.5">
+                <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
+                <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Estado do agente</span>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-lg font-bold text-foreground capitalize">{serviceStatus.label}</p>
+                <p className="text-xs text-muted-foreground">Estratégia: {orchestrationStrategy}</p>
+              </div>
+            </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="tecnicas">
+        <TabsContent value="monitoramento">
           <HostTechnicalTab
             details={details}
             host={host}
             machineIpv4={machineIpv4}
             windowsComputerName={windowsComputerName}
-            sysproServerInstallations={sysproServerInstallations}
             firebirdData={firebirdData}
-            systemSnapshot={systemSnapshot}
             sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
-            networkSnapshot={networkSnapshot}
-            softwareSnapshot={softwareSnapshot}
-            hardwareIdentity={hardwareIdentity}
             diskSnapshot={diskSnapshot}
             sysproProcessSnapshot={sysproProcessSnapshot}
-            windowsUpdateStatus={windowsUpdateStatus}
             rebootPending={rebootPending}
           />
         </TabsContent>
@@ -1239,20 +1180,160 @@ export function RemoteHostDetailsPanel({
             details={details}
             bootstrapRateMetrics={bootstrapRateMetrics}
             contractSchemaVersions={contractSchemaVersions}
-            isRevokingAgentToken={isRevokingAgentToken}
-            handleRotateAgentToken={handleRotateAgentToken}
-            isRequestingResendConfig={isRequestingResendConfig}
-            handleRequestRemoteAction={handleRequestRemoteAction}
-            isRequestingSelfHeal={isRequestingSelfHeal}
             handleCopy={handleCopy}
             rustDeskCompliance={rustDeskCompliance}
             visibleAgentCommands={visibleAgentCommands}
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
             hasPendingInstallGuide={hasPendingInstallGuide}
             desiredSysproInstalls={desiredSysproInstalls}
-            linkedDevice={linkedDevice}
-            hostId={host.id}
           />
+        </TabsContent>
+
+        <TabsContent value="bkp" className="space-y-6">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Archive className="h-5 w-5 text-muted-foreground" />
+                Backup
+              </CardTitle>
+              <CardDescription>Gerenciamento de backup dos bancos de dados Firebird e arquivos críticos do Syspro.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <p className="text-sm font-medium text-foreground">Banco de dados detectado</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Firebird</p>
+                    <p className="mt-1 text-sm text-foreground">{firebirdData.name ?? "Sem leitura"}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versão</p>
+                    <p className="mt-1 text-sm text-foreground">{firebirdData.version ?? "Sem leitura"}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 bg-background/50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Processo fbserver</p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {firebirdData.processRunning === null ? "Sem leitura" : firebirdData.processRunning ? "Em execução" : "Parado"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {([
+                  { title: "Jobs gbak / nbackup", description: "Agendamento automático de backup incremental e full via gbak/nbackup com retenção configurável." },
+                  { title: "Catálogo de artefatos", description: "Registro de todos os backups gerados com metadados de tamanho, hash e status de validação." },
+                  { title: "Restauração assistida", description: "Fluxo guiado para restauração pontual com validação de integridade antes da aplicação." },
+                  { title: "Notificações de falha", description: "Alertas imediatos via portal e e-mail em caso de falha ou timeout no processo de backup." },
+                ] as const).map((feature) => (
+                  <div key={feature.title} className="rounded-xl border border-dashed border-border/40 bg-muted/5 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-foreground">{feature.title}</p>
+                      <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px]">
+                        Em desenvolvimento
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="configuracoes" className="space-y-6">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Identidade do host</CardTitle>
+              <CardDescription>Nome e perfil da máquina usados pelo portal para identificação e filtragem.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Tipo do host</p>
+                <Select
+                  value={projectedMachineProfile ?? "__none__"}
+                  onValueChange={(value) =>
+                    setProjectedMachineProfile(value === "__none__" ? null : (value as RemoteHostDetails["host"]["machineProfile"]))
+                  }
+                  disabled={isSavingMachineName}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Não definido</SelectItem>
+                    {Object.entries(MACHINE_PROFILE_LABEL).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                type="button"
+                onClick={handleSaveProjectedHostName}
+                disabled={isSavingMachineName || !canSaveProjectedHostName}
+                className="gap-2"
+              >
+                {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                {isSavingMachineName ? "Salvando..." : "Salvar host"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg">Ações do agente</CardTitle>
+              <CardDescription>Ações manuais de recuperação e reconfiguração do módulo remoto. Use apenas quando houver divergência real.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="gap-2">
+                  <Fingerprint className="h-4 w-4" />
+                  {isRevokingAgentToken ? "Renovando..." : "Renovar credencial do agente"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}
+                  disabled={isRequestingResendConfig}
+                  className="gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  {isRequestingResendConfig ? "Solicitando..." : "Reaplicar configuração do módulo"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}
+                  disabled={isRequestingSelfHeal}
+                  className="gap-2"
+                >
+                  <HardDriveDownload className="h-4 w-4" />
+                  {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias do RustDesk"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div>
+            <p className="mb-3 text-sm font-medium text-muted-foreground">Funcionalidades em desenvolvimento</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {([
+                { title: "Políticas de acesso", description: "Restrições de horário, IP e perfil de usuário para controle granular de quem pode acessar o host." },
+                { title: "Vault de credenciais", description: "Armazenamento seguro de credenciais de acesso local com rotação automática e auditoria." },
+                { title: "Alertas e monitoramento", description: "Notificações proativas para CPU crítica, disco baixo, agente offline e falhas de serviço." },
+              ] as const).map((feature) => (
+                <div key={feature.title} className="rounded-xl border border-dashed border-border/40 bg-muted/5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-foreground">{feature.title}</p>
+                    <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px]">
+                      Em desenvolvimento
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </TabsContent>
 
       </Tabs>

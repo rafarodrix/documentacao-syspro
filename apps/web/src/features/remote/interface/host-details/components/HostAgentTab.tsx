@@ -1,12 +1,8 @@
-import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteConfiguredHostItem, RemoteAgentCommandType, RemoteAgentCommandStatus } from "@dosc-syspro/contracts/remote";
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { AgentLinkSection } from "./AgentLinkSection";
-import { Copy, Fingerprint, HardDriveDownload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, getCommandStatusMeta, extractStringFromPayload } from "../host-details.helpers";
 import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL, AGENT_ACK_REASON_LABEL } from "../host-details.constants";
@@ -36,11 +32,6 @@ export interface HostAgentTabProps {
   details: RemoteHostDetails;
   bootstrapRateMetrics: { ratePct: number | null; cycles: number | null; bootstrapCycles: number | null };
   contractSchemaVersions: { discover: string | null; sync: string | null; ack: string | null };
-  isRevokingAgentToken: boolean;
-  handleRotateAgentToken: () => void;
-  isRequestingResendConfig: boolean;
-  handleRequestRemoteAction: (action: "RESEND_CONFIG" | "REAPPLY_ALIAS") => void;
-  isRequestingSelfHeal: boolean;
   handleCopy: (value: string | null, label: string) => Promise<void>;
   rustDeskCompliance: {
     lastSyncAt: string | null;
@@ -68,8 +59,6 @@ export interface HostAgentTabProps {
     companyName: string;
     serverPath: string;
   }>;
-  linkedDevice?: AgentDeviceSummary | null;
-  hostId: string;
 }
 
 export function HostAgentTab({
@@ -83,19 +72,12 @@ export function HostAgentTab({
   details,
   bootstrapRateMetrics,
   contractSchemaVersions,
-  isRevokingAgentToken,
-  handleRotateAgentToken,
-  isRequestingResendConfig,
-  handleRequestRemoteAction,
-  isRequestingSelfHeal,
   handleCopy,
   rustDeskCompliance,
   visibleAgentCommands,
   hiddenAcknowledgedCount,
   hasPendingInstallGuide,
   desiredSysproInstalls,
-  linkedDevice = null,
-  hostId,
 }: HostAgentTabProps) {
   const ServiceStatusIcon = serviceStatusIcon.Icon;
   const AutoHealStatusIcon = autoHealStatusIcon.Icon;
@@ -103,47 +85,17 @@ export function HostAgentTab({
 
   return (
     <div className="space-y-6">
-      <div>
-        <SectionLabel title="Agente Enterprise" />
-        <AgentLinkSection hostId={hostId} linkedDevice={linkedDevice} />
-      </div>
-
-      <div>
-        <SectionLabel title="Módulo Remoto" />
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
-            <CardDescription>Diagnóstico operacional: telemetria, saúde, conectividade e execução de comandos.</CardDescription>
-          </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Resumo do agente</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heartbeat</p>
-              <p className="mt-1 text-sm text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
-              <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estratégia</p>
-              <p className="mt-1 text-sm text-foreground">{orchestrationStrategy}</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estado do produto</p>
-              <p className="mt-1 text-sm text-foreground">{productStatusMeta.label}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{productStatusMeta.description}</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Contrato</p>
-              <p className="mt-1 text-sm text-foreground">{contractValidationError ?? "Sem erro"}</p>
-            </div>
-          </div>
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-lg">Agente de Monitoramento</CardTitle>
+          <CardDescription>Diagnóstico operacional: telemetria, saúde, conectividade e execução de comandos.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {host.productStatus === "AWAITING_LINK" ? (
-            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
               A máquina já foi descoberta pelo agente, mas ainda não foi vinculada no portal. Nesse estado o RustDesk ainda não está instalado. O próximo passo é concluir o vínculo do host para liberar bootstrap e provisionamento remoto.
             </div>
           ) : null}
-        </div>
 
         <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
           <summary className="cursor-pointer text-sm font-medium text-foreground">
@@ -295,38 +247,6 @@ export function HostAgentTab({
               </div>
             </div>
 
-            <div className="rounded-xl border border-border/50 bg-background/40 p-4">
-              <p className="text-sm font-medium text-foreground">Ações manuais de recuperação</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Use estas ações apenas quando houver divergência real no agente. O fluxo normal de sync já tenta
-                corrigir alias e configuração automaticamente.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="w-full gap-2 sm:w-auto">
-                <Fingerprint className="h-4 w-4" />
-                {isRevokingAgentToken ? "Renovando..." : "Renovar credencial do agente"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleRequestRemoteAction("RESEND_CONFIG")}
-                disabled={isRequestingResendConfig}
-                className="w-full gap-2 sm:w-auto"
-              >
-                <Copy className="h-4 w-4" />
-                {isRequestingResendConfig ? "Solicitando..." : "Reaplicar configuração do módulo"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleRequestRemoteAction("REAPPLY_ALIAS")}
-                disabled={isRequestingSelfHeal}
-                className="w-full gap-2 sm:w-auto"
-              >
-                <HardDriveDownload className="h-4 w-4" />
-                {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias do RustDesk"}
-              </Button>
-              </div>
-            </div>
-
             <details className="group rounded-xl border border-border/50 bg-muted/10 p-4">
               <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
                 Conformidade do módulo remoto
@@ -475,20 +395,8 @@ export function HostAgentTab({
             ) : null}
           </div>
         </details>
-      </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function SectionLabel({ title }: { title: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-3">
-      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </span>
-      <div className="h-px flex-1 bg-border/40" />
+        </CardContent>
+      </Card>
     </div>
   );
 }
