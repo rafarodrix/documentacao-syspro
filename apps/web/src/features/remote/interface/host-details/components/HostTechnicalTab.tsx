@@ -14,6 +14,7 @@ type HostTechnicalTabProps = {
   sysproServerInstallations: RemoteHostDetails["installationContexts"];
   firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
   systemSnapshot: RemoteHostDetails["agentTelemetry"]["systemSnapshot"];
+  sysproVersionSnapshot: RemoteHostDetails["agentTelemetry"]["sysproVersionSnapshot"];
   networkSnapshot: RemoteHostDetails["agentTelemetry"]["networkSnapshot"];
   softwareSnapshot: RemoteHostDetails["agentTelemetry"]["softwareSnapshot"];
   hardwareIdentity: RemoteHostDetails["agentTelemetry"]["hardwareIdentity"];
@@ -35,7 +36,7 @@ function readMetricNumber(metrics: LiveMetrics, key: keyof LiveMetrics): number 
   return typeof value === "number" ? value : null;
 }
 
-function toVersionInstallations(snapshot: RemoteHostDetails["agentTelemetry"]["systemSnapshot"]) {
+function toVersionInstallations(snapshot: RemoteHostDetails["agentTelemetry"]["sysproVersionSnapshot"]) {
   if (!snapshot || !Array.isArray(snapshot["installations"])) return [];
   return snapshot["installations"].filter(
     (entry): entry is Record<string, unknown> => !!entry && typeof entry === "object" && !Array.isArray(entry),
@@ -49,14 +50,14 @@ export function HostTechnicalTab({
   windowsComputerName,
   sysproServerInstallations,
   firebirdData,
-  systemSnapshot,
+  sysproVersionSnapshot,
   diskSnapshot,
   sysproProcessSnapshot,
   rebootPending,
 }: HostTechnicalTabProps) {
   const { lastTelemetry, isConnected } = useAckStream(host.id);
   const agent = host.agent;
-  const versionInstallations = toVersionInstallations(systemSnapshot);
+  const versionInstallations = toVersionInstallations(sysproVersionSnapshot);
 
   const currentMetrics: LiveMetrics = lastTelemetry || host.lastAgentMetrics || {};
   const cpuLoad = readMetricNumber(currentMetrics, "cpuLoad");

@@ -669,7 +669,12 @@ export function RemoteHostDetailsPanel({
       return;
     }
 
-    window.location.assign(rustdeskHref);
+    const a = document.createElement("a");
+    a.href = rustdeskHref;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     window.setTimeout(() => {
       toast("Se o acesso remoto não abrir, copie o ID e conecte manualmente.");
     }, 600);
@@ -1178,6 +1183,7 @@ export function RemoteHostDetailsPanel({
             sysproServerInstallations={sysproServerInstallations}
             firebirdData={firebirdData}
             systemSnapshot={systemSnapshot}
+            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
             networkSnapshot={networkSnapshot}
             softwareSnapshot={softwareSnapshot}
             hardwareIdentity={hardwareIdentity}
