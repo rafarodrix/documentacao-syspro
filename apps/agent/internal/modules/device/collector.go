@@ -20,8 +20,14 @@ type Logger interface {
 }
 
 // Collector executa coleta de metricas do sistema operacional Windows.
-// Operacoes leves (status de servico) usam a API nativa do SCM via collector_windows.go.
-// Operacoes de leitura de WMI usam PowerShell.
+//
+// Estrategia de coleta:
+//   - Memoria: GlobalMemoryStatusEx (API nativa, ~0ms)
+//   - Disco: GetLogicalDriveStrings + GetDiskFreeSpaceEx + GetVolumeInformation (API nativa, ~0ms)
+//   - Servicos: SCM via svc/mgr (API nativa, ~5ms total)
+//   - Reboot pending: registro Windows (API nativa, ~0ms)
+//   - CPU load: PowerShell WMI (~50-80ms) — unico uso restante de PowerShell
+//   - Versao de executavel: PowerShell (~30ms, coletado a cada 1h)
 type Collector struct {
 	logger Logger
 }
@@ -31,90 +37,21 @@ func NewCollector(logger Logger) *Collector {
 	return &Collector{logger: logger}
 }
 
-// CollectMetrics coleta memoria (total/usado/livre), CPU load e reboot pending
-// em um unico script PowerShell para minimizar subprocessos.
-// Custo estimado: 100-200ms.
-func (c *Collector) CollectMetrics(ctx context.Context) (*AgentMetricsSnapshot, error) {
-	// Retorna: totalMB,freeMB,cpuLoad
-	// Reboot pending e verificado via registro (collector_windows.go / collector_other.go).
-	script := `
-$os  = Get-WmiObject Win32_OperatingSystem
-$cpu = (Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
-"{0},{1},{2}" -f [long]($os.TotalVisibleMemorySize/1KB), [long]($os.FreePhysicalMemory/1KB), [math]::Round($cpu,1)
-`
+// collectCPU retorna o percentual medio de carga de CPU via WMI.
+// Unica coleta que ainda usa PowerShell; todas as demais sao APIs nativas.
+// Custo: ~50-80ms por chamada.
+func (c *Collector) collectCPU(ctx context.Context) (float64, error) {
+	script := `[math]::Round((Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average, 1)`
 	out, err := c.runPS(ctx, script)
 	if err != nil {
-		return nil, fmt.Errorf("collect metrics: %w", err)
+		return 0, fmt.Errorf("collect CPU: %w", err)
 	}
-
-	var totalMB, freeMB uint64
-	var cpuLoad float64
-	_, err = fmt.Sscanf(strings.TrimSpace(out), "%d,%d,%f", &totalMB, &freeMB, &cpuLoad)
+	var load float64
+	_, err = fmt.Sscanf(strings.TrimSpace(out), "%f", &load)
 	if err != nil {
-		return nil, fmt.Errorf("parse metrics output %q: %w", out, err)
+		return 0, fmt.Errorf("parse CPU output %q: %w", out, err)
 	}
-
-	usedMB := totalMB - freeMB
-	usedPct := 0.0
-	if totalMB > 0 {
-		usedPct = float64(usedMB) / float64(totalMB) * 100
-	}
-
-	return &AgentMetricsSnapshot{
-		CollectedAt:   nowRFC3339(),
-		MemoryTotalMB: totalMB,
-		MemoryUsedMB:  usedMB,
-		MemoryFreeMB:  freeMB,
-		MemoryUsedPct: round2(usedPct),
-		CpuLoadPct:    cpuLoad,
-		RebootPending: c.rebootPending(),
-	}, nil
-}
-
-// CollectDisks coleta volumes de disco fixo (DriveType=3) via PowerShell/WMI.
-// Retorna uma entrada por unidade (C, D, ...) com total, livre e percentual usado.
-// Custo estimado: 100-150ms.
-func (c *Collector) CollectDisks(ctx context.Context) (*DiskVolumeSnapshot, error) {
-	script := `
-Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" | ForEach-Object {
-    $tot  = [long]($_.Size/1MB)
-    $free = [long]($_.FreeSpace/1MB)
-    $used = $tot - $free
-    $pct  = if ($tot -gt 0) { [math]::Round($used*100/$tot,1) } else { 0 }
-    "{0}|{1}|{2}|{3}|{4}|{5}" -f $_.DeviceID.Replace(':',''), $_.VolumeName, $_.FileSystem, $tot, $free, $pct
-}
-`
-	out, err := c.runPS(ctx, script)
-	if err != nil {
-		return nil, fmt.Errorf("collect disks: %w", err)
-	}
-
-	snap := &DiskVolumeSnapshot{CollectedAt: nowRFC3339()}
-	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		parts := strings.SplitN(line, "|", 6)
-		if len(parts) != 6 {
-			continue
-		}
-		var total, free uint64
-		var pct float64
-		fmt.Sscanf(parts[3], "%d", &total)
-		fmt.Sscanf(parts[4], "%d", &free)
-		fmt.Sscanf(parts[5], "%f", &pct)
-		snap.Volumes = append(snap.Volumes, DiskVolume{
-			Letter:  parts[0],
-			Label:   parts[1],
-			FsType:  parts[2],
-			TotalMB: total,
-			FreeMB:  free,
-			UsedMB:  total - free,
-			UsedPct: pct,
-		})
-	}
-	return snap, nil
+	return load, nil
 }
 
 // CollectSysproVersions le a versao e valida a existencia do SysproServer.exe

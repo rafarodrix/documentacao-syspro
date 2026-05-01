@@ -291,14 +291,14 @@ export class AgentsService {
       });
     }
 
-    const state = await this.buildDesiredState();
+    const state = await this.buildDesiredState(normalizedDeviceId);
     return {
       success: true,
       data: state,
     };
   }
 
-  private async buildDesiredState(): Promise<AgentDesiredState> {
+  private async buildDesiredState(deviceId: string): Promise<AgentDesiredState> {
     const remoteSettings = await getRemoteModuleSettingsSnapshot();
     const chatwoot = readChatwootRuntimeConfig();
 
@@ -307,6 +307,34 @@ export class AgentsService {
       remoteSettings.rustDeskServerConfig &&
       remoteSettings.defaultPassword,
     );
+
+    // Load syspro install targets from the linked RemoteHost's installations tab
+    const device = await this.prisma.agentDevice.findUnique({
+      where: { deviceId },
+      select: {
+        remoteHost: {
+          select: {
+            sysproUpdates: {
+              where: { companyId: { not: null } },
+              select: {
+                companyId: true,
+                path: true,
+                company: { select: { nomeFantasia: true, razaoSocial: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const sysproInstalls = (device?.remoteHost?.sysproUpdates ?? [])
+      .filter((u) => u.companyId && u.company)
+      .map((u) => ({
+        company_id: u.companyId!,
+        company_name: u.company!.nomeFantasia?.trim() || u.company!.razaoSocial.trim(),
+        // Strip exe filename when path points directly to an executable
+        server_path: /\.exe$/i.test(u.path) ? u.path.replace(/[/\\][^/\\]+\.exe$/i, '') : u.path,
+      }));
 
     return {
       version: 1,
@@ -346,8 +374,9 @@ export class AgentsService {
       device: {
         enabled: true,
         version: 'go-agent-v1',
-        collect_inventory: false,
-        collect_metrics: false,
+        collect_inventory: true,
+        collect_metrics: true,
+        syspro_installs: sysproInstalls.length > 0 ? sysproInstalls : undefined,
       },
     };
   }
