@@ -1,7 +1,7 @@
-import { BadRequestException, Body, Controller, Headers, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Headers, Logger, Post } from '@nestjs/common';
 import { assertInternalApiKey } from '../../../common/auth/internal-api-auth';
 import { IntegrationContextService } from '../../settings/integration-context.service';
-import { ChatwootClient } from './chatwoot.client';
+import { ChatwootClient, ChatwootConnectionConfig } from './chatwoot.client';
 
 type SyncAgentConversationContextInput = {
   conversationId?: string;
@@ -26,6 +26,8 @@ type SyncAgentConversationContextInput = {
 
 @Controller('integrations/chatwoot/agent-context')
 export class ChatwootAgentContextController {
+  private readonly logger = new Logger(ChatwootAgentContextController.name);
+
   constructor(
     private readonly integrationContext: IntegrationContextService,
     private readonly chatwootClient: ChatwootClient,
@@ -61,23 +63,7 @@ export class ChatwootAgentContextController {
         }
       : resolved.chatwoot;
 
-    const customAttributes = {
-      agent_source: 'desktop_agent',
-      company_id: this.clean(context.companyId),
-      company_name: this.clean(context.companyDisplayName),
-      host_id: this.clean(context.hostId),
-      host_alias: this.clean(context.hostAlias),
-      rustdesk_id: this.clean(context.rustdeskId),
-      remote_status: this.clean(context.remoteStatus),
-      remote_status_text: this.clean(context.remoteStatusText),
-      machine_name: this.clean(context.machineName),
-      device_id: this.clean(context.deviceId),
-      hostname: this.clean(context.hostname),
-      os: this.clean(context.os),
-      local_username: this.clean(context.localUsername),
-      agent_version: this.clean(context.agentVersion),
-      agent_environment: this.clean(context.agentEnvironment),
-    };
+    const customAttributes = this.buildAgentCustomAttributes(context);
     const requestedTags = Array.isArray(context.conversationTags)
       ? Array.from(new Set(context.conversationTags.map((item) => String(item ?? '').trim()).filter(Boolean)))
       : [];
@@ -85,6 +71,7 @@ export class ChatwootAgentContextController {
     const technicalNote = this.buildTechnicalNote(customAttributes);
 
     await this.chatwootClient.updateConversationCustomAttributes(chatwootConfig, conversationId, customAttributes);
+    await this.trySyncContactCustomAttributes(chatwootConfig, conversationId, customAttributes);
 
     if (technicalNote) {
       await this.chatwootClient.createPrivateNote(chatwootConfig, conversationId, technicalNote);
@@ -104,6 +91,83 @@ export class ChatwootAgentContextController {
         companyId: resolved.companyId ?? customAttributes.company_id ?? null,
       },
     };
+  }
+
+  private buildAgentCustomAttributes(context: NonNullable<SyncAgentConversationContextInput['context']>) {
+    return {
+      agent_source: 'desktop_agent',
+      company_id: this.clean(context.companyId),
+      company_name: this.clean(context.companyDisplayName),
+      host_id: this.clean(context.hostId),
+      host_alias: this.clean(context.hostAlias),
+      rustdesk_id: this.clean(context.rustdeskId),
+      remote_status: this.clean(context.remoteStatus),
+      remote_status_text: this.clean(context.remoteStatusText),
+      machine_name: this.clean(context.machineName),
+      device_id: this.clean(context.deviceId),
+      hostname: this.clean(context.hostname),
+      os: this.clean(context.os),
+      local_username: this.clean(context.localUsername),
+      agent_version: this.clean(context.agentVersion),
+      agent_environment: this.clean(context.agentEnvironment),
+    };
+  }
+
+  private async trySyncContactCustomAttributes(
+    chatwootConfig: ChatwootConnectionConfig,
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+  ) {
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(chatwootConfig, conversationId);
+      const contactIdentifier = this.resolveConversationContactIdentifier(conversation);
+      if (!contactIdentifier) {
+        return;
+      }
+
+      const contactName =
+        this.clean(customAttributes.host_alias) ??
+        this.clean(customAttributes.machine_name) ??
+        this.clean(customAttributes.hostname) ??
+        this.clean(customAttributes.company_name) ??
+        undefined;
+      const phoneNumber = this.clean(conversation?.meta?.sender?.phone_number ?? conversation?.contact?.phone_number) ?? undefined;
+
+      await this.chatwootClient.updateContact(chatwootConfig, contactIdentifier, {
+        ...(contactName ? { name: contactName } : {}),
+        ...(phoneNumber ? { phone_number: phoneNumber } : {}),
+        custom_attributes: customAttributes,
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        JSON.stringify({
+          flow: 'agent_to_chatwoot',
+          stage: 'contact_custom_attributes_sync_failed',
+          conversationId,
+          error: error?.message ?? 'unknown_error',
+        }),
+      );
+    }
+  }
+
+  private resolveConversationContactIdentifier(conversation: any): string | null {
+    const candidates = [
+      conversation?.contact_inbox?.source_id,
+      conversation?.meta?.sender?.source_id,
+      conversation?.contact?.identifier,
+      conversation?.contact?.id,
+      conversation?.meta?.sender?.id,
+      conversation?.contact_inboxes?.[0]?.source_id,
+    ];
+
+    for (const candidate of candidates) {
+      const normalized = this.clean(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+
+    return null;
   }
 
   private buildTechnicalNote(attributes: Record<string, unknown>) {

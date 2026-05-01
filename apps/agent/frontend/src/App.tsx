@@ -587,18 +587,18 @@ function SupportScreen(props: {
       <section className="support-hero compact">
         <div className="support-hero-copy compact">
           <div className="support-hero-eyebrow compact">Suporte remoto</div>
-          <div className="support-hero-title compact">Trilink Support</div>
-        </div>
-        <div className="support-hero-actions">
-          <button
-            type="button"
-            className={`btn-secondary-inline support-action-button ${remoteOpening ? "btn-loading" : ""}`}
-            onClick={onOpenRemote}
-            disabled={remoteOpening}
-          >
-            {remoteOpening && <span className="btn-spinner btn-spinner-dark" />}
-            <span>{remoteOpening ? "Abrindo..." : "Abrir remoto"}</span>
-          </button>
+          <div className="support-hero-heading-row">
+            <div className="support-hero-title compact">Trilink Support</div>
+            <button
+              type="button"
+              className={`btn-secondary-inline support-action-button support-action-button-top ${remoteOpening ? "btn-loading" : ""}`}
+              onClick={onOpenRemote}
+              disabled={remoteOpening}
+            >
+              {remoteOpening && <span className="btn-spinner btn-spinner-dark" />}
+              <span>{remoteOpening ? "Abrindo..." : "Abrir remoto"}</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -607,6 +607,16 @@ function SupportScreen(props: {
           <div className="support-summary-card support-summary-card-primary">
             <span className="support-summary-label">Empresa</span>
             <span className="support-summary-value">{companyName}</span>
+            <div className="support-summary-meta-row">
+              <span className="support-summary-meta-item">
+                <span className="support-summary-meta-label">Maquina</span>
+                <span className="support-summary-meta-value">{machineName}</span>
+              </span>
+              <span className="support-summary-meta-item">
+                <span className="support-summary-meta-label">Operador</span>
+                <span className="support-summary-meta-value">{operatorName}</span>
+              </span>
+            </div>
           </div>
           <div className="support-summary-card support-summary-card-accent">
             <span className="support-summary-label">ID RustDesk</span>
@@ -625,17 +635,6 @@ function SupportScreen(props: {
                     : "Aguardando")}
               </span>
               {remotePassword && <CopyButton value={remotePassword} label="Copiar senha" />}
-            </div>
-          </div>
-          <div className="support-summary-card support-summary-card-primary support-summary-card-split">
-            <div className="support-summary-stack">
-              <span className="support-summary-label">Maquina</span>
-              <span className="support-summary-value">{machineName}</span>
-            </div>
-            <div className="support-summary-divider" />
-            <div className="support-summary-stack">
-              <span className="support-summary-label">Operador</span>
-              <span className="support-summary-value">{operatorName}</span>
             </div>
           </div>
         </div>
