@@ -67,7 +67,7 @@ export function HostInstallationsTab({
     <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Empresas e instalações detectadas</CardTitle>
+          <CardTitle className="text-lg">Associações de empresa e instalações</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-2xl border border-border/50 bg-muted/15 p-5">
@@ -75,8 +75,8 @@ export function HostInstallationsTab({
               <div className="space-y-1">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Cadastro manual</p>
                 <p className="text-sm text-muted-foreground">
-                  Use este bloco quando o agente ainda não enviou o inventário da máquina ou quando você precisar
-                  antecipar o vínculo multiempresa no mesmo servidor.
+                  Use este bloco para definir manualmente qual empresa usa cada instalação deste host e qual diretório
+                  deve orientar o agente.
                 </p>
               </div>
 
@@ -141,7 +141,7 @@ export function HostInstallationsTab({
                 {canManageInstallations ? (
                   <div className="space-y-1">
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Empresa para instalações filtradas
+                      Empresa para associações filtradas
                     </p>
                     <SearchableCompanyPicker
                       value={bulkInstallationCompanyId || UNLINKED_COMPANY_VALUE}
@@ -163,7 +163,7 @@ export function HostInstallationsTab({
                     disabled={isBulkRelinkingInstallations || !bulkInstallationCompanyId || !installationContextsForDisplay.length}
                     onClick={() => handleBulkRelinkInstallations(bulkInstallationCompanyId)}
                   >
-                    Aplicar empresa nas filtradas
+                    Aplicar associação nas filtradas
                   </Button>
                 ) : null}
 
@@ -228,7 +228,7 @@ export function HostInstallationsTab({
                       </div>
 
                       <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo de servidor</p>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tipo técnico da empresa</p>
                         <p className="mt-1 text-sm text-foreground">{serverType}</p>
                       </div>
 
@@ -339,7 +339,7 @@ export function HostInstallationsTab({
                     <div className="mt-3 rounded-lg border border-border/40 bg-background/30 p-3">
                       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa desta instalação</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Ajuste aqui o vínculo quando o mesmo servidor atender mais de uma empresa.
+                        Ajuste aqui a associação quando o mesmo servidor atender mais de uma empresa.
                       </p>
                       {canManageInstallations ? (
                         <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">

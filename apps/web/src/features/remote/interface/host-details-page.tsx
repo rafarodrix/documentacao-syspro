@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
@@ -59,6 +60,7 @@ import {
 } from "./host-details/host-details.helpers";
 import {
   DEFAULT_INSTALLATION_DIRECTORY,
+  MACHINE_PROFILE_LABEL,
   UNLINKED_COMPANY_VALUE,
 } from "./host-details/host-details.constants";
 import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
@@ -79,6 +81,9 @@ export function RemoteHostDetailsPanel({
   const router = useRouter();
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
+  const [projectedMachineProfile, setProjectedMachineProfile] = useState<RemoteHostDetails["host"]["machineProfile"]>(
+    host.machineProfile
+  );
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
@@ -125,7 +130,8 @@ export function RemoteHostDetailsPanel({
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
-    normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim();
+    (normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim()) ||
+    projectedMachineProfile !== host.machineProfile;
   const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutenção" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const rustDeskCompliance = useMemo(() => {
@@ -621,7 +627,7 @@ export function RemoteHostDetailsPanel({
             companyId: host.companyId,
             name: normalizedProjectedHostName,
             machineName: agent.machineName,
-            machineProfile: host.machineProfile,
+            machineProfile: projectedMachineProfile,
             environment: host.environment,
             provider: host.provider,
             description: host.description,
@@ -955,7 +961,7 @@ export function RemoteHostDetailsPanel({
                     Identidade do host
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground">
                       Use um nome operacional fácil de buscar, por exemplo <span className="font-medium text-foreground">Caixa 01 | Tudo Congelados</span>.
@@ -967,6 +973,28 @@ export function RemoteHostDetailsPanel({
                       disabled={isSavingMachineName}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Tipo do host</p>
+                    <Select
+                      value={projectedMachineProfile ?? "__none__"}
+                      onValueChange={(value) =>
+                        setProjectedMachineProfile(value === "__none__" ? null : (value as RemoteHostDetails["host"]["machineProfile"]))
+                      }
+                      disabled={isSavingMachineName}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Não definido</SelectItem>
+                        {Object.entries(MACHINE_PROFILE_LABEL).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button
                     type="button"
                     onClick={handleSaveProjectedHostName}
@@ -974,7 +1002,7 @@ export function RemoteHostDetailsPanel({
                     className="gap-2"
                   >
                     {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                    {isSavingMachineName ? "Salvando..." : "Salvar nome"}
+                    {isSavingMachineName ? "Salvando..." : "Salvar host"}
                   </Button>
                 </CardContent>
               </Card>
