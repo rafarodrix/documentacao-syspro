@@ -1,0 +1,45 @@
+---
+title: Infraestrutura
+description: Visão geral da infraestrutura de software e VPS da plataforma Trilink — topologia, serviços, domínios e padrões operacionais.
+lastUpdated: 2026-05-01
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - infraestrutura
+  - vps
+  - devops
+  - suporte
+audience:
+  - admin
+  - developer
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CustomCard } from '@/components/CustomCard';
+import { Server, Network } from 'lucide-react';
+
+Esta seção documenta a infraestrutura operacional da plataforma Trilink — como os serviços estão organizados, onde rodam, como se comunicam e quais padrões devem ser seguidos ao operar a VPS.
+
+<Callout type="warn" title="Acesso restrito">
+  Esta documentação é destinada à equipe de engenharia e administradores com acesso à VPS. Não compartilhe variáveis de ambiente ou credenciais fora dos canais seguros da equipe.
+</Callout>
+
+---
+
+<Cards>
+  <CustomCard
+    title="Infraestrutura de Software"
+    href="/docs/suporte/infraestrutura/infraestrutura-software"
+    icon={<Network className="h-5 w-5" />}
+  >
+    Topologia dos serviços (Vercel, Railway, VPS), mapeamento de domínios, variáveis de ambiente e fluxo de comunicação entre as camadas.
+  </CustomCard>
+  <CustomCard
+    title="Infraestrutura VPS"
+    href="/docs/suporte/infraestrutura/infraestrutura-vps"
+    icon={<Server className="h-5 w-5" />}
+  >
+    Padrão Trilink com Traefik v3 e Dokploy — containers vs Swarm, labels, diagnóstico e boas práticas operacionais.
+  </CustomCard>
+</Cards>

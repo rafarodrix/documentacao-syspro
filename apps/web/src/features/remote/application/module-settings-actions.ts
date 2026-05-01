@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { remoteModuleSettingsSchema } from "@dosc-syspro/contracts/remote";
-import type { RemoteModuleSettings, RemoteModuleSettingsActionResponse } from "@/features/remote/domain/model";
+import type { RemoteModuleSettings, RemoteModuleSettingsActionResponse } from "@/features/remote/domain/remote-host.types";
 import {
   fetchRemoteModuleSettingsGateway,
   updateRemoteModuleSettingsGateway,

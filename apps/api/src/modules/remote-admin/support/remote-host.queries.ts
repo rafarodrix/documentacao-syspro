@@ -1,6 +1,6 @@
 import { prisma } from "@dosc-syspro/database";
 import { hashRustDeskPublicKey } from "@dosc-syspro/remote-infra/rustdesk-helpers";
-import type { RemoteTenantScope } from "./model";
+import type { RemoteTenantScope } from "./remote-admin.types";
 import { getRemoteModuleSettingsSnapshot } from "../../../common/system-settings/remote-module-settings-snapshot";
 import { resolveRemoteOperationalStatus } from "./operational-status";
 import { buildRemoteScopedWhere, buildScopedCompanyWhere } from "./scope";
@@ -13,7 +13,7 @@ import type {
   RemoteAgentInstallStage,
   RemoteAgentLifecycleStatus,
   RemoteProductStatus,
-} from "./model";
+} from "./remote-admin.types";
 import { Prisma } from "@prisma/client";
 
 type RemoteConnectionItem = {

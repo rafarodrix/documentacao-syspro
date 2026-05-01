@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/model";
+import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/remote-host.types";
 import { Building2, Database, KeyRound, LaptopMinimal } from "lucide-react";
 
 const statusLabel: Record<RemotePlatformStatus, string> = {

@@ -1,5 +1,5 @@
 import type { RemoteConfiguredHostItem, RemoteAgentCommandType, RemoteAgentCommandStatus } from "@dosc-syspro/contracts/remote";
-import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";

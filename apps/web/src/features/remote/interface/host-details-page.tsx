@@ -34,7 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
-import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { getRemoteApiErrorMessage, requestRemoteMutation } from "@/features/remote/interface/remote-api";
 import {
@@ -65,10 +65,10 @@ import {
   MACHINE_PROFILE_LABEL,
   UNLINKED_COMPANY_VALUE,
 } from "./host-details/host-details.constants";
-import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
-import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
-import { HostAgentTab } from "./host-details/components/HostAgentTab";
-import { AgentLinkSection } from "./host-details/components/AgentLinkSection";
+import { HostTechnicalTab } from "./host-details/components/host-technical-tab";
+import { HostInstallationsTab } from "./host-details/components/host-installations-tab";
+import { HostAgentTab } from "./host-details/components/host-agent-tab";
+import { AgentLinkSection } from "./host-details/components/agent-link-section";
 
 
 

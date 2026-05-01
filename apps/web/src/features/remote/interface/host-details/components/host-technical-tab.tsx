@@ -1,4 +1,4 @@
-import type { RemoteHostDetails } from "@/features/remote/domain/model";
+import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";

@@ -23,7 +23,7 @@ import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
-import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

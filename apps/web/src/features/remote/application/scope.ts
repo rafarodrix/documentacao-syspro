@@ -2,7 +2,7 @@ import {
   getCurrentUserAuthorizationContext,
   resolveCurrentUserCompanyAccessScope,
 } from "@/features/user-access/application/current-user-access";
-import type { RemoteTenantScope } from "@/features/remote/domain/model";
+import type { RemoteTenantScope } from "@/features/remote/domain/remote-host.types";
 
 export async function getRemoteTenantScope(): Promise<RemoteTenantScope> {
   const context = await getCurrentUserAuthorizationContext();

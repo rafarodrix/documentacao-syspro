@@ -1,10 +1,24 @@
-# Infraestrutura de Software — Trilink Software
+---
+title: Infraestrutura de Software
+description: Topologia atual dos serviços da plataforma Trilink — Vercel, Railway, VPS Contabo, Evolution Go, mapeamento de domínios, variáveis críticas e fluxo de comunicação.
+lastUpdated: 2026-05-01
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - infraestrutura
+  - software
+  - devops
+  - evolution
+  - vps
+audience:
+  - admin
+  - developer
+---
 
-## Objetivo
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-Consolidar em um único documento o desenho atual de infraestrutura do Portal para operação e troubleshooting.
-
-## Topologia atual (2026-05-01)
+## Topologia atual
 
 | Camada | Serviço | Provedor |
 |--------|---------|----------|
@@ -17,7 +31,9 @@ Consolidar em um único documento o desenho atual de infraestrutura do Portal pa
 | Banco do portal | Prisma + PostgreSQL | Railway / Neon |
 | Bancos Evolution Go | `evogo_auth`, `evogo_users` | Neon |
 
-## Mapeamento de domínios (fonte de verdade)
+---
+
+## Mapeamento de domínios
 
 | Subdomínio | Serviço | Host |
 |------------|---------|------|
@@ -25,7 +41,11 @@ Consolidar em um único documento o desenho atual de infraestrutura do Portal pa
 | `acesso.<dominio>` | RustDesk | VPS Contabo |
 | `backend.<dominio>` | NestJS `apps/api` | Railway |
 
-> **Separação obrigatória:** não reutilizar `api.<dominio>` (Evolution) para o backend NestJS. O web deve apontar para `backend.<dominio>/api`.
+<Callout type="warn" title="Separação obrigatória">
+  Não reutilizar `api.<dominio>` (Evolution) para o backend NestJS. O `apps/web` deve apontar para `backend.<dominio>/api`.
+</Callout>
+
+---
 
 ## Escopo por camada
 
@@ -52,18 +72,22 @@ Consolidar em um único documento o desenho atual de infraestrutura do Portal pa
 ### 4. Dados
 
 - Provider: Neon (PostgreSQL serverless)
-- Bancos separados para Evolution:
-  - `AUTH_DB` → `evogo_auth`
-  - `USERS_DB` → `evogo_users`
+- `AUTH_DB` → `evogo_auth`
+- `USERS_DB` → `evogo_users`
+
+---
 
 ## Operação do proxy (Nginx)
 
-- Painel: `http://85.239.248.141:81/nginx/proxy`
-- Regra recomendada:
-  - publicar Evolution via host dedicado com TLS
-  - manter RustDesk no host próprio
-  - não expor `:8080` da Evolution diretamente para a internet
-  - encaminhar tráfego externo de `api.<dominio>` para o container Evolution via rede interna Docker
+Painel: `http://85.239.248.141:81/nginx/proxy`
+
+Regras obrigatórias:
+- Publicar Evolution via host dedicado com TLS
+- Manter RustDesk no host próprio
+- **Não expor** `:8080` da Evolution diretamente para a internet
+- Encaminhar tráfego externo de `api.<dominio>` para o container Evolution via rede interna Docker
+
+---
 
 ## Variáveis críticas por runtime
 
@@ -75,7 +99,9 @@ APP_API_URL=https://backend.<dominio>/api
 INTERNAL_API_KEY=<chave-compartilhada-com-api>
 ```
 
-> `APP_API_URL` é a variável legada, ainda suportada. Preferir `APP_BACKEND_API_URL` em novas configurações.
+<Callout type="info" title="Legado">
+  `APP_API_URL` ainda é suportado, mas `APP_BACKEND_API_URL` deve ser preferido em novos deployments.
+</Callout>
 
 ### Railway (`apps/api`)
 
@@ -97,6 +123,8 @@ POSTGRES_AUTH_DB=...sslmode=require
 POSTGRES_USERS_DB=...sslmode=require
 ```
 
+---
+
 ## Regras de integração
 
 1. Web chama somente backend NestJS (`backend.<dominio>/api`).
@@ -104,19 +132,34 @@ POSTGRES_USERS_DB=...sslmode=require
 3. Evolution envia webhook diretamente para o backend NestJS.
 4. RustDesk permanece isolado no host `acesso.<dominio>`.
 
+---
+
 ## Fluxo de comunicação
 
-```
-Cliente → backend.<dominio>/api (Railway / NestJS)
-       → api.<dominio> (Nginx → Evolution Go → Neon)
-       ← webhook inbound → backend NestJS
-```
+<Steps>
+  <Step>
+    ### Cliente → Backend NestJS
 
-1. Cliente (browser ou Server Action do `apps/web`) chama `https://backend.<dominio>/api`.
-2. Backend NestJS processa e, quando necessário, chama `https://api.<dominio>` (Evolution).
-3. Nginx Proxy Manager valida TLS e roteia para o container Evolution.
-4. Evolution processa requisição e persiste eventos/estado no Neon.
-5. Em eventos inbound, Evolution publica webhook diretamente para o backend NestJS no Railway.
+    O browser (ou Server Action do `apps/web`) chama `https://backend.<dominio>/api` no Railway.
+  </Step>
+  <Step>
+    ### Backend → Evolution Go
+
+    Quando necessário, o NestJS chama `https://api.<dominio>`. O Nginx Proxy Manager valida TLS e roteia para o container Evolution na VPS.
+  </Step>
+  <Step>
+    ### Evolution → Neon
+
+    O container Evolution processa a requisição e persiste eventos/estado nos bancos Neon (`evogo_auth`, `evogo_users`).
+  </Step>
+  <Step>
+    ### Evolution → Webhook NestJS
+
+    Em eventos inbound (mensagens, status), a Evolution publica webhook diretamente para o endpoint do backend NestJS no Railway.
+  </Step>
+</Steps>
+
+---
 
 ## Controles de segurança
 
@@ -125,6 +168,8 @@ Cliente → backend.<dominio>/api (Railway / NestJS)
 - `apikey` e segredos de ambiente para integração entre serviços
 - CORS restrito apenas para origens autorizadas
 
+---
+
 ## Manutenção recomendada
 
 - Aplicar reboot da VPS após atualização de kernel/segurança
@@ -132,6 +177,8 @@ Cliente → backend.<dominio>/api (Railway / NestJS)
   - `~/evolution-go`
   - `~/nginx-proxy`
 - Validar rotação de chaves (`GLOBAL_API_KEY`, `INTERNAL_API_KEY`, `EVOLUTION_WEBHOOK_SECRET`) em janela controlada
+
+---
 
 ## Checklist de validação rápida
 

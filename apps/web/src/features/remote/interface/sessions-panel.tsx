@@ -14,7 +14,7 @@ import { RegistryPagination } from "@/components/platform/shared/RegistryListSca
 import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";
-import type { RemotePaginationMeta, RemoteSessionStatus } from "@/features/remote/domain/model";
+import type { RemotePaginationMeta, RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
 import { formatDateOnly, formatDateTime } from "./host-details/host-details.helpers";
 
 interface SessionItem extends RemoteSessionSummary {

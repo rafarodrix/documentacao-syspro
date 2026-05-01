@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { RemoteTenantScope } from "@/features/remote/domain/model";
+import type { RemoteTenantScope } from "@/features/remote/domain/remote-host.types";
 import { fetchRemoteEfficiencyMetricsGateway } from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
 
 export interface EfficiencyMetrics {

@@ -8,11 +8,11 @@ import {
   getRemoteHostDetails,
   getRemotePlatformDirectory,
   getRemotePlatformOverview,
-} from './support/queries';
+} from './support/remote-host.queries';
 import { getRemoteEfficiencyMetrics } from './support/report-queries';
 import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/session-queries';
 import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
-import type { RemoteSessionStatus, RemoteTenantScope } from './support/model';
+import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-admin.types';
 
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS';
 type RemoteProcedure =
