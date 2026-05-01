@@ -472,28 +472,31 @@ export class RemoteAdminService {
       throw new ForbiddenException('Empresa nao encontrada no escopo para vinculacao.');
     }
 
-    const companyLabel = company.nomeFantasia?.trim() || company.razaoSocial.trim();
+    const companyLabel = normalizeCompanyOptionLabel(company);
     const now = new Date();
     const existing = await prisma.remoteHostSysproUpdate.findFirst({
       where: {
         hostId,
         path,
-        OR: [{ companyId }, { companyLabel }],
+        companyId,
       },
       select: { id: true },
     });
 
-    const update = existing
-      ? await prisma.remoteHostSysproUpdate.update({
-          where: { id: existing.id },
-          data: {
-            companyId,
-            companyLabel,
-            path,
-            lastHeartbeatAt: now,
-          },
-        })
-      : await prisma.remoteHostSysproUpdate.create({
+    let update;
+    if (existing) {
+      update = await prisma.remoteHostSysproUpdate.update({
+        where: { id: existing.id },
+        data: {
+          companyId,
+          companyLabel,
+          path,
+          lastHeartbeatAt: now,
+        },
+      });
+    } else {
+      try {
+        update = await prisma.remoteHostSysproUpdate.create({
           data: {
             hostId,
             companyId,
@@ -502,6 +505,38 @@ export class RemoteAdminService {
             lastHeartbeatAt: now,
           },
         });
+      } catch (error) {
+        const isUniqueViolation =
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          (error as { code?: string }).code === 'P2002';
+
+        if (!isUniqueViolation) {
+          throw error;
+        }
+
+        const duplicated = await prisma.remoteHostSysproUpdate.findFirst({
+          where: {
+            hostId,
+            companyId,
+            path,
+          },
+        });
+
+        if (!duplicated) {
+          throw error;
+        }
+
+        update = await prisma.remoteHostSysproUpdate.update({
+          where: { id: duplicated.id },
+          data: {
+            companyLabel,
+            lastHeartbeatAt: now,
+          },
+        });
+      }
+    }
 
     return {
       success: true,

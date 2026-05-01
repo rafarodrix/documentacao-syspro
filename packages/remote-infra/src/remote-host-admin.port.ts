@@ -30,6 +30,15 @@ function withDataError(message: string, data?: unknown) {
   return error;
 }
 
+function buildCompanyDisplayLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
+  const nomeFantasia = input.nomeFantasia?.trim() ?? "";
+  const razaoSocial = input.razaoSocial.trim();
+
+  if (!nomeFantasia) return razaoSocial;
+  if (normalizeCompareValue(nomeFantasia) === normalizeCompareValue(razaoSocial)) return nomeFantasia;
+  return `${nomeFantasia} | ${razaoSocial}`;
+}
+
 export function createRemoteHostAdminPort(): RemoteHostAdminPort {
   return {
     async linkDiscoveredHost(input: LinkDiscoveredHostInput): Promise<LinkDiscoveredHostOutput> {
@@ -460,7 +469,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         }
 
         nextCompanyId = company.id;
-        nextCompanyLabel = company.nomeFantasia ?? company.razaoSocial;
+        nextCompanyLabel = buildCompanyDisplayLabel(company);
       }
 
       const mode = input.mode === "add" ? "add" : "replace";
@@ -532,7 +541,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
   };
 }
-
 
 
 
