@@ -63,7 +63,6 @@ import {
   MACHINE_PROFILE_LABEL,
   UNLINKED_COMPANY_VALUE,
 } from "./host-details/host-details.constants";
-import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
@@ -99,6 +98,22 @@ export function RemoteHostDetailsPanel({
     details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY
   );
   const [isCreatingManualInstallation, startCreatingManualInstallation] = useTransition();
+  const [companyContextDraftByCompanyId, setCompanyContextDraftByCompanyId] = useState<
+    Record<
+      string,
+      {
+        serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
+        installationDirectory: string;
+        serverHost: string;
+        serverPort: string;
+        serverProtocol: "HTTP" | "HTTPS" | "__none__";
+        iisIsapiPath: string;
+        observacoes: string;
+      }
+    >
+  >({});
+  const [isSavingCompanyContext, startSavingCompanyContext] = useTransition();
+  const [savingCompanyContextId, setSavingCompanyContextId] = useState<string | null>(null);
   const agent = host.agent;
   const normalizedRustdeskId = agent.rustdeskId ? agent.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = agent.machineName ?? null;
@@ -501,6 +516,48 @@ export function RemoteHostDetailsPanel({
     if (agent.lastKnownIp && isPrivateIpv4(agent.lastKnownIp)) return agent.lastKnownIp;
     return explicitLocal ?? agent.lastKnownIp ?? null;
   }, [agent.lastKnownIp, networkSnapshot, systemSnapshot]);
+
+  function buildCompanyContextDraft(
+    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
+    fallbackDirectory: string,
+  ) {
+    return {
+      serverType: companyContext?.serverType ?? "__none__",
+      installationDirectory:
+        companyContext?.installationDirectory?.trim() || fallbackDirectory || DEFAULT_INSTALLATION_DIRECTORY,
+      serverHost: companyContext?.serverHost?.trim() || "",
+      serverPort: companyContext?.serverPort ? String(companyContext.serverPort) : "",
+      serverProtocol: companyContext?.serverProtocol ?? "__none__",
+      iisIsapiPath: companyContext?.iisIsapiPath?.trim() || "",
+      observacoes: companyContext?.observacoes ?? "",
+    } as const;
+  }
+
+  function updateCompanyContextDraft(
+    companyId: string,
+    patch: Partial<{
+      serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
+      installationDirectory: string;
+      serverHost: string;
+      serverPort: string;
+      serverProtocol: "HTTP" | "HTTPS" | "__none__";
+      iisIsapiPath: string;
+      observacoes: string;
+    }>,
+    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
+    fallbackDirectory: string,
+  ) {
+    setCompanyContextDraftByCompanyId((prev) => {
+      const current = prev[companyId] ?? buildCompanyContextDraft(companyContext, fallbackDirectory);
+      return {
+        ...prev,
+        [companyId]: {
+          ...current,
+          ...patch,
+        },
+      };
+    });
+  }
   const sysproServerInstallations = useMemo(
     () => dedupedInstallationContexts.filter((context) => context.update.isServerHost === true),
     [dedupedInstallationContexts],
@@ -764,6 +821,40 @@ export function RemoteHostDetailsPanel({
     });
   }
 
+  function handleSaveCompanyContext(
+    companyId: string,
+    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
+    fallbackDirectory: string,
+  ) {
+    const draft = companyContextDraftByCompanyId[companyId] ?? buildCompanyContextDraft(companyContext, fallbackDirectory);
+    const normalizedDirectory = draft.installationDirectory.trim() || fallbackDirectory || DEFAULT_INSTALLATION_DIRECTORY;
+
+    startSavingCompanyContext(async () => {
+      setSavingCompanyContextId(companyId);
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/companies/${companyId}/context`,
+          method: "PATCH",
+          body: {
+            serverType: draft.serverType === "__none__" ? null : draft.serverType,
+            installationDirectory: normalizedDirectory,
+            serverHost: draft.serverHost.trim() || null,
+            serverPort: draft.serverPort.trim() || null,
+            serverProtocol: draft.serverProtocol === "__none__" ? null : draft.serverProtocol,
+            iisIsapiPath: draft.iisIsapiPath.trim() || null,
+            observacoes: draft.observacoes.trim() || null,
+          },
+        });
+        toast.success("Contexto técnico da empresa atualizado.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      } finally {
+        setSavingCompanyContextId(null);
+      }
+    });
+  }
+
   const [isStartingSession, startSessionTransition] = useTransition();
 
   const handleStartOrchestratedSession = async () => {
@@ -952,8 +1043,7 @@ export function RemoteHostDetailsPanel({
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-            <div className="space-y-6">
+          <div className="space-y-6">
               <Card className="border-border/40 bg-muted/5 shadow-sm">
                 <CardHeader className="pb-3 px-6 pt-6">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -962,17 +1052,6 @@ export function RemoteHostDetailsPanel({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Use um nome operacional fácil de buscar, por exemplo <span className="font-medium text-foreground">Caixa 01 | Tudo Congelados</span>.
-                    </p>
-                    <Input
-                      value={projectedHostName}
-                      onChange={(event) => setProjectedHostName(event.target.value)}
-                      placeholder="Ex.: Caixa 01 | Tudo Congelados"
-                      disabled={isSavingMachineName}
-                    />
-                  </div>
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground">Tipo do host</p>
                     <Select
@@ -1062,33 +1141,6 @@ export function RemoteHostDetailsPanel({
                     </div>
                  </div>
               </div>
-
-            </div>
-
-            <Card className="h-fit w-full border-border/40 bg-muted/5 lg:w-72">
-              <CardHeader className="px-4 pb-2 pt-4">
-                <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Foco operacional
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Esta visão geral mostra só sinais imediatos. As ações e o inventário detalhado ficam concentrados nos tabs para evitar duplicidade.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4 pb-4 pt-0">
-                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                  <p className="text-xs font-semibold text-foreground">Instalações</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Caminhos, vínculos e empresas associadas ficam no tab <span className="font-medium text-foreground">Instalações</span>.
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                  <p className="text-xs font-semibold text-foreground">Agente</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Renovação de credenciais, reenvio de configuração e reaplicação de identidade ficam no tab <span className="font-medium text-foreground">Agente</span>.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
@@ -1134,6 +1186,11 @@ export function RemoteHostDetailsPanel({
             setManualInstallationPath={setManualInstallationPath}
             isCreatingManualInstallation={isCreatingManualInstallation}
             handleCreateManualInstallation={handleCreateManualInstallation}
+            companyContextDraftByCompanyId={companyContextDraftByCompanyId}
+            updateCompanyContextDraft={updateCompanyContextDraft}
+            isSavingCompanyContext={isSavingCompanyContext}
+            savingCompanyContextId={savingCompanyContextId}
+            handleSaveCompanyContext={handleSaveCompanyContext}
           />
         </TabsContent>
 
