@@ -50,6 +50,12 @@ type LooseWhereInput = Record<string, unknown> & {
   OR?: Array<Record<string, unknown>>;
 };
 
+type AgentRemoteLinkContext = {
+  remoteHostId?: string;
+  companyId?: string;
+  rustdeskId?: string;
+};
+
 @Injectable()
 export class AgentsService {
   private readonly logger = new Logger(AgentsService.name);
@@ -73,6 +79,7 @@ export class AgentsService {
 
     const payload = parsed.data;
     const now = new Date();
+    const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
 
     const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
@@ -82,6 +89,7 @@ export class AgentsService {
         os: payload.os ?? null,
         identitySource: payload.identitySource ?? null,
         agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? null,
         firstSeenAt: now,
         lastRegisteredAt: now,
         lastHeartbeatAt: now,
@@ -91,14 +99,25 @@ export class AgentsService {
         os: payload.os ?? undefined,
         identitySource: payload.identitySource ?? undefined,
         agentVersion: payload.agentVersion ?? undefined,
+        companyId: remoteLinkContext.companyId ?? undefined,
         lastRegisteredAt: now,
         lastHeartbeatAt: now,
       },
     });
 
     const registeredDevice = device as { remoteHostId?: string | null; companyId: string | null };
-    if (!registeredDevice.remoteHostId && payload.hostname) {
-      await this.tryLinkRemoteHost(payload.deviceId, payload.hostname, registeredDevice.companyId);
+    if (!registeredDevice.remoteHostId) {
+      await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, registeredDevice.companyId);
+      await this.ensurePendingDiscoveredHost({
+        deviceId: payload.deviceId,
+        hostname: payload.hostname ?? null,
+        agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? registeredDevice.companyId ?? null,
+        rustdeskId: remoteLinkContext.rustdeskId,
+        identitySource: payload.identitySource ?? null,
+        os: payload.os ?? null,
+        at: now,
+      });
     }
 
     this.logger.log({
@@ -108,6 +127,8 @@ export class AgentsService {
       os: payload.os,
       identitySource: payload.identitySource,
       agentVersion: payload.agentVersion,
+      remoteHostId: remoteLinkContext.remoteHostId,
+      rustdeskId: remoteLinkContext.rustdeskId,
     });
 
     return {
@@ -134,28 +155,40 @@ export class AgentsService {
 
     const payload = parsed.data;
     const now = new Date();
+    const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
 
     const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
       create: {
         deviceId: payload.deviceId,
         agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? null,
         firstSeenAt: now,
         lastHeartbeatAt: now,
       },
       update: {
         agentVersion: payload.agentVersion ?? undefined,
+        companyId: remoteLinkContext.companyId ?? undefined,
         lastHeartbeatAt: now,
       },
     });
 
     const heartbeatDevice = device as {
       remoteHostId?: string | null;
-      hostname: string | null;
       companyId: string | null;
     };
-    if (!heartbeatDevice.remoteHostId && heartbeatDevice.hostname) {
-      await this.tryLinkRemoteHost(payload.deviceId, heartbeatDevice.hostname, heartbeatDevice.companyId);
+    if (!heartbeatDevice.remoteHostId) {
+      await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, heartbeatDevice.companyId);
+      await this.ensurePendingDiscoveredHost({
+        deviceId: payload.deviceId,
+        hostname: (device as { hostname?: string | null }).hostname ?? null,
+        agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? heartbeatDevice.companyId ?? null,
+        rustdeskId: remoteLinkContext.rustdeskId,
+        identitySource: (device as { identitySource?: string | null }).identitySource ?? null,
+        os: (device as { os?: string | null }).os ?? null,
+        at: now,
+      });
     }
 
     return {
@@ -169,61 +202,47 @@ export class AgentsService {
   }
 
   /**
-   * Best-effort: find a RemoteHost whose machineName matches the agent hostname.
-   * Only links when exactly one unambiguous match exists so we never create a wrong link.
-   * Scoped by companyId when available to avoid cross-company collisions.
+   * Best-effort: bind an AgentDevice to the RemoteHost explicitly referenced
+   * by the remote runtime state. We do not infer by hostname because common
+   * names such as "SERVIDOR" collide across customers.
    */
   private async tryLinkRemoteHost(
     deviceId: string,
-    hostname: string,
+    linkContext: AgentRemoteLinkContext,
     companyId: string | null,
   ): Promise<void> {
     try {
-      const where: LooseWhereInput = {
-        machineName: { equals: hostname, mode: Prisma.QueryMode.insensitive },
-        agentDevice: null,
-      };
-      if (companyId) {
-        where.companyId = companyId;
-      }
+      const effectiveCompanyId = linkContext.companyId ?? companyId ?? undefined;
+      let match: { id: string; companyId: string } | null = null;
 
-      const matches = await this.prisma.remoteHost.findMany({
-        where: where as any,
-        select: { id: true, companyId: true },
-      });
-
-      if (matches.length === 0) return;
-
-      let match: { id: string; companyId: string | null } | undefined;
-
-      if (matches.length === 1) {
-        match = matches[0];
-      } else if (!companyId) {
-        // Múltiplos matches sem escopo de empresa: tentar usar
-        // aquele que tenha empresa única nessa lista (sem ambiguidade por empresa)
-        const byCompany = new Map<string, (typeof matches)[number][]>();
-        for (const m of matches) {
-          const key = m.companyId ?? '__null__';
-          if (!byCompany.has(key)) byCompany.set(key, []);
-          byCompany.get(key)!.push(m);
-        }
-        const unambiguous = [...byCompany.values()].filter((group) => group.length === 1);
-        if (unambiguous.length === 1) {
-          match = unambiguous[0][0];
-        }
-      }
-      // Se companyId estiver setado e matches.length > 1, há 2+ hosts com mesmo
-      // nome na mesma empresa — ambiguidade real, não linkar automaticamente.
-
-      if (!match) {
-        this.logger.warn({
-          event: 'agent.host_link_ambiguous',
-          deviceId,
-          hostname,
-          matchCount: matches.length,
+      if (linkContext.remoteHostId) {
+        match = await this.prisma.remoteHost.findFirst({
+          where: {
+            id: linkContext.remoteHostId,
+            ...(effectiveCompanyId ? { companyId: effectiveCompanyId } : {}),
+            OR: [{ agentDevice: null }, { agentDevice: { deviceId } }],
+          } as any,
+          select: { id: true, companyId: true },
         });
-        return;
       }
+
+      if (!match && linkContext.rustdeskId) {
+        const rustdeskMatches = await this.prisma.remoteHost.findMany({
+          where: {
+            agentExternalId: linkContext.rustdeskId,
+            ...(effectiveCompanyId ? { companyId: effectiveCompanyId } : {}),
+            OR: [{ agentDevice: null }, { agentDevice: { deviceId } }],
+          } as any,
+          select: { id: true, companyId: true },
+          take: 2,
+        });
+        if (rustdeskMatches.length === 1) {
+          match = rustdeskMatches[0];
+        }
+      }
+
+      if (!match) return;
+
 
       const data: Record<string, unknown> = { remoteHostId: match.id };
       if (match.companyId && !companyId) {
@@ -235,12 +254,131 @@ export class AgentsService {
       this.logger.log({
         event: 'agent.host_linked',
         deviceId,
-        hostname,
         remoteHostId: match.id,
+        rustdeskId: linkContext.rustdeskId,
+        linkedBy: linkContext.remoteHostId ? 'remote_host_id' : 'rustdesk_id',
         companyIdPropagated: !!(match.companyId && !companyId),
       });
     } catch (err) {
       this.logger.warn({ event: 'agent.host_link_failed', deviceId, error: String(err) });
+    }
+  }
+
+  private normalizeRemoteLinkContext(input: unknown): AgentRemoteLinkContext {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      return {};
+    }
+
+    const record = input as Record<string, unknown>;
+    const remoteHostId =
+      typeof record.remoteHostId === 'string' && record.remoteHostId.trim() ? record.remoteHostId.trim() : undefined;
+    const companyId =
+      typeof record.companyId === 'string' && record.companyId.trim() ? record.companyId.trim() : undefined;
+    const rustdeskId =
+      typeof record.rustdeskId === 'string' && record.rustdeskId.trim() ? record.rustdeskId.trim() : undefined;
+
+    return { remoteHostId, companyId, rustdeskId };
+  }
+
+  private async ensurePendingDiscoveredHost(input: {
+    deviceId: string;
+    hostname: string | null;
+    agentVersion: string | null;
+    companyId: string | null;
+    rustdeskId?: string;
+    identitySource: string | null;
+    os: string | null;
+    at: Date;
+  }): Promise<void> {
+    try {
+      const persistedDevice = await this.prisma.agentDevice.findUnique({
+        where: { deviceId: input.deviceId },
+        select: { remoteHostId: true },
+      });
+
+      if (persistedDevice?.remoteHostId) {
+        return;
+      }
+
+      const machineName = input.hostname?.trim() || null;
+      const agentExternalId = input.rustdeskId?.trim() || null;
+      if (!machineName && !agentExternalId) {
+        return;
+      }
+
+      const matchWhere = agentExternalId
+        ? {
+            OR: [
+              { agentExternalId },
+              ...(machineName ? [{ machineName }] : []),
+            ],
+          }
+        : { machineName: machineName ?? undefined };
+
+      // Reuse only records that are still pending/unlinked. A previously linked
+      // discovery record for another machine named "SERVIDOR" must not block a
+      // fresh pending record from appearing for manual sync.
+      const existing = await this.prisma.remoteDiscoveredHost.findFirst({
+        where: {
+          AND: [
+            matchWhere,
+            {
+              OR: [
+                { linkedHostId: null },
+                { status: { not: 'LINKED' as const } },
+              ],
+            },
+          ],
+        },
+        orderBy: [{ updatedAt: 'desc' }],
+        select: {
+          id: true,
+        },
+      });
+
+      const providerParts = [input.identitySource?.trim(), 'go-agent'].filter(Boolean);
+      const descriptionParts = [
+        input.os?.trim(),
+        input.companyId ? `company:${input.companyId}` : null,
+        `device:${input.deviceId}`,
+      ].filter(Boolean);
+
+      const data = {
+        machineName,
+        agentExternalId,
+        agentVersion: input.agentVersion?.trim() || null,
+        provider: providerParts.join(':') || 'go-agent',
+        environment: 'agent-register',
+        description: descriptionParts.join(' | ') || null,
+        serviceStatus: 'online',
+        lastHeartbeatAt: input.at,
+        status: 'PENDING_LINK' as const,
+      };
+
+      if (existing) {
+        await this.prisma.remoteDiscoveredHost.update({
+          where: { id: existing.id },
+          data,
+        });
+      } else {
+        await this.prisma.remoteDiscoveredHost.create({
+          data,
+        });
+      }
+
+      this.logger.log({
+        event: 'agent.discovery_materialized',
+        deviceId: input.deviceId,
+        machineName,
+        rustdeskId: agentExternalId,
+        created: !existing,
+      });
+    } catch (err) {
+      this.logger.warn({
+        event: 'agent.discovery_materialize_failed',
+        deviceId: input.deviceId,
+        error: String(err),
+      });
     }
   }
 

@@ -112,7 +112,16 @@ Copy-Item -LiteralPath (Join-Path $runtimeRoot "stop-agent.cmd") -Destination (J
 Copy-Item -LiteralPath (Join-Path $runtimeRoot "open-config.cmd") -Destination (Join-Path $stageRoot "scripts\open-config.cmd")
 Copy-Item -LiteralPath (Join-Path $runtimeRoot "open-logs.cmd") -Destination (Join-Path $stageRoot "scripts\open-logs.cmd")
 
-Copy-Item -LiteralPath $sourceEnvExample -Destination (Join-Path $stageRoot "config\.env.example")
+if (Test-Path $sourceEnvExample) {
+  Copy-Item -LiteralPath $sourceEnvExample -Destination (Join-Path $stageRoot "config\.env.example")
+} elseif (Test-Path $sourceEnv) {
+  Copy-Item -LiteralPath $sourceEnv -Destination (Join-Path $stageRoot "config\.env.example")
+} else {
+@"
+# Trilink Agent environment seed
+# Preencha este arquivo antes de iniciar o agente fora do fluxo bootstrap.
+"@ | Set-Content -Path (Join-Path $stageRoot "config\.env.example") -Encoding ASCII
+}
 if (Test-Path $sourceEnv) {
   Copy-Item -LiteralPath $sourceEnv -Destination (Join-Path $stageRoot "config\.env")
 }

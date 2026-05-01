@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { prisma, buildScopedWhere, normalizeCompareValue, normalizeSysproUpdates, syncRemoteHostSysproUpdates } from "@dosc-syspro/database";
 import { normalizeRustdeskIdStrict } from "./rustdesk-helpers";
+import { resolveScopedCompanyContext } from "./scoped-company-context";
 import type {
   CreateHostInput,
   CreateHostOutput,
@@ -33,21 +34,10 @@ function withDataError(message: string, data?: unknown) {
 export function createRemoteHostAdminPort(): RemoteHostAdminPort {
   return {
     async linkDiscoveredHost(input: LinkDiscoveredHostInput): Promise<LinkDiscoveredHostOutput> {
-      if (!input.scope.isGlobalView && !input.scope.companyIds.includes(input.companyId)) {
-        throw new Error("HOST_COMPANY_OUT_OF_SCOPE");
-      }
-
       const [company, discoveredHost] = await Promise.all([
-        prisma.company.findFirst({
-          where: { id: input.companyId, deletedAt: null },
-          select: { id: true, nomeFantasia: true, razaoSocial: true },
-        }),
+        resolveScopedCompanyContext({ scope: input.scope, companyId: input.companyId }),
         prisma.remoteDiscoveredHost.findFirst({ where: { id: input.discoveredHostId } }),
       ]);
-
-      if (!company) {
-        throw new Error("HOST_COMPANY_NOT_FOUND");
-      }
 
       if (!discoveredHost) {
         throw new Error("DISCOVERED_HOST_NOT_FOUND");
@@ -62,10 +52,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       }
 
       const heartbeatAt = discoveredHost.lastHeartbeatAt ?? new Date();
-      const normalizedPrimaryNames = [
-        normalizeCompareValue(company.nomeFantasia),
-        normalizeCompareValue(company.razaoSocial),
-      ].filter(Boolean);
       const sysproUpdates = normalizeSysproUpdates(discoveredHost.installationsSnapshot);
 
       const host = await prisma.$transaction(async (tx) => {
@@ -90,7 +76,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         await syncRemoteHostSysproUpdates(tx, {
           hostId: createdHost.id,
           hostCompanyId: input.companyId,
-          hostCompanyNames: normalizedPrimaryNames,
+          hostCompanyNames: company.normalizedPrimaryNames,
           heartbeatAt,
           sysproUpdates,
         });
@@ -115,18 +101,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
 
     async createHost(input: CreateHostInput): Promise<CreateHostOutput> {
-      if (!input.scope.isGlobalView && !input.scope.companyIds.includes(input.companyId)) {
-        throw new Error("HOST_COMPANY_OUT_OF_SCOPE");
-      }
-
-      const company = await prisma.company.findFirst({
-        where: { id: input.companyId, deletedAt: null },
-        select: { id: true },
-      });
-
-      if (!company) {
-        throw new Error("HOST_COMPANY_NOT_FOUND");
-      }
+      await resolveScopedCompanyContext({ scope: input.scope, companyId: input.companyId });
 
       const incomingAgentExternalId = input.agentExternalId?.trim();
       const agentExternalId = normalizeRustdeskIdStrict(incomingAgentExternalId);
@@ -169,10 +144,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
 
     async updateHost(input: UpdateHostInput): Promise<UpdateHostOutput> {
-      if (!input.scope.isGlobalView && !input.scope.companyIds.includes(input.companyId)) {
-        throw new Error("HOST_COMPANY_OUT_OF_SCOPE");
-      }
-
       const scopedWhere = buildScopedWhere(input.scope.companyIds, input.scope.isGlobalView);
 
       const existingHost = await prisma.remoteHost.findFirst({
@@ -187,14 +158,7 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
         throw new Error("HOST_NOT_FOUND");
       }
 
-      const company = await prisma.company.findFirst({
-        where: { id: input.companyId, deletedAt: null },
-        select: { id: true },
-      });
-
-      if (!company) {
-        throw new Error("HOST_COMPANY_NOT_FOUND");
-      }
+      await resolveScopedCompanyContext({ scope: input.scope, companyId: input.companyId });
 
       const incomingAgentExternalId = input.agentExternalId?.trim();
       const agentExternalId = normalizeRustdeskIdStrict(incomingAgentExternalId);
@@ -446,21 +410,9 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
       let nextCompanyLabel: string | null = null;
       const targetCompanyId = input.companyId?.trim();
       if (targetCompanyId) {
-        const company = await prisma.company.findFirst({
-          where: {
-            id: targetCompanyId,
-            deletedAt: null,
-            ...(input.scope.isGlobalView ? {} : { id: { in: input.scope.companyIds.length ? input.scope.companyIds : ["__none__"] } }),
-          },
-          select: { id: true, nomeFantasia: true, razaoSocial: true },
-        });
-
-        if (!company) {
-          throw new Error("HOST_COMPANY_NOT_FOUND");
-        }
-
+        const company = await resolveScopedCompanyContext({ scope: input.scope, companyId: targetCompanyId });
         nextCompanyId = company.id;
-        nextCompanyLabel = company.nomeFantasia ?? company.razaoSocial;
+        nextCompanyLabel = company.displayLabel;
       }
 
       const mode = input.mode === "add" ? "add" : "replace";
@@ -532,9 +484,6 @@ export function createRemoteHostAdminPort(): RemoteHostAdminPort {
     },
   };
 }
-
-
-
 
 
 

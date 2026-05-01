@@ -63,6 +63,11 @@ export interface HostAgentTabProps {
   }>;
   hiddenAcknowledgedCount: number;
   hasPendingInstallGuide: boolean;
+  desiredSysproInstalls: Array<{
+    companyId: string;
+    companyName: string;
+    serverPath: string;
+  }>;
   linkedDevice?: AgentDeviceSummary | null;
   hostId: string;
 }
@@ -88,6 +93,7 @@ export function HostAgentTab({
   visibleAgentCommands,
   hiddenAcknowledgedCount,
   hasPendingInstallGuide,
+  desiredSysproInstalls,
   linkedDevice = null,
   hostId,
 }: HostAgentTabProps) {
@@ -119,7 +125,7 @@ export function HostAgentTab({
               <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
             </div>
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estrategia</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Estratégia</p>
               <p className="mt-1 text-sm text-foreground">{orchestrationStrategy}</p>
             </div>
             <div className="rounded-lg border border-border/40 bg-background/50 p-3">
@@ -134,7 +140,7 @@ export function HostAgentTab({
           </div>
           {host.productStatus === "AWAITING_LINK" ? (
             <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-              A maquina ja foi descoberta pelo agente, mas ainda nao foi vinculada no portal. Nesse estado o RustDesk ainda nao e instalado. O proximo passo e concluir o vinculo do host para liberar bootstrap e provisionamento remoto.
+              A máquina já foi descoberta pelo agente, mas ainda não foi vinculada no portal. Nesse estado o RustDesk ainda não está instalado. O próximo passo é concluir o vínculo do host para liberar bootstrap e provisionamento remoto.
             </div>
           ) : null}
         </div>
@@ -175,11 +181,11 @@ export function HostAgentTab({
                     </p>
                   )}
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Ultima tentativa as {formatHourMinute(agentHealthCard.autoHeal.lastAttemptAt)}
+                    Última tentativa às {formatHourMinute(agentHealthCard.autoHeal.lastAttemptAt)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versao do ERP</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Versão do ERP</p>
                   <p className="mt-2 text-sm text-foreground">{agentHealthCard.erp.version ?? "Sem leitura"}</p>
                   <div className="mt-1 space-y-1">
                     {agentHealthCard.erp.paths.slice(0, 2).map((path: string) => (
@@ -192,6 +198,36 @@ export function HostAgentTab({
                     ) : null}
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-3 rounded-xl border border-border/50 bg-background/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Desired state do dispositivo</p>
+                    <p className="text-sm text-muted-foreground">
+                      Instalações Syspro que o portal está projetando para o módulo `device`.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
+                    {desiredSysproInstalls.length} instalação(ões)
+                  </Badge>
+                </div>
+                {desiredSysproInstalls.length ? (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {desiredSysproInstalls.map((install) => (
+                      <div key={`${install.companyId}-${install.serverPath}`} className="rounded-lg border border-border/40 bg-background/50 p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
+                        <p className="mt-1 text-sm text-foreground">{install.companyName}</p>
+                        <p className="mt-3 text-[11px] uppercase tracking-wide text-muted-foreground">server_path</p>
+                        <p className="mt-1 break-all font-mono text-xs text-foreground">{install.serverPath}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-lg border border-dashed border-border/50 bg-background/40 p-3 text-sm text-muted-foreground">
+                    Nenhuma instalação vinculada está sendo projetada para o agente.
+                  </div>
+                )}
               </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border/50 bg-background/60 p-3">
@@ -213,7 +249,7 @@ export function HostAgentTab({
                   </p>
                   {bootstrapRateMetrics.cycles !== null ? (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {bootstrapRateMetrics.bootstrapCycles ?? 0}/{bootstrapRateMetrics.cycles} ciclos com vinculacao
+                      {bootstrapRateMetrics.bootstrapCycles ?? 0}/{bootstrapRateMetrics.cycles} ciclos com vinculação
                     </p>
                   ) : null}
                 </div>
@@ -253,7 +289,7 @@ export function HostAgentTab({
                 <div className="mt-3 rounded-lg border border-border/40 bg-background/50 p-3">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Último erro de validação</p>
                   <p className="mt-1 break-all text-xs text-foreground">
-                    {contractValidationError ?? "Sem erro de validacao detectado no ultimo ciclo."}
+                    {contractValidationError ?? "Sem erro de validação detectado no último ciclo."}
                   </p>
                 </div>
               </div>
@@ -304,7 +340,7 @@ export function HostAgentTab({
                     </p>
                   </div>
                   <Badge variant="outline" className="w-fit border-border/60 bg-background/70 text-muted-foreground">
-                    Ultima sync: {formatDateTime(rustDeskCompliance.lastSyncAt)}
+                    Última sync: {formatDateTime(rustDeskCompliance.lastSyncAt)}
                   </Badge>
                 </div>
 
@@ -364,7 +400,7 @@ export function HostAgentTab({
                       const structuredReasonLabel = structuredReasonCode
                         ? (isRemoteAgentAckReasonCode(structuredReasonCode)
                           ? AGENT_ACK_REASON_LABEL[structuredReasonCode as RemoteAgentAckReasonCode]
-                          : "Codigo nao catalogado")
+                          : "Código não catalogado")
                         : null;
                       return (
                         <div key={command.id} className="rounded-xl border border-border/50 bg-background/60 p-4">
@@ -406,7 +442,7 @@ export function HostAgentTab({
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-                    Nenhuma acao pendente. O host reportado esta aderente ao que o portal espera neste momento.
+                    Nenhuma ação pendente. O host reportado está aderente ao que o portal espera neste momento.
                   </div>
                 )}
               </div>

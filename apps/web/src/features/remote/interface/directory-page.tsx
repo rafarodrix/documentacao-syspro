@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Copy,
-  ExternalLink,
   Plus,
   Search,
   ShieldCheck,
@@ -78,20 +77,6 @@ const QUICK_DESCRIPTION_TEMPLATES = [
   "PDV / caixa operacional",
 ];
 
-const QUICK_ENVIRONMENT_TEMPLATES = [
-  "Produção",
-  "Homologação",
-  "Servidor",
-  "Matriz",
-  "Filial",
-  "Terminal",
-];
-
-function getStatusLabel(status: "ACTIVE" | "MAINTENANCE" | "INACTIVE") {
-  if (status === "ACTIVE") return "Ativo";
-  if (status === "MAINTENANCE") return "Manutenção";
-  return "Inativo";
-}
 
 function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number | null) {
   if (!lastHeartbeatAt) {
@@ -124,7 +109,7 @@ function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number
 
   return {
     label: "Heartbeat antigo",
-    shortLabel: "Instável",
+      shortLabel: "Instável",
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     bucket: "stale" as const,
   };
@@ -183,15 +168,12 @@ export function RemotePlatformDirectoryPanel({
   const [hasHydrated, setHasHydrated] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState(initialCompanyId ?? "all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "MAINTENANCE" | "INACTIVE">("all");
-  const [environmentFilter, setEnvironmentFilter] = useState("all");
   const [heartbeatFilter, setHeartbeatFilter] = useState<"all" | "recent" | "stale" | "missing">("all");
   const [agentFilter, setAgentFilter] = useState<"all" | "awaiting_link" | "provisioning" | "ready" | "attention" | "in_service">("all");
   const [scopeFilter, setScopeFilter] = useState<"all" | "online" | "offline" | "discovered">("all");
   const [quickCompanyId, setQuickCompanyId] = useState(directory.companyOptions[0]?.id ?? "");
   const [quickHostName, setQuickHostName] = useState("");
   const [quickRustdeskId, setQuickRustdeskId] = useState("");
-  const [quickEnvironment, setQuickEnvironment] = useState("Produção");
   const [quickDescription, setQuickDescription] = useState("");
   const [pendingCompanyById, setPendingCompanyById] = useState<Record<string, string>>({});
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
@@ -208,11 +190,6 @@ export function RemotePlatformDirectoryPanel({
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
     setHasHydrated(true);
   }, []);
-
-  const environmentOptions = useMemo(() => {
-    const values = Array.from(new Set(directory.items.map((item) => item.environment).filter(Boolean))) as string[];
-    return values.sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [directory.items]);
   const selectedCompanyLabel = useMemo(
     () => directory.companyOptions.find((company) => company.id === companyFilter)?.label ?? null,
     [companyFilter, directory.companyOptions],
@@ -259,7 +236,7 @@ export function RemotePlatformDirectoryPanel({
             companyId: quickCompanyId,
             name: quickHostName.trim(),
             provider: "RustDesk",
-            environment: quickEnvironment.trim() || "Produção",
+            environment: null,
             description: quickDescription.trim(),
             agentExternalId: rustdeskId.normalized,
             status: "ACTIVE",
@@ -273,7 +250,6 @@ export function RemotePlatformDirectoryPanel({
       toast.success(result.message ?? "Host criado com sucesso.");
       setQuickHostName("");
       setQuickRustdeskId("");
-      setQuickEnvironment("Produção");
       setQuickDescription("");
       setShowQuickCreate(false);
       startTransition(() => router.refresh());
@@ -374,7 +350,6 @@ export function RemotePlatformDirectoryPanel({
         item.name,
         item.companyName,
         item.installationCompanies.join(" "),
-        item.environment,
         item.provider,
         item.agent.rustdeskId,
         item.description,
@@ -391,8 +366,6 @@ export function RemotePlatformDirectoryPanel({
       const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
       const matchesSearch = !term || haystack.includes(term);
       const matchesCompany = companyFilter === "all" || item.companyId === companyFilter;
-      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-      const matchesEnvironment = environmentFilter === "all" || item.environment === environmentFilter;
       const matchesHeartbeat = heartbeatFilter === "all" || heartbeat.bucket === heartbeatFilter;
       const matchesAgent =
         agentFilter === "all" ||
@@ -402,9 +375,9 @@ export function RemotePlatformDirectoryPanel({
         (agentFilter === "attention" && item.productStatus === "ATTENTION_REQUIRED") ||
         (agentFilter === "in_service" && item.productStatus === "IN_SERVICE");
 
-      return matchesSearch && matchesCompany && matchesStatus && matchesEnvironment && matchesHeartbeat && matchesAgent;
+      return matchesSearch && matchesCompany && matchesHeartbeat && matchesAgent;
     });
-  }, [agentFilter, companyFilter, directory.items, environmentFilter, hasHydrated, heartbeatFilter, searchTerm, statusFilter]);
+  }, [agentFilter, companyFilter, directory.items, hasHydrated, heartbeatFilter, searchTerm]);
 
   const filteredPendingItems = useMemo(() => {
     const term = normalizeSearchValue(searchTerm);
@@ -415,7 +388,6 @@ export function RemotePlatformDirectoryPanel({
           item.rustdeskId,
           item.agentVersion,
           item.provider,
-          item.environment,
           item.description,
           item.installationCompanies.join(" "),
         ]
@@ -502,8 +474,6 @@ export function RemotePlatformDirectoryPanel({
               {(searchTerm ||
                 scopeFilter !== "all" ||
                 companyFilter !== "all" ||
-                statusFilter !== "all" ||
-                environmentFilter !== "all" ||
                 heartbeatFilter !== "all" ||
                 agentFilter !== "all") && (
                 <Button
@@ -515,8 +485,6 @@ export function RemotePlatformDirectoryPanel({
                     setSearchTerm("");
                     setScopeFilter("all");
                     setCompanyFilter("all");
-                    setStatusFilter("all");
-                    setEnvironmentFilter("all");
                     setHeartbeatFilter("all");
                     setAgentFilter("all");
                   }}
@@ -563,24 +531,7 @@ export function RemotePlatformDirectoryPanel({
                             onChange={(event) => setQuickHostName(event.target.value)}
                             placeholder="Ex.: SERVIDOR MATRIZ FISCAL"
                           />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Ambiente</Label>
-                          <Input
-                            list="quick-environment-options"
-                            value={quickEnvironment}
-                            onChange={(event) => setQuickEnvironment(event.target.value)}
-                            placeholder="Produção"
-                          />
-                          <datalist id="quick-environment-options">
-                            {QUICK_ENVIRONMENT_TEMPLATES.map((option) => (
-                              <option key={option} value={option} />
-                            ))}
-                          </datalist>
-                        </div>
-
-                        <div className="space-y-2">
+                        </div><div className="space-y-2">
                           <Label>RustDesk ID</Label>
                           <Input
                             value={quickRustdeskId}
@@ -619,9 +570,6 @@ export function RemotePlatformDirectoryPanel({
                           </p>
                           <p>
                             <span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}
-                          </p>
-                          <p>
-                            <span className="text-muted-foreground">Ambiente:</span> {quickEnvironment.trim() || "Nao informado"}
                           </p>
                           <p>
                             <span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Nao informado"}
@@ -697,40 +645,7 @@ export function RemotePlatformDirectoryPanel({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Status</Label>
-                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
-                    <SelectTrigger className="h-9 bg-background">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="ACTIVE">Ativo</SelectItem>
-                      <SelectItem value="MAINTENANCE">Manutenção</SelectItem>
-                      <SelectItem value="INACTIVE">Inativo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Ambiente</Label>
-                  <Select value={environmentFilter} onValueChange={setEnvironmentFilter}>
-                    <SelectTrigger className="h-9 bg-background">
-                      <SelectValue placeholder="Ambiente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      {environmentOptions.map((env) => (
-                        <SelectItem key={env} value={env}>
-                          {env}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
+                </div>                <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-muted-foreground">Conectividade</Label>
                   <Select value={heartbeatFilter} onValueChange={(value) => setHeartbeatFilter(value as typeof heartbeatFilter)}>
                     <SelectTrigger className="h-9 bg-background">
@@ -766,9 +681,6 @@ export function RemotePlatformDirectoryPanel({
           )}
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="h-6 border-border/50 bg-background/50 font-medium">
-              {visibleHostCount} {scopeFilter === "discovered" ? "descobertas" : "hosts"}
-            </Badge>
             {selectedCompanyLabel ? (
               <Badge variant="outline" className="h-6 border-primary/20 bg-primary/10 text-primary">
                 <Building2 className="mr-1 h-3 w-3" />
@@ -823,11 +735,6 @@ export function RemotePlatformDirectoryPanel({
                           <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
                             Pendente
                           </Badge>
-                          {item.environment ? (
-                            <Badge variant="outline" className="border-border/50 bg-background/70 text-muted-foreground">
-                              {item.environment}
-                            </Badge>
-                          ) : null}
                           {item.lastAgentMetrics?.cpuLoad !== undefined ? (
                             <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
                               CPU {item.lastAgentMetrics.cpuLoad}%
@@ -912,7 +819,6 @@ export function RemotePlatformDirectoryPanel({
             {displayedItems.map((item) => {
               const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, hasHydrated ? Date.now() : null);
               const productStatus = getRemoteProductStatusMeta(item.productStatus);
-              const rustdeskHref = item.agent.rustdeskId ? `rustdesk://${item.agent.rustdeskId.replace(/\s+/g, "")}` : null;
               const installationNames = item.installationCompanies.length
                 ? item.installationCompanies
                 : item.companyName
@@ -937,13 +843,8 @@ export function RemotePlatformDirectoryPanel({
                         <div className="min-w-0 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="secondary" className="h-5 bg-background/90 text-[10px] font-bold uppercase tracking-wider">
-                              {getStatusLabel(item.status)}
+                              {heartbeat.shortLabel === "Online" ? "Operacional" : "Atenção"}
                             </Badge>
-                            {item.environment ? (
-                              <Badge variant="outline" className="h-5 border-border/40 bg-background/40 text-[10px]">
-                                {item.environment}
-                              </Badge>
-                            ) : null}
                             <Badge variant="outline" className={`h-5 text-[10px] ${productStatus.className}`}>
                               {productStatus.label}
                             </Badge>
@@ -1036,21 +937,8 @@ export function RemotePlatformDirectoryPanel({
                         ) : (
                           <ShieldCheck className="mr-2 h-3.5 w-3.5" />
                         )}
-                        Conectar
+                        Abrir remoto
                       </Button>
-
-                      {rustdeskHref ? (
-                        <Button asChild variant="outline" size="sm" className="h-9 min-w-24">
-                          <a href={rustdeskHref}>
-                            <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                            {isMobileClient ? "Abrir app" : "Acesso rápido"}
-                          </a>
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm" disabled className="h-9 min-w-24 border-dashed">
-                          Sem conexao
-                        </Button>
-                      )}
 
                       <Button asChild variant="outline" size="sm" className="h-9 min-w-24 bg-background/70">
                         <Link
@@ -1080,4 +968,5 @@ export function RemotePlatformDirectoryPanel({
     </div>
   );
 }
+
 

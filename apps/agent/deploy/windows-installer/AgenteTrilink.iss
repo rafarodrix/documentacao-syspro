@@ -29,8 +29,7 @@ DisableProgramGroupPage=yes
 OutputDir=..\..\dist\windows-installer\output
 OutputBaseFilename=agente-trilink-setup-{#MyAppVersion}
 ; Fecha agent-ui e agent-service automaticamente se estiverem rodando durante upgrade
-CloseApplications=yes
-CloseApplicationsFilter=agent-ui.exe,agent-service.exe
+CloseApplications=no
 RestartApplications=no
 
 [Tasks]
@@ -112,6 +111,91 @@ var
   RC: Integer;
 begin
   Exec('net.exe', 'stop ' + SvcName, '', SW_HIDE, ewWaitUntilTerminated, RC);
+end;
+
+function ResolveInstalledAgentDir(): string;
+var
+  InstallDir: string;
+  UninstallKey: string;
+begin
+  Result := ExpandConstant('{commonpf}\Trilink\Agente');
+  UninstallKey := 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{{8F4D6C55-96D8-4B9A-AB32-4DCA167A8D36}_is1';
+
+  if RegQueryStringValue(HKLM64, UninstallKey, 'Inno Setup: App Path', InstallDir) and (Trim(InstallDir) <> '') then
+  begin
+    Result := InstallDir;
+    Exit;
+  end;
+
+  if RegQueryStringValue(HKLM64, UninstallKey, 'InstallLocation', InstallDir) and (Trim(InstallDir) <> '') then
+  begin
+    Result := InstallDir;
+    Exit;
+  end;
+
+  if RegQueryStringValue(HKLM, UninstallKey, 'Inno Setup: App Path', InstallDir) and (Trim(InstallDir) <> '') then
+  begin
+    Result := InstallDir;
+    Exit;
+  end;
+
+  if RegQueryStringValue(HKLM, UninstallKey, 'InstallLocation', InstallDir) and (Trim(InstallDir) <> '') then
+    Result := InstallDir;
+end;
+
+procedure StopInstalledAgentViaScript;
+var
+  RC: Integer;
+  ScriptPath: string;
+begin
+  ScriptPath := AddBackslash(ResolveInstalledAgentDir()) + 'scripts\stop-agent.ps1';
+  if FileExists(ScriptPath) then
+    Exec(
+      'powershell.exe',
+      '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + ScriptPath + '"',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      RC
+    );
+end;
+
+procedure WaitForProcessExit(ImageName: string; TimeoutSeconds: Integer);
+var
+  RC: Integer;
+  Elapsed: Integer;
+begin
+  Elapsed := 0;
+  while Elapsed < TimeoutSeconds do
+  begin
+    Exec(
+      'cmd.exe',
+      '/c tasklist /FI "IMAGENAME eq ' + ImageName + '" | find /I "' + ImageName + '" >nul',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      RC
+    );
+
+    if RC <> 0 then
+      Exit;
+
+    Sleep(1000);
+    Elapsed := Elapsed + 1;
+  end;
+end;
+
+procedure CloseRunningAgentProcesses;
+var
+  RC: Integer;
+begin
+  StopInstalledAgentViaScript;
+  Exec('taskkill.exe', '/IM agent-ui.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
+  Exec('taskkill.exe', '/IM agent-service.exe /F /T', '', SW_HIDE, ewWaitUntilTerminated, RC);
+  StopServiceViaSCM('{#ServiceName}');
+  WaitForProcessExit('agent-ui.exe', 20);
+  WaitForProcessExit('agent-service.exe', 20);
+  Sleep(1000);
 end;
 
 procedure CopyFileIfMissing(Src, Dst: string);
@@ -219,15 +303,16 @@ end;
 // ---------------------------------------------------------------------------
 
 // Para servicos ANTES de copiar arquivos — evita "file in use" em upgrades
+function InitializeSetup(): Boolean;
+begin
+  CloseRunningAgentProcesses;
+  Result := True;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
-var
-  RC: Integer;
 begin
   Result := '';
-  // Encerra a UI se estiver rodando (complementa CloseApplications=yes)
-  Exec('taskkill.exe', '/IM agent-ui.exe /F', '', SW_HIDE, ewWaitUntilTerminated, RC);
-  StopServiceViaSCM('{#ServiceName}');
-  Sleep(2000);
+  CloseRunningAgentProcesses;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -263,8 +348,8 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
-    // 1. Encerra agent-ui se estiver na bandeja
-    Exec('taskkill.exe', '/IM agent-ui.exe /F', '', SW_HIDE, ewWaitUntilTerminated, Answer);
+    // 1. Encerra UI/processos do agente antes de desinstalar
+    CloseRunningAgentProcesses;
 
     // 2. Pergunta se deve desinstalar programas instalados pelo agente (ex: RustDesk)
     Answer := MsgBox(

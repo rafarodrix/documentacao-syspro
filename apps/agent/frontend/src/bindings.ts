@@ -3,6 +3,7 @@ export {
   GetSummary,
   GetSupportSession,
   ListNotifications,
+  OpenRemoteClient,
   OpenSetupExperience,
   OpenSupportConversation,
   SyncSupportConversationContext,

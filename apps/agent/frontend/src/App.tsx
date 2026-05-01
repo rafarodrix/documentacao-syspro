@@ -3,6 +3,7 @@ import {
   GetSetupStatus,
   GetSupportSession,
   ListNotifications,
+  OpenRemoteClient,
   OpenSupportConversation,
   SyncSupportConversationContext,
 } from "./bindings";
@@ -105,6 +106,7 @@ function App() {
   const [, setNotifications] = useState<Array<uistate.Notification>>([]);
   const [chatwootReady, setChatwootReady] = useState(false);
   const [chatwootLoading, setChatwootLoading] = useState(false);
+  const [remoteOpening, setRemoteOpening] = useState(false);
   const [chatwootBootNonce, setChatwootBootNonce] = useState(0);
   const syncedConversationIds = useRef<Record<string, boolean>>({});
 
@@ -142,14 +144,15 @@ function App() {
     };
   }, []);
 
-  // Polling: atualiza status remoto na SupportScreen a cada 15s
   useEffect(() => {
     if (route !== "agent://support") return;
 
     const poll = () => {
       void GetSupportSession()
         .then((session) => setSupportSession(session))
-        .catch(() => {/* silencioso */});
+        .catch(() => {
+          // silent
+        });
     };
 
     const id = setInterval(poll, 15_000);
@@ -157,7 +160,10 @@ function App() {
   }, [route]);
 
   useEffect(() => {
-    if (route !== "agent://support" || !supportSession) {
+    if (route !== "agent://support" || !supportSession) return;
+    if (!supportSession.base_url?.trim() || !supportSession.website_token?.trim()) {
+      setChatwootReady(false);
+      setChatwootLoading(false);
       return;
     }
 
@@ -200,6 +206,8 @@ function App() {
       showUnreadMessagesDialog: false,
       welcomeTitle: "Suporte Trilink",
       welcomeDescription: "Canal oficial da Trilink com contexto tecnico do dispositivo.",
+      position: "right",
+      locale: "pt_BR",
     };
 
     const bootChatwoot = () => {
@@ -207,13 +215,13 @@ function App() {
         chatwootSDK?: { run: (cfg: { websiteToken: string; baseUrl: string }) => void };
       }).chatwootSDK;
 
-      if (sdk) {
-        setChatwootLoading(true);
-        sdk.run({
-          websiteToken: supportSession.website_token,
-          baseUrl: supportSession.base_url,
-        });
-      }
+      if (!sdk) return;
+
+      setChatwootLoading(true);
+      sdk.run({
+        websiteToken: supportSession.website_token,
+        baseUrl: supportSession.base_url,
+      });
     };
 
     if (existingScript) {
@@ -239,17 +247,10 @@ function App() {
     };
   }, [route, supportSession, chatwootBootNonce]);
 
-  const navigateToSetup = () => {
-    setRoute("agent://setup");
-    void GetSetupStatus().then(setSetupStatus).catch((err) => console.error("GetSetupStatus failed:", err));
-  };
-
   const openSupport = () => {
     setRoute("agent://support");
 
-    if (chatwootReady && openChatwoot()) {
-      return;
-    }
+    if (chatwootReady && openChatwootInline()) return;
 
     if (supportSession) {
       setChatwootReady(false);
@@ -258,6 +259,17 @@ function App() {
     }
 
     void OpenSupportConversation();
+  };
+
+  const openRemote = () => {
+    setRemoteOpening(true);
+    void OpenRemoteClient()
+      .catch((err) => {
+        console.error("OpenRemoteClient failed:", err);
+      })
+      .finally(() => {
+        setRemoteOpening(false);
+      });
   };
 
   const pendingSteps = setupStatus.steps.filter((step) => step.status !== "complete");
@@ -274,7 +286,6 @@ function App() {
 
   return (
     <div className={`shell route-${route === "agent://support" ? "support" : "setup"}`}>
-      {/* Shared top navbar */}
       <nav className="navbar">
         <div className="navbar-brand">
           <img
@@ -302,8 +313,9 @@ function App() {
           session={supportSession}
           chatwootReady={chatwootReady}
           chatwootLoading={chatwootLoading}
+          remoteOpening={remoteOpening}
+          onOpenRemote={openRemote}
           onOpenSupport={openSupport}
-          onOpenSetup={navigateToSetup}
         />
       ) : (
         <SetupScreen
@@ -331,7 +343,6 @@ function SetupScreen(props: {
 
   return (
     <main className="panel setup-panel">
-      {/* Hero progress block */}
       <section className="setup-hero">
         <div className="setup-hero-left">
           <div className="setup-stage-label">
@@ -358,16 +369,17 @@ function SetupScreen(props: {
               transform="rotate(-90 28 28)"
             />
           </svg>
-          <div className="ring-label">{status.progress_pct}<span>%</span></div>
+          <div className="ring-label">
+            {status.progress_pct}
+            <span>%</span>
+          </div>
         </div>
       </section>
 
-      {/* Progress bar */}
       <div className="setup-bar-wrap">
         <div className={`setup-bar-fill state-${overallState}`} style={{ width: `${status.progress_pct}%` }} />
       </div>
 
-      {/* Device metadata row */}
       {(status.company_name || status.host_id || status.rustdesk_id) && (
         <div className="device-row">
           {status.company_name && (
@@ -391,10 +403,6 @@ function SetupScreen(props: {
         </div>
       )}
 
-      {/* Remote Access Card */}
-      <RemoteAccessCard rustdeskId={status.rustdesk_id} />
-
-      {/* Error */}
       {status.last_error && (
         <div className="error-banner">
           <span className="error-icon">!</span>
@@ -402,7 +410,6 @@ function SetupScreen(props: {
         </div>
       )}
 
-      {/* Steps timeline */}
       <section className="timeline-section">
         <div className="timeline-header">
           <span className="timeline-title">Pipeline de provisionamento</span>
@@ -412,20 +419,18 @@ function SetupScreen(props: {
         </div>
 
         <div className="timeline">
-          {/* Pending / active steps */}
           {pendingSteps.map((step, i) => (
             <TimelineItem key={step.key} step={step} isFirst={i === 0 && overallState === "running"} />
           ))}
 
-          {/* Completed steps toggle */}
           {completedSteps.length > 0 && (
             <>
               <button
                 type="button"
                 className="timeline-toggle"
-                onClick={() => setShowCompleted((v) => !v)}
+                onClick={() => setShowCompleted((value) => !value)}
               >
-                <span className="timeline-toggle-icon">{showCompleted ? "▲" : "▼"}</span>
+                <span className="timeline-toggle-icon">{showCompleted ? "-" : "+"}</span>
                 {showCompleted ? "Ocultar" : "Ver"} {completedSteps.length} etapa
                 {completedSteps.length !== 1 ? "s" : ""} concluida
                 {completedSteps.length !== 1 ? "s" : ""}
@@ -438,7 +443,6 @@ function SetupScreen(props: {
             </>
           )}
 
-          {/* Empty state */}
           {allSteps.length === 0 && (
             <div className="timeline-empty">Aguardando etapas de provisionamento...</div>
           )}
@@ -473,12 +477,13 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 
   const handleCopy = async () => {
     if (!value) return;
+
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback silencioso
+      // silent fallback
     }
   };
 
@@ -499,102 +504,160 @@ function SupportScreen(props: {
   session: uistate.SupportSession | null;
   chatwootReady: boolean;
   chatwootLoading: boolean;
+  remoteOpening: boolean;
+  onOpenRemote: () => void;
   onOpenSupport: () => void;
-  onOpenSetup: () => void;
 }) {
-  const { session, chatwootReady, chatwootLoading, onOpenSupport, onOpenSetup } = props;
+  const { session, chatwootReady, chatwootLoading, remoteOpening, onOpenRemote, onOpenSupport } = props;
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const context = session?.context;
+  const chatConfigured = Boolean(session?.base_url?.trim() && session?.website_token?.trim());
 
   const remoteId = context?.rustdeskId ?? "";
   const remotePassword = context?.remoteAccessPassword ?? "";
-  const formattedRemoteId = remoteId ? formatRustDeskId(remoteId) : "";
+  const companyName = context?.companyDisplayName ?? "Cliente Trilink";
+  const machineName = context?.machineName || context?.hostname || "Maquina em preparacao";
+  const operatorName = context?.localUsername || "Operador local";
+  const remoteStateLabel =
+    context?.remoteStatus === "ready"
+      ? "Pronto para conexao"
+      : context?.remoteStatus === "pending"
+        ? "Provisionando acesso remoto"
+        : "Instalacao remota em analise";
+  const chatStateLabel = !chatConfigured
+    ? "Chat indisponivel nesta instalacao"
+    : chatwootLoading
+      ? "Preparando canal seguro"
+      : chatwootReady
+        ? "Chat pronto para abrir"
+        : "Conexao sera iniciada sob demanda";
+  const chatStateClass = chatwootReady ? "ready" : chatwootLoading ? "loading" : "idle";
 
-  const buttonLabel = chatwootLoading
-    ? "Conectando..."
-    : chatwootReady
-      ? "Abrir atendimento"
-      : "Iniciar atendimento";
+  const buttonLabel = !chatConfigured
+    ? "Canal nao configurado"
+    : chatwootLoading
+      ? "Conectando ao suporte..."
+      : chatwootReady
+        ? "Abrir conversa agora"
+        : "Iniciar atendimento";
+
+  useEffect(() => {
+    if (!chatwootReady) return;
+    mountChatwootEmbed(chatContainerRef.current);
+    openChatwootInline();
+  }, [chatwootReady, session?.website_token]);
 
   return (
-    <main className="panel support-panel">
-      <section className="support-hero">
-        <div className="support-hero-text">
-          <div className="support-hero-eyebrow">
-            <span className="support-hero-eyebrow-dot" />
+    <main className="panel support-panel compact">
+      <section className="support-hero compact">
+        <div className="support-hero-copy compact">
+          <div className="support-hero-eyebrow compact">
             Atendimento corporativo
           </div>
-          <div className="support-hero-title">Central de Suporte</div>
-          <div className="support-hero-subtitle">
-            Acesso remoto governado pelo agente com contexto tecnico sincronizado em tempo real.
+          <div className="support-hero-title compact">Central de Suporte</div>
+          <div className="support-hero-subtitle compact">
+            Atendimento autenticado com contexto tecnico sincronizado em tempo real.
           </div>
         </div>
-        <button type="button" className="btn-ghost btn-ghost-wide" onClick={onOpenSetup} title="Voltar ao status do agente">
-          <StatusIcon />
-          <span>Status</span>
-        </button>
+        <div className="support-hero-state">
+          <span className={`support-status-pill ${context?.remoteStatus ?? "pending"}`}>
+            <span className="support-status-pill-dot" />
+            {context?.remoteStatusText ?? "Em analise"}
+          </span>
+          <span className={`support-chat-pill support-chat-pill-${chatStateClass}`}>
+            {chatStateLabel}
+          </span>
+        </div>
       </section>
 
-      <section className="support-body">
-        <div className="support-card">
-          <div className="support-card-head">
-            <div className="support-card-head-left">
-              <span className="support-card-icon">
-                <RemoteIcon />
+      <section className="support-body compact">
+        <div className="support-summary-grid">
+          <div className="support-summary-card support-summary-card-wide">
+            <span className="support-summary-label">Empresa</span>
+            <span className="support-summary-value">{companyName}</span>
+          </div>
+          <div className="support-summary-card">
+            <span className="support-summary-label">ID RustDesk</span>
+            <div className="support-summary-inline">
+              <span className="support-summary-value mono">{remoteId || "Aguardando"}</span>
+              {remoteId && <CopyButton value={remoteId} label="Copiar ID remoto" />}
+            </div>
+          </div>
+          <div className="support-summary-card">
+            <span className="support-summary-label">Senha</span>
+            <div className="support-summary-inline">
+              <span className="support-summary-value mono">
+                {remotePassword ||
+                  (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
+                    ? "Sincronizando"
+                    : "Aguardando")}
               </span>
-              <div>
-                <div className="support-card-label">Acesso remoto</div>
-                <div className="support-card-sub">Sessao tecnica autorizada</div>
-              </div>
-            </div>
-            <span className={`support-status-pill ${context?.remoteStatus ?? "pending"}`}>
-              <span className="support-status-pill-dot" />
-              {context?.remoteStatusText ?? "Em analise"}
-            </span>
-          </div>
-
-          <div className="support-fields">
-            <div className="support-field">
-              <div className="support-field-label">ID remoto</div>
-              <div className="support-field-value-row">
-                <div className="support-field-value mono">
-                  {remoteId
-                    ? <span className="support-remote-id">{formattedRemoteId}</span>
-                    : "Aguardando identificacao"}
-                </div>
-                {remoteId && <CopyButton value={remoteId} label="Copiar ID remoto" />}
-              </div>
-            </div>
-            <div className="support-field">
-              <div className="support-field-label">Senha temporaria</div>
-              <div className="support-field-value-row">
-                <div className="support-field-value mono">
-                  {remotePassword
-                    ? <span className="support-remote-pw">{remotePassword}</span>
-                    : (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
-                      ? "Disponivel no RustDesk"
-                      : "Aguardando configuracao")}
-                </div>
-                {remotePassword && <CopyButton value={remotePassword} label="Copiar senha" />}
-              </div>
+              {remotePassword && <CopyButton value={remotePassword} label="Copiar senha" />}
             </div>
           </div>
+          <div className="support-summary-card">
+            <span className="support-summary-label">Maquina</span>
+            <span className="support-summary-value">{machineName}</span>
+          </div>
+          <div className="support-summary-card">
+            <span className="support-summary-label">Operador</span>
+            <span className="support-summary-value">{operatorName}</span>
+          </div>
+        </div>
 
+        <div className="support-remote-strip">
+          <span className="support-card-icon compact">
+            <RemoteIcon />
+          </span>
+          <div className="support-remote-strip-copy">
+            <div className="support-remote-strip-title">Acesso remoto assistido</div>
+            <div className="support-remote-strip-subtitle">{remoteStateLabel}</div>
+          </div>
           <button
             type="button"
-            className={`btn-primary ${chatwootLoading ? "btn-loading" : ""}`}
-            onClick={onOpenSupport}
-            disabled={chatwootLoading}
+            className={`btn-secondary-inline ${remoteOpening ? "btn-loading" : ""}`}
+            onClick={onOpenRemote}
+            disabled={remoteOpening}
           >
-            {chatwootLoading && <span className="btn-spinner" />}
-            <span>{buttonLabel}</span>
+            {remoteOpening && <span className="btn-spinner btn-spinner-dark" />}
+            <span>{remoteOpening ? "Abrindo..." : "Abrir remoto"}</span>
           </button>
         </div>
 
-        <div className="support-trust">
-          <ShieldIcon />
-          <span>
-            Conexao protegida e auditada pela plataforma Trilink.
-          </span>
+        <div className="support-chat-shell">
+          <div className="support-chat-shell-header">
+            <div>
+              <div className="support-chat-shell-title">Chat de atendimento</div>
+              <div className="support-chat-shell-subtitle">
+                O chat deve ficar visivel no painel, sem depender de popout externo.
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`btn-primary btn-primary-inline ${chatwootLoading ? "btn-loading" : ""}`}
+              onClick={onOpenSupport}
+              disabled={chatwootLoading || !chatConfigured}
+            >
+              {chatwootLoading && <span className="btn-spinner" />}
+              <span>{buttonLabel}</span>
+            </button>
+          </div>
+
+          <div ref={chatContainerRef} className="support-chat-embed">
+            {!chatwootReady ? (
+              <div className="support-chat-placeholder">
+                <ShieldIcon />
+                <div className="support-chat-placeholder-copy">
+                  <div className="support-chat-placeholder-title">{chatStateLabel}</div>
+                  <div className="support-chat-placeholder-text">
+                    {chatConfigured
+                      ? "Assim que o canal responder, a conversa sera exibida diretamente nesta area."
+                      : "A interface do agent continua disponivel, mas o Chatwoot nao foi configurado neste ambiente."}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
     </main>
@@ -604,16 +667,13 @@ function SupportScreen(props: {
 function CheckIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function StatusIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M11.5 4.5 7 9l4.5 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7.5 9H14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M2 6l3 3 5-5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -622,7 +682,12 @@ function CopyIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
       <rect x="4.5" y="4.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M3 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M3 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -630,7 +695,13 @@ function CopyIcon() {
 function CopiedIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <path d="M2 7l3 3 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2 7l3 3 6-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -649,8 +720,19 @@ function RemoteIcon() {
 function ShieldIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 1.5 2 3.5v3.2c0 3 2.1 5.4 5 5.8 2.9-.4 5-2.8 5-5.8V3.5L7 1.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="m5.2 7.2 1.4 1.4 2.6-2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M7 1.5 2 3.5v3.2c0 3 2.1 5.4 5 5.8 2.9-.4 5-2.8 5-5.8V3.5L7 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m5.2 7.2 1.4 1.4 2.6-2.8"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -661,12 +743,11 @@ function stepBadge(status: uistate.SetupStep["status"]) {
   return "Pendente";
 }
 
-function openChatwoot() {
+function openChatwootInline() {
   const chatwoot = (window as unknown as {
     $chatwoot?: {
       toggle?: (mode: string) => void;
       toggleBubbleVisibility?: (mode: string) => void;
-      popoutChatWindow?: () => void;
     };
   }).$chatwoot;
 
@@ -675,10 +756,24 @@ function openChatwoot() {
   try {
     chatwoot.toggle?.("open");
     chatwoot.toggleBubbleVisibility?.("hide");
-    chatwoot.popoutChatWindow?.();
     return true;
   } catch {
     return false;
+  }
+}
+
+function mountChatwootEmbed(container: HTMLDivElement | null) {
+  if (!container) return;
+
+  const holder = document.querySelector(".woot-widget-holder");
+  const bubble = document.querySelector(".woot--bubble-holder");
+
+  if (holder instanceof HTMLElement && holder.parentElement !== container) {
+    container.appendChild(holder);
+  }
+
+  if (bubble instanceof HTMLElement && bubble.parentElement !== container) {
+    container.appendChild(bubble);
   }
 }
 
@@ -705,9 +800,6 @@ function identifyChatwootContact(context: uistate.SupportContext | undefined) {
 
   if (!chatwoot?.setUser) return;
 
-  // Usa deviceId como identificador estável e único por instalação.
-  // O nome do contato representa a máquina (hostAlias > machineName > hostname),
-  // não o usuário logado — assim cada instalação tem um contato permanente no Chatwoot.
   const identifier = context.deviceId || context.hostname || context.machineName || "";
   if (!identifier) return;
 

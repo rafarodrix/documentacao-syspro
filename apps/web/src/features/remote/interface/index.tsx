@@ -232,7 +232,7 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
           items={overview.recentHosts.map((host) => ({
             id: host.id,
             primary: host.name,
-            secondary: `${host.companyName ?? "Sem empresa"}${host.environment ? ` | ${host.environment}` : ""}`,
+            secondary: `${host.companyName ?? "Sem empresa"}`,
             status: host.status,
           }))}
           emptyMessage="Nenhum host remoto persistido ainda."
@@ -319,7 +319,6 @@ export function RemotePlatformOverviewPanel({ overview }: { overview: RemotePlat
                       { key: "id", value: overview.hostModel.id },
                       { key: "companyId", value: overview.hostModel.companyId },
                       { key: "name", value: overview.hostModel.name },
-                      { key: "environment", value: overview.hostModel.environment },
                       { key: "provider", value: overview.hostModel.provider },
                       { key: "status", value: overview.hostModel.status },
                     ].map(({ key, value }) => (

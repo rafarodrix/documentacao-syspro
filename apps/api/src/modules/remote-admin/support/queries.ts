@@ -1,8 +1,9 @@
-import { buildScopedWhere, prisma } from "@dosc-syspro/database";
+import { prisma } from "@dosc-syspro/database";
 import { hashRustDeskPublicKey } from "@dosc-syspro/remote-infra/rustdesk-helpers";
 import type { RemoteTenantScope } from "./model";
 import { getRemoteModuleSettingsSnapshot } from "../../../common/system-settings/remote-module-settings-snapshot";
 import { resolveRemoteOperationalStatus } from "./operational-status";
+import { buildRemoteScopedWhere, buildScopedCompanyWhere } from "./scope";
 import type {
   RemoteConfiguredHostItem,
   RemoteDiscoveredAgentItem,
@@ -261,7 +262,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     bootstrapRate24hPct,
     pendingAckQueueSize,
     ackQueueFlushFailed,
-    lastAgentMetrics: host.lastAgentMetrics ? (host.lastAgentMetrics as any) : null,
+    lastAgentMetrics: normalizeLastAgentMetrics(host.lastAgentMetrics),
     lastAgentMetricsAt: toIsoDate(host.lastAgentMetricsAt),
     openSessionCount,
     operationalStatus,
@@ -420,6 +421,18 @@ function readNumberRecordValue(record: Record<string, unknown> | null, key: stri
   return null;
 }
 
+function normalizeLastAgentMetrics(metrics: unknown) {
+  const record = toRecord(metrics);
+  if (!record) return null;
+
+  return {
+    cpuLoad: readNumberRecordValue(record, "cpuLoad"),
+    ramUsedPc: readNumberRecordValue(record, "ramUsedPc"),
+    diskFree: readNumberRecordValue(record, "diskFree"),
+    osInfo: typeof record.osInfo === "string" ? record.osInfo : null,
+  };
+}
+
 function readBootstrapFlowFromMetrics(metrics: unknown): RemoteHostDetails["agentHealth"]["bootstrapFlow"] | null {
   const record = toRecord(metrics);
   if (!record) return null;
@@ -490,11 +503,9 @@ function readAckQueueFlushFailedFromMetrics(metrics: unknown): number | null {
 
 export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope): Promise<RemotePlatformOverview> {
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
   const companyOptions = await prisma.company.findMany({
-    where: tenantScope.isGlobalView
-      ? { deletedAt: null }
-      : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+    where: { deletedAt: null, ...buildScopedCompanyWhere(tenantScope) },
     select: {
       id: true,
       nomeFantasia: true,
@@ -544,10 +555,8 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
       orderBy: [{ name: "asc" }],
       take: 100,
     }),
-    prisma.company.findMany({
-      where: tenantScope.isGlobalView
-        ? { deletedAt: null }
-        : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+      prisma.company.findMany({
+        where: { deletedAt: null, ...buildScopedCompanyWhere(tenantScope) },
       select: { id: true, nomeFantasia: true, razaoSocial: true },
       orderBy: [{ nomeFantasia: "asc" }, { razaoSocial: "asc" }],
     }),
@@ -778,7 +787,7 @@ export async function getRemotePlatformOverview(tenantScope: RemoteTenantScope):
 export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope): Promise<RemotePlatformDirectory> {
   
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const last7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -802,10 +811,8 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
       by: ["companyId"],
       where: scopedWhere,
     }),
-    prisma.company.findMany({
-      where: tenantScope.isGlobalView
-        ? { deletedAt: null }
-        : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+      prisma.company.findMany({
+        where: { deletedAt: null, ...buildScopedCompanyWhere(tenantScope) },
       select: { id: true, nomeFantasia: true, razaoSocial: true },
       orderBy: [{ razaoSocial: "asc" }],
       take: 100,
@@ -986,7 +993,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     
     // Extrai o objeto de telemetria se existir (marcado com _telemetry: true/objeto)
     const telemetryEntry = snapshot.find(entry => entry && typeof entry === 'object' && '_telemetry' in entry);
-    const lastAgentMetrics = (telemetryEntry as any)?._telemetry ?? null;
+    const lastAgentMetrics = normalizeLastAgentMetrics((telemetryEntry as any)?._telemetry ?? null);
 
     const installationCompanies = snapshot
       .map((entry) => {
@@ -1086,7 +1093,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
 export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostId: string): Promise<RemoteHostDetails | null> {
   
   const moduleSettings = await getRemoteModuleSettingsSnapshot();
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
 
   const host = await prisma.remoteHost.findFirst({
     where: {
@@ -1153,9 +1160,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
 
   if (!host) return null;
   const companyOptions = await prisma.company.findMany({
-    where: tenantScope.isGlobalView
-      ? { deletedAt: null }
-      : { deletedAt: null, id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } },
+    where: { deletedAt: null, ...buildScopedCompanyWhere(tenantScope) },
     select: {
       id: true,
       nomeFantasia: true,

@@ -60,6 +60,10 @@ type rustDeskStatus struct {
 	RustDeskID     string
 	Version        string
 	AccessPassword string
+	ServerHost     string
+	APIHost        string
+	PublicKey      string
+	PublicKeyHash  string
 }
 
 type rustDeskController interface {
@@ -129,6 +133,7 @@ func (m *rustDeskManager) inspect(ctx context.Context) (rustDeskStatus, error) {
 	status.RustDeskID = m.getID(ctx, exePath)
 	status.Version = m.getVersion(ctx, exePath)
 	status.AccessPassword = m.getAccessPassword()
+	status.ServerHost, status.APIHost, status.PublicKey, status.PublicKeyHash = m.getCurrentConfig()
 	return status, nil
 }
 
@@ -328,6 +333,32 @@ func (m *rustDeskManager) getAccessPassword() string {
 		}
 	}
 	return ""
+}
+
+func (m *rustDeskManager) getCurrentConfig() (serverHost, apiHost, publicKey, publicKeyHash string) {
+	for _, path := range rustDeskConfigPaths() {
+		serverHost = firstNonEmpty(
+			readRustDeskConfigValue(path, "relay-server"),
+			readRustDeskConfigValue(path, "custom-rendezvous-server"),
+			readRustDeskConfigValue(path, "rendezvous-server"),
+		)
+		apiHost = firstNonEmpty(
+			readRustDeskConfigValue(path, "api-server"),
+			readRustDeskConfigValue(path, "custom-api-server"),
+		)
+		publicKey = firstNonEmpty(
+			readRustDeskConfigValue(path, "key"),
+			readRustDeskConfigValue(path, "public-key"),
+		)
+		if publicKey != "" {
+			sum := sha256.Sum256([]byte(strings.TrimSpace(publicKey)))
+			publicKeyHash = hex.EncodeToString(sum[:])
+		}
+		if serverHost != "" || apiHost != "" || publicKey != "" {
+			return strings.TrimSpace(serverHost), strings.TrimSpace(apiHost), strings.TrimSpace(publicKey), strings.TrimSpace(publicKeyHash)
+		}
+	}
+	return "", "", "", ""
 }
 
 func (m *rustDeskManager) resolveExecutable() (string, error) {
@@ -731,6 +762,31 @@ func readRustDeskIDFromConfig(path string) string {
 		value = strings.Trim(value, `"`)
 		if id := normalizeRustDeskID(value); id != "" {
 			return id
+		}
+	}
+
+	return ""
+}
+
+func readRustDeskConfigValue(path string, expectedKeys ...string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		match := rustDeskConfigEntryPattern.FindStringSubmatch(line)
+		if len(match) == 0 {
+			continue
+		}
+
+		key := strings.ToLower(strings.TrimSpace(match[1]))
+		for _, expected := range expectedKeys {
+			if !strings.EqualFold(key, expected) {
+				continue
+			}
+			value := strings.TrimSpace(firstNonEmpty(match[2], match[3], match[4]))
+			return strings.Trim(value, `"`)
 		}
 	}
 

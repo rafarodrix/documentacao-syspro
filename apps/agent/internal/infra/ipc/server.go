@@ -32,6 +32,7 @@ type SetupProvider interface {
 type ActionProvider interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
@@ -169,6 +170,17 @@ func (s *Server) newMux() *http.ServeMux {
 			return
 		}
 		result, err := s.actions.OpenSetupExperience(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+	})
+	mux.HandleFunc("/actions/remote/open", func(w http.ResponseWriter, r *http.Request) {
+		if !allowMethod(w, r, http.MethodPost) {
+			return
+		}
+		result, err := s.actions.OpenRemoteClient(r.Context())
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return

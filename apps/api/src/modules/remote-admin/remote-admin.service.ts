@@ -2,6 +2,7 @@ import { ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/c
 import { Prisma, Role } from '@prisma/client';
 import { hashAddressBookToken, prisma } from '@dosc-syspro/database';
 import { ApiError, callProcedure, createApiContext, remoteRouter } from '@dosc-syspro/application';
+import { resolveScopedCompanyContext } from '@dosc-syspro/remote-infra';
 import { AuthorizationService } from '../authorization/authorization.service';
 import {
   getRemoteHostDetails,
@@ -10,6 +11,7 @@ import {
 } from './support/queries';
 import { getRemoteEfficiencyMetrics } from './support/report-queries';
 import { cleanupExpiredRemoteSessions, getRemoteSessions } from './support/session-queries';
+import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
 import type { RemoteSessionStatus, RemoteTenantScope } from './support/model';
 
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS';
@@ -112,13 +114,11 @@ export class RemoteAdminService {
   async searchRemoteCompanies(query: string, rawHeaders?: Record<string, unknown>) {
     await this.authorizationService.getRequester(rawHeaders as any);
     const tenantScope = await this.resolveTenantScope(rawHeaders);
-    const companyWhere = tenantScope.isGlobalView
-      ? { deletedAt: null, ...buildCompanySearchWhere(query) }
-      : {
-          deletedAt: null,
-          id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] },
-          ...buildCompanySearchWhere(query),
-        };
+    const companyWhere = {
+      deletedAt: null,
+      ...buildScopedCompanyWhere(tenantScope),
+      ...buildCompanySearchWhere(query),
+    };
 
     const companies = await prisma.company.findMany({
       where: companyWhere,
@@ -226,16 +226,7 @@ export class RemoteAdminService {
   ) {
     await this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
     const tenantScope = await this.resolveTenantScope(rawHeaders);
-    const scopedWhere = tenantScope.isGlobalView ? {} : { id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] } };
-
-    const company = await prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null, ...scopedWhere },
-      select: { id: true },
-    });
-
-    if (!company) {
-      throw new ForbiddenException('Empresa nao encontrada.');
-    }
+    await this.resolveCompanyContextForRemoteAdmin(tenantScope, companyId, 'Empresa nao encontrada.');
 
     const serverPortValue =
       body.serverPort === null || body.serverPort === undefined || body.serverPort === '' ? null : Number(body.serverPort);
@@ -278,16 +269,7 @@ export class RemoteAdminService {
     }
 
     const tenantScope = await this.resolveTenantScope(rawHeaders);
-    const scopedWhere = tenantScope.isGlobalView ? {} : { id: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] } };
-
-    const company = await prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null, ...scopedWhere },
-      select: { id: true },
-    });
-
-    if (!company) {
-      throw new ForbiddenException('Empresa nao encontrada.');
-    }
+    await this.resolveCompanyContextForRemoteAdmin(tenantScope, companyId, 'Empresa nao encontrada.');
 
     const updated = await prisma.company.update({
       where: { id: companyId },
@@ -311,9 +293,7 @@ export class RemoteAdminService {
 
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     const host = await prisma.remoteHost.findFirst({
-      where: tenantScope.isGlobalView
-        ? { id: hostId }
-        : { id: hostId, companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] } },
+      where: buildScopedHostWhere(tenantScope, hostId),
       select: { id: true, name: true },
     });
 
@@ -449,9 +429,7 @@ export class RemoteAdminService {
     }
 
     const host = await prisma.remoteHost.findFirst({
-      where: tenantScope.isGlobalView
-        ? { id: hostId }
-        : { id: hostId, companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ['__none__'] } },
+      where: buildScopedHostWhere(tenantScope, hostId),
       select: { id: true },
     });
 
@@ -459,41 +437,32 @@ export class RemoteAdminService {
       throw new ForbiddenException('Host remoto nao encontrado no escopo.');
     }
 
-    if (!tenantScope.isGlobalView && !tenantScope.companyIds.includes(companyId)) {
-      throw new ForbiddenException('Empresa nao encontrada no escopo para vinculacao.');
-    }
-
-    const company = await prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null },
-      select: { id: true, nomeFantasia: true, razaoSocial: true },
-    });
-
-    if (!company) {
-      throw new ForbiddenException('Empresa nao encontrada no escopo para vinculacao.');
-    }
-
-    const companyLabel = company.nomeFantasia?.trim() || company.razaoSocial.trim();
+    const company = await this.resolveRemoteCompanyContext(tenantScope, companyId);
+    const companyLabel = company.displayLabel;
     const now = new Date();
     const existing = await prisma.remoteHostSysproUpdate.findFirst({
       where: {
         hostId,
         path,
-        OR: [{ companyId }, { companyLabel }],
+        companyId,
       },
       select: { id: true },
     });
 
-    const update = existing
-      ? await prisma.remoteHostSysproUpdate.update({
-          where: { id: existing.id },
-          data: {
-            companyId,
-            companyLabel,
-            path,
-            lastHeartbeatAt: now,
-          },
-        })
-      : await prisma.remoteHostSysproUpdate.create({
+    let update;
+    if (existing) {
+      update = await prisma.remoteHostSysproUpdate.update({
+        where: { id: existing.id },
+        data: {
+          companyId,
+          companyLabel,
+          path,
+          lastHeartbeatAt: now,
+        },
+      });
+    } else {
+      try {
+        update = await prisma.remoteHostSysproUpdate.create({
           data: {
             hostId,
             companyId,
@@ -502,6 +471,38 @@ export class RemoteAdminService {
             lastHeartbeatAt: now,
           },
         });
+      } catch (error) {
+        const isUniqueViolation =
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          (error as { code?: string }).code === 'P2002';
+
+        if (!isUniqueViolation) {
+          throw error;
+        }
+
+        const duplicated = await prisma.remoteHostSysproUpdate.findFirst({
+          where: {
+            hostId,
+            companyId,
+            path,
+          },
+        });
+
+        if (!duplicated) {
+          throw error;
+        }
+
+        update = await prisma.remoteHostSysproUpdate.update({
+          where: { id: duplicated.id },
+          data: {
+            companyLabel,
+            lastHeartbeatAt: now,
+          },
+        });
+      }
+    }
 
     return {
       success: true,
@@ -803,5 +804,37 @@ export class RemoteAdminService {
     const value = rawHeaders?.[name.toLowerCase()];
     if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0].trim() : null;
     return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private async resolveRemoteCompanyContext(
+    tenantScope: RemoteTenantScope,
+    companyId: string,
+  ) {
+    return this.resolveCompanyContextForRemoteAdmin(
+      tenantScope,
+      companyId,
+      'Empresa nao encontrada no escopo para vinculacao.',
+    );
+  }
+
+  private async resolveCompanyContextForRemoteAdmin(
+    tenantScope: RemoteTenantScope,
+    companyId: string,
+    notFoundMessage: string,
+  ) {
+    try {
+      return await resolveScopedCompanyContext({
+        scope: {
+          isGlobalView: tenantScope.isGlobalView,
+          companyIds: tenantScope.companyIds,
+        },
+        companyId,
+      });
+    } catch (error) {
+      if (error instanceof Error && (error.message === 'HOST_COMPANY_OUT_OF_SCOPE' || error.message === 'HOST_COMPANY_NOT_FOUND')) {
+        throw new ForbiddenException(notFoundMessage);
+      }
+      throw error;
+    }
   }
 }

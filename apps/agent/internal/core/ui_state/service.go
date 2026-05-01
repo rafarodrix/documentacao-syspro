@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -128,24 +129,34 @@ func (s *Service) ListNotifications(ctx context.Context) ([]Notification, error)
 func (s *Service) OpenSupportConversation(ctx context.Context) (ActionResult, error) {
 	_ = ctx
 
-	session, err := s.SupportSession(ctx)
-	if err != nil {
-		return ActionResult{
-			Accepted: false,
-			Message:  "support conversation request rejected",
-		}, err
-	}
-	if session.BaseURL == "" || session.WebsiteToken == "" {
-		return ActionResult{
-			Accepted: false,
-			Message:  "support conversation request rejected",
-		}, fmt.Errorf("chatwoot widget is not configured")
-	}
-
 	return ActionResult{
 		Accepted: true,
 		Message:  "support conversation request accepted",
 		Target:   TargetSupportConversation,
+	}, nil
+}
+
+func (s *Service) OpenRemoteClient(ctx context.Context) (ActionResult, error) {
+	exePath := s.resolveRustDeskExecutable()
+	if exePath == "" {
+		return ActionResult{
+			Accepted: false,
+			Message:  "remote client request rejected",
+		}, fmt.Errorf("rustdesk executable was not found")
+	}
+
+	cmd := exec.CommandContext(ctx, exePath)
+	cmd.Dir = filepath.Dir(exePath)
+	if err := cmd.Start(); err != nil {
+		return ActionResult{
+			Accepted: false,
+			Message:  "remote client request rejected",
+		}, fmt.Errorf("start rustdesk: %w", err)
+	}
+
+	return ActionResult{
+		Accepted: true,
+		Message:  "remote client request accepted",
 	}, nil
 }
 
@@ -271,9 +282,6 @@ func (s *Service) SupportSession(ctx context.Context) (SupportSession, error) {
 
 	baseURL := strings.TrimSpace(s.chatwoot.BaseURL)
 	websiteToken := strings.TrimSpace(s.chatwoot.WebsiteToken)
-	if baseURL == "" || websiteToken == "" {
-		return SupportSession{}, fmt.Errorf("chatwoot widget is not configured")
-	}
 
 	return SupportSession{
 		BaseURL:      baseURL,
@@ -396,9 +404,12 @@ func resolveDisplayedRustDeskPassword(remoteState persistedRemoteState) string {
 	// sobre a senha padrão do bootstrap, que é estática.
 	runtimePassword := strings.TrimSpace(remoteState.RuntimePassword)
 	defaultPassword := strings.TrimSpace(remoteState.DefaultPassword)
-	if looksLikeDisplayedRustDeskPassword(runtimePassword) &&
-		(defaultPassword == "" || !strings.EqualFold(runtimePassword, defaultPassword)) {
+	if looksLikeDisplayedRustDeskPassword(runtimePassword) {
 		return runtimePassword
+	}
+
+	if looksLikeDisplayedRustDeskPassword(defaultPassword) {
+		return defaultPassword
 	}
 
 	return ""
@@ -492,6 +503,34 @@ func currentLocalUsername() string {
 	}
 
 	return runtime.GOOS
+}
+
+func (s *Service) resolveRustDeskExecutable() string {
+	if remoteState, err := loadJSON[persistedRemoteState](filepath.Join(s.stateDir, "remote_state.json")); err == nil {
+		if candidate := strings.TrimSpace(remoteState.RustDeskExecutable); candidate != "" {
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate
+			}
+		}
+	}
+
+	candidates := []string{
+		filepath.Join(os.Getenv("ProgramFiles"), "RustDesk", "rustdesk.exe"),
+		filepath.Join(os.Getenv("ProgramFiles(x86)"), "RustDesk", "rustdesk.exe"),
+		`C:\Program Files\RustDesk\rustdesk.exe`,
+		`C:\Program Files (x86)\RustDesk\rustdesk.exe`,
+	}
+
+	for _, candidate := range candidates {
+		if strings.TrimSpace(candidate) == "" {
+			continue
+		}
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+
+	return ""
 }
 
 func loadJSON[T any](path string) (T, error) {

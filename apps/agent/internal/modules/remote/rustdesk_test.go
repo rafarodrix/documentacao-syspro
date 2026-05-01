@@ -66,6 +66,27 @@ func TestReadRustDeskPasswordFromConfigIgnoresEncodedValues(t *testing.T) {
 	}
 }
 
+func TestReadRustDeskConfigValue(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "relay-server = 'relay.example.com'\napi-server = 'https://api.example.com'\nkey = 'pub-key'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	if got := readRustDeskConfigValue(path, "relay-server", "custom-rendezvous-server"); got != "relay.example.com" {
+		t.Fatalf("expected relay server, got %q", got)
+	}
+	if got := readRustDeskConfigValue(path, "api-server"); got != "https://api.example.com" {
+		t.Fatalf("expected api server, got %q", got)
+	}
+	if got := readRustDeskConfigValue(path, "key"); got != "pub-key" {
+		t.Fatalf("expected public key, got %q", got)
+	}
+}
+
 func TestBuildRustDeskMSIInstallArgsDisablesTrayLaunch(t *testing.T) {
 	t.Parallel()
 

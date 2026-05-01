@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
@@ -59,11 +60,10 @@ import {
 } from "./host-details/host-details.helpers";
 import {
   DEFAULT_INSTALLATION_DIRECTORY,
+  MACHINE_PROFILE_LABEL,
   UNLINKED_COMPANY_VALUE,
 } from "./host-details/host-details.constants";
-import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
-import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
 import { AgentLinkSection } from "./host-details/components/AgentLinkSection";
@@ -80,6 +80,9 @@ export function RemoteHostDetailsPanel({
   const router = useRouter();
   const { host } = details;
   const [projectedHostName, setProjectedHostName] = useState(host.name);
+  const [projectedMachineProfile, setProjectedMachineProfile] = useState<RemoteHostDetails["host"]["machineProfile"]>(
+    host.machineProfile
+  );
   const [isMobileClient, setIsMobileClient] = useState(false);
   const [isSavingMachineName, startSavingMachineName] = useTransition();
   const [isRevokingAgentToken, startRevokingAgentToken] = useTransition();
@@ -95,6 +98,22 @@ export function RemoteHostDetailsPanel({
     details.company.installationDirectory?.trim() || DEFAULT_INSTALLATION_DIRECTORY
   );
   const [isCreatingManualInstallation, startCreatingManualInstallation] = useTransition();
+  const [companyContextDraftByCompanyId, setCompanyContextDraftByCompanyId] = useState<
+    Record<
+      string,
+      {
+        serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
+        installationDirectory: string;
+        serverHost: string;
+        serverPort: string;
+        serverProtocol: "HTTP" | "HTTPS" | "__none__";
+        iisIsapiPath: string;
+        observacoes: string;
+      }
+    >
+  >({});
+  const [isSavingCompanyContext, startSavingCompanyContext] = useTransition();
+  const [savingCompanyContextId, setSavingCompanyContextId] = useState<string | null>(null);
   const agent = host.agent;
   const normalizedRustdeskId = agent.rustdeskId ? agent.rustdeskId.replace(/\s+/g, "") : null;
   const windowsComputerName = agent.machineName ?? null;
@@ -126,8 +145,8 @@ export function RemoteHostDetailsPanel({
 
   const normalizedProjectedHostName = projectedHostName.trim();
   const canSaveProjectedHostName =
-    normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim();
-  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutenção" : "Inativo";
+    (normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim()) ||
+    projectedMachineProfile !== host.machineProfile;
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const rustDeskCompliance = useMemo(() => {
     const expectedAlias = resolveExpectedRustDeskAlias({
@@ -279,6 +298,24 @@ export function RemoteHostDetailsPanel({
 
     return items;
   }, [dedupedInstallationContexts, details.company.installationDirectory]);
+  const desiredSysproInstalls = useMemo(() => {
+    return dedupedInstallationContexts
+      .filter((context) => !!context.update.companyId)
+      .map((context) => {
+        const companyName =
+          context.company?.nomeFantasia?.trim() ||
+          context.company?.razaoSocial?.trim() ||
+          context.update.resolvedCompanyName?.trim() ||
+          context.update.companyLabel.trim();
+        const rawPath = context.update.path.trim();
+        const serverPath = /\.exe$/i.test(rawPath) ? rawPath.replace(/[/\\][^/\\]+\.exe$/i, "") : rawPath;
+        return {
+          companyId: context.update.companyId!,
+          companyName,
+          serverPath,
+        };
+      });
+  }, [dedupedInstallationContexts]);
   const detectedCompanyCount = useMemo(() => {
     const names = new Set(
       installations
@@ -303,6 +340,15 @@ export function RemoteHostDetailsPanel({
     return dedupedInstallationContexts;
   }, [dedupedInstallationContexts, installationFilter]);
   const serviceStatusIcon = useMemo(() => getServiceStatusIconMeta(host.serviceStatus), [host.serviceStatus]);
+  const systemSnapshot = details.agentTelemetry.systemSnapshot;
+  const networkSnapshot = details.agentTelemetry.networkSnapshot;
+  const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
+  const hardwareIdentity = details.agentTelemetry.hardwareIdentity;
+  const diskSnapshot = details.agentTelemetry.diskSnapshot;
+  const sysproProcessSnapshot = details.agentTelemetry.sysproProcessSnapshot;
+  const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
+  const rebootPending = details.agentTelemetry.rebootPending;
+  const agentMetrics = details.agentTelemetry.agentMetrics;
   const agentHealthCard = useMemo(() => {
     const latestAutoHealCommand = details.agentCommands.find(
       (command) => command.type === "REAPPLY_ALIAS" || command.type === "REAPPLY_CONFIG"
@@ -378,24 +424,13 @@ export function RemoteHostDetailsPanel({
           ]))) ??
       host.serviceStatus;
 
-    const erpVersionKeys = [
-      "erpVersion",
-      "versionErp",
-      "versaoErp",
-      "sysproVersion",
-      "versionSyspro",
-      "versaoSyspro",
-    ];
-
-    const erpVersion =
-      details.agentCommands
-        .map((command) => {
-          return (
-            extractStringFromPayload(command.resultPayload, erpVersionKeys) ||
-            extractStringFromPayload(command.payload, erpVersionKeys)
-          );
-        })
-        .find((value): value is string => !!value) ?? null;
+    const versionEntries = Array.isArray(systemSnapshot?.["installations"])
+      ? (systemSnapshot["installations"] as Array<Record<string, unknown>>)
+      : [];
+    const collectedVersions = versionEntries
+      .map((entry) => (typeof entry["exeVersion"] === "string" ? entry["exeVersion"].trim() : ""))
+      .filter((value) => !!value);
+    const erpVersion = collectedVersions[0] ?? null;
 
     const erpPaths = Array.from(
       new Set(
@@ -420,7 +455,7 @@ export function RemoteHostDetailsPanel({
         paths: resolvedPaths,
       },
     };
-  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus]);
+  }, [details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, systemSnapshot]);
   const autoHealStatusIcon = useMemo(
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
     [agentHealthCard.autoHeal.status]
@@ -431,15 +466,6 @@ export function RemoteHostDetailsPanel({
     () => getRemoteProductStatusMeta(details.agentHealth.productStatus),
     [details.agentHealth.productStatus]
   );
-  const systemSnapshot = details.agentTelemetry.systemSnapshot;
-  const networkSnapshot = details.agentTelemetry.networkSnapshot;
-  const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
-  const hardwareIdentity = details.agentTelemetry.hardwareIdentity;
-  const diskSnapshot = details.agentTelemetry.diskSnapshot;
-  const sysproProcessSnapshot = details.agentTelemetry.sysproProcessSnapshot;
-  const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
-  const rebootPending = details.agentTelemetry.rebootPending;
-  const agentMetrics = details.agentTelemetry.agentMetrics;
   const bootstrapRateMetrics = useMemo(() => readBootstrapRateMetrics(agentMetrics), [agentMetrics]);
   const contractSchemaVersions = useMemo(() => readContractSchemaVersions(agentMetrics), [agentMetrics]);
   const contractValidationError = useMemo(() => {
@@ -496,6 +522,48 @@ export function RemoteHostDetailsPanel({
     if (agent.lastKnownIp && isPrivateIpv4(agent.lastKnownIp)) return agent.lastKnownIp;
     return explicitLocal ?? agent.lastKnownIp ?? null;
   }, [agent.lastKnownIp, networkSnapshot, systemSnapshot]);
+
+  function buildCompanyContextDraft(
+    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
+    fallbackDirectory: string,
+  ) {
+    return {
+      serverType: companyContext?.serverType ?? "__none__",
+      installationDirectory:
+        companyContext?.installationDirectory?.trim() || fallbackDirectory || DEFAULT_INSTALLATION_DIRECTORY,
+      serverHost: companyContext?.serverHost?.trim() || "",
+      serverPort: companyContext?.serverPort ? String(companyContext.serverPort) : "",
+      serverProtocol: companyContext?.serverProtocol ?? "__none__",
+      iisIsapiPath: companyContext?.iisIsapiPath?.trim() || "",
+      observacoes: companyContext?.observacoes ?? "",
+    } as const;
+  }
+
+  function updateCompanyContextDraft(
+    companyId: string,
+    patch: Partial<{
+      serverType: "SYSPRO_SERVER" | "IIS" | "__none__";
+      installationDirectory: string;
+      serverHost: string;
+      serverPort: string;
+      serverProtocol: "HTTP" | "HTTPS" | "__none__";
+      iisIsapiPath: string;
+      observacoes: string;
+    }>,
+    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
+    fallbackDirectory: string,
+  ) {
+    setCompanyContextDraftByCompanyId((prev) => {
+      const current = prev[companyId] ?? buildCompanyContextDraft(companyContext, fallbackDirectory);
+      return {
+        ...prev,
+        [companyId]: {
+          ...current,
+          ...patch,
+        },
+      };
+    });
+  }
   const sysproServerInstallations = useMemo(
     () => dedupedInstallationContexts.filter((context) => context.update.isServerHost === true),
     [dedupedInstallationContexts],
@@ -622,8 +690,8 @@ export function RemoteHostDetailsPanel({
             companyId: host.companyId,
             name: normalizedProjectedHostName,
             machineName: agent.machineName,
-            machineProfile: host.machineProfile,
-            environment: host.environment,
+            machineProfile: projectedMachineProfile,
+            environment: null,
             provider: host.provider,
             description: host.description,
             notes: host.notes,
@@ -778,6 +846,40 @@ export function RemoteHostDetailsPanel({
     });
   }
 
+  function handleSaveCompanyContext(
+    companyId: string,
+    companyContext: RemoteHostDetails["installationContexts"][number]["company"],
+    fallbackDirectory: string,
+  ) {
+    const draft = companyContextDraftByCompanyId[companyId] ?? buildCompanyContextDraft(companyContext, fallbackDirectory);
+    const normalizedDirectory = draft.installationDirectory.trim() || fallbackDirectory || DEFAULT_INSTALLATION_DIRECTORY;
+
+    startSavingCompanyContext(async () => {
+      setSavingCompanyContextId(companyId);
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/companies/${companyId}/context`,
+          method: "PATCH",
+          body: {
+            serverType: draft.serverType === "__none__" ? null : draft.serverType,
+            installationDirectory: normalizedDirectory,
+            serverHost: draft.serverHost.trim() || null,
+            serverPort: draft.serverPort.trim() || null,
+            serverProtocol: draft.serverProtocol === "__none__" ? null : draft.serverProtocol,
+            iisIsapiPath: draft.iisIsapiPath.trim() || null,
+            observacoes: draft.observacoes.trim() || null,
+          },
+        });
+        toast.success("Contexto técnico da empresa atualizado.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      } finally {
+        setSavingCompanyContextId(null);
+      }
+    });
+  }
+
   const [isStartingSession, startSessionTransition] = useTransition();
 
   const handleStartOrchestratedSession = async () => {
@@ -892,7 +994,6 @@ export function RemoteHostDetailsPanel({
             <TabsTrigger value="geral">Visão Geral</TabsTrigger>
             <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
             <TabsTrigger value="instalacoes">Empresas e Instalações</TabsTrigger>
-            <TabsTrigger value="infra">Infraestrutura</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>
         </div>
@@ -967,8 +1068,7 @@ export function RemoteHostDetailsPanel({
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-            <div className="space-y-6">
+          <div className="space-y-6">
               <Card className="border-border/40 bg-muted/5 shadow-sm">
                 <CardHeader className="pb-3 px-6 pt-6">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -976,17 +1076,28 @@ export function RemoteHostDetailsPanel({
                     Identidade do host
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <CardContent className="grid gap-3 px-6 pb-6 pt-0 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Use um nome operacional fácil de buscar, por exemplo <span className="font-medium text-foreground">Caixa 01 | Tudo Congelados</span>.
-                    </p>
-                    <Input
-                      value={projectedHostName}
-                      onChange={(event) => setProjectedHostName(event.target.value)}
-                      placeholder="Ex.: Caixa 01 | Tudo Congelados"
+                    <p className="text-xs text-muted-foreground">Tipo do host</p>
+                    <Select
+                      value={projectedMachineProfile ?? "__none__"}
+                      onValueChange={(value) =>
+                        setProjectedMachineProfile(value === "__none__" ? null : (value as RemoteHostDetails["host"]["machineProfile"]))
+                      }
                       disabled={isSavingMachineName}
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Não definido</SelectItem>
+                        {Object.entries(MACHINE_PROFILE_LABEL).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button
                     type="button"
@@ -995,7 +1106,7 @@ export function RemoteHostDetailsPanel({
                     className="gap-2"
                   >
                     {isSavingMachineName ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-                    {isSavingMachineName ? "Salvando..." : "Salvar nome"}
+                    {isSavingMachineName ? "Salvando..." : "Salvar host"}
                   </Button>
                 </CardContent>
               </Card>
@@ -1055,33 +1166,6 @@ export function RemoteHostDetailsPanel({
                     </div>
                  </div>
               </div>
-
-            </div>
-
-            <Card className="h-fit w-full border-border/40 bg-muted/5 lg:w-72">
-              <CardHeader className="px-4 pb-2 pt-4">
-                <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Foco operacional
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Esta visão geral mostra só sinais imediatos. As ações e o inventário detalhado ficam concentrados nos tabs para evitar duplicidade.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4 pb-4 pt-0">
-                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                  <p className="text-xs font-semibold text-foreground">Instalações</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Caminhos, vínculos e empresas associadas ficam no tab <span className="font-medium text-foreground">Instalações</span>.
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                  <p className="text-xs font-semibold text-foreground">Agente</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Renovação de credenciais, reenvio de configuração e reaplicação de identidade ficam no tab <span className="font-medium text-foreground">Agente</span>.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
@@ -1093,12 +1177,6 @@ export function RemoteHostDetailsPanel({
             windowsComputerName={windowsComputerName}
             sysproServerInstallations={sysproServerInstallations}
             firebirdData={firebirdData}
-          />
-        </TabsContent>
-
-        <TabsContent value="infra">
-          <HostInfraTab
-            details={details}
             systemSnapshot={systemSnapshot}
             networkSnapshot={networkSnapshot}
             softwareSnapshot={softwareSnapshot}
@@ -1135,6 +1213,11 @@ export function RemoteHostDetailsPanel({
             setManualInstallationPath={setManualInstallationPath}
             isCreatingManualInstallation={isCreatingManualInstallation}
             handleCreateManualInstallation={handleCreateManualInstallation}
+            companyContextDraftByCompanyId={companyContextDraftByCompanyId}
+            updateCompanyContextDraft={updateCompanyContextDraft}
+            isSavingCompanyContext={isSavingCompanyContext}
+            savingCompanyContextId={savingCompanyContextId}
+            handleSaveCompanyContext={handleSaveCompanyContext}
           />
         </TabsContent>
 
@@ -1160,6 +1243,7 @@ export function RemoteHostDetailsPanel({
             visibleAgentCommands={visibleAgentCommands}
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
             hasPendingInstallGuide={hasPendingInstallGuide}
+            desiredSysproInstalls={desiredSysproInstalls}
             linkedDevice={linkedDevice}
             hostId={host.id}
           />
