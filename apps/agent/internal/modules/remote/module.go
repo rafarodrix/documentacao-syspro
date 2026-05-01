@@ -713,7 +713,8 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 	if status.ExecutablePath != "" {
 		serviceStatus, err := manager.ensureServiceRunning(ctx, status.ExecutablePath)
 		if err != nil {
-			m.logger.Warn("rustdesk service ensure failed", "error", err)
+			st.ServiceStatus = firstNonEmpty(serviceStatus, status.ServiceStatus, st.ServiceStatus)
+			return fmt.Errorf("ensure rustdesk service running: %w", err)
 		} else {
 			status.ServiceStatus = serviceStatus
 		}
@@ -745,6 +746,12 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 		st.LastAppliedHash = fingerprint
 		st.LastConfigAppliedAt = time.Now().UTC()
 		status = mustInspect(manager, ctx, status)
+		serviceStatus, err := manager.ensureServiceRunning(ctx, status.ExecutablePath)
+		if err != nil {
+			st.ServiceStatus = firstNonEmpty(serviceStatus, status.ServiceStatus, st.ServiceStatus)
+			return fmt.Errorf("ensure rustdesk service running after config apply: %w", err)
+		}
+		status.ServiceStatus = serviceStatus
 	}
 
 	st.ServiceStatus = firstNonEmpty(status.ServiceStatus, st.ServiceStatus)

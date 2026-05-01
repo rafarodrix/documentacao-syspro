@@ -1243,6 +1243,29 @@ export function RemoteHostDetailsPanel({
         <TabsContent value="configuracoes" className="space-y-6">
           <Card className="border-border/50">
             <CardHeader>
+              <CardTitle className="text-lg">Perfil remoto aplicado</CardTitle>
+              <CardDescription>Configuração efetiva esperada pelo portal para o agente e o RustDesk neste host.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                <p className="text-xs text-muted-foreground">Servidor remoto</p>
+                <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskServerHost.trim() || "Sem configuração"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                <p className="text-xs text-muted-foreground">Versão alvo do RustDesk</p>
+                <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskVersion.trim() || "Sem configuração"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                <p className="text-xs text-muted-foreground">Hash da chave pública</p>
+                <p className="mt-1 break-all text-sm font-medium text-foreground">
+                  {details.moduleSettings.rustDeskPublicKeyHash?.trim() || "Sem configuração"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader>
               <CardTitle className="text-lg">Identidade do host</CardTitle>
               <CardDescription>Nome e perfil da máquina usados pelo portal para identificação e filtragem.</CardDescription>
             </CardHeader>
@@ -1284,13 +1307,13 @@ export function RemoteHostDetailsPanel({
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Ações do agente</CardTitle>
-              <CardDescription>Ações manuais de recuperação e reconfiguração do módulo remoto. Use apenas quando houver divergência real.</CardDescription>
+              <CardDescription>Ações manuais de recuperação, bootstrap e reconfiguração do módulo remoto. Use quando a máquina parar no fluxo ou divergir do perfil esperado.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={handleRotateAgentToken} disabled={isRevokingAgentToken} className="gap-2">
                   <Fingerprint className="h-4 w-4" />
-                  {isRevokingAgentToken ? "Renovando..." : "Renovar credencial do agente"}
+                  {isRevokingAgentToken ? "Solicitando..." : "Forçar inicialização remota"}
                 </Button>
                 <Button
                   variant="outline"
@@ -1311,6 +1334,9 @@ export function RemoteHostDetailsPanel({
                   {isRequestingSelfHeal ? "Solicitando..." : "Reaplicar alias do RustDesk"}
                 </Button>
               </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                “Forçar inicialização remota” invalida a credencial atual e faz o agente executar novo bootstrap autenticado no próximo ciclo.
+              </p>
             </CardContent>
           </Card>
 
@@ -1340,7 +1366,6 @@ export function RemoteHostDetailsPanel({
     </div>
   );
 }
-
 
 
 

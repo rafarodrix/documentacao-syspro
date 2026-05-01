@@ -61,7 +61,15 @@ func rustdeskServiceStart() error {
 		return fmt.Errorf("open service: %w", err)
 	}
 	defer s.Close()
-	return s.Start()
+	err = s.Start()
+	if err != nil {
+		lower := strings.ToLower(err.Error())
+		if strings.Contains(lower, "already been started") || strings.Contains(lower, "service has already been started") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func rustdeskServiceStop() error {
@@ -97,6 +105,17 @@ func rustdeskServiceRestart() error {
 		time.Sleep(300 * time.Millisecond)
 	}
 	return rustdeskServiceStart()
+}
+
+func waitForRustDeskServiceState(expected string, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if rustdeskServiceStatus() == expected {
+			return true
+		}
+		time.Sleep(400 * time.Millisecond)
+	}
+	return rustdeskServiceStatus() == expected
 }
 
 // ── Process control ──────────────────────────────────────────────────────────

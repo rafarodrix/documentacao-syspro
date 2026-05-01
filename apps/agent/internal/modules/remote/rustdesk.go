@@ -208,35 +208,52 @@ func (m *rustDeskManager) ensureServiceRunning(ctx context.Context, exePath stri
 		return "unsupported", nil
 	}
 
-	status := rustdeskServiceStatus()
-	if status == "running" {
-		return status, nil
+	for attempt := 1; attempt <= 3; attempt++ {
+		status := rustdeskServiceStatus()
+		if status == "running" {
+			return status, nil
+		}
+
+		if status == "missing" {
+			if err := m.runRustDeskCommand(ctx, exePath, "--install-service"); err != nil {
+				return status, fmt.Errorf("install rustdesk service: %w", err)
+			}
+			if !waitForRustDeskServiceState("stopped", 12*time.Second) && rustdeskServiceStatus() != "running" {
+				m.logger.Warn("rustdesk service install command did not stabilize yet", "attempt", attempt)
+			}
+		}
+
+		if status == "stopping" {
+			waitForRustDeskServiceState("stopped", 10*time.Second)
+		}
+
+		if err := rustdeskServiceStart(); err != nil {
+			if attempt == 3 {
+				return rustdeskServiceStatus(), fmt.Errorf("start rustdesk service: %w", err)
+			}
+			m.logger.Warn("rustdesk service start attempt failed", "attempt", attempt, "error", err)
+			_ = rustdeskServiceRestart()
+			continue
+		}
+
+		deadline := time.Now().Add(15 * time.Second)
+		for time.Now().Before(deadline) {
+			current := rustdeskServiceStatus()
+			if current == "running" {
+				return current, nil
+			}
+			select {
+			case <-ctx.Done():
+				return current, nil
+			case <-time.After(500 * time.Millisecond):
+			}
+		}
+
+		m.logger.Warn("rustdesk service still not running after start attempt", "attempt", attempt, "status", rustdeskServiceStatus())
+		_ = rustdeskServiceRestart()
 	}
 
-	if status == "missing" {
-		if err := m.runRustDeskCommand(ctx, exePath, "--install-service"); err != nil {
-			return status, fmt.Errorf("install rustdesk service: %w", err)
-		}
-	}
-
-	if err := rustdeskServiceStart(); err != nil {
-		return status, fmt.Errorf("start rustdesk service: %w", err)
-	}
-
-	// Poll until the service reports "running" or the deadline expires.
-	deadline := time.Now().Add(10 * time.Second)
-	for time.Now().Before(deadline) {
-		current := rustdeskServiceStatus()
-		if current == "running" {
-			return current, nil
-		}
-		select {
-		case <-ctx.Done():
-			return current, nil
-		case <-time.After(500 * time.Millisecond):
-		}
-	}
-	return rustdeskServiceStatus(), nil
+	return rustdeskServiceStatus(), fmt.Errorf("rustdesk service did not reach running state")
 }
 
 func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string, desired rustDeskDesiredConfig) error {

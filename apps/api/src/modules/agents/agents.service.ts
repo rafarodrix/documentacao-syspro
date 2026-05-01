@@ -27,14 +27,14 @@ const DESIRED_STATE_DEVICE_INCLUDE = {
   remoteHost: {
     select: {
       id: true,
-      remoteHostSysproUpdates: {
+      sysproUpdates: {
         select: {
           companyId: true,
           companyLabel: true,
           path: true,
           company: { select: { nomeFantasia: true, razaoSocial: true } },
         },
-        orderBy: [{ path: 'asc' }, { companyLabel: 'asc' }],
+        orderBy: [{ path: 'asc' }, { companyLabel: 'asc' }] as Prisma.RemoteHostSysproUpdateOrderByWithRelationInput[],
       },
     },
   },
@@ -76,7 +76,7 @@ type AgentRemoteLinkContext = {
 type DesiredStateDeviceRow = {
   remoteHost: {
     id: string;
-    remoteHostSysproUpdates: Array<{
+    sysproUpdates: Array<{
       companyId: string | null;
       companyLabel: string;
       path: string;
@@ -558,7 +558,7 @@ export class AgentsService {
   }
 
   private buildDeviceSysproInstalls(device: DesiredStateDeviceRow): NonNullable<AgentDesiredState['device']['syspro_installs']> {
-    const updates = device?.remoteHost?.remoteHostSysproUpdates ?? [];
+    const updates = device?.remoteHost?.sysproUpdates ?? [];
     const installs: NonNullable<AgentDesiredState['device']['syspro_installs']> = [];
     const seen = new Set<string>();
 
