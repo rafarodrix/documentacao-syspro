@@ -101,9 +101,21 @@ Implementado via `agent-ui`:
 - Contexto tecnico (empresa, host, rustdeskId, usuario) sincronizado via IPC no inicio de cada conversa
 - Janela abre via tray ("Abrir suporte") ou via comando remoto
 
-### 3. `device` - STUB (coleta real pendente)
+### 3. `device` - OPERACIONAL
 
-O modulo existe e participa do reconcile, mas o `Apply` retorna mensagem fixa sem executar nada. Nao coleta memoria, CPU, discos nem status de servicos. O `DeviceDesiredState` ja tem as flags `CollectInventory` e `CollectMetrics`, e o `RemoteSyncRequest` ja tem os campos de destino (`DiskSnapshot`, `SystemSnapshot`, `SysproProcesses`, `AgentMetrics`, etc.). A lacuna e o corpo de coleta no proprio modulo. Ver `5-agent-monitoring-remoto.md`.
+Coleta real implementada e integrada ao remote module em producao.
+
+Ciclos de coleta (controlados por `DeviceDesiredState.CollectMetrics` e `CollectInventory`):
+
+- **Todo Apply (~45s):** memoria, CPU, reboot pending + status de servicos via SCM nativo
+- **A cada 4 ciclos (~3 min):** volumes de disco
+- **A cada 80 ciclos (~1h) ou no primeiro ciclo:** versao do `SysproServer.exe` por instalacao
+
+O modulo expoe `GetSyncSnapshots()` (implementa `remote.DeviceSnapshotProvider`). O remote module chama essa interface em `runSync` e injeta os payloads em `AgentMetrics`, `DiskSnapshot`, `SysproProcesses`, `SysproVersions` e `RebootPending`.
+
+Construtor: `device.New(logger Logger)` — nao recebe `executor`; o Collector gerencia subprocessos internamente.
+
+Ver `5-agent-monitoring-remoto.md` para tipos de snapshot e logica de coleta.
 
 ### 4. `backup` - STUB
 
@@ -240,7 +252,7 @@ POST /api/remote/rustdesk/ack
 Endpoints genericos (opt-in via `PORTAL_AGENT_API_ENABLED=true`):
 
 ```
-POST /api/agents/register          <- registro; aciona tryLinkRemoteHost por hostname
+POST /api/agents/register          <- registro; aciona tryLinkRemoteHost por remoteHostId/rustdeskId
 POST /api/agents/heartbeat         <- heartbeat; aciona tryLinkRemoteHost se nao vinculado ainda
 GET  /api/agents/:deviceId/desired-state
 GET  /api/agents                   <- lista paginada; filtros: remoteHostId, companyId, status, search
@@ -452,17 +464,19 @@ enrolled device
 - [ ] Report de resultados ao portal
 - [ ] Exibir estado de backup no `agent-ui`
 
-### Fase 5b - monitoramento remoto da maquina - PENDENTE
+### Fase 5b - monitoramento remoto da maquina - PARCIALMENTE CONCLUIDA
 
-- [ ] Implementar coleta de memoria (total, usado, livre) no `modules/device`
-- [ ] Implementar coleta de CPU (load %) no `modules/device`
-- [ ] Implementar coleta de discos por unidade (letra, total, livre, label) no `modules/device`
-- [ ] Implementar verificacao de servicos: Firebird, SysPro Server, IIS (W3SVC)
-- [ ] Implementar verificacao de reboot pendente (registro Windows)
-- [ ] Injetar snapshots no `RemoteSyncRequest` dentro do `runSync`
-- [ ] Portal: confirmar que endpoint `/sync` persiste todos os campos snapshot
-- [ ] Portal web: exibir metricas de maquina na pagina de detalhe do host e do dispositivo
-- [ ] Definir frequencia de coleta (a cada sync? a cada N ciclos?)
+- [x] Implementar coleta de memoria, CPU, reboot pending no `modules/device`
+- [x] Implementar coleta de discos por unidade no `modules/device`
+- [x] Implementar verificacao de servicos: Firebird, SysPro Server, IIS, RustDesk
+- [x] Implementar verificacao de reboot pendente (registro Windows)
+- [x] Injetar snapshots no `RemoteSyncRequest` via `DeviceSnapshotProvider` / `GetSyncSnapshots()`
+- [x] Campo `SysproVersions` adicionado ao `RemoteSyncRequest` e pipeline completo ate a UI
+- [x] Portal: endpoint `/sync` persiste `sysproVersions` em `lastSysproVersionSnapshot` (migracao `20260501000000`)
+- [x] Portal web: `sysproVersionSnapshot` exibido na aba Instalacoes do `HostInstallationsTab`
+- [ ] Portal: popular `device.syspro_installs` no desired state com instalacoes do `RemoteHost`
+- [ ] UI: corrigir matching de versao de `companyId` para `path` em `HostInstallationsTab`
+- [ ] Portal web: exibir metricas de maquina (memoria, CPU, discos, servicos) na pagina de detalhe
 
 Ver `5-agent-monitoring-remoto.md` para spec completa.
 
@@ -486,7 +500,7 @@ Ver `5-agent-monitoring-remoto.md` para spec completa.
 | Fila de ACK remoto perdida se servico reiniciar | Ativo - medio |
 | Backup sem fila duravel (jobs perdidos em restart) | Ativo - medio |
 | `UPGRADE_CLIENT` sem implementacao real | Ativo - baixo por ora |
-| `modules/device` nao coleta dados reais (stub) | Ativo - medio; bloqueia monitoramento remoto |
+| UI: matching de versao do Syspro por `companyId` em vez de `path` | Ativo - baixo; resultado correto so quando ha 1 empresa por maquina |
 | Logica critica de backup/remoto fora da UI | Seguido corretamente |
 | Dependencia do chat do RustDesk como canal oficial | Mitigado: UI propria via Chatwoot |
 
