@@ -105,9 +105,6 @@ Copy-Item -LiteralPath (Join-Path $agentRoot "assets\img\logo-clara.png") -Desti
 Copy-Item -LiteralPath (Join-Path $agentRoot "assets\img\logo-escura.png") -Destination (Join-Path $stageRoot "assets\img\logo-escura.png")
 Copy-Item -LiteralPath (Join-Path $sourceDeployRoot "ensure-webview2-runtime.ps1") -Destination (Join-Path $stageRoot "scripts\ensure-webview2-runtime.ps1")
 
-Copy-Item -LiteralPath (Join-Path $runtimeRoot "start-agent.ps1") -Destination (Join-Path $stageRoot "scripts\start-agent.ps1")
-Copy-Item -LiteralPath (Join-Path $runtimeRoot "start-agent.cmd") -Destination (Join-Path $stageRoot "scripts\start-agent.cmd")
-Copy-Item -LiteralPath (Join-Path $runtimeRoot "stop-agent.ps1") -Destination (Join-Path $stageRoot "scripts\stop-agent.ps1")
 Copy-Item -LiteralPath (Join-Path $runtimeRoot "stop-agent.cmd") -Destination (Join-Path $stageRoot "scripts\stop-agent.cmd")
 Copy-Item -LiteralPath (Join-Path $runtimeRoot "open-config.cmd") -Destination (Join-Path $stageRoot "scripts\open-config.cmd")
 Copy-Item -LiteralPath (Join-Path $runtimeRoot "open-logs.cmd") -Destination (Join-Path $stageRoot "scripts\open-logs.cmd")
@@ -148,7 +145,7 @@ Configuracao:
 - Caso contrario, o seed inicial sera apps\agent\.env.example.
 
 Operacao:
-- Iniciar: scripts\start-agent.cmd
+- Iniciar: agent-ui.exe
 - Parar: scripts\stop-agent.cmd
 - Editar config: scripts\open-config.cmd
 - Logs: scripts\open-logs.cmd

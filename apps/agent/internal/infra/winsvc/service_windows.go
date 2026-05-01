@@ -75,7 +75,7 @@ func Install(exePath string) error {
 
 	if s, err := m.OpenService(Name); err == nil {
 		s.Close()
-		return fmt.Errorf("service %q already exists; run 'uninstall' first", Name)
+		return nil
 	}
 
 	s, err := m.CreateService(Name, exePath, mgr.Config{

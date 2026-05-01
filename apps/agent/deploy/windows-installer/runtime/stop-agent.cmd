@@ -1,3 +1,3 @@
 @echo off
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0stop-agent.ps1"
-
+taskkill /IM agent-ui.exe /F >nul 2>&1
+exit /b 0

@@ -42,6 +42,12 @@ O instalador compilado sai em:
 
 - `apps/agent/dist/windows-installer/output`
 
+Fluxo atual:
+
+- o instalador usa `agent-service.exe install` e `agent-service.exe start`
+- a interface e os atalhos abrem `agent-ui.exe` diretamente
+- `start-agent.ps1` nao faz mais parte do fluxo principal
+
 ## Seed de configuracao
 
 Se `apps/agent/.env` existir localmente, ele entra como seed inicial do instalador.
@@ -51,4 +57,3 @@ Se nao existir, o pacote usa:
 - `apps/agent/.env.example`
 
 O instalador nao sobrescreve `C:\ProgramData\Trilink\Agent\.env` se esse arquivo ja existir na maquina.
-

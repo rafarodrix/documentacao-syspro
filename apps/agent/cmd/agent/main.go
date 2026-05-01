@@ -31,6 +31,9 @@ func run() error {
 		if err != nil {
 			return err
 		}
+		if err := app.PrepareInstallRuntime(exePath); err != nil {
+			return err
+		}
 		return winsvc.Install(exePath)
 	case "start":
 		return winsvc.Start()
