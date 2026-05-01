@@ -21,3 +21,5 @@ func (c *Collector) CollectServices(_ []SysproInstallTarget) (*SysproProcessSnap
 }
 
 func (c *Collector) rebootPending() bool { return false }
+
+func (c *Collector) readExeVersion(_ string) string { return "" }

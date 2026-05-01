@@ -47,7 +47,7 @@ type ServiceStatus struct {
 }
 
 // SysproVersionSnapshot contem a versao e estado dos executaveis de cada instalacao Syspro.
-// Coletado a cada ~1h (80 ciclos de sync). Usa GetFileVersionInfoW ou PowerShell.
+// Coletado a cada ~1h (80 ciclos de sync). Usa GetFileVersionInfoW nativo — zero PowerShell.
 type SysproVersionSnapshot struct {
 	CollectedAt   string               `json:"collectedAt"`
 	Installations []SysproInstallInfo  `json:"installations"`
