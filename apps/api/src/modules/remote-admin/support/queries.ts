@@ -1155,6 +1155,14 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
         orderBy: [{ createdAt: "desc" }],
         take: 20,
       },
+      sysproUpdates: {
+        select: {
+          id: true,
+          companyId: true,
+          companyLabel: true,
+          path: true,
+        },
+      },
     },
   });
 
@@ -1346,6 +1354,10 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
     return "unknown";
   })();
   const contractErrorCode = readContractErrorCodeFromMetrics(host.lastAgentMetrics);
+  const hostTelemetry = host as typeof host & {
+    lastSysproVersionSnapshot?: Prisma.JsonValue | null;
+    lastSysproVersionSnapshotAt?: Date | null;
+  };
   const hostView = mapDirectoryItem({
     ...host,
     serviceStatus,
@@ -1392,8 +1404,8 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       diskSnapshotAt: host.lastDiskSnapshotAt?.toISOString() ?? null,
       sysproProcessSnapshot: toRecordArray(host.lastSysproProcessSnapshot),
       sysproProcessSnapshotAt: host.lastSysproProcessSnapshotAt?.toISOString() ?? null,
-      sysproVersionSnapshot: toRecord(host.lastSysproVersionSnapshot),
-      sysproVersionSnapshotAt: host.lastSysproVersionSnapshotAt?.toISOString() ?? null,
+      sysproVersionSnapshot: toRecord(hostTelemetry.lastSysproVersionSnapshot),
+      sysproVersionSnapshotAt: hostTelemetry.lastSysproVersionSnapshotAt?.toISOString() ?? null,
       windowsUpdateStatus: toRecord(host.lastWindowsUpdateStatus),
       windowsUpdateStatusAt: host.lastWindowsUpdateStatusAt?.toISOString() ?? null,
       rebootPending: typeof host.lastRebootPending === "boolean" ? host.lastRebootPending : null,

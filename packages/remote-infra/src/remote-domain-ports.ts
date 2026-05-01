@@ -477,7 +477,7 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
             lastAgentMetrics: record.agentMetrics ? toJsonValue(record.agentMetrics) : undefined,
             lastAgentMetricsAt: record.agentMetrics ? record.heartbeatAt : undefined,
             status: "ACTIVE",
-          },
+          } as any,
           select: {
             id: true,
             agentExternalId: true,
