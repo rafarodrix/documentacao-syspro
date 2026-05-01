@@ -64,14 +64,15 @@ function App() {
     };
   }, []);
 
-  // Polling: atualiza status remoto na SupportScreen a cada 15s
   useEffect(() => {
     if (route !== "agent://support") return;
 
     const poll = () => {
       void GetSupportSession()
         .then((session) => setSupportSession(session))
-        .catch(() => {/* silencioso */});
+        .catch(() => {
+          // silent
+        });
     };
 
     const id = setInterval(poll, 15_000);
@@ -79,9 +80,7 @@ function App() {
   }, [route]);
 
   useEffect(() => {
-    if (route !== "agent://support" || !supportSession) {
-      return;
-    }
+    if (route !== "agent://support" || !supportSession) return;
 
     let cancelled = false;
     const scriptId = "trilink-chatwoot-sdk";
@@ -122,6 +121,8 @@ function App() {
       showUnreadMessagesDialog: false,
       welcomeTitle: "Suporte Trilink",
       welcomeDescription: "Canal oficial da Trilink com contexto tecnico do dispositivo.",
+      position: "right",
+      locale: "pt_BR",
     };
 
     const bootChatwoot = () => {
@@ -129,13 +130,13 @@ function App() {
         chatwootSDK?: { run: (cfg: { websiteToken: string; baseUrl: string }) => void };
       }).chatwootSDK;
 
-      if (sdk) {
-        setChatwootLoading(true);
-        sdk.run({
-          websiteToken: supportSession.website_token,
-          baseUrl: supportSession.base_url,
-        });
-      }
+      if (!sdk) return;
+
+      setChatwootLoading(true);
+      sdk.run({
+        websiteToken: supportSession.website_token,
+        baseUrl: supportSession.base_url,
+      });
     };
 
     if (existingScript) {
@@ -161,17 +162,10 @@ function App() {
     };
   }, [route, supportSession, chatwootBootNonce]);
 
-  const navigateToSetup = () => {
-    setRoute("agent://setup");
-    void GetSetupStatus().then(setSetupStatus).catch((err) => console.error("GetSetupStatus failed:", err));
-  };
-
   const openSupport = () => {
     setRoute("agent://support");
 
-    if (chatwootReady && openChatwoot()) {
-      return;
-    }
+    if (chatwootReady && openChatwoot()) return;
 
     if (supportSession) {
       setChatwootReady(false);
@@ -196,7 +190,6 @@ function App() {
 
   return (
     <div className={`shell route-${route === "agent://support" ? "support" : "setup"}`}>
-      {/* Shared top navbar */}
       <nav className="navbar">
         <div className="navbar-brand">
           <img
@@ -225,7 +218,6 @@ function App() {
           chatwootReady={chatwootReady}
           chatwootLoading={chatwootLoading}
           onOpenSupport={openSupport}
-          onOpenSetup={navigateToSetup}
         />
       ) : (
         <SetupScreen
@@ -253,7 +245,6 @@ function SetupScreen(props: {
 
   return (
     <main className="panel setup-panel">
-      {/* Hero progress block */}
       <section className="setup-hero">
         <div className="setup-hero-left">
           <div className="setup-stage-label">
@@ -280,16 +271,17 @@ function SetupScreen(props: {
               transform="rotate(-90 28 28)"
             />
           </svg>
-          <div className="ring-label">{status.progress_pct}<span>%</span></div>
+          <div className="ring-label">
+            {status.progress_pct}
+            <span>%</span>
+          </div>
         </div>
       </section>
 
-      {/* Progress bar */}
       <div className="setup-bar-wrap">
         <div className={`setup-bar-fill state-${overallState}`} style={{ width: `${status.progress_pct}%` }} />
       </div>
 
-      {/* Device metadata row */}
       {(status.company_name || status.host_id || status.rustdesk_id) && (
         <div className="device-row">
           {status.company_name && (
@@ -313,7 +305,6 @@ function SetupScreen(props: {
         </div>
       )}
 
-      {/* Error */}
       {status.last_error && (
         <div className="error-banner">
           <span className="error-icon">!</span>
@@ -321,7 +312,6 @@ function SetupScreen(props: {
         </div>
       )}
 
-      {/* Steps timeline */}
       <section className="timeline-section">
         <div className="timeline-header">
           <span className="timeline-title">Pipeline de provisionamento</span>
@@ -331,20 +321,18 @@ function SetupScreen(props: {
         </div>
 
         <div className="timeline">
-          {/* Pending / active steps */}
           {pendingSteps.map((step, i) => (
             <TimelineItem key={step.key} step={step} isFirst={i === 0 && overallState === "running"} />
           ))}
 
-          {/* Completed steps toggle */}
           {completedSteps.length > 0 && (
             <>
               <button
                 type="button"
                 className="timeline-toggle"
-                onClick={() => setShowCompleted((v) => !v)}
+                onClick={() => setShowCompleted((value) => !value)}
               >
-                <span className="timeline-toggle-icon">{showCompleted ? "▲" : "▼"}</span>
+                <span className="timeline-toggle-icon">{showCompleted ? "-" : "+"}</span>
                 {showCompleted ? "Ocultar" : "Ver"} {completedSteps.length} etapa
                 {completedSteps.length !== 1 ? "s" : ""} concluida
                 {completedSteps.length !== 1 ? "s" : ""}
@@ -357,7 +345,6 @@ function SetupScreen(props: {
             </>
           )}
 
-          {/* Empty state */}
           {allSteps.length === 0 && (
             <div className="timeline-empty">Aguardando etapas de provisionamento...</div>
           )}
@@ -392,12 +379,13 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 
   const handleCopy = async () => {
     if (!value) return;
+
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback silencioso
+      // silent fallback
     }
   };
 
@@ -419,23 +407,37 @@ function SupportScreen(props: {
   chatwootReady: boolean;
   chatwootLoading: boolean;
   onOpenSupport: () => void;
-  onOpenSetup: () => void;
 }) {
-  const { session, chatwootReady, chatwootLoading, onOpenSupport, onOpenSetup } = props;
+  const { session, chatwootReady, chatwootLoading, onOpenSupport } = props;
   const context = session?.context;
 
   const remoteId = context?.rustdeskId ?? "";
   const remotePassword = context?.remoteAccessPassword ?? "";
+  const companyName = context?.companyDisplayName ?? "Cliente Trilink";
+  const machineName = context?.machineName || context?.hostname || "Maquina em preparacao";
+  const operatorName = context?.localUsername || "Operador local";
+  const remoteStateLabel =
+    context?.remoteStatus === "ready"
+      ? "Pronto para conexao"
+      : context?.remoteStatus === "pending"
+        ? "Provisionando acesso remoto"
+        : "Instalacao remota em analise";
+  const chatStateLabel = chatwootLoading
+    ? "Preparando canal seguro"
+    : chatwootReady
+      ? "Chat pronto para abrir"
+      : "Conexao sera iniciada sob demanda";
+  const chatStateClass = chatwootReady ? "ready" : chatwootLoading ? "loading" : "idle";
 
   const buttonLabel = chatwootLoading
-    ? "Conectando..."
+    ? "Conectando ao suporte..."
     : chatwootReady
-      ? "Abrir atendimento"
+      ? "Abrir conversa agora"
       : "Iniciar atendimento";
 
   return (
     <main className="panel support-panel">
-      <section className="support-hero">
+      <section className="support-hero premium">
         <div className="support-hero-text">
           <div className="support-hero-eyebrow">
             <span className="support-hero-eyebrow-dot" />
@@ -443,25 +445,51 @@ function SupportScreen(props: {
           </div>
           <div className="support-hero-title">Central de Suporte</div>
           <div className="support-hero-subtitle">
-            Acesso remoto governado pelo agente com contexto tecnico sincronizado em tempo real.
+            Atendimento tecnico com contexto sincronizado, canal autenticado e acesso remoto
+            governado pelo agente.
+          </div>
+          <div className="support-hero-meta">
+            <div className="support-hero-chip">
+              <span className="support-hero-chip-label">Maquina</span>
+              <span className="support-hero-chip-value">{machineName}</span>
+            </div>
+            <div className={`support-hero-chip support-hero-chip-${chatStateClass}`}>
+              <span className="support-hero-chip-label">Chatwoot</span>
+              <span className="support-hero-chip-value">{chatStateLabel}</span>
+            </div>
           </div>
         </div>
-        <button type="button" className="btn-ghost btn-ghost-wide" onClick={onOpenSetup} title="Voltar ao status do agente">
-          <StatusIcon />
-          <span>Status</span>
-        </button>
+        <div className={`support-orb support-orb-${context?.remoteStatus ?? "pending"}`}>
+          <span className="support-orb-ring" />
+          <span className="support-orb-core" />
+        </div>
       </section>
 
-      <section className="support-body">
-        <div className="support-card">
-          <div className="support-card-head">
-            <div className="support-card-head-left">
-              <span className="support-card-icon">
+      <section className="support-body premium">
+        <div className="support-overview-card">
+          <div className="support-overview-item">
+            <span className="support-overview-label">Empresa</span>
+            <span className="support-overview-value">{companyName}</span>
+          </div>
+          <div className="support-overview-item">
+            <span className="support-overview-label">Maquina</span>
+            <span className="support-overview-value">{machineName}</span>
+          </div>
+          <div className="support-overview-item">
+            <span className="support-overview-label">Operador</span>
+            <span className="support-overview-value">{operatorName}</span>
+          </div>
+        </div>
+
+        <div className="support-card support-card-premium">
+          <div className="support-card-head support-card-head-premium">
+            <div className="support-card-head-left premium">
+              <span className="support-card-icon premium">
                 <RemoteIcon />
               </span>
-              <div>
-                <div className="support-card-label">Acesso remoto</div>
-                <div className="support-card-sub">Sessao tecnica autorizada</div>
+              <div className="support-card-heading-block">
+                <div className="support-card-label">Acesso remoto assistido</div>
+                <div className="support-card-sub">{remoteStateLabel}</div>
               </div>
             </div>
             <span className={`support-status-pill ${context?.remoteStatus ?? "pending"}`}>
@@ -470,7 +498,12 @@ function SupportScreen(props: {
             </span>
           </div>
 
-          <div className="support-fields">
+          <div className="support-card-description">
+            O agente mantem o atendimento vinculado ao contexto desta instalacao e prepara o
+            acesso com governanca centralizada.
+          </div>
+
+          <div className="support-fields support-fields-premium">
             <div className="support-field">
               <div className="support-field-label">ID remoto</div>
               <div className="support-field-value-row">
@@ -481,12 +514,12 @@ function SupportScreen(props: {
               </div>
             </div>
             <div className="support-field">
-              <div className="support-field-label">Senha temporaria</div>
+              <div className="support-field-label">Senha remota</div>
               <div className="support-field-value-row">
                 <div className="support-field-value mono">
                   {remotePassword ||
                     (context?.remoteStatus === "ready" || context?.remoteStatus === "pending"
-                      ? "Disponivel no RustDesk"
+                      ? "Sincronizando credencial"
                       : "Aguardando configuracao")}
                 </div>
                 {remotePassword && <CopyButton value={remotePassword} label="Copiar senha" />}
@@ -494,9 +527,22 @@ function SupportScreen(props: {
             </div>
           </div>
 
+          <div className="support-chat-panel">
+            <div className="support-chat-panel-header">
+              <div className="support-chat-panel-title">Canal de atendimento</div>
+              <span className={`support-chat-pill support-chat-pill-${chatStateClass}`}>
+                {chatStateLabel}
+              </span>
+            </div>
+            <div className="support-chat-panel-text">
+              A conversa abre no canal oficial da Trilink com identificacao tecnica da maquina,
+              empresa e operador local.
+            </div>
+          </div>
+
           <button
             type="button"
-            className={`btn-primary ${chatwootLoading ? "btn-loading" : ""}`}
+            className={`btn-primary btn-primary-premium ${chatwootLoading ? "btn-loading" : ""}`}
             onClick={onOpenSupport}
             disabled={chatwootLoading}
           >
@@ -508,7 +554,7 @@ function SupportScreen(props: {
         <div className="support-trust">
           <ShieldIcon />
           <span>
-            Conexao protegida e auditada pela plataforma Trilink.
+            Conexao protegida, auditada e associada ao contexto operacional desta estacao.
           </span>
         </div>
       </section>
@@ -519,16 +565,13 @@ function SupportScreen(props: {
 function CheckIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function StatusIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M11.5 4.5 7 9l4.5 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7.5 9H14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M2 6l3 3 5-5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -537,7 +580,12 @@ function CopyIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
       <rect x="4.5" y="4.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M3 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M3 8.5H2A1.5 1.5 0 0 1 .5 7V2A1.5 1.5 0 0 1 2 .5h5A1.5 1.5 0 0 1 8.5 2v1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -545,7 +593,13 @@ function CopyIcon() {
 function CopiedIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <path d="M2 7l3 3 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2 7l3 3 6-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -564,8 +618,19 @@ function RemoteIcon() {
 function ShieldIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 1.5 2 3.5v3.2c0 3 2.1 5.4 5 5.8 2.9-.4 5-2.8 5-5.8V3.5L7 1.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="m5.2 7.2 1.4 1.4 2.6-2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M7 1.5 2 3.5v3.2c0 3 2.1 5.4 5 5.8 2.9-.4 5-2.8 5-5.8V3.5L7 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m5.2 7.2 1.4 1.4 2.6-2.8"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -620,9 +685,6 @@ function identifyChatwootContact(context: uistate.SupportContext | undefined) {
 
   if (!chatwoot?.setUser) return;
 
-  // Usa deviceId como identificador estável e único por instalação.
-  // O nome do contato representa a máquina (hostAlias > machineName > hostname),
-  // não o usuário logado — assim cada instalação tem um contato permanente no Chatwoot.
   const identifier = context.deviceId || context.hostname || context.machineName || "";
   if (!identifier) return;
 

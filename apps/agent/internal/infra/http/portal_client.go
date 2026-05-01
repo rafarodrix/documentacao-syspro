@@ -34,6 +34,12 @@ type PortalClient struct {
 	baseURL    string
 }
 
+type remoteLinkContext struct {
+	HostID     string `json:"host_id"`
+	CompanyID  string `json:"company_id"`
+	RustDeskID string `json:"rustdesk_id"`
+}
+
 type HTTPStatusError struct {
 	StatusCode int
 	Method     string
@@ -83,6 +89,13 @@ func (c *PortalClient) RegisterDevice(ctx context.Context, id domain.DeviceIdent
 		"identitySource": id.IdentitySource,
 		"agentVersion":   c.cfg.Agent.Version,
 	}
+	if link := c.loadRemoteLinkContext(ctx); link != nil {
+		body["remoteLinkContext"] = map[string]any{
+			"remoteHostId": link.HostID,
+			"companyId":    link.CompanyID,
+			"rustdeskId":   link.RustDeskID,
+		}
+	}
 	_, err := c.post(ctx, "/api/agents/register", body)
 	return err
 }
@@ -101,8 +114,30 @@ func (c *PortalClient) SendHeartbeat(ctx context.Context) error {
 		"agentVersion": c.cfg.Agent.Version,
 		"at":           time.Now().UTC(),
 	}
+	if link := c.loadRemoteLinkContext(ctx); link != nil {
+		body["remoteLinkContext"] = map[string]any{
+			"remoteHostId": link.HostID,
+			"companyId":    link.CompanyID,
+			"rustdeskId":   link.RustDeskID,
+		}
+	}
 	_, err := c.post(ctx, "/api/agents/heartbeat", body)
 	return err
+}
+
+func (c *PortalClient) loadRemoteLinkContext(ctx context.Context) *remoteLinkContext {
+	var link remoteLinkContext
+	if err := c.store.LoadJSON(ctx, "remote_state.json", &link); err != nil {
+		return nil
+	}
+
+	if strings.TrimSpace(link.HostID) == "" &&
+		strings.TrimSpace(link.CompanyID) == "" &&
+		strings.TrimSpace(link.RustDeskID) == "" {
+		return nil
+	}
+
+	return &link
 }
 
 func (c *PortalClient) GetDesiredState(ctx context.Context) (domain.DesiredState, error) {

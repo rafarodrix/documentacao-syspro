@@ -54,6 +54,10 @@ type remoteState struct {
 	APIHost                  string    `json:"api_host,omitempty"`
 	PublicKey                string    `json:"public_key,omitempty"`
 	PublicKeyHash            string    `json:"public_key_hash,omitempty"`
+	ReportedServerHost       string    `json:"reported_server_host,omitempty"`
+	ReportedAPIHost          string    `json:"reported_api_host,omitempty"`
+	ReportedPublicKey        string    `json:"reported_public_key,omitempty"`
+	ReportedPublicKeyHash    string    `json:"reported_public_key_hash,omitempty"`
 	ServerConfig             string    `json:"server_config,omitempty"`
 	TargetVersion            string    `json:"target_version,omitempty"`
 	DefaultPassword          string    `json:"default_password,omitempty"`
@@ -440,9 +444,9 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 		AgentVersion:  m.agentVersion,
 		CurrentAlias:  st.Alias,
 		CurrentVersion: st.CurrentVersion,
-		ServerHost:    st.ServerHost,
-		APIHost:       st.APIHost,
-		PublicKey:     st.PublicKey,
+		ServerHost:    firstNonEmpty(st.ReportedServerHost, st.ServerHost),
+		APIHost:       firstNonEmpty(st.ReportedAPIHost, st.APIHost),
+		PublicKey:     firstNonEmpty(st.ReportedPublicKey, st.PublicKey),
 		ServiceStatus: firstNonEmpty(st.ServiceStatus, "unknown"),
 	}
 
@@ -733,7 +737,8 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 		EnableDirectXCapture:     st.EnableDirectXCapture,
 	}
 	fingerprint := desiredConfigFingerprint(desired)
-	if status.ExecutablePath != "" && fingerprint != "" && (forceApply || st.LastAppliedHash != fingerprint) {
+	configDriftDetected := rustDeskConfigNeedsReapply(status, desired)
+	if status.ExecutablePath != "" && fingerprint != "" && (forceApply || configDriftDetected || st.LastAppliedHash != fingerprint) {
 		if err := manager.applyDesiredConfig(ctx, status.ExecutablePath, desired); err != nil {
 			return err
 		}
@@ -746,10 +751,30 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 	st.RustDeskID = firstNonEmpty(status.RustDeskID, st.RustDeskID)
 	st.CurrentVersion = firstNonEmpty(status.Version, st.CurrentVersion)
 	st.RuntimePassword = strings.TrimSpace(status.AccessPassword)
+	st.ReportedServerHost = strings.TrimSpace(status.ServerHost)
+	st.ReportedAPIHost = strings.TrimSpace(status.APIHost)
+	st.ReportedPublicKey = strings.TrimSpace(status.PublicKey)
+	st.ReportedPublicKeyHash = strings.TrimSpace(status.PublicKeyHash)
 	if st.MachineName == "" {
 		st.MachineName = currentHostname()
 	}
 	return nil
+}
+
+func rustDeskConfigNeedsReapply(status rustDeskStatus, desired rustDeskDesiredConfig) bool {
+	if strings.TrimSpace(status.ExecutablePath) == "" {
+		return false
+	}
+	if desired.ServerHost != "" && !strings.EqualFold(strings.TrimSpace(status.ServerHost), strings.TrimSpace(desired.ServerHost)) {
+		return true
+	}
+	if desired.APIHost != "" && !strings.EqualFold(strings.TrimSpace(status.APIHost), strings.TrimSpace(desired.APIHost)) {
+		return true
+	}
+	if desired.PublicKeyHash != "" && !strings.EqualFold(strings.TrimSpace(status.PublicKeyHash), strings.TrimSpace(desired.PublicKeyHash)) {
+		return true
+	}
+	return false
 }
 
 func mustInspect(manager rustDeskController, ctx context.Context, fallback rustDeskStatus) rustDeskStatus {

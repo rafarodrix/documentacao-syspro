@@ -50,6 +50,12 @@ type LooseWhereInput = Record<string, unknown> & {
   OR?: Array<Record<string, unknown>>;
 };
 
+type AgentRemoteLinkContext = {
+  remoteHostId?: string;
+  companyId?: string;
+  rustdeskId?: string;
+};
+
 @Injectable()
 export class AgentsService {
   private readonly logger = new Logger(AgentsService.name);
@@ -73,6 +79,7 @@ export class AgentsService {
 
     const payload = parsed.data;
     const now = new Date();
+    const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
 
     const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
@@ -82,6 +89,7 @@ export class AgentsService {
         os: payload.os ?? null,
         identitySource: payload.identitySource ?? null,
         agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? null,
         firstSeenAt: now,
         lastRegisteredAt: now,
         lastHeartbeatAt: now,
@@ -91,14 +99,15 @@ export class AgentsService {
         os: payload.os ?? undefined,
         identitySource: payload.identitySource ?? undefined,
         agentVersion: payload.agentVersion ?? undefined,
+        companyId: remoteLinkContext.companyId ?? undefined,
         lastRegisteredAt: now,
         lastHeartbeatAt: now,
       },
     });
 
     const registeredDevice = device as { remoteHostId?: string | null; companyId: string | null };
-    if (!registeredDevice.remoteHostId && payload.hostname) {
-      await this.tryLinkRemoteHost(payload.deviceId, payload.hostname, registeredDevice.companyId);
+    if (!registeredDevice.remoteHostId) {
+      await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, registeredDevice.companyId);
     }
 
     this.logger.log({
@@ -108,6 +117,8 @@ export class AgentsService {
       os: payload.os,
       identitySource: payload.identitySource,
       agentVersion: payload.agentVersion,
+      remoteHostId: remoteLinkContext.remoteHostId,
+      rustdeskId: remoteLinkContext.rustdeskId,
     });
 
     return {
@@ -134,28 +145,30 @@ export class AgentsService {
 
     const payload = parsed.data;
     const now = new Date();
+    const remoteLinkContext = this.normalizeRemoteLinkContext(payload.remoteLinkContext);
 
     const device = await this.prisma.agentDevice.upsert({
       where: { deviceId: payload.deviceId },
       create: {
         deviceId: payload.deviceId,
         agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? null,
         firstSeenAt: now,
         lastHeartbeatAt: now,
       },
       update: {
         agentVersion: payload.agentVersion ?? undefined,
+        companyId: remoteLinkContext.companyId ?? undefined,
         lastHeartbeatAt: now,
       },
     });
 
     const heartbeatDevice = device as {
       remoteHostId?: string | null;
-      hostname: string | null;
       companyId: string | null;
     };
-    if (!heartbeatDevice.remoteHostId && heartbeatDevice.hostname) {
-      await this.tryLinkRemoteHost(payload.deviceId, heartbeatDevice.hostname, heartbeatDevice.companyId);
+    if (!heartbeatDevice.remoteHostId) {
+      await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, heartbeatDevice.companyId);
     }
 
     return {
@@ -169,32 +182,47 @@ export class AgentsService {
   }
 
   /**
-   * Best-effort: find a RemoteHost whose machineName matches the agent hostname.
-   * Only links when exactly one unambiguous match exists so we never create a wrong link.
-   * Scoped by companyId when available to avoid cross-company collisions.
+   * Best-effort: bind an AgentDevice to the RemoteHost explicitly referenced
+   * by the remote runtime state. We do not infer by hostname because common
+   * names such as "SERVIDOR" collide across customers.
    */
   private async tryLinkRemoteHost(
     deviceId: string,
-    hostname: string,
+    linkContext: AgentRemoteLinkContext,
     companyId: string | null,
   ): Promise<void> {
     try {
-      const where: LooseWhereInput = {
-        machineName: { equals: hostname, mode: Prisma.QueryMode.insensitive },
-        agentDevice: null, // not yet linked to any device
-      };
-      if (companyId) {
-        where.companyId = companyId;
+      const effectiveCompanyId = linkContext.companyId ?? companyId ?? undefined;
+      let match: { id: string; companyId: string } | null = null;
+
+      if (linkContext.remoteHostId) {
+        match = await this.prisma.remoteHost.findFirst({
+          where: {
+            id: linkContext.remoteHostId,
+            ...(effectiveCompanyId ? { companyId: effectiveCompanyId } : {}),
+            OR: [{ agentDevice: null }, { agentDevice: { deviceId } }],
+          } as any,
+          select: { id: true, companyId: true },
+        });
       }
 
-      const matches = await this.prisma.remoteHost.findMany({
-        where: where as any,
-        select: { id: true, companyId: true },
-        take: 2,
-      });
-      if (matches.length !== 1) return;
+      if (!match && linkContext.rustdeskId) {
+        const rustdeskMatches = await this.prisma.remoteHost.findMany({
+          where: {
+            agentExternalId: linkContext.rustdeskId,
+            ...(effectiveCompanyId ? { companyId: effectiveCompanyId } : {}),
+            OR: [{ agentDevice: null }, { agentDevice: { deviceId } }],
+          } as any,
+          select: { id: true, companyId: true },
+          take: 2,
+        });
+        if (rustdeskMatches.length === 1) {
+          match = rustdeskMatches[0];
+        }
+      }
 
-      const match = matches[0];
+      if (!match) return;
+
       const data: Record<string, unknown> = { remoteHostId: match.id };
       if (match.companyId && !companyId) {
         data.companyId = match.companyId;
@@ -205,14 +233,31 @@ export class AgentsService {
       this.logger.log({
         event: 'agent.host_linked',
         deviceId,
-        hostname,
         remoteHostId: match.id,
+        rustdeskId: linkContext.rustdeskId,
+        linkedBy: linkContext.remoteHostId ? 'remote_host_id' : 'rustdesk_id',
         companyIdPropagated: !!(match.companyId && !companyId),
       });
     } catch (err) {
       // Match is best-effort — never fail the heartbeat/register because of this
       this.logger.warn({ event: 'agent.host_link_failed', deviceId, error: String(err) });
     }
+  }
+
+  private normalizeRemoteLinkContext(input: unknown): AgentRemoteLinkContext {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      return {};
+    }
+
+    const record = input as Record<string, unknown>;
+    const remoteHostId =
+      typeof record.remoteHostId === 'string' && record.remoteHostId.trim() ? record.remoteHostId.trim() : undefined;
+    const companyId =
+      typeof record.companyId === 'string' && record.companyId.trim() ? record.companyId.trim() : undefined;
+    const rustdeskId =
+      typeof record.rustdeskId === 'string' && record.rustdeskId.trim() ? record.rustdeskId.trim() : undefined;
+
+    return { remoteHostId, companyId, rustdeskId };
   }
 
   async linkDevice(
