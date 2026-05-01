@@ -591,7 +591,8 @@ body {
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 18px;
-  min-height: 188px;
+  min-height: 172px;
+  overflow: hidden;
 }
 
 .support-hero.premium::after {
@@ -653,8 +654,8 @@ body {
 }
 
 .support-hero-meta {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
@@ -664,7 +665,7 @@ body {
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  min-width: 128px;
+  min-width: 0;
   border-radius: 16px;
   border: 1px solid rgba(17, 59, 99, 0.08);
   background: rgba(255, 255, 255, 0.82);
@@ -742,6 +743,8 @@ body {
 }
 
 .support-body.premium {
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   padding: 18px 20px 26px;
 }
@@ -777,6 +780,10 @@ body {
   color: var(--ink-800);
   line-height: 1.45;
   word-break: break-word;
+}
+
+.support-overview-item:first-child {
+  grid-column: span 3;
 }
 
 .support-card {
@@ -852,6 +859,7 @@ body {
 
 .support-card-heading-block {
   min-width: 0;
+  flex: 1;
 }
 
 .support-card-label {
@@ -883,6 +891,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #a26f10;
+  white-space: nowrap;
 }
 
 .support-status-pill-dot {
@@ -1191,6 +1200,10 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .support-overview-item:first-child {
+    grid-column: span 1;
+  }
+
   .support-card-head,
   .support-card-head-premium,
   .support-chat-panel-header {
@@ -1207,5 +1220,94 @@ body {
   .support-body.premium {
     padding-left: 16px;
     padding-right: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .navbar {
+    min-height: 58px;
+    padding: 0 14px;
+  }
+
+  .navbar-product {
+    display: none;
+  }
+
+  .support-hero.premium {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 0;
+    padding: 18px 16px 16px;
+  }
+
+  .support-hero.premium::after {
+    display: none;
+  }
+
+  .support-hero-title {
+    font-size: 22px;
+    line-height: 1.08;
+  }
+
+  .support-hero-subtitle {
+    max-width: none;
+    font-size: 11.5px;
+  }
+
+  .support-hero-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .support-orb {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+  }
+
+  .support-orb-ring {
+    inset: 10px;
+  }
+
+  .support-orb-core {
+    width: 22px;
+    height: 22px;
+    box-shadow: 0 0 0 7px rgba(67, 193, 255, 0.12);
+  }
+
+  .support-body.premium {
+    padding: 14px 16px 22px;
+  }
+
+  .support-overview-card,
+  .support-fields,
+  .support-fields-premium {
+    grid-template-columns: 1fr;
+  }
+
+  .support-overview-item:first-child {
+    grid-column: span 1;
+  }
+
+  .support-card,
+  .support-card-premium {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .support-card-head,
+  .support-card-head-premium,
+  .support-chat-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .support-status-pill,
+  .support-chat-pill {
+    white-space: normal;
+  }
+
+  .support-field-value-row {
+    gap: 6px;
   }
 }

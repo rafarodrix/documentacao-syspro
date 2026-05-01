@@ -108,6 +108,16 @@ export class AgentsService {
     const registeredDevice = device as { remoteHostId?: string | null; companyId: string | null };
     if (!registeredDevice.remoteHostId) {
       await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, registeredDevice.companyId);
+      await this.ensurePendingDiscoveredHost({
+        deviceId: payload.deviceId,
+        hostname: payload.hostname ?? null,
+        agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? registeredDevice.companyId ?? null,
+        rustdeskId: remoteLinkContext.rustdeskId,
+        identitySource: payload.identitySource ?? null,
+        os: payload.os ?? null,
+        at: now,
+      });
     }
 
     this.logger.log({
@@ -169,6 +179,16 @@ export class AgentsService {
     };
     if (!heartbeatDevice.remoteHostId) {
       await this.tryLinkRemoteHost(payload.deviceId, remoteLinkContext, heartbeatDevice.companyId);
+      await this.ensurePendingDiscoveredHost({
+        deviceId: payload.deviceId,
+        hostname: (device as { hostname?: string | null }).hostname ?? null,
+        agentVersion: payload.agentVersion ?? null,
+        companyId: remoteLinkContext.companyId ?? heartbeatDevice.companyId ?? null,
+        rustdeskId: remoteLinkContext.rustdeskId,
+        identitySource: (device as { identitySource?: string | null }).identitySource ?? null,
+        os: (device as { os?: string | null }).os ?? null,
+        at: now,
+      });
     }
 
     return {
@@ -258,6 +278,95 @@ export class AgentsService {
       typeof record.rustdeskId === 'string' && record.rustdeskId.trim() ? record.rustdeskId.trim() : undefined;
 
     return { remoteHostId, companyId, rustdeskId };
+  }
+
+  private async ensurePendingDiscoveredHost(input: {
+    deviceId: string;
+    hostname: string | null;
+    agentVersion: string | null;
+    companyId: string | null;
+    rustdeskId?: string;
+    identitySource: string | null;
+    os: string | null;
+    at: Date;
+  }): Promise<void> {
+    try {
+      const persistedDevice = await this.prisma.agentDevice.findUnique({
+        where: { deviceId: input.deviceId },
+        select: { remoteHostId: true },
+      });
+
+      if (persistedDevice?.remoteHostId) {
+        return;
+      }
+
+      const machineName = input.hostname?.trim() || null;
+      const agentExternalId = input.rustdeskId?.trim() || null;
+      if (!machineName && !agentExternalId) {
+        return;
+      }
+
+      const existing = await this.prisma.remoteDiscoveredHost.findFirst({
+        where: agentExternalId
+          ? {
+              OR: [
+                { agentExternalId },
+                ...(machineName ? [{ machineName }] : []),
+              ],
+            }
+          : { machineName: machineName ?? undefined },
+        orderBy: [{ updatedAt: 'desc' }],
+        select: {
+          id: true,
+          linkedHostId: true,
+          status: true,
+        },
+      });
+
+      if (existing?.linkedHostId || existing?.status === 'LINKED') {
+        return;
+      }
+
+      const providerParts = [input.identitySource?.trim(), 'go-agent'].filter(Boolean);
+      const descriptionParts = [input.os?.trim(), input.companyId ? `company:${input.companyId}` : null].filter(Boolean);
+
+      const data = {
+        machineName,
+        agentExternalId,
+        agentVersion: input.agentVersion?.trim() || null,
+        provider: providerParts.join(':') || 'go-agent',
+        environment: 'agent-register',
+        description: descriptionParts.join(' | ') || null,
+        serviceStatus: 'online',
+        lastHeartbeatAt: input.at,
+        status: 'PENDING_LINK' as const,
+      };
+
+      if (existing) {
+        await this.prisma.remoteDiscoveredHost.update({
+          where: { id: existing.id },
+          data,
+        });
+      } else {
+        await this.prisma.remoteDiscoveredHost.create({
+          data,
+        });
+      }
+
+      this.logger.log({
+        event: 'agent.discovery_materialized',
+        deviceId: input.deviceId,
+        machineName,
+        rustdeskId: agentExternalId,
+        created: !existing,
+      });
+    } catch (err) {
+      this.logger.warn({
+        event: 'agent.discovery_materialize_failed',
+        deviceId: input.deviceId,
+        error: String(err),
+      });
+    }
   }
 
   async linkDevice(
