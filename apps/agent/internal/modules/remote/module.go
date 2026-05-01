@@ -110,11 +110,20 @@ type remoteDesiredIntent struct {
 	discoveryToken   string
 }
 
+// DeviceSnapshotProvider e a interface que o remote module usa para obter snapshots
+// do device module sem importar o pacote device diretamente (evita import circular).
+// Os campos do RemoteSyncRequest ja sao do tipo any, entao retornar any e correto.
+// rebootPending e separado pois o portal persiste como Boolean no schema.
+type DeviceSnapshotProvider interface {
+	GetSyncSnapshots() (metrics, disks, services, versions any, rebootPending *bool)
+}
+
 type Module struct {
 	client          PortalClient
 	store           StateStore
 	logger          Logger
 	events          EventBus
+	device          DeviceSnapshotProvider
 	discoveryToken string
 	installToken   string
 	agentVersion   string
@@ -130,6 +139,13 @@ func WithDiscoveryToken(token string) Option {
 
 func WithInstallToken(token string) Option {
 	return func(m *Module) { m.installToken = token }
+}
+
+// WithDevice injeta o provider de snapshots do device module.
+// O remote module usa esses dados para enriquecer o payload de sync com
+// metricas de maquina, disco, servicos e versoes do Syspro.
+func WithDevice(d DeviceSnapshotProvider) Option {
+	return func(m *Module) { m.device = d }
 }
 
 func WithAgentVersion(version string) Option {
@@ -416,18 +432,32 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	}
 
 	hostname := firstNonEmpty(st.MachineName, currentHostname())
-	syncResp, err := m.client.Sync(ctx, domain.RemoteSyncRequest{
-		AgentToken:     agentToken,
-		RustDeskID:     st.RustDeskID,
-		MachineName:    hostname,
-		AgentVersion:   m.agentVersion,
-		CurrentAlias:   st.Alias,
+
+	syncReq := domain.RemoteSyncRequest{
+		AgentToken:    agentToken,
+		RustDeskID:    st.RustDeskID,
+		MachineName:   hostname,
+		AgentVersion:  m.agentVersion,
+		CurrentAlias:  st.Alias,
 		CurrentVersion: st.CurrentVersion,
-		ServerHost:     st.ServerHost,
-		APIHost:        st.APIHost,
-		PublicKey:      st.PublicKey,
-		ServiceStatus:  firstNonEmpty(st.ServiceStatus, "unknown"),
-	})
+		ServerHost:    st.ServerHost,
+		APIHost:       st.APIHost,
+		PublicKey:     st.PublicKey,
+		ServiceStatus: firstNonEmpty(st.ServiceStatus, "unknown"),
+	}
+
+	// Injeta snapshots do device module se disponivel.
+	// Nil-safe: nos primeiros ciclos o device ainda nao coletou dados.
+	if m.device != nil {
+		devMetrics, devDisks, devServices, devVersions, devReboot := m.device.GetSyncSnapshots()
+		syncReq.AgentMetrics   = devMetrics
+		syncReq.DiskSnapshot   = devDisks
+		syncReq.SysproProcesses = devServices
+		syncReq.SystemSnapshot  = devVersions
+		syncReq.RebootPending   = devReboot
+	}
+
+	syncResp, err := m.client.Sync(ctx, syncReq)
 	if err != nil {
 		if isApplyContextCanceled(err) {
 			m.logger.Info("remote sync canceled", "host_id", st.HostID, "error", err)
