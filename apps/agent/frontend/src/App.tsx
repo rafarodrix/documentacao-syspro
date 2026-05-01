@@ -517,6 +517,7 @@ function SupportScreen(props: {
   const { session, chatwootReady, chatwootLoading, remoteOpening, onOpenRemote, onOpenSupport } = props;
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
   const context = session?.context;
   const chatConfigured = Boolean(session?.base_url?.trim() && session?.website_token?.trim());
 
@@ -555,15 +556,17 @@ function SupportScreen(props: {
   const toggleSupportDrawer = () => {
     if (chatDrawerOpen) {
       setChatDrawerOpen(false);
+      setChatDrawerExpanded(false);
       return;
     }
 
     setChatDrawerOpen(true);
+    setChatDrawerExpanded(false);
     onOpenSupport();
   };
 
   return (
-    <main className="panel support-panel compact">
+    <main className={`panel support-panel compact ${chatDrawerOpen ? "chat-open" : ""}`}>
       <section className="support-hero compact">
         <div className="support-hero-actions">
           <button
@@ -653,23 +656,46 @@ function SupportScreen(props: {
         </div>
       </section>
 
-      <div className={`support-chat-drawer ${chatDrawerOpen ? "open" : ""}`}>
+      <div
+        className={`support-chat-scrim ${chatDrawerOpen ? "open" : ""}`}
+        onClick={() => {
+          setChatDrawerOpen(false);
+          setChatDrawerExpanded(false);
+        }}
+      />
+
+      <div className={`support-chat-drawer ${chatDrawerOpen ? "open" : ""} ${chatDrawerExpanded ? "expanded" : ""}`}>
         <div className="support-chat-shell-header">
-          <div>
+          <div className="support-chat-shell-header-copy">
             <div className="support-chat-shell-title">Chat Trilink</div>
             <div className="support-chat-shell-subtitle">
               {chatStateLabel}
-              {remoteStateLabel ? ` â€¢ ${remoteStateLabel}` : ""}
             </div>
           </div>
-          <button
-            type="button"
-            className="support-chat-drawer-close"
-            onClick={() => setChatDrawerOpen(false)}
-            title="Ocultar atendimento"
-          >
-            Fechar
-          </button>
+          <div className="support-chat-shell-actions">
+            <span className={`support-chat-state-pill ${chatwootReady ? "ready" : chatwootLoading ? "loading" : "idle"}`}>
+              {remoteStateLabel}
+            </span>
+            <button
+              type="button"
+              className="support-chat-drawer-action"
+              onClick={() => setChatDrawerExpanded((value) => !value)}
+              title={chatDrawerExpanded ? "Recolher atendimento" : "Expandir atendimento"}
+            >
+              {chatDrawerExpanded ? "Recolher" : "Expandir"}
+            </button>
+            <button
+              type="button"
+              className="support-chat-drawer-close"
+              onClick={() => {
+                setChatDrawerOpen(false);
+                setChatDrawerExpanded(false);
+              }}
+              title="Ocultar atendimento"
+            >
+              Fechar
+            </button>
+          </div>
         </div>
 
         <div ref={chatContainerRef} className="support-chat-embed">
