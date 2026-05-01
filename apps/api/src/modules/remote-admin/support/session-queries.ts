@@ -1,7 +1,8 @@
-import { buildScopedWhere, prisma } from "@dosc-syspro/database";
+import { prisma } from "@dosc-syspro/database";
 import { buildPaginationMeta } from "@dosc-syspro/contracts";
 import type { RemoteTenantScope, RemoteSessionStatus, RemotePlatformOverview } from "./model";
 import type { RemotePaginationMeta } from "@dosc-syspro/contracts/remote";
+import { buildRemoteScopedWhere, getScopedCompanyIds } from "./scope";
 
 export async function getRemoteSessions(
   tenantScope: RemoteTenantScope,
@@ -17,13 +18,11 @@ export async function getRemoteSessions(
   pagination: RemotePaginationMeta;
   hostOptions: Array<{ id: string; name: string }>;
 }> {
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
   const normalizedTicket = options?.ticket?.trim() ?? "";
   const pageSize = Math.min(Math.max(options?.pageSize ?? 50, 1), 100);
   const page = Math.max(options?.page ?? 1, 1);
-  const hostScopeWhere = tenantScope.isGlobalView
-    ? {}
-    : { companyId: { in: tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"] } };
+  const hostScopeWhere = tenantScope.isGlobalView ? {} : { companyId: { in: getScopedCompanyIds(tenantScope) } };
 
   const statusWhere =
     options?.status === "ACTIVE"
@@ -109,7 +108,7 @@ export async function cleanupExpiredRemoteSessions() {
 }
 
 export async function getActiveSessionsCount(tenantScope: RemoteTenantScope): Promise<number> {
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
 
   return prisma.remoteSession.count({
     where: {

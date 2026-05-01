@@ -40,6 +40,7 @@ type notificationsClient interface {
 type actionsClient interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
 	SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error)
 }
 
@@ -219,6 +220,10 @@ func (a *API) OpenSetupExperience() (uistate.ActionResult, error) {
 		}
 	}
 	return result, nil
+}
+
+func (a *API) OpenRemoteClient() (uistate.ActionResult, error) {
+	return a.actions.OpenRemoteClient(context.Background())
 }
 
 func (a *API) SyncSupportConversationContext(conversationID string) (uistate.SupportContextSyncResult, error) {

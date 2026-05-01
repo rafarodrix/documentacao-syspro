@@ -34,6 +34,7 @@ type NotificationsClient interface {
 type ActionsClient interface {
 	OpenSupportConversation(ctx context.Context) (uistate.ActionResult, error)
 	OpenSetupExperience(ctx context.Context) (uistate.ActionResult, error)
+	OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error)
 }
 
 type SetupClient interface {

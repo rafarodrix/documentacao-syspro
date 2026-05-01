@@ -306,29 +306,42 @@ export class AgentsService {
         return;
       }
 
+      const matchWhere = agentExternalId
+        ? {
+            OR: [
+              { agentExternalId },
+              ...(machineName ? [{ machineName }] : []),
+            ],
+          }
+        : { machineName: machineName ?? undefined };
+
+      // Reuse only records that are still pending/unlinked. A previously linked
+      // discovery record for another machine named "SERVIDOR" must not block a
+      // fresh pending record from appearing for manual sync.
       const existing = await this.prisma.remoteDiscoveredHost.findFirst({
-        where: agentExternalId
-          ? {
+        where: {
+          AND: [
+            matchWhere,
+            {
               OR: [
-                { agentExternalId },
-                ...(machineName ? [{ machineName }] : []),
+                { linkedHostId: null },
+                { status: { not: 'LINKED' as const } },
               ],
-            }
-          : { machineName: machineName ?? undefined },
+            },
+          ],
+        },
         orderBy: [{ updatedAt: 'desc' }],
         select: {
           id: true,
-          linkedHostId: true,
-          status: true,
         },
       });
 
-      if (existing?.linkedHostId || existing?.status === 'LINKED') {
-        return;
-      }
-
       const providerParts = [input.identitySource?.trim(), 'go-agent'].filter(Boolean);
-      const descriptionParts = [input.os?.trim(), input.companyId ? `company:${input.companyId}` : null].filter(Boolean);
+      const descriptionParts = [
+        input.os?.trim(),
+        input.companyId ? `company:${input.companyId}` : null,
+        `device:${input.deviceId}`,
+      ].filter(Boolean);
 
       const data = {
         machineName,

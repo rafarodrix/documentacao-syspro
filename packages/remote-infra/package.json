@@ -8,6 +8,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./scoped-company-context": "./src/scoped-company-context.ts",
     "./rustdesk-helpers": "./src/rustdesk-helpers.ts",
     "./remote-session.port": "./src/remote-session.port.ts",
     "./remote-host-admin.port": "./src/remote-host-admin.port.ts",

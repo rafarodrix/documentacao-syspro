@@ -114,6 +114,10 @@ func (c *Client) OpenSetupExperience(ctx context.Context) (uistate.ActionResult,
 	return c.postAction(ctx, "/actions/setup/open")
 }
 
+func (c *Client) OpenRemoteClient(ctx context.Context) (uistate.ActionResult, error) {
+	return c.postAction(ctx, "/actions/remote/open")
+}
+
 func (c *Client) SyncSupportConversationContext(ctx context.Context, conversationID string) (uistate.SupportContextSyncResult, error) {
 	body := strings.NewReader(fmt.Sprintf(`{"conversationId":%q}`, strings.TrimSpace(conversationID)))
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/actions/support/sync-context", body)

@@ -1,5 +1,6 @@
-import { buildScopedWhere, prisma } from "@dosc-syspro/database";
+import { prisma } from "@dosc-syspro/database";
 import type { RemoteTenantScope } from "./model";
+import { buildRemoteScopedWhere } from "./scope";
 
 export interface EfficiencyMetrics {
   averageTimeToRemoteSeconds: number | null;
@@ -23,7 +24,7 @@ export interface EfficiencyMetrics {
  * Foca no tempo entre a abertura do ticket interno e o primeiro acesso.
  */
 export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope): Promise<EfficiencyMetrics> {
-  const scopedWhere = buildScopedWhere(tenantScope.companyIds, tenantScope.isGlobalView);
+  const scopedWhere = buildRemoteScopedWhere(tenantScope);
 
   const sessions = await prisma.remoteSession.findMany({
     where: {

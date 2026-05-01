@@ -12,6 +12,8 @@ export function ListNotifications():Promise<Array<uistate.Notification>>;
 
 export function OpenSetupExperience():Promise<uistate.ActionResult>;
 
+export function OpenRemoteClient():Promise<uistate.ActionResult>;
+
 export function OpenSupportConversation():Promise<uistate.ActionResult>;
 
 export function SyncSupportConversationContext(arg1:string):Promise<uistate.SupportContextSyncResult>;

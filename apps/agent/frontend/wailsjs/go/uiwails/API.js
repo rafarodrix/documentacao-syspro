@@ -22,6 +22,10 @@ export function OpenSetupExperience() {
   return window['go']['uiwails']['API']['OpenSetupExperience']();
 }
 
+export function OpenRemoteClient() {
+  return window['go']['uiwails']['API']['OpenRemoteClient']();
+}
+
 export function OpenSupportConversation() {
   return window['go']['uiwails']['API']['OpenSupportConversation']();
 }
