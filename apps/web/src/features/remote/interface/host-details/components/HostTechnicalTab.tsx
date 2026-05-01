@@ -1,6 +1,6 @@
 import type { RemoteHostDetails } from "@/features/remote/domain/model";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
+import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { useAckStream } from "@/features/remote/interface/hooks";
 import { Progress } from "@/components/ui/progress";
@@ -11,16 +11,10 @@ type HostTechnicalTabProps = {
   host: RemoteHostDetails["host"];
   machineIpv4: string | null;
   windowsComputerName: string | null;
-  sysproServerInstallations: RemoteHostDetails["installationContexts"];
   firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
-  systemSnapshot: RemoteHostDetails["agentTelemetry"]["systemSnapshot"];
   sysproVersionSnapshot: RemoteHostDetails["agentTelemetry"]["sysproVersionSnapshot"];
-  networkSnapshot: RemoteHostDetails["agentTelemetry"]["networkSnapshot"];
-  softwareSnapshot: RemoteHostDetails["agentTelemetry"]["softwareSnapshot"];
-  hardwareIdentity: RemoteHostDetails["agentTelemetry"]["hardwareIdentity"];
   diskSnapshot: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
   sysproProcessSnapshot: RemoteHostDetails["agentTelemetry"]["sysproProcessSnapshot"];
-  windowsUpdateStatus: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
   rebootPending: RemoteHostDetails["agentTelemetry"]["rebootPending"];
 };
 
@@ -48,7 +42,6 @@ export function HostTechnicalTab({
   host,
   machineIpv4,
   windowsComputerName,
-  sysproServerInstallations,
   firebirdData,
   sysproVersionSnapshot,
   diskSnapshot,
@@ -73,7 +66,7 @@ export function HostTechnicalTab({
     <Card className="border-border/50">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
-          <CardTitle className="text-lg">Informações técnicas da máquina</CardTitle>
+          <CardTitle className="text-lg">Monitoramento</CardTitle>
           <CardDescription>Leitura operacional baseada na coleta real do módulo device.</CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -256,36 +249,6 @@ export function HostTechnicalTab({
           ) : null}
         </div>
 
-        <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Instalações configuradas no host</p>
-          {sysproServerInstallations.length ? (
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {sysproServerInstallations.map((context) => {
-                const entry = context.update;
-                const company = context.company;
-                const health = getSysproUpdateHealthMeta({
-                  isServerHost: entry.isServerHost,
-                  lastFileWriteAt: entry.lastFileWriteAt,
-                });
-                return (
-                  <div key={entry.id} className="rounded-xl border border-border/40 bg-background/60 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Empresa</p>
-                    <p className="mt-1 text-sm text-foreground">{company?.nomeFantasia ?? company?.razaoSocial ?? entry.companyLabel}</p>
-                    <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Caminho configurado</p>
-                    <p className="mt-1 break-all font-mono text-xs text-foreground">{entry.path}</p>
-                    <p className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">Última atualização</p>
-                    <p className="mt-1 text-sm text-foreground">{formatDateTime(entry.lastFileWriteAt)}</p>
-                    <div className={cn("mt-3 rounded-lg border px-2 py-1 text-xs", health.className)}>
-                      {health.label} - {health.detail}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">Nenhuma instalação vinculada neste host.</p>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
