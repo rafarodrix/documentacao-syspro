@@ -1,0 +1,260 @@
+---
+title: Infraestrutura VPS
+description: Padrão Trilink para operação de VPS com Traefik v3 e Dokploy — containers vs Swarm, labels, diagnóstico e boas práticas.
+lastUpdated: 2026-05-01
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - infraestrutura
+  - vps
+  - traefik
+  - docker
+  - dokploy
+audience:
+  - admin
+  - developer
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+Este guia define o padrão oficial da Trilink para operação de infraestrutura baseada em **Traefik v3 + Dokploy**, garantindo roteamento previsível, SSL confiável e facilidade de diagnóstico.
+
+---
+
+## Docker: Containers vs Services
+
+Misturar **containers comuns** com **services (Swarm)** é a principal causa de erros de roteamento no Traefik, falhas de SSL e comportamento inconsistente no deploy.
+
+### Identificação rápida
+
+**Containers comuns:**
+```bash
+docker ps
+```
+
+**Services (Docker Swarm):**
+```bash
+docker service ls
+```
+
+**Verificação definitiva:**
+```bash
+docker inspect <container_id> --format '{{.Config.Labels}}'
+```
+
+Se retornar `com.docker.swarm.service.name=...`, é um container pertencente a um service Swarm.
+
+<Callout type="warn" title="docker ps não filtra Swarm">
+  `docker ps` exibe também as tasks do Swarm em execução, não apenas containers comuns. Não confundir os dois contextos ao operar ou reiniciar serviços.
+</Callout>
+
+### Tabela de referência
+
+| Tipo          | Gerenciamento correto |
+| ------------- | --------------------- |
+| Container     | `docker` / `compose`  |
+| Compose       | `docker compose`      |
+| Swarm Service | `docker service`      |
+
+### Identificação visual de task Swarm
+
+```
+portal-backend.1.xcfenref0guhn1f34q3njzfu4
+```
+
+- `.1` indica réplica
+- Sufixo aleatório indica task do Swarm
+
+Esse é 100% Swarm — não operar como container comum.
+
+### Operação correta para services
+
+```bash
+docker service update ...
+docker service ps <nome>
+```
+
+Não usar `docker restart` ou `docker container update` em services Swarm.
+
+---
+
+## Traefik v3 + Dokploy
+
+O Traefik atua como reverse proxy central e precisa enxergar tanto containers comuns (Compose) quanto services (Swarm).
+
+### Configuração obrigatória
+
+```yaml
+command:
+  - --providers.docker=true
+  - --providers.swarm=true
+  - --providers.docker.exposedbydefault=false
+  - --providers.swarm.exposedbydefault=false
+  - --entrypoints.web.address=:80
+  - --entrypoints.websecure.address=:443
+  - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+```
+
+### Rede padrão
+
+```yaml
+traefik.docker.network=dokploy-network
+```
+
+<Callout type="warn" title="Rede obrigatória">
+  Sem a label `traefik.docker.network=dokploy-network`, o Traefik não enxerga o container.
+</Callout>
+
+---
+
+## Padrão oficial Trilink
+
+### Evitar
+
+- Misturar labels manuais com Domains do Dokploy
+- Usar Application (Swarm) quando não há necessidade de Swarm
+- Expor portas desnecessárias (`3000:3000`)
+- Múltiplas definições de serviço no Traefik para o mesmo app
+
+### Recomendado
+
+| Tipo de app          | Padrão                   |
+| -------------------- | ------------------------ |
+| Backend próprio      | Compose                  |
+| Chatwoot / Evolution | Compose                  |
+| Infra core           | Separado                 |
+| Swarm                | Apenas quando necessário |
+
+---
+
+## Labels do Traefik
+
+### Regra crítica
+
+**1 router = 1 service.** Nunca deixar o Traefik inferir automaticamente — isso causa o erro `too many services`.
+
+Sempre declarar o serviço explicitamente:
+
+```yaml
+- traefik.http.routers.backend.rule=Host(`backend.<dominio>`)
+- traefik.http.routers.backend.service=backend-svc
+- traefik.http.services.backend-svc.loadbalancer.server.port=3000
+```
+
+### Docker Compose (recomendado)
+
+Labels ficam no nível do serviço:
+
+```yaml
+services:
+  backend:
+    build: .
+    expose:
+      - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.backend.rule=Host(`backend.<dominio>`)
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.service=backend-svc
+      - traefik.http.services.backend-svc.loadbalancer.server.port=3000
+```
+
+### Docker Swarm
+
+Labels ficam dentro de `deploy`:
+
+```yaml
+deploy:
+  labels:
+    - traefik.enable=true
+    - traefik.docker.network=dokploy-network
+    - traefik.http.routers.backend.rule=Host(`backend.<dominio>`)
+    - traefik.http.routers.backend.entrypoints=websecure
+    - traefik.http.routers.backend.tls.certresolver=letsencrypt
+    - traefik.http.routers.backend.service=backend-svc
+    - traefik.http.services.backend-svc.loadbalancer.server.port=3000
+```
+
+---
+
+## Diagnóstico
+
+<Accordions>
+  <Accordion title="Rota não funciona (404)">
+    Verificar o dashboard Traefik em `:8081`. Se o roteador não aparecer, o problema está na label ou no provider (docker vs swarm).
+
+    ```bash
+    docker logs traefik --tail 50
+    ```
+  </Accordion>
+  <Accordion title="Bad Gateway / Timeout">
+    Causas mais comuns:
+
+    - Porta errada no label `loadbalancer.server.port`
+    - Container fora da rede `dokploy-network`
+    - Aplicação não subiu corretamente
+
+    ```bash
+    docker logs <container> --tail 50
+    ```
+  </Accordion>
+  <Accordion title="Too many services">
+    Causa: múltiplos serviços detectados para o mesmo container (Traefik inferiu sozinho).
+
+    Solução: declarar `traefik.http.routers.<nome>.service=<nome>-svc` explicitamente.
+  </Accordion>
+  <Accordion title="SSL não funciona">
+    Checklist:
+
+    1. DNS apontando para o IP da VPS
+    2. Porta 80 aberta e acessível externamente
+    3. Permissão correta no `acme.json`:
+
+    ```bash
+    chmod 600 /opt/traefik/letsencrypt/acme.json
+    ```
+
+    4. Verificar logs do Traefik para erros do ACME:
+
+    ```bash
+    docker logs traefik --tail 100 | grep -i acme
+    ```
+  </Accordion>
+</Accordions>
+
+---
+
+## Boas práticas operacionais
+
+### Evitar containers fantasmas
+
+Após alterar estrutura de compose, remover containers antigos antes de recriar:
+
+```bash
+docker rm -f <container>
+docker compose up -d
+```
+
+### Logs essenciais
+
+```bash
+docker logs traefik --tail 50
+docker service logs dokploy --tail 50
+```
+
+### Debug de rota
+
+```bash
+curl -I http://<dominio>
+curl -Iv https://<dominio>
+```
+
+---
+
+<Callout type="info" title="Princípio Trilink">
+  **"Se não está explícito, está errado."** — Todo roteamento, service e rede deve ser declarado. Nunca depender de inferência automática do Traefik.
+</Callout>

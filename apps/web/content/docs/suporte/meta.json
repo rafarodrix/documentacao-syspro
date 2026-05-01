@@ -12,6 +12,10 @@
     "sobre-suporte",
     "requisitos",
     "documentacao-docs-interna",
-    "estrategia-plataforma-remota"
+    "estrategia-plataforma-remota",
+    "---Infraestrutura---",
+    "infraestrutura/index",
+    "infraestrutura/infraestrutura-software",
+    "infraestrutura/infraestrutura-vps"
   ]
 }
