@@ -6,6 +6,7 @@ import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTic
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SefazOperationsPanel } from "@/components/sefaz/SefazOperationsPanel";
 import Link from "next/link";
 import { MagicCard } from "@/components/magicui/MagicCard";
 import { NumberTicker } from "@/components/magicui/NumberTicker";
@@ -34,10 +35,6 @@ import { currentUserHasAnyPermission, currentUserHasPermission } from "@/feature
 import { cn } from "@/lib/utils";
 
 const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
-
-function SefazOperationsPanel(props: any) {
-  return null;
-}
 
 function GrowthIndicator({ value }: { value: number }) {
   if (value === 0) {
