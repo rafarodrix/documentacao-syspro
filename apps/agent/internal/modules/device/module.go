@@ -115,25 +115,30 @@ func (m *Module) GetLastSnapshot() (
 }
 
 // GetSyncSnapshots implementa remote.DeviceSnapshotProvider.
-// Retorna os snapshots como any para injecao direta nos campos do RemoteSyncRequest.
+// Retorna os snapshots no formato exato esperado pelo portal:
+//   - metrics: Record (objeto) — normalizeOptionalRecordWithWarning
+//   - disks:   Array de objetos — normalizeOptionalRecordArrayWithWarning (NAO o struct wrapper)
+//   - services: Array de objetos — normalizeOptionalRecordArrayWithWarning (NAO o struct wrapper)
+//   - versions: Record (objeto) — normalizeOptionalRecordWithWarning
+//   - rebootPending: *bool (boolean JSON) — normalizeOptionalBooleanWithWarning
+//
 // Retorna nil em cada campo enquanto a primeira coleta nao ocorreu.
-// rebootPending e *bool: nil quando ainda nao coletado, ponteiro para o valor quando coletado.
 func (m *Module) GetSyncSnapshots() (metrics, disks, services, versions any, rebootPending *bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if m.lastMetrics != nil {
-		metrics = m.lastMetrics
+		metrics = m.lastMetrics // objeto: collectedAt, memoryTotalMb, cpuLoadPct, ...
 		rb := m.lastMetrics.RebootPending
 		rebootPending = &rb
 	}
 	if m.lastDisks != nil {
-		disks = m.lastDisks
+		disks = m.lastDisks.Volumes // array de DiskVolume: [{letter, label, fsType, ...}]
 	}
 	if m.lastServices != nil {
-		services = m.lastServices
+		services = m.lastServices.Services // array de ServiceStatus: [{name, status, pid, ...}]
 	}
 	if m.lastVersions != nil {
-		versions = m.lastVersions
+		versions = m.lastVersions // objeto: collectedAt, installations: [...]
 	}
 	return
 }

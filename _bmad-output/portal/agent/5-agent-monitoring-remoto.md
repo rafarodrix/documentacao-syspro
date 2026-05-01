@@ -799,28 +799,63 @@ remoteMod  := remote.New(
 
 ---
 
-## Portal: endpoint de sync
+## Portal: endpoint de sync — VERIFICADO E JA IMPLEMENTADO
 
-O endpoint `POST /api/remote/rustdesk/sync` precisa persistir os campos de snapshot.
-Verificar no handler existente se os campos ja sao gravados. Esperado (pois o schema ja tem as colunas):
+O endpoint `POST /api/remote/rustdesk/sync` ja persiste todos os campos de snapshot.
+Nenhuma alteracao necessaria no portal.
+
+**Arquivo de persistencia:** `packages/remote-infra/src/remote-domain-ports.ts`
+
+Todos os campos sao gravados em transacao atomica:
+
+| Payload do agente | Campo DB | Condicao de gravacao |
+|------------------|----------|--------------------|
+| `agentMetrics` (objeto) | `lastAgentMetrics` / `lastAgentMetricsAt` | Nao-nulo |
+| `diskSnapshot` (array) | `lastDiskSnapshot` / `lastDiskSnapshotAt` | `length > 0` |
+| `sysproProcesses` (array) | `lastSysproProcessSnapshot` / `lastSysproProcessSnapshotAt` | `length > 0` |
+| `rebootPending` (boolean) | `lastRebootPending` / `lastRebootPendingAt` | `typeof === "boolean"` |
+| `systemSnapshot` (objeto) | `lastSystemSnapshot` / `lastSystemSnapshotAt` | Nao-nulo |
+| `networkSnapshot` (objeto) | `lastNetworkSnapshot` / `lastNetworkSnapshotAt` | Nao-nulo |
+| `softwareSnapshot` (array) | `lastSoftwareSnapshot` / `lastSoftwareSnapshotAt` | `length > 0` |
+| `hardwareIdentity` (objeto) | `lastHardwareIdentity` / `lastHardwareIdentityAt` | Nao-nulo |
+| `windowsUpdateStatus` (objeto) | `lastWindowsUpdateStatus` / `lastWindowsUpdateStatusAt` | Nao-nulo |
+
+### Regras de normalizacao — CRITICO
+
+O portal normaliza cada campo antes de persistir via `process-sync.use-case.ts`:
+
+- Campos que o portal espera como **objeto** (`Record`): `agentMetrics`, `systemSnapshot`, `hardwareIdentity`, `networkSnapshot`, `windowsUpdateStatus`
+  - Funcao: `normalizeOptionalRecordWithWarning` — rejeita arrays, strings, numeros
+- Campos que o portal espera como **array de objetos**: `diskSnapshot`, `sysproProcesses`, `softwareSnapshot`
+  - Funcao: `normalizeOptionalRecordArrayWithWarning` — rejeita qualquer nao-array; limite de 200 itens
+- Campo `rebootPending`: espera **boolean**
+  - Funcao: `normalizeOptionalBooleanWithWarning` — aceita `true`/`false`, rejeita strings arbitrarias
+
+**Se o formato estiver errado, o campo e descartado com warning `SYNC_INVALID_*` e a sync continua sem erro.**
+
+### Formato correto que o agente envia (apos correcao)
+
+O agente envia os arrays internos dos structs — NAO os structs wrapper com `collectedAt`:
+
+```
+RemoteSyncRequest.DiskSnapshot    = disks.Volumes    // []DiskVolume  (array) ✅
+RemoteSyncRequest.SysproProcesses = services.Services // []ServiceStatus (array) ✅
+RemoteSyncRequest.AgentMetrics    = metrics           // *AgentMetricsSnapshot (objeto) ✅
+RemoteSyncRequest.SystemSnapshot  = versions          // *SysproVersionSnapshot (objeto) ✅
+RemoteSyncRequest.RebootPending   = &bool             // boolean JSON ✅
+```
+
+O `collectedAt` dos structs de disco e servicos nao e enviado — o portal registra seu proprio timestamp via `heartbeatAt`.
+
+### Teste existente que valida o comportamento de rejeicao
+
+`packages/remote-domain/tests/agent-token-lifecycle.test.ts`:
 
 ```typescript
-// Handler de sync (verificar e complementar se necessario)
-await prisma.remoteHost.update({
-    where: { id: host.id },
-    data: {
-        lastAgentMetrics:            payload.agentMetrics    ?? undefined,
-        lastAgentMetricsAt:          payload.agentMetrics    ? new Date() : undefined,
-        lastDiskSnapshot:            payload.diskSnapshot    ?? undefined,
-        lastDiskSnapshotAt:          payload.diskSnapshot    ? new Date() : undefined,
-        lastSysproProcessSnapshot:   payload.sysproProcesses ?? undefined,
-        lastSysproProcessSnapshotAt: payload.sysproProcesses ? new Date() : undefined,
-        lastRebootPending:           typeof payload.rebootPending === 'boolean' ? payload.rebootPending : undefined,
-        lastRebootPendingAt:         typeof payload.rebootPending === 'boolean' ? new Date() : undefined,
-        lastSystemSnapshot:          payload.systemSnapshot  ?? undefined,
-        lastSystemSnapshotAt:        payload.systemSnapshot  ? new Date() : undefined,
-    }
-})
+// Formato ERRADO (como o agente enviava ANTES da correcao):
+diskSnapshot: { drive: "C" }  // objeto em vez de array
+sysproProcesses: "invalid"     // string em vez de array
+// Resultado: SYNC_INVALID_DISK_SNAPSHOT e SYNC_INVALID_SYSPRO_PROCESSES warnings; campos descartados
 ```
 
 ---
