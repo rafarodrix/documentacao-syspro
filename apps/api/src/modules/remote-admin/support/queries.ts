@@ -261,7 +261,7 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
     bootstrapRate24hPct,
     pendingAckQueueSize,
     ackQueueFlushFailed,
-    lastAgentMetrics: host.lastAgentMetrics ? (host.lastAgentMetrics as any) : null,
+    lastAgentMetrics: normalizeLastAgentMetrics(host.lastAgentMetrics),
     lastAgentMetricsAt: toIsoDate(host.lastAgentMetricsAt),
     openSessionCount,
     operationalStatus,
@@ -418,6 +418,18 @@ function readNumberRecordValue(record: Record<string, unknown> | null, key: stri
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
+}
+
+function normalizeLastAgentMetrics(metrics: unknown) {
+  const record = toRecord(metrics);
+  if (!record) return null;
+
+  return {
+    cpuLoad: readNumberRecordValue(record, "cpuLoad"),
+    ramUsedPc: readNumberRecordValue(record, "ramUsedPc"),
+    diskFree: readNumberRecordValue(record, "diskFree"),
+    osInfo: typeof record.osInfo === "string" ? record.osInfo : null,
+  };
 }
 
 function readBootstrapFlowFromMetrics(metrics: unknown): RemoteHostDetails["agentHealth"]["bootstrapFlow"] | null {
@@ -986,7 +998,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
     
     // Extrai o objeto de telemetria se existir (marcado com _telemetry: true/objeto)
     const telemetryEntry = snapshot.find(entry => entry && typeof entry === 'object' && '_telemetry' in entry);
-    const lastAgentMetrics = (telemetryEntry as any)?._telemetry ?? null;
+    const lastAgentMetrics = normalizeLastAgentMetrics((telemetryEntry as any)?._telemetry ?? null);
 
     const installationCompanies = snapshot
       .map((entry) => {
