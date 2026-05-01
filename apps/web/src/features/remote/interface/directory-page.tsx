@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -8,10 +8,15 @@ import {
   Search,
   ShieldCheck,
   X,
-  Filter,
   Building2,
   Ticket,
   Loader2,
+  Monitor,
+  RotateCcw,
+  HardDrive,
+  AlertTriangle,
+  Cpu,
+  Activity,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -35,6 +40,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
@@ -77,13 +83,13 @@ const QUICK_DESCRIPTION_TEMPLATES = [
   "PDV / caixa operacional",
 ];
 
-
 function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number | null) {
   if (!lastHeartbeatAt) {
     return {
       label: "Sem heartbeat",
       shortLabel: "Offline",
       className: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+      dotClass: "bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]",
       bucket: "missing" as const,
     };
   }
@@ -93,6 +99,7 @@ function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number
       label: "Heartbeat detectado",
       shortLabel: "Online",
       className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      dotClass: "animate-pulse bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]",
       bucket: "recent" as const,
     };
   }
@@ -103,14 +110,16 @@ function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number
       label: "Heartbeat recente",
       shortLabel: "Online",
       className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      dotClass: "animate-pulse bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]",
       bucket: "recent" as const,
     };
   }
 
   return {
     label: "Heartbeat antigo",
-      shortLabel: "Instável",
+    shortLabel: "Instável",
     className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    dotClass: "bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.12)]",
     bucket: "stale" as const,
   };
 }
@@ -125,6 +134,16 @@ function formatHeartbeatTime(value: string | null, hasHydrated: boolean) {
   if (!value) return "Offline";
   if (!hasHydrated) return "--:--";
   return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatHeartbeatRelative(value: string | null, hasHydrated: boolean, referenceNow: number | null) {
+  if (!value || !hasHydrated || referenceNow == null) return null;
+  const diffMin = Math.floor((referenceNow - new Date(value).getTime()) / 60000);
+  if (diffMin < 1) return "agora";
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}h`;
+  return `${Math.floor(diffH / 24)}d`;
 }
 
 async function copyTextWithFallback(value: string) {
@@ -160,8 +179,6 @@ export function RemotePlatformDirectoryPanel({
   initialCompanyId,
   initialTicketNumber,
 }: RemotePlatformDirectoryPanelProps) {
-  // Configured hosts are managed portal entities and should read technical fields from `item.agent.*`.
-  // Pending items are pre-host discoveries and still intentionally use a flattened technical shape.
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isMobileClient, setIsMobileClient] = useState(false);
@@ -179,7 +196,6 @@ export function RemotePlatformDirectoryPanel({
   const [pendingNameById, setPendingNameById] = useState<Record<string, string>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [isCreatingQuickHost, setIsCreatingQuickHost] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [showPendingItems, setShowPendingItems] = useState(false);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
@@ -190,10 +206,13 @@ export function RemotePlatformDirectoryPanel({
     setIsMobileClient(/android|iphone|ipad|ipod|mobile/.test(userAgent));
     setHasHydrated(true);
   }, []);
+
   const selectedCompanyLabel = useMemo(
     () => directory.companyOptions.find((company) => company.id === companyFilter)?.label ?? null,
     [companyFilter, directory.companyOptions],
   );
+
+  const hasActiveFilters = searchTerm || scopeFilter !== "all" || companyFilter !== "all" || heartbeatFilter !== "all" || agentFilter !== "all";
 
   async function handleCopyRustDeskId(value: string | null) {
     if (!value) {
@@ -273,22 +292,15 @@ export function RemotePlatformDirectoryPanel({
       requestRemoteMutation({
         url: `/api/remote/discovered-hosts/${id}/link`,
         method: "POST",
-        body: {
-          companyId,
-          name,
-        },
+        body: { companyId, name },
       });
 
     try {
       await tryLink();
-
       toast.success("Máquina vinculada e convertida em host.");
       startTransition(() => router.refresh());
     } catch (error) {
-      if (
-        error instanceof RemoteApiClientError &&
-        (error.httpStatus === 429 || error.code === "RATE_LIMITED")
-      ) {
+      if (error instanceof RemoteApiClientError && (error.httpStatus === 429 || error.code === "RATE_LIMITED")) {
         toast("Limite temporário. Nova tentativa automática em 5 segundos.");
         await delay(5000);
         try {
@@ -301,7 +313,6 @@ export function RemotePlatformDirectoryPanel({
           return;
         }
       }
-
       toast.error(getRemoteApiErrorMessage(error));
     }
   }
@@ -334,7 +345,12 @@ export function RemotePlatformDirectoryPanel({
 
       toast.success("Sessao auditada iniciada.");
       const href = isMobileClient ? `rustdesk://[${normalizedRustdeskId}]` : `rustdesk://${normalizedRustdeskId}`;
-      window.location.href = href;
+      const a = document.createElement("a");
+      a.href = href;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch {
       toast.error("Erro ao processar início de sessão.");
     } finally {
@@ -346,22 +362,11 @@ export function RemotePlatformDirectoryPanel({
     const term = normalizeSearchValue(searchTerm);
     const referenceNow = hasHydrated ? Date.now() : null;
     return directory.items.filter((item) => {
-      const haystack = normalizeSearchValue([
-        item.name,
-        item.companyName,
-        item.installationCompanies.join(" "),
-        item.provider,
-        item.agent.rustdeskId,
-        item.description,
-        item.agent.machineName,
-        item.agent.agentVersion,
-        item.lastTicketNumber,
-        item.lastSessionStatus,
-        item.status,
-        item.companyId,
-      ]
-        .filter(Boolean)
-        .join(" "));
+      const haystack = normalizeSearchValue(
+        [item.name, item.companyName, item.installationCompanies.join(" "), item.provider, item.agent.rustdeskId, item.description, item.agent.machineName, item.agent.agentVersion, item.lastTicketNumber, item.lastSessionStatus, item.status, item.companyId]
+          .filter(Boolean)
+          .join(" "),
+      );
 
       const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
       const matchesSearch = !term || haystack.includes(term);
@@ -383,32 +388,17 @@ export function RemotePlatformDirectoryPanel({
     const term = normalizeSearchValue(searchTerm);
     return directory.pendingItems
       .filter((item) => {
-        const haystack = normalizeSearchValue([
-          item.machineName,
-          item.rustdeskId,
-          item.agentVersion,
-          item.provider,
-          item.description,
-          item.installationCompanies.join(" "),
-        ]
-          .filter(Boolean)
-          .join(" "));
+        const haystack = normalizeSearchValue([item.machineName, item.rustdeskId, item.agentVersion, item.provider, item.description, item.installationCompanies.join(" ")].filter(Boolean).join(" "));
         const normalizedSelectedCompany = normalizeSearchValue(selectedCompanyLabel);
         const matchesCompany =
           companyFilter === "all" ||
-          (normalizedSelectedCompany.length > 0 &&
-            item.installationCompanies.some((company) =>
-              normalizeSearchValue(company).includes(normalizedSelectedCompany),
-            ));
-
+          (normalizedSelectedCompany.length > 0 && item.installationCompanies.some((company) => normalizeSearchValue(company).includes(normalizedSelectedCompany)));
         return (!term || haystack.includes(term)) && matchesCompany;
       })
       .sort((a, b) => {
         const aHeartbeat = a.lastHeartbeatAt ? Date.parse(a.lastHeartbeatAt) : 0;
         const bHeartbeat = b.lastHeartbeatAt ? Date.parse(b.lastHeartbeatAt) : 0;
-        if (aHeartbeat !== bHeartbeat) {
-          return bHeartbeat - aHeartbeat;
-        }
+        if (aHeartbeat !== bHeartbeat) return bHeartbeat - aHeartbeat;
         return (a.machineName ?? "").localeCompare(b.machineName ?? "", "pt-BR");
       });
   }, [companyFilter, directory.pendingItems, searchTerm, selectedCompanyLabel]);
@@ -421,288 +411,216 @@ export function RemotePlatformDirectoryPanel({
     const rebootPending = filteredItems.filter((item) => item.inventorySignals.rebootPending === true).length;
     return { online, stale, offline, rebootPending };
   }, [filteredItems, hasHydrated]);
+
   const displayedItems = useMemo(() => {
     const referenceNow = hasHydrated ? Date.now() : null;
-
-    if (scopeFilter === "online") {
-      return filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent");
-    }
-
-    if (scopeFilter === "offline") {
-      return filteredItems.filter((item) => {
-        const bucket = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket;
-        return bucket === "stale" || bucket === "missing";
-      });
-    }
-
-    if (scopeFilter === "discovered") {
-      return [];
-    }
-
+    if (scopeFilter === "online") return filteredItems.filter((item) => getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket === "recent");
+    if (scopeFilter === "offline") return filteredItems.filter((item) => { const b = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow).bucket; return b === "stale" || b === "missing"; });
+    if (scopeFilter === "discovered") return [];
     return filteredItems;
   }, [filteredItems, hasHydrated, scopeFilter]);
-  const visibleHostCount = scopeFilter === "discovered" ? filteredPendingItems.length : displayedItems.length;
-  const shouldShowPendingItems =
-    canCreateHosts && filteredPendingItems.length > 0 && (scopeFilter === "all" || scopeFilter === "discovered");
-  return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-border/50 bg-card/70 p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-            <div className="relative flex-1 min-w-0">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Buscar por empresa, host, IP, ID remoto ou ticket..."
-                className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50"
-              />
-            </div>
 
-            <div className="flex items-center gap-2">
+  const shouldShowPendingItems = canCreateHosts && filteredPendingItems.length > 0 && (scopeFilter === "all" || scopeFilter === "discovered");
+  const referenceNow = hasHydrated ? Date.now() : null;
+
+  return (
+    <div className="space-y-3">
+      {/* ── Top bar ── */}
+      <div className="rounded-2xl border border-border/50 bg-card/70 p-3 shadow-sm">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por host, empresa, IP, ID remoto ou ticket..."
+              className="h-9 rounded-lg border-border/60 bg-background pl-9 text-sm"
+            />
+          </div>
+
+          {/* Inline filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger className="h-9 w-[170px] bg-background text-sm">
+                <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="Empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as empresas</SelectItem>
+                {directory.companyOptions.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>{company.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v as typeof agentFilter)}>
+              <SelectTrigger className="h-9 w-[160px] bg-background text-sm">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Qualquer estado</SelectItem>
+                <SelectItem value="ready">Remoto pronto</SelectItem>
+                <SelectItem value="in_service">Em atendimento</SelectItem>
+                <SelectItem value="provisioning">Provisionando</SelectItem>
+                <SelectItem value="awaiting_link">Aguardando vínculo</SelectItem>
+                <SelectItem value="attention">Atenção técnica</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={heartbeatFilter} onValueChange={(v) => setHeartbeatFilter(v as typeof heartbeatFilter)}>
+              <SelectTrigger className="h-9 w-[140px] bg-background text-sm">
+                <SelectValue placeholder="Conectividade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Conectividade</SelectItem>
+                <SelectItem value="recent">Online agora</SelectItem>
+                <SelectItem value="stale">Instável</SelectItem>
+                <SelectItem value="missing">Offline</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
               <Button
                 type="button"
-                variant={showFilters ? "secondary" : "outline"}
-                size="icon"
-                className="h-10 w-10 shrink-0"
-                onClick={() => setShowFilters((current) => !current)}
-                title="Filtros avancados"
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 text-muted-foreground hover:text-foreground"
+                onClick={() => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); }}
               >
-                <Filter className="h-4 w-4" />
+                <X className="mr-1.5 h-3.5 w-3.5" />
+                Limpar
               </Button>
+            )}
 
-              {(searchTerm ||
-                scopeFilter !== "all" ||
-                companyFilter !== "all" ||
-                heartbeatFilter !== "all" ||
-                agentFilter !== "all") && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 px-3 text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setScopeFilter("all");
-                    setCompanyFilter("all");
-                    setHeartbeatFilter("all");
-                    setAgentFilter("all");
-                  }}
-                >
-                  <X className="mr-2 h-3.5 w-3.5" />
-                  Limpar
-                </Button>
-              )}
-
-              {canCreateHosts && (
-                <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
-                  <DialogTrigger asChild>
-                    <Button type="button" className="h-10 gap-2 shrink-0">
-                      <Plus className="h-4 w-4" />
-                      Novo host
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Adicionar host manualmente</DialogTitle>
-                      <DialogDescription>
-                        Cadastro rápido para consolidar um host, definir a empresa e publicar o contexto que o agente vai consumir.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Empresa</Label>
-                          <SearchableCompanyPicker
-                            value={quickCompanyId}
-                            options={directory.companyOptions}
-                            searchUrl="/api/remote/companies/search"
-                            onChange={setQuickCompanyId}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Pesquise por razao social, nome fantasia ou codigo operacional.
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Nome do host</Label>
-                          <Input
-                            value={quickHostName}
-                            onChange={(event) => setQuickHostName(event.target.value)}
-                            placeholder="Ex.: SERVIDOR MATRIZ FISCAL"
-                          />
-                        </div><div className="space-y-2">
-                          <Label>RustDesk ID</Label>
-                          <Input
-                            value={quickRustdeskId}
-                            onChange={(event) => setQuickRustdeskId(event.target.value)}
-                            placeholder="21187620068"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Informe apenas números. O portal valida IDs com 7 a 12 dígitos.
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Descricao operacional</Label>
-                          <Input
-                            list="quick-description-options"
-                            value={quickDescription}
-                            onChange={(event) => setQuickDescription(event.target.value)}
-                            placeholder="ERP matriz / servidor fiscal"
-                          />
-                          <datalist id="quick-description-options">
-                            {QUICK_DESCRIPTION_TEMPLATES.map((option) => (
-                              <option key={option} value={option} />
-                            ))}
-                          </datalist>
-                        </div>
+            {canCreateHosts && (
+              <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
+                <DialogTrigger asChild>
+                  <Button type="button" size="sm" className="h-9 gap-1.5 shrink-0">
+                    <Plus className="h-4 w-4" />
+                    Novo host
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Adicionar host manualmente</DialogTitle>
+                    <DialogDescription>
+                      Cadastro rápido para consolidar um host, definir a empresa e publicar o contexto que o agente vai consumir.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Empresa</Label>
+                        <SearchableCompanyPicker
+                          value={quickCompanyId}
+                          options={directory.companyOptions}
+                          searchUrl="/api/remote/companies/search"
+                          onChange={setQuickCompanyId}
+                        />
+                        <p className="text-xs text-muted-foreground">Pesquise por razao social, nome fantasia ou codigo operacional.</p>
                       </div>
 
-                      <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Preview operacional
-                        </p>
-                        <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
-                          <p>
-                            <span className="text-muted-foreground">Empresa:</span>{" "}
-                            {directory.companyOptions.find((company) => company.id === quickCompanyId)?.label ?? "Nao selecionada"}
-                          </p>
-                          <p>
-                            <span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}
-                          </p>
-                          <p>
-                            <span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Nao informado"}
-                          </p>
-                        </div>
+                      <div className="space-y-2">
+                        <Label>Nome do host</Label>
+                        <Input value={quickHostName} onChange={(e) => setQuickHostName(e.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
                       </div>
 
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          Para máquinas sem empresa definida no momento da instalação, prefira o fluxo de descoberta automática e vincule depois.
-                        </p>
-                        <Button
-                          type="button"
-                          onClick={handleQuickCreateHost}
-                          disabled={isPending || isCreatingQuickHost}
-                          className="gap-2"
-                        >
-                          {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                          {isCreatingQuickHost ? "Criando..." : "Criar host"}
-                        </Button>
+                      <div className="space-y-2">
+                        <Label>RustDesk ID</Label>
+                        <Input value={quickRustdeskId} onChange={(e) => setQuickRustdeskId(e.target.value)} placeholder="21187620068" />
+                        <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Descricao operacional</Label>
+                        <Input
+                          list="quick-description-options"
+                          value={quickDescription}
+                          onChange={(e) => setQuickDescription(e.target.value)}
+                          placeholder="ERP matriz / servidor fiscal"
+                        />
+                        <datalist id="quick-description-options">
+                          {QUICK_DESCRIPTION_TEMPLATES.map((option) => <option key={option} value={option} />)}
+                        </datalist>
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              )}
-            </div>
+
+                    <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
+                      <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
+                        <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((c) => c.id === quickCompanyId)?.label ?? "Nao selecionada"}</p>
+                        <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}</p>
+                        <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Nao informado"}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-muted-foreground">Para máquinas sem empresa definida, prefira o fluxo de descoberta automática e vincule depois.</p>
+                      <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
+                        {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        {isCreatingQuickHost ? "Criando..." : "Criar host"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { value: "all", label: "Todas", count: filteredItems.length },
-              { value: "online", label: "Online", count: filteredQuickIndicators.online },
-              {
-                value: "offline",
-                label: "Offline",
-                count: filteredQuickIndicators.stale + filteredQuickIndicators.offline,
-              },
-              { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
-            ]
-              .filter((option) => !option.hidden)
-              .map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={scopeFilter === option.value ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-8 rounded-full px-3"
-                  onClick={() => setScopeFilter(option.value as typeof scopeFilter)}
-                >
-                  {option.label}
-                  <span className="ml-2 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold">
-                    {option.count}
-                  </span>
-                </Button>
-              ))}
-          </div>
+        {/* Scope pills + alert badges */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {[
+            { value: "all", label: "Todos", count: filteredItems.length },
+            { value: "online", label: "Online", count: filteredQuickIndicators.online },
+            { value: "offline", label: "Offline", count: filteredQuickIndicators.stale + filteredQuickIndicators.offline },
+            { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
+          ]
+            .filter((o) => !o.hidden)
+            .map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setScopeFilter(option.value as typeof scopeFilter)}
+                className={cn(
+                  "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
+                  scopeFilter === option.value
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-border/50 bg-background text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                {option.label}
+                <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold", scopeFilter === option.value ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                  {option.count}
+                </span>
+              </button>
+            ))}
 
-          {showFilters && (
-            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Empresa</Label>
-                  <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                    <SelectTrigger className="h-9 bg-background">
-                      <SelectValue placeholder="Empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      {directory.companyOptions.map((company) => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Conectividade</Label>
-                  <Select value={heartbeatFilter} onValueChange={(value) => setHeartbeatFilter(value as typeof heartbeatFilter)}>
-                    <SelectTrigger className="h-9 bg-background">
-                      <SelectValue placeholder="Conectividade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Qualquer</SelectItem>
-                      <SelectItem value="recent">Online agora</SelectItem>
-                      <SelectItem value="stale">Instável</SelectItem>
-                      <SelectItem value="missing">Offline</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-muted-foreground">Estado</Label>
-                  <Select value={agentFilter} onValueChange={(value) => setAgentFilter(value as typeof agentFilter)}>
-                    <SelectTrigger className="h-9 bg-background">
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Qualquer</SelectItem>
-                      <SelectItem value="awaiting_link">Aguardando vínculo</SelectItem>
-                      <SelectItem value="provisioning">Provisionando</SelectItem>
-                      <SelectItem value="ready">Remoto pronto</SelectItem>
-                      <SelectItem value="attention">Atencao tecnica</SelectItem>
-                      <SelectItem value="in_service">Em atendimento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
+          {filteredQuickIndicators.rebootPending > 0 && scopeFilter !== "discovered" && (
+            <Badge variant="outline" className="h-7 border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-400">
+              <RotateCcw className="mr-1 h-3 w-3" />
+              {filteredQuickIndicators.rebootPending} reboot pendente
+            </Badge>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {selectedCompanyLabel ? (
-              <Badge variant="outline" className="h-6 border-primary/20 bg-primary/10 text-primary">
-                <Building2 className="mr-1 h-3 w-3" />
-                {selectedCompanyLabel}
-              </Badge>
-            ) : null}
-            {initialTicketNumber ? (
-              <Badge variant="outline" className="h-6 border-primary/20 bg-primary/10 text-primary">
-                <Ticket className="mr-1 h-3 w-3" />
-                Ticket #{initialTicketNumber}
-              </Badge>
-            ) : null}
-            {scopeFilter !== "discovered" && filteredQuickIndicators.rebootPending > 0 ? (
-              <Badge variant="outline" className="h-6 border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400">
-                {filteredQuickIndicators.rebootPending} reboot pendente
-              </Badge>
-            ) : null}
-          </div>
+          {selectedCompanyLabel && (
+            <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
+              <Building2 className="mr-1 h-3 w-3" />
+              {selectedCompanyLabel}
+            </Badge>
+          )}
+          {initialTicketNumber && (
+            <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
+              <Ticket className="mr-1 h-3 w-3" />
+              Ticket #{initialTicketNumber}
+            </Badge>
+          )}
         </div>
       </div>
 
-      {shouldShowPendingItems ? (
+      {/* ── Pending items ── */}
+      {shouldShowPendingItems && (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5">
           <button
             type="button"
@@ -711,16 +629,14 @@ export function RemotePlatformDirectoryPanel({
           >
             <div>
               <p className="text-sm font-semibold text-foreground">Máquinas aguardando vínculo</p>
-              <p className="text-xs text-muted-foreground">
-                Descobertas pelo agente, mas ainda sem contexto empresarial no portal.
-              </p>
+              <p className="text-xs text-muted-foreground">Descobertas pelo agente, mas ainda sem contexto empresarial no portal.</p>
             </div>
             <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
               {filteredPendingItems.length}
             </Badge>
           </button>
 
-          {showPendingItems || scopeFilter === "discovered" ? (
+          {(showPendingItems || scopeFilter === "discovered") && (
             <div className="space-y-2 border-t border-amber-500/20 px-4 py-4">
               {filteredPendingItems.map((item) => {
                 const selectedCompanyId = pendingCompanyById[item.id] ?? directory.companyOptions[0]?.id ?? "";
@@ -732,36 +648,28 @@ export function RemotePlatformDirectoryPanel({
                     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(380px,1fr)]">
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                            Pendente
-                          </Badge>
-                          {item.lastAgentMetrics?.cpuLoad !== undefined ? (
+                          <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300">Pendente</Badge>
+                          {item.lastAgentMetrics?.cpuLoad != null && (
                             <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
                               CPU {item.lastAgentMetrics.cpuLoad}%
                             </Badge>
-                          ) : null}
-                          {item.lastAgentMetrics?.ramUsedPc !== undefined ? (
+                          )}
+                          {item.lastAgentMetrics?.ramUsedPc != null && (
                             <Badge variant="outline" className="border-border/40 bg-background/50 font-mono text-[10px]">
                               RAM {item.lastAgentMetrics.ramUsedPc}%
                             </Badge>
-                          ) : null}
+                          )}
                         </div>
-
                         <div>
-                          <p className="text-base font-semibold text-foreground">
-                            {item.machineName ?? "Máquina sem nome"}
-                          </p>
+                          <p className="text-base font-semibold text-foreground">{item.machineName ?? "Máquina sem nome"}</p>
                           <p className="text-xs text-muted-foreground">
                             ID remoto {item.rustdeskId ?? "não informado"}
                             {item.agentVersion ? ` | agente ${item.agentVersion}` : ""}
                             {item.lastHeartbeatAt ? ` | heartbeat ${formatHeartbeatDateTime(item.lastHeartbeatAt, hasHydrated)}` : ""}
                           </p>
                         </div>
-
                         <p className="text-sm text-muted-foreground">
-                          {item.installationCompanies.length
-                            ? `Instalacoes detectadas: ${item.installationCompanies.join(" | ")}`
-                            : "Nenhuma instalacao detectada no ultimo heartbeat."}
+                          {item.installationCompanies.length ? `Instalacoes detectadas: ${item.installationCompanies.join(" | ")}` : "Nenhuma instalacao detectada no ultimo heartbeat."}
                         </p>
                       </div>
 
@@ -772,28 +680,18 @@ export function RemotePlatformDirectoryPanel({
                             value={selectedCompanyId}
                             options={directory.companyOptions}
                             searchUrl="/api/remote/companies/search"
-                            onChange={(value) =>
-                              setPendingCompanyById((current) => ({ ...current, [item.id]: value }))
-                            }
+                            onChange={(value) => setPendingCompanyById((curr) => ({ ...curr, [item.id]: value }))}
                           />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-[10px] font-bold uppercase text-muted-foreground">Nome do host</Label>
                           <Input
                             value={pendingNameById[item.id] ?? item.machineName ?? ""}
-                            onChange={(event) =>
-                              setPendingNameById((current) => ({ ...current, [item.id]: event.target.value }))
-                            }
+                            onChange={(e) => setPendingNameById((curr) => ({ ...curr, [item.id]: e.target.value }))}
                             placeholder="Ex.: Servidor matriz fiscal"
                           />
                         </div>
-
-                        <Button
-                          type="button"
-                          onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)}
-                          disabled={!canLinkPendingHost}
-                          className="xl:min-w-28"
-                        >
+                        <Button type="button" onClick={() => handleLinkDiscoveredHost(item.id, item.machineName)} disabled={!canLinkPendingHost} className="xl:min-w-28">
                           Vincular
                         </Button>
                       </div>
@@ -802,148 +700,218 @@ export function RemotePlatformDirectoryPanel({
                 );
               })}
             </div>
-          ) : null}
+          )}
         </div>
-      ) : null}
+      )}
 
+      {/* ── Host table ── */}
       {displayedItems.length ? (
         <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/70 shadow-sm">
-          <div className="hidden grid-cols-[minmax(0,1.9fr)_160px_180px_260px] items-center gap-4 border-b border-border/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid">
+          {/* Table header */}
+          <div className="hidden lg:grid grid-cols-[16px_minmax(0,2.2fr)_minmax(0,1.3fr)_136px_96px_80px_88px_188px] items-center gap-3 border-b border-border/40 bg-muted/5 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span />
             <span>Host</span>
-            <span>Heartbeat</span>
+            <span>Empresa / Instalações</span>
             <span>ID remoto</span>
+            <span>Sinais</span>
+            <span>Métricas</span>
+            <span>Heartbeat</span>
             <span className="text-right">Ações</span>
           </div>
 
           <div className="divide-y divide-border/30">
             {displayedItems.map((item) => {
-              const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, hasHydrated ? Date.now() : null);
+              const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
               const productStatus = getRemoteProductStatusMeta(item.productStatus);
-              const installationNames = item.installationCompanies.length
-                ? item.installationCompanies
-                : item.companyName
-                  ? [item.companyName]
-                  : [];
+              const installationNames = item.installationCompanies.length ? item.installationCompanies : item.companyName ? [item.companyName] : [];
+              const hasSignals = item.inventorySignals.rebootPending || item.inventorySignals.diskLow || item.inventorySignals.sysproProcessDown || !!item.contractErrorCode;
+              const hasCpu = item.lastAgentMetrics?.cpuLoad != null;
+              const hasRam = item.lastAgentMetrics?.ramUsedPc != null;
 
               return (
-                <div key={item.id} className="px-4 py-4 transition-colors hover:bg-muted/10">
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.9fr)_160px_180px_260px] lg:items-center">
+                <div key={item.id} className="group px-4 py-2.5 transition-colors hover:bg-muted/10">
+                  {/* Desktop: grid layout */}
+                  <div className="hidden lg:grid grid-cols-[16px_minmax(0,2.2fr)_minmax(0,1.3fr)_136px_96px_80px_88px_188px] items-center gap-3">
+                    {/* Status dot */}
+                    <div className={cn("h-2 w-2 rounded-full shrink-0", heartbeat.dotClass)} />
+
+                    {/* Host */}
                     <div className="min-w-0">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                            heartbeat.bucket === "recent"
-                              ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]"
-                              : heartbeat.bucket === "stale"
-                                ? "bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.12)]"
-                                : "bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]"
-                          }`}
-                        />
-
-                        <div className="min-w-0 space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="secondary" className="h-5 bg-background/90 text-[10px] font-bold uppercase tracking-wider">
-                              {heartbeat.shortLabel === "Online" ? "Operacional" : "Atenção"}
-                            </Badge>
-                            <Badge variant="outline" className={`h-5 text-[10px] ${productStatus.className}`}>
-                              {productStatus.label}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-1">
-                            <p className="truncate text-base font-semibold text-foreground">{item.name}</p>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                              {installationNames.length > 0 ? (
-                                <span className="flex items-center gap-1">
-                                  <Building2 className="h-3 w-3" />
-                                  {installationNames[0]}
-                                  {installationNames.length > 1 ? ` +${installationNames.length - 1}` : ""}
-                                </span>
-                              ) : null}
-                              {item.lastTicketNumber ? (
-                                <span className="flex items-center gap-1 text-primary/80">
-                                  <Ticket className="h-3 w-3" />#{item.lastTicketNumber}
-                                </span>
-                              ) : null}
-                              {item.agent.agentVersion ? <span>{item.agent.agentVersion}</span> : null}
-                              {item.agent.lastKnownIp ? <span>{item.agent.lastKnownIp}</span> : null}
-                            </div>
-                          </div>
-
-                          {(item.inventorySignals.rebootPending ||
-                            item.inventorySignals.diskLow ||
-                            item.inventorySignals.sysproProcessDown ||
-                            item.contractErrorCode) ? (
-                            <div className="flex flex-wrap gap-2">
-                              {item.inventorySignals.rebootPending ? (
-                                <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-400">
-                                  Reboot pendente
-                                </Badge>
-                              ) : null}
-                              {item.inventorySignals.diskLow ? (
-                                <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400">
-                                  Disco baixo
-                                </Badge>
-                              ) : null}
-                              {item.contractErrorCode ? (
-                                <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-400">
-                                  Contrato {item.contractErrorCode}
-                                </Badge>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <Monitor className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                        <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-5">
+                        {item.agent.machineName && (
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{item.agent.machineName}</span>
+                        )}
+                        {item.agent.lastKnownIp && (
+                          <span className="font-mono text-[10px] text-muted-foreground/60">{item.agent.lastKnownIp}</span>
+                        )}
+                        <Badge variant="outline" className={cn("h-4 px-1.5 text-[9px] font-medium", productStatus.className)}>
+                          {productStatus.label}
+                        </Badge>
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:hidden">Heartbeat</p>
-                      <Badge variant="outline" className={heartbeat.className}>
+                    {/* Company / tags */}
+                    <div className="min-w-0">
+                      {installationNames.length > 0 ? (
+                        <>
+                          <p className="truncate text-sm text-foreground">{installationNames[0]}</p>
+                          {installationNames.length > 1 && (
+                            <p className="text-[10px] text-muted-foreground">+{installationNames.length - 1} empresa(s)</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground/50">—</p>
+                      )}
+                      {item.lastTicketNumber && (
+                        <span className="flex items-center gap-1 text-[10px] text-primary/80 mt-0.5">
+                          <Ticket className="h-2.5 w-2.5" />#{item.lastTicketNumber}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ID remoto */}
+                    <div className="flex items-center gap-1">
+                      <code className="min-w-0 truncate rounded-md border border-border/30 bg-muted/20 px-2 py-1 text-xs font-mono text-foreground/80">
+                        {item.agent.rustdeskId ?? "---"}
+                      </code>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleCopyRustDeskId(item.agent.rustdeskId)}
+                        disabled={!item.agent.rustdeskId}
+                        title="Copiar ID"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Sinais */}
+                    <div className="flex flex-wrap gap-1">
+                      {item.inventorySignals.rebootPending && (
+                        <span title="Reboot pendente" className="inline-flex h-5 w-5 items-center justify-center rounded border border-rose-500/20 bg-rose-500/10 text-rose-600">
+                          <RotateCcw className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                      {item.inventorySignals.diskLow && (
+                        <span title="Disco baixo" className="inline-flex h-5 w-5 items-center justify-center rounded border border-amber-500/20 bg-amber-500/10 text-amber-600">
+                          <HardDrive className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                      {item.inventorySignals.sysproProcessDown && (
+                        <span title="Serviço Syspro parado" className="inline-flex h-5 w-5 items-center justify-center rounded border border-amber-500/20 bg-amber-500/10 text-amber-600">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                      {item.contractErrorCode && (
+                        <span title={`Contrato: ${item.contractErrorCode}`} className="inline-flex h-5 items-center rounded border border-rose-500/20 bg-rose-500/10 px-1 text-[9px] font-bold text-rose-600">
+                          {item.contractErrorCode}
+                        </span>
+                      )}
+                      {!hasSignals && <span className="text-[10px] text-muted-foreground/40">—</span>}
+                    </div>
+
+                    {/* Métricas */}
+                    <div className="space-y-0.5">
+                      {hasCpu && (
+                        <div className="flex items-center gap-1">
+                          <Cpu className="h-2.5 w-2.5 text-muted-foreground/50 shrink-0" />
+                          <span className="font-mono text-[10px] text-foreground/70">{item.lastAgentMetrics!.cpuLoad}%</span>
+                        </div>
+                      )}
+                      {hasRam && (
+                        <div className="flex items-center gap-1">
+                          <Activity className="h-2.5 w-2.5 text-muted-foreground/50 shrink-0" />
+                          <span className="font-mono text-[10px] text-foreground/70">{item.lastAgentMetrics!.ramUsedPc}%</span>
+                        </div>
+                      )}
+                      {!hasCpu && !hasRam && <span className="text-[10px] text-muted-foreground/40">—</span>}
+                    </div>
+
+                    {/* Heartbeat */}
+                    <div>
+                      <Badge variant="outline" className={cn("h-5 px-1.5 text-[9px]", heartbeat.className)}>
                         {heartbeat.shortLabel}
                       </Badge>
-                      <p className="text-xs text-muted-foreground" title={formatHeartbeatDateTime(item.agent.lastHeartbeatAt, hasHydrated)}>
-                        {formatHeartbeatTime(item.agent.lastHeartbeatAt, hasHydrated)}
+                      <p
+                        className="mt-0.5 text-[10px] text-muted-foreground"
+                        title={formatHeartbeatDateTime(item.agent.lastHeartbeatAt, hasHydrated)}
+                      >
+                        {formatHeartbeatRelative(item.agent.lastHeartbeatAt, hasHydrated, referenceNow) ??
+                          formatHeartbeatTime(item.agent.lastHeartbeatAt, hasHydrated)}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground lg:hidden">ID remoto</p>
-                      <div className="flex items-center gap-2">
-                        <code className="block w-full rounded-lg border border-border/30 bg-muted/20 px-3 py-2 text-sm font-mono text-foreground/80">
-                          {item.agent.rustdeskId ?? "---"}
-                        </code>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => handleCopyRustDeskId(item.agent.rustdeskId)}
-                          disabled={!item.agent.rustdeskId}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                    {/* Ações */}
+                    <div className="flex items-center gap-1.5 justify-end">
                       <Button
                         type="button"
                         size="sm"
-                        className="h-9 min-w-24"
+                        className="h-8 gap-1.5 px-3"
                         onClick={() => handleQuickConnect(item)}
                         disabled={!item.agent.rustdeskId || connectingHostId === item.id}
                       >
                         {connectingHostId === item.id ? (
-                          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                          <ShieldCheck className="h-3.5 w-3.5" />
                         )}
+                        Abrir
+                      </Button>
+                      <Button asChild variant="outline" size="sm" className="h-8 px-3 bg-background/70">
+                        <Link href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}>
+                          Detalhes
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Mobile: stacked layout */}
+                  <div className="lg:hidden space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", heartbeat.dotClass)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <Badge variant="outline" className={cn("h-5 text-[10px]", heartbeat.className)}>{heartbeat.shortLabel}</Badge>
+                          <Badge variant="outline" className={cn("h-5 text-[10px]", productStatus.className)}>{productStatus.label}</Badge>
+                        </div>
+                        <p className="font-semibold text-foreground">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{installationNames[0] ?? item.companyName}</p>
+                        {installationNames.length > 1 && <p className="text-xs text-muted-foreground">+{installationNames.length - 1} empresa(s)</p>}
+                        {item.agent.lastKnownIp && <p className="mt-0.5 font-mono text-xs text-muted-foreground/70">{item.agent.lastKnownIp}</p>}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 truncate rounded-md border border-border/30 bg-muted/20 px-2 py-1.5 text-sm font-mono text-foreground/80">
+                        {item.agent.rustdeskId ?? "Sem ID remoto"}
+                      </code>
+                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => handleCopyRustDeskId(item.agent.rustdeskId)} disabled={!item.agent.rustdeskId}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {hasSignals && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.inventorySignals.rebootPending && <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700">Reboot pendente</Badge>}
+                        {item.inventorySignals.diskLow && <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700">Disco baixo</Badge>}
+                        {item.inventorySignals.sysproProcessDown && <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-[10px] text-amber-700">Serviço parado</Badge>}
+                        {item.contractErrorCode && <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700">Contrato {item.contractErrorCode}</Badge>}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" className="h-9 flex-1 gap-2" onClick={() => handleQuickConnect(item)} disabled={!item.agent.rustdeskId || connectingHostId === item.id}>
+                        {connectingHostId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                         Abrir remoto
                       </Button>
-
-                      <Button asChild variant="outline" size="sm" className="h-9 min-w-24 bg-background/70">
-                        <Link
-                          href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
-                        >
+                      <Button asChild variant="outline" size="sm" className="h-9 flex-1 bg-background/70">
+                        <Link href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}>
                           Ver detalhes
                         </Link>
                       </Button>
@@ -953,20 +921,27 @@ export function RemotePlatformDirectoryPanel({
               );
             })}
           </div>
+
+          {/* Table footer count */}
+          <div className="border-t border-border/30 bg-muted/5 px-4 py-2.5 text-right text-[11px] text-muted-foreground">
+            {displayedItems.length} de {directory.items.length} host(s)
+          </div>
         </div>
       ) : !shouldShowPendingItems ? (
         <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-10 text-center">
-          <Search className="mx-auto h-8 w-8 text-muted-foreground/40" />
-          <p className="mt-4 text-sm font-medium text-foreground">Nenhum item encontrado</p>
+          <Monitor className="mx-auto h-8 w-8 text-muted-foreground/30" />
+          <p className="mt-4 text-sm font-medium text-foreground">Nenhum host encontrado</p>
           <p className="text-sm text-muted-foreground">
-            {searchTerm
-              ? `Nenhum host corresponde a "${searchTerm}".`
-              : "Nenhum host remoto configurado no seu escopo."}
+            {searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo."}
           </p>
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); }}>
+              <X className="mr-2 h-3.5 w-3.5" />
+              Limpar filtros
+            </Button>
+          )}
         </div>
       ) : null}
     </div>
   );
 }
-
-
