@@ -6,3 +6,16 @@ foreach ($name in @("agent-ui", "agent-service")) {
   }
 }
 
+$deadline = (Get-Date).AddSeconds(20)
+do {
+  $remaining = @()
+  foreach ($name in @("agent-ui", "agent-service")) {
+    $remaining += @(Get-Process -Name $name -ErrorAction SilentlyContinue)
+  }
+
+  if ($remaining.Count -eq 0) {
+    break
+  }
+
+  Start-Sleep -Milliseconds 500
+} while ((Get-Date) -lt $deadline)
