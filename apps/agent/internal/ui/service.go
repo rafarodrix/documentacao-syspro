@@ -202,7 +202,12 @@ func (s *Service) OpenSupportConversation(ctx context.Context) error {
 	supportResult, err := s.actions.OpenSupportConversation(ctx)
 	if err != nil {
 		s.logger.Info("agent ui support action failed", "error", err)
-		return err
+		if openErr := s.opener.Open(ctx, uistate.TargetSupportConversation); openErr != nil {
+			s.logger.Info("agent ui support fallback open failed", "error", openErr)
+			return err
+		}
+		s.logger.Info("agent ui support fallback opened after ipc failure")
+		return nil
 	}
 
 	s.trayState.SupportActionReady(supportResult)

@@ -404,12 +404,11 @@ func resolveDisplayedRustDeskPassword(remoteState persistedRemoteState) string {
 	// sobre a senha padrão do bootstrap, que é estática.
 	runtimePassword := strings.TrimSpace(remoteState.RuntimePassword)
 	defaultPassword := strings.TrimSpace(remoteState.DefaultPassword)
+	if defaultPassword != "" && strings.EqualFold(runtimePassword, defaultPassword) {
+		return ""
+	}
 	if looksLikeDisplayedRustDeskPassword(runtimePassword) {
 		return runtimePassword
-	}
-
-	if looksLikeDisplayedRustDeskPassword(defaultPassword) {
-		return defaultPassword
 	}
 
 	return ""

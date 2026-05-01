@@ -108,6 +108,7 @@ function App() {
   const [chatwootLoading, setChatwootLoading] = useState(false);
   const [remoteOpening, setRemoteOpening] = useState(false);
   const [chatwootBootNonce, setChatwootBootNonce] = useState(0);
+  const [pendingChatOpen, setPendingChatOpen] = useState(false);
   const syncedConversationIds = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -215,16 +216,28 @@ function App() {
         chatwootSDK?: { run: (cfg: { websiteToken: string; baseUrl: string }) => void };
       }).chatwootSDK;
 
-      if (!sdk) return;
+      if (!sdk) {
+        if (hasChatwootClient()) onReady();
+        return;
+      }
 
       setChatwootLoading(true);
       sdk.run({
         websiteToken: supportSession.website_token,
         baseUrl: supportSession.base_url,
       });
+
+      if (hasChatwootClient()) {
+        window.setTimeout(() => {
+          if (!cancelled) onReady();
+        }, 250);
+      }
     };
 
     if (existingScript) {
+      if (hasChatwootClient()) {
+        onReady();
+      }
       bootChatwoot();
     } else {
       const script = document.createElement("script");
@@ -247,18 +260,39 @@ function App() {
     };
   }, [route, supportSession, chatwootBootNonce]);
 
+  useEffect(() => {
+    if (!pendingChatOpen || !chatwootReady) return;
+    if (openChatwootInline()) {
+      setPendingChatOpen(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      openChatwootInline();
+      setPendingChatOpen(false);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingChatOpen, chatwootReady]);
+
   const openSupport = () => {
     setRoute("agent://support");
+    setPendingChatOpen(true);
 
     if (chatwootReady && openChatwootInline()) return;
 
     if (supportSession) {
       setChatwootReady(false);
+      setChatwootLoading(true);
       setChatwootBootNonce((value) => value + 1);
       return;
     }
 
-    void OpenSupportConversation();
+    void OpenSupportConversation()
+      .catch((err) => {
+        console.error("OpenSupportConversation failed:", err);
+        setChatwootLoading(false);
+      });
   };
 
   const openRemote = () => {
@@ -520,18 +554,17 @@ function SupportScreen(props: {
   const operatorName = context?.localUsername || "Operador local";
   const remoteStateLabel =
     context?.remoteStatus === "ready"
-      ? "Pronto para conexao"
+      ? "Abrir aplicativo de atendimento"
       : context?.remoteStatus === "pending"
-        ? "Provisionando acesso remoto"
+        ? "Configurando acesso remoto"
         : "Instalacao remota em analise";
   const chatStateLabel = !chatConfigured
-    ? "Chat indisponivel nesta instalacao"
+    ? "Canal nao configurado"
     : chatwootLoading
-      ? "Preparando canal seguro"
+      ? "Conectando atendimento"
       : chatwootReady
-        ? "Chat pronto para abrir"
-        : "Conexao sera iniciada sob demanda";
-  const chatStateClass = chatwootReady ? "ready" : chatwootLoading ? "loading" : "idle";
+        ? "Canal pronto"
+        : "Canal sob demanda";
 
   const buttonLabel = !chatConfigured
     ? "Canal nao configurado"
@@ -551,39 +584,36 @@ function SupportScreen(props: {
     <main className="panel support-panel compact">
       <section className="support-hero compact">
         <div className="support-hero-copy compact">
-          <div className="support-hero-eyebrow compact">
-            Atendimento corporativo
-          </div>
-          <div className="support-hero-title compact">Central de Suporte</div>
-          <div className="support-hero-subtitle compact">
-            Atendimento autenticado com contexto tecnico sincronizado em tempo real.
-          </div>
+          <div className="support-hero-eyebrow compact">Suporte remoto</div>
+          <div className="support-hero-title compact">Trilink Support</div>
         </div>
-        <div className="support-hero-state">
-          <span className={`support-status-pill ${context?.remoteStatus ?? "pending"}`}>
-            <span className="support-status-pill-dot" />
-            {context?.remoteStatusText ?? "Em analise"}
-          </span>
-          <span className={`support-chat-pill support-chat-pill-${chatStateClass}`}>
-            {chatStateLabel}
-          </span>
+        <div className="support-hero-actions">
+          <button
+            type="button"
+            className={`btn-secondary-inline support-action-button ${remoteOpening ? "btn-loading" : ""}`}
+            onClick={onOpenRemote}
+            disabled={remoteOpening}
+          >
+            {remoteOpening && <span className="btn-spinner btn-spinner-dark" />}
+            <span>{remoteOpening ? "Abrindo..." : "Abrir remoto"}</span>
+          </button>
         </div>
       </section>
 
       <section className="support-body compact">
-        <div className="support-summary-grid">
-          <div className="support-summary-card support-summary-card-wide">
+        <div className="support-summary-grid support-summary-grid-compact">
+          <div className="support-summary-card support-summary-card-primary">
             <span className="support-summary-label">Empresa</span>
             <span className="support-summary-value">{companyName}</span>
           </div>
-          <div className="support-summary-card">
+          <div className="support-summary-card support-summary-card-accent">
             <span className="support-summary-label">ID RustDesk</span>
             <div className="support-summary-inline">
               <span className="support-summary-value mono">{remoteId || "Aguardando"}</span>
               {remoteId && <CopyButton value={remoteId} label="Copiar ID remoto" />}
             </div>
           </div>
-          <div className="support-summary-card">
+          <div className="support-summary-card support-summary-card-accent">
             <span className="support-summary-label">Senha</span>
             <div className="support-summary-inline">
               <span className="support-summary-value mono">
@@ -610,27 +640,19 @@ function SupportScreen(props: {
             <RemoteIcon />
           </span>
           <div className="support-remote-strip-copy">
-            <div className="support-remote-strip-title">Acesso remoto assistido</div>
+            <div className="support-remote-strip-title">Canal remoto</div>
             <div className="support-remote-strip-subtitle">{remoteStateLabel}</div>
           </div>
-          <button
-            type="button"
-            className={`btn-secondary-inline ${remoteOpening ? "btn-loading" : ""}`}
-            onClick={onOpenRemote}
-            disabled={remoteOpening}
-          >
-            {remoteOpening && <span className="btn-spinner btn-spinner-dark" />}
-            <span>{remoteOpening ? "Abrindo..." : "Abrir remoto"}</span>
-          </button>
+          <span className={`support-inline-state ${context?.remoteStatus ?? "pending"}`}>
+            {context?.remoteStatus === "ready" ? "Online" : context?.remoteStatus === "pending" ? "Sync" : "Off"}
+          </span>
         </div>
 
         <div className="support-chat-shell">
           <div className="support-chat-shell-header">
             <div>
-              <div className="support-chat-shell-title">Chat de atendimento</div>
-              <div className="support-chat-shell-subtitle">
-                O chat deve ficar visivel no painel, sem depender de popout externo.
-              </div>
+              <div className="support-chat-shell-title">Chat Trilink</div>
+              <div className="support-chat-shell-subtitle">{chatStateLabel}</div>
             </div>
             <button
               type="button"
@@ -651,8 +673,8 @@ function SupportScreen(props: {
                   <div className="support-chat-placeholder-title">{chatStateLabel}</div>
                   <div className="support-chat-placeholder-text">
                     {chatConfigured
-                      ? "Assim que o canal responder, a conversa sera exibida diretamente nesta area."
-                      : "A interface do agent continua disponivel, mas o Chatwoot nao foi configurado neste ambiente."}
+                      ? "A conversa sera exibida diretamente nesta area."
+                      : "Configure o Chatwoot para habilitar o atendimento neste painel."}
                   </div>
                 </div>
               </div>
@@ -787,6 +809,17 @@ function hideChatwootBubble() {
   } catch {
     // ignore
   }
+}
+
+function hasChatwootClient() {
+  const chatwoot = (window as unknown as {
+    $chatwoot?: {
+      toggle?: (mode: string) => void;
+      setUser?: (identifier: string, attributes: Record<string, string>) => void;
+    };
+  }).$chatwoot;
+
+  return Boolean(chatwoot?.toggle || chatwoot?.setUser);
 }
 
 function identifyChatwootContact(context: uistate.SupportContext | undefined) {

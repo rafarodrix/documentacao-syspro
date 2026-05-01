@@ -14,14 +14,26 @@ func TestResolveDisplayedRustDeskPasswordPrefersRuntimePassword(t *testing.T) {
 	}
 }
 
-func TestResolveDisplayedRustDeskPasswordFallsBackToDefaultPassword(t *testing.T) {
+func TestResolveDisplayedRustDeskPasswordDoesNotExposeDefaultPassword(t *testing.T) {
 	t.Parallel()
 
 	got := resolveDisplayedRustDeskPassword(persistedRemoteState{
 		RuntimePassword: "",
 		DefaultPassword: "112233",
 	})
-	if got != "112233" {
-		t.Fatalf("expected default password fallback, got %q", got)
+	if got != "" {
+		t.Fatalf("expected empty password when only bootstrap password exists, got %q", got)
+	}
+}
+
+func TestResolveDisplayedRustDeskPasswordIgnoresRuntimeWhenItMatchesDefault(t *testing.T) {
+	t.Parallel()
+
+	got := resolveDisplayedRustDeskPassword(persistedRemoteState{
+		RuntimePassword: "112233",
+		DefaultPassword: "112233",
+	})
+	if got != "" {
+		t.Fatalf("expected empty password when runtime matches bootstrap password, got %q", got)
 	}
 }
