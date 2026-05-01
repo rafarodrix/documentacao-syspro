@@ -696,6 +696,25 @@ export function RemoteHostDetailsPanel({
     });
   }
 
+  function handleAddCompanyToInstallation(updateId: string, companyId: string) {
+    startRelinkingInstallation(async () => {
+      try {
+        await requestRemoteMutation({
+          url: `/api/remote/hosts/${host.id}/syspro-updates/${updateId}`,
+          method: "PATCH",
+          body: {
+            companyId,
+            mode: "add",
+          },
+        });
+        toast.success("Empresa adicionada à instalação com sucesso.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getRemoteApiErrorMessage(error));
+      }
+    });
+  }
+
   function handleBulkRelinkInstallations(companyId: string | null) {
     if (!installationContextsForDisplay.length) {
       toast.error("Nenhuma instalação disponível para a ação em lote.");
@@ -1108,6 +1127,7 @@ export function RemoteHostDetailsPanel({
             setSelectedCompanyByUpdateId={setSelectedCompanyByUpdateId}
             isRelinkingInstallation={isRelinkingInstallation}
             handleRelinkInstallation={handleRelinkInstallation}
+            handleAddCompanyToInstallation={handleAddCompanyToInstallation}
             manualInstallationCompanyId={manualInstallationCompanyId}
             setManualInstallationCompanyId={setManualInstallationCompanyId}
             manualInstallationPath={manualInstallationPath}

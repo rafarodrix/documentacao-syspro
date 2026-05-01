@@ -1,4 +1,5 @@
 import { HardDriveDownload, Loader2, Plus } from "lucide-react";
+import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,7 @@ export function HostInstallationsTab({
   setSelectedCompanyByUpdateId,
   isRelinkingInstallation,
   handleRelinkInstallation,
+  handleAddCompanyToInstallation,
   manualInstallationCompanyId,
   setManualInstallationCompanyId,
   manualInstallationPath,
@@ -56,6 +58,7 @@ export function HostInstallationsTab({
   setSelectedCompanyByUpdateId: Dispatch<SetStateAction<Record<string, string>>>;
   isRelinkingInstallation: boolean;
   handleRelinkInstallation: (updateId: string, companyId: string | null) => void;
+  handleAddCompanyToInstallation: (updateId: string, companyId: string) => void;
   manualInstallationCompanyId: string;
   setManualInstallationCompanyId: (value: string) => void;
   manualInstallationPath: string;
@@ -63,6 +66,8 @@ export function HostInstallationsTab({
   isCreatingManualInstallation: boolean;
   handleCreateManualInstallation: () => void;
 }) {
+  const [addCompanyByUpdateId, setAddCompanyByUpdateId] = useState<Record<string, string>>({});
+
   return (
     <div className="space-y-4">
       <Card className="border-border/50">
@@ -383,6 +388,41 @@ export function HostInstallationsTab({
                         <p className="mt-2 text-xs text-muted-foreground">
                           Seu perfil tem acesso somente leitura para vinculação de instalações.
                         </p>
+                      )}
+                      {canManageInstallations && (
+                        <div className="mt-3 border-t border-border/30 pt-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                            Adicionar outra empresa
+                          </p>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <SearchableCompanyPicker
+                                value={addCompanyByUpdateId[entry.id] ?? ""}
+                                options={details.companyOptions.filter(
+                                  (opt) => opt.value !== entry.companyId && opt.value !== UNLINKED_COMPANY_VALUE
+                                )}
+                                onChange={(val) => setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: val }))}
+                                disabled={isRelinkingInstallation}
+                                placeholder="Selecionar empresa..."
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isRelinkingInstallation || !addCompanyByUpdateId[entry.id]}
+                              onClick={() => {
+                                const cid = addCompanyByUpdateId[entry.id];
+                                if (cid) {
+                                  handleAddCompanyToInstallation(entry.id, cid);
+                                  setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: "" }));
+                                }
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Adicionar
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
