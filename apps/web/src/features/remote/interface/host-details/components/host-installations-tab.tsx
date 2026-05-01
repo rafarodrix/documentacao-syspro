@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { RemoteHostDetails } from "@/features/remote/domain/model";
-import { SearchableCompanyPicker } from "./SearchableCompanyPicker";
+import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
+import { SearchableCompanyPicker } from "./searchable-company-picker";
 import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
 import {
   COMPANY_SERVER_TYPE_LABEL,

@@ -10,7 +10,7 @@ import { getRemoteEfficiencyMetrics } from "@/features/remote/application/report
 import { getRemotePlatformDirectory } from "@/features/remote/application/remote-platform.queries";
 import { getRemoteSessions } from "@/features/remote/application/session-queries";
 import { getRemoteTenantScope } from "@/features/remote/application/scope";
-import type { RemoteSessionStatus } from "@/features/remote/domain/model";
+import type { RemoteSessionStatus } from "@/features/remote/domain/remote-host.types";
 import { RemotePlatformDirectoryPanel } from "@/features/remote/interface/directory-page";
 import { RemoteSessionsPanel } from "@/features/remote/interface/sessions-panel";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";

@@ -3,7 +3,7 @@ import type {
   RemotePlatformDirectory,
   RemotePlatformOverview,
   RemoteTenantScope,
-} from "@/features/remote/domain/model";
+} from "@/features/remote/domain/remote-host.types";
 import {
   fetchRemoteHostDetailsGateway,
   fetchRemotePlatformDirectoryGateway,

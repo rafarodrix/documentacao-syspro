@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { RemoteAdminService } from './remote-admin.service';
-import type { RemoteSessionStatus } from './support/model';
+import type { RemoteSessionStatus } from './support/remote-admin.types';
 
 @Controller('remote-admin')
 export class RemoteAdminController {

@@ -1,4 +1,4 @@
-import type { RemotePaginationMeta, RemotePlatformOverview, RemoteSessionStatus, RemoteTenantScope } from "@/features/remote/domain/model";
+import type { RemotePaginationMeta, RemotePlatformOverview, RemoteSessionStatus, RemoteTenantScope } from "@/features/remote/domain/remote-host.types";
 import { fetchRemoteSessionsGateway } from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
 
 export async function getRemoteSessions(

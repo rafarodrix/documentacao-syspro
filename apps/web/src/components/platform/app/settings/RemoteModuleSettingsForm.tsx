@@ -33,7 +33,7 @@ import {
   getRemoteModuleSettingsAction,
   updateRemoteModuleSettingsAction,
 } from "@/features/remote/application/module-settings-actions";
-import type { RemoteModuleSettings } from "@/features/remote/domain/model";
+import type { RemoteModuleSettings } from "@/features/remote/domain/remote-host.types";
 import { getRemoteApiErrorMessage, requestRemoteMutation, requestRemoteQuery } from "@/features/remote/interface/remote-api";
 
 type RemoteModuleSettingsFormValues = z.input<typeof remoteModuleSettingsSchema>;

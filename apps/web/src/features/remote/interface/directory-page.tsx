@@ -41,7 +41,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { RemotePlatformDirectory } from "@/features/remote/domain/model";
+import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import {
@@ -49,7 +49,7 @@ import {
   getRemoteApiErrorMessage,
   requestRemoteMutation,
 } from "@/features/remote/interface/remote-api";
-import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
+import { SearchableCompanyPicker } from "./host-details/components/searchable-company-picker";
 
 type DirectoryItem = RemotePlatformDirectory["items"][number];
 type PendingDirectoryItem = RemotePlatformDirectory["pendingItems"][number];

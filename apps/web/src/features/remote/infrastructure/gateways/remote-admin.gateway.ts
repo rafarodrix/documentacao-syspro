@@ -9,7 +9,7 @@ import {
   remotePlatformDirectorySchema,
   remotePlatformOverviewSchema,
   remoteSessionsGatewayResponseSchema,
-} from "@/features/remote/domain/model";
+} from "@/features/remote/domain/remote-host.types";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { efficiencyMetricsSchema } from "@/features/remote/application/report-queries";
 import type { ZodType } from "zod";
