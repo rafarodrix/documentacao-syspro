@@ -1,4 +1,4 @@
-export * from "./model";
+export * from "./remote-host.types";
 export {
   resolveRemoteOperationalStatus,
   getRemoteOperationalStatusMeta,
