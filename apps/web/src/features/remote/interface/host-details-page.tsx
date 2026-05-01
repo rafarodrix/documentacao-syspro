@@ -298,6 +298,24 @@ export function RemoteHostDetailsPanel({
 
     return items;
   }, [dedupedInstallationContexts, details.company.installationDirectory]);
+  const desiredSysproInstalls = useMemo(() => {
+    return dedupedInstallationContexts
+      .filter((context) => !!context.update.companyId)
+      .map((context) => {
+        const companyName =
+          context.company?.nomeFantasia?.trim() ||
+          context.company?.razaoSocial?.trim() ||
+          context.update.resolvedCompanyName?.trim() ||
+          context.update.companyLabel.trim();
+        const rawPath = context.update.path.trim();
+        const serverPath = /\.exe$/i.test(rawPath) ? rawPath.replace(/[/\\][^/\\]+\.exe$/i, "") : rawPath;
+        return {
+          companyId: context.update.companyId!,
+          companyName,
+          serverPath,
+        };
+      });
+  }, [dedupedInstallationContexts]);
   const detectedCompanyCount = useMemo(() => {
     const names = new Set(
       installations
@@ -322,6 +340,15 @@ export function RemoteHostDetailsPanel({
     return dedupedInstallationContexts;
   }, [dedupedInstallationContexts, installationFilter]);
   const serviceStatusIcon = useMemo(() => getServiceStatusIconMeta(host.serviceStatus), [host.serviceStatus]);
+  const systemSnapshot = details.agentTelemetry.systemSnapshot;
+  const networkSnapshot = details.agentTelemetry.networkSnapshot;
+  const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
+  const hardwareIdentity = details.agentTelemetry.hardwareIdentity;
+  const diskSnapshot = details.agentTelemetry.diskSnapshot;
+  const sysproProcessSnapshot = details.agentTelemetry.sysproProcessSnapshot;
+  const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
+  const rebootPending = details.agentTelemetry.rebootPending;
+  const agentMetrics = details.agentTelemetry.agentMetrics;
   const agentHealthCard = useMemo(() => {
     const latestAutoHealCommand = details.agentCommands.find(
       (command) => command.type === "REAPPLY_ALIAS" || command.type === "REAPPLY_CONFIG"
@@ -397,24 +424,13 @@ export function RemoteHostDetailsPanel({
           ]))) ??
       host.serviceStatus;
 
-    const erpVersionKeys = [
-      "erpVersion",
-      "versionErp",
-      "versaoErp",
-      "sysproVersion",
-      "versionSyspro",
-      "versaoSyspro",
-    ];
-
-    const erpVersion =
-      details.agentCommands
-        .map((command) => {
-          return (
-            extractStringFromPayload(command.resultPayload, erpVersionKeys) ||
-            extractStringFromPayload(command.payload, erpVersionKeys)
-          );
-        })
-        .find((value): value is string => !!value) ?? null;
+    const versionEntries = Array.isArray(systemSnapshot?.["installations"])
+      ? (systemSnapshot["installations"] as Array<Record<string, unknown>>)
+      : [];
+    const collectedVersions = versionEntries
+      .map((entry) => (typeof entry["exeVersion"] === "string" ? entry["exeVersion"].trim() : ""))
+      .filter((value) => !!value);
+    const erpVersion = collectedVersions[0] ?? null;
 
     const erpPaths = Array.from(
       new Set(
@@ -439,7 +455,7 @@ export function RemoteHostDetailsPanel({
         paths: resolvedPaths,
       },
     };
-  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus]);
+  }, [details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, systemSnapshot]);
   const autoHealStatusIcon = useMemo(
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
     [agentHealthCard.autoHeal.status]
@@ -450,15 +466,6 @@ export function RemoteHostDetailsPanel({
     () => getRemoteProductStatusMeta(details.agentHealth.productStatus),
     [details.agentHealth.productStatus]
   );
-  const systemSnapshot = details.agentTelemetry.systemSnapshot;
-  const networkSnapshot = details.agentTelemetry.networkSnapshot;
-  const softwareSnapshot = details.agentTelemetry.softwareSnapshot;
-  const hardwareIdentity = details.agentTelemetry.hardwareIdentity;
-  const diskSnapshot = details.agentTelemetry.diskSnapshot;
-  const sysproProcessSnapshot = details.agentTelemetry.sysproProcessSnapshot;
-  const windowsUpdateStatus = details.agentTelemetry.windowsUpdateStatus;
-  const rebootPending = details.agentTelemetry.rebootPending;
-  const agentMetrics = details.agentTelemetry.agentMetrics;
   const bootstrapRateMetrics = useMemo(() => readBootstrapRateMetrics(agentMetrics), [agentMetrics]);
   const contractSchemaVersions = useMemo(() => readContractSchemaVersions(agentMetrics), [agentMetrics]);
   const contractValidationError = useMemo(() => {
@@ -1215,6 +1222,7 @@ export function RemoteHostDetailsPanel({
             visibleAgentCommands={visibleAgentCommands}
             hiddenAcknowledgedCount={hiddenAcknowledgedCount}
             hasPendingInstallGuide={hasPendingInstallGuide}
+            desiredSysproInstalls={desiredSysproInstalls}
             linkedDevice={linkedDevice}
             hostId={host.id}
           />
