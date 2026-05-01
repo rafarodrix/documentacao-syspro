@@ -426,8 +426,8 @@ function normalizeLastAgentMetrics(metrics: unknown) {
   if (!record) return null;
 
   return {
-    cpuLoad: readNumberRecordValue(record, "cpuLoad"),
-    ramUsedPc: readNumberRecordValue(record, "ramUsedPc"),
+    cpuLoad: readNumberRecordValue(record, "cpuLoadPct") ?? readNumberRecordValue(record, "cpuLoad"),
+    ramUsedPc: readNumberRecordValue(record, "memoryUsedPct") ?? readNumberRecordValue(record, "ramUsedPc"),
     diskFree: readNumberRecordValue(record, "diskFree"),
     osInfo: typeof record.osInfo === "string" ? record.osInfo : null,
   };
