@@ -203,8 +203,10 @@ function App() {
     window.addEventListener("chatwoot:on-message", onMessage);
 
     (window as unknown as { chatwootSettings?: Record<string, unknown> }).chatwootSettings = {
+      type: "standard",
       hideMessageBubble: true,
       showUnreadMessagesDialog: false,
+      launcherTitle: "",
       welcomeTitle: "Suporte Trilink",
       welcomeDescription: "Canal oficial da Trilink com contexto tecnico do dispositivo.",
       position: "right",
@@ -625,34 +627,27 @@ function SupportScreen(props: {
               {remotePassword && <CopyButton value={remotePassword} label="Copiar senha" />}
             </div>
           </div>
-          <div className="support-summary-card">
-            <span className="support-summary-label">Maquina</span>
-            <span className="support-summary-value">{machineName}</span>
+          <div className="support-summary-card support-summary-card-primary support-summary-card-split">
+            <div className="support-summary-stack">
+              <span className="support-summary-label">Maquina</span>
+              <span className="support-summary-value">{machineName}</span>
+            </div>
+            <div className="support-summary-divider" />
+            <div className="support-summary-stack">
+              <span className="support-summary-label">Operador</span>
+              <span className="support-summary-value">{operatorName}</span>
+            </div>
           </div>
-          <div className="support-summary-card">
-            <span className="support-summary-label">Operador</span>
-            <span className="support-summary-value">{operatorName}</span>
-          </div>
-        </div>
-
-        <div className="support-remote-strip">
-          <span className="support-card-icon compact">
-            <RemoteIcon />
-          </span>
-          <div className="support-remote-strip-copy">
-            <div className="support-remote-strip-title">Canal remoto</div>
-            <div className="support-remote-strip-subtitle">{remoteStateLabel}</div>
-          </div>
-          <span className={`support-inline-state ${context?.remoteStatus ?? "pending"}`}>
-            {context?.remoteStatus === "ready" ? "Online" : context?.remoteStatus === "pending" ? "Sync" : "Off"}
-          </span>
         </div>
 
         <div className="support-chat-shell">
           <div className="support-chat-shell-header">
             <div>
               <div className="support-chat-shell-title">Chat Trilink</div>
-              <div className="support-chat-shell-subtitle">{chatStateLabel}</div>
+              <div className="support-chat-shell-subtitle">
+                {chatStateLabel}
+                {remoteStateLabel ? ` • ${remoteStateLabel}` : ""}
+              </div>
             </div>
             <button
               type="button"
@@ -724,17 +719,6 @@ function CopiedIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function RemoteIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="3" width="12" height="8.5" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M5.5 14h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M8 11.5V14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="8" cy="7.25" r="1.6" fill="currentColor" />
     </svg>
   );
 }
@@ -833,7 +817,7 @@ function identifyChatwootContact(context: uistate.SupportContext | undefined) {
 
   if (!chatwoot?.setUser) return;
 
-  const identifier = context.deviceId || context.hostname || context.machineName || "";
+  const identifier = buildChatwootContactIdentifier(context);
   if (!identifier) return;
 
   const name =
@@ -847,11 +831,27 @@ function identifyChatwootContact(context: uistate.SupportContext | undefined) {
     chatwoot.setUser(identifier, {
       name,
       company_name: context.companyDisplayName || "",
+      company_id: context.companyId || "",
+      host_id: context.hostId || "",
+      host_alias: context.hostAlias || "",
+      rustdesk_id: context.rustdeskId || "",
+      machine_name: context.machineName || context.hostname || "",
+      local_username: context.localUsername || "",
+      os: context.os || "",
+      agent_version: context.agentVersion || "",
       description: context.description || "",
     });
   } catch {
     // ignore
   }
+}
+
+function buildChatwootContactIdentifier(context: uistate.SupportContext) {
+  if (context.hostId?.trim()) return `remote-host:${context.hostId.trim()}`;
+  if (context.deviceId?.trim()) return `agent-device:${context.deviceId.trim()}`;
+  if (context.hostname?.trim()) return `hostname:${context.hostname.trim().toLowerCase()}`;
+  if (context.machineName?.trim()) return `machine:${context.machineName.trim().toLowerCase()}`;
+  return "";
 }
 
 export default App;
