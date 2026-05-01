@@ -2,12 +2,21 @@
 
 Atualizado em 2026-05-01.
 
+## Status
+
+**Implementado e em producao** (conforme codigo em `apps/agent/internal/modules/device/`).
+
+O `modules/device` coleta metricas reais do sistema operacional Windows e as transmite ao portal via payload de sync. A coleta e feita por ciclos no `Apply()` do modulo. O remote module injeta os snapshots no `RemoteSyncRequest` via interface `DeviceSnapshotProvider`.
+
+**Pendente:** popular `device.syspro_installs` no desired state com instalacoes cadastradas no portal, e corrigir matching de versao na UI de `companyId` para `path`.
+
+---
+
 ## Objetivo
 
-Implementar coleta real de metricas do sistema operacional Windows no `modules/device` e
-transmiti-las ao portal via payload de sync. O operador visualiza no portal o estado de cada
-maquina: uso de memoria, carga de CPU, espaco em disco por unidade e status dos servicos
-criticos (Firebird, SysPro Server, IIS).
+Coletar metricas do sistema operacional Windows no `modules/device` e transmiti-las ao portal
+via payload de sync. O operador visualiza no portal o estado de cada maquina: uso de memoria,
+carga de CPU, espaco em disco por unidade e status dos servicos criticos (Firebird, SysPro Server, IIS).
 
 **Restricao central:** uma maquina pode ter multiplas instalacoes do Syspro — uma por empresa.
 A coleta de dados do SysPro (versao, processo, caminho) precisa identificar a qual empresa cada
@@ -54,22 +63,29 @@ O agente nao descobre os caminhos — recebe do portal. Isso elimina ambiguidade
 
 ---
 
-## O que ja existe (nao precisa criar)
+## Contrato de sync — `internal/domain/remote_contracts.go`
 
-### Contrato de sync — `internal/domain/remote_contracts.go`
-
-`RemoteSyncRequest` ja tem todos os campos de destino:
+`RemoteSyncRequest` campos de snapshot (todos implementados e preenchidos pelo device module):
 
 ```go
-DiskSnapshot        any `json:"diskSnapshot,omitempty"`
-SysproProcesses     any `json:"sysproProcesses,omitempty"`
-AgentMetrics        any `json:"agentMetrics,omitempty"`
-RebootPending       any `json:"rebootPending,omitempty"`
-SystemSnapshot      any `json:"systemSnapshot,omitempty"`
-WindowsUpdateStatus any `json:"windowsUpdateStatus,omitempty"`
+AgentMetrics    any `json:"agentMetrics,omitempty"`    // objeto AgentMetricsSnapshot
+DiskSnapshot    any `json:"diskSnapshot,omitempty"`    // array []DiskVolume
+SysproProcesses any `json:"sysproProcesses,omitempty"` // array []ServiceStatus
+SysproVersions  any `json:"sysproVersions,omitempty"`  // objeto SysproVersionSnapshot (campo dedicado)
+RebootPending   any `json:"rebootPending,omitempty"`   // *bool
 ```
 
-Nenhum desses campos e preenchido hoje. O `runSync` envia apenas identidade e RustDesk.
+Campos ainda nao preenchidos pelo agente:
+
+```go
+SystemSnapshot      any `json:"systemSnapshot,omitempty"`
+WindowsUpdateStatus any `json:"windowsUpdateStatus,omitempty"`
+NetworkSnapshot     any `json:"networkSnapshot,omitempty"`
+SoftwareSnapshot    any `json:"softwareSnapshot,omitempty"`
+HardwareIdentity    any `json:"hardwareIdentity,omitempty"`
+```
+
+**Nota:** versoes do Syspro sao enviadas em `SysproVersions` (campo dedicado), NAO em `SystemSnapshot`.
 
 ### Schema do portal — `packages/database/prisma/schema.prisma`
 
@@ -626,38 +642,38 @@ func round2(v float64) float64 {
 
 ---
 
-## Implementacao: `modules/device/module.go` (revisado)
+## `modules/device/module.go` — implementacao atual
+
+Arquivo real em `apps/agent/internal/modules/device/module.go`. Assinatura do construtor:
 
 ```go
-package device
+func New(logger Logger) *Module
+```
 
-import (
-    "context"
-    "sync"
-    "trilink/agent/internal/domain"
-    "trilink/agent/internal/infra/logging"
-    "trilink/agent/internal/infra/runtime"
+O `Collector` e criado internamente. O executor de subprocessos e gerenciado pelo proprio `Collector` sem necessitar de injecao externa.
+
+Interface publica relevante:
+
+```go
+// GetLastSnapshot retorna structs tipados internos.
+func (m *Module) GetLastSnapshot() (
+    metrics *AgentMetricsSnapshot,
+    disks *DiskVolumeSnapshot,
+    services *SysproProcessSnapshot,
+    versions *SysproVersionSnapshot,
 )
 
-type Module struct {
-    collector *Collector
-    logger    *logging.Logger
+// GetSyncSnapshots implementa remote.DeviceSnapshotProvider.
+// Retorna payloads no formato exato para o portal:
+// - metrics: objeto (normalizeOptionalRecordWithWarning)
+// - disks:   []DiskVolume — array (NAO o struct wrapper DiskVolumeSnapshot)
+// - services: []ServiceStatus — array (NAO o struct wrapper SysproProcessSnapshot)
+// - versions: objeto SysproVersionSnapshot (normalizeOptionalRecordWithWarning)
+// - rebootPending: *bool
+func (m *Module) GetSyncSnapshots() (metrics, disks, services, versions any, rebootPending *bool)
+```
 
-    mu           sync.RWMutex
-    lastMetrics  *AgentMetricsSnapshot
-    lastDisks    *DiskVolumeSnapshot
-    lastServices *SysproProcessSnapshot
-    lastVersions *SysproVersionSnapshot
-
-    cycleCount uint64
-}
-
-func New(executor runtime.Executor, logger *logging.Logger) *Module {
-    return &Module{
-        collector: NewCollector(executor, logger),
-        logger:    logger,
-    }
-}
+Trecho do `Apply` mostrando os ciclos de coleta:
 
 func (m *Module) Name() string { return "device" }
 
@@ -762,20 +778,12 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 
     // Injeta snapshots do device (nil-safe — primeiros ciclos ainda nao tem dado)
     if m.device != nil {
-        met, disks, svc, ver := m.device.GetLastSnapshot()
-        if met != nil {
-            req.AgentMetrics  = met
-            req.RebootPending = met.RebootPending
-        }
-        if disks != nil {
-            req.DiskSnapshot = disks
-        }
-        if svc != nil {
-            req.SysproProcesses = svc
-        }
-        if ver != nil {
-            req.SystemSnapshot = ver  // reutiliza SystemSnapshot para versoes
-        }
+        devMetrics, devDisks, devServices, devVersions, devReboot := m.device.GetSyncSnapshots()
+        syncReq.AgentMetrics    = devMetrics
+        syncReq.DiskSnapshot    = devDisks
+        syncReq.SysproProcesses = devServices
+        syncReq.SysproVersions  = devVersions   // campo dedicado; NAO SystemSnapshot
+        syncReq.RebootPending   = devReboot
     }
 
     syncResp, err := m.client.Sync(ctx, req)
@@ -790,7 +798,7 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 ```go
 // internal/app/bootstrap.go (trecho)
 
-deviceMod  := device.New(executor, logger)
+deviceMod  := device.New(logger)            // sem executor — gerenciado internamente
 remoteMod  := remote.New(
     remote.WithDevice(deviceMod),
     // ... outras opcoes ...
@@ -808,17 +816,18 @@ Nenhuma alteracao necessaria no portal.
 
 Todos os campos sao gravados em transacao atomica:
 
-| Payload do agente | Campo DB | Condicao de gravacao |
-|------------------|----------|--------------------|
-| `agentMetrics` (objeto) | `lastAgentMetrics` / `lastAgentMetricsAt` | Nao-nulo |
-| `diskSnapshot` (array) | `lastDiskSnapshot` / `lastDiskSnapshotAt` | `length > 0` |
-| `sysproProcesses` (array) | `lastSysproProcessSnapshot` / `lastSysproProcessSnapshotAt` | `length > 0` |
-| `rebootPending` (boolean) | `lastRebootPending` / `lastRebootPendingAt` | `typeof === "boolean"` |
-| `systemSnapshot` (objeto) | `lastSystemSnapshot` / `lastSystemSnapshotAt` | Nao-nulo |
-| `networkSnapshot` (objeto) | `lastNetworkSnapshot` / `lastNetworkSnapshotAt` | Nao-nulo |
-| `softwareSnapshot` (array) | `lastSoftwareSnapshot` / `lastSoftwareSnapshotAt` | `length > 0` |
-| `hardwareIdentity` (objeto) | `lastHardwareIdentity` / `lastHardwareIdentityAt` | Nao-nulo |
-| `windowsUpdateStatus` (objeto) | `lastWindowsUpdateStatus` / `lastWindowsUpdateStatusAt` | Nao-nulo |
+| Payload do agente | Campo DB | Condicao de gravacao | Status |
+|------------------|----------|--------------------|--------|
+| `agentMetrics` (objeto) | `lastAgentMetrics` / `lastAgentMetricsAt` | Nao-nulo | Implementado |
+| `diskSnapshot` (array) | `lastDiskSnapshot` / `lastDiskSnapshotAt` | `length > 0` | Implementado |
+| `sysproProcesses` (array) | `lastSysproProcessSnapshot` / `lastSysproProcessSnapshotAt` | `length > 0` | Implementado |
+| `sysproVersions` (objeto) | `lastSysproVersionSnapshot` / `lastSysproVersionSnapshotAt` | Nao-nulo | Implementado |
+| `rebootPending` (boolean) | `lastRebootPending` / `lastRebootPendingAt` | `typeof === "boolean"` | Implementado |
+| `systemSnapshot` (objeto) | `lastSystemSnapshot` / `lastSystemSnapshotAt` | Nao-nulo | Pendente no agente |
+| `networkSnapshot` (objeto) | `lastNetworkSnapshot` / `lastNetworkSnapshotAt` | Nao-nulo | Pendente no agente |
+| `softwareSnapshot` (array) | `lastSoftwareSnapshot` / `lastSoftwareSnapshotAt` | `length > 0` | Pendente no agente |
+| `hardwareIdentity` (objeto) | `lastHardwareIdentity` / `lastHardwareIdentityAt` | Nao-nulo | Pendente no agente |
+| `windowsUpdateStatus` (objeto) | `lastWindowsUpdateStatus` / `lastWindowsUpdateStatusAt` | Nao-nulo | Pendente no agente |
 
 ### Regras de normalizacao — CRITICO
 
@@ -833,19 +842,19 @@ O portal normaliza cada campo antes de persistir via `process-sync.use-case.ts`:
 
 **Se o formato estiver errado, o campo e descartado com warning `SYNC_INVALID_*` e a sync continua sem erro.**
 
-### Formato correto que o agente envia (apos correcao)
+### Formato correto que o agente envia
 
-O agente envia os arrays internos dos structs — NAO os structs wrapper com `collectedAt`:
+O agente envia via `GetSyncSnapshots()` que extrai os payloads corretos:
 
 ```
-RemoteSyncRequest.DiskSnapshot    = disks.Volumes    // []DiskVolume  (array) ✅
-RemoteSyncRequest.SysproProcesses = services.Services // []ServiceStatus (array) ✅
-RemoteSyncRequest.AgentMetrics    = metrics           // *AgentMetricsSnapshot (objeto) ✅
-RemoteSyncRequest.SystemSnapshot  = versions          // *SysproVersionSnapshot (objeto) ✅
-RemoteSyncRequest.RebootPending   = &bool             // boolean JSON ✅
+RemoteSyncRequest.AgentMetrics    = lastMetrics              // *AgentMetricsSnapshot (objeto) ✅
+RemoteSyncRequest.DiskSnapshot    = lastDisks.Volumes        // []DiskVolume  (array, sem collectedAt) ✅
+RemoteSyncRequest.SysproProcesses = lastServices.Services    // []ServiceStatus (array, sem collectedAt) ✅
+RemoteSyncRequest.SysproVersions  = lastVersions             // *SysproVersionSnapshot (objeto) ✅
+RemoteSyncRequest.RebootPending   = &lastMetrics.RebootPending // *bool ✅
 ```
 
-O `collectedAt` dos structs de disco e servicos nao e enviado — o portal registra seu proprio timestamp via `heartbeatAt`.
+O `collectedAt` dos structs de disco e servicos nao e enviado — apenas os arrays internos. O portal registra seu proprio timestamp via `heartbeatAt`.
 
 ### Teste existente que valida o comportamento de rejeicao
 
@@ -886,34 +895,25 @@ Campos ja lidos (expandir exibicao):
 
 ---
 
-## Ordem de implementacao — Step 1
+## Estado de implementacao — CONCLUIDO
 
-O step 1 consiste em criar os tipos e o collector de servicos (que e o dado mais critico
-e o mais simples de implementar — zero PowerShell):
+Todos os arquivos foram criados e estao em producao:
 
-**Arquivos a criar/modificar:**
+| Arquivo | Status |
+|---------|--------|
+| `internal/domain/module_state.go` — `SysproInstallTarget` e `SysproInstalls` | Concluido |
+| `apps/agent/internal/modules/device/types.go` — todos os tipos de snapshot | Concluido |
+| `apps/agent/internal/modules/device/collector.go` — `CollectServices`, `CollectMetrics`, `CollectDisks`, `CollectSysproVersions` | Concluido |
+| `apps/agent/internal/modules/device/collector_windows.go` + `collector_other.go` | Concluido |
+| `apps/agent/internal/modules/device/module.go` — `Apply`, `GetLastSnapshot`, `GetSyncSnapshots` | Concluido |
+| `apps/agent/internal/modules/remote/module.go` — `DeviceSnapshotProvider`, injecao no `runSync` | Concluido |
+| `apps/agent/internal/app/bootstrap.go` — `device.New(logger)` + `remote.WithDevice(deviceMod)` | Concluido |
 
-1. `internal/domain/module_state.go` — adicionar `SysproInstallTarget` e campo `SysproInstalls` no `DeviceDesiredState`
-2. `apps/agent/internal/modules/device/types.go` — definir todos os tipos de snapshot
-3. `apps/agent/internal/modules/device/collector.go` — implementar `CollectServices` (SCM nativo)
-4. `apps/agent/internal/modules/device/module.go` — substituir stub, expor `GetLastSnapshot`
-5. `apps/agent/internal/modules/remote/module.go` — adicionar `DeviceSnapshotProvider`, injetar no `runSync`
-6. `apps/agent/internal/app/bootstrap.go` — injetar `deviceMod` no `RemoteModule`
+## Proximos passos pendentes
 
-**Verificacoes antes de codar:**
-
-```powershell
-# 1. Confirmar ServiceName do SysPro Server em producao
-Get-Service | Where-Object { $_.DisplayName -like '*Syspro*' -or $_.Name -like '*Syspro*' } |
-    Select-Object Name, DisplayName, Status, StartType
-
-# 2. Confirmar nome do servico Firebird
-Get-Service | Where-Object { $_.DisplayName -like '*firebird*' } |
-    Select-Object Name, DisplayName, Status
-
-# 3. Verificar se IIS esta instalado
-Get-Service W3SVC -ErrorAction SilentlyContinue
-```
+1. **Portal: `buildDesiredState`** — popular `device.syspro_installs` com instalacoes vinculadas ao `RemoteHost` (hoje o campo e enviado vazio; sem isso o agente nao monitora SysproServer nem coleta versoes)
+2. **UI: matching de versao** — `HostInstallationsTab` compara versao por `companyId`; deve comparar por `path` para suportar multiplas empresas no mesmo host
+3. **Portal web: exibir metricas** — cards de memoria, CPU, discos e servicos na pagina de detalhe do host
 
 ---
 

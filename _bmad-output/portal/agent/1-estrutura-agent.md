@@ -344,9 +344,30 @@ Fluxo completo implementado:
 
 Leitura do RustDesk ID: tenta arquivo de config primeiro (`RustDesk2.toml` no perfil SYSTEM), depois CLI `--get-id` com retry exponencial.
 
-### `device` - Stub (integracao pendente)
+### `device` - Operacional
 
-O modulo existe e participa do ciclo de reconcile mas nao coleta dados reais da maquina. O `Apply` retorna mensagem fixa `"device module scaffolded; runtime integration pending"`. Coleta efetiva de metricas de sistema, discos e servicos ainda nao foi implementada. Ver `5-agent-monitoring-remoto.md` para o plano completo.
+Coleta real implementada em producao. Ciclos:
+
+- **Todo Apply (~45s):** memoria, CPU, reboot pending (PowerShell WMI) + status de servicos Windows via SCM nativo (Firebird, SysproServer, IIS, RustDesk)
+- **A cada 4 ciclos (~3 min):** espaco em disco por volume (PowerShell WMI)
+- **A cada 80 ciclos (~1h) ou no primeiro ciclo:** versao do `SysproServer.exe` por instalacao
+
+Interface publica do modulo:
+
+- `GetLastSnapshot()` — retorna os structs tipados internos
+- `GetSyncSnapshots()` — retorna os payloads no formato exato que o portal espera (arrays de objetos para disco/servicos, objeto para metricas/versoes)
+
+Construtor: `device.New(logger Logger)` — recebe apenas logger; o `Collector` interno gerencia os subprocessos.
+
+Os snapshots sao injetados no `RemoteSyncRequest` pelo remote module via interface `DeviceSnapshotProvider`:
+
+```go
+type DeviceSnapshotProvider interface {
+    GetSyncSnapshots() (metrics, disks, services, versions any, rebootPending *bool)
+}
+```
+
+Ver `5-agent-monitoring-remoto.md` para detalhes da coleta e tipos de snapshot.
 
 ### `support` - Funcional
 
@@ -385,12 +406,14 @@ Endpoints genericos (opt-in via `PORTAL_AGENT_API_ENABLED=true`):
 
 Quando `PORTAL_AGENT_API_ENABLED=true`, o portal tenta vincular o `AgentDevice` a um `RemoteHost` existente a cada `register` e a cada `heartbeat` (enquanto nao houver vinculo). A logica e best-effort: erros nunca bloqueiam o heartbeat.
 
-Regras do match:
+Regras do match — baseadas em IDs explícitos enviados pelo agente (via `AgentRemoteLinkContext`):
 
-1. Busca `RemoteHost` cujo `machineName` seja igual ao `hostname` do agente (case-insensitive)
-2. Exige exatamente 1 resultado; se houver 0 ou 2+, nenhum link e criado (evita ambiguidade)
-3. Se o `RemoteHost` tiver `companyId` e o `AgentDevice` ainda nao tiver, copia o `companyId` automaticamente (PR-3)
-4. A operacao usa uma unica transacao (`agentDevice.update`) com `remoteHostId` e, condicionalmente, `companyId`
+1. Se `linkContext.remoteHostId` estiver preenchido, busca o `RemoteHost` diretamente por ID (match exato)
+2. Se nao houver match por ID e `linkContext.rustdeskId` estiver preenchido, busca por `agentExternalId = rustdeskId`; exige exatamente 1 resultado (evita ambiguidade)
+3. Se o `RemoteHost` tiver `companyId` e o `AgentDevice` ainda nao tiver, copia o `companyId` automaticamente
+4. A operacao usa uma unica transacao com `remoteHostId` e, condicionalmente, `companyId`
+
+O vinculo por hostname foi removido. O agente informa os IDs explicitamente durante register/heartbeat.
 
 Campos adicionados ao `AgentDeviceSummary` (contrato):
 
@@ -443,26 +466,42 @@ Todos os pacotes compilam. Ainda nao ha testes unitarios dedicados.
 - `agent-ui` abre janela automaticamente apenas quando provisionamento esta incompleto
 - endpoints genericos de agente sao opt-in (`PORTAL_AGENT_API_ENABLED`)
 - remote module opera por discover/bootstrap/sync independentemente do ciclo generico
-- vinculo `AgentDevice <-> RemoteHost` e automatico por hostname (best-effort, sem intervencao manual necessaria)
+- vinculo `AgentDevice <-> RemoteHost` e automatico por `remoteHostId` ou `rustdeskId` explícitos (best-effort, sem intervencao manual necessaria); vinculo por hostname foi removido
 - `companyId` do `RemoteHost` e propagado ao `AgentDevice` no momento do vinculo automatico, se o device nao tiver empresa ainda
+- `winsvc` registra o servico com `DelayedAutoStart=true` (inicia apos estabilizacao do boot) e recuperacao em 3 niveis: 5s, 30s, 5 min
 - `agent_token` ainda em JSON plano (DPAPI pendente)
 
-## Estado real do payload de sync
+## Payload de sync atual
 
-O `RemoteSyncRequest` ja possui os campos `SystemSnapshot`, `NetworkSnapshot`, `SoftwareSnapshot`, `HardwareIdentity`, `DiskSnapshot`, `SysproProcesses`, `WindowsUpdateStatus`, `RebootPending` e `AgentMetrics`. No entanto, **nenhum desses campos e preenchido hoje**. O `runSync` envia apenas: `AgentToken`, `RustDeskID`, `MachineName`, `AgentVersion`, `CurrentAlias`, `CurrentVersion`, `ServerHost`, `APIHost`, `PublicKey`, `ServiceStatus`.
+O `RemoteSyncRequest` e preenchido pelo remote module em cada ciclo de Sync. Campos de identidade (sempre enviados):
 
-O portal ja possui colunas para receber todos esses campos (`lastAgentMetrics`, `lastDiskSnapshot`, `lastSystemSnapshot`, `lastSysproProcessSnapshot`, `lastWindowsUpdateStatus`, `lastRebootPending`). A lacuna esta no lado do agente: o modulo `device` nao coleta nem injeta esses dados no payload de sync.
+`AgentToken`, `RustDeskID`, `MachineName`, `AgentVersion`, `CurrentAlias`, `CurrentVersion`, `ServerHost`, `APIHost`, `PublicKey`, `ServiceStatus`
+
+Campos de snapshot (enviados quando o device module ja coletou dados):
+
+| Campo no `RemoteSyncRequest` | Preenchido por | Formato |
+|------------------------------|---------------|---------|
+| `AgentMetrics` | `GetSyncSnapshots()` | objeto `AgentMetricsSnapshot` |
+| `DiskSnapshot` | `GetSyncSnapshots()` | array `[]DiskVolume` |
+| `SysproProcesses` | `GetSyncSnapshots()` | array `[]ServiceStatus` |
+| `SysproVersions` | `GetSyncSnapshots()` | objeto `SysproVersionSnapshot` |
+| `RebootPending` | `GetSyncSnapshots()` | `*bool` |
+
+O campo `SysproVersions` e dedicado a versoes do SysPro por instalacao. Nao usa `SystemSnapshot`. O portal persiste o snapshot em `lastSysproVersionSnapshot` / `lastSysproVersionSnapshotAt` (campo adicionado em migracaoo `20260501000000_add_syspro_version_snapshot`).
+
+Os demais campos do contrato (`SystemSnapshot`, `NetworkSnapshot`, `SoftwareSnapshot`, `HardwareIdentity`, `WindowsUpdateStatus`) existem no `RemoteSyncRequest` mas ainda nao sao preenchidos pelo agente.
 
 ## Gaps e proximos investimentos
 
-1. Implementar coleta real no `modules/device`: memoria, CPU, discos por unidade, servicos (Firebird, SysPro Server, IIS) — ver `5-agent-monitoring-remoto.md`
-2. Injetar snapshots coletados pelo device no `RemoteSyncRequest` dentro do `runSync`
-3. Proteger `remote_state.json` com DPAPI (agent_token, senhas)
-4. Conectar `modules/backup` ao pipeline `internal/backup`
-5. Expandir `BackupDesiredState` para politicas reais
-6. Persistir fila de ACK remoto pendente
-7. Implementar upgrade controlado do agente (`UPGRADE_CLIENT`)
-8. Implementar `Report()` e `HandleCommand()` no contrato de modulo
-9. Adicionar testes unitarios do remote module com fake client/store
-10. Adicionar testes com `httptest` para `portal_client`
-11. Criar transporte duravel de telemetria para o portal
+1. Proteger `remote_state.json` com DPAPI (agent_token, senhas)
+2. Conectar `modules/backup` ao pipeline `internal/backup`
+3. Expandir `BackupDesiredState` para politicas reais
+4. Persistir fila de ACK remoto pendente
+5. Implementar upgrade controlado do agente (`UPGRADE_CLIENT`)
+6. Implementar `Report()` e `HandleCommand()` no contrato de modulo
+7. Preencher `SystemSnapshot`, `NetworkSnapshot`, `SoftwareSnapshot`, `HardwareIdentity`, `WindowsUpdateStatus` no payload de sync
+8. Adicionar testes unitarios do remote module com fake client/store
+9. Adicionar testes com `httptest` para `portal_client`
+10. Criar transporte duravel de telemetria para o portal
+11. UI: corrigir matching de versao no `HostInstallationsTab` de `companyId` para `path` (pendente)
+12. Portal: popular `device.syspro_installs` no desired state com base nas instalacoes cadastradas no `RemoteHost`
