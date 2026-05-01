@@ -339,12 +339,17 @@ func (m *rustDeskManager) getVersion(_ context.Context, exePath string) string {
 }
 
 func (m *rustDeskManager) getAccessPassword() string {
+	bestPassword := ""
+	bestPriority := 0
 	for _, path := range rustDeskConfigPaths() {
-		if password := readRustDeskPasswordFromConfig(path, m.defaultPassword); password != "" {
-			return password
+		password, priority := readRustDeskPasswordFromConfig(path, m.defaultPassword)
+		if priority <= bestPriority {
+			continue
 		}
+		bestPassword = password
+		bestPriority = priority
 	}
-	return ""
+	return bestPassword
 }
 
 func (m *rustDeskManager) getCurrentConfig() (serverHost, apiHost, publicKey, publicKeyHash string) {
@@ -707,6 +712,7 @@ func installerFileName(rawURL string) string {
 
 func rustDeskConfigPaths() []string {
 	paths := []string{}
+	paths = append(paths, discoverRustDeskUserConfigPaths()...)
 	if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
 		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"))
 		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk.toml"))
@@ -717,7 +723,57 @@ func rustDeskConfigPaths() []string {
 		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
 		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml`,
 	)
+	return uniqueNonEmptyPaths(paths)
+}
+
+func discoverRustDeskUserConfigPaths() []string {
+	entries, err := os.ReadDir(`C:\Users`)
+	if err != nil {
+		return nil
+	}
+
+	paths := make([]string, 0, len(entries)*2)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		name := strings.TrimSpace(entry.Name())
+		if name == "" {
+			continue
+		}
+
+		lowerName := strings.ToLower(name)
+		if lowerName == "public" || strings.HasPrefix(lowerName, "default") || strings.HasPrefix(lowerName, "all users") {
+			continue
+		}
+
+		base := filepath.Join(`C:\Users`, name, "AppData", "Roaming", "RustDesk", "config")
+		paths = append(paths,
+			filepath.Join(base, "RustDesk2.toml"),
+			filepath.Join(base, "RustDesk.toml"),
+		)
+	}
+
 	return paths
+}
+
+func uniqueNonEmptyPaths(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	result := make([]string, 0, len(paths))
+	for _, path := range paths {
+		trimmed := strings.TrimSpace(path)
+		if trimmed == "" {
+			continue
+		}
+		key := strings.ToLower(filepath.Clean(trimmed))
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, trimmed)
+	}
+	return result
 }
 
 func readRustDeskIDFromConfig(path string) string {
@@ -925,10 +981,10 @@ func upsertRustDeskConfigValue(path, key, value string) error {
 	return nil
 }
 
-func readRustDeskPasswordFromConfig(path, defaultPassword string) string {
+func readRustDeskPasswordFromConfig(path, defaultPassword string) (string, int) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return "", 0
 	}
 
 	bestPriority := 0
@@ -951,7 +1007,7 @@ func readRustDeskPasswordFromConfig(path, defaultPassword string) string {
 		bestValue = value
 	}
 
-	return bestValue
+	return bestValue, bestPriority
 }
 
 func rustDeskPasswordPriority(key, value, defaultPassword string) int {
@@ -968,6 +1024,11 @@ func rustDeskPasswordPriority(key, value, defaultPassword string) int {
 	switch {
 	case strings.Contains(key, "temporary") || strings.Contains(key, "one-time") || strings.Contains(key, "one_time"):
 		return 300
+	case strings.Contains(key, "access"):
+		if defaultPassword != "" && strings.EqualFold(value, defaultPassword) {
+			return 0
+		}
+		return 220
 	case strings.Contains(key, "permanent") || strings.Contains(key, "default") || strings.Contains(key, "preset"):
 		if defaultPassword != "" && strings.EqualFold(value, defaultPassword) {
 			return 0

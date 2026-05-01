@@ -60,9 +60,25 @@ func TestReadRustDeskPasswordFromConfigIgnoresEncodedValues(t *testing.T) {
 		t.Fatalf("write config: %v", err)
 	}
 
-	got := readRustDeskPasswordFromConfig(path, "")
+	got, _ := readRustDeskPasswordFromConfig(path, "")
 	if got != "123456" {
 		t.Fatalf("expected plain RustDesk password 123456, got %q", got)
+	}
+}
+
+func TestReadRustDeskPasswordFromConfigPrefersTemporaryAccessPassword(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "RustDesk2.toml")
+	content := "permanent-password = 'Trilink098'\naccess-password = '5u4fy9'\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	got, _ := readRustDeskPasswordFromConfig(path, "Trilink098")
+	if got != "5u4fy9" {
+		t.Fatalf("expected temporary access password 5u4fy9, got %q", got)
 	}
 }
 

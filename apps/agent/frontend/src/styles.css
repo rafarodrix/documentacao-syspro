@@ -611,11 +611,9 @@ body {
   flex: 1;
 }
 
-.support-hero-heading-row {
+.support-hero-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-end;
 }
 
 .support-hero-eyebrow.compact {
@@ -695,10 +693,16 @@ body {
 }
 
 .support-summary-meta-item {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.support-summary-meta-item-right {
+  align-items: flex-end;
+  text-align: right;
 }
 
 .support-summary-meta-label {
