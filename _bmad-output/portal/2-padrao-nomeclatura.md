@@ -347,32 +347,36 @@ Se o arquivo persiste, consulta ou traduz dados para o banco, o sufixo deve most
 
 ### Objetivo
 
-Cliente oficial da API.
+Camada de aplicação server-side (BFF). Orquestra casos de uso do backend expostos como routers para o `apps/web` via Server Actions e tRPC/routers internos. Acessa diretamente `packages/database` e `packages/remote-infra`.
 
 ### Padrão de nomes
 
-* `*.client.ts`
-* `*.mapper.ts`
-* `*.request.ts`
-* `*.response.ts`
-* `*.auth.ts`
+* routers: `*.ts` na pasta `routers/`
+* clients HTTP externos: `*.client.ts`
+* helpers de request/response: `*.ts`
+* auth server-side: `*.ts`
 
 ### Exemplos
 
 ```text
-ticket.client.ts
-company.client.ts
-agent.client.ts
-heartbeat.client.ts
-desired-state.client.ts
-ticket.mapper.ts
-http-client.ts
-auth-client.ts
+routers/tickets.ts
+routers/company.ts
+routers/remote.ts
+routers/settings.ts
+lib/security/action-rate-limit.ts
+lib/errors/action-error-handler.ts
+lib/observability/logger.ts
+context.ts
+router.ts
 ```
 
 ### Regra
 
-No `application`, o nome precisa deixar claro que se trata de camada de aplicação compartilhada, não regra de negócio pura.
+No `application`, o nome deve refletir o contexto funcional do router ou helper, não o domínio de banco ou UI.
+
+### Observação
+
+`packages/application` não é um cliente HTTP de browser. É uma camada de orquestração server-side consumida por Server Actions de `apps/web`. Não deve ser importado em código client-side.
 
 ---
 
@@ -826,9 +830,9 @@ Usar alias do monorepo.
 ### Bom
 
 ```ts
-import { Ticket } from '@trilink/contracts/ticket';
-import { getTickets } from '@trilink/application/ticket';
-import { Button } from '@trilink/ui';
+import { Ticket } from '@dosc-syspro/contracts/ticket';
+import { getTickets } from '@dosc-syspro/application/routers/tickets';
+import { Button } from '@dosc-syspro/ui';
 ```
 
 ### Evitar
@@ -1093,9 +1097,10 @@ heartbeat.client.ts
 
 ## Fronteiras
 
-* `apps/web` depende de `contracts`, não de persistência
-* `apps/api` pode depender de Prisma e infraestrutura
-* `packages/contracts` define a linguagem compartilhada
+* `apps/web` depende de `contracts` e `application` (via Server Actions), nunca de `database` diretamente
+* `packages/application` orquestra server-side: acessa `database`, `remote-infra` e `remote-domain`
+* `apps/api` (NestJS) pode depender de Prisma e infraestrutura de forma independente
+* `packages/contracts` define a linguagem compartilhada entre todos os consumidores
 
 ---
 
@@ -1132,9 +1137,11 @@ ticket-summary.query.ts
 ## Application
 
 ```text
-ticket.client.ts
-agent.client.ts
-heartbeat.client.ts
+routers/tickets.ts
+routers/remote.ts
+routers/company.ts
+lib/security/action-rate-limit.ts
+lib/errors/action-error-handler.ts
 ```
 
 ## API

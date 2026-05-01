@@ -1,127 +1,142 @@
-# Infraestrutura software Trilink Software
+# Infraestrutura de Software — Trilink Software
 
 ## Objetivo
 
-Consolidar, em um unico documento, o desenho atual de infraestrutura do Portal para operacao e troubleshooting.
+Consolidar em um único documento o desenho atual de infraestrutura do Portal para operação e troubleshooting.
 
-## Topologia atual (2026-04-04)
+## Topologia atual (2026-05-01)
 
-- **Frontend**: `apps/web` (Next.js) em **Vercel**
-- **Backend**: `apps/api` (NestJS) (migracao em andamento)
-- **Servidor base (VPS)**: Contabo com Ubuntu 24.04 LTS
-- **RustDesk Server**: instalado no host da VPS (mesma infraestrutura operacional da Evolution)
-- **Evolution Go**: em container Docker na mesma VPS do RustDesk
-- **Nginx Proxy Manager**: em Docker na mesma VPS de RustDesk + Evolution
-- **Banco do portal**: stack atual do portal (Prisma)
-- **Bancos da Evolution Go (Neon)**:
-  - `evogo_auth`
-  - `evogo_users`
+| Camada | Serviço | Provedor |
+|--------|---------|----------|
+| Frontend | `apps/web` (Next.js) | Vercel |
+| Backend | `apps/api` (NestJS) | Railway |
+| Servidor base (VPS) | Ubuntu 24.04 LTS | Contabo |
+| RustDesk Server | instalado no host VPS | Contabo (mesmo da Evolution) |
+| Evolution Go | container Docker | Contabo VPS |
+| Nginx Proxy Manager | container Docker | Contabo VPS |
+| Banco do portal | Prisma + PostgreSQL | Railway / Neon |
+| Bancos Evolution Go | `evogo_auth`, `evogo_users` | Neon |
 
-## Mapeamento de dominios (fonte de verdade)
+## Mapeamento de domínios (fonte de verdade)
 
-- `api.<dominio>` -> Evolution Go (VPS Contabo do remoto)
-- `acesso.<dominio>` -> RustDesk (VPS Contabo do remoto)
-- `backend.<dominio>` -> Nest `apps/api` (Railway)
+| Subdomínio | Serviço | Host |
+|------------|---------|------|
+| `api.<dominio>` | Evolution Go | VPS Contabo |
+| `acesso.<dominio>` | RustDesk | VPS Contabo |
+| `backend.<dominio>` | NestJS `apps/api` | Railway |
 
-<Callout type="warn" title="Separacao obrigatoria">
-  Nao reutilizar `api.<dominio>` (Evolution) para o backend Nest.
-  O web deve apontar para `backend.<dominio>/api`.
-</Callout>
-
-## Operacao de proxy (Nginx)
-
-- painel atual:
-  - `http://85.239.248.141:81/nginx/proxy`
-- regra recomendada:
-  - publicar Evolution via host dedicado com TLS
-  - manter RustDesk no host proprio
-  - nao expor `:8080` da Evolution diretamente para internet
-  - encaminhar trafego externo de `api.trilinksoftware.com.br` para o container Evolution via rede interna Docker
+> **Separação obrigatória:** não reutilizar `api.<dominio>` (Evolution) para o backend NestJS. O web deve apontar para `backend.<dominio>/api`.
 
 ## Escopo por camada
 
-### 1. Camada de servidor (host)
+### 1. Servidor (host)
 
-- provedor: Contabo VPS
-- sistema operacional: Ubuntu 24.04 LTS
-- RustDesk em operacao no mesmo servidor da stack Evolution/Nginx
+- Provedor: Contabo VPS
+- Sistema operacional: Ubuntu 24.04 LTS
+- RustDesk em operação no mesmo servidor da stack Evolution/Nginx
 
-### 2. Camada de rede e seguranca
+### 2. Rede e segurança
 
-- Nginx Proxy Manager recebe trafego de internet (80/443)
+- Nginx Proxy Manager recebe tráfego de internet (80/443)
 - SSL/TLS automatizado por Let's Encrypt
-- roteamento de host:
-  - `api.trilinksoftware.com.br` -> Evolution Go
+- Roteamento de host:
+  - `api.<dominio>` → Evolution Go (container interno)
+  - `acesso.<dominio>` → RustDesk (host)
 
-### 3. Camada de aplicacao (containers)
+### 3. Aplicação (containers)
 
 - Evolution Go (v2) em Docker
-- configuracao por `.env` com chaves e conexoes externas
-- persistencia de dados fora do container (Neon), permitindo recriacao segura do servico
+- Configuração por `.env` com chaves e conexões externas
+- Persistência fora do container (Neon), permitindo recriação segura do serviço
 
-### 4. Camada de dados
+### 4. Dados
 
-- provider: Neon (PostgreSQL)
-- bancos separados para Evolution:
-  - `AUTH_DB` (`evogo_auth`)
-  - `USERS_DB` (`evogo_users`)
+- Provider: Neon (PostgreSQL serverless)
+- Bancos separados para Evolution:
+  - `AUTH_DB` → `evogo_auth`
+  - `USERS_DB` → `evogo_users`
 
-## Variaveis criticas por runtime
+## Operação do proxy (Nginx)
+
+- Painel: `http://85.239.248.141:81/nginx/proxy`
+- Regra recomendada:
+  - publicar Evolution via host dedicado com TLS
+  - manter RustDesk no host próprio
+  - não expor `:8080` da Evolution diretamente para a internet
+  - encaminhar tráfego externo de `api.<dominio>` para o container Evolution via rede interna Docker
+
+## Variáveis críticas por runtime
 
 ### Vercel (`apps/web`)
 
-- `APP_BACKEND_API_URL=https://backend.<dominio>/api` (recomendado)
-- `APP_API_URL=https://backend.<dominio>/api` (legado, ainda suportado)
-- `INTERNAL_API_KEY=<chave-compartilhada-com-api>`
+```env
+APP_BACKEND_API_URL=https://backend.<dominio>/api
+APP_API_URL=https://backend.<dominio>/api
+INTERNAL_API_KEY=<chave-compartilhada-com-api>
+```
+
+> `APP_API_URL` é a variável legada, ainda suportada. Preferir `APP_BACKEND_API_URL` em novas configurações.
 
 ### Railway (`apps/api`)
 
-- `DATABASE_URL`
-- `INTERNAL_API_KEY`
-- `EVOLUTION_API_URL=https://api.<dominio>`
-- `EVOLUTION_API_KEY`
-- `EVOLUTION_INSTANCE`
-- `EVOLUTION_WEBHOOK_SECRET`
+```env
+DATABASE_URL=
+INTERNAL_API_KEY=
+EVOLUTION_API_URL=https://api.<dominio>
+EVOLUTION_API_KEY=
+EVOLUTION_INSTANCE=
+EVOLUTION_WEBHOOK_SECRET=
+```
 
 ### Evolution Go (VPS)
 
-- `SERVER_URL=https://api.trilinksoftware.com.br`
-- `GLOBAL_API_KEY`
-- `POSTGRES_AUTH_DB=...sslmode=require`
-- `POSTGRES_USERS_DB=...sslmode=require`
+```env
+SERVER_URL=https://api.<dominio>
+GLOBAL_API_KEY=
+POSTGRES_AUTH_DB=...sslmode=require
+POSTGRES_USERS_DB=...sslmode=require
+```
 
-## Regras de integracao
+## Regras de integração
 
-1. Web chama somente backend Nest (`backend.<dominio>/api`).
-3. Evolution envia webhook diretamente para o backend Nest.
+1. Web chama somente backend NestJS (`backend.<dominio>/api`).
+2. Backend NestJS chama Evolution Go quando necessário (`api.<dominio>`).
+3. Evolution envia webhook diretamente para o backend NestJS.
 4. RustDesk permanece isolado no host `acesso.<dominio>`.
 
-## Fluxo de comunicacao
+## Fluxo de comunicação
 
-1. Cliente (ou backend no Railway) chama `https://api.trilinksoftware.com.br`.
-2. Nginx Proxy Manager valida TLS e roteia para o container Evolution.
-3. Evolution processa requisicao e persiste eventos/estado no Neon.
-4. Em eventos inbound, Evolution publica webhook diretamente para o backend Nest no Railway.
+```
+Cliente → backend.<dominio>/api (Railway / NestJS)
+       → api.<dominio> (Nginx → Evolution Go → Neon)
+       ← webhook inbound → backend NestJS
+```
 
-## Controles de seguranca aplicados
+1. Cliente (browser ou Server Action do `apps/web`) chama `https://backend.<dominio>/api`.
+2. Backend NestJS processa e, quando necessário, chama `https://api.<dominio>` (Evolution).
+3. Nginx Proxy Manager valida TLS e roteia para o container Evolution.
+4. Evolution processa requisição e persiste eventos/estado no Neon.
+5. Em eventos inbound, Evolution publica webhook diretamente para o backend NestJS no Railway.
 
-- Evolution sem exposicao publica direta na `:8080` (acesso via proxy)
-- TLS na borda com certificado automatizado
-- uso de `apikey` e segredos de ambiente para integracao
-- restricao de origem (CORS) apenas para origens autorizadas
+## Controles de segurança
 
-## Manutencao recomendada
+- Evolution sem exposição pública direta na `:8080` (acesso via proxy)
+- TLS na borda com certificado automatizado (Let's Encrypt)
+- `apikey` e segredos de ambiente para integração entre serviços
+- CORS restrito apenas para origens autorizadas
 
-- aplicar reboot da VPS apos atualizacao de kernel/seguranca
-- backup periodico dos diretorios operacionais de compose/env:
+## Manutenção recomendada
+
+- Aplicar reboot da VPS após atualização de kernel/segurança
+- Backup periódico dos diretórios operacionais:
   - `~/evolution-go`
   - `~/nginx-proxy`
-- validar rotacao de chaves (`GLOBAL_API_KEY`, `INTERNAL_API_KEY`, `EVOLUTION_WEBHOOK_SECRET`) em janela controlada
+- Validar rotação de chaves (`GLOBAL_API_KEY`, `INTERNAL_API_KEY`, `EVOLUTION_WEBHOOK_SECRET`) em janela controlada
 
-## Checklist de validacao rapida
+## Checklist de validação rápida
 
-1. `acesso.<dominio>` responde RustDesk.
-2. `api.<dominio>` responde Evolution.
-3. `backend.<dominio>/api` responde Nest.
-4. `apps/web` abre conversas e tickets via backend.
-5. Webhook inbound da Evolution chega no endpoint do Nest.
+- [ ] `acesso.<dominio>` responde RustDesk
+- [ ] `api.<dominio>` responde Evolution
+- [ ] `backend.<dominio>/api` responde NestJS
+- [ ] `apps/web` abre conversas e tickets via backend
+- [ ] Webhook inbound da Evolution chega no endpoint do NestJS

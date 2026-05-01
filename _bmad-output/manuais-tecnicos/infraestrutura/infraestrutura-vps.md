@@ -1,6 +1,6 @@
-# Infraestrutura hardware Trilink Software
+# Infraestrutura VPS — Trilink Software
 
-# Introdução
+## Introdução
 
 Este guia define o padrão oficial da Trilink para operação de infraestrutura baseada em **Traefik v3 + Dokploy**.
 
@@ -13,53 +13,47 @@ O objetivo é garantir:
 
 ---
 
-# Docker: Entendendo Containers vs Services
+# Docker: Containers vs Services
 
-## Por que isso é importante?
+## Por que isso importa
 
 Misturar **containers comuns** com **services (Swarm)** é a principal causa de:
 
-- erros de roteamento no Traefik
-- falhas de SSL
-- comportamento inconsistente no deploy
+- Erros de roteamento no Traefik
+- Falhas de SSL
+- Comportamento inconsistente no deploy
 
 ---
 
 ## Identificação rápida
 
-### 1. Containers comuns
+### Containers comuns
 
 ```bash
 docker ps
-````
+```
 
-Se aparecer aqui → é container gerenciado diretamente.
+Se aparecer aqui, é container gerenciado diretamente.
 
 ---
 
-### 2. Services (Docker Swarm)
+### Services (Docker Swarm)
 
 ```bash
 docker service ls
 ```
 
-Se aparecer aqui → é gerenciado pelo Swarm.
+Se aparecer aqui, é gerenciado pelo Swarm.
 
 ---
 
-### 3. Verificação definitiva
+### Verificação definitiva
 
 ```bash
 docker inspect <container_id> --format '{{.Config.Labels}}'
 ```
 
-Se retornar:
-
-```bash
-com.docker.swarm.service.name=...
-```
-
-👉 É um container pertencente a um service.
+Se retornar `com.docker.swarm.service.name=...`, é um container pertencente a um service.
 
 ---
 
@@ -67,71 +61,52 @@ com.docker.swarm.service.name=...
 
 | Tipo          | Gerenciamento correto |
 | ------------- | --------------------- |
-| Container     | docker / compose      |
-| Compose       | docker compose        |
-| Swarm Service | docker service        |
+| Container     | `docker` / `compose`  |
+| Compose       | `docker compose`      |
+| Swarm Service | `docker service`      |
 
 ---
 
 ## Padrão de identificação visual
 
-Exemplo:
+Exemplo de nome de task no Swarm:
 
 ```
 portal-backend.1.xcfenref0guhn1f34q3njzfu4
 ```
 
-Significa:
+- `.1` indica réplica
+- Sufixo aleatório indica task do Swarm
 
-* `.1` → réplica
-* sufixo aleatório → task do Swarm
-
-👉 Isso é **100% Swarm**
+Isso é 100% Swarm — não operar como container comum.
 
 ---
 
 ## Erro comum
 
-Achar que isso:
-
-```bash
-docker ps
-```
-
-mostra apenas containers comuns.
-
-❌ ERRADO
-
-👉 Mostra também **tasks do Swarm**
+`docker ps` mostra também as tasks do Swarm em execução, não apenas containers comuns. Não confundir os dois contextos.
 
 ---
 
-## Operação correta
-
-### Para services
+## Operação correta para services
 
 ```bash
 docker service update ...
 docker service ps <nome>
 ```
 
-### NÃO usar
-
-```bash
-docker restart
-docker container update
-```
+Não usar `docker restart` ou `docker container update` em services Swarm.
 
 ---
 
 # Traefik v3 + Dokploy
 
-## Visão Geral
+## Visão geral
 
-O Traefik atua como **reverse proxy central** e precisa enxergar:
+O Traefik atua como reverse proxy central e precisa enxergar:
 
-* containers comuns (Compose)
-* services (Swarm)
+- Containers comuns (Compose)
+- Services (Swarm)
 
 ---
 
@@ -152,55 +127,52 @@ command:
 
 ## Rede padrão
 
-Sempre garantir:
+Sempre garantir a label de rede:
 
 ```yaml
 traefik.docker.network=dokploy-network
 ```
 
-Sem isso:
-👉 Traefik não enxerga o container
+Sem isso, o Traefik não enxerga o container.
 
 ---
 
 # Padrão Oficial Trilink
 
-## ❌ Evitar
+## Evitar
 
-* misturar labels manuais + Domains do Dokploy
-* usar Application quando não precisa de Swarm
-* expor portas desnecessárias (`3000:3000`)
-* múltiplas definições de serviço no Traefik
+- Misturar labels manuais com Domains do Dokploy
+- Usar Application (Swarm) quando não há necessidade de Swarm
+- Expor portas desnecessárias (`3000:3000`)
+- Múltiplas definições de serviço no Traefik para o mesmo app
 
 ---
 
-## ✅ Recomendado
+## Recomendado
 
 | Tipo de app          | Padrão                   |
 | -------------------- | ------------------------ |
 | Backend próprio      | Compose                  |
 | Chatwoot / Evolution | Compose                  |
-| Infra core           | separado                 |
-| Swarm                | apenas quando necessário |
+| Infra core           | Separado                 |
+| Swarm                | Apenas quando necessário |
 
 ---
 
-# A Bíblia das Labels (Traefik)
+# Labels do Traefik
 
-## Problema clássico
+## Problema clássico: `too many services`
 
-```
-too many services
-```
+Ocorre quando o Traefik detecta múltiplos serviços para o mesmo container sem declaração explícita.
 
 ---
 
 ## Solução padrão
 
-Sempre declarar serviço explicitamente:
+Sempre declarar o serviço explicitamente:
 
 ```yaml
-- traefik.http.routers.backend.rule=Host(`backend.trilink.com.br`)
+- traefik.http.routers.backend.rule=Host(`backend.<dominio>`)
 - traefik.http.routers.backend.service=backend-svc
 - traefik.http.services.backend-svc.loadbalancer.server.port=3000
 ```
@@ -209,15 +181,15 @@ Sempre declarar serviço explicitamente:
 
 ## Regra crítica
 
-👉 1 router = 1 service
-
-Nunca deixe o Traefik inferir automaticamente.
+1 router = 1 service. Nunca deixar o Traefik inferir automaticamente.
 
 ---
 
 # Padrões de Implementação
 
-## Docker Compose (Recomendado)
+## Docker Compose (recomendado)
+
+Labels ficam no nível do serviço:
 
 ```yaml
 services:
@@ -225,57 +197,53 @@ services:
     build: .
     expose:
       - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=Host(`backend.<dominio>`)
+      - traefik.http.routers.backend.service=backend-svc
+      - traefik.http.services.backend-svc.loadbalancer.server.port=3000
 ```
-
-👉 Labels ficam no serviço
 
 ---
 
 ## Docker Swarm
 
+Labels ficam dentro de `deploy`:
+
 ```yaml
 deploy:
   labels:
     - traefik.enable=true
+    - traefik.http.routers.backend.rule=Host(`backend.<dominio>`)
+    - traefik.http.routers.backend.service=backend-svc
+    - traefik.http.services.backend-svc.loadbalancer.server.port=3000
 ```
-
-👉 Labels ficam dentro de `deploy`
 
 ---
 
-# Diagnóstico Rápido
+# Diagnóstico
 
 ## 1. Rota não funciona (404)
 
-* verificar dashboard Traefik (`:8081`)
-* roteador existe?
-
-Se não:
-👉 problema de label ou provider
+Verificar dashboard Traefik (`:8081`). Se o roteador não existir, o problema está na label ou no provider.
 
 ---
 
 ## 2. Bad Gateway / Timeout
 
-Causas:
+Causas possíveis:
 
-* porta errada
-* container fora da rede
-* app não subiu
+- Porta errada no label
+- Container fora da rede `dokploy-network`
+- Aplicação não subiu corretamente
 
 ---
 
 ## 3. Too many services
 
-Causa:
+Causa: múltiplos serviços detectados para o mesmo container.
 
-* múltiplos serviços detectados
-
-Solução:
-
-```yaml
-router.service=nome
-```
+Solução: declarar `router.service=<nome>` explicitamente.
 
 ---
 
@@ -283,9 +251,9 @@ router.service=nome
 
 Checklist:
 
-* DNS apontando correto
-* porta 80 aberta
-* `acme.json` com permissão 600
+- DNS apontando para o IP da VPS
+- Porta 80 aberta e acessível
+- Arquivo `acme.json` com permissão correta:
 
 ```bash
 chmod 600 /opt/traefik/letsencrypt/acme.json
@@ -297,7 +265,7 @@ chmod 600 /opt/traefik/letsencrypt/acme.json
 
 ## Evitar containers fantasmas
 
-Sempre que alterar estrutura:
+Após alterar estrutura de compose, remover containers antigos:
 
 ```bash
 docker rm -f <container>
@@ -314,26 +282,21 @@ docker service logs dokploy --tail 50
 
 ---
 
-## Debug avançado
+## Debug de rota
 
 ```bash
-curl -I http://dominio
-curl -Iv https://dominio
+curl -I http://<dominio>
+curl -Iv https://<dominio>
 ```
 
 ---
 
 # Conclusão
 
-O segredo da estabilidade está em:
+A estabilidade da infraestrutura depende de:
 
-* padronização
-* evitar mistura de modelos
-* controle explícito do Traefik
+- Padronização de labels e redes
+- Evitar mistura de modelos (Compose vs Swarm)
+- Controle explícito do Traefik — nunca depender de inferência automática
 
----
-
-> 💡 **Princípio Trilink:**
-> “Se não está explícito, está errado.”
-
-```
+> **Princípio Trilink:** "Se não está explícito, está errado."
