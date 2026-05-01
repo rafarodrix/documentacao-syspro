@@ -57,6 +57,8 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 		WebsiteToken: cfg.Support.ChatwootWebsiteToken,
 	}, cfg.Agent.Version, portalClient)
 
+	deviceMod := devicemodule.New(logger)
+
 	modules := []reconcile.Module{
 		remotemodule.New(
 			portalClient,
@@ -67,11 +69,12 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 			remotemodule.WithInstallToken(cfg.Remote.InstallToken),
 			remotemodule.WithAgentVersion(cfg.Agent.Version),
 			remotemodule.WithStateDir(cfg.Paths.StateDir),
+			remotemodule.WithDevice(deviceMod),
 		),
 		tunnelmodule.New(),
 		backupmodule.New(),
 		supportmodule.New(),
-		devicemodule.New(),
+		deviceMod,
 	}
 
 	reconcileService := reconcile.NewService(
