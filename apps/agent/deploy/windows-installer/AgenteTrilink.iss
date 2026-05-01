@@ -41,13 +41,12 @@ Name: "{commonappdata}\Trilink\Agent\runtime-state"
 Name: "{commonappdata}\Trilink\Agent\runtime-state\logs"
 
 [Files]
-Source: "{#SourceDir}\agent-service.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\agent-ui.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\agent-service.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
+Source: "{#SourceDir}\agent-ui.exe"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 Source: "{#SourceDir}\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\stop-agent.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\open-config.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\scripts\open-logs.cmd"; DestDir: "{app}\scripts"; Flags: ignoreversion
-Source: "{#SourceDir}\scripts\ensure-webview2-runtime.ps1"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "{#SourceDir}\config\.env.example"; DestDir: "{app}\config"; Flags: ignoreversion
 Source: "{#SourceDir}\config\.env"; DestDir: "{app}\config"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#SourceDir}\README-installer.txt"; DestDir: "{app}"; DestName: "LEIA-ME.txt"; Flags: ignoreversion
@@ -58,7 +57,6 @@ Name: "{group}\Iniciar Interface do Agente"; Filename: "{app}\agent-ui.exe"; Wor
 Name: "{group}\Parar Interface do Agente"; Filename: "{app}\scripts\stop-agent.cmd"; WorkingDir: "{app}"
 Name: "{group}\Editar configuracao"; Filename: "{app}\scripts\open-config.cmd"; WorkingDir: "{app}"
 Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir: "{app}"
-Name: "{group}\Verificar WebView2 Runtime"; Filename: "{cmd}"; Parameters: "/c powershell -ExecutionPolicy Bypass -File ""{app}\scripts\ensure-webview2-runtime.ps1"""; WorkingDir: "{app}"
 Name: "{autodesktop}\Agente Trilink"; Filename: "{app}\agent-ui.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 ; {commonstartup}: inicia a interface na sessao do usuario; o servico sobe via SCM
@@ -180,6 +178,35 @@ begin
   Sleep(1000);
 end;
 
+procedure PrepareInstalledBinaryForReplacement(FileName: string);
+var
+  TargetPath: string;
+  BackupPath: string;
+  Attempt: Integer;
+begin
+  TargetPath := AddBackslash(ResolveInstalledAgentDir()) + FileName;
+  if not FileExists(TargetPath) then
+    Exit;
+
+  BackupPath := TargetPath + '.old';
+  if FileExists(BackupPath) then
+    DeleteFile(BackupPath);
+
+  for Attempt := 1 to 20 do
+  begin
+    if DeleteFile(TargetPath) then
+      Exit;
+
+    if RenameFile(TargetPath, BackupPath) then
+    begin
+      DeleteFile(BackupPath);
+      Exit;
+    end;
+
+    Sleep(500);
+  end;
+end;
+
 // ---------------------------------------------------------------------------
 // Desinstalacao de programas instalados pelo agente (RustDesk etc.)
 // ---------------------------------------------------------------------------
@@ -262,6 +289,8 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   CloseRunningAgentProcesses;
+  PrepareInstalledBinaryForReplacement('agent-ui.exe');
+  PrepareInstalledBinaryForReplacement('agent-service.exe');
 end;
 
 // ---------------------------------------------------------------------------
