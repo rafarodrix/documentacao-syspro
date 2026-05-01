@@ -147,7 +147,6 @@ export function RemoteHostDetailsPanel({
   const canSaveProjectedHostName =
     (normalizedProjectedHostName.length > 0 && normalizedProjectedHostName !== host.name.trim()) ||
     projectedMachineProfile !== host.machineProfile;
-  const statusLabel = host.status === "ACTIVE" ? "Ativo" : host.status === "MAINTENANCE" ? "Manutenção" : "Inativo";
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
   const rustDeskCompliance = useMemo(() => {
     const expectedAlias = resolveExpectedRustDeskAlias({
@@ -685,7 +684,7 @@ export function RemoteHostDetailsPanel({
             name: normalizedProjectedHostName,
             machineName: agent.machineName,
             machineProfile: projectedMachineProfile,
-            environment: host.environment,
+            environment: null,
             provider: host.provider,
             description: host.description,
             notes: host.notes,
