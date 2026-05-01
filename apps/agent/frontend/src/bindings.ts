@@ -1,4 +1,5 @@
 export {
+  GetCurrentTarget,
   GetSetupStatus,
   GetSummary,
   GetSupportSession,
