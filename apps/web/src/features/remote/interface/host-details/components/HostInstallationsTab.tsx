@@ -551,7 +551,6 @@ export function HostInstallationsTab({
                                 )}
                                 onChange={(val) => setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: val }))}
                                 disabled={isRelinkingInstallation}
-                                placeholder="Selecionar empresa..."
                               />
                             </div>
                             <Button
