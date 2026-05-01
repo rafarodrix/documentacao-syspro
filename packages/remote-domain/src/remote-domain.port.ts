@@ -282,6 +282,7 @@ export type ProcessedSyncRecord = {
   hardwareIdentity: Record<string, unknown> | null;
   diskSnapshot: Array<Record<string, unknown>>;
   sysproProcesses: Array<Record<string, unknown>>;
+  sysproVersions: Record<string, unknown> | null;
   windowsUpdateStatus: Record<string, unknown> | null;
   rebootPending: boolean | null;
   agentMetrics: Record<string, unknown> | null;

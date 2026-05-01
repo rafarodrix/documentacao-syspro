@@ -36,6 +36,7 @@ export function HostInstallationsTab({
   isRelinkingInstallation,
   handleRelinkInstallation,
   handleAddCompanyToInstallation,
+  sysproVersionSnapshot,
   manualInstallationCompanyId,
   setManualInstallationCompanyId,
   manualInstallationPath,
@@ -59,6 +60,7 @@ export function HostInstallationsTab({
   isRelinkingInstallation: boolean;
   handleRelinkInstallation: (updateId: string, companyId: string | null) => void;
   handleAddCompanyToInstallation: (updateId: string, companyId: string) => void;
+  sysproVersionSnapshot: Record<string, unknown> | null;
   manualInstallationCompanyId: string;
   setManualInstallationCompanyId: (value: string) => void;
   manualInstallationPath: string;
@@ -425,6 +427,34 @@ export function HostInstallationsTab({
                         </div>
                       )}
                     </div>
+
+                    {/* Versão do SysproServer.exe */}
+                    {(() => {
+                      const installs = Array.isArray(sysproVersionSnapshot?.["installations"])
+                        ? (sysproVersionSnapshot!["installations"] as Record<string, unknown>[])
+                        : [];
+                      const versionInfo = installs.find((inst) =>
+                        typeof inst["companyId"] === "string" && inst["companyId"] === entry.companyId
+                      );
+                      if (!versionInfo) return null;
+                      const exeVersion = typeof versionInfo["exeVersion"] === "string" ? versionInfo["exeVersion"] : null;
+                      const exeExists = versionInfo["exeExists"] === true;
+                      const exeSizeMB = typeof versionInfo["exeSizeMB"] === "number" ? versionInfo["exeSizeMB"] : null;
+                      return (
+                        <div className="mt-3 rounded-lg border border-border/40 bg-muted/10 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Versão SysproServer.exe</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            {exeExists ? (
+                              <span className="font-mono text-xs font-semibold text-foreground">{exeVersion ?? "Versão não lida"}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Executável não encontrado</span>
+                            )}
+                            {exeSizeMB && <span className="text-[10px] text-muted-foreground">({exeSizeMB.toFixed(1)} MB)</span>}
+                            {exeExists && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-green-500" />}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

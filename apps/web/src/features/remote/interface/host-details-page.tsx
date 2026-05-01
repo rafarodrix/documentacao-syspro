@@ -1128,6 +1128,7 @@ export function RemoteHostDetailsPanel({
             isRelinkingInstallation={isRelinkingInstallation}
             handleRelinkInstallation={handleRelinkInstallation}
             handleAddCompanyToInstallation={handleAddCompanyToInstallation}
+            sysproVersionSnapshot={details.agentTelemetry.sysproVersionSnapshot}
             manualInstallationCompanyId={manualInstallationCompanyId}
             setManualInstallationCompanyId={setManualInstallationCompanyId}
             manualInstallationPath={manualInstallationPath}

@@ -460,6 +460,8 @@ export type RemoteHostDetails = {
     diskSnapshotAt: string | null;
     sysproProcessSnapshot: Array<Record<string, unknown>>;
     sysproProcessSnapshotAt: string | null;
+    sysproVersionSnapshot: Record<string, unknown> | null;
+    sysproVersionSnapshotAt: string | null;
     windowsUpdateStatus: Record<string, unknown> | null;
     windowsUpdateStatusAt: string | null;
     rebootPending: boolean | null;
@@ -960,6 +962,8 @@ export const remoteHostDetailsSchema = z.object({
     diskSnapshotAt: remoteStringOrNullSchema,
     sysproProcessSnapshot: z.array(remoteUnknownRecordSchema),
     sysproProcessSnapshotAt: remoteStringOrNullSchema,
+    sysproVersionSnapshot: remoteUnknownRecordSchema.nullable(),
+    sysproVersionSnapshotAt: remoteStringOrNullSchema,
     windowsUpdateStatus: remoteUnknownRecordSchema.nullable(),
     windowsUpdateStatusAt: remoteStringOrNullSchema,
     rebootPending: z.boolean().nullable(),
