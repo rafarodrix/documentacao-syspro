@@ -75,6 +75,32 @@ function toIsoDate(value: Date | null | undefined) {
   return value instanceof Date ? value.toISOString() : null;
 }
 
+function buildRemoteModuleSettingsView(moduleSettings: Awaited<ReturnType<typeof getRemoteModuleSettingsSnapshot>>) {
+  return {
+    rustDeskServerHost: moduleSettings.rustDeskServerHost,
+    rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
+    rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
+    rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
+      ? hashRustDeskPublicKey(moduleSettings.rustDeskPublicKey)
+      : null,
+    rustDeskVersion: moduleSettings.rustDeskVersion,
+    defaultPassword: moduleSettings.defaultPassword,
+    rustDeskAutoInstall: moduleSettings.rustDeskAutoInstall,
+    rustDeskAutoUpgrade: moduleSettings.rustDeskAutoUpgrade,
+    rustDeskInstallerUrl: moduleSettings.rustDeskInstallerUrl,
+    rustDeskInstallerSha256: moduleSettings.rustDeskInstallerSha256,
+    rustDeskInstallerPackageType: moduleSettings.rustDeskInstallerPackageType,
+    rustDeskInstallArgs: moduleSettings.rustDeskInstallArgs,
+    rustDeskRestartServiceAfterApply: moduleSettings.rustDeskRestartServiceAfterApply,
+    rustDeskSuppressTrayShortcuts: moduleSettings.rustDeskSuppressTrayShortcuts,
+    rustDeskHideTray: moduleSettings.rustDeskHideTray,
+    rustDeskHideStopService: moduleSettings.rustDeskHideStopService,
+    rustDeskAllowRemoteConfigModification: moduleSettings.rustDeskAllowRemoteConfigModification,
+    rustDeskAllowD3DRender: moduleSettings.rustDeskAllowD3DRender,
+    rustDeskEnableDirectXCapture: moduleSettings.rustDeskEnableDirectXCapture,
+  };
+}
+
 function buildAgentProjection(input: {
   rustdeskId: string | null;
   machineName: string | null;
@@ -1026,29 +1052,7 @@ export async function getRemotePlatformDirectory(tenantScope: RemoteTenantScope)
 
   return {
     tenantScope,
-    moduleSettings: {
-      rustDeskServerHost: moduleSettings.rustDeskServerHost,
-      rustDeskServerConfig: moduleSettings.rustDeskServerConfig,
-      rustDeskPublicKey: moduleSettings.rustDeskPublicKey,
-      rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
-        ? hashRustDeskPublicKey(moduleSettings.rustDeskPublicKey)
-        : null,
-      rustDeskVersion: moduleSettings.rustDeskVersion,
-      defaultPassword: moduleSettings.defaultPassword,
-      rustDeskAutoInstall: moduleSettings.rustDeskAutoInstall,
-      rustDeskAutoUpgrade: moduleSettings.rustDeskAutoUpgrade,
-      rustDeskInstallerUrl: moduleSettings.rustDeskInstallerUrl,
-      rustDeskInstallerSha256: moduleSettings.rustDeskInstallerSha256,
-      rustDeskInstallerPackageType: moduleSettings.rustDeskInstallerPackageType,
-      rustDeskInstallArgs: moduleSettings.rustDeskInstallArgs,
-      rustDeskRestartServiceAfterApply: moduleSettings.rustDeskRestartServiceAfterApply,
-      rustDeskSuppressTrayShortcuts: moduleSettings.rustDeskSuppressTrayShortcuts,
-      rustDeskHideTray: moduleSettings.rustDeskHideTray,
-      rustDeskHideStopService: moduleSettings.rustDeskHideStopService,
-      rustDeskAllowRemoteConfigModification: moduleSettings.rustDeskAllowRemoteConfigModification,
-      rustDeskAllowD3DRender: moduleSettings.rustDeskAllowD3DRender,
-      rustDeskEnableDirectXCapture: moduleSettings.rustDeskEnableDirectXCapture,
-    },
+    moduleSettings: buildRemoteModuleSettingsView(moduleSettings),
     stats: {
       totalHosts,
       activeHosts,
@@ -1413,13 +1417,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       agentMetrics: toRecord(host.lastAgentMetrics),
       agentMetricsAt: host.lastAgentMetricsAt?.toISOString() ?? null,
     },
-    moduleSettings: {
-      rustDeskServerHost: moduleSettings.rustDeskServerHost,
-      rustDeskPublicKeyHash: moduleSettings.rustDeskPublicKey.trim()
-        ? hashRustDeskPublicKey(moduleSettings.rustDeskPublicKey)
-        : null,
-      rustDeskVersion: moduleSettings.rustDeskVersion,
-    },
+    moduleSettings: buildRemoteModuleSettingsView(moduleSettings),
     companyOptions: companyOptions.map((company) => ({
       id: company.id,
       label: buildCompanyOptionLabel(company),

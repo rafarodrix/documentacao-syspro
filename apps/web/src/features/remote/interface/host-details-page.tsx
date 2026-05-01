@@ -1246,20 +1246,94 @@ export function RemoteHostDetailsPanel({
               <CardTitle className="text-lg">Perfil remoto aplicado</CardTitle>
               <CardDescription>Configuração efetiva esperada pelo portal para o agente e o RustDesk neste host.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Servidor remoto</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskServerHost.trim() || "Sem configuração"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Versão alvo do RustDesk</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskVersion.trim() || "Sem configuração"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Hash da chave pública</p>
+                  <p className="mt-1 break-all text-sm font-medium text-foreground">
+                    {details.moduleSettings.rustDeskPublicKeyHash?.trim() || "Sem configuração"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Auto instalar</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskAutoInstall ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Auto atualizar</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskAutoUpgrade ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Reiniciar serviço após aplicar</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskRestartServiceAfterApply ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Suprimir atalhos da tray</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskSuppressTrayShortcuts ? "Ativo" : "Inativo"}</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Ocultar tray</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskHideTray ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Ocultar parar serviço</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskHideStopService ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Permitir configuração remota local</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskAllowRemoteConfigModification ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">DirectX Capture</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskEnableDirectXCapture ? "Ativo" : "Inativo"}</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Permitir render D3D</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskAllowD3DRender ? "Ativo" : "Inativo"}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">Tipo do pacote</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskInstallerPackageType}</p>
+                </div>
+                <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                  <p className="text-xs text-muted-foreground">SHA256 do instalador</p>
+                  <p className="mt-1 break-all text-sm font-medium text-foreground">
+                    {details.moduleSettings.rustDeskInstallerSha256.trim() || "Não definido"}
+                  </p>
+                </div>
+              </div>
+
               <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Servidor remoto</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskServerHost.trim() || "Sem configuração"}</p>
+                <p className="text-xs text-muted-foreground">URL do instalador</p>
+                <p className="mt-1 break-all text-sm font-medium text-foreground">{details.moduleSettings.rustDeskInstallerUrl.trim() || "Não definido"}</p>
               </div>
               <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Versão alvo do RustDesk</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{details.moduleSettings.rustDeskVersion.trim() || "Sem configuração"}</p>
+                <p className="text-xs text-muted-foreground">Argumentos do instalador</p>
+                <p className="mt-1 break-all text-sm font-medium text-foreground">{details.moduleSettings.rustDeskInstallArgs.trim() || "Não definido"}</p>
               </div>
               <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Hash da chave pública</p>
-                <p className="mt-1 break-all text-sm font-medium text-foreground">
-                  {details.moduleSettings.rustDeskPublicKeyHash?.trim() || "Sem configuração"}
-                </p>
+                <p className="text-xs text-muted-foreground">Configuração exportada do servidor</p>
+                <p className="mt-1 break-all text-sm font-medium text-foreground">{details.moduleSettings.rustDeskServerConfig.trim() || "Sem configuração"}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                <p className="text-xs text-muted-foreground">Chave pública exportada</p>
+                <p className="mt-1 break-all text-sm font-medium text-foreground">{details.moduleSettings.rustDeskPublicKey.trim() || "Sem configuração"}</p>
               </div>
             </CardContent>
           </Card>
@@ -1366,7 +1440,6 @@ export function RemoteHostDetailsPanel({
     </div>
   );
 }
-
 
 
 

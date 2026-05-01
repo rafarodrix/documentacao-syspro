@@ -6,12 +6,7 @@ type RemoteDirectoryModuleSettings = RemoteModuleSettings & {
   rustDeskPublicKeyHash: string | null;
 };
 
-type RemoteHostDetailsModuleSettings = Pick<
-  RemoteModuleSettings,
-  "rustDeskServerHost" | "rustDeskVersion"
-> & {
-  rustDeskPublicKeyHash: string | null;
-};
+type RemoteHostDetailsModuleSettings = RemoteDirectoryModuleSettings;
 
 export type RemotePlatformStatus = "planned" | "foundation" | "in_progress" | "blocked";
 
@@ -606,11 +601,7 @@ const remoteDirectoryModuleSettingsSchema = remoteModuleSettingsSchema.extend({
   rustDeskPublicKeyHash: remoteStringOrNullSchema,
 });
 
-const remoteHostDetailsModuleSettingsSchema = z.object({
-  rustDeskServerHost: z.string(),
-  rustDeskVersion: z.string(),
-  rustDeskPublicKeyHash: remoteStringOrNullSchema,
-});
+const remoteHostDetailsModuleSettingsSchema = remoteDirectoryModuleSettingsSchema;
 
 export const remoteAccessPolicySchema = z.object({
   role: z.enum(["ADMIN", "SUPORTE", "DEVELOPER", "CLIENTE_ADMIN"]),

@@ -336,7 +336,7 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="markConversationPendingOnAgentReply"
                     label="Marcar como pendente apos resposta do agente"
-                    description="Ao enviar resposta publica do agente, o backend tenta mover a conversa para pending. Isso ajuda o fluxo nativo do Chatwoot a contar a janela de 45 minutos aguardando retorno do cliente."
+                    description="Ao enviar resposta publica do agente, o backend tenta mover a conversa para pending. A primeira resposta apos uma reabertura automatica do cliente nao repende a conversa."
                     checked={behavior.markConversationPendingOnAgentReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, markConversationPendingOnAgentReply: checked }))
@@ -559,7 +559,9 @@ function ChatwootDiagnosticsTab() {
                   <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
                     Fluxo atual:
                     <span className="ml-1 text-foreground">
-                      {behavior.markConversationPendingOnAgentReply ? "resposta publica do agente -> pending" : "resposta publica do agente"}
+                      {behavior.markConversationPendingOnAgentReply
+                        ? "resposta publica do agente -> pending (exceto 1a resposta apos reabertura automatica)"
+                        : "resposta publica do agente"}
                       {" -> "}resolver conversa
                       {" -> "}enviar CSAT
                       {" -> "}aguardar resposta por ate {behavior.csatPendingTimeoutHours}h

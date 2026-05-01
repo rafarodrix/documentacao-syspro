@@ -28,6 +28,8 @@ export class ChatwootWebhookController {
   private static readonly CSAT_RATING_MIN = 1;
   private static readonly CSAT_RATING_MAX = 5;
   private static readonly SYSTEM_MESSAGE_FLAG = 'syspro_system_message';
+  private static readonly SKIP_AUTO_PENDING_ONCE_FLAG = 'tris_skip_auto_pending_once';
+  private static readonly LAST_AUTO_REOPENED_AT_FLAG = 'tris_last_auto_reopened_at';
 
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
@@ -317,6 +319,18 @@ export class ChatwootWebhookController {
       return;
     }
 
+    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
+    if (this.readBoolean(customAttributes[ChatwootWebhookController.SKIP_AUTO_PENDING_ONCE_FLAG])) {
+      await this.clearSkipAutoPendingMarker(conversationId, customAttributes, resolvedContext, settings);
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_mark_pending_skipped_after_auto_reopen',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
     let status = this.normalizeConversationStatus(
       payload?.conversation?.status ??
       payload?.status ??
@@ -470,10 +484,21 @@ export class ChatwootWebhookController {
     }
 
     try {
+      const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
       await this.chatwootClient.toggleConversationStatus(
         this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
         conversationId,
         'open',
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+      await this.chatwootClient.updateConversationCustomAttributes(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        {
+          ...customAttributes,
+          [ChatwootWebhookController.SKIP_AUTO_PENDING_ONCE_FLAG]: true,
+          [ChatwootWebhookController.LAST_AUTO_REOPENED_AT_FLAG]: new Date().toISOString(),
+        },
         { useSystemBot: settings.systemMessagesUseBotIdentity },
       );
       this.logger.log(JSON.stringify({
@@ -489,6 +514,33 @@ export class ChatwootWebhookController {
         stage: 'conversation_reopen_failed',
         conversationId,
         previousStatus: status ?? null,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+  }
+
+  private async clearSkipAutoPendingMarker(
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+  ) {
+    try {
+      await this.chatwootClient.updateConversationCustomAttributes(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        {
+          ...customAttributes,
+          [ChatwootWebhookController.SKIP_AUTO_PENDING_ONCE_FLAG]: false,
+        },
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_mark_pending_skip_flag_clear_failed',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
         error: error?.message ?? 'unknown_error',
       }));
     }

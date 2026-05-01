@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const chatwootBehaviorSettingsSchema = z.object({
   autoAssignOnFirstAgentReply: z.boolean().default(true),
-  markConversationPendingOnAgentReply: z.boolean().default(true),
+  markConversationPendingOnAgentReply: z.boolean().default(false),
   reopenConversationOnCustomerReply: z.boolean().default(true),
   releaseConversationLinkOnResolved: z.boolean().default(true),
   prependAgentNameOnOutbound: z.boolean().default(true),
@@ -32,7 +32,7 @@ export type ChatwootBehaviorSettings = z.output<typeof chatwootBehaviorSettingsS
 
 export const DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS: ChatwootBehaviorSettings = {
   autoAssignOnFirstAgentReply: true,
-  markConversationPendingOnAgentReply: true,
+  markConversationPendingOnAgentReply: false,
   reopenConversationOnCustomerReply: true,
   releaseConversationLinkOnResolved: true,
   prependAgentNameOnOutbound: true,
