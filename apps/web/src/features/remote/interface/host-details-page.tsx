@@ -669,12 +669,7 @@ export function RemoteHostDetailsPanel({
       return;
     }
 
-    const a = document.createElement("a");
-    a.href = rustdeskHref;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.location.href = rustdeskHref;
     window.setTimeout(() => {
       toast("Se o acesso remoto não abrir, copie o ID e conecte manualmente.");
     }, 600);
@@ -803,7 +798,7 @@ export function RemoteHostDetailsPanel({
               method: "PATCH",
               body: {
                 companyId,
-                mode: "replace",
+                mode: companyId ? "add" : "replace",
               },
             })
           )
@@ -811,7 +806,7 @@ export function RemoteHostDetailsPanel({
 
         toast.success(
           companyId
-            ? `Vínculo aplicado em ${installationContextsForDisplay.length} instalação(ões).`
+            ? `Empresa adicionada em ${installationContextsForDisplay.length} instalação(ões).`
             : `Vínculo removido em ${installationContextsForDisplay.length} instalação(ões).`
         );
         router.refresh();

@@ -324,6 +324,12 @@ export function RemotePlatformDirectoryPanel({
       return;
     }
 
+    // Abre o protocolo imediatamente enquanto ainda está no contexto do gesto do usuário.
+    // Qualquer await posterior quebraria esse contexto e browsers modernos bloqueiam
+    // navegação para protocolos customizados fora de um gesto direto.
+    const href = isMobileClient ? `rustdesk://[${normalizedRustdeskId}]` : `rustdesk://${normalizedRustdeskId}`;
+    window.location.href = href;
+
     const isChatwootContext = Boolean(initialCompanyId || initialTicketNumber);
     setConnectingHostId(item.id);
     try {
@@ -339,20 +345,10 @@ export function RemotePlatformDirectoryPanel({
       });
 
       if (!result.success) {
-        toast.error(result.error ?? "Falha ao iniciar sessão auditada.");
-        return;
+        toast.error(result.error ?? "Falha ao registrar sessão auditada.");
       }
-
-      toast.success("Sessao auditada iniciada.");
-      const href = isMobileClient ? `rustdesk://[${normalizedRustdeskId}]` : `rustdesk://${normalizedRustdeskId}`;
-      const a = document.createElement("a");
-      a.href = href;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
     } catch {
-      toast.error("Erro ao processar início de sessão.");
+      // Protocolo já foi aberto; falha no registro da sessão é secundária
     } finally {
       setConnectingHostId(null);
     }
