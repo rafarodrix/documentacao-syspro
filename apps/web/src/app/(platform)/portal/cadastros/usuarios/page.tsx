@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getUsersAdminViewData } from "@/features/user-access/application/queries";
+import { getUsersAdminViewData } from "@/features/user-access/application/user-access-read.queries";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { UserTab } from "@/features/user-access/interface";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/CadastrosPageHeader";

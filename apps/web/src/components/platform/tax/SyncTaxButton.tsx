@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
-import type { TaxSyncChunkResponse } from "@/features/tax/domain/model";
+import type { TaxSyncChunkResponse } from "@/features/tax/domain/tax.types";
 
 const CLASS_TRIB_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/classTrib";
 const ANEXOS_URL = "https://cff.svrs.rs.gov.br/api/v1/consultas/anexos";

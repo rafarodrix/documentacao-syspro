@@ -14,7 +14,7 @@ import { SYSTEM_ROLES } from "@dosc-syspro/core";
 import type { ContractBlockReason } from "@dosc-syspro/core";
 import { callWebApi } from "@/lib/web-api";
 import { revalidateContractsViews } from "@/lib/cache-invalidation";
-import type { ContractActionResponse } from "@/features/contracts/domain/model";
+import type { ContractActionResponse } from "@/features/contracts/domain/contract.types";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 async function apiRequest(path: string, init?: RequestInit) {

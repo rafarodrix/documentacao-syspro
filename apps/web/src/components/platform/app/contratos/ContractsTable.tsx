@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/model";
+import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -33,8 +33,8 @@ import {
     Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateContractAction, updateContractStatusAction } from "@/features/contracts/application/actions";
-import { getContractSuspendImpactAction } from "@/features/contracts/application/queries";
+import { updateContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
+import { getContractSuspendImpactAction } from "@/features/contracts/application/contract-read.queries";
 import {
     ContractBlockReason,
 } from "@dosc-syspro/core";

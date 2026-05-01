@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
-import { getSettingsContractsAdminViewData } from "@/features/settings/application/queries";
+import { getSettingsContractsAdminViewData } from "@/features/settings/application/settings-read.queries";
 import { BulkReadjustDialog, ContractSheet, ContractStats, ContractsTable } from "@/features/contracts/interface";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 

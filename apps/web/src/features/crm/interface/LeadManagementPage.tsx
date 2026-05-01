@@ -46,7 +46,7 @@ import {
   CRM_STAGE_LABELS,
   formatLeadCurrency,
   type LeadDashboardData,
-} from "@/features/crm/domain/model";
+} from "@/features/crm/domain/crm.types";
 import { cn, formatDateSafe } from "@/lib/utils";
 
 type LeadStatusFilter = "ACTIVE" | "WON" | "LOST";

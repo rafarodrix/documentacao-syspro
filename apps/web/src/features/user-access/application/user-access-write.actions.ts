@@ -6,7 +6,7 @@ import { z } from "zod";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
-import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/model";
+import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/user-access.types";
 import { handleActionError } from "@dosc-syspro/shared/action-error-handler";
 import { callWebApi } from "@/lib/web-api";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";

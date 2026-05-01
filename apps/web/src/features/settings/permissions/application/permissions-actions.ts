@@ -7,7 +7,7 @@ import type {
   SettingsUserAccessProfileCreateInput,
 } from "@dosc-syspro/contracts/settings";
 import { revalidateSettingsViews } from "@/lib/cache-invalidation";
-import type { SettingsActionResponse } from "@/features/settings/domain/model";
+import type { SettingsActionResponse } from "@/features/settings/domain/settings.types";
 import {
   createSettingsUserAccessProfileGateway,
   fetchSettingsPermissionsAdminViewGateway,

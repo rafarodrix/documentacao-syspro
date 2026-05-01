@@ -1,5 +1,5 @@
 ﻿export * from './constants';
-export * from './model';
+export * from './user-access.types';
 export * from './permissions';
 export * from './rbac';
 

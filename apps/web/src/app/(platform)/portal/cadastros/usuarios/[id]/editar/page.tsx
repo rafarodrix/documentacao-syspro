@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { CreateUserPageForm } from "@/features/user-access/interface";
-import { getUserEditViewData } from "@/features/user-access/application/queries";
+import { getUserEditViewData } from "@/features/user-access/application/user-access-read.queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
 import type { UserRoleValue } from "@dosc-syspro/contracts/user";

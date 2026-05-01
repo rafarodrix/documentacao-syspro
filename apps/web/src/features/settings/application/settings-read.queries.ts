@@ -9,7 +9,7 @@ import {
   type SettingsContractsAdminView,
   type SettingsRemoteAdminView,
 } from "@dosc-syspro/contracts/settings";
-import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/model";
+import type { SettingsActionResponse, SettingsAdminViewData } from "@/features/settings/domain/settings.types";
 import {
   getSettingsPermissionsAdminViewAction,
 } from "@/features/settings/permissions/application/permissions-actions";

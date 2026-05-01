@@ -13,7 +13,7 @@ import type {
   ContractsAdminViewData,
   ContractSuspendImpact,
   ContractSystemParams,
-} from "@/features/contracts/domain/model";
+} from "@/features/contracts/domain/contract.types";
 
 async function apiRequest(path: string, init?: RequestInit) {
   return callWebApi(`/api${path}`, init);

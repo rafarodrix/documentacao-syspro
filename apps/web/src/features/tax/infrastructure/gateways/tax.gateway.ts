@@ -5,7 +5,7 @@ import type {
   TaxCredPresumidoListItem,
   TaxNcmListItem,
   TaxRulesGroupItem,
-} from "@/features/tax/domain/model";
+} from "@/features/tax/domain/tax.types";
 
 function parseDate(value: string | Date | null | undefined): Date | null {
   if (!value) return null;

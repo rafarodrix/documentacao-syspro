@@ -1,4 +1,4 @@
-import { getTaxClassificationListViewData } from "@/features/tax/application/queries";
+import { getTaxClassificationListViewData } from "@/features/tax/application/tax-read.queries";
 import {
   Table,
   TableBody,
