@@ -63,7 +63,6 @@ import {
 } from "./host-details/host-details.constants";
 import { SearchableCompanyPicker } from "./host-details/components/SearchableCompanyPicker";
 import { HostTechnicalTab } from "./host-details/components/HostTechnicalTab";
-import { HostInfraTab } from "./host-details/components/HostInfraTab";
 import { HostInstallationsTab } from "./host-details/components/HostInstallationsTab";
 import { HostAgentTab } from "./host-details/components/HostAgentTab";
 import { AgentLinkSection } from "./host-details/components/AgentLinkSection";
@@ -873,7 +872,6 @@ export function RemoteHostDetailsPanel({
             <TabsTrigger value="geral">Visão Geral</TabsTrigger>
             <TabsTrigger value="tecnicas">Informações Técnicas</TabsTrigger>
             <TabsTrigger value="instalacoes">Empresas e Instalações</TabsTrigger>
-            <TabsTrigger value="infra">Infraestrutura</TabsTrigger>
             <TabsTrigger value="agente">Agente</TabsTrigger>
           </TabsList>
         </div>
@@ -1074,12 +1072,6 @@ export function RemoteHostDetailsPanel({
             windowsComputerName={windowsComputerName}
             sysproServerInstallations={sysproServerInstallations}
             firebirdData={firebirdData}
-          />
-        </TabsContent>
-
-        <TabsContent value="infra">
-          <HostInfraTab
-            details={details}
             systemSnapshot={systemSnapshot}
             networkSnapshot={networkSnapshot}
             softwareSnapshot={softwareSnapshot}

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Copy,
-  ExternalLink,
   Plus,
   Search,
   ShieldCheck,
@@ -912,7 +911,6 @@ export function RemotePlatformDirectoryPanel({
             {displayedItems.map((item) => {
               const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, hasHydrated ? Date.now() : null);
               const productStatus = getRemoteProductStatusMeta(item.productStatus);
-              const rustdeskHref = item.agent.rustdeskId ? `rustdesk://${item.agent.rustdeskId.replace(/\s+/g, "")}` : null;
               const installationNames = item.installationCompanies.length
                 ? item.installationCompanies
                 : item.companyName
@@ -1039,19 +1037,6 @@ export function RemotePlatformDirectoryPanel({
                         Conectar
                       </Button>
 
-                      {rustdeskHref ? (
-                        <Button asChild variant="outline" size="sm" className="h-9 min-w-24">
-                          <a href={rustdeskHref}>
-                            <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                            {isMobileClient ? "Abrir app" : "Acesso rápido"}
-                          </a>
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm" disabled className="h-9 min-w-24 border-dashed">
-                          Sem conexao
-                        </Button>
-                      )}
-
                       <Button asChild variant="outline" size="sm" className="h-9 min-w-24 bg-background/70">
                         <Link
                           href={`/portal/infraestrutura/hosts/${item.id}${initialTicketNumber ? `?ticketNumber=${encodeURIComponent(initialTicketNumber)}` : ""}`}
@@ -1080,4 +1065,3 @@ export function RemotePlatformDirectoryPanel({
     </div>
   );
 }
-

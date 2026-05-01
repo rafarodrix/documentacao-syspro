@@ -13,6 +13,14 @@ type HostTechnicalTabProps = {
   windowsComputerName: string | null;
   sysproServerInstallations: RemoteHostDetails["installationContexts"];
   firebirdData: { name: string | null; version: string | null; processRunning: boolean | null };
+  systemSnapshot: RemoteHostDetails["agentTelemetry"]["systemSnapshot"];
+  networkSnapshot: RemoteHostDetails["agentTelemetry"]["networkSnapshot"];
+  softwareSnapshot: RemoteHostDetails["agentTelemetry"]["softwareSnapshot"];
+  hardwareIdentity: RemoteHostDetails["agentTelemetry"]["hardwareIdentity"];
+  diskSnapshot: RemoteHostDetails["agentTelemetry"]["diskSnapshot"];
+  sysproProcessSnapshot: RemoteHostDetails["agentTelemetry"]["sysproProcessSnapshot"];
+  windowsUpdateStatus: RemoteHostDetails["agentTelemetry"]["windowsUpdateStatus"];
+  rebootPending: RemoteHostDetails["agentTelemetry"]["rebootPending"];
 };
 
 type LiveMetrics = {
@@ -27,6 +35,16 @@ function readMetricNumber(metrics: LiveMetrics, key: keyof LiveMetrics): number 
   return typeof value === "number" ? value : null;
 }
 
+function readSnapshotString(snapshot: Record<string, unknown> | null, key: string): string | null {
+  const value = snapshot?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readSnapshotNumber(snapshot: Record<string, unknown> | null, key: string): number | null {
+  const value = snapshot?.[key];
+  return typeof value === "number" ? value : null;
+}
+
 export function HostTechnicalTab({
   details,
   host,
@@ -34,9 +52,20 @@ export function HostTechnicalTab({
   windowsComputerName,
   sysproServerInstallations,
   firebirdData,
+  systemSnapshot,
+  networkSnapshot,
+  softwareSnapshot,
+  hardwareIdentity,
+  diskSnapshot,
+  sysproProcessSnapshot,
+  windowsUpdateStatus,
+  rebootPending,
 }: HostTechnicalTabProps) {
   const { lastTelemetry, isConnected } = useAckStream(host.id);
   const agent = host.agent;
+  const downSysproProcessCount = sysproProcessSnapshot.filter((entry) => entry["running"] === false).length;
+  const pendingWindowsUpdates =
+    typeof windowsUpdateStatus?.["pendingCount"] === "number" ? windowsUpdateStatus["pendingCount"] : null;
 
   const currentMetrics: LiveMetrics = lastTelemetry || host.lastAgentMetrics || {};
   const cpuLoad = readMetricNumber(currentMetrics, "cpuLoad");
@@ -190,6 +219,71 @@ export function HostTechnicalTab({
                 <p className="mt-1 text-sm text-foreground">
                   {firebirdData.processRunning === null ? "Sem leitura" : firebirdData.processRunning ? "Em execução" : "Parado"}
                 </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+            <p className="text-sm font-medium text-foreground">Sistema, rede e inventário</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sistema operacional</p>
+                <p className="mt-2 text-sm text-foreground">
+                  {readSnapshotString(systemSnapshot, "osCaption") ?? "Sem leitura"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Atualizado em {formatDateTime(details.agentTelemetry.systemSnapshotAt)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Memória e disco</p>
+                <p className="mt-2 text-sm text-foreground">
+                  RAM livre:{" "}
+                  {readSnapshotNumber(systemSnapshot, "freeRamMb") !== null
+                    ? `${readSnapshotNumber(systemSnapshot, "freeRamMb")} MB`
+                    : "-"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Disco livre C:{" "}
+                  {readSnapshotNumber(systemSnapshot, "diskFreeGb") !== null
+                    ? `${readSnapshotNumber(systemSnapshot, "diskFreeGb")} GB`
+                    : "-"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Rede</p>
+                <p className="mt-2 text-sm text-foreground">
+                  {readSnapshotString(networkSnapshot, "defaultGateway") ?? "Sem leitura"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Atualizado em {formatDateTime(details.agentTelemetry.networkSnapshotAt)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Inventário de software</p>
+                <p className="mt-2 text-sm text-foreground">{softwareSnapshot.length} item(ns)</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Atualizado em {formatDateTime(details.agentTelemetry.softwareSnapshotAt)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hardware e volumes</p>
+                <p className="mt-2 text-sm text-foreground">
+                  {readSnapshotString(hardwareIdentity, "systemModel") ?? "Sem leitura"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Volumes: {diskSnapshot.length} | Atualizado em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/40 bg-background/60 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Saúde operacional</p>
+                <p className="mt-2 text-sm text-foreground">
+                  Reinicialização pendente: {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim" : "Não"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Processos Syspro em alerta: {downSysproProcessCount}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">Updates pendentes: {pendingWindowsUpdates ?? "-"}</p>
               </div>
             </div>
           </div>
