@@ -12,6 +12,84 @@ import { uistate } from "../wailsjs/go/models";
 
 type Route = "agent://setup" | "agent://support";
 
+function formatRustDeskId(id: string): string {
+  const digits = id.replace(/\D/g, "");
+  if (digits.length === 9) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`;
+  if (digits.length >= 6) return digits.replace(/(\d{3})(?=\d)/g, "$1 ").trim();
+  return id;
+}
+
+function MonitorIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="2" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M4.5 12h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M7 10v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CopyButtonDark({ value, label }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback silencioso
+    }
+  };
+  return (
+    <button
+      type="button"
+      className={`btn-copy-dark ${copied ? "copied" : ""}`}
+      onClick={() => void handleCopy()}
+      title={label ?? "Copiar"}
+      disabled={!value}
+    >
+      {copied ? <CopiedIcon /> : <CopyIcon />}
+    </button>
+  );
+}
+
+function RemoteAccessCard({ rustdeskId }: { rustdeskId?: string }) {
+  const hasId = Boolean(rustdeskId);
+  const formattedId = rustdeskId ? formatRustDeskId(rustdeskId) : null;
+
+  return (
+    <div className="remote-access-card">
+      <div className="remote-access-card-inner">
+        <div className="remote-access-card-head">
+          <div className="remote-access-card-title">
+            <MonitorIcon />
+            ID de acesso remoto
+          </div>
+          <span className={`remote-access-pill ${hasId ? "ready" : "configuring"}`}>
+            <span className="remote-access-pill-dot" />
+            {hasId ? "Pronto" : "Configurando"}
+          </span>
+        </div>
+
+        <div className="remote-id-row">
+          <div className={`remote-id-display ${!hasId ? "dim" : ""}`}>
+            {formattedId ?? "--- --- ---"}
+          </div>
+          {hasId && <CopyButtonDark value={rustdeskId!} label="Copiar ID" />}
+        </div>
+
+        <div className="remote-pw-row">
+          <span className="remote-pw-label">Senha</span>
+          <span className="remote-pw-value">
+            {hasId ? "Disponível no app de suporte" : "Aguardando configuração"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const defaultSetupStatus = new uistate.SetupStatus({
   complete: false,
   stage: "Inicializando",

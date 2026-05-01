@@ -160,6 +160,7 @@ type RemoteSyncRequest struct {
 	HardwareIdentity    any    `json:"hardwareIdentity,omitempty"`
 	DiskSnapshot        any    `json:"diskSnapshot,omitempty"`
 	SysproProcesses     any    `json:"sysproProcesses,omitempty"`
+	SysproVersions      any    `json:"sysproVersions,omitempty"`
 	WindowsUpdateStatus any    `json:"windowsUpdateStatus,omitempty"`
 	RebootPending       any    `json:"rebootPending,omitempty"`
 	AgentMetrics        any    `json:"agentMetrics,omitempty"`

@@ -468,6 +468,8 @@ export function createRemoteSyncPort(params: { logger: RemoteLogger; requestIp: 
             lastDiskSnapshotAt: record.diskSnapshot.length ? record.heartbeatAt : undefined,
             lastSysproProcessSnapshot: record.sysproProcesses.length ? toJsonValue(record.sysproProcesses) : undefined,
             lastSysproProcessSnapshotAt: record.sysproProcesses.length ? record.heartbeatAt : undefined,
+            lastSysproVersionSnapshot: record.sysproVersions ? toJsonValue(record.sysproVersions) : undefined,
+            lastSysproVersionSnapshotAt: record.sysproVersions ? record.heartbeatAt : undefined,
             lastWindowsUpdateStatus: record.windowsUpdateStatus ? toJsonValue(record.windowsUpdateStatus) : undefined,
             lastWindowsUpdateStatusAt: record.windowsUpdateStatus ? record.heartbeatAt : undefined,
             lastRebootPending: typeof record.rebootPending === "boolean" ? record.rebootPending : undefined,

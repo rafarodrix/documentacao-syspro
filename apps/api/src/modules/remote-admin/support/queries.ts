@@ -1392,6 +1392,8 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       diskSnapshotAt: host.lastDiskSnapshotAt?.toISOString() ?? null,
       sysproProcessSnapshot: toRecordArray(host.lastSysproProcessSnapshot),
       sysproProcessSnapshotAt: host.lastSysproProcessSnapshotAt?.toISOString() ?? null,
+      sysproVersionSnapshot: toRecord(host.lastSysproVersionSnapshot),
+      sysproVersionSnapshotAt: host.lastSysproVersionSnapshotAt?.toISOString() ?? null,
       windowsUpdateStatus: toRecord(host.lastWindowsUpdateStatus),
       windowsUpdateStatusAt: host.lastWindowsUpdateStatusAt?.toISOString() ?? null,
       rebootPending: typeof host.lastRebootPending === "boolean" ? host.lastRebootPending : null,

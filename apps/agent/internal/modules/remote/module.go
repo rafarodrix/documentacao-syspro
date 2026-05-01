@@ -454,10 +454,10 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	// Nil-safe: nos primeiros ciclos o device ainda nao coletou dados.
 	if m.device != nil {
 		devMetrics, devDisks, devServices, devVersions, devReboot := m.device.GetSyncSnapshots()
-		syncReq.AgentMetrics   = devMetrics
-		syncReq.DiskSnapshot   = devDisks
+		syncReq.AgentMetrics    = devMetrics
+		syncReq.DiskSnapshot    = devDisks
 		syncReq.SysproProcesses = devServices
-		syncReq.SystemSnapshot  = devVersions
+		syncReq.SysproVersions  = devVersions
 		syncReq.RebootPending   = devReboot
 	}
 

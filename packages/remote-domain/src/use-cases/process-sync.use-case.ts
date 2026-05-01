@@ -198,6 +198,7 @@ export async function processSync(
   const hardwareIdentity = normalizeOptionalRecordWithWarning(input.hardwareIdentity, "SYNC_INVALID_HARDWARE_IDENTITY", warnings);
   const diskSnapshot = normalizeOptionalRecordArrayWithWarning(input.diskSnapshot, "SYNC_INVALID_DISK_SNAPSHOT", warnings);
   const sysproProcesses = normalizeOptionalRecordArrayWithWarning(input.sysproProcesses, "SYNC_INVALID_SYSPRO_PROCESSES", warnings);
+  const sysproVersions = normalizeOptionalRecordWithWarning(input.sysproVersions, "SYNC_INVALID_SYSPRO_VERSIONS", warnings);
   const windowsUpdateStatus = normalizeOptionalRecordWithWarning(input.windowsUpdateStatus, "SYNC_INVALID_WINDOWS_UPDATE_STATUS", warnings);
   const rebootPending = normalizeOptionalBooleanWithWarning(input.rebootPending, "SYNC_INVALID_REBOOT_PENDING", warnings);
   const agentMetrics = normalizeOptionalRecordWithWarning(input.agentMetrics, "SYNC_INVALID_AGENT_METRICS", warnings);
@@ -253,6 +254,7 @@ export async function processSync(
     hardwareIdentity,
     diskSnapshot,
     sysproProcesses,
+    sysproVersions,
     windowsUpdateStatus,
     rebootPending,
     agentMetrics,

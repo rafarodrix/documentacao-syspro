@@ -753,6 +753,8 @@ model RemoteHost {
   lastDiskSnapshotAt             DateTime?
   lastSysproProcessSnapshot      Json?
   lastSysproProcessSnapshotAt    DateTime?
+  lastSysproVersionSnapshot      Json?
+  lastSysproVersionSnapshotAt    DateTime?
   lastWindowsUpdateStatus        Json?
   lastWindowsUpdateStatusAt      DateTime?
   lastRebootPending              Boolean?

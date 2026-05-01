@@ -1,4 +1,5 @@
 import { HardDriveDownload, Loader2, Plus, Save } from "lucide-react";
+import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,8 @@ type HostInstallationsTabProps = {
   setManualInstallationPath: (value: string) => void;
   isCreatingManualInstallation: boolean;
   handleCreateManualInstallation: () => void;
+  handleAddCompanyToInstallation: (updateId: string, companyId: string) => void;
+  sysproVersionSnapshot: Record<string, unknown> | null;
   companyContextDraftByCompanyId: Record<string, CompanyContextDraft>;
   updateCompanyContextDraft: (
     companyId: string,
@@ -82,18 +85,15 @@ export function HostInstallationsTab({
   setSelectedCompanyByUpdateId,
   isRelinkingInstallation,
   handleRelinkInstallation,
-  manualInstallationCompanyId,
-  setManualInstallationCompanyId,
-  manualInstallationPath,
-  setManualInstallationPath,
-  isCreatingManualInstallation,
-  handleCreateManualInstallation,
+  handleAddCompanyToInstallation,
+  sysproVersionSnapshot,
   companyContextDraftByCompanyId,
   updateCompanyContextDraft,
   isSavingCompanyContext,
   savingCompanyContextId,
   handleSaveCompanyContext,
 }: HostInstallationsTabProps) {
+  const [addCompanyByUpdateId, setAddCompanyByUpdateId] = useState<Record<string, string>>({});
   return (
     <div className="space-y-4">
       <Card className="border-border/50">
@@ -531,7 +531,70 @@ export function HostInstallationsTab({
                           Seu perfil tem acesso somente leitura para vinculação de instalações.
                         </p>
                       )}
+                      {canManageInstallations && (
+                        <div className="mt-3 border-t border-border/30 pt-3">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+                            Adicionar outra empresa
+                          </p>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <SearchableCompanyPicker
+                                value={addCompanyByUpdateId[entry.id] ?? ""}
+                                options={details.companyOptions.filter(
+                                  (opt) => opt.value !== entry.companyId && opt.value !== UNLINKED_COMPANY_VALUE
+                                )}
+                                onChange={(val) => setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: val }))}
+                                disabled={isRelinkingInstallation}
+                                placeholder="Selecionar empresa..."
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isRelinkingInstallation || !addCompanyByUpdateId[entry.id]}
+                              onClick={() => {
+                                const cid = addCompanyByUpdateId[entry.id];
+                                if (cid) {
+                                  handleAddCompanyToInstallation(entry.id, cid);
+                                  setAddCompanyByUpdateId((prev) => ({ ...prev, [entry.id]: "" }));
+                                }
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Adicionar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Versão do SysproServer.exe */}
+                    {(() => {
+                      const installs = Array.isArray(sysproVersionSnapshot?.["installations"])
+                        ? (sysproVersionSnapshot!["installations"] as Record<string, unknown>[])
+                        : [];
+                      const versionInfo = installs.find((inst) =>
+                        typeof inst["companyId"] === "string" && inst["companyId"] === entry.companyId
+                      );
+                      if (!versionInfo) return null;
+                      const exeVersion = typeof versionInfo["exeVersion"] === "string" ? versionInfo["exeVersion"] : null;
+                      const exeExists = versionInfo["exeExists"] === true;
+                      const exeSizeMB = typeof versionInfo["exeSizeMB"] === "number" ? versionInfo["exeSizeMB"] : null;
+                      return (
+                        <div className="mt-3 rounded-lg border border-border/40 bg-muted/10 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Versão SysproServer.exe</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            {exeExists ? (
+                              <span className="font-mono text-xs font-semibold text-foreground">{exeVersion ?? "Versão não lida"}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Executável não encontrado</span>
+                            )}
+                            {exeSizeMB && <span className="text-[10px] text-muted-foreground">({exeSizeMB.toFixed(1)} MB)</span>}
+                            {exeExists && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-green-500" />}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
