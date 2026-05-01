@@ -597,9 +597,9 @@ body {
 }
 
 .support-panel.compact.chat-open .support-body {
-  opacity: 0.04;
-  transform: scale(0.992);
-  filter: blur(2px);
+  opacity: 0;
+  transform: scale(0.99);
+  filter: blur(4px);
   pointer-events: none;
 }
 
@@ -787,8 +787,8 @@ body {
   position: absolute;
   inset: 0;
   z-index: 11;
-  background: rgba(239, 244, 250, 0.68);
-  backdrop-filter: blur(10px);
+  background: rgba(239, 244, 250, 0.92);
+  backdrop-filter: blur(14px);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
@@ -803,8 +803,8 @@ body {
   position: absolute;
   left: 12px;
   right: 12px;
-  top: 78px;
-  bottom: 74px;
+  top: 74px;
+  bottom: 12px;
   z-index: 12;
   display: flex;
   flex-direction: column;
@@ -829,7 +829,7 @@ body {
 }
 
 .support-chat-drawer.expanded {
-  top: 18px;
+  top: 10px;
 }
 
 .support-chat-shell-header-copy {
@@ -906,6 +906,13 @@ body {
   z-index: 13;
   display: flex;
   justify-content: center;
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.support-chat-launcher-wrap.hidden {
+  opacity: 0;
+  transform: translateY(10px);
   pointer-events: none;
 }
 

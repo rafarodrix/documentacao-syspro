@@ -715,7 +715,7 @@ function SupportScreen(props: {
         </div>
       </div>
 
-      <div className="support-chat-launcher-wrap">
+      <div className={`support-chat-launcher-wrap ${chatDrawerOpen ? "hidden" : ""}`}>
         <button
           type="button"
           className={`support-chat-launcher ${chatDrawerOpen ? "open" : ""} ${chatwootLoading ? "loading" : ""}`}
