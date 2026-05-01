@@ -720,6 +720,19 @@ func (m *Module) refreshRustDeskState(ctx context.Context, st *remoteState, requ
 		}
 	}
 
+	if status.ExecutablePath != "" && status.RustDeskID != "" && strings.TrimSpace(status.AccessPassword) == "" {
+		m.logger.Info("rustdesk access password missing, attempting service restart", "rustdesk_id", status.RustDeskID)
+		if err := rustdeskServiceRestart(); err == nil {
+			refreshedStatus := mustInspect(manager, ctx, status)
+			if strings.TrimSpace(refreshedStatus.AccessPassword) != "" {
+				m.logger.Info("rustdesk access password recovered after service restart", "rustdesk_id", refreshedStatus.RustDeskID)
+				status = refreshedStatus
+			}
+		} else {
+			m.logger.Warn("rustdesk access password recovery restart failed", "rustdesk_id", status.RustDeskID, "error", err)
+		}
+	}
+
 	desired := rustDeskDesiredConfig{
 		Alias:                    st.Alias,
 		ServerHost:               st.ServerHost,

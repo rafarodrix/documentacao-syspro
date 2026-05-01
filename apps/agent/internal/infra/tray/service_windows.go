@@ -61,6 +61,9 @@ func (s *Service) Run(ctx context.Context) error {
 			systray.SetIcon(agentassets.IconICO)
 			systray.SetTitle("Trilink Agent")
 			systray.SetTooltip(s.tooltipText())
+			systray.SetOnTapped(func() {
+				s.Trigger(ActionOpenSupport)
+			})
 
 			supportItem = systray.AddMenuItem("Suporte Trilink", "Canal oficial de atendimento")
 			systray.AddSeparator()

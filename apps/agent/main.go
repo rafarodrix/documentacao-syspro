@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"trilink/agent/assets"
 	"trilink/agent/internal/app"
+	uistate "trilink/agent/internal/core/ui_state"
 	"trilink/agent/internal/uiwails"
 )
 
@@ -23,6 +26,21 @@ func main() {
 	}
 	if container.AgentUI == nil || container.UIHost == nil {
 		log.Fatal("agent ui container is not initialized")
+	}
+
+	backgroundMode := false
+	for _, arg := range os.Args[1:] {
+		normalized := strings.TrimSpace(strings.ToLower(arg))
+		if normalized == "--background" || normalized == "/background" || normalized == "background" {
+			backgroundMode = true
+			break
+		}
+	}
+
+	if backgroundMode {
+		container.UIHost.ConfigureStartup(uistate.TargetSupportConversation, false)
+	} else {
+		container.UIHost.ConfigureStartup(uistate.TargetSupportConversation, true)
 	}
 
 	if err := uiwails.RunApp(ctx, container.AgentUI, container.UIHost, frontendAssets, assets.IconICO); err != nil {

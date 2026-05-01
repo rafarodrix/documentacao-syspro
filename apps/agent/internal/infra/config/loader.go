@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+const defaultSupportChatwootBaseURL = "https://chat.trilinksoftware.com.br"
+const defaultSupportChatwootWebsiteToken = "GoMFRV3pyJf4sh9CKYqQpWkh"
+
 func Load() (Config, error) {
 	cfg := Config{
 		LogLevel: getEnv("AGENT_LOG_LEVEL", "debug"),
@@ -25,8 +28,8 @@ func Load() (Config, error) {
 			InstallToken:   getEnv("REMOTE_INSTALL_TOKEN", ""),
 		},
 		Support: SupportConfig{
-			ChatwootBaseURL:      getEnvAny([]string{"SUPPORT_CHATWOOT_BASE_URL", "CHATWOOT_URL"}, "https://chat.trilinksoftware.com.br"),
-			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", ""),
+			ChatwootBaseURL:      getEnvAny([]string{"SUPPORT_CHATWOOT_BASE_URL", "CHATWOOT_URL"}, defaultSupportChatwootBaseURL),
+			ChatwootWebsiteToken: getEnv("SUPPORT_CHATWOOT_WEBSITE_TOKEN", defaultSupportChatwootWebsiteToken),
 		},
 		Agent: AgentConfig{
 			Version:    getEnv("AGENT_VERSION", "go-agent-v1"),

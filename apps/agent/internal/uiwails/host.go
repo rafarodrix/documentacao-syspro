@@ -70,6 +70,14 @@ func NewHost(logger Logger, ipcClient *ipc.Client, supportProvider supportSessio
 	}
 }
 
+func (h *Host) ConfigureStartup(target string, show bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.currentTarget = normalizeTarget(target)
+	h.showOnStartup = show
+}
+
 func (h *Host) Open(ctx context.Context, target string) error {
 	_ = ctx
 

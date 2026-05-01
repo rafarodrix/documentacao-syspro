@@ -60,7 +60,7 @@ Name: "{group}\Abrir logs"; Filename: "{app}\scripts\open-logs.cmd"; WorkingDir:
 Name: "{autodesktop}\Agente Trilink"; Filename: "{app}\agent-ui.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 ; {commonstartup}: inicia a interface na sessao do usuario; o servico sobe via SCM
-Name: "{commonstartup}\Agente Trilink"; Filename: "{app}\agent-ui.exe"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
+Name: "{commonstartup}\Agente Trilink"; Filename: "{app}\agent-ui.exe"; Parameters: "--background"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 
 
 [Run]

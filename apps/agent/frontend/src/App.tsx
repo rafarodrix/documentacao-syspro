@@ -312,13 +312,21 @@ function App() {
   const completedSteps = setupStatus.steps.filter((step) => step.status === "complete");
   const activeStep = pendingSteps[0] ?? null;
 
-  const overallState: "complete" | "error" | "running" | "idle" = setupStatus.complete
+  const setupOverallState: "complete" | "error" | "running" | "idle" = setupStatus.complete
     ? "complete"
     : setupStatus.last_error
       ? "error"
       : setupStatus.progress_pct > 0
         ? "running"
         : "idle";
+
+  const supportOverallState: "complete" | "error" | "running" | "idle" = supportSession?.context?.rustdeskId
+    ? "complete"
+    : supportSession?.context?.remoteStatus === "pending"
+      ? "running"
+      : setupOverallState;
+
+  const overallState = route === "agent://support" ? supportOverallState : setupOverallState;
 
   return (
     <div className={`shell route-${route === "agent://support" ? "support" : "setup"}`}>
@@ -359,7 +367,7 @@ function App() {
           pendingSteps={pendingSteps}
           completedSteps={completedSteps}
           activeStep={activeStep}
-          overallState={overallState}
+          overallState={setupOverallState}
         />
       )}
     </div>
