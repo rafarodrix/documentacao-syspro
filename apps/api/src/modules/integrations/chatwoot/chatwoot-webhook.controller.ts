@@ -483,6 +483,39 @@ export class ChatwootWebhookController {
       return;
     }
 
+    if ((status === 'resolved' || status === 'archived') && !settings.reopenResolvedConversationOnCustomerReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_skipped_for_resolved_reply',
+        conversationId,
+        previousStatus: status,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
+    if (status === 'snoozed' && !settings.reopenSnoozedConversationOnCustomerReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_skipped_for_snoozed_reply',
+        conversationId,
+        previousStatus: status,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
+    if (status === 'pending' && !settings.reopenPendingConversationOnCustomerReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_skipped_for_pending_reply',
+        conversationId,
+        previousStatus: status,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
     try {
       const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
       await this.chatwootClient.toggleConversationStatus(
@@ -623,7 +656,7 @@ export class ChatwootWebhookController {
       { useSystemBot: settings.systemMessagesUseBotIdentity },
     );
 
-    if (settings.csatThankYouMessage.trim()) {
+    if (settings.sendCsatThankYouMessage && settings.csatThankYouMessage.trim()) {
       await this.chatwootClient.createOutgoingMessage(
         this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
         conversationId,
