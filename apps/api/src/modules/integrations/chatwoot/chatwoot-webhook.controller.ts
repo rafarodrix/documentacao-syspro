@@ -953,6 +953,17 @@ export class ChatwootWebhookController {
       return;
     }
 
+    if (status === 'archived' && settings.csatTriggerStatus === 'resolved_only') {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_skipped_for_archived_status',
+        conversationId,
+        status,
+        connectionKey: resolvedContext?.connectionKey ?? null,
+      }));
+      return;
+    }
+
     if (settings.csatEnabled && resolvedContext) {
       await this.triggerCsatSurveyForResolvedConversation(payload, resolvedContext, settings, conversationId, status);
     }

@@ -477,7 +477,7 @@ function ChatwootDiagnosticsTab() {
                     <BehaviorToggle
                       id="csatEnabled"
                       label="Habilitar CSAT automatico"
-                      description="Ao receber status resolved/archived, o backend envia a pesquisa na propria conversa do WhatsApp."
+                      description="Ativa a pesquisa automatica no fechamento da conversa. A politica abaixo define se vale para resolved e archived ou apenas resolved."
                       checked={behavior.csatEnabled}
                       onCheckedChange={(checked) =>
                         setBehavior((prev) => ({ ...prev, csatEnabled: checked }))
@@ -504,6 +504,31 @@ function ChatwootDiagnosticsTab() {
                   </div>
 
                   <div className="grid min-w-0 gap-4 md:grid-cols-2">
+                    <div className={`min-w-0 space-y-2 ${!behavior.csatEnabled ? "opacity-60" : ""}`}>
+                      <Label htmlFor="csatTriggerStatus">Disparar CSAT quando status for</Label>
+                      <Select
+                        value={behavior.csatTriggerStatus}
+                        onValueChange={(value) =>
+                          setBehavior((prev) => ({
+                            ...prev,
+                            csatTriggerStatus: value as ChatwootBehaviorSettings["csatTriggerStatus"],
+                          }))
+                        }
+                        disabled={!behavior.csatEnabled}
+                      >
+                        <SelectTrigger id="csatTriggerStatus">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="resolved_or_archived">Resolved ou archived</SelectItem>
+                          <SelectItem value="resolved_only">Apenas resolved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Use `apenas resolved` se a sua operacao arquiva conversas por rotina tecnica e nao quer disparar avaliacao nesses casos.
+                      </p>
+                    </div>
+
                     <div className="min-w-0 space-y-2">
                       <Label htmlFor="csatLowScoreThreshold">Limite de nota baixa</Label>
                       <Input
@@ -625,6 +650,7 @@ function ChatwootDiagnosticsTab() {
                         ? "resposta publica do agente -> pending (exceto 1a resposta apos reabertura automatica)"
                         : "resposta publica do agente"}
                       {" -> "}resolver conversa
+                      {behavior.csatTriggerStatus === "resolved_only" ? " (apenas status resolved)" : " (status resolved ou archived)"}
                       {" -> "}enviar CSAT
                       {" -> "}aguardar resposta por ate {behavior.csatPendingTimeoutHours}h
                       {behavior.sendCsatThankYouMessage ? " -> confirmar recebimento da nota" : ""}
