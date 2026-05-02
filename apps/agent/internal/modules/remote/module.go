@@ -467,21 +467,29 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 			m.logger.Info("remote sync canceled", "host_id", st.HostID, "error", err)
 			return m.canceled("sync cycle canceled")
 		}
-		m.logger.Warn("remote sync failed, invalidating agent token and requiring rebootstrap",
-			"host_id", st.HostID,
-			"token_fingerprint", tokenFingerprint(agentToken),
-			"error", err,
-		)
-		st.AgentToken = ""
-		st.AgentTokenIssuedAt = time.Time{}
-		st.HostID = ""
-		st.CompanyID = ""
-		st.CompanyName = ""
-		st.RebootstrapRequired = true
-		_ = m.saveState(ctx, st)
-		if intent.bootstrapEnabled && m.discoveryToken != "" {
-			m.logger.Info("remote sync failed; attempting immediate rediscovery", "error", err)
-			return m.runDiscoverBootstrapSync(ctx, st, intent)
+		if shouldInvalidateTokenAfterSyncError(err) {
+			m.logger.Warn("remote sync failed with token/auth error; invalidating agent token and requiring rebootstrap",
+				"host_id", st.HostID,
+				"token_fingerprint", tokenFingerprint(agentToken),
+				"error", err,
+			)
+			st.AgentToken = ""
+			st.AgentTokenIssuedAt = time.Time{}
+			st.HostID = ""
+			st.CompanyID = ""
+			st.CompanyName = ""
+			st.RebootstrapRequired = true
+			_ = m.saveState(ctx, st)
+			if intent.bootstrapEnabled && m.discoveryToken != "" {
+				m.logger.Info("remote sync auth failed; attempting immediate rediscovery", "error", err)
+				return m.runDiscoverBootstrapSync(ctx, st, intent)
+			}
+		} else {
+			m.logger.Warn("remote sync failed with transient/non-auth error; keeping current token",
+				"host_id", st.HostID,
+				"token_fingerprint", tokenFingerprint(agentToken),
+				"error", err,
+			)
 		}
 		return m.fail("sync failed", err)
 	}
@@ -1060,6 +1068,21 @@ func currentHostname() string {
 		return "unknown-host"
 	}
 	return hostname
+}
+
+func shouldInvalidateTokenAfterSyncError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	if strings.Contains(message, "status 401") {
+		return true
+	}
+	return strings.Contains(message, "agent_token_invalid") ||
+		strings.Contains(message, "agent token invalid") ||
+		strings.Contains(message, "agent_token_expired") ||
+		strings.Contains(message, "agent token expired") ||
+		strings.Contains(message, "host_agent_token_not_active")
 }
 
 func inferBootstrapFlow(resp *domain.RemoteDiscoverResponse) domain.RemoteBootstrapFlow {

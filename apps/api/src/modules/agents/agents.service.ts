@@ -507,8 +507,7 @@ export class AgentsService {
 
     const remoteEnabled = Boolean(
       remoteSettings.rustDeskServerHost &&
-      remoteSettings.rustDeskServerConfig &&
-      remoteSettings.defaultPassword,
+      remoteSettings.rustDeskServerConfig,
     );
     const sysproInstalls = this.buildDeviceSysproInstalls(device);
 
