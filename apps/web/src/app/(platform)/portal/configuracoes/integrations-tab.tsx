@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -352,16 +353,34 @@ function ChatwootDiagnosticsTab() {
                       setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
                     }
                   />
-                  <BehaviorToggle
-                    id="reopenResolvedConversationOnCustomerReply"
-                    label="Reabrir quando estiver resolvida"
-                    description="Quando ativo, novas mensagens do cliente em conversas resolved/archived reabrem para open. Desative se preferir deixar o fluxo abrir nova conversa."
-                    checked={behavior.reopenResolvedConversationOnCustomerReply}
-                    onCheckedChange={(checked) =>
-                      setBehavior((prev) => ({ ...prev, reopenResolvedConversationOnCustomerReply: checked }))
-                    }
-                    disabled={!canConfigureReopenStatuses}
-                  />
+                  <div className={`flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4 ${!canConfigureReopenStatuses ? "opacity-60" : ""}`}>
+                    <div className="min-w-0 space-y-1">
+                      <Label htmlFor="resolvedCustomerReplyAction" className={`text-sm font-medium ${!canConfigureReopenStatuses ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                        Politica para conversa resolvida
+                      </Label>
+                      <span className="block break-words text-sm text-muted-foreground">
+                        Define se uma nova mensagem do cliente em conversa resolved/archived reabre a conversa atual ou força a criacao de uma nova.
+                      </span>
+                    </div>
+                    <Select
+                      value={behavior.resolvedCustomerReplyAction}
+                      onValueChange={(value) =>
+                        setBehavior((prev) => ({
+                          ...prev,
+                          resolvedCustomerReplyAction: value as ChatwootBehaviorSettings["resolvedCustomerReplyAction"],
+                        }))
+                      }
+                      disabled={!canConfigureReopenStatuses}
+                    >
+                      <SelectTrigger id="resolvedCustomerReplyAction">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reopen">Reabrir conversa atual</SelectItem>
+                        <SelectItem value="new_conversation">Abrir nova conversa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <BehaviorToggle
                     id="reopenSnoozedConversationOnCustomerReply"
                     label="Reabrir quando estiver adiada"

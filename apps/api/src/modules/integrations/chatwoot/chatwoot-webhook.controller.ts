@@ -483,12 +483,13 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if ((status === 'resolved' || status === 'archived') && !settings.reopenResolvedConversationOnCustomerReply) {
+    if ((status === 'resolved' || status === 'archived') && settings.resolvedCustomerReplyAction !== 'reopen') {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'conversation_reopen_skipped_for_resolved_reply',
         conversationId,
         previousStatus: status,
+        resolvedCustomerReplyAction: settings.resolvedCustomerReplyAction,
         connectionKey: resolvedContext.connectionKey,
       }));
       return;
