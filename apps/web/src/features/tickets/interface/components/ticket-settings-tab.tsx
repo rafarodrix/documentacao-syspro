@@ -18,13 +18,19 @@ import {
   ticketModuleSettingsSchema,
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
+import {
+  SettingsMetricCard,
+  SettingsPageIntro,
+  SettingsTabsRail,
+  SettingsTabsRailTrigger,
+} from "@/app/(platform)/portal/configuracoes/settings-shell";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { invalidateTicketModuleSettingsCache } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
@@ -178,26 +184,53 @@ export function TicketSettingsTab() {
           className="space-y-5 pb-10"
         >
           <section className="min-w-0 space-y-5">
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">Configuracoes de tickets</h2>
-              <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
-            </div>
+            <SettingsPageIntro
+              icon={Layers3}
+              eyebrow="Atendimento"
+              title="Configuracoes de tickets"
+              description="Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados."
+              aside={
+                <div className="grid gap-3 md:grid-cols-3">
+                  <SettingsMetricCard
+                    label="Estrutura"
+                    value="Catalogos"
+                    helper="Categorias, equipes e modulos do atendimento."
+                  />
+                  <SettingsMetricCard
+                    label="SLA"
+                    value={`${priorities.length} prioridades`}
+                    helper="Tempos de primeira resposta e resolucao por faixa."
+                  />
+                  <SettingsMetricCard
+                    label="Templates"
+                    value="Respostas rapidas"
+                    helper="Conteudo reutilizavel para o time operacional."
+                  />
+                </div>
+              }
+            />
 
             <Tabs defaultValue="structure" className="w-full">
-              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-3">
-                <TabsTrigger value="structure" className="gap-1.5 text-xs">
-                  <Layers3 className="h-3.5 w-3.5" />
-                  Estrutura
-                </TabsTrigger>
-                <TabsTrigger value="sla" className="gap-1.5 text-xs">
-                  <Clock className="h-3.5 w-3.5" />
-                  SLA
-                </TabsTrigger>
-                <TabsTrigger value="templates" className="gap-1.5 text-xs">
-                  <MessageSquareText className="h-3.5 w-3.5" />
-                  Templates
-                </TabsTrigger>
-              </TabsList>
+              <SettingsTabsRail className="sm:grid-cols-3">
+                <SettingsTabsRailTrigger
+                  value="structure"
+                  icon={Layers3}
+                  title="Estrutura"
+                  description="Padroes, categorias, equipes e modulos."
+                />
+                <SettingsTabsRailTrigger
+                  value="sla"
+                  icon={Clock}
+                  title="SLA"
+                  description="Politicas de resposta e resolucao por prioridade."
+                />
+                <SettingsTabsRailTrigger
+                  value="templates"
+                  icon={MessageSquareText}
+                  title="Templates"
+                  description="Respostas rapidas para o fluxo de atendimento."
+                />
+              </SettingsTabsRail>
 
               <TabsContent value="structure" className="mt-5 space-y-5">
                 <Card className="border-border/60 bg-card/95">
@@ -240,11 +273,26 @@ export function TicketSettingsTab() {
                 </Card>
 
                 <Tabs defaultValue="categories" className="w-full">
-                  <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
-                    <TabsTrigger value="categories" className="text-xs">Categorias</TabsTrigger>
-                    <TabsTrigger value="teams" className="text-xs">Equipes</TabsTrigger>
-                    <TabsTrigger value="modules" className="text-xs">Modulos</TabsTrigger>
-                  </TabsList>
+                  <SettingsTabsRail className="sm:grid-cols-3">
+                    <SettingsTabsRailTrigger
+                      value="categories"
+                      icon={Layers3}
+                      title="Categorias"
+                      description="Roteamento e classificacao inicial."
+                    />
+                    <SettingsTabsRailTrigger
+                      value="teams"
+                      icon={Layers3}
+                      title="Equipes"
+                      description="Filas disponiveis para triagem."
+                    />
+                    <SettingsTabsRailTrigger
+                      value="modules"
+                      icon={Layers3}
+                      title="Modulos"
+                      description="Hierarquia usada no menu do Syspro."
+                    />
+                  </SettingsTabsRail>
 
                   <TabsContent value="categories" className="mt-5">
                     <Card className="border-border/60">

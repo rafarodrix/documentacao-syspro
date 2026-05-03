@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
+import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, Plug, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
   DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
@@ -13,6 +13,12 @@ import {
 import { toast } from "sonner";
 
 import EvolutionSettingsTab from "./evolution-tab";
+import {
+  SettingsMetricCard,
+  SettingsPageIntro,
+  SettingsTabsRail,
+  SettingsTabsRailTrigger,
+} from "./settings-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 type IntegrationDiagnostics = {
@@ -51,28 +57,53 @@ type IntegrationDiagnostics = {
 export function IntegrationsSettingsTab() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Integracoes</h2>
-        <p className="text-sm text-muted-foreground">
-          Centralize os conectores operacionais do portal. Secrets sensiveis continuam protegidos no backend/runtime.
-        </p>
-      </div>
+      <SettingsPageIntro
+        icon={Plug}
+        eyebrow="Conectores"
+        title="Integracoes"
+        description="Centralize os conectores operacionais do portal em um fluxo unico de consulta, configuracao e diagnostico. Segredos continuam protegidos no backend e no runtime."
+        aside={
+          <div className="grid gap-3 md:grid-cols-3">
+            <SettingsMetricCard
+              label="Chatwoot"
+              value="Atendimento"
+              helper="Inbox, automacoes e links de apoio operacional."
+            />
+            <SettingsMetricCard
+              label="Evolution"
+              value="WhatsApp"
+              helper="Instancia, webhook, QR Code e pareamento."
+            />
+            <SettingsMetricCard
+              label="Storage"
+              value="Midia"
+              helper="Saude do runtime para anexos e arquivos."
+            />
+          </div>
+        }
+      />
 
       <Tabs defaultValue="chatwoot" className="space-y-5">
-        <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
-          <TabsTrigger value="chatwoot" className="gap-2 px-4 py-2">
-            <MessageSquare className="h-4 w-4" />
-            Chatwoot
-          </TabsTrigger>
-          <TabsTrigger value="evolution" className="gap-2 px-4 py-2">
-            <Bot className="h-4 w-4" />
-            Evolution
-          </TabsTrigger>
-          <TabsTrigger value="storage" className="gap-2 px-4 py-2">
-            <HardDrive className="h-4 w-4" />
-            Storage
-          </TabsTrigger>
-        </TabsList>
+        <SettingsTabsRail className="sm:grid-cols-3">
+          <SettingsTabsRailTrigger
+            value="chatwoot"
+            icon={MessageSquare}
+            title="Chatwoot"
+            description="Canal principal de atendimento, inbox e roteamento."
+          />
+          <SettingsTabsRailTrigger
+            value="evolution"
+            icon={Bot}
+            title="Evolution"
+            description="Conector WhatsApp, webhook e instancia operacional."
+          />
+          <SettingsTabsRailTrigger
+            value="storage"
+            icon={HardDrive}
+            title="Storage"
+            description="Diagnostico do runtime de arquivos e anexos."
+          />
+        </SettingsTabsRail>
 
         <TabsContent value="chatwoot" className="focus-visible:ring-0">
           <ChatwootDiagnosticsTab />
@@ -157,7 +188,7 @@ function ChatwootDiagnosticsTab() {
   }, []);
 
   return (
-    <Card>
+    <Card className="border-border/60 bg-card/95 shadow-sm">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">
@@ -194,7 +225,7 @@ function ChatwootDiagnosticsTab() {
               {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
             </pre>
 
-            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-base font-semibold">Conexao principal do Chatwoot</h3>
@@ -298,7 +329,7 @@ function ChatwootDiagnosticsTab() {
               )}
             </div>
 
-            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-base font-semibold">Automacoes do Webhook</h3>
@@ -853,7 +884,7 @@ function StorageDiagnosticsTab() {
   const storage = diagnostics?.storage;
 
   return (
-    <Card>
+    <Card className="border-border/60 bg-card/95 shadow-sm">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">

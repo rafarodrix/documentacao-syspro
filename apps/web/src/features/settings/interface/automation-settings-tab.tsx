@@ -21,6 +21,12 @@ import {
   type AutomationModuleSettings,
   type WhatsAppAutomationBinding,
 } from "@dosc-syspro/contracts/automation";
+import {
+  SettingsMetricCard,
+  SettingsPageIntro,
+  SettingsTabsRail,
+  SettingsTabsRailTrigger,
+} from "@/app/(platform)/portal/configuracoes/settings-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -34,7 +40,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 function createBindingId() {
@@ -230,21 +236,41 @@ export function AutomationSettingsTab() {
     <div className="w-full min-w-0 animate-in fade-in duration-500">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pb-24">
-          <section className="space-y-1">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">Automacoes</h2>
-            <p className="text-sm text-muted-foreground">
-              Gerencie regras automaticas e vinculos de grupos do WhatsApp sem acoplar a
-              configuracao ao provider atual.
-            </p>
-          </section>
+          <SettingsPageIntro
+            icon={MessageSquareText}
+            eyebrow="Fluxos"
+            title="Automacoes"
+            description="Gerencie regras automaticas e vinculos de grupos do WhatsApp sem acoplar a configuracao ao provider atual."
+            aside={
+              <div className="grid gap-3 md:grid-cols-3">
+                <SettingsMetricCard
+                  label="Provider"
+                  value="Desacoplado"
+                  helper="A regra continua valida mesmo com troca do gateway."
+                />
+                <SettingsMetricCard
+                  label="Escopo"
+                  value="WhatsApp"
+                  helper="Automacoes e bindings centralizados por destino."
+                />
+                <SettingsMetricCard
+                  label="Operacao"
+                  value="Assistida"
+                  helper="Edicao manual com switches e templates reutilizaveis."
+                />
+              </div>
+            }
+          />
 
           <Tabs defaultValue="whatsapp" className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-1 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
-              <TabsTrigger value="whatsapp" className="gap-1.5 text-xs">
-                <MessageSquareText className="h-3.5 w-3.5" />
-                WhatsApp
-              </TabsTrigger>
-            </TabsList>
+            <SettingsTabsRail className="sm:grid-cols-1">
+              <SettingsTabsRailTrigger
+                value="whatsapp"
+                icon={MessageSquareText}
+                title="WhatsApp"
+                description="Regras gerais, grupos internos e canais publicos."
+              />
+            </SettingsTabsRail>
 
             <TabsContent value="whatsapp" className="mt-5 space-y-5">
               <Card className="border-border/60 bg-card/95">
