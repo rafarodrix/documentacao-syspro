@@ -19,7 +19,6 @@ import {
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
 import {
-  SettingsMetricCard,
   SettingsPageIntro,
   SettingsTabsRail,
   SettingsTabsRailTrigger,
@@ -96,8 +95,6 @@ export function TicketSettingsTab() {
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
-
-  const priorities = form.watch("priorities");
 
   useEffect(() => {
     let active = true;
@@ -189,25 +186,6 @@ export function TicketSettingsTab() {
               eyebrow="Atendimento"
               title="Configuracoes de tickets"
               description="Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados."
-              aside={
-                <div className="grid gap-3 md:grid-cols-3">
-                  <SettingsMetricCard
-                    label="Estrutura"
-                    value="Catalogos"
-                    helper="Categorias, equipes e modulos do atendimento."
-                  />
-                  <SettingsMetricCard
-                    label="SLA"
-                    value={`${priorities.length} prioridades`}
-                    helper="Tempos de primeira resposta e resolucao por faixa."
-                  />
-                  <SettingsMetricCard
-                    label="Templates"
-                    value="Respostas rapidas"
-                    helper="Conteudo reutilizavel para o time operacional."
-                  />
-                </div>
-              }
             />
 
             <Tabs defaultValue="structure" className="w-full">
@@ -216,19 +194,16 @@ export function TicketSettingsTab() {
                   value="structure"
                   icon={Layers3}
                   title="Estrutura"
-                  description="Padroes, categorias, equipes e modulos."
                 />
                 <SettingsTabsRailTrigger
                   value="sla"
                   icon={Clock}
                   title="SLA"
-                  description="Politicas de resposta e resolucao por prioridade."
                 />
                 <SettingsTabsRailTrigger
                   value="templates"
                   icon={MessageSquareText}
                   title="Templates"
-                  description="Respostas rapidas para o fluxo de atendimento."
                 />
               </SettingsTabsRail>
 
@@ -278,19 +253,16 @@ export function TicketSettingsTab() {
                       value="categories"
                       icon={Layers3}
                       title="Categorias"
-                      description="Roteamento e classificacao inicial."
                     />
                     <SettingsTabsRailTrigger
                       value="teams"
                       icon={Layers3}
                       title="Equipes"
-                      description="Filas disponiveis para triagem."
                     />
                     <SettingsTabsRailTrigger
                       value="modules"
                       icon={Layers3}
                       title="Modulos"
-                      description="Hierarquia usada no menu do Syspro."
                     />
                   </SettingsTabsRail>
 

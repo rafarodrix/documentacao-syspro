@@ -14,7 +14,6 @@ import { toast } from "sonner";
 
 import EvolutionSettingsTab from "./evolution-tab";
 import {
-  SettingsMetricCard,
   SettingsPageIntro,
   SettingsTabsRail,
   SettingsTabsRailTrigger,
@@ -62,25 +61,6 @@ export function IntegrationsSettingsTab() {
         eyebrow="Conectores"
         title="Integracoes"
         description="Centralize os conectores operacionais do portal em um fluxo unico de consulta, configuracao e diagnostico. Segredos continuam protegidos no backend e no runtime."
-        aside={
-          <div className="grid gap-3 md:grid-cols-3">
-            <SettingsMetricCard
-              label="Chatwoot"
-              value="Atendimento"
-              helper="Inbox, automacoes e links de apoio operacional."
-            />
-            <SettingsMetricCard
-              label="Evolution"
-              value="WhatsApp"
-              helper="Instancia, webhook, QR Code e pareamento."
-            />
-            <SettingsMetricCard
-              label="Storage"
-              value="Midia"
-              helper="Saude do runtime para anexos e arquivos."
-            />
-          </div>
-        }
       />
 
       <Tabs defaultValue="chatwoot" className="space-y-5">
@@ -89,19 +69,16 @@ export function IntegrationsSettingsTab() {
             value="chatwoot"
             icon={MessageSquare}
             title="Chatwoot"
-            description="Canal principal de atendimento, inbox e roteamento."
           />
           <SettingsTabsRailTrigger
             value="evolution"
             icon={Bot}
             title="Evolution"
-            description="Conector WhatsApp, webhook e instancia operacional."
           />
           <SettingsTabsRailTrigger
             value="storage"
             icon={HardDrive}
             title="Storage"
-            description="Diagnostico do runtime de arquivos e anexos."
           />
         </SettingsTabsRail>
 

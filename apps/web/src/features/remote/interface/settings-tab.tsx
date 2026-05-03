@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { DatabaseBackup, MonitorCog, Waypoints } from "lucide-react";
 import {
-  SettingsMetricCard,
   SettingsPageIntro,
   SettingsTabsRail,
   SettingsTabsRailTrigger,
@@ -22,25 +21,6 @@ export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettings
         eyebrow="Agente Trilink"
         title="Modulos operacionais"
         description="Padronize os modulos do agente em uma navegacao unica. A operacao continua separada por remoto, backup e tunel, mas agora segue a mesma linguagem visual das demais configuracoes."
-        aside={
-          <div className="grid gap-3 md:grid-cols-3">
-            <SettingsMetricCard
-              label="Remoto"
-              value="Ativo"
-              helper="Governanca global do acesso remoto e provisionamento."
-            />
-            <SettingsMetricCard
-              label="Backup"
-              value="Roadmap"
-              helper="Espaco reservado para politicas, destinos e janelas."
-            />
-            <SettingsMetricCard
-              label="Tunel"
-              value="Roadmap"
-              helper="Reservado para endpoints, credenciais e exposicao."
-            />
-          </div>
-        }
       />
 
       <Tabs defaultValue="rustdesk" className="space-y-4">
@@ -49,19 +29,16 @@ export function RemoteAccessSettingsTab({ companyOptions }: RemoteAccessSettings
             value="rustdesk"
             icon={MonitorCog}
             title="Remoto"
-            description="Configuracoes globais do modulo de acesso remoto."
           />
           <SettingsTabsRailTrigger
             value="backup"
             icon={DatabaseBackup}
             title="Backup"
-            description="Politicas de protecao e execucao futura."
           />
           <SettingsTabsRailTrigger
             value="tunnel"
             icon={Waypoints}
             title="Tunel"
-            description="Conectividade segura e exposicao controlada."
           />
         </SettingsTabsRail>
 

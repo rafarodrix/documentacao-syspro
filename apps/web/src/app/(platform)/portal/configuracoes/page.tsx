@@ -9,7 +9,6 @@ import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-ta
 import { TicketSettingsTab } from "@/features/tickets/interface/components/ticket-settings-tab";
 import { IntegrationsSettingsTab } from "./integrations-tab";
 import {
-  SettingsMetricCard,
   SettingsPageIntro,
   SettingsTabsRail,
   SettingsTabsRailTrigger,
@@ -99,25 +98,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         titleAs="h1"
         title="Configuracoes"
         description="Centralize preferencias, integracoes e modulos operacionais em uma unica area. A governanca global do Agente Trilink fica aqui; a operacao diaria de hosts, sessoes, relatorios e dispositivos continua em Infraestrutura."
-        aside={
-          <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3">
-            <SettingsMetricCard
-              label="Escopo"
-              value="Global"
-              helper="Parametros compartilhados por toda a operacao do portal."
-            />
-            <SettingsMetricCard
-              label="Organizacao"
-              value="Por dominio"
-              helper="Cada aba agrupa regras, modulos e fluxos por contexto."
-            />
-            <SettingsMetricCard
-              label="Navegacao"
-              value="Abas persistidas"
-              helper="Estrutura mantida com foco em leitura e edicao rapida."
-            />
-          </div>
-        }
       />
 
       <Tabs defaultValue={defaultTab} className="w-full min-w-0 space-y-6">
@@ -127,57 +107,43 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               value="general"
               icon={Settings}
               title="Preferencias"
-              description="Ajustes gerais do portal e parametros base."
-            >
-            </SettingsTabsRailTrigger>
+            />
 
             <SettingsTabsRailTrigger
               value="agent"
               icon={Monitor}
               title="Agente Trilink"
-              description="Politicas globais de acesso remoto, backup e tunel."
-            >
-            </SettingsTabsRailTrigger>
+            />
 
             <SettingsTabsRailTrigger
               value="integrations"
               icon={Plug}
               title="Integracoes"
-              description="Conectores, webhooks e armazenamento externo."
-            >
-            </SettingsTabsRailTrigger>
+            />
 
             <SettingsTabsRailTrigger
               value="automations"
               icon={Bot}
               title="Automacoes"
-              description="Fluxos automativos, respostas e vinculacoes."
-            >
-            </SettingsTabsRailTrigger>
+            />
 
             <SettingsTabsRailTrigger
               value="tax"
               icon={Landmark}
               title="Fiscal e Tributario"
-              description="Tabelas, aliquotas e sincronizacao tributaria."
-            >
-            </SettingsTabsRailTrigger>
+            />
 
             <SettingsTabsRailTrigger
               value="sefaz"
               icon={Activity}
               title="Rotas SEFAZ"
-              description="Monitore e gerencie a disponibilidade das rotas."
-            >
-            </SettingsTabsRailTrigger>
+            />
 
             <SettingsTabsRailTrigger
               value="tickets"
               icon={MessageSquare}
               title="Tickets"
-              description="Comportamentos, campos e fluxo do atendimento."
-            >
-            </SettingsTabsRailTrigger>
+            />
           </SettingsTabsRail>
         </div>
 
@@ -239,31 +205,26 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   value="class-trib"
                   icon={Landmark}
                   title="Rota classTrib"
-                  description="Classificacao tributaria sincronizada."
                 />
                 <SettingsTabsRailTrigger
                   value="anexos"
                   icon={Files}
                   title="Rota anexos"
-                  description="Anexos fiscais e cadastros auxiliares."
                 />
                 <SettingsTabsRailTrigger
                   value="cred-presumido"
                   icon={Wallet}
                   title="Rota credPresumido"
-                  description="Bases de credito presumido."
                 />
                 <SettingsTabsRailTrigger
                   value="ncm"
                   icon={Boxes}
                   title="Rota NCM"
-                  description="Catalogo e sincronizacao de NCM."
                 />
                 <SettingsTabsRailTrigger
                   value="interestadual"
                   icon={Landmark}
                   title="Interestadual"
-                  description="Aliquotas ICMS entre estados."
                 />
               </SettingsTabsRail>
 

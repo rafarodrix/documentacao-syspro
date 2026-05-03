@@ -25,7 +25,7 @@ import {
   requestEvolutionQrCodeAction,
   updateEvolutionSettingsAction,
 } from "@/features/evolution/application/evolution-actions";
-import { SettingsMetricCard, SettingsPageIntro } from "./settings-shell";
+import { SettingsPageIntro } from "./settings-shell";
 
 function LabelWithHelp({ htmlFor, label, help }: { htmlFor?: string; label: string; help: string }) {
   return (
@@ -168,25 +168,6 @@ export default function EvolutionSettingsTab() {
         eyebrow="WhatsApp Gateway"
         title="Evolution"
         description="Organize a configuracao da instancia, acompanhe o estado operacional e execute o fluxo de conexao em uma interface unica."
-        aside={
-          <div className="grid gap-3 md:grid-cols-3">
-            <SettingsMetricCard
-              label="Instancia"
-              value={settings.instance || "Nao definida"}
-              helper="Alias usado pelo backend para casar o webhook."
-            />
-            <SettingsMetricCard
-              label="Webhook"
-              value={settings.webhookUrl ? "Configurado" : "Pendente"}
-              helper="Endpoint publico que recebe eventos da Evolution."
-            />
-            <SettingsMetricCard
-              label="Status"
-              value={formatEvolutionStatus(instanceStatus?.status)}
-              helper="Ultimo estado operacional recebido pelo portal."
-            />
-          </div>
-        }
       />
 
       <Card className="border-border/60 bg-card/95 shadow-sm">

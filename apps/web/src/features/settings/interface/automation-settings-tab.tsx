@@ -23,7 +23,6 @@ import {
   type WhatsAppAutomationBinding,
 } from "@dosc-syspro/contracts/automation";
 import {
-  SettingsMetricCard,
   SettingsPageIntro,
   SettingsTabsRail,
   SettingsTabsRailTrigger,
@@ -242,25 +241,6 @@ export function AutomationSettingsTab() {
             eyebrow="Fluxos"
             title="Automacoes"
             description="Gerencie regras automaticas e vinculos de grupos do WhatsApp sem acoplar a configuracao ao provider atual."
-            aside={
-              <div className="grid gap-3 md:grid-cols-3">
-                <SettingsMetricCard
-                  label="Provider"
-                  value="Desacoplado"
-                  helper="A regra continua valida mesmo com troca do gateway."
-                />
-                <SettingsMetricCard
-                  label="Escopo"
-                  value="WhatsApp"
-                  helper="Automacoes e bindings centralizados por destino."
-                />
-                <SettingsMetricCard
-                  label="Operacao"
-                  value="Assistida"
-                  helper="Edicao manual com switches e templates reutilizaveis."
-                />
-              </div>
-            }
           />
 
           <Tabs defaultValue="whatsapp" className="w-full">
@@ -269,7 +249,6 @@ export function AutomationSettingsTab() {
                 value="whatsapp"
                 icon={MessageSquareText}
                 title="WhatsApp"
-                description="Regras gerais, grupos internos e canais publicos."
               />
             </SettingsTabsRail>
 
