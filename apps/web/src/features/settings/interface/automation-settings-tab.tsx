@@ -1,5 +1,6 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -285,17 +286,12 @@ export function AutomationSettingsTab() {
                     control={form.control}
                     name="autoAssignToCreator"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
-                        <div className="space-y-0.5">
-                          <FormLabel>Auto-atribuir internos</FormLabel>
-                          <FormDescription className="text-xs">
-                            Operador vira responsavel ao abrir chamado pelo portal.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
+                      <ToggleSettingCard
+                        label="Auto-atribuir internos"
+                        description="Operador vira responsavel ao abrir chamado pelo portal."
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
                     )}
                   />
 
@@ -303,19 +299,12 @@ export function AutomationSettingsTab() {
                     control={form.control}
                     name="autoResponseEnabled"
                     render={({ field }) => (
-                      <FormItem className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Auto resposta</FormLabel>
-                            <FormDescription className="text-xs">
-                              Mensagem enviada na abertura do ticket para o cliente.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                        </div>
-                      </FormItem>
+                      <ToggleSettingCard
+                        label="Auto resposta"
+                        description="Mensagem enviada na abertura do ticket para o cliente."
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
                     )}
                   />
 
@@ -323,17 +312,12 @@ export function AutomationSettingsTab() {
                     control={form.control}
                     name="requireTestingReturnReason"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/10 p-3">
-                        <div className="space-y-0.5">
-                          <FormLabel>Motivo obrigatorio no retorno dos testes</FormLabel>
-                          <FormDescription className="text-xs">
-                            Exige justificativa ao voltar de Em teste para Em andamento.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
+                      <ToggleSettingCard
+                        label="Motivo obrigatorio no retorno dos testes"
+                        description="Exige justificativa ao voltar de Em teste para Em andamento."
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
                     )}
                   />
 
@@ -342,8 +326,11 @@ export function AutomationSettingsTab() {
                       control={form.control}
                       name="autoResponseMessage"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="rounded-xl border border-border/60 bg-background/60 p-4">
                           <FormLabel>Mensagem automatica</FormLabel>
+                          <FormDescription className="text-xs">
+                            Texto enviado automaticamente quando a resposta inicial estiver ativa.
+                          </FormDescription>
                           <FormControl>
                             <Textarea rows={4} {...field} />
                           </FormControl>
@@ -382,148 +369,147 @@ export function AutomationSettingsTab() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {bindingsArray.fields.length === 0 && (
-                    <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-4 text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 p-4 text-sm text-muted-foreground">
                       Nenhum vinculo cadastrado. Crie um grupo ou canal e habilite as automacoes
                       desejadas.
                     </div>
                   )}
 
-                  {bindingsArray.fields.map((fieldItem, index) => (
-                    <div
-                      key={fieldItem.id}
-                      className="space-y-4 rounded-lg border border-border/60 bg-muted/10 p-4"
-                    >
-                      <div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-[11px] text-muted-foreground">
-                        <span className="font-medium text-foreground">
-                          {inferBindingAudience(form.watch(`whatsapp.bindings.${index}.jid`)).label}
-                        </span>
-                        {" · "}
-                        {inferBindingAudience(form.watch(`whatsapp.bindings.${index}.jid`)).description}
-                      </div>
+                  {bindingsArray.fields.map((fieldItem, index) => {
+                    const audience = inferBindingAudience(form.watch(`whatsapp.bindings.${index}.jid`));
 
-                      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9rem_2.5rem]">
-                        <FormField
-                          control={form.control}
-                          name={`whatsapp.bindings.${index}.label`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Nome do vinculo</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Grupo Suporte N1" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                    return (
+                      <div
+                        key={fieldItem.id}
+                        className="space-y-4 rounded-2xl border border-border/60 bg-muted/10 p-4 md:p-5"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/50 px-3 py-3 text-[11px] text-muted-foreground">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                              Perfil do vinculo
+                            </div>
+                            <div className="mt-1">
+                              <span className="font-medium text-foreground">{audience.label}</span>
+                              {" · "}
+                              {audience.description}
+                            </div>
+                          </div>
+                          <div className="rounded-full border border-border/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            Vinculo {index + 1}
+                          </div>
+                        </div>
 
-                        <FormField
-                          control={form.control}
-                          name={`whatsapp.bindings.${index}.jid`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>JID do grupo/canal</FormLabel>
-                              <FormControl>
-                                <Input placeholder="1203630...@g.us ou 1203630...@newsletter" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`whatsapp.bindings.${index}.active`}
-                          render={({ field }) => (
-                            <FormItem className="rounded-lg border border-border/60 bg-background/60 p-3">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="space-y-0.5">
-                                  <FormLabel>Ativo</FormLabel>
-                                  <FormDescription className="text-[11px]">
-                                    Liga ou desliga o vinculo.
-                                  </FormDescription>
-                                </div>
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9rem_2.5rem]">
+                          <FormField
+                            control={form.control}
+                            name={`whatsapp.bindings.${index}.label`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nome do vinculo</FormLabel>
                                 <FormControl>
-                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                  <Input placeholder="Grupo Suporte N1" {...field} />
                                 </FormControl>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <div className="flex items-end">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                            onClick={() => bindingsArray.remove(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <FormField
+                            control={form.control}
+                            name={`whatsapp.bindings.${index}.jid`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>JID do grupo/canal</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="1203630...@g.us ou 1203630...@newsletter" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`whatsapp.bindings.${index}.active`}
+                            render={({ field }) => (
+                              <ToggleSettingCard
+                                label="Ativo"
+                                description="Liga ou desliga o vinculo."
+                                checked={field.value ?? false}
+                                onCheckedChange={field.onChange}
+                                compact
+                              />
+                            )}
+                          />
+
+                          <div className="flex items-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                              onClick={() => bindingsArray.remove(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <SettingsGroupLabel
+                              icon={BellRing}
+                              title="Automacoes internas"
+                              description="Fluxos operacionais para grupos de trabalho."
+                            />
+                            <div className="grid gap-3 md:grid-cols-2">
+                              {INTERNAL_WHATSAPP_AUTOMATION_FIELDS.map((automation) => (
+                                <FormField
+                                  key={automation.key}
+                                  control={form.control}
+                                  name={`whatsapp.bindings.${index}.automations.${automation.key}`}
+                                  render={({ field }) => (
+                                    <ToggleSettingCard
+                                      label={automation.label}
+                                      description={automation.description}
+                                      checked={field.value ?? false}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <SettingsGroupLabel
+                              icon={Globe2}
+                              title="Automacoes publicas de canal"
+                              description="Eventos de ampla divulgacao para canais abertos."
+                            />
+                            <div className="grid gap-3 md:grid-cols-2">
+                              {PUBLIC_CHANNEL_AUTOMATION_FIELDS.map((automation) => (
+                                <FormField
+                                  key={automation.key}
+                                  control={form.control}
+                                  name={`whatsapp.bindings.${index}.automations.${automation.key}`}
+                                  render={({ field }) => (
+                                    <ToggleSettingCard
+                                      label={automation.label}
+                                      description={automation.description}
+                                      checked={field.value ?? false}
+                                      onCheckedChange={field.onChange}
+                                      tone="sky"
+                                    />
+                                  )}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                            <BellRing className="h-3.5 w-3.5" />
-                            Automacoes internas
-                          </div>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            {INTERNAL_WHATSAPP_AUTOMATION_FIELDS.map((automation) => (
-                              <FormField
-                                key={automation.key}
-                                control={form.control}
-                                name={`whatsapp.bindings.${index}.automations.${automation.key}`}
-                                render={({ field }) => (
-                                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-background/60 p-3">
-                                    <div className="space-y-0.5">
-                                      <FormLabel>{automation.label}</FormLabel>
-                                      <FormDescription className="text-[11px]">
-                                        {automation.description}
-                                      </FormDescription>
-                                    </div>
-                                    <FormControl>
-                                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                            <Globe2 className="h-3.5 w-3.5" />
-                            Automacoes publicas de canal
-                          </div>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            {PUBLIC_CHANNEL_AUTOMATION_FIELDS.map((automation) => (
-                              <FormField
-                                key={automation.key}
-                                control={form.control}
-                                name={`whatsapp.bindings.${index}.automations.${automation.key}`}
-                                render={({ field }) => (
-                                  <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-sky-500/15 bg-sky-500/5 p-3">
-                                    <div className="space-y-0.5">
-                                      <FormLabel>{automation.label}</FormLabel>
-                                      <FormDescription className="text-[11px]">
-                                        {automation.description}
-                                      </FormDescription>
-                                    </div>
-                                    <FormControl>
-                                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -543,6 +529,61 @@ export function AutomationSettingsTab() {
           </div>
         </form>
       </Form>
+    </div>
+  );
+}
+
+function ToggleSettingCard({
+  label,
+  description,
+  checked,
+  onCheckedChange,
+  compact = false,
+  tone = "default",
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  compact?: boolean;
+  tone?: "default" | "sky";
+}) {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-500/15 bg-sky-500/5"
+      : "border-border/60 bg-background/60";
+
+  return (
+    <FormItem className={`rounded-xl border p-3 ${toneClass} ${compact ? "h-full" : ""}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <FormLabel>{label}</FormLabel>
+          <FormDescription className="text-[11px]">{description}</FormDescription>
+        </div>
+        <FormControl>
+          <Switch checked={checked} onCheckedChange={onCheckedChange} />
+        </FormControl>
+      </div>
+    </FormItem>
+  );
+}
+
+function SettingsGroupLabel({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/40 px-3 py-2">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {title}
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">{description}</p>
     </div>
   );
 }
