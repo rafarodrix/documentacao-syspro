@@ -39,7 +39,7 @@ import {
   RegistryFilterGroup,
   RegistryTableCard,
   RegistryToolbar,
-} from "@/components/platform/shared/RegistryListScaffold";
+} from "@/components/platform/shared/registry-list-scaffold";
 import {
   CRM_ACTIVE_STAGE_ORDER,
   CRM_SOURCE_LABELS,

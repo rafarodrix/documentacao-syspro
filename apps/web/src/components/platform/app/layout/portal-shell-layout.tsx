@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { type ReactNode } from "react"
-import { AppShell } from "@/components/platform/app/layout/AppShell"
-import { PortalShellModeProvider } from "@/components/platform/app/layout/PortalShellModeContext"
+import { AppShell } from "@/components/platform/app/layout/app-shell"
+import { PortalShellModeProvider } from "@/components/platform/app/layout/portal-shell-mode-context"
 import { getProtectedSession } from "@/lib/auth-helpers"
 import { getActiveSessionsCount } from "@/features/remote/application/session-queries"
 import { getRemoteTenantScope } from "@/features/remote/application/scope"
@@ -90,7 +90,7 @@ export async function PortalShellLayout({
         contentContainerClassName={contentContainerClassName}
       >
         {children}
-      </AppShell>
+      </app-shell>
     </PortalShellModeProvider>
   )
 }

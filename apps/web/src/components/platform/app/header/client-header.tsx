@@ -3,13 +3,13 @@
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
-import { Breadcrumbs } from "./Breadcrumbs"
-import { CommandPaletteTrigger } from "./CommandPaletteTrigger"
-import { NotificationsMenu } from "./NotificationsMenu"
+import { Breadcrumbs } from "./breadcrumbs"
+import { CommandPaletteTrigger } from "./command-palette-trigger"
+import { NotificationsMenu } from "./notifications-menu"
 import type { Role } from "@prisma/client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { RemoteActiveSessionsCounter } from "@/features/remote/interface/active-sessions-counter"
-import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar"
+import type { NavigationAccess } from "@/components/platform/app/layout/app-sidebar"
 
 interface ClientHeaderProps {
   user: {

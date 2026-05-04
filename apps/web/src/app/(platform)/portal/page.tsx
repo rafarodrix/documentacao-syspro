@@ -1,8 +1,8 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
-import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
-import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
-import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTicketsInsights";
+import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
+import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
+import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
+import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

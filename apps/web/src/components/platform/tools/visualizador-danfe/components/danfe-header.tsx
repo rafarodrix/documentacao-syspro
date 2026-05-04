@@ -1,4 +1,4 @@
-// components/danfe-visualizer/DanfeHeader.tsx
+// components/danfe-visualizer/danfe-header.tsx
 import { FC } from 'react';
 import { Building, UserCircle } from 'lucide-react';
 import { DanfeData } from '../types';

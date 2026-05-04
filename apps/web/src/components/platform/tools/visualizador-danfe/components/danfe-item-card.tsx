@@ -1,10 +1,10 @@
-// components/danfe-visualizer/DanfeItemCard.tsx
+// components/danfe-visualizer/danfe-item-card.tsx
 
 import { FC, ReactNode } from 'react';
 import { ChevronDown, Percent, Calculator, Landmark, BadgeInfo } from 'lucide-react';
 import { ItemData } from '../types';
 import { formatCurrency, formatNumber, formatPercent } from '../utils';
-import { SugestaoERP } from './SugestaoERP';
+import { SugestaoERP } from './sugestao-erp';
 
 // Componente auxiliar para seções de impostos
 interface TaxDetailSectionProps {
@@ -63,7 +63,7 @@ export const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, uf
                 </div>
               </div>
             )}
-          </TaxDetailSection>
+          </tax-detail-section>
 
           <TaxDetailSection title="ICMS ST" icon={<Calculator size={14} />} colorClass="border-indigo-500" condition={(ICMS?.vICMSST ?? 0) > 0}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
@@ -72,7 +72,7 @@ export const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, uf
               <span>Alíquota ST: {formatPercent(ICMS.pICMSST)}</span>
               <span className="font-bold">Valor ST: {formatCurrency(ICMS.vICMSST)}</span>
             </div>
-          </TaxDetailSection>
+          </tax-detail-section>
 
           {/* MUDANÇA: A condição agora é sempre 'true' para exibir os dados mesmo zerados */}
           <TaxDetailSection title={`IPI (CST ${IPI.CST})`} icon={<Percent size={14} />} colorClass="border-orange-500" condition={!!IPI.CST}>
@@ -81,7 +81,7 @@ export const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, uf
                 <span>Alíquota: {formatPercent(IPI.pIPI)}</span>
                 <span className="font-bold">Valor: {formatCurrency(IPI.vIPI)}</span>
               </div>
-          </TaxDetailSection>
+          </tax-detail-section>
 
           {/* MUDANÇA: A condição agora é sempre 'true' para exibir os dados mesmo zerados */}
           <TaxDetailSection title="PIS / COFINS" icon={<Percent size={14} />} colorClass="border-green-500" condition={!!PIS.CST}>
@@ -97,11 +97,11 @@ export const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, uf
                 <span>Alíquota: {formatPercent(COFINS?.pCOFINS)}</span>
               </div>
             </div>
-          </TaxDetailSection>
+          </tax-detail-section>
 
           <TaxDetailSection title="Tributos Aproximados (IBPT)" icon={<Landmark size={14} />} colorClass="border-slate-500" condition={(vTotTrib ?? 0) > 0}>
             <p>Valor Total: <strong>{formatCurrency(vTotTrib)}</strong></p>
-          </TaxDetailSection>
+          </tax-detail-section>
           
         </div>
       </details>

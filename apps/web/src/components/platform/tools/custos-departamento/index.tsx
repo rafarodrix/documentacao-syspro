@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
-import { FormattedCurrencyInput } from '@/components/platform/tools/custos-departamento/CurrencyInput';
+import { FormattedCurrencyInput } from '@/components/platform/tools/custos-departamento/currency-input';
 
 // ============================================================================
 // 1. TYPSS & CONSTANTS

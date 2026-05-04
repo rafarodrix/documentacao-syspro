@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
-import { ContactsTab } from "@/components/platform/app/contatos/ContactsTab";
-import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
+import { ContactsTab } from "@/components/platform/app/contatos/contacts-tab";
+import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 
 export default async function ContatosRootPage() {
   await requireSession();

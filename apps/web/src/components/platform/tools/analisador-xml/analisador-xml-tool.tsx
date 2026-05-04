@@ -3,9 +3,9 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 
-import { FileUpload } from './FileUpload';
-import { StatusDisplay } from './StatusDisplay';
-import { ResultDisplay } from './ResultDisplay';
+import { FileUpload } from './file-upload';
+import { StatusDisplay } from './status-display';
+import { ResultDisplay } from './result-display';
 
 type Status = 'idle' | 'processing' | 'completed' | 'error';
 type FileChangeEvent = ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } };

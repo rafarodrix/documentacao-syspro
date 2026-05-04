@@ -42,8 +42,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/ConfirmActionDialog";
-import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord";
+import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
+import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
@@ -51,7 +51,7 @@ import {
   RegistryTableCard,
   RegistryToolbar,
   type RegistryPaginationState,
-} from "@/components/platform/shared/RegistryListScaffold";
+} from "@/components/platform/shared/registry-list-scaffold";
 import { cn } from "@/lib/utils";
 
 type ContactItem = ContactListItem;

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { AppSidebar, SidebarUser, type NavigationAccess } from "./AppSidebar"
+import { AppSidebar, SidebarUser, type NavigationAccess } from "./app-sidebar"
 
 interface MobileHeaderProps {
   user: SidebarUser

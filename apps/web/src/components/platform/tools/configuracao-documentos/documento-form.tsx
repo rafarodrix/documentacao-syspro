@@ -13,8 +13,8 @@ import {
 import { useWatch } from "react-hook-form";
 import { Printer, Save, PanelRightOpen, PanelRightClose, Info, Truck, Users, Box } from "lucide-react";
 
-import { TechnicalPanel } from "./TechnicalPanel";
-import { PrintableConfig } from "./PrintableConfig";
+import { TechnicalPanel } from "./technical-panel";
+import { PrintableConfig } from "./printable-config";
 
 import {
     Form,

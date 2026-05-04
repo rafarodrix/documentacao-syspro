@@ -1,4 +1,4 @@
-// components/danfe-visualizer/DanfeTotals.tsx
+// components/danfe-visualizer/danfe-totals.tsx
 import { FC } from 'react';
 import { DanfeData } from '../types';
 import { formatCurrency } from '../utils';

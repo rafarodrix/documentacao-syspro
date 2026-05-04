@@ -2,11 +2,11 @@
 
 import type { Role } from "@prisma/client"
 import { useEffect, useState, type ReactNode } from "react"
-import { AppSidebar } from "@/components/platform/app/layout/AppSidebar"
-import { MobileHeader } from "@/components/platform/app/layout/MobileHeader"
-import { ClientHeader } from "@/components/platform/app/header/ClientHeader"
-import type { NavigationAccess } from "@/components/platform/app/layout/AppSidebar"
-import { usePortalShellMode } from "@/components/platform/app/layout/PortalShellModeContext"
+import { AppSidebar } from "@/components/platform/app/layout/app-sidebar"
+import { MobileHeader } from "@/components/platform/app/layout/mobile-header"
+import { ClientHeader } from "@/components/platform/app/header/client-header"
+import type { NavigationAccess } from "@/components/platform/app/layout/app-sidebar"
+import { usePortalShellMode } from "@/components/platform/app/layout/portal-shell-mode-context"
 
 interface AppShellUser {
   name: string

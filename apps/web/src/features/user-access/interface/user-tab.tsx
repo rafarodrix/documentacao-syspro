@@ -22,8 +22,8 @@ import {
   Link2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/ConfirmActionDialog";
-import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord";
+import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
+import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
   RegistryEmptyState,
   RegistryFeedback,
@@ -31,7 +31,7 @@ import {
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
-} from "@/components/platform/shared/RegistryListScaffold";
+} from "@/components/platform/shared/registry-list-scaffold";
 
 type UserWithRelations = UserAccessListItem;
 const USERS_PAGE_SIZE = 50;

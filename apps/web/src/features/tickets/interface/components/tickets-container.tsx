@@ -7,7 +7,7 @@ import { TicketsFilters } from "@/features/tickets/interface/components/tickets-
 import { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
+import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import type { ClosedTicketsWindow, TicketListItem, TicketSortBy, TicketSortOrder, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./ticket-view.types";

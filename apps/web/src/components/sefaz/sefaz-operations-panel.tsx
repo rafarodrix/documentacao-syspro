@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { SefazStatusWidget } from "../platform/app/dashboard/SefazStatusWidget";
+import { SefazStatusWidget } from "../platform/app/dashboard/sefaz-status-widget";
 import { SefazNationalGrid } from "./sefaz-national-grid";
 import { cn } from "../../lib/utils";
 

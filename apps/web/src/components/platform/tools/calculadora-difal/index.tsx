@@ -1,10 +1,10 @@
 ﻿'use client';
 
 import { useDifalCalculator } from './use-difal-calculator';
-import { DifalResults } from './components/DifalResults';
-import { DifalExplanation } from './components/DifalExplanation';
-import { DifalStep1 } from './components/DifalStep1';
-import { DifalStep2 } from './components/DifalStep2';
+import { DifalResults } from './components/difal-results';
+import { DifalExplanation } from './components/difal-explanation';
+import { DifalStep1 } from './components/difal-step1';
+import { DifalStep2 } from './components/difal-step2';
 
 export function CalculadoraDifal() {
     const {

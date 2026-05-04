@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/RegistryFormScaffold";
+import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -620,7 +620,7 @@ export function CreateUserPageForm({
               ) : null}
             </motion.div>
           </AnimatePresence>
-        </RegistryFormScaffold>
+        </registry-form-scaffold>
       </form>
     </Form>
   );

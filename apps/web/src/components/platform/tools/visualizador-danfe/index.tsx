@@ -5,10 +5,10 @@ import { UploadCloud, Loader, AlertTriangle, Package } from 'lucide-react';
 import { DanfeData } from './types';
 
 // Importando todos os nossos componentes separados!
-import { DanfeHeader } from './components/DanfeHeader';
-import { DanfeGeneralInfo } from './components/DanfeGeneralInfo';
-import { DanfeItemCard } from './components/DanfeItemCard';
-import { DanfeTotals } from './components/DanfeTotals';
+import { DanfeHeader } from './components/danfe-header';
+import { DanfeGeneralInfo } from './components/danfe-general-info';
+import { DanfeItemCard } from './components/danfe-item-card';
+import { DanfeTotals } from './components/danfe-totals';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Falha ao processar XML.';

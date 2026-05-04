@@ -5,7 +5,7 @@ import {
   Plus, Edit, Trash2, Inbox, Loader2,
   PackageCheck, PackageX, ScrollText
 } from 'lucide-react';
-import { DocumentoForm } from './DocumentoForm';
+import { DocumentoForm } from './documento-form';
 import { type DocumentoFormValues } from '@dosc-syspro/contracts/documento';
 import type { DocumentoItem } from '@/features/documentos/domain/documento.types';
 import { Button } from "@/components/ui/button";

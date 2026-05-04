@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { isAdminOnlyDocUrl, DOCS_TECHNICAL_PATH_PREFIX } from '@/lib/docs-access';
 import { filterDocTree } from '@/lib/docs-tree-utils';
 import { DocsLayoutClient } from '@/components/docs/docs-layout-client';
-import { PortalShellModeController } from '@/components/platform/app/layout/PortalShellModeContext';
+import { PortalShellModeController } from '@/components/platform/app/layout/portal-shell-mode-context';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
 
 export default async function PortalDocsLayout({ children }: { children: ReactNode }) {

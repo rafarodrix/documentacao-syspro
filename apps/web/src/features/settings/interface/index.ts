@@ -1,5 +1,5 @@
-export { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
-export { default as GeneralSettingsForm } from "@/components/platform/app/settings/GeneralSettingsForm";
-export { RemoteModuleSettingsForm } from "@/components/platform/app/settings/RemoteModuleSettingsForm";
-export { SefazRoutesTab } from "@/components/platform/app/settings/SefazRoutesTab";
+export { AccessControlTab } from "@/components/platform/app/settings/access-control-tab";
+export { default as GeneralSettingsForm } from "@/components/platform/app/settings/general-settings-form";
+export { RemoteModuleSettingsForm } from "@/components/platform/app/settings/remote-module-settings-form";
+export { SefazRoutesTab } from "@/components/platform/app/settings/sefaz-routes-tab";
 export { AutomationSettingsTab } from "./automation-settings-tab";

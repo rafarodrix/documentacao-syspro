@@ -19,7 +19,7 @@ export function PortalShellModeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<PortalShellMode>(DEFAULT_MODE)
   const value = useMemo(() => ({ mode, setMode }), [mode])
 
-  return <PortalShellModeContext.Provider value={value}>{children}</PortalShellModeContext.Provider>
+  return <PortalShellModeContext.Provider value={value}>{children}</portal-shell-mode-context.Provider>
 }
 
 export function usePortalShellMode() {

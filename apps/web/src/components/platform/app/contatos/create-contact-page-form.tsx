@@ -28,7 +28,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/RegistryFormScaffold";
+import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -554,7 +554,7 @@ export function CreateContactPageForm({
               ) : null}
             </motion.div>
           </AnimatePresence>
-        </RegistryFormScaffold>
+        </registry-form-scaffold>
       </form>
     </Form>
   );

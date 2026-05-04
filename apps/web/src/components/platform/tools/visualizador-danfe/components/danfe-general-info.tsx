@@ -1,4 +1,4 @@
-// components/danfe-visualizer/DanfeGeneralInfo.tsx
+// components/danfe-visualizer/danfe-general-info.tsx
 import { FC } from 'react';
 import { Hash } from 'lucide-react';
 import { DanfeData } from '../types';

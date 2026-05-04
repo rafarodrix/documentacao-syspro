@@ -14,8 +14,8 @@ import {
 } from "@dosc-syspro/contracts/settings";
 import { updateSettingsAction } from "@/features/settings/application/settings-write.actions";
 import { getSettingsAction } from "@/features/settings/application/settings-read.queries";
-import { ReasonOptionsEditor } from "@/components/platform/app/settings/ReasonOptionsEditor";
-import { AccessControlTab } from "@/components/platform/app/settings/AccessControlTab";
+import { ReasonOptionsEditor } from "@/components/platform/app/settings/reason-options-editor";
+import { AccessControlTab } from "@/components/platform/app/settings/access-control-tab";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

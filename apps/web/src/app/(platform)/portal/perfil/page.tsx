@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { UserProfileSettings } from "@/components/platform/shared/UserProfileSettings";
+import { UserProfileSettings } from "@/components/platform/shared/user-profile-settings";
 import { callWebApi } from "@/lib/web-api";
 
 export default async function AdminProfilePage() {

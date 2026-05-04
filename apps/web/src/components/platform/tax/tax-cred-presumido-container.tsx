@@ -1,5 +1,5 @@
 import { getTaxCredPresumidoViewData } from "@/features/tax/application/tax-read.queries";
-import { TaxCredPresumidoPanel } from "./TaxCredPresumidoPanel";
+import { TaxCredPresumidoPanel } from "./tax-cred-presumido-panel";
 
 export async function TaxCredPresumidoContainer() {
   try {

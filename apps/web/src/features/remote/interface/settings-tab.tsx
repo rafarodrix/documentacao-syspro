@@ -1,7 +1,7 @@
 import { DatabaseBackup, MonitorCog, Waypoints } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/RemoteModuleSettingsForm";
+import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/remote-module-settings-form";
 
 type RemoteAccessSettingsTabProps = {
   companyOptions: Array<{ id: string; label: string; searchText?: string }>;

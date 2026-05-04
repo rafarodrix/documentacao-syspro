@@ -10,7 +10,7 @@ import { authClient } from "@/lib/auth-client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { getRoleLabel as getUnifiedRoleLabel } from "@dosc-syspro/core"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NavItem, NavItemType } from "./NavItem"
+import { NavItem, NavItemType } from "./nav-item"
 import {
   DropdownMenu,
   DropdownMenuContent,

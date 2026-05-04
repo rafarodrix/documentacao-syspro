@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import ConfiguracaoDocumentos from "@/components/platform/tools/configuracao-documentos/Documentos";
+import ConfiguracaoDocumentos from "@/components/platform/tools/configuracao-documentos/documentos";
 
 // 1. Define o título da aba do navegador
 export const metadata: Metadata = {

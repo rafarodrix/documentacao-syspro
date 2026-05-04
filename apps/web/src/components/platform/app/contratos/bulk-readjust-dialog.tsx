@@ -1,4 +1,4 @@
-// src/components/platform/app/contratos/BulkReadjustDialog.tsx
+// src/components/platform/app/contratos/bulk-readjust-dialog.tsx
 "use client"
 
 import { useState, useTransition } from "react"

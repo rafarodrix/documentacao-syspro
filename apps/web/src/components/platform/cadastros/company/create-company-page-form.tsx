@@ -28,7 +28,7 @@ import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { Form } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/RegistryFormScaffold";
+import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -410,7 +410,7 @@ export function CreateCompanyPageForm({
               {currentSection === "configuracoes" && <CompanySettingsTab />}
             </motion.div>
           </AnimatePresence>
-        </RegistryFormScaffold>
+        </registry-form-scaffold>
       </form>
     </Form>
   );
