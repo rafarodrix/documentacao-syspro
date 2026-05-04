@@ -6,7 +6,7 @@ import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTic
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SefazOperationsPanel } from "@/components/sefaz/SefazOperationsPanel";
+import { SefazOperationsPanel } from "@/components/sefaz/sefaz-operations-panel";
 import Link from "next/link";
 import { MagicCard } from "@/components/magicui/magic-card";
 import { NumberTicker } from "@/components/magicui/number-ticker";

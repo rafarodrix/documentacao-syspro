@@ -12,7 +12,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { SefazStatusWidget } from "../platform/app/dashboard/SefazStatusWidget";
-import { SefazNationalGrid } from "./SefazNationalGrid";
+import { SefazNationalGrid } from "./sefaz-national-grid";
 import { cn } from "../../lib/utils";
 
 type ScopeKey = string;
