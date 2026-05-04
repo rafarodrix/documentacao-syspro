@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type { Role } from "@prisma/client"
 import type { ReactNode } from "react"

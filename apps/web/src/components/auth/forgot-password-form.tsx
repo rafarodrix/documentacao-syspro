@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useForgotPassword } from "@/features/auth/interface"
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"

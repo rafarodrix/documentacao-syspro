@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { toast } from "sonner";

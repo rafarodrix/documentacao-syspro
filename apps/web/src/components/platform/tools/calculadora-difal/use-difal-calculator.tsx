@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, ChangeEvent } from 'react';
+import { useState, useMemo, ChangeEvent } from 'react';
 import { CalculatorState, Finalidade, ResultadoCalculo } from './types';
 import { ALIQUOTAS_DESTINO } from './constants';
 import { calcularBaseTotal, calcularDifalPorDentro } from './calculations';
@@ -57,12 +57,12 @@ export function useDifalCalculator() {
 
         if (numeros.alqDest <= numeros.alqInter) {
             return {
-                error: 'AlÃ­quota de destino deve ser maior que a interestadual.',
+                error: 'Alíquota de destino deve ser maior que a interestadual.',
                 baseOriginal: 0, baseReduzida: 0, vCredito: 0, bcDestino: 0, vDebito: 0, valorAPagar: 0
             };
         }
 
-        // AGORA SEMPRE USA O CÃLCULO POR DENTRO (Gross-up)
+        // AGORA SEMPRE USA O CÁLCULO POR DENTRO (Gross-up)
         return calcularDifalPorDentro(bc, numeros.alqInter, numeros.alqDest, numeros.pRed);
 
     }, [baseDeCalculo, numeros]);

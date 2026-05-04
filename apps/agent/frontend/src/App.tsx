@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   GetCurrentTarget,
   GetSetupStatus,
@@ -83,7 +83,7 @@ function RemoteAccessCard({ rustdeskId }: { rustdeskId?: string }) {
         <div className="remote-pw-row">
           <span className="remote-pw-label">Senha</span>
           <span className="remote-pw-value">
-            {hasId ? "DisponÃ­vel no app de suporte" : "Aguardando configuraÃ§Ã£o"}
+            {hasId ? "Disponível no app de suporte" : "Aguardando configuração"}
           </span>
         </div>
       </div>
@@ -624,7 +624,7 @@ function SupportScreen(props: {
               <div className="support-chat-shell-title">Chat Trilink</div>
               <div className="support-chat-shell-subtitle">
                 {chatStateLabel}
-                {remoteStateLabel ? ` â€¢ ${remoteStateLabel}` : ""}
+                {remoteStateLabel ? ` • ${remoteStateLabel}` : ""}
               </div>
             </div>
             <button

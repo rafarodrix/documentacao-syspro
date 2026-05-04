@@ -1,4 +1,4 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 
 // 1. Importacao dos componentes modulares.
 import { HeroSection } from "@/components/site/hero-section";

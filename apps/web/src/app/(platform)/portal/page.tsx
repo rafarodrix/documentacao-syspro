@@ -355,7 +355,7 @@ export default async function DashboardPage() {
               <DashboardMetricCard
                 title="Risco operacional"
                 value={(adminData.crm?.overdueLeads ?? 0) + (adminData.crm?.noNextStepLeads ?? 0)}
-                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados â€¢ ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
+                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados • ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
                 icon={TrendingDown as any}
                 tone="red"
               />

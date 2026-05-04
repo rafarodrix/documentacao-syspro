@@ -1,2 +1,2 @@
-﻿export * from './release-grouping';
+export * from './release-grouping';
 

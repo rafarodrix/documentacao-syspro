@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen, Library, History, LifeBuoy, FileText, Database, Code2, Settings, Sparkles, ChevronRight } from "lucide-react";
 

@@ -1,2 +1,2 @@
-﻿export * from './sql-script.types';
+export * from './sql-script.types';
 

@@ -1,2 +1,2 @@
-﻿export * from './use-documento-form';
+export * from './use-documento-form';
 

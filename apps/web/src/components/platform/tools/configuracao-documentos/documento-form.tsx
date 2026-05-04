@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";

@@ -1,2 +1,2 @@
-﻿export * from './documento-write.actions';
+export * from './documento-write.actions';
 

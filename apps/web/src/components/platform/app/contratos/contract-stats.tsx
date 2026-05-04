@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { Prisma } from "@prisma/client";
 import type { ElementType } from "react";

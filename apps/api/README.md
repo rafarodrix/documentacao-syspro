@@ -1,4 +1,4 @@
-﻿# @dosc-syspro/app-api
+# @dosc-syspro/app-api
 
 Shell HTTP dedicado do monorepo.
 
@@ -160,10 +160,10 @@ Persistência local usada no fluxo atual:
 - a relação oficial `empresa -> conta/inbox Chatwoot` vive em `settings/integrations/connections`
 - conexão persistida no banco deve ser vinculada a uma `companyId`
 - cada empresa pode ter no máximo uma conexão ativa
-- a mesma inbox do Chatwoot nÃ£o deve ficar ativa em empresas diferentes
+- a mesma inbox do Chatwoot não deve ficar ativa em empresas diferentes
 - usuarios internos do portal (`ADMIN`, `DEVELOPER`, `SUPORTE`) são provisionados e atualizados automaticamente no Chatwoot quando criados, alterados ou desativados no portal
-- `CHATWOOT_PLATFORM_API_TOKEN` s© obrigatorio para provisionamento de agente, vÃ­nculo na conta e SSO
-- webhooks continuam sendo apenas transporte de eventos; cadastro de usuÃ¡rio e associaÃ§Ã£o empresa/inbox ficam sob controle do portal
+- `CHATWOOT_PLATFORM_API_TOKEN` s© obrigatorio para provisionamento de agente, vínculo na conta e SSO
+- webhooks continuam sendo apenas transporte de eventos; cadastro de usuário e associação empresa/inbox ficam sob controle do portal
 
 ## Limites atuais
 

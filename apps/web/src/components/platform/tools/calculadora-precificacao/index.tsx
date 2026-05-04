@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { usePricingCalculator } from './use-pricing-calculator';
 import { Step1Custos } from './components/step1-custos';

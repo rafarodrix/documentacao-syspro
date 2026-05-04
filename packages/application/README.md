@@ -1,4 +1,4 @@
-﻿# @dosc-syspro/application
+# @dosc-syspro/application
 
 Nucleo modular do BFF do monorepo.
 
