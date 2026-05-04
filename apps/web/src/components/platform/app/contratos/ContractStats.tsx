@@ -5,7 +5,7 @@ import type { ElementType } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NumberTicker } from "@/components/magicui/NumberTicker";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 
 type ContractLike = {
     status: string;

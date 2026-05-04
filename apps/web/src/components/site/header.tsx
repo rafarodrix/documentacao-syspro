@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ModeToggle } from "@/components/ModeToggle";
+import { ModeToggle } from "@/components/mode-toggle";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

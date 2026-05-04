@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MagicCard } from "@/components/magicui/MagicCard";
+import { MagicCard } from "@/components/magicui/magic-card";
 import { Badge } from "@/components/ui/badge";
 
 type Category = "calculadoras" | "simuladores" | "utilitarios";
@@ -130,7 +130,7 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
                 {tool.title}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{tool.description}</p>
-            </MagicCard>
+            </magic-card>
           </Link>
         );
       })}

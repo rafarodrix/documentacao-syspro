@@ -1,6 +1,6 @@
 "use client"
 
-import { ModeToggle } from "@/components/ModeToggle"
+import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { Breadcrumbs } from "./Breadcrumbs"

@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SefazOperationsPanel } from "@/components/sefaz/SefazOperationsPanel";
 import Link from "next/link";
-import { MagicCard } from "@/components/magicui/MagicCard";
-import { NumberTicker } from "@/components/magicui/NumberTicker";
-import { ShineBorder } from "@/components/magicui/ShineBorder";
+import { MagicCard } from "@/components/magicui/magic-card";
+import { NumberTicker } from "@/components/magicui/number-ticker";
+import { ShineBorder } from "@/components/magicui/shine-border";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import {
   ArrowUpRight,
@@ -658,7 +658,7 @@ export default async function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-        </MagicCard>
+        </magic-card>
 
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
@@ -672,7 +672,7 @@ export default async function DashboardPage() {
               <p className="mt-1 text-xs text-muted-foreground">{data.kpis.pending} em desenvolvimento/testes</p>
             </CardContent>
           </Card>
-        </MagicCard>
+        </magic-card>
 
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
@@ -686,7 +686,7 @@ export default async function DashboardPage() {
               <p className="mt-1 text-xs text-muted-foreground">Historico dos tickets recentes</p>
             </CardContent>
           </Card>
-        </MagicCard>
+        </magic-card>
 
         {dailyPassword ? (
           <MagicCard className="rounded-xl">
@@ -703,7 +703,7 @@ export default async function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          </MagicCard>
+          </magic-card>
         ) : null}
       </div>
 

@@ -4,8 +4,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MagicCard } from '@/components/magicui/MagicCard';
-import { ShineBorder } from '@/components/magicui/ShineBorder';
+import { MagicCard } from '@/components/magicui/magic-card';
+import { ShineBorder } from '@/components/magicui/shine-border';
 import type { QuickLink } from './docs-home-config';
 import { TONE_STYLES } from './docs-home-config';
 
@@ -91,7 +91,7 @@ export function PremiumLinkCard({
             <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
           </div>
         </div>
-      </MagicCard>
+      </magic-card>
     </Link>
   );
 }

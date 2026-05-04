@@ -5,7 +5,7 @@ import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Save } from "lucide-r
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShineBorder } from "@/components/magicui/ShineBorder";
+import { ShineBorder } from "@/components/magicui/shine-border";
 import { cn } from "@/lib/utils";
 
 export type RegistryFormSection<TId extends string = string> = {
