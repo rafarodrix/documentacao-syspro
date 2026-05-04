@@ -62,7 +62,7 @@ describe("authorization integration: user actions hardening", () => {
     prismaMock.membership.findMany.mockResolvedValue([{ companyId: "company-a" }]);
     prismaMock.membership.findFirst.mockResolvedValue(null);
 
-    const { deleteUserAction } = await import("@/features/user-access/application/actions");
+    const { deleteUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(false);
@@ -79,7 +79,7 @@ describe("authorization integration: user actions hardening", () => {
 
     prismaMock.user.update.mockResolvedValue({ id: "target-user" });
 
-    const { deleteUserAction } = await import("@/features/user-access/application/actions");
+    const { deleteUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(true);
@@ -104,7 +104,7 @@ describe("authorization integration: user actions hardening", () => {
       }),
     );
 
-    const { createUserAction } = await import("@/features/user-access/application/actions");
+    const { createUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await createUserAction({
       name: "Usuario Teste",
       email: "usuario@empresa.com",
@@ -136,7 +136,7 @@ describe("authorization integration: user actions hardening", () => {
     createUserMock.mockResolvedValue({ user: { id: "auth-user-rollback" } });
     prismaMock.$transaction.mockRejectedValue(new Error("falha no banco"));
 
-    const { createUserAction } = await import("@/features/user-access/application/actions");
+    const { createUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await createUserAction({
       name: "Usuario Rollback",
       email: "rollback@empresa.com",
