@@ -33,99 +33,17 @@ import {
 
 import { YouTubeModal } from '@/components/docs/YouTubeModal';
 
+Este guia cobre o ciclo operacional completo de uma empresa do segmento de Auto Center no Syspro ERP — do cadastro base ao fechamento financeiro. Siga os módulos na sequência apresentada: cada etapa alimenta a próxima, e pular alguma delas compromete a integridade dos dados nas fases seguintes.
 
-Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. Abaixo, detalhamos os pilares estratégicos que compõem o ecossistema Syspro ERP.
-
----
-
-### <Layers className="inline-block mr-2 mb-1 text-blue-500" /> Alicerce: Cadastros Base
-*A base sólida para que todos os processos subsequentes funcionem com precisão.*
-
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-blue-600">
-      <Users size={20} /> Participantes
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Gestão centralizada de Clientes, Fornecedores e Colaboradores.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-blue-600">
-      <Car size={20} /> Veículos
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Gestão completa do cadastro de cada Veículo.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-blue-600">
-      <Package size={20} /> Produtos e Serviços
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Catálogo de peças e serviços.</p>
-  </div>
-</div>
+<Callout type="info" title="Como usar este guia">
+  O fluxo está organizado em três camadas: **Alicerce** (cadastros que tudo sustenta), **Operação** (execução do dia a dia) e **Gestão** (análise de resultados). Se você está implantando o sistema pela primeira vez, respeite essa ordem. Se já está em produção, use o índice lateral para navegar diretamente ao módulo que precisa.
+</Callout>
 
 ---
 
-### <PlayCircle className="inline-block mr-2 mb-1 text-green-500" /> Operação: Fluxo Diário
-*Onde a execução acontece, gerando valor para o cliente e receita para a empresa.*
+## Visão Geral do Fluxo Operacional
 
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <FileInput size={20} /> Entrada de Nota Fiscal
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Atualização automatizada de estoque e custos através da importação de XML.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <ClipboardList size={20} /> Ordem de Serviço
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Gestão completa do diagnóstico à entrega do veículo.</p>
-  </div>
-
-    <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <ClipboardList size={20} /> Pedido de Venda
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Geração de pedido de venda para o cliente.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-green-600">
-      <Receipt size={20} /> Emissão de Nota Fiscal
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Geração de NF-e, NFC-e e NFS-e com conformidade legal.</p>
-  </div>
-</div>
-
----
-
-### <BarChart3 className="inline-block mr-2 mb-1 text-purple-500" /> Gestão: Resultados
-*Transformação de dados operacionais em decisões estratégicas e lucratividade.*
-
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <Wallet size={20} /> Gestão Financeira
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Controle rigoroso de fluxo de caixa, contas a pagar e recebíveis.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <Calculator size={20} /> Fechamento de Caixa
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Auditoria diária de entradas, saídas e conferência de meios de pagamento.</p>
-  </div>
-  
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-2 font-semibold text-purple-600">
-      <PieChart size={20} /> Relatórios
-    </div>
-    <p className="text-sm text-muted-foreground leading-relaxed">Indicadores de performance e análise de rentabilidade real do negócio.</p>
-  </div>
-</div>
+Antes de entrar no passo a passo, é importante entender como os módulos se conectam. O Syspro ERP foi projetado para que os dados fluam automaticamente entre as áreas — uma compra de mercadoria, por exemplo, atualiza estoque, custo de produto e contas a pagar em uma única operação. Quanto mais completo o preenchimento nas etapas iniciais, menor o retrabalho nas etapas seguintes.
 
 ---
 
@@ -241,51 +159,27 @@ Este guia foi projetado para espelhar o fluxo operacional real da sua oficina. A
   </Step>
 
   <Step>
+    ### Pedido de Venda
 
-  ### <ShoppingCart className="inline-block mr-2 mb-1 text-blue-500" /> Gestão de Pedido de Venda (Venda Direta)
+    O módulo de Pedido de Venda é o ponto de atendimento comercial direto. Ele foi projetado para o ritmo do balcão — seleção rápida de itens por código, descrição ou código de barras, verificação de disponibilidade em tempo real e definição das condições comerciais antes de encaminhar para o faturamento.
 
-  O módulo de Pedido de Venda é focado na agilidade do balcão. Diferente da OS, ele é ideal para vendas diretas de peças e produtos, onde o cliente não necessita de imobilização do veículo na oficina.
+    O pedido de venda não emite nota fiscal por si só — ele é o documento de origem que será convertido em NF-e ou NFC-e na etapa de faturamento. Esse fluxo em duas etapas permite que a equipe comercial gere o pedido sem acesso ao módulo fiscal, o que é uma boa prática de segregação de funções em empresas com equipes maiores.
 
-  ---
+    #### Fluxo de Operação:
+      1. **Seleção de Itens:** Inclusão de produtos via código interno, SKU ou leitura de código de barras.
+      2. **Conferência de Disponibilidade:** O sistema alerta em tempo real se o saldo em estoque é suficiente para atender o pedido.
+      3. **Condição Comercial:** Definição de prazos, convênios ou descontos autorizados para o perfil do cliente.
+      4. **Finalização:** Geração do documento de conferência para o cliente e encaminhamento para faturamento (NFC-e ou NF-e).
 
-  #### O que você gerencia nesta etapa:
-
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
-      <Package className="text-blue-600 shrink-0" size={24} />
-      <div>
-        <p className="font-semibold text-sm">Venda de Produtos</p>
-        <p className="text-xs text-muted-foreground">Registro rápido de itens, aplicação de tabelas de preço e reserva imediata de estoque.</p>
-      </div>
-    </div>
     
-    <div className="flex gap-3 p-4 border rounded-lg bg-slate-50/50">
-      <Wallet className="text-green-600 shrink-0" size={24} />
-      <div>
-        <p className="font-semibold text-sm">Fechamento e Liquidação</p>
-        <p className="text-xs text-muted-foreground">Negociação de descontos, definição de parcelamentos e integração com o fluxo de caixa.</p>
-      </div>
-    </div>
-  </div>
+    <Callout type="info" title="Comissões e produtividade">
+      Mantenha o campo **Vendedor** sempre preenchido. Sem esse vínculo, os relatórios de produtividade e o cálculo de comissões ficam incompletos — e não é possível recuperar essa informação retroativamente após a finalização do pedido.
+    </Callout>
+
+    <YouTubeModal videoId="jPNM_8BbjKM" thumbnailTitle="Pedido de Venda — Atendimento Ágil no Balcão" />
 
 
-
-  #### Fluxo de Operação:
-
-  1. **Seleção de Itens:** Inclusão de produtos via código interno, SKU ou leitura de código de barras.
-  2. **Conferência de Disponibilidade:** O sistema alerta em tempo real se o saldo em estoque é suficiente para atender o pedido.
-  3. **Condição Comercial:** Definição de prazos, convênios ou descontos autorizados para o perfil do cliente.
-  4. **Finalização:** Geração do documento de conferência para o cliente e encaminhamento para faturamento (NFC-e ou NF-e).
-
-  <Callout type="info" title="Dica de Performance">
-    Mantenha o campo **Vendedor** sempre preenchido. Isso permite que você extraia relatórios de produtividade e comissões precisos ao final de cada período no módulo de Resultados.
-  </Callout>
-
-  <YouTubeModal videoId="DZIcNeahpEY" thumbnailTitle="Gestão de Pedido de Venda: Rapidez no Balcão" />
-
-  ---
-
-</Step>
+  </Step>
 
 <Step>
 
