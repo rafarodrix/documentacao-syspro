@@ -1,5 +1,5 @@
 ﻿import { Suspense } from "react"
-import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm"
+import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { Loader2 } from "lucide-react"
 import { Metadata } from "next"
 

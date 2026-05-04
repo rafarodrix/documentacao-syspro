@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
+import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 
 export function LoginForm() {
   const {
@@ -205,7 +205,7 @@ export function LoginForm() {
           </p>
         </div>
       </div>
-    </AuthLayoutWrapper>
+    </auth-layout-wrapper>
   )
 }
 

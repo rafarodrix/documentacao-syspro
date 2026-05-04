@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import { useForgotPassword } from "@/features/auth/interface"
-import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
+import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -103,7 +103,7 @@ export function ForgotPasswordForm() {
           </Button>
         </form>
       )}
-    </AuthLayoutWrapper>
+    </auth-layout-wrapper>
   )
 }
 

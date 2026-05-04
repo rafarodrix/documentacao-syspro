@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Mail, Lock, User, AlertCircle } from "lucide-react"
-import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
+import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { cn } from "@/lib/utils"
 
 export function RegisterForm() {
@@ -142,7 +142,7 @@ export function RegisterForm() {
           </Link>
         </div>
       </div>
-    </AuthLayoutWrapper>
+    </auth-layout-wrapper>
   )
 }
 

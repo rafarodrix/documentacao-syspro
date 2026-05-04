@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
-import { AuthLayoutWrapper } from "@/components/auth/AuthLayoutWrapper"
+import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { cn } from "@/lib/utils"
 
 export function ResetPasswordForm() {
@@ -40,7 +40,7 @@ export function ResetPasswordForm() {
         <Button className="w-full mt-4" asChild>
           <a href="/forgot-password">Solicitar novo link</a>
         </Button>
-      </AuthLayoutWrapper>
+      </auth-layout-wrapper>
     )
   }
 
@@ -178,7 +178,7 @@ export function ResetPasswordForm() {
             : "Alterar Senha"}
         </Button>
       </form>
-    </AuthLayoutWrapper>
+    </auth-layout-wrapper>
   )
 }
 
