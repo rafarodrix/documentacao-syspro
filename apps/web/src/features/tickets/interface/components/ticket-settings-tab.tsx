@@ -95,6 +95,7 @@ export function TicketSettingsTab() {
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
+  const priorities = form.watch("priorities");
 
   useEffect(() => {
     let active = true;
