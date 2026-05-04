@@ -611,7 +611,7 @@ export class ChatwootWebhookController {
       context.message?.content_attributes?.message,
     );
     if (score === null) {
-      return false;
+      return this.handleInvalidCsatReply(conversationId, customAttributes, resolvedContext, settings);
     }
 
     const contact = this.extractContactPhone(payload) ?? this.toOptionalString(customAttributes.csat_contact) ?? null;
@@ -653,6 +653,7 @@ export class ChatwootWebhookController {
         csat_status: isLowScore ? 'low_score' : 'recorded',
         csat_score: score,
         csat_responded_at: respondedAt,
+        csat_invalid_reply_count: 0,
       },
       { useSystemBot: settings.systemMessagesUseBotIdentity },
     );
@@ -780,6 +781,7 @@ export class ChatwootWebhookController {
         csat_status: 'pending',
         csat_requested_at: requestedAt,
         csat_timeout_at: timeoutAt,
+        csat_invalid_reply_count: 0,
         csat_agent_id: agent.id,
         csat_agent_name: agent.name,
         csat_contact: contact,
@@ -859,6 +861,74 @@ export class ChatwootWebhookController {
     return score;
   }
 
+  private async handleInvalidCsatReply(
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+  ): Promise<boolean> {
+    const invalidReplyCount = this.parseOptionalInt(customAttributes.csat_invalid_reply_count) ?? 0;
+    const nextInvalidReplyCount = invalidReplyCount + 1;
+    const maxAttempts = settings.csatInvalidReplyMaxAttempts;
+    const exhaustedAttempts = nextInvalidReplyCount >= maxAttempts;
+    const now = new Date().toISOString();
+
+    await this.chatwootClient.updateConversationCustomAttributes(
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      {
+        ...customAttributes,
+        csat_pending: exhaustedAttempts ? false : true,
+        csat_status: exhaustedAttempts ? 'skipped_no_score' : 'pending_retry',
+        csat_invalid_reply_count: nextInvalidReplyCount,
+        csat_last_invalid_reply_at: now,
+        ...(exhaustedAttempts ? { csat_abandoned_at: now } : {}),
+      },
+      { useSystemBot: settings.systemMessagesUseBotIdentity },
+    );
+
+    const reminderMessage = exhaustedAttempts
+      ? settings.csatInvalidReplyFinalMessage.trim()
+      : `${settings.csatInvalidReplyRetryMessage.trim()}\n\nTentativa ${nextInvalidReplyCount}/${maxAttempts}.`;
+
+    await this.chatwootClient.createOutgoingMessage(
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      reminderMessage,
+      {
+        useSystemBot: settings.systemMessagesUseBotIdentity,
+        contentAttributes: this.buildSystemMessageAttributes(),
+      },
+    );
+
+    await this.chatwootClient.toggleConversationStatus(
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      'resolved',
+      { useSystemBot: settings.systemMessagesUseBotIdentity },
+    );
+
+    if (exhaustedAttempts) {
+      await this.prisma.conversationLink.deleteMany({
+        where: {
+          chatwootConversationId: conversationId,
+          connectionKey: resolvedContext.connectionKey,
+        },
+      });
+    }
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_portal',
+      stage: exhaustedAttempts ? 'csat_invalid_reply_exhausted' : 'csat_invalid_reply_reminded',
+      conversationId,
+      invalidReplyCount: nextInvalidReplyCount,
+      maxAttempts,
+      connectionKey: resolvedContext.connectionKey,
+    }));
+
+    return true;
+  }
+
   private extractAgentIdentity(payload: any): { id?: string; name?: string } {
     const { message, conversationMessage } = this.resolveMessageContext(payload);
     const sender =
@@ -886,6 +956,19 @@ export class ChatwootWebhookController {
     if (!normalized) return null;
     const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private parseOptionalInt(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return Math.trunc(value);
+    }
+
+    const normalized = this.toOptionalString(value);
+    if (!normalized || !/^-?\d+$/.test(normalized)) {
+      return null;
+    }
+
+    return Number.parseInt(normalized, 10);
   }
 
   private async resolveCurrentConversationAssigneeId(
