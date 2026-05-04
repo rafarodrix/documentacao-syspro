@@ -676,13 +676,41 @@ export class ChatwootWebhookController {
         'open',
         { useSystemBot: settings.systemMessagesUseBotIdentity },
       );
-    } else if (settings.releaseConversationLinkOnResolved) {
-      await this.prisma.conversationLink.deleteMany({
-        where: {
-          chatwootConversationId: conversationId,
-          connectionKey: resolvedContext.connectionKey,
-        },
-      });
+    } else {
+      await this.chatwootClient.toggleConversationStatus(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        'resolved',
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+    }
+
+    if (!isLowScore || !settings.csatReopenOnLowScore) {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_conversation_resolved_after_reply',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+    }
+
+    if (!isLowScore || !settings.csatReopenOnLowScore) {
+      // Mantem o vinculo apenas quando a conversa precisa seguir aberta por nota baixa.
+      if (settings.releaseConversationLinkOnResolved) {
+        await this.prisma.conversationLink.deleteMany({
+          where: {
+            chatwootConversationId: conversationId,
+            connectionKey: resolvedContext.connectionKey,
+          },
+        });
+      }
+    } else {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_conversation_kept_open_for_low_score',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
     }
 
     this.logger.log(JSON.stringify({
