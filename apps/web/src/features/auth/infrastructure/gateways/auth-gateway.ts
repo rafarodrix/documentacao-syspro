@@ -1,6 +1,6 @@
 import { authClient } from "@/lib/auth-client";
 import { registerUser } from "@/features/auth/application/actions/register";
-import type { AuthGatewayResult } from "@/features/auth/domain/model";
+import type { AuthGatewayResult } from "@/features/auth/domain/auth.types";
 
 type AuthClientPasswordApi = {
   signIn: {

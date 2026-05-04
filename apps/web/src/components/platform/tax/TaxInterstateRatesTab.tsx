@@ -7,7 +7,7 @@ import {
   type InterstateIcmsSettings,
 } from "@dosc-syspro/contracts/settings";
 import { SEFAZ_UFS } from "@dosc-syspro/contracts";
-import { updateInterstateIcmsSettingsAction } from "@/features/settings/application/actions";
+import { updateInterstateIcmsSettingsAction } from "@/features/settings/application/settings-write.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

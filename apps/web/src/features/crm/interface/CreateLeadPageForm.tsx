@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Building2, CircleDollarSign, FileSearch, Target, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLead, type CrmLeadManualContact } from "@dosc-syspro/contracts/crm";
-import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/model";
+import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
 import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

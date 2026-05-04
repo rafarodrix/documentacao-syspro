@@ -9,9 +9,9 @@ import {
     CreateContractInput,
     CreateContractOutput,
 } from "@/features/contracts/application/contract-schema";
-import { createContractAction } from "@/features/contracts/application/actions";
-import { getSystemParamsAction } from "@/features/contracts/application/queries";
-import type { ContractCompanyOption } from "@/features/contracts/domain/model";
+import { createContractAction } from "@/features/contracts/application/contract-write.actions";
+import { getSystemParamsAction } from "@/features/contracts/application/contract-read.queries";
+import type { ContractCompanyOption } from "@/features/contracts/domain/contract.types";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";

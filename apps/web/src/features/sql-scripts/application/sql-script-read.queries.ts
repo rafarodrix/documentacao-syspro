@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import { SqlScriptFrontmatterSchema, type SqlScript } from "@/features/sql-scripts/domain/model";
+import { SqlScriptFrontmatterSchema, type SqlScript } from "@/features/sql-scripts/domain/sql-script.types";
 
 export function getSqlScripts(): SqlScript[] {
   const candidateDirs = [

@@ -2,7 +2,7 @@
 
 import { type DocumentoFormValues, documentoSchema } from "@dosc-syspro/contracts/documento";
 import { callWebApi } from "@/lib/web-api";
-import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/model";
+import type { DocumentosListResponse, DocumentoActionResponse } from "@/features/documentos/domain/documento.types";
 import { revalidateDocumentosViews } from "@/lib/cache-invalidation";
 
 async function apiRequest(path: string, init?: RequestInit) {

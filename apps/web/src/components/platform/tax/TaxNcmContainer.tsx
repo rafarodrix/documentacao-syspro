@@ -1,4 +1,4 @@
-import { getTaxNcmViewData } from "@/features/tax/application/queries";
+import { getTaxNcmViewData } from "@/features/tax/application/tax-read.queries";
 import { TaxNcmPanel } from "./TaxNcmPanel";
 
 export async function TaxNcmContainer() {

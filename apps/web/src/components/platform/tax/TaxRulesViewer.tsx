@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { TaxRulesGroupItem } from "@/features/tax/domain/model";
+import type { TaxRulesGroupItem } from "@/features/tax/domain/tax.types";
 import {
     Search,
     FileText,

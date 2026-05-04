@@ -1,4 +1,4 @@
-import type { TaxActionResponse, TaxSyncChunkRequest } from "@/features/tax/domain/model";
+import type { TaxActionResponse, TaxSyncChunkRequest } from "@/features/tax/domain/tax.types";
 
 export interface TaxWriteRepository {
   saveClassificationBatch(chunk: unknown[], metadata?: TaxSyncChunkRequest): Promise<TaxActionResponse>;

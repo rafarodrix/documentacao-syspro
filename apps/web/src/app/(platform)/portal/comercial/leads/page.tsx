@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
-import { getCrmLeadsData } from "@/features/crm/application/queries";
+import { getCrmLeadsData } from "@/features/crm/application/crm-read.queries";
 import { LeadManagementPage } from "@/features/crm/interface/LeadManagementPage";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 

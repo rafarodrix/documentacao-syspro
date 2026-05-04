@@ -4,7 +4,7 @@ import type {
   TaxCredPresumidoListItem,
   TaxNcmListItem,
   TaxRulesGroupItem,
-} from "@/features/tax/domain/model";
+} from "@/features/tax/domain/tax.types";
 
 export interface TaxReadRepository {
   getClassificationListView(): Promise<TaxClassificationListViewData>;

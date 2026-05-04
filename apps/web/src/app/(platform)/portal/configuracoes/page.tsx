@@ -4,7 +4,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import {
   getSettingsAdminViewData,
   getSettingsRemoteAdminViewData,
-} from "@/features/settings/application/queries";
+} from "@/features/settings/application/settings-read.queries";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
 import { TicketSettingsTab } from "@/features/tickets/interface/components/ticket-settings-tab";
 import { IntegrationsSettingsTab } from "./integrations-tab";

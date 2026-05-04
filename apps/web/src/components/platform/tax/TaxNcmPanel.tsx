@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { TaxNcmListItem } from "@/features/tax/domain/model";
+import type { TaxNcmListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
 

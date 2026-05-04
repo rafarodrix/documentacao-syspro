@@ -1,4 +1,4 @@
-import { getTaxCredPresumidoViewData } from "@/features/tax/application/queries";
+import { getTaxCredPresumidoViewData } from "@/features/tax/application/tax-read.queries";
 import { TaxCredPresumidoPanel } from "./TaxCredPresumidoPanel";
 
 export async function TaxCredPresumidoContainer() {

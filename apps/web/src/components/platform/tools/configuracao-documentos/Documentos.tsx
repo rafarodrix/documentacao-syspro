@@ -7,10 +7,10 @@ import {
 } from 'lucide-react';
 import { DocumentoForm } from './DocumentoForm';
 import { type DocumentoFormValues } from '@dosc-syspro/contracts/documento';
-import type { DocumentoItem } from '@/features/documentos/domain/model';
+import type { DocumentoItem } from '@/features/documentos/domain/documento.types';
 import { Button } from "@/components/ui/button";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts/documento-config";
-import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/documentos/application/actions';
+import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/documentos/application/documento-write.actions';
 
 export default function DocumentosContainer() {
   const [viewState, setViewState] = useState<'list' | 'form'>('list');

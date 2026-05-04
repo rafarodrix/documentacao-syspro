@@ -1,4 +1,4 @@
-import { getTaxAnexosViewData } from "@/features/tax/application/queries";
+import { getTaxAnexosViewData } from "@/features/tax/application/tax-read.queries";
 import { TaxAnexosPanel } from "./TaxAnexosPanel";
 
 export async function TaxAnexosContainer() {
