@@ -172,7 +172,7 @@ export default async function PortalDocsPage(props: {
           <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
           <DocsReadingTime minutes={readingTimeMinutes} />
         </div>
-      </docs-surface>
+      </DocsSurface>
       <div className="mt-3">
         <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
       </div>
@@ -191,7 +191,7 @@ export default async function PortalDocsPage(props: {
               PlaygroundInline,
             }}
           />
-        </docs-surface>
+        </DocsSurface>
         <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
@@ -203,7 +203,7 @@ export default async function PortalDocsPage(props: {
         {lastUpdateDate ? (
           <DocsSurface className="border-border/35 bg-background/25 px-3 py-2 md:px-3.5 md:py-2.5">
             <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
-          </docs-surface>
+          </DocsSurface>
         ) : null}
       </DocsBody>
     </DocsPage>

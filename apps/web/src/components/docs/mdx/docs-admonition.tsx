@@ -24,7 +24,7 @@ export function Tip({ children }: { children: ReactNode }) {
   return (
     <DocsAdmonition type="info" title="Dica">
       {children}
-    </docs-admonition>
+    </DocsAdmonition>
   );
 }
 
@@ -32,7 +32,7 @@ export function Note({ children }: { children: ReactNode }) {
   return (
     <DocsAdmonition type="info" title="Nota">
       {children}
-    </docs-admonition>
+    </DocsAdmonition>
   );
 }
 
@@ -40,7 +40,7 @@ export function Warning({ children }: { children: ReactNode }) {
   return (
     <DocsAdmonition type="warning" title="Atencao">
       {children}
-    </docs-admonition>
+    </DocsAdmonition>
   );
 }
 
@@ -48,6 +48,6 @@ export function Danger({ children }: { children: ReactNode }) {
   return (
     <DocsAdmonition type="error" title="Critico">
       {children}
-    </docs-admonition>
+    </DocsAdmonition>
   );
 }

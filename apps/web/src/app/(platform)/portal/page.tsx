@@ -658,7 +658,7 @@ export default async function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-        </magic-card>
+        </MagicCard>
 
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
@@ -672,7 +672,7 @@ export default async function DashboardPage() {
               <p className="mt-1 text-xs text-muted-foreground">{data.kpis.pending} em desenvolvimento/testes</p>
             </CardContent>
           </Card>
-        </magic-card>
+        </MagicCard>
 
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
@@ -686,7 +686,7 @@ export default async function DashboardPage() {
               <p className="mt-1 text-xs text-muted-foreground">Historico dos tickets recentes</p>
             </CardContent>
           </Card>
-        </magic-card>
+        </MagicCard>
 
         {dailyPassword ? (
           <MagicCard className="rounded-xl">
@@ -703,7 +703,7 @@ export default async function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          </magic-card>
+          </MagicCard>
         ) : null}
       </div>
 

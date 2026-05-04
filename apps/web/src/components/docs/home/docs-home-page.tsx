@@ -81,7 +81,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               />
             ))}
           </div>
-        </docs-surface>
+        </DocsSurface>
 
         <ReleaseCycleCard
           summaries={releaseSummaries}
@@ -124,7 +124,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               ))
             )}
           </div>
-        </docs-surface>
+        </DocsSurface>
 
         <DocsSurface className="rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -151,7 +151,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               ))
             )}
           </div>
-        </docs-surface>
+        </DocsSurface>
       </section>
 
       <style jsx global>{`

@@ -410,7 +410,7 @@ export function CreateCompanyPageForm({
               {currentSection === "configuracoes" && <CompanySettingsTab />}
             </motion.div>
           </AnimatePresence>
-        </registry-form-scaffold>
+        </RegistryFormScaffold>
       </form>
     </Form>
   );

@@ -554,7 +554,7 @@ export function CreateContactPageForm({
               ) : null}
             </motion.div>
           </AnimatePresence>
-        </registry-form-scaffold>
+        </RegistryFormScaffold>
       </form>
     </Form>
   );

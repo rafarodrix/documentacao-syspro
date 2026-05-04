@@ -103,7 +103,7 @@ export function ForgotPasswordForm() {
           </Button>
         </form>
       )}
-    </auth-layout-wrapper>
+    </AuthLayoutWrapper>
   )
 }
 

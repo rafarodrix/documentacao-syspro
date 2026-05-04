@@ -90,7 +90,7 @@ export async function PortalShellLayout({
         contentContainerClassName={contentContainerClassName}
       >
         {children}
-      </app-shell>
+      </AppShell>
     </PortalShellModeProvider>
   )
 }

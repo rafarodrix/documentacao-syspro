@@ -130,7 +130,7 @@ export function ToolsHub({ basePath }: ToolsHubProps) {
                 {tool.title}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{tool.description}</p>
-            </magic-card>
+            </MagicCard>
           </Link>
         );
       })}

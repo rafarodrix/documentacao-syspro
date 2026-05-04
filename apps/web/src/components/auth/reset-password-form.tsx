@@ -40,7 +40,7 @@ export function ResetPasswordForm() {
         <Button className="w-full mt-4" asChild>
           <a href="/forgot-password">Solicitar novo link</a>
         </Button>
-      </auth-layout-wrapper>
+      </AuthLayoutWrapper>
     )
   }
 
@@ -178,7 +178,7 @@ export function ResetPasswordForm() {
             : "Alterar Senha"}
         </Button>
       </form>
-    </auth-layout-wrapper>
+    </AuthLayoutWrapper>
   )
 }
 

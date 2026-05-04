@@ -205,7 +205,7 @@ export function LoginForm() {
           </p>
         </div>
       </div>
-    </auth-layout-wrapper>
+    </AuthLayoutWrapper>
   )
 }
 

@@ -142,7 +142,7 @@ export function RegisterForm() {
           </Link>
         </div>
       </div>
-    </auth-layout-wrapper>
+    </AuthLayoutWrapper>
   )
 }
 

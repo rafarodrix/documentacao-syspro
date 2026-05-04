@@ -59,6 +59,6 @@ export function DocsSectionLinks({
           </Link>
         ))}
       </div>
-    </docs-surface>
+    </DocsSurface>
   );
 }

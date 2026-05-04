@@ -153,6 +153,6 @@ export function DocsPageFeedback({
           Obrigado pelo feedback. Vamos usar isso para priorizar melhorias.
         </p>
       ) : null}
-    </docs-surface>
+    </DocsSurface>
   );
 }

@@ -620,7 +620,7 @@ export function CreateUserPageForm({
               ) : null}
             </motion.div>
           </AnimatePresence>
-        </registry-form-scaffold>
+        </RegistryFormScaffold>
       </form>
     </Form>
   );
