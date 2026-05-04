@@ -426,7 +426,7 @@ export class EvolutionClient {
       const [rawLocalPart, rawDomain = ''] = recipient.split('@');
       const normalizedDomain = rawDomain.trim().toLowerCase();
 
-      if (normalizedDomain === 'g.us') {
+      if (normalizedDomain === 'g.us' || normalizedDomain === 'newsletter') {
         const normalizedGroupLocalPart = rawLocalPart.replace(/\s+/g, '');
         return normalizedGroupLocalPart
           ? `${normalizedGroupLocalPart}@${normalizedDomain}`
