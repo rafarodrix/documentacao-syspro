@@ -2,40 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
 
 const getProtectedSessionMock = vi.fn();
-const revalidatePathMock = vi.fn();
-const createUserMock = vi.fn();
-const removeUserMock = vi.fn();
-
-const prismaMock = {
-  membership: {
-    findMany: vi.fn(),
-    findFirst: vi.fn(),
-    upsert: vi.fn(),
-    delete: vi.fn(),
-    update: vi.fn(),
-  },
-  user: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
-  $transaction: vi.fn(),
-};
+const callWebApiMock = vi.fn();
 
 vi.mock("@/lib/auth-helpers", () => ({
   getProtectedSession: getProtectedSessionMock,
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: prismaMock,
+vi.mock("@/lib/web-api", () => ({
+  callWebApi: callWebApiMock,
 }));
 
-vi.mock("@/lib/auth", () => ({
-  auth: {
-    api: {
-      createUser: createUserMock,
-      removeUser: removeUserMock,
-    },
-  },
+vi.mock("@/features/settings/infrastructure/gateways/settings.gateway", () => ({
+  fetchSettingsAuthorizationContextGateway: vi.fn().mockResolvedValue({ success: false }),
 }));
 
 vi.mock("next/headers", () => ({
@@ -43,7 +21,11 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("next/cache", () => ({
-  revalidatePath: revalidatePathMock,
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("@/lib/cache-invalidation", () => ({
+  revalidateCadastrosViews: vi.fn(),
 }));
 
 describe("authorization integration: user actions hardening", () => {
@@ -51,104 +33,83 @@ describe("authorization integration: user actions hardening", () => {
     vi.clearAllMocks();
   });
 
-  it("bloqueia deleteUserAction para CLIENTE_ADMIN fora do escopo da empresa", async () => {
+  it("bloqueia deleteUserAction para CLIENTE_USER sem permissao users:status", async () => {
     getProtectedSessionMock.mockResolvedValue({
-      role: Role.CLIENTE_ADMIN,
-      userId: "manager-1",
-      email: "gestor@empresa.com",
+      role: Role.CLIENTE_USER,
+      userId: "user-1",
+      email: "user@empresa.com",
     });
-
-    prismaMock.user.findUnique.mockResolvedValue({ role: Role.CLIENTE_USER, deletedAt: null });
-    prismaMock.membership.findMany.mockResolvedValue([{ companyId: "company-a" }]);
-    prismaMock.membership.findFirst.mockResolvedValue(null);
 
     const { deleteUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(false);
-    expect(result.message?.toLowerCase()).toContain("n\u00E3o pode remover");
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(callWebApiMock).not.toHaveBeenCalled();
   });
 
-  it("permite deleteUserAction para role interna", async () => {
+  it("permite deleteUserAction para role ADMIN", async () => {
     getProtectedSessionMock.mockResolvedValue({
       role: Role.ADMIN,
       userId: "admin-1",
       email: "admin@syspro.com",
     });
 
-    prismaMock.user.update.mockResolvedValue({ id: "target-user" });
+    callWebApiMock.mockResolvedValue(new Response(null, { status: 200 }));
 
     const { deleteUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(true);
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: "target-user" },
-      data: expect.objectContaining({ isActive: false }),
-    });
+    expect(callWebApiMock).toHaveBeenCalledWith(
+      expect.stringContaining("/users/target-user"),
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 
-  it("cria usuario via admin.createUser sem depender de sign-up publico", async () => {
+  it("cria usuario via createUserAction com permissao de ADMIN", async () => {
     getProtectedSessionMock.mockResolvedValue({
       role: Role.ADMIN,
       userId: "admin-1",
       email: "admin@syspro.com",
     });
 
-    createUserMock.mockResolvedValue({ user: { id: "auth-user-1" } });
-    prismaMock.$transaction.mockImplementation(async (callback) =>
-      callback({
-        user: { update: vi.fn().mockResolvedValue({ id: "auth-user-1" }) },
-        membership: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
-      }),
+    callWebApiMock.mockResolvedValue(
+      new Response(JSON.stringify({ id: "new-user-1" }), { status: 200 }),
     );
 
     const { createUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await createUserAction({
       name: "Usuario Teste",
       email: "usuario@empresa.com",
-      password: "123456",
+      password: "Senha@123",
       role: "CLIENTE_USER",
       companyId: "company-a",
     });
 
     expect(result.success).toBe(true);
-    expect(createUserMock).toHaveBeenCalledWith({
-      body: expect.objectContaining({
-        email: "usuario@empresa.com",
-        password: "123456",
-        name: "Usuario Teste",
-        role: "user",
-      }),
-      headers: expect.any(Headers),
-    });
-    expect(removeUserMock).not.toHaveBeenCalled();
+    expect(callWebApiMock).toHaveBeenCalledWith(
+      expect.stringContaining("/users"),
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
-  it("executa rollback no auth quando a transacao do banco falha", async () => {
+  it("bloqueia createUserAction para CLIENTE_USER sem permissao users:create", async () => {
     getProtectedSessionMock.mockResolvedValue({
-      role: Role.ADMIN,
-      userId: "admin-1",
-      email: "admin@syspro.com",
+      role: Role.CLIENTE_USER,
+      userId: "user-1",
+      email: "user@empresa.com",
     });
-
-    createUserMock.mockResolvedValue({ user: { id: "auth-user-rollback" } });
-    prismaMock.$transaction.mockRejectedValue(new Error("falha no banco"));
 
     const { createUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await createUserAction({
-      name: "Usuario Rollback",
-      email: "rollback@empresa.com",
-      password: "123456",
+      name: "Usuario Teste",
+      email: "usuario@empresa.com",
+      password: "Senha@123",
       role: "CLIENTE_USER",
       companyId: "company-a",
     });
 
     expect(result.success).toBe(false);
-    expect(removeUserMock).toHaveBeenCalledWith({
-      body: { userId: "auth-user-rollback" },
-      headers: expect.any(Headers),
-    });
+    expect(callWebApiMock).not.toHaveBeenCalled();
   });
 });
