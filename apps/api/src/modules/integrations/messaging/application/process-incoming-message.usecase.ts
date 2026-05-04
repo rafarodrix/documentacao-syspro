@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CompanyContactStatus } from '@prisma/client';
+import {
+  DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
+  chatwootBehaviorSettingsSchema,
+  type ChatwootBehaviorSettings,
+} from '@dosc-syspro/contracts/chatwoot';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
@@ -10,6 +15,7 @@ import { IntegrationContextService, type ResolvedIntegrationContext } from '../.
 @Injectable()
 export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
+  private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
   private readonly conversationLinkLocks = new Map<string, Promise<void>>();
 
   constructor(
@@ -27,6 +33,7 @@ export class ProcessIncomingMessageUseCase {
     const resolvedConnection =
       context?.connection ??
       await this.integrationContext.getDefaultContext();
+    const behaviorSettings = await this.readStoredChatwootBehaviorSettings();
 
     if (!resolvedConnection) {
       this.logger.error('Nenhuma conexao ativa encontrada para processar mensagem inbound da Evolution.');
@@ -190,7 +197,7 @@ export class ProcessIncomingMessageUseCase {
       try {
         const link = isGroupChat
           ? await this.resolveOrCreateGroupConversationLink(String(remoteJid), resolvedConnection)
-          : await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection);
+          : await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection, behaviorSettings);
         contactIdentifier = link.contactIdentifier;
         conversationId = link.conversationId;
 
@@ -225,7 +232,12 @@ export class ProcessIncomingMessageUseCase {
             });
             this.logger.log(`[AUTO-CURA] Vinculo do numero ${phone} apagado. Recriando conversa e reenviando a mensagem atual.`);
 
-            const recreatedLink = await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection);
+            const recreatedLink = await this.resolveOrCreateConversationLink(
+              phone,
+              pushName,
+              resolvedConnection,
+              behaviorSettings,
+            );
             contactIdentifier = recreatedLink.contactIdentifier;
             conversationId = recreatedLink.conversationId;
 
@@ -418,6 +430,7 @@ export class ProcessIncomingMessageUseCase {
     context?: { event?: string; instanceId?: string; connection?: ResolvedIntegrationContext }
   ) {
     const calls = this.normalizeCallPayload(payload);
+    const behaviorSettings = await this.readStoredChatwootBehaviorSettings();
     if (!calls.length) {
       this.logger.debug(JSON.stringify({
         flow: 'evolution_to_chatwoot',
@@ -506,6 +519,7 @@ export class ProcessIncomingMessageUseCase {
           callInfo.phone,
           callInfo.pushName ?? 'Cliente WhatsApp',
           resolvedConnection,
+          behaviorSettings,
         );
         const content = this.buildCallLogMessage(callInfo);
 
@@ -1141,7 +1155,8 @@ export class ProcessIncomingMessageUseCase {
   private async resolveOrCreateConversationLink(
     phone: string,
     pushName: string,
-    connection: ResolvedIntegrationContext
+    connection: ResolvedIntegrationContext,
+    behaviorSettings: ChatwootBehaviorSettings,
   ): Promise<{ contactIdentifier: string; conversationId: string }> {
     const lockKey = `${connection.connectionKey}:${phone}`;
 
@@ -1158,6 +1173,12 @@ export class ProcessIncomingMessageUseCase {
 
       let contactIdentifier = link?.chatwootContactId;
       let conversationId = link?.chatwootConversationId;
+
+      if (link) {
+        link = await this.applyResolvedConversationReusePolicy(link, connection, phone, behaviorSettings);
+        contactIdentifier = link?.chatwootContactId;
+        conversationId = link?.chatwootConversationId;
+      }
 
       if (!link) {
         let sysproContact = await this.prisma.companyContact.findFirst({
@@ -1432,6 +1453,100 @@ export class ProcessIncomingMessageUseCase {
       inboundWhatsappNumber: input.inboundWhatsappNumber,
       updatedConversationIds: linksToUpdate.map((link) => link.chatwootConversationId),
     }));
+  }
+
+  private async applyResolvedConversationReusePolicy(
+    link: any,
+    connection: ResolvedIntegrationContext,
+    phone: string,
+    settings: ChatwootBehaviorSettings,
+  ) {
+    if (settings.resolvedCustomerReplyAction !== 'new_conversation') {
+      return link;
+    }
+
+    if (!link?.chatwootConversationId || !link?.chatwootContactId) {
+      return link;
+    }
+
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(
+        connection.chatwoot,
+        String(link.chatwootConversationId),
+      );
+      const status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
+      if (status !== 'resolved' && status !== 'archived') {
+        return link;
+      }
+
+      const convResponse = await this.chatwootClient.createConversation(
+        connection.chatwoot,
+        String(link.chatwootContactId),
+      );
+      const newConversationId =
+        convResponse?.id?.toString?.() ??
+        convResponse?.payload?.id?.toString?.() ??
+        convResponse?.conversation?.id?.toString?.();
+
+      if (!newConversationId || newConversationId === link.chatwootConversationId) {
+        return link;
+      }
+
+      const updatedLink = await this.prisma.conversationLink.update({
+        where: { id: link.id },
+        data: {
+          chatwootConversationId: newConversationId,
+          lastInboundWhatsappNumber: phone,
+        },
+      } as any);
+
+      this.logger.log(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'resolved_conversation_replaced_before_inbound',
+        connectionKey: connection.connectionKey,
+        whatsappNumber: phone,
+        previousConversationId: link.chatwootConversationId,
+        nextConversationId: newConversationId,
+      }));
+
+      return updatedLink;
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'resolved_conversation_reuse_policy_failed',
+        connectionKey: connection.connectionKey,
+        whatsappNumber: phone,
+        chatwootConversationId: link.chatwootConversationId,
+        error: error?.message ?? 'unknown_error',
+      }));
+      return link;
+    }
+  }
+
+  private normalizeConversationStatus(value: unknown): string {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'resolved' || normalized === 'archived') return normalized;
+    if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
+    return normalized;
+  }
+
+  private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: ProcessIncomingMessageUseCase.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
+      select: { value: true },
+    });
+
+    if (!setting?.value) {
+      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    }
+
+    try {
+      const parsed = JSON.parse(setting.value);
+      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
+      return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    } catch {
+      return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
+    }
   }
 
   private async reactivateArchivedContactIfNeeded(

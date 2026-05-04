@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useFieldArray, useForm, type FieldPath, type Resolver, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -18,13 +18,18 @@ import {
   ticketModuleSettingsSchema,
   type TicketModuleSettings,
 } from "@dosc-syspro/contracts/ticket";
+import {
+  SettingsPageIntro,
+  SettingsTabsRail,
+  SettingsTabsRailTrigger,
+} from "@/app/(platform)/portal/configuracoes/settings-shell";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { invalidateTicketModuleSettingsCache } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
@@ -90,7 +95,6 @@ export function TicketSettingsTab() {
   const modulesArray = useFieldArray({ control: form.control, name: "modules" });
   const prioritiesArray = useFieldArray({ control: form.control, name: "priorities" });
   const templatesArray = useFieldArray({ control: form.control, name: "quickReplyTemplates" });
-
   const priorities = form.watch("priorities");
 
   useEffect(() => {
@@ -178,26 +182,31 @@ export function TicketSettingsTab() {
           className="space-y-5 pb-10"
         >
           <section className="min-w-0 space-y-5">
-            <div className="space-y-1">
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">Configuracoes de tickets</h2>
-              <p className="text-sm text-muted-foreground">Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados.</p>
-            </div>
+            <SettingsPageIntro
+              icon={Layers3}
+              eyebrow="Atendimento"
+              title="Configuracoes de tickets"
+              description="Ajuste catalogos, SLA e respostas rapidas usados no cadastro e na edicao de chamados."
+            />
 
             <Tabs defaultValue="structure" className="w-full">
-              <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-lg bg-transparent p-0 md:grid-cols-3">
-                <TabsTrigger value="structure" className="gap-1.5 text-xs">
-                  <Layers3 className="h-3.5 w-3.5" />
-                  Estrutura
-                </TabsTrigger>
-                <TabsTrigger value="sla" className="gap-1.5 text-xs">
-                  <Clock className="h-3.5 w-3.5" />
-                  SLA
-                </TabsTrigger>
-                <TabsTrigger value="templates" className="gap-1.5 text-xs">
-                  <MessageSquareText className="h-3.5 w-3.5" />
-                  Templates
-                </TabsTrigger>
-              </TabsList>
+              <SettingsTabsRail className="sm:grid-cols-3">
+                <SettingsTabsRailTrigger
+                  value="structure"
+                  icon={Layers3}
+                  title="Estrutura"
+                />
+                <SettingsTabsRailTrigger
+                  value="sla"
+                  icon={Clock}
+                  title="SLA"
+                />
+                <SettingsTabsRailTrigger
+                  value="templates"
+                  icon={MessageSquareText}
+                  title="Templates"
+                />
+              </SettingsTabsRail>
 
               <TabsContent value="structure" className="mt-5 space-y-5">
                 <Card className="border-border/60 bg-card/95">
@@ -240,11 +249,23 @@ export function TicketSettingsTab() {
                 </Card>
 
                 <Tabs defaultValue="categories" className="w-full">
-                  <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-lg bg-transparent p-0 md:w-fit">
-                    <TabsTrigger value="categories" className="text-xs">Categorias</TabsTrigger>
-                    <TabsTrigger value="teams" className="text-xs">Equipes</TabsTrigger>
-                    <TabsTrigger value="modules" className="text-xs">Modulos</TabsTrigger>
-                  </TabsList>
+                  <SettingsTabsRail className="sm:grid-cols-3">
+                    <SettingsTabsRailTrigger
+                      value="categories"
+                      icon={Layers3}
+                      title="Categorias"
+                    />
+                    <SettingsTabsRailTrigger
+                      value="teams"
+                      icon={Layers3}
+                      title="Equipes"
+                    />
+                    <SettingsTabsRailTrigger
+                      value="modules"
+                      icon={Layers3}
+                      title="Modulos"
+                    />
+                  </SettingsTabsRail>
 
                   <TabsContent value="categories" className="mt-5">
                     <Card className="border-border/60">
@@ -280,10 +301,14 @@ export function TicketSettingsTab() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
+                        <SectionHint>
+                          Use categorias para definir a primeira classificacao do ticket e o time
+                          default de roteamento.
+                        </SectionHint>
                         {categoriesArray.fields.map((fieldItem, index) => (
                           <div
                             key={fieldItem.id}
-                            className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_11rem_12rem_2.5rem]"
+                            className="grid gap-3 rounded-xl border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_11rem_12rem_2.5rem]"
                           >
                             <div className="space-y-2">
                               <FormField
@@ -397,6 +422,10 @@ export function TicketSettingsTab() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
+                          <SectionHint>
+                            Equipes alimentam as filas disponiveis na triagem e no fluxo de
+                            atendimento.
+                          </SectionHint>
                           {teamsArray.fields.map((fieldItem, index) => (
                             <CompactOptionRow
                               key={fieldItem.id}
@@ -434,6 +463,10 @@ export function TicketSettingsTab() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
+                          <SectionHint>
+                            Mantenha a hierarquia no formato modulo {">"} submenu {">"} tela para
+                            preservar leitura e ordenacao.
+                          </SectionHint>
                           {modulesArray.fields.map((fieldItem, index) => (
                             <ModuleOptionRow
                               key={fieldItem.id}
@@ -467,16 +500,22 @@ export function TicketSettingsTab() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    <SectionHint>
+                      Defina os tempos em minutos. O campo de resolucao recalcula internamente a
+                      referencia em horas usada pelo modulo.
+                    </SectionHint>
                     {prioritiesArray.fields.map((fieldItem, index) => (
-                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1fr)_8rem_10rem_10rem_2.5rem]">
+                      <div key={fieldItem.id} className="grid gap-3 rounded-xl border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,1fr)_8rem_10rem_10rem_2.5rem]">
                         <FormField control={form.control} name={`priorities.${index}.label`} render={({ field }) => (
                           <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">Nome</FormLabel>
                             <FormControl><Input placeholder="Nome da prioridade" {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
                         <FormField control={form.control} name={`priorities.${index}.value`} render={({ field }) => (
                           <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">Valor</FormLabel>
                             <FormControl><Input placeholder="valor" {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -528,16 +567,22 @@ export function TicketSettingsTab() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
+                    <SectionHint>
+                      Use templates curtos e reutilizaveis para acelerar respostas frequentes do
+                      atendimento.
+                    </SectionHint>
                     {templatesArray.fields.map((fieldItem, index) => (
-                      <div key={fieldItem.id} className="grid gap-3 rounded-lg border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.5rem]">
+                      <div key={fieldItem.id} className="grid gap-3 rounded-xl border border-border/60 bg-muted/10 p-3 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_2.5rem]">
                         <FormField control={form.control} name={`quickReplyTemplates.${index}.label`} render={({ field }) => (
                           <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">Nome</FormLabel>
                             <FormControl><Input placeholder="Nome do template" {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
                         <FormField control={form.control} name={`quickReplyTemplates.${index}.value`} render={({ field }) => (
                           <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">Conteudo</FormLabel>
                             <FormControl><Textarea rows={2} placeholder="Texto que sera inserido no editor" {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -583,7 +628,7 @@ function CompactOptionRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border/60 bg-muted/10 p-2">
+    <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/10 p-2.5">
       <Input placeholder={labelPlaceholder} className="h-8 min-w-0 flex-1" {...form.register(labelName)} />
       <Input placeholder={valuePlaceholder} className="h-8 w-24 shrink-0 text-xs" {...form.register(valueName)} />
       <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={onRemove}>
@@ -612,7 +657,7 @@ function ModuleOptionRow({
   const depth = getModuleHierarchyDepth(labelValue);
 
   return (
-    <div className="space-y-2 rounded-lg border border-border/60 bg-muted/10 p-2.5">
+    <div className="space-y-2 rounded-xl border border-border/60 bg-muted/10 p-3">
       <div className="flex min-w-0 items-center gap-2">
         <FormField
           control={form.control}
@@ -680,6 +725,14 @@ function LabeledNumberInput({ label, value, min, max, onChange }: { label: strin
       <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
+    </div>
+  );
+}
+
+function SectionHint({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/40 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
+      {children}
     </div>
   );
 }

@@ -257,10 +257,16 @@ func (m *rustDeskManager) ensureServiceRunning(ctx context.Context, exePath stri
 }
 
 func (m *rustDeskManager) applyDesiredConfig(ctx context.Context, exePath string, desired rustDeskDesiredConfig) error {
+	_ = rustdeskServiceStop()
+	killRustDeskProcesses()
+
 	if strings.TrimSpace(desired.ServerConfig) != "" {
 		if err := m.runRustDeskCommand(ctx, exePath, "--config", desired.ServerConfig); err != nil {
 			return fmt.Errorf("apply rustdesk config: %w", err)
 		}
+	}
+	if err := m.enforceConnectionSettings(desired); err != nil {
+		return fmt.Errorf("enforce rustdesk connection settings: %w", err)
 	}
 	if strings.TrimSpace(desired.DefaultPassword) != "" {
 		if err := m.runRustDeskCommand(ctx, exePath, "--password", desired.DefaultPassword); err != nil {
@@ -326,7 +332,7 @@ func (m *rustDeskManager) getID(ctx context.Context, exePath string) string {
 }
 
 func (m *rustDeskManager) getIDFromConfig() string {
-	for _, path := range rustDeskConfigPaths() {
+	for _, path := range rustDeskConfigPathsForInspection() {
 		if id := readRustDeskIDFromConfig(path); id != "" {
 			return id
 		}
@@ -353,7 +359,7 @@ func (m *rustDeskManager) getAccessPassword() string {
 }
 
 func (m *rustDeskManager) getCurrentConfig() (serverHost, apiHost, publicKey, publicKeyHash string) {
-	for _, path := range rustDeskConfigPaths() {
+	for _, path := range rustDeskConfigPathsForInspection() {
 		serverHost = firstNonEmpty(
 			readRustDeskConfigValue(path, "relay-server"),
 			readRustDeskConfigValue(path, "custom-rendezvous-server"),
@@ -712,18 +718,26 @@ func installerFileName(rawURL string) string {
 
 func rustDeskConfigPaths() []string {
 	paths := []string{}
-	paths = append(paths, discoverRustDeskUserConfigPaths()...)
 	if appData := strings.TrimSpace(os.Getenv("APPDATA")); appData != "" {
 		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"))
 		paths = append(paths, filepath.Join(appData, "RustDesk", "config", "RustDesk.toml"))
 	}
-	paths = append(paths,
+	paths = append(paths, discoverRustDeskUserConfigPaths()...)
+	paths = append(paths, rustDeskServiceConfigPaths()...)
+	return uniqueNonEmptyPaths(paths)
+}
+
+func rustDeskConfigPathsForInspection() []string {
+	return uniqueNonEmptyPaths(append(rustDeskServiceConfigPaths(), rustDeskConfigPaths()...))
+}
+
+func rustDeskServiceConfigPaths() []string {
+	return []string{
 		`C:\Windows\system32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
 		`C:\Windows\system32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
 		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
 		`C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml`,
-	)
-	return uniqueNonEmptyPaths(paths)
+	}
 }
 
 func discoverRustDeskUserConfigPaths() []string {
@@ -909,6 +923,59 @@ func (m *rustDeskManager) applyAdvancedSettings(desired rustDeskDesiredConfig) e
 	return nil
 }
 
+func (m *rustDeskManager) enforceConnectionSettings(desired rustDeskDesiredConfig) error {
+	settings := []struct {
+		key   string
+		value string
+	}{
+		{key: "relay-server", value: strings.TrimSpace(desired.ServerHost)},
+		{key: "custom-rendezvous-server", value: strings.TrimSpace(desired.ServerHost)},
+		{key: "api-server", value: strings.TrimSpace(desired.APIHost)},
+		{key: "key", value: strings.TrimSpace(desired.PublicKey)},
+	}
+
+	var updated int
+	var lastErr error
+	targets := uniqueNonEmptyPaths(append(rustDeskServiceConfigPaths(), rustDeskConfigPaths()...))
+	for _, path := range targets {
+		exists := true
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				exists = false
+			} else {
+				lastErr = err
+				continue
+			}
+		}
+
+		if !exists {
+			if err := ensureRustDeskConfigFile(path); err != nil {
+				lastErr = err
+				continue
+			}
+		}
+
+		for _, setting := range settings {
+			if setting.value == "" {
+				continue
+			}
+			if err := upsertRustDeskConfigValue(path, setting.key, setting.value); err != nil {
+				lastErr = err
+				continue
+			}
+		}
+		updated++
+	}
+
+	if updated > 0 {
+		return nil
+	}
+	if lastErr != nil {
+		return lastErr
+	}
+	return nil
+}
+
 func rustDeskConfigBoolValue(value bool) string {
 	if value {
 		return "Y"
@@ -977,6 +1044,22 @@ func upsertRustDeskConfigValue(path, key, value string) error {
 	output := strings.Join(lines, "\n")
 	if err := os.WriteFile(path, []byte(output), 0o644); err != nil {
 		return fmt.Errorf("write rustdesk config: %w", err)
+	}
+	return nil
+}
+
+func ensureRustDeskConfigFile(path string) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("create rustdesk config dir: %w", err)
+	}
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("stat rustdesk config: %w", err)
+	}
+	if err := os.WriteFile(path, []byte(""), 0o644); err != nil {
+		return fmt.Errorf("create rustdesk config file: %w", err)
 	}
 	return nil
 }

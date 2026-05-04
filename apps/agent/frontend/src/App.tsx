@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
+  GetCurrentTarget,
   GetSetupStatus,
   GetSupportSession,
   ListNotifications,
@@ -82,7 +83,7 @@ function RemoteAccessCard({ rustdeskId }: { rustdeskId?: string }) {
         <div className="remote-pw-row">
           <span className="remote-pw-label">Senha</span>
           <span className="remote-pw-value">
-            {hasId ? "Disponível no app de suporte" : "Aguardando configuração"}
+            {hasId ? "DisponÃ­vel no app de suporte" : "Aguardando configuraÃ§Ã£o"}
           </span>
         </div>
       </div>
@@ -99,6 +100,10 @@ const defaultSetupStatus = new uistate.SetupStatus({
   steps: [],
 });
 
+function normalizeRoute(target?: string): Route {
+  return target === "agent://support" ? "agent://support" : "agent://setup";
+}
+
 function App() {
   const [route, setRoute] = useState<Route>("agent://setup");
   const [setupStatus, setSetupStatus] = useState<uistate.SetupStatus>(defaultSetupStatus);
@@ -112,14 +117,44 @@ function App() {
   const syncedConversationIds = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
-    void Promise.all([
-      GetSetupStatus().then(setSetupStatus).catch((err) => console.error("GetSetupStatus failed:", err)),
-      ListNotifications().then(setNotifications).catch((err) => console.error("ListNotifications failed:", err)),
-    ]);
+    void (async () => {
+      try {
+        const [target, status, notifications] = await Promise.all([
+          GetCurrentTarget().catch((err) => {
+            console.error("GetCurrentTarget failed:", err);
+            return "agent://setup";
+          }),
+          GetSetupStatus().catch((err) => {
+            console.error("GetSetupStatus failed:", err);
+            return defaultSetupStatus;
+          }),
+          ListNotifications().catch((err) => {
+            console.error("ListNotifications failed:", err);
+            return [];
+          }),
+        ]);
+
+        const nextRoute = normalizeRoute(target);
+        setRoute(nextRoute);
+        setSetupStatus(status);
+        setNotifications(notifications);
+
+        if (nextRoute === "agent://support") {
+          try {
+            const session = await GetSupportSession();
+            setSupportSession(session);
+          } catch (err) {
+            console.error("GetSupportSession failed:", err);
+          }
+        }
+      } catch (err) {
+        console.error("Initial app bootstrap failed:", err);
+      }
+    })();
 
     const unsubscribers = [
       EventsOn("agent:navigate", (payload: { target?: string }) => {
-        const nextRoute = payload?.target === "agent://support" ? "agent://support" : "agent://setup";
+        const nextRoute = normalizeRoute(payload?.target);
         setRoute(nextRoute);
 
         if (nextRoute === "agent://support") {
@@ -419,80 +454,7 @@ function SetupScreen(props: {
           </div>
         </div>
       </section>
-
-      <div className="setup-bar-wrap">
-        <div className={`setup-bar-fill state-${overallState}`} style={{ width: `${status.progress_pct}%` }} />
-      </div>
-
-      {(status.company_name || status.host_id || status.rustdesk_id) && (
-        <div className="device-row">
-          {status.company_name && (
-            <div className="device-chip">
-              <span className="device-chip-label">Empresa</span>
-              <span className="device-chip-value">{status.company_name}</span>
-            </div>
-          )}
-          {status.host_id && (
-            <div className="device-chip">
-              <span className="device-chip-label">Host</span>
-              <span className="device-chip-value mono">{status.host_id}</span>
-            </div>
-          )}
-          <div className="device-chip">
-            <span className="device-chip-label">Canal remoto</span>
-            <span className={`device-chip-value ${status.rustdesk_id ? "ok-val" : "dim-val"}`}>
-              {status.rustdesk_id ?? "Em preparo"}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {status.last_error && (
-        <div className="error-banner">
-          <span className="error-icon">!</span>
-          <span>{status.last_error}</span>
-        </div>
-      )}
-
-      <section className="timeline-section">
-        <div className="timeline-header">
-          <span className="timeline-title">Pipeline de provisionamento</span>
-          <span className="timeline-count">
-            {completedSteps.length}/{status.steps.length} etapas
-          </span>
-        </div>
-
-        <div className="timeline">
-          {pendingSteps.map((step, i) => (
-            <TimelineItem key={step.key} step={step} isFirst={i === 0 && overallState === "running"} />
-          ))}
-
-          {completedSteps.length > 0 && (
-            <>
-              <button
-                type="button"
-                className="timeline-toggle"
-                onClick={() => setShowCompleted((value) => !value)}
-              >
-                <span className="timeline-toggle-icon">{showCompleted ? "-" : "+"}</span>
-                {showCompleted ? "Ocultar" : "Ver"} {completedSteps.length} etapa
-                {completedSteps.length !== 1 ? "s" : ""} concluida
-                {completedSteps.length !== 1 ? "s" : ""}
-              </button>
-
-              {showCompleted &&
-                completedSteps.map((step) => (
-                  <TimelineItem key={step.key} step={step} isFirst={false} />
-                ))}
-            </>
-          )}
-
-          {allSteps.length === 0 && (
-            <div className="timeline-empty">Aguardando etapas de provisionamento...</div>
-          )}
-        </div>
-      </section>
-    </main>
+</main>
   );
 }
 
@@ -554,6 +516,8 @@ function SupportScreen(props: {
 }) {
   const { session, chatwootReady, chatwootLoading, remoteOpening, onOpenRemote, onOpenSupport } = props;
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [chatDrawerExpanded, setChatDrawerExpanded] = useState(false);
   const context = session?.context;
   const chatConfigured = Boolean(session?.base_url?.trim() && session?.website_token?.trim());
 
@@ -575,7 +539,6 @@ function SupportScreen(props: {
       : chatwootReady
         ? "Canal pronto"
         : "Canal sob demanda";
-
   const buttonLabel = !chatConfigured
     ? "Canal nao configurado"
     : chatwootLoading
@@ -585,13 +548,25 @@ function SupportScreen(props: {
         : "Iniciar atendimento";
 
   useEffect(() => {
-    if (!chatwootReady) return;
+    if (!chatwootReady || !chatDrawerOpen) return;
     mountChatwootEmbed(chatContainerRef.current);
     openChatwootInline();
-  }, [chatwootReady, session?.website_token]);
+  }, [chatDrawerOpen, chatwootReady, session?.website_token]);
+
+  const toggleSupportDrawer = () => {
+    if (chatDrawerOpen) {
+      setChatDrawerOpen(false);
+      setChatDrawerExpanded(false);
+      return;
+    }
+
+    setChatDrawerOpen(true);
+    setChatDrawerExpanded(false);
+    onOpenSupport();
+  };
 
   return (
-    <main className="panel support-panel compact">
+    <main className={`panel support-panel compact ${chatDrawerOpen ? "chat-open" : ""}`}>
       <section className="support-hero compact">
         <div className="support-hero-actions">
           <button
@@ -643,13 +618,13 @@ function SupportScreen(props: {
           </div>
         </div>
 
-        <div className="support-chat-shell">
+        <div className="support-chat-shell" hidden>
           <div className="support-chat-shell-header">
             <div>
               <div className="support-chat-shell-title">Chat Trilink</div>
               <div className="support-chat-shell-subtitle">
                 {chatStateLabel}
-                {remoteStateLabel ? ` • ${remoteStateLabel}` : ""}
+                {remoteStateLabel ? ` â€¢ ${remoteStateLabel}` : ""}
               </div>
             </div>
             <button
@@ -663,7 +638,7 @@ function SupportScreen(props: {
             </button>
           </div>
 
-          <div ref={chatContainerRef} className="support-chat-embed">
+          <div className="support-chat-embed">
             {!chatwootReady ? (
               <div className="support-chat-placeholder">
                 <ShieldIcon />
@@ -680,6 +655,81 @@ function SupportScreen(props: {
           </div>
         </div>
       </section>
+
+      <div
+        className={`support-chat-scrim ${chatDrawerOpen ? "open" : ""}`}
+        onClick={() => {
+          setChatDrawerOpen(false);
+          setChatDrawerExpanded(false);
+        }}
+      />
+
+      <div className={`support-chat-drawer ${chatDrawerOpen ? "open" : ""} ${chatDrawerExpanded ? "expanded" : ""}`}>
+        <div className="support-chat-shell-header">
+          <div className="support-chat-shell-header-copy">
+            <div className="support-chat-shell-title">Chat Trilink</div>
+            <div className="support-chat-shell-subtitle">
+              {chatStateLabel}
+            </div>
+          </div>
+          <div className="support-chat-shell-actions">
+            <span className={`support-chat-state-pill ${chatwootReady ? "ready" : chatwootLoading ? "loading" : "idle"}`}>
+              {remoteStateLabel}
+            </span>
+            <button
+              type="button"
+              className="support-chat-drawer-action"
+              onClick={() => setChatDrawerExpanded((value) => !value)}
+              title={chatDrawerExpanded ? "Recolher atendimento" : "Expandir atendimento"}
+            >
+              {chatDrawerExpanded ? "Recolher" : "Expandir"}
+            </button>
+            <button
+              type="button"
+              className="support-chat-drawer-close"
+              onClick={() => {
+                setChatDrawerOpen(false);
+                setChatDrawerExpanded(false);
+              }}
+              title="Ocultar atendimento"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+
+        <div ref={chatContainerRef} className="support-chat-embed">
+          {!chatwootReady ? (
+            <div className="support-chat-placeholder">
+              <ShieldIcon />
+              <div className="support-chat-placeholder-copy">
+                <div className="support-chat-placeholder-title">{chatStateLabel}</div>
+                <div className="support-chat-placeholder-text">
+                  {chatConfigured
+                    ? "A conversa sera exibida diretamente nesta area."
+                    : "Configure o Chatwoot para habilitar o atendimento neste painel."}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={`support-chat-launcher-wrap ${chatDrawerOpen ? "hidden" : ""}`}>
+        <button
+          type="button"
+          className={`support-chat-launcher ${chatDrawerOpen ? "open" : ""} ${chatwootLoading ? "loading" : ""}`}
+          onClick={toggleSupportDrawer}
+          disabled={chatwootLoading || !chatConfigured}
+        >
+          <span className="support-chat-launcher-icon">
+            <ChatBubbleIcon />
+          </span>
+          <span className="support-chat-launcher-copy">
+            {chatDrawerOpen ? "Ocultar atendimento" : "Atendimento"}
+          </span>
+        </button>
+      </div>
     </main>
   );
 }
@@ -740,6 +790,19 @@ function ShieldIcon() {
         stroke="currentColor"
         strokeWidth="1.3"
         strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChatBubbleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M8 2.2c-3.2 0-5.8 2.16-5.8 4.9 0 1.47.76 2.79 2.04 3.69l-.43 2.56 2.51-1.18c.54.13 1.1.19 1.68.19 3.2 0 5.8-2.17 5.8-4.91S11.2 2.2 8 2.2Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
         strokeLinejoin="round"
       />
     </svg>
@@ -858,3 +921,4 @@ function buildChatwootContactIdentifier(context: uistate.SupportContext) {
 }
 
 export default App;
+

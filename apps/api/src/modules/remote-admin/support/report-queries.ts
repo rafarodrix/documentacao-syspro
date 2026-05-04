@@ -1,5 +1,5 @@
 import { prisma } from "@dosc-syspro/database";
-import type { RemoteTenantScope } from "./model";
+import type { RemoteTenantScope } from "./remote-admin.types";
 import { buildRemoteScopedWhere } from "./scope";
 
 export interface EfficiencyMetrics {

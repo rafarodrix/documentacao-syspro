@@ -8,8 +8,13 @@ import {
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
 import { TicketSettingsTab } from "@/features/tickets/interface/components/ticket-settings-tab";
 import { IntegrationsSettingsTab } from "./integrations-tab";
+import {
+  SettingsPageIntro,
+  SettingsTabsRail,
+  SettingsTabsRailTrigger,
+} from "./settings-shell";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Settings,
   Sliders,
@@ -87,77 +92,59 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-8 px-6 pt-6 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-foreground">
-          <Sliders className="h-8 w-8 text-primary/80" />
-          Configuracoes
-        </h1>
-        <p className="max-w-2xl text-lg text-muted-foreground">
-          Gerencie parametros globais do sistema. A aba Agente Trilink cobre a
-          governanca global dos modulos do agente; a operacao de hosts, sessoes,
-          relatorios e dispositivos continua em Infraestrutura.
-        </p>
-      </div>
+      <SettingsPageIntro
+        icon={Sliders}
+        eyebrow="Portal Admin"
+        titleAs="h1"
+        title="Configuracoes"
+        description="Centralize preferencias, integracoes e modulos operacionais em uma unica area. A governanca global do Agente Trilink fica aqui; a operacao diaria de hosts, sessoes, relatorios e dispositivos continua em Infraestrutura."
+      />
 
       <Tabs defaultValue={defaultTab} className="w-full min-w-0 space-y-6">
         <div className="flex items-center">
-          <TabsList className="h-auto flex-wrap border border-border/40 bg-muted/50 p-1">
-            <TabsTrigger
+          <SettingsTabsRail className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
+            <SettingsTabsRailTrigger
               value="general"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="font-medium">Preferencias</span>
-            </TabsTrigger>
+              icon={Settings}
+              title="Preferencias"
+            />
 
-            <TabsTrigger
+            <SettingsTabsRailTrigger
               value="agent"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Monitor className="h-4 w-4" />
-              <span className="font-medium">Agente Trilink</span>
-            </TabsTrigger>
+              icon={Monitor}
+              title="Agente Trilink"
+            />
 
-            <TabsTrigger
+            <SettingsTabsRailTrigger
               value="integrations"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Plug className="h-4 w-4" />
-              <span className="font-medium">Integracoes</span>
-            </TabsTrigger>
+              icon={Plug}
+              title="Integracoes"
+            />
 
-            <TabsTrigger
+            <SettingsTabsRailTrigger
               value="automations"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Bot className="h-4 w-4" />
-              <span className="font-medium">Automacoes</span>
-            </TabsTrigger>
+              icon={Bot}
+              title="Automacoes"
+            />
 
-            <TabsTrigger
+            <SettingsTabsRailTrigger
               value="tax"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Landmark className="h-4 w-4" />
-              <span className="font-medium">Fiscal e Tributario</span>
-            </TabsTrigger>
+              icon={Landmark}
+              title="Fiscal e Tributario"
+            />
 
-            <TabsTrigger
+            <SettingsTabsRailTrigger
               value="sefaz"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <Activity className="h-4 w-4" />
-              <span className="font-medium">Rotas SEFAZ</span>
-            </TabsTrigger>
+              icon={Activity}
+              title="Rotas SEFAZ"
+            />
 
-            <TabsTrigger
+            <SettingsTabsRailTrigger
               value="tickets"
-              className="gap-2 px-6 py-2 transition-colors data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span className="font-medium">Tickets</span>
-            </TabsTrigger>
-          </TabsList>
+              icon={MessageSquare}
+              title="Tickets"
+            />
+          </SettingsTabsRail>
         </div>
 
         <TabsContent
@@ -204,34 +191,42 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
         <TabsContent value="tax" className="min-w-0 space-y-4 overflow-x-hidden outline-none focus-visible:ring-0">
           <div className="max-w-6xl">
-            <h3 className="mb-4 text-lg font-medium">
-              Sincronizacao de Tabelas Fiscais
-            </h3>
+            <div className="mb-4 space-y-1">
+              <h3 className="text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
+              <p className="text-sm text-muted-foreground">
+                Subabas padronizadas por rota fiscal para acelerar manutencao e leitura.
+              </p>
+            </div>
             <TaxSyncStatusBar />
 
             <Tabs defaultValue="class-trib" className="space-y-4">
-              <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
-                <TabsTrigger value="class-trib" className="gap-2 px-4 py-2">
-                  <Landmark className="h-4 w-4" />
-                  Rota classTrib
-                </TabsTrigger>
-                <TabsTrigger value="anexos" className="gap-2 px-4 py-2">
-                  <Files className="h-4 w-4" />
-                  Rota anexos
-                </TabsTrigger>
-                <TabsTrigger value="cred-presumido" className="gap-2 px-4 py-2">
-                  <Wallet className="h-4 w-4" />
-                  Rota credPresumido
-                </TabsTrigger>
-                <TabsTrigger value="ncm" className="gap-2 px-4 py-2">
-                  <Boxes className="h-4 w-4" />
-                  Rota NCM
-                </TabsTrigger>
-                <TabsTrigger value="interestadual" className="gap-2 px-4 py-2">
-                  <Landmark className="h-4 w-4" />
-                  Interestadual
-                </TabsTrigger>
-              </TabsList>
+              <SettingsTabsRail className="sm:grid-cols-2 xl:grid-cols-5">
+                <SettingsTabsRailTrigger
+                  value="class-trib"
+                  icon={Landmark}
+                  title="Rota classTrib"
+                />
+                <SettingsTabsRailTrigger
+                  value="anexos"
+                  icon={Files}
+                  title="Rota anexos"
+                />
+                <SettingsTabsRailTrigger
+                  value="cred-presumido"
+                  icon={Wallet}
+                  title="Rota credPresumido"
+                />
+                <SettingsTabsRailTrigger
+                  value="ncm"
+                  icon={Boxes}
+                  title="Rota NCM"
+                />
+                <SettingsTabsRailTrigger
+                  value="interestadual"
+                  icon={Landmark}
+                  title="Interestadual"
+                />
+              </SettingsTabsRail>
 
               <TabsContent value="class-trib" className="space-y-4">
                 <SyncTaxClassTribButton />

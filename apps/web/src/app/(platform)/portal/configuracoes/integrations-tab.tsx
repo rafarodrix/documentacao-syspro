@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
+import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, Plug, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
   DEFAULT_CHATWOOT_INTEGRATION_SETTINGS,
@@ -13,13 +13,19 @@ import {
 import { toast } from "sonner";
 
 import EvolutionSettingsTab from "./evolution-tab";
+import {
+  SettingsPageIntro,
+  SettingsTabsRail,
+  SettingsTabsRailTrigger,
+} from "./settings-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 type IntegrationDiagnostics = {
@@ -50,28 +56,31 @@ type IntegrationDiagnostics = {
 export function IntegrationsSettingsTab() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Integracoes</h2>
-        <p className="text-sm text-muted-foreground">
-          Centralize os conectores operacionais do portal. Secrets sensiveis continuam protegidos no backend/runtime.
-        </p>
-      </div>
+      <SettingsPageIntro
+        icon={Plug}
+        eyebrow="Conectores"
+        title="Integracoes"
+        description="Centralize os conectores operacionais do portal em um fluxo unico de consulta, configuracao e diagnostico. Segredos continuam protegidos no backend e no runtime."
+      />
 
       <Tabs defaultValue="chatwoot" className="space-y-5">
-        <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
-          <TabsTrigger value="chatwoot" className="gap-2 px-4 py-2">
-            <MessageSquare className="h-4 w-4" />
-            Chatwoot
-          </TabsTrigger>
-          <TabsTrigger value="evolution" className="gap-2 px-4 py-2">
-            <Bot className="h-4 w-4" />
-            Evolution
-          </TabsTrigger>
-          <TabsTrigger value="storage" className="gap-2 px-4 py-2">
-            <HardDrive className="h-4 w-4" />
-            Storage
-          </TabsTrigger>
-        </TabsList>
+        <SettingsTabsRail className="sm:grid-cols-3">
+          <SettingsTabsRailTrigger
+            value="chatwoot"
+            icon={MessageSquare}
+            title="Chatwoot"
+          />
+          <SettingsTabsRailTrigger
+            value="evolution"
+            icon={Bot}
+            title="Evolution"
+          />
+          <SettingsTabsRailTrigger
+            value="storage"
+            icon={HardDrive}
+            title="Storage"
+          />
+        </SettingsTabsRail>
 
         <TabsContent value="chatwoot" className="focus-visible:ring-0">
           <ChatwootDiagnosticsTab />
@@ -145,6 +154,7 @@ function ChatwootDiagnosticsTab() {
     return `${baseOrigin}/portal/infraestrutura/hosts/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
   }, [portalOrigin]);
   const csatCanReopen = behavior.csatEnabled && behavior.csatReopenOnLowScore;
+  const canConfigureReopenStatuses = behavior.reopenConversationOnCustomerReply;
   const csatRequestLength = behavior.csatRequestMessage.trim().length;
   const csatThankYouLength = behavior.csatThankYouMessage.trim().length;
 
@@ -155,7 +165,7 @@ function ChatwootDiagnosticsTab() {
   }, []);
 
   return (
-    <Card>
+    <Card className="border-border/60 bg-card/95 shadow-sm">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">
@@ -192,7 +202,7 @@ function ChatwootDiagnosticsTab() {
               {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
             </pre>
 
-            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-base font-semibold">Conexao principal do Chatwoot</h3>
@@ -296,7 +306,7 @@ function ChatwootDiagnosticsTab() {
               )}
             </div>
 
-            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-base font-semibold">Automacoes do Webhook</h3>
@@ -345,11 +355,59 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="reopenConversationOnCustomerReply"
                     label="Reabrir quando o cliente responder"
-                    description="Se o cliente mandar nova mensagem em conversa pendente/resolvida/adiada, o backend tenta mover a conversa para open."
+                    description="Chave mestre da reabertura automatica. Os status abaixo definem em quais estados a conversa pode voltar para open."
                     checked={behavior.reopenConversationOnCustomerReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
                     }
+                  />
+                  <div className={`flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4 ${!canConfigureReopenStatuses ? "opacity-60" : ""}`}>
+                    <div className="min-w-0 space-y-1">
+                      <Label htmlFor="resolvedCustomerReplyAction" className={`text-sm font-medium ${!canConfigureReopenStatuses ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                        Politica para conversa resolvida
+                      </Label>
+                      <span className="block break-words text-sm text-muted-foreground">
+                        Define se uma nova mensagem do cliente em conversa resolved/archived reabre a conversa atual ou força a criacao de uma nova.
+                      </span>
+                    </div>
+                    <Select
+                      value={behavior.resolvedCustomerReplyAction}
+                      onValueChange={(value) =>
+                        setBehavior((prev) => ({
+                          ...prev,
+                          resolvedCustomerReplyAction: value as ChatwootBehaviorSettings["resolvedCustomerReplyAction"],
+                        }))
+                      }
+                      disabled={!canConfigureReopenStatuses}
+                    >
+                      <SelectTrigger id="resolvedCustomerReplyAction">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reopen">Reabrir conversa atual</SelectItem>
+                        <SelectItem value="new_conversation">Abrir nova conversa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <BehaviorToggle
+                    id="reopenSnoozedConversationOnCustomerReply"
+                    label="Reabrir quando estiver adiada"
+                    description="Quando ativo, novas mensagens do cliente em conversas snoozed reabrem para open."
+                    checked={behavior.reopenSnoozedConversationOnCustomerReply}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, reopenSnoozedConversationOnCustomerReply: checked }))
+                    }
+                    disabled={!canConfigureReopenStatuses}
+                  />
+                  <BehaviorToggle
+                    id="reopenPendingConversationOnCustomerReply"
+                    label="Reabrir tambem quando estiver pendente"
+                    description="Quando ativo, resposta do cliente em conversa pending tambem promove para open. Deixe desligado para evitar ruido operacional no Chatwoot."
+                    checked={behavior.reopenPendingConversationOnCustomerReply}
+                    onCheckedChange={(checked) =>
+                      setBehavior((prev) => ({ ...prev, reopenPendingConversationOnCustomerReply: checked }))
+                    }
+                    disabled={!canConfigureReopenStatuses}
                   />
                   <BehaviorToggle
                     id="releaseConversationLinkOnResolved"
@@ -427,10 +485,19 @@ function ChatwootDiagnosticsTab() {
                     <BehaviorToggle
                       id="csatEnabled"
                       label="Habilitar CSAT automatico"
-                      description="Ao receber status resolved/archived, o backend envia a pesquisa na propria conversa do WhatsApp."
+                      description="Ativa a pesquisa automatica no fechamento da conversa. A politica abaixo define se vale para resolved e archived ou apenas resolved."
                       checked={behavior.csatEnabled}
                       onCheckedChange={(checked) =>
                         setBehavior((prev) => ({ ...prev, csatEnabled: checked }))
+                      }
+                    />
+                    <BehaviorToggle
+                      id="sendCsatThankYouMessage"
+                      label="Enviar mensagem apos a nota"
+                      description="Quando o cliente responder a avaliacao com uma nota valida, o backend envia uma confirmacao final."
+                      checked={behavior.sendCsatThankYouMessage}
+                      onCheckedChange={(checked) =>
+                        setBehavior((prev) => ({ ...prev, sendCsatThankYouMessage: checked }))
                       }
                     />
                     <BehaviorToggle
@@ -445,6 +512,31 @@ function ChatwootDiagnosticsTab() {
                   </div>
 
                   <div className="grid min-w-0 gap-4 md:grid-cols-2">
+                    <div className={`min-w-0 space-y-2 ${!behavior.csatEnabled ? "opacity-60" : ""}`}>
+                      <Label htmlFor="csatTriggerStatus">Disparar CSAT quando status for</Label>
+                      <Select
+                        value={behavior.csatTriggerStatus}
+                        onValueChange={(value) =>
+                          setBehavior((prev) => ({
+                            ...prev,
+                            csatTriggerStatus: value as ChatwootBehaviorSettings["csatTriggerStatus"],
+                          }))
+                        }
+                        disabled={!behavior.csatEnabled}
+                      >
+                        <SelectTrigger id="csatTriggerStatus">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="resolved_or_archived">Resolved ou archived</SelectItem>
+                          <SelectItem value="resolved_only">Apenas resolved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Use `apenas resolved` se a sua operacao arquiva conversas por rotina tecnica e nao quer disparar avaliacao nesses casos.
+                      </p>
+                    </div>
+
                     <div className="min-w-0 space-y-2">
                       <Label htmlFor="csatLowScoreThreshold">Limite de nota baixa</Label>
                       <Input
@@ -546,12 +638,15 @@ function ChatwootDiagnosticsTab() {
                         id="csatThankYouMessage"
                         className="min-h-40"
                         value={behavior.csatThankYouMessage}
+                        disabled={!behavior.sendCsatThankYouMessage}
                         onChange={(event) =>
                           setBehavior((prev) => ({ ...prev, csatThankYouMessage: event.target.value }))
                         }
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enviada depois que o cliente responde com uma nota valida.
+                        {behavior.sendCsatThankYouMessage
+                          ? "Enviada depois que o cliente responde com uma nota valida."
+                          : "Ative a automacao acima para enviar essa confirmacao final."}
                       </p>
                     </div>
                   </div>
@@ -563,8 +658,10 @@ function ChatwootDiagnosticsTab() {
                         ? "resposta publica do agente -> pending (exceto 1a resposta apos reabertura automatica)"
                         : "resposta publica do agente"}
                       {" -> "}resolver conversa
+                      {behavior.csatTriggerStatus === "resolved_only" ? " (apenas status resolved)" : " (status resolved ou archived)"}
                       {" -> "}enviar CSAT
                       {" -> "}aguardar resposta por ate {behavior.csatPendingTimeoutHours}h
+                      {behavior.sendCsatThankYouMessage ? " -> confirmar recebimento da nota" : ""}
                       {csatCanReopen ? ` -> reabrir se nota <= ${behavior.csatLowScoreThreshold}` : ""}
                     </span>
                   </div>
@@ -737,18 +834,20 @@ function BehaviorToggle({
   description,
   checked,
   onCheckedChange,
+  disabled = false,
 }: {
   id: keyof ChatwootBehaviorSettings;
   label: string;
   description: string;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 min-h-28 items-start gap-3 rounded-lg border bg-background p-4">
-      <Checkbox id={id} checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} />
+    <div className={`flex min-w-0 min-h-28 items-start gap-3 rounded-lg border bg-background p-4 ${disabled ? "opacity-60" : ""}`}>
+      <Checkbox id={id} checked={checked} disabled={disabled} onCheckedChange={(value) => onCheckedChange(value === true)} />
       <span className="min-w-0 space-y-1">
-        <Label htmlFor={id} className="cursor-pointer text-sm font-medium">
+        <Label htmlFor={id} className={`text-sm font-medium ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
           {label}
         </Label>
         <span className="block break-words text-sm text-muted-foreground">{description}</span>
@@ -762,7 +861,7 @@ function StorageDiagnosticsTab() {
   const storage = diagnostics?.storage;
 
   return (
-    <Card>
+    <Card className="border-border/60 bg-card/95 shadow-sm">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">

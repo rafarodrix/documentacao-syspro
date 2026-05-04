@@ -204,6 +204,12 @@ func (a *API) GetSupportSession() (uistate.SupportSession, error) {
 	return a.supportProvider.SupportSession(context.Background())
 }
 
+func (a *API) GetCurrentTarget() string {
+	a.host.mu.Lock()
+	defer a.host.mu.Unlock()
+	return normalizeTarget(a.host.currentTarget)
+}
+
 func (a *API) OpenSupportConversation() (uistate.ActionResult, error) {
 	result, err := a.actions.OpenSupportConversation(context.Background())
 	if err != nil {

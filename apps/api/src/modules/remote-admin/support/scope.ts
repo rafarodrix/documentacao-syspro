@@ -1,5 +1,5 @@
 import { buildScopedWhere } from "@dosc-syspro/database";
-import type { RemoteTenantScope } from "./model";
+import type { RemoteTenantScope } from "./remote-admin.types";
 
 export function getScopedCompanyIds(tenantScope: RemoteTenantScope) {
   return tenantScope.companyIds.length ? tenantScope.companyIds : ["__none__"];

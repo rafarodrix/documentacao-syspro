@@ -483,6 +483,40 @@ export class ChatwootWebhookController {
       return;
     }
 
+    if ((status === 'resolved' || status === 'archived') && settings.resolvedCustomerReplyAction !== 'reopen') {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_skipped_for_resolved_reply',
+        conversationId,
+        previousStatus: status,
+        resolvedCustomerReplyAction: settings.resolvedCustomerReplyAction,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
+    if (status === 'snoozed' && !settings.reopenSnoozedConversationOnCustomerReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_skipped_for_snoozed_reply',
+        conversationId,
+        previousStatus: status,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
+    if (status === 'pending' && !settings.reopenPendingConversationOnCustomerReply) {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'conversation_reopen_skipped_for_pending_reply',
+        conversationId,
+        previousStatus: status,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+      return;
+    }
+
     try {
       const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
       await this.chatwootClient.toggleConversationStatus(
@@ -623,7 +657,7 @@ export class ChatwootWebhookController {
       { useSystemBot: settings.systemMessagesUseBotIdentity },
     );
 
-    if (settings.csatThankYouMessage.trim()) {
+    if (settings.sendCsatThankYouMessage && settings.csatThankYouMessage.trim()) {
       await this.chatwootClient.createOutgoingMessage(
         this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
         conversationId,
@@ -642,13 +676,41 @@ export class ChatwootWebhookController {
         'open',
         { useSystemBot: settings.systemMessagesUseBotIdentity },
       );
-    } else if (settings.releaseConversationLinkOnResolved) {
-      await this.prisma.conversationLink.deleteMany({
-        where: {
-          chatwootConversationId: conversationId,
-          connectionKey: resolvedContext.connectionKey,
-        },
-      });
+    } else {
+      await this.chatwootClient.toggleConversationStatus(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        'resolved',
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+    }
+
+    if (!isLowScore || !settings.csatReopenOnLowScore) {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_conversation_resolved_after_reply',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+    }
+
+    if (!isLowScore || !settings.csatReopenOnLowScore) {
+      // Mantem o vinculo apenas quando a conversa precisa seguir aberta por nota baixa.
+      if (settings.releaseConversationLinkOnResolved) {
+        await this.prisma.conversationLink.deleteMany({
+          where: {
+            chatwootConversationId: conversationId,
+            connectionKey: resolvedContext.connectionKey,
+          },
+        });
+      }
+    } else {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_conversation_kept_open_for_low_score',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
     }
 
     this.logger.log(JSON.stringify({
@@ -916,6 +978,17 @@ export class ChatwootWebhookController {
     }
 
     if (status !== 'resolved' && status !== 'archived') {
+      return;
+    }
+
+    if (status === 'archived' && settings.csatTriggerStatus === 'resolved_only') {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_skipped_for_archived_status',
+        conversationId,
+        status,
+        connectionKey: resolvedContext?.connectionKey ?? null,
+      }));
       return;
     }
 

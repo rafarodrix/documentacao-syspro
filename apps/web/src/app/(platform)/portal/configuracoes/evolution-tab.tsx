@@ -25,6 +25,7 @@ import {
   requestEvolutionQrCodeAction,
   updateEvolutionSettingsAction,
 } from "@/features/evolution/application/evolution-actions";
+import { SettingsPageIntro } from "./settings-shell";
 
 function LabelWithHelp({ htmlFor, label, help }: { htmlFor?: string; label: string; help: string }) {
   return (
@@ -162,7 +163,14 @@ export default function EvolutionSettingsTab() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <SettingsPageIntro
+        icon={QrCode}
+        eyebrow="WhatsApp Gateway"
+        title="Evolution"
+        description="Organize a configuracao da instancia, acompanhe o estado operacional e execute o fluxo de conexao em uma interface unica."
+      />
+
+      <Card className="border-border/60 bg-card/95 shadow-sm">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Status da Instancia</CardTitle>
@@ -193,7 +201,7 @@ export default function EvolutionSettingsTab() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-border/60 bg-card/95 shadow-sm">
         <CardHeader>
           <CardTitle>Configuracoes do Webhook</CardTitle>
           <CardDescription>
@@ -358,7 +366,7 @@ export default function EvolutionSettingsTab() {
       </Card>
 
       {qrCodeResult ? (
-        <Card>
+        <Card className="border-border/60 bg-card/95 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
@@ -404,7 +412,7 @@ export default function EvolutionSettingsTab() {
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="border-border/60 bg-card/95 shadow-sm">
         <CardHeader>
           <CardTitle>Comportamento Atual</CardTitle>
           <CardDescription>
@@ -420,7 +428,7 @@ export default function EvolutionSettingsTab() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-border/60 bg-card/95 shadow-sm">
         <CardHeader>
           <CardTitle>Checklist Minimo</CardTitle>
           <CardDescription>

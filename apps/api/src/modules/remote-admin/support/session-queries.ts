@@ -1,6 +1,6 @@
 import { prisma } from "@dosc-syspro/database";
 import { buildPaginationMeta } from "@dosc-syspro/contracts";
-import type { RemoteTenantScope, RemoteSessionStatus, RemotePlatformOverview } from "./model";
+import type { RemoteTenantScope, RemoteSessionStatus, RemotePlatformOverview } from "./remote-admin.types";
 import type { RemotePaginationMeta } from "@dosc-syspro/contracts/remote";
 import { buildRemoteScopedWhere, getScopedCompanyIds } from "./scope";
 
