@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Bug, Rocket, Sparkles } from "lucide-react";
-import { ReleaseCard } from "./ReleaseCard";
+import { ReleaseCard } from "./release-card";
 import type { Release } from "@dosc-syspro/core";
 import { Badge } from "@/components/ui/badge";
 import {

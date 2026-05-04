@@ -14,7 +14,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import type { ReleaseMonthSummary } from "@/features/releases/domain/release-grouping";
-import { ReleaseCycleCard } from "@/components/releases/ReleaseCycleCard";
+import { ReleaseCycleCard } from "@/components/releases/release-cycle-card";
 
 interface TrilinkEcosystemProps {
   summaries: ReleaseMonthSummary[];

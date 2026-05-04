@@ -5,8 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ReleasesFilter, type FilterType } from "./ReleasesFilter";
-import { MonthlyReleasesClient } from "./MonthlyReleasesClient";
+import { ReleasesFilter, type FilterType } from "./releases-filter";
+import { MonthlyReleasesClient } from "./monthly-releases-client";
 import { releaseMonthNames } from "@/features/releases/domain";
 import type { Release } from "@dosc-syspro/core";
 

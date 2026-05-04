@@ -1,4 +1,4 @@
-import { ReleasesPageSkeleton } from "@/components/releases/ReleasesSkeleton";
+import { ReleasesPageSkeleton } from "@/components/releases/releases-skeleton";
 
 export default function Loading() {
   return (

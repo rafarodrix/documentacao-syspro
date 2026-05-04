@@ -8,7 +8,7 @@ import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
 import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
 import { DocsSurface } from '@/components/docs/DocsSurface';
-import { ReleaseCycleCard } from '@/components/releases/ReleaseCycleCard';
+import { ReleaseCycleCard } from '@/components/releases/release-cycle-card';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
 import { useDocsDashboard, type DocsHomeEntry } from './use-docs-dashboard';
 import { InsightLink, PremiumLinkCard } from './DocsHomeComponents';
