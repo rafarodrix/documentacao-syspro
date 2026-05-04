@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, FolderOpen } from 'lucide-react';
-import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
-import { DocsSurface } from '@/components/docs/DocsSurface';
+import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/docs-feature-badge';
+import { DocsSurface } from '@/components/docs/docs-surface';
 
 type SectionLinkItem = {
   href: string;
@@ -59,6 +59,6 @@ export function DocsSectionLinks({
           </Link>
         ))}
       </div>
-    </DocsSurface>
+    </docs-surface>
   );
 }

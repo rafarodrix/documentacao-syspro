@@ -1,6 +1,6 @@
 'use client';
 
-import { DocsPlaygroundClient } from './DocsPlaygroundClient';
+import { DocsPlaygroundClient } from './docs-playgroundClient';
 
 export function PlaygroundInline({
   code,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { DocsSurface } from '@/components/docs/DocsSurface';
+import { DocsSurface } from '@/components/docs/docs-surface';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type Vote = 'yes' | 'no';
@@ -153,6 +153,6 @@ export function DocsPageFeedback({
           Obrigado pelo feedback. Vamos usar isso para priorizar melhorias.
         </p>
       ) : null}
-    </DocsSurface>
+    </docs-surface>
   );
 }

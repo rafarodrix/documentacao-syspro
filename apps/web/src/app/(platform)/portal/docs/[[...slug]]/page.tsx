@@ -13,16 +13,16 @@ import { requireSession } from '@/lib/auth-helpers';
 import {
   canUserAccessDocUrl,
 } from '@/lib/docs-access';
-import { DocsHomePage } from '@/components/docs/home/DocsHomePage';
-import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
-import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
-import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
-import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
-import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
-import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
-import { DocsSurface } from '@/components/docs/DocsSurface';
-import { DocsReadingProgress } from '@/components/docs/DocsReadingProgress';
-import SuporteSection from '@/components/docs/SuporteSection';
+import { DocsHomePage } from '@/components/docs/home/docs-home-page';
+import { DocsPageViewTracker } from '@/components/docs/docs-page-view-tracker';
+import { DocsMetaChips } from '@/components/docs/docs-meta-chips';
+import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/docs-feature-badge';
+import { DocsReadingTime } from '@/components/docs/docs-reading-time';
+import { DocsKeyboardShortcuts } from '@/components/docs/docs-keyboard-shortcuts';
+import { DocsTocScrollSpy } from '@/components/docs/docs-toc-scroll-spy';
+import { DocsSurface } from '@/components/docs/docs-surface';
+import { DocsReadingProgress } from '@/components/docs/docs-reading-progress';
+import SuporteSection from '@/components/docs/suporte-section';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 import {
   estimateReadingTimeMinutes,
@@ -172,7 +172,7 @@ export default async function PortalDocsPage(props: {
           <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
           <DocsReadingTime minutes={readingTimeMinutes} />
         </div>
-      </DocsSurface>
+      </docs-surface>
       <div className="mt-3">
         <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
       </div>
@@ -191,7 +191,7 @@ export default async function PortalDocsPage(props: {
               PlaygroundInline,
             }}
           />
-        </DocsSurface>
+        </docs-surface>
         <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
@@ -203,7 +203,7 @@ export default async function PortalDocsPage(props: {
         {lastUpdateDate ? (
           <DocsSurface className="border-border/35 bg-background/25 px-3 py-2 md:px-3.5 md:py-2.5">
             <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
-          </DocsSurface>
+          </docs-surface>
         ) : null}
       </DocsBody>
     </DocsPage>

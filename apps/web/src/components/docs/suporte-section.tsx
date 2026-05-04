@@ -13,7 +13,7 @@ import {
   Shield,
   Zap,
 } from 'lucide-react';
-import { DocsPageFeedback } from '@/components/docs/DocsPageFeedback';
+import { DocsPageFeedback } from '@/components/docs/docs-page-feedback';
 
 interface SuporteSectionProps {
   modulo?: string;

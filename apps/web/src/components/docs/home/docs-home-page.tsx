@@ -5,13 +5,13 @@ import Link from 'next/link';
 import type { Role } from '@prisma/client';
 import { BookOpen, ChevronRight, Clock, History, Search } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
-import { DocsSectionHeader } from '@/components/docs/DocsSectionHeader';
-import { DocsEmptyState } from '@/components/docs/DocsEmptyState';
-import { DocsSurface } from '@/components/docs/DocsSurface';
+import { DocsSectionHeader } from '@/components/docs/docs-section-header';
+import { DocsEmptyState } from '@/components/docs/docs-empty-state';
+import { DocsSurface } from '@/components/docs/docs-surface';
 import { ReleaseCycleCard } from '@/components/releases/release-cycle-card';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
 import { useDocsDashboard, type DocsHomeEntry } from './use-docs-dashboard';
-import { InsightLink, PremiumLinkCard } from './DocsHomeComponents';
+import { InsightLink, PremiumLinkCard } from './docs-home-components';
 import {
   BASE_QUICK_LINKS,
   TECHNICAL_QUICK_LINK,
@@ -81,7 +81,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               />
             ))}
           </div>
-        </DocsSurface>
+        </docs-surface>
 
         <ReleaseCycleCard
           summaries={releaseSummaries}
@@ -124,7 +124,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               ))
             )}
           </div>
-        </DocsSurface>
+        </docs-surface>
 
         <DocsSurface className="rounded-[28px] bg-[linear-gradient(180deg,hsl(var(--card)/0.42),hsl(var(--background)/0.32))] p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -151,7 +151,7 @@ export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }
               ))
             )}
           </div>
-        </DocsSurface>
+        </docs-surface>
       </section>
 
       <style jsx global>{`

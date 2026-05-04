@@ -6,8 +6,8 @@ import type { Role } from '@prisma/client';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
-import { DocsSidebarItem } from '@/components/docs/DocsSidebarItem';
-import { DocsSidebarInlineCollapse } from '@/components/docs/DocsSidebarInlineCollapse';
+import { DocsSidebarItem } from '@/components/docs/docs-sidebar-item';
+import { DocsSidebarInlineCollapse } from '@/components/docs/docs-sidebar-inline-collapse';
 import { DOCS_STORAGE_KEYS, readStorage } from '@/lib/docs-storage';
 
 function getDefaultLayoutForRole(role: Role): 'docs' | 'notebook' {
