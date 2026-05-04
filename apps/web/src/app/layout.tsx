@@ -2,7 +2,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
-import { ChatwootLazyLauncher } from '@/components/site/ChatwootLazyLauncher';
+import { ChatwootLazyLauncher } from '@/components/site/chatwoot-lazy-launcher';
 import { ThemeProvider } from '@/providers/theme-provider';
 
 const inter = Inter({
