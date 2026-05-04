@@ -154,7 +154,6 @@ function ChatwootDiagnosticsTab() {
     return `${baseOrigin}/portal/infraestrutura/hosts/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
   }, [portalOrigin]);
   const csatCanReopen = behavior.csatEnabled && behavior.csatReopenOnLowScore;
-  const canConfigureReopenStatuses = behavior.reopenConversationOnCustomerReply;
   const csatRequestLength = behavior.csatRequestMessage.trim().length;
   const csatThankYouLength = behavior.csatThankYouMessage.trim().length;
   const csatInvalidReplyRetryLength = behavior.csatInvalidReplyRetryMessage.trim().length;
@@ -357,39 +356,24 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="reopenConversationOnCustomerReply"
                     label="Reabrir quando o cliente responder"
-                    description="Chave mestre da reabertura automatica. Os status abaixo definem em quais estados a conversa pode voltar para open."
+                    description="Chave mestre da reabertura automatica para conversas em pending ou snoozed. Conversas resolved ou archived sempre iniciam um novo atendimento."
                     checked={behavior.reopenConversationOnCustomerReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
                     }
                   />
-                  <div className={`flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4 ${!canConfigureReopenStatuses ? "opacity-60" : ""}`}>
+                  <div className="flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4">
                     <div className="min-w-0 space-y-1">
-                      <Label htmlFor="resolvedCustomerReplyAction" className={`text-sm font-medium ${!canConfigureReopenStatuses ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                      <Label className="text-sm font-medium">
                         Politica para conversa resolvida
                       </Label>
                       <span className="block break-words text-sm text-muted-foreground">
-                        Define se uma nova mensagem do cliente em conversa resolved/archived reabre a conversa atual ou força a criacao de uma nova.
+                        O comportamento legado de reabrir a conversa atual foi removido. Mensagens novas em conversas resolved ou archived sempre abrem uma nova conversa.
                       </span>
                     </div>
-                    <Select
-                      value={behavior.resolvedCustomerReplyAction}
-                      onValueChange={(value) =>
-                        setBehavior((prev) => ({
-                          ...prev,
-                          resolvedCustomerReplyAction: value as ChatwootBehaviorSettings["resolvedCustomerReplyAction"],
-                        }))
-                      }
-                      disabled={!canConfigureReopenStatuses}
-                    >
-                      <SelectTrigger id="resolvedCustomerReplyAction">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="reopen">Reabrir conversa atual</SelectItem>
-                        <SelectItem value="new_conversation">Abrir nova conversa</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground">
+                      Abrir nova conversa
+                    </div>
                   </div>
                   <BehaviorToggle
                     id="reopenSnoozedConversationOnCustomerReply"
@@ -399,7 +383,7 @@ function ChatwootDiagnosticsTab() {
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenSnoozedConversationOnCustomerReply: checked }))
                     }
-                    disabled={!canConfigureReopenStatuses}
+                    disabled={!behavior.reopenConversationOnCustomerReply}
                   />
                   <BehaviorToggle
                     id="reopenPendingConversationOnCustomerReply"
@@ -409,7 +393,7 @@ function ChatwootDiagnosticsTab() {
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenPendingConversationOnCustomerReply: checked }))
                     }
-                    disabled={!canConfigureReopenStatuses}
+                    disabled={!behavior.reopenConversationOnCustomerReply}
                   />
                   <BehaviorToggle
                     id="releaseConversationLinkOnResolved"

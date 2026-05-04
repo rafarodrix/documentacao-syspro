@@ -483,13 +483,13 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if ((status === 'resolved' || status === 'archived') && settings.resolvedCustomerReplyAction !== 'reopen') {
+    if (status === 'resolved' || status === 'archived') {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'conversation_reopen_skipped_for_resolved_reply',
         conversationId,
         previousStatus: status,
-        resolvedCustomerReplyAction: settings.resolvedCustomerReplyAction,
+        resolvedCustomerReplyAction: 'new_conversation',
         connectionKey: resolvedContext.connectionKey,
       }));
       return;
@@ -1445,6 +1445,7 @@ export class ChatwootWebhookController {
       const parsed = JSON.parse(setting.value);
       const validation = chatwootBehaviorSettingsSchema.safeParse({
         ...parsed,
+        resolvedCustomerReplyAction: 'new_conversation',
         systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
       });
       return validation.success ? validation.data : fallback;

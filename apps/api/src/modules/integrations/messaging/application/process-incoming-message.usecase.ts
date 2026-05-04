@@ -1461,10 +1461,6 @@ export class ProcessIncomingMessageUseCase {
     phone: string,
     settings: ChatwootBehaviorSettings,
   ) {
-    if (settings.resolvedCustomerReplyAction !== 'new_conversation') {
-      return link;
-    }
-
     if (!link?.chatwootConversationId || !link?.chatwootContactId) {
       return link;
     }
@@ -1542,7 +1538,10 @@ export class ProcessIncomingMessageUseCase {
 
     try {
       const parsed = JSON.parse(setting.value);
-      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
+      const validation = chatwootBehaviorSettingsSchema.safeParse({
+        ...parsed,
+        resolvedCustomerReplyAction: 'new_conversation',
+      });
       return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
     } catch {
       return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;

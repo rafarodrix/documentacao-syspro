@@ -4,7 +4,7 @@ export const chatwootBehaviorSettingsSchema = z.object({
   autoAssignOnFirstAgentReply: z.boolean().default(true),
   markConversationPendingOnAgentReply: z.boolean().default(false),
   reopenConversationOnCustomerReply: z.boolean().default(true),
-  resolvedCustomerReplyAction: z.enum(["reopen", "new_conversation"]).default("new_conversation"),
+  resolvedCustomerReplyAction: z.literal("new_conversation").default("new_conversation"),
   reopenSnoozedConversationOnCustomerReply: z.boolean().default(true),
   reopenPendingConversationOnCustomerReply: z.boolean().default(false),
   releaseConversationLinkOnResolved: z.boolean().default(true),
