@@ -25,7 +25,7 @@ export default defineConfig({
       "@dosc-syspro/core/entities/ticket": path.resolve(__dirname, "../../packages/core/src/entities/ticket.entity.ts"),
       "@dosc-syspro/core/entities/release": path.resolve(__dirname, "../../packages/core/src/entities/release.entity.ts"),
       "@dosc-syspro/core/services/ticket-sla": path.resolve(__dirname, "../../packages/core/src/services/ticket-sla.service.ts"),
-      "@dosc-syspro/contracts": path.resolve(__dirname, "../../packages/contracts/src/index.ts"),
+      { find: /^@dosc-syspro\/contracts$/, replacement: path.resolve(__dirname, "../../packages/contracts/src/index.ts") },
       "@dosc-syspro/contracts/agent": path.resolve(__dirname, "../../packages/contracts/src/agent/index.ts"),
       "@dosc-syspro/contracts/dashboard": path.resolve(__dirname, "../../packages/contracts/src/dashboard/index.ts"),
       "@dosc-syspro/contracts/evolution": path.resolve(__dirname, "../../packages/contracts/src/evolution/index.ts"),
