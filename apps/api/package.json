@@ -25,6 +25,7 @@
     "@dosc-syspro/core": "file:../../packages/core",
     "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/remote-domain": "file:../../packages/remote-domain",
+    "@dosc-syspro/remote-infra": "file:../../packages/remote-infra",
     "@nestjs/common": "^11.1.18",
     "@nestjs/core": "^11.1.18",
     "@nestjs/platform-express": "^11.1.18",

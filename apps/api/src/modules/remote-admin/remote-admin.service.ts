@@ -1,9 +1,9 @@
 import { ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { hashAddressBookToken, prisma } from '@dosc-syspro/database';
-import { ApiError, callProcedure, createApiContext, remoteRouter } from '@dosc-syspro/application';
 import { resolveScopedCompanyContext } from '@dosc-syspro/remote-infra';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { executeRemoteAdminProcedure, type RemoteAdminProcedure } from './remote-procedure-runner';
 import {
   getRemoteHostDetails,
   getRemotePlatformDirectory,
@@ -15,24 +15,6 @@ import { buildScopedCompanyWhere, buildScopedHostWhere } from './support/scope';
 import type { RemoteSessionStatus, RemoteTenantScope } from './support/remote-admin.types';
 
 type HostRemoteAction = 'REBOOTSTRAP' | 'RESEND_CONFIG' | 'REAPPLY_ALIAS';
-type RemoteProcedure =
-  | 'sessionsList'
-  | 'sessionsCreate'
-  | 'sessionsStart'
-  | 'sessionsStop'
-  | 'linkDiscoveredHost'
-  | 'hostsCreate'
-  | 'hostsUpdate'
-  | 'hostsDelete'
-  | 'hostsRotateAgentToken'
-  | 'hostsRevokeAgentToken'
-  | 'hostsRelinkSysproUpdate'
-  | 'addressBookList'
-  | 'addressBookCredentialsList'
-  | 'addressBookCredentialsCreate'
-  | 'addressBookCredentialsRotate'
-  | 'addressBookCredentialsRevoke';
-
 const DEFAULT_INSTALLATION_DIRECTORY = 'C:\\Syspro\\Server\\SysproServer.exe';
 
 function normalizeCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
@@ -656,99 +638,28 @@ export class RemoteAdminService {
   }
 
   private async executeRemoteProcedure(
-    procedure: RemoteProcedure,
+    procedure: RemoteAdminProcedure,
     payload: unknown,
     requester: { userId: string; role: Role },
     tenantScope: RemoteTenantScope,
   ) {
-    const ctx = createApiContext({
-      session: {
+    return executeRemoteAdminProcedure({
+      procedure,
+      payload,
+      requester: {
         userId: requester.userId,
         role: requester.role,
+      },
+      scope: {
+        isGlobalView: tenantScope.isGlobalView,
         companyIds: tenantScope.companyIds,
       },
       logger: {
-        info: (event, meta) => this.logger.log({ event, ...(meta ?? {}) }),
-        warn: (event, meta) => this.logger.warn({ event, ...(meta ?? {}) }),
-        error: (event, meta) => this.logger.error({ event, ...(meta ?? {}) }),
+        info: (event: string, meta?: Record<string, unknown>) => this.logger.log({ event, ...(meta ?? {}) }),
+        warn: (event: string, meta?: Record<string, unknown>) => this.logger.warn({ event, ...(meta ?? {}) }),
+        error: (event: string, meta?: Record<string, unknown>) => this.logger.error({ event, ...(meta ?? {}) }),
       },
     });
-
-    try {
-      return await callProcedure({
-        ctx,
-        namespace: 'remote',
-        router: remoteRouter,
-        procedure,
-        input: { payload },
-      });
-    } catch (error) {
-      this.throwRemoteProcedureError(error);
-    }
-  }
-
-  private throwRemoteProcedureError(error: unknown): never {
-    if (error instanceof ApiError) {
-      const remote = this.extractRemoteError(error.cause);
-      if (remote) {
-        throw new HttpException(
-          {
-            success: false,
-            error: remote.message,
-            message: remote.message,
-            code: remote.code,
-            httpStatus: remote.httpStatus,
-            ...(remote.data !== undefined ? { data: remote.data } : {}),
-          },
-          remote.httpStatus,
-        );
-      }
-
-      const status =
-        error.code === 'UNAUTHORIZED'
-          ? 401
-          : error.code === 'FORBIDDEN'
-            ? 403
-            : error.code === 'BAD_REQUEST'
-              ? 400
-              : 500;
-      throw new HttpException(
-        {
-          success: false,
-          error: error.message,
-          message: error.message,
-          code: error.code,
-          httpStatus: status,
-        },
-        status,
-      );
-    }
-
-    throw new HttpException(
-      {
-        success: false,
-        error: 'Falha inesperada no modulo remoto.',
-        message: 'Falha inesperada no modulo remoto.',
-        code: 'INTERNAL_ERROR',
-        httpStatus: 500,
-      },
-      500,
-    );
-  }
-
-  private extractRemoteError(cause: unknown) {
-    if (!cause || typeof cause !== 'object') return null;
-    const remote = (cause as { remote?: unknown }).remote;
-    if (!remote || typeof remote !== 'object') return null;
-    const candidate = remote as { code?: unknown; message?: unknown; httpStatus?: unknown; data?: unknown };
-    if (
-      typeof candidate.code !== 'string' ||
-      typeof candidate.message !== 'string' ||
-      typeof candidate.httpStatus !== 'number'
-    ) {
-      return null;
-    }
-    return candidate as { code: string; message: string; httpStatus: number; data?: unknown };
   }
 
   private asObject(value: unknown): Record<string, unknown> {

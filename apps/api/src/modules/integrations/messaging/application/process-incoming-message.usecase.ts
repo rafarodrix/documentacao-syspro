@@ -1472,9 +1472,24 @@ export class ProcessIncomingMessageUseCase {
       );
       const status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
       const customAttributes = this.readConversationCustomAttributesFromPayload(conversation);
+      const hasPendingCsat =
+        (status === 'resolved' || status === 'archived') &&
+        this.readBoolean(customAttributes.csat_pending);
       const shouldRotatePendingConversation =
         status === 'pending' &&
         this.shouldCreateNewConversationForCompletedCsat(customAttributes);
+
+      if (hasPendingCsat) {
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'resolved_conversation_kept_for_pending_csat',
+          connectionKey: connection.connectionKey,
+          whatsappNumber: phone,
+          chatwootConversationId: link.chatwootConversationId,
+          previousStatus: status ?? null,
+        }));
+        return link;
+      }
 
       if (status !== 'resolved' && status !== 'archived' && !shouldRotatePendingConversation) {
         return link;
