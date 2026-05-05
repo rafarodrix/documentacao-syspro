@@ -13,16 +13,19 @@ import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import {
+  Activity,
   ArrowUpRight,
   BarChart2,
   BookOpen,
   Building2,
+  Clock,
   DollarSign,
   FileText,
   Headset,
   KeyRound,
   Minus,
   PlusCircle,
+  RadioTower,
   Sparkles,
   Target,
   TrendingDown,
@@ -200,8 +203,6 @@ export default async function DashboardPage() {
     const canViewUsers = adminData.canViewUsers ?? true;
     const hasCadastrosAccess = canViewCompanies || canViewContacts || canViewUsers;
     const cadastroTabsCount = [canViewCompanies, canViewContacts, canViewUsers].filter(Boolean).length;
-    const showUsersMetric = canViewUsers;
-    const showPeopleMetric = canViewUsers || canViewContacts;
     const recentContacts = adminData.recentContacts ?? [];
     const recentUsers = adminData.recentUsers ?? [];
     const adminTicketScopeMode = session.role === "DEVELOPER" ? "development" : "all";
@@ -215,6 +216,11 @@ export default async function DashboardPage() {
     const openTicketsDevelopment = scopedOpenTicketRecords.filter((record) => record.team === "DESENVOLVIMENTO").length;
     const openTicketsWaiting = scopedOpenTicketRecords.filter((record) => record.status === "Aberto").length;
     const openTicketsInProgress = scopedOpenTicketRecords.filter((record) => record.status !== "Aberto").length;
+    const sefazStatuses = adminData.sefazStatuses ?? [];
+    const sefazRoutesCount = (adminData.sefazConfiguredRoutes ?? []).filter((r) => r.active).length;
+    const hasSefazOffline = sefazStatuses.some((s) => s.status === "OFFLINE");
+    const hasSefazUnstable = sefazStatuses.some((s) => s.status === "UNSTABLE");
+    const sefazHealthStatus = hasSefazOffline ? "offline" : hasSefazUnstable ? "unstable" : sefazStatuses.length > 0 ? "online" : "unknown";
     return (
       <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
         <Tabs defaultValue="operacional" className="space-y-4">
@@ -222,15 +228,25 @@ export default async function DashboardPage() {
             <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
               <Zap className="h-4 w-4" />
               Operacional
-              <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                {(adminData.sefazFocusUfs?.length ?? 0) + 1}
-              </span>
             </TabsTrigger>
-            <TabsTrigger value="analise" className="gap-2 px-4 py-2">
-              <BarChart2 className="h-4 w-4" />
-              Análise
+            <TabsTrigger value="suporte" className="gap-2 px-4 py-2">
+              <Headset className="h-4 w-4" />
+              Suporte
               <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                 {openTicketsNow}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="sefaz" className="gap-2 px-4 py-2">
+              <Activity className="h-4 w-4" />
+              SEFAZ
+              <span className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                sefazHealthStatus === "online" ? "bg-emerald-500/15 text-emerald-600" :
+                sefazHealthStatus === "unstable" ? "bg-amber-500/15 text-amber-600" :
+                sefazHealthStatus === "offline" ? "bg-red-500/15 text-red-600" :
+                "bg-background/80 text-muted-foreground"
+              )}>
+                {sefazHealthStatus === "online" ? "OK" : sefazHealthStatus === "unstable" ? "!" : sefazHealthStatus === "offline" ? "↓" : "—"}
               </span>
             </TabsTrigger>
             {hasCadastrosAccess ? (
@@ -254,45 +270,112 @@ export default async function DashboardPage() {
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-              <SefazOperationsPanel
-                focusUfs={adminData.sefazFocusUfs ?? []}
-                scopedStatuses={adminData.sefazStatuses ?? []}
-                nationalStatuses={adminData.sefazNationalStatuses ?? []}
-                configuredRoutes={adminData.sefazConfiguredRoutes ?? []}
-                canViewAvailability={canViewAvailability}
-              />
-
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {/* Senha do dia */}
               <Card className="border-border/50 bg-muted/30 shadow-none">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <KeyRound className="h-4 w-4 text-amber-500" />
-                    Senha do dia
-                  </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                  <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Senha do dia</CardTitle>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
+                    <KeyRound className="h-3.5 w-3.5 text-amber-500" />
+                  </div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="px-4 pb-4">
                   <div className="rounded-lg border border-border/50 bg-background/80 px-3 py-2 text-center font-mono text-lg font-semibold tracking-[0.16em]">
                     {dailyPassword?.password ?? "-----"}
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">Uso operacional interno do dia.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Uso operacional interno.</p>
                 </CardContent>
               </Card>
 
-              <TicketScopeSummaryCard
-                total={openTicketsNow}
-                open={openTicketsWaiting}
-                inProgress={openTicketsInProgress}
+              <DashboardMetricCard
+                title="Total em aberto"
+                value={openTicketsNow}
+                helper={`${openTicketsWaiting} aguardando · ${openTicketsInProgress} em andamento`}
+                icon={Headset as any}
+                tone="blue"
               />
 
-              <TicketSectorSplitCard
-                support={openTicketsSupport}
-                development={openTicketsDevelopment}
-                scopeMode={adminTicketScopeMode}
+              <DashboardMetricCard
+                title="Aguardando"
+                value={openTicketsWaiting}
+                helper="Tickets sem atendimento iniciado"
+                icon={Clock as any}
+                tone="amber"
               />
+
+              <DashboardMetricCard
+                title="Em andamento"
+                value={openTicketsInProgress}
+                helper="Tickets com atendimento em curso"
+                icon={Zap as any}
+                tone="emerald"
+              />
+
+              <DashboardMetricCard
+                title="Fila Suporte"
+                value={openTicketsSupport}
+                helper="Tickets na equipe de suporte"
+                icon={Users as any}
+                tone="blue"
+              />
+
+              <DashboardMetricCard
+                title="Fila Desenvolvimento"
+                value={openTicketsDevelopment}
+                helper="Tickets na equipe de desenvolvimento"
+                icon={Sparkles as any}
+                tone="amber"
+              />
+
+              {/* SEFAZ aggregate */}
+              <Card className="border-border/50 bg-card/70 shadow-none">
+                <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+                  <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">SEFAZ</CardTitle>
+                  <div className={cn("flex h-7 w-7 items-center justify-center rounded-md",
+                    sefazHealthStatus === "online" ? "bg-emerald-500/10 text-emerald-500" :
+                    sefazHealthStatus === "unstable" ? "bg-amber-500/10 text-amber-500" :
+                    sefazHealthStatus === "offline" ? "bg-red-500/10 text-red-500" :
+                    "bg-muted/50 text-muted-foreground"
+                  )}>
+                    <RadioTower className="h-3.5 w-3.5" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className={cn("flex items-center gap-2 text-2xl font-bold tracking-tight tabular-nums",
+                    sefazHealthStatus === "online" ? "text-emerald-500" :
+                    sefazHealthStatus === "unstable" ? "text-amber-500" :
+                    sefazHealthStatus === "offline" ? "text-red-500" :
+                    "text-muted-foreground"
+                  )}>
+                    <span className={cn("inline-block h-2.5 w-2.5 rounded-full",
+                      sefazHealthStatus === "online" ? "bg-emerald-500" :
+                      sefazHealthStatus === "unstable" ? "animate-pulse bg-amber-500" :
+                      sefazHealthStatus === "offline" ? "animate-pulse bg-red-500" :
+                      "bg-muted-foreground/40"
+                    )} />
+                    {sefazHealthStatus === "online" ? "Operacional" :
+                     sefazHealthStatus === "unstable" ? "Instável" :
+                     sefazHealthStatus === "offline" ? "Offline" : "Sem dados"}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {sefazRoutesCount} rota{sefazRoutesCount !== 1 ? "s" : ""} monitorada{sefazRoutesCount !== 1 ? "s" : ""}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {adminData.contracts ? (
+                <DashboardMetricCard
+                  title="Contratos ativos"
+                  value={adminData.contracts.activeContracts}
+                  helper={formatCurrency(adminData.contracts.totalValue) + " MRR estimado"}
+                  icon={FileText as any}
+                  tone="emerald"
+                />
+              ) : null}
             </div>
           </TabsContent>
 
-          <TabsContent value="analise" className="space-y-4">
+          <TabsContent value="suporte" className="space-y-4">
             <OpenTicketsInsights
               records={adminData.openTicketRecords}
               scopeMode={adminTicketScopeMode}
@@ -313,6 +396,16 @@ export default async function DashboardPage() {
                 />
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="sefaz" className="space-y-4">
+            <SefazOperationsPanel
+              focusUfs={adminData.sefazFocusUfs ?? []}
+              scopedStatuses={adminData.sefazStatuses ?? []}
+              nationalStatuses={adminData.sefazNationalStatuses ?? []}
+              configuredRoutes={adminData.sefazConfiguredRoutes ?? []}
+              canViewAvailability={canViewAvailability}
+            />
           </TabsContent>
 
           {canAccessCrm ? (
