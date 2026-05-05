@@ -5,8 +5,7 @@ import { z } from 'zod';
 import {
   companyListQuerySchema,
   companyStatusUpdateSchema,
-  createCompanyInputSchema,
-  createCompanyOutputSchema,
+  createCompanySchema,
 } from '@dosc-syspro/contracts/company';
 import { CompanySegment } from '@prisma/client';
 
@@ -59,7 +58,7 @@ export class CompaniesRouter {
         }),
 
       create: this.trpc.publicProcedure
-        .input(z.object({ data: z.union([createCompanyInputSchema, createCompanyOutputSchema]) }))
+        .input(z.object({ data: createCompanySchema }))
         .mutation(({ input, ctx }) => {
           return this.companiesService.createCompany(input, ctx.headers);
         }),
@@ -68,7 +67,7 @@ export class CompaniesRouter {
         .input(
           z.object({
             id: z.string(),
-            data: z.union([createCompanyInputSchema, createCompanyOutputSchema]),
+            data: createCompanySchema,
           }),
         )
         .mutation(({ input, ctx }) => {

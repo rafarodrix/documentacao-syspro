@@ -564,7 +564,7 @@ export class RemoteAdminService {
     return this.callRemoteProcedure('addressBookCredentialsRevoke', { credentialId }, rawHeaders);
   }
 
-  private async callRemoteProcedure(procedure: RemoteProcedure, payload: unknown, rawHeaders?: Record<string, unknown>) {
+  private async callRemoteProcedure(procedure: RemoteAdminProcedure, payload: unknown, rawHeaders?: Record<string, unknown>) {
     const requester = await this.authorizationService.assertPermission(rawHeaders as any, 'tools:all');
     const tenantScope = await this.resolveTenantScope(rawHeaders);
     const result = await this.executeRemoteProcedure(procedure, payload, requester, tenantScope);
