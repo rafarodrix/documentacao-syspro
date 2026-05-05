@@ -1,0 +1,188 @@
+# Acesso Remoto — Arquitetura Completa
+
+> Visão end-to-end do módulo de acesso remoto (RustDesk + Agente + Portal).
+> Atualizado em: 2026-05-05
+
+---
+
+## Visão geral do módulo
+
+O módulo de acesso remoto permite que técnicos Trilink acessem remotamente máquinas Windows de clientes de forma segura e auditada.
+
+**Componentes:**
+
+```
+Portal (apps/web + apps/api)
+    ├── Cadastro e gerenciamento de hosts
+    ├── Gerenciamento de sessões e credenciais
+    ├── Address book para o cliente RustDesk
+    └── Auditoria e logs de acesso
+
+apps/api/modules/remote-admin
+    ├── REST endpoints do agente (heartbeat, sync, ack, bootstrap, discover)
+    ├── REST endpoints administrativos (hosts, sessões, address book)
+    └── Orquestra use cases do @dosc-syspro/remote-domain
+
+packages/remote-domain
+    └── Lógica de negócio pura (sem deps externas)
+
+packages/remote-infra
+    └── Implementações das ports (Prisma, HTTP)
+
+apps/agent (Go)
+    ├── Registra e mantém heartbeat da máquina
+    ├── Configura e gerencia o RustDesk local
+    └── Executa comandos enviados pelo portal
+
+RustDesk (open-source)
+    ├── Cliente: técnico usa para se conectar
+    └── Servidor relay: retransmite a conexão
+```
+
+---
+
+## Mapa de endpoints
+
+### Endpoints do agente (autenticados com agentToken)
+
+| Método | Endpoint                            | Uso                          |
+|--------|-------------------------------------|------------------------------|
+| POST   | `/api/remote/agents/discover`       | Discovery (primeiro contato) |
+| POST   | `/api/remote/rustdesk/bootstrap`    | Registro e obtenção de token |
+| POST   | `/api/remote/rustdesk/heartbeat`    | Ciclo de heartbeat (30s)     |
+| POST   | `/api/remote/rustdesk/sync`         | Relatório de sistema (60s)   |
+| POST   | `/api/remote/rustdesk/ack`          | Confirmação de comandos      |
+
+### Endpoints administrativos (autenticados com sessão do portal)
+
+| Método | Endpoint                                              | Uso                              |
+|--------|-------------------------------------------------------|----------------------------------|
+| GET    | `/api/remote/hosts`                                   | Lista hosts com status           |
+| GET    | `/api/remote/hosts/:id`                               | Detalhe do host                  |
+| POST   | `/api/remote/hosts/:id/actions`                       | Enfileira comando no agente      |
+| GET    | `/api/remote/hosts/:id/events`                        | Eventos recentes                 |
+| GET    | `/api/remote/hosts/fleet-stats`                       | Stats da frota                   |
+| GET    | `/api/remote/discovered-hosts`                        | Hosts pendentes de vinculação    |
+| POST   | `/api/remote/discovered-hosts/:id/link`               | Vincula host descoberto          |
+| POST   | `/api/remote/hosts/:id/agent-token`                   | Rotação de token                 |
+| GET    | `/api/remote/sessions`                                | Lista sessões                    |
+| POST   | `/api/remote/sessions/:id/start`                      | Inicia sessão                    |
+| POST   | `/api/remote/sessions/:id/stop`                       | Encerra sessão                   |
+| GET    | `/api/remote/rustdesk/address-book`                   | Address book                     |
+| GET    | `/api/remote/rustdesk/address-book/credentials`       | Credenciais de address book      |
+
+---
+
+## Estados do host
+
+```
+               instala agente
+       ─────────────────────────────►
+                                     DISCOVERED
+                                     (RemoteDiscoveredHost)
+                                         │
+                               admin vincula
+                                         │
+                                         ▼
+                                       ACTIVE
+                                     (RemoteHost)
+                                         │
+                              ┌──────────┴──────────┐
+                              │                     │
+                          heartbeats           problema config
+                          normais              ou sem contato
+                              │                     │
+                              ▼                     ▼
+                           ONLINE              OFFLINE/MISCONFIGURED
+                              │
+                         sessão ativa
+                              │
+                              ▼
+                         SESSION_BUSY
+```
+
+---
+
+## Modelo de dados — RemoteHost
+
+```prisma
+model RemoteHost {
+  id              String            // UUID
+  companyId       String            // empresa vinculada
+  rustdeskId      String            // ID no RustDesk (sem espaços)
+  hostname        String            // nome da máquina
+  agentToken      String?           // token do agente (hash ou raw)
+  agentTokenExpiresAt DateTime?
+  lastHeartbeatAt DateTime?
+  status          RemoteHostStatus  // ACTIVE | INACTIVE | MAINTENANCE
+  sysproPath      String?           // caminho do SysproServer.exe
+  
+  // Relações
+  company         Company
+  commands        RemoteAgentCommand[]
+  sessions        RemoteSession[]
+  sysproUpdates   RemoteHostSysproUpdate[]
+}
+```
+
+---
+
+## Modelo de dados — RemoteSession
+
+```prisma
+model RemoteSession {
+  id          String              // UUID
+  hostId      String
+  userId      String              // técnico que iniciou
+  ticketId    String?             // ticket vinculado (opcional)
+  status      RemoteSessionStatus // REQUESTED | STARTED | ENDED
+  startedAt   DateTime?
+  endedAt     DateTime?
+  
+  host        RemoteHost
+  user        User
+  ticket      Ticket?
+}
+```
+
+---
+
+## Fluxo completo: técnico acessa máquina do cliente
+
+```
+1. Técnico abre /portal/infraestrutura/hosts/:id
+   ├── Vê status ONLINE e botão "Iniciar Sessão"
+   └── Clica em "Iniciar Sessão"
+
+2. POST /api/remote/sessions
+   ← { sessionId, rustdeskId: "123456789", credentials }
+   Sessão criada com status REQUESTED
+
+3. Técnico abre o cliente RustDesk com as credenciais
+   └── Digita rustdeskId "123456789" ou usa o address book
+
+4. RustDesk conecta via relay.trilink.com.br
+
+5. Agent-ui.exe na máquina do cliente aceita a conexão
+   └── agent-service notifica portal via heartbeat
+
+6. Portal atualiza sessão para STARTED
+
+7. Técnico faz o suporte
+
+8. Técnico encerra no portal ou fecha o RustDesk
+   └── POST /api/remote/sessions/:id/stop
+   Sessão → ENDED
+   Se ticketId: nota adicionada ao ticket automaticamente
+```
+
+---
+
+## Segurança e isolamento
+
+- Cada usuário do portal só acessa hosts das empresas às quais tem permissão
+- `resolveScopedCompanyContext` valida o escopo em **toda** operação administrativa
+- Rate limit em discovery (5 req/min por IP) previne enumeração
+- `agentToken` cifrado com DPAPI na máquina cliente
+- Credenciais de address book têm escopo (GLOBAL ou COMPANY) e podem ser revogadas individualmente
+- Todas as sessões são auditadas com início, fim, técnico e duração

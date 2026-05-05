@@ -1,0 +1,229 @@
+# API — Módulos Core de Negócio
+
+> Módulos de domínio principal do `apps/api`. Atualizado em: 2026-05-05
+
+---
+
+## companies
+
+**Path:** `src/modules/companies/`
+
+Gerencia empresas do portal (clientes Trilink).
+
+| Arquivo                  | Responsabilidade                                       |
+|--------------------------|-------------------------------------------------------|
+| `companies.controller.ts`| REST CRUD + busca por CNPJ                            |
+| `companies.router.ts`    | Procedimentos tRPC de empresas                        |
+| `companies.service.ts`   | Lógica: criação, atualização, status, segmentação     |
+| `companies.module.ts`    | Módulo NestJS                                         |
+
+**Funcionalidades:**
+- CRUD completo de empresas com dados fiscais (CNPJ, razão social, IE)
+- Segmentação de empresas (tipo de negócio)
+- Hierarquia matriz/filial
+- Status da empresa: ACTIVE, INACTIVE, SUSPENDED
+- Busca por CNPJ com consulta a API externa
+- Integração com contratos de serviço
+- Configuração de parâmetros SEFAZ por empresa
+- Controle de acesso com escopo (usuário CLIENTE vê apenas sua empresa)
+
+---
+
+## contacts
+
+**Path:** `src/modules/contacts/`
+
+Gerencia contatos vinculados a empresas.
+
+**Funcionalidades:**
+- Contatos com CPF, email, telefone, cargo
+- `source`: MANUAL | WHATSAPP | IMPORT
+- Sincronização de contatos com Evolution (WhatsApp)
+- Controle de acesso por empresa via `user-contact-access.service.ts`
+- Stats de contatos por empresa
+
+---
+
+## users
+
+**Path:** `src/modules/users/`
+
+Gerencia usuários do portal.
+
+| Arquivo                        | Responsabilidade                          |
+|--------------------------------|------------------------------------------|
+| `users.service.ts`             | CRUD, convites, perfis                   |
+| `users.controller.ts`          | REST endpoints                           |
+| `user-contact-access.service.ts` | Restrição de acesso por contato       |
+
+**Funcionalidades:**
+- CRUD de usuários com verificação de email
+- Controle de status: active, banned, verified
+- Perfis de acesso (AccessProfile)
+- SSO com Chatwoot via token
+
+---
+
+## auth
+
+**Path:** `src/modules/auth/`
+
+Autenticação via Better Auth.
+
+- Endpoints montados em `/api/auth/[...all]` (Better Auth handler)
+- Login, registro, esqueceu senha, reset
+- Session management com cookie HttpOnly
+- Verificação de email
+
+---
+
+## authorization
+
+**Path:** `src/modules/authorization/`
+
+Resolução de escopo e permissões.
+
+| Arquivo                        | Responsabilidade                          |
+|--------------------------------|------------------------------------------|
+| `authorization.service.ts`     | Resolve role, escopo e permissões        |
+| `authorization.module.ts`      | Módulo global                            |
+
+**Escopo resolvido:**
+```typescript
+{
+  userId: string
+  role: 'ADMIN' | 'SUPORTE' | 'CLIENTE_ADMIN' | 'CLIENTE_USER' | 'DEVELOPER'
+  companyIds: string[]  // [] = acesso global
+  permissions: string[] // ex: ['companies:view_all', 'remote:manage']
+}
+```
+
+---
+
+## tickets
+
+**Path:** `src/modules/tickets/`
+
+Sistema de chamados técnicos internos.
+
+| Arquivo                        | Responsabilidade                          |
+|--------------------------------|------------------------------------------|
+| `tickets.service.ts`           | CRUD, workflow, busca full-text          |
+| `ticket-history.service.ts`    | Histórico de alterações                  |
+| `ticket-contract.mapper.ts`    | Mapeia modelo Prisma → contrato público  |
+| `create-ticket.dto.ts`         | DTO de criação com validação Zod         |
+| `update-ticket.dto.ts`         | DTO de atualização                       |
+
+**Funcionalidades:**
+- Criação de tickets com categoria, prioridade, empresa vinculada
+- Workflow de estados (ver `@dosc-syspro/core/tickets`)
+- Mensagens com suporte a Markdown
+- Histórico de alterações
+- Busca por texto
+- Integração com Chatwoot (mensagens sincronizadas)
+- Quick actions (fechar, reabrir, escalar)
+
+---
+
+## crm
+
+**Path:** `src/modules/crm/`
+
+CRM de leads e oportunidades.
+
+**Modelos:**
+- `CrmLead`: stages LEAD → MQL → SQL → PROPOSAL → WON | LOST
+- `CrmActivity`: NOTE, CALL, MEETING, EMAIL, WHATSAPP
+- `CrmTask`: tarefas com status e vencimento
+
+---
+
+## dashboard
+
+**Path:** `src/modules/dashboard/`
+
+Agrega métricas e KPIs para o painel inicial.
+
+**Métricas expostas:**
+- Total de empresas por status
+- Tickets abertos por prioridade
+- Volume de mensagens WhatsApp
+- Status de serviços SEFAZ
+
+---
+
+## releases
+
+**Path:** `src/modules/releases/`
+
+Gerencia releases e changelogs do produto Syspro.
+
+- Releases organizadas por ano/mês
+- Vinculação de tickets a uma release
+- `buildReleaseFromTicket` (via `@dosc-syspro/core`)
+- Endpoint público de listagem
+
+---
+
+## settings
+
+**Path:** `src/modules/settings/`
+
+Configurações globais e por empresa.
+
+| Arquivo                              | Responsabilidade                          |
+|--------------------------------------|------------------------------------------|
+| `settings.controller.ts`            | REST endpoints de configurações          |
+| `permissions/permissions.service.ts` | CRUD de perfis e permissões              |
+| `permissions/permissions.catalog.ts` | Catálogo de todas as permissões          |
+| `integration-connections.service.ts` | Conexões com integrações externas        |
+| `integration-context.service.ts`     | Contexto de integração por empresa       |
+| `sefaz-monitor.service.ts`           | Monitor periódico de status SEFAZ        |
+
+**Configurações disponíveis:**
+- Permissões e perfis de acesso
+- Configuração Chatwoot por empresa
+- Configuração Evolution (WhatsApp)
+- Configurações SEFAZ (rotas, UF)
+- Configurações do módulo remoto
+- Automações de atendimento
+- Configurações de tickets
+
+---
+
+## tax
+
+**Path:** `src/modules/tax/`
+
+Configurações tributárias para NFe/NFCe.
+
+**Funcionalidades:**
+- Lookup de NCM (Nomenclatura Comum do Mercosul)
+- Sincronização de CST, CFOP, ICMS, ICMS-ST
+- TaxSyncJob: jobs de sincronização em background
+- Sugestão de tributação por NCM
+- ICMS interestadual (DIFAL)
+
+---
+
+## documentos
+
+**Path:** `src/modules/documentos/`
+
+Armazenamento de documentos de empresas.
+
+- Upload de arquivos para Cloudflare R2
+- Metadata persistida no PostgreSQL
+- Download com URL assinada ou URL pública
+
+---
+
+## agents
+
+**Path:** `src/modules/agents/`
+
+Gerencia o inventário de agentes/dispositivos registrados.
+
+- Lista de dispositivos com status de conexão
+- Vinculação de agente a empresa
+- Dados de hardware (via sync do agente Go)

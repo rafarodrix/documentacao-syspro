@@ -1,0 +1,209 @@
+# Acesso Remoto — Tokens e Sessões
+
+> Ciclo de vida do agentToken, rotação de credenciais e gerenciamento de sessões.
+> Atualizado em: 2026-05-05
+
+---
+
+## agentToken
+
+O `agentToken` é a credencial principal que o agente Go usa para autenticar todas as chamadas ao portal.
+
+### Características
+
+- Formato: `agt_<random-hex>` (prefixo visual para identificação)
+- Gerado com `crypto.randomBytes` (não previsível)
+- TTL configurável (padrão: 1 ano)
+- Persistido na máquina com **DPAPI** (Windows Data Protection API)
+- Vinculado a um único `RemoteHost` no banco
+
+### Ciclo de vida
+
+```
+Bootstrap
+    │ portal gera agentToken
+    │ retorna ao agente
+    │
+    ▼
+Agente persiste com DPAPI
+    │
+    ▼
+Heartbeats normais (a cada 30s)
+    │ portal verifica expiração
+    │ se expirando: inclui ROTATE_TOKEN_REQUIRED nos pendingCommands
+    │
+    ▼
+Agente recebe ROTATE_TOKEN_REQUIRED
+    │
+    ▼
+Agente solicita novo token no próximo heartbeat
+    │ portal gera novo token
+    │ invalida token antigo
+    │
+    ▼
+Agente persiste novo token
+```
+
+### Rotação manual (pelo portal)
+
+Administrador pode forçar rotação via:
+```
+POST /api/remote/hosts/:id/agent-token
+```
+
+Isto enfileira o comando `ROTATE_TOKEN_REQUIRED` na próxima chamada do agente.
+
+---
+
+## installToken (bootstrap)
+
+Usado apenas uma vez para o registro inicial da máquina.
+
+- Gerado no portal ao criar um novo host ou link de instalação
+- Expiração curta (configurável, ex: 24-72 horas)
+- Trocado pelo `agentToken` permanente após bootstrap bem-sucedido
+- Não reutilizável após uso
+
+---
+
+## discoveryToken
+
+Usado no fluxo de discovery (antes do bootstrap).
+
+- Mais permissivo que o installToken — permite identificar a máquina sem registrá-la
+- Associado a uma empresa ou a um link de instalação em lote
+- Após discovery, o portal retorna a `transition` indicando o próximo passo
+
+---
+
+## Address Book Credentials
+
+Credenciais para que técnicos configurem o cliente RustDesk com o address book do portal.
+
+### Tipos de escopo
+
+| Escopo    | Acesso                                    | Quem pode criar          |
+|-----------|-------------------------------------------|--------------------------|
+| `GLOBAL`  | Todos os hosts de todas as empresas       | ADMIN, SUPORTE           |
+| `COMPANY` | Apenas hosts de uma empresa específica    | ADMIN, CLIENTE_ADMIN     |
+
+### Endpoints
+
+```
+GET  /api/remote/rustdesk/address-book/credentials         ← lista
+POST /api/remote/rustdesk/address-book/credentials         ← cria
+POST /api/remote/rustdesk/address-book/credentials/:id/rotate   ← rotaciona
+POST /api/remote/rustdesk/address-book/credentials/:id/revoke   ← revoga
+```
+
+### Rotação vs Revogação
+
+- **Rotação**: gera nova credencial e invalida a anterior. Técnico precisa atualizar no cliente RustDesk.
+- **Revogação**: invalida permanentemente. Técnico não consegue mais usar o address book com aquela credencial.
+
+---
+
+## RemoteSession — estados e transições
+
+```
+┌──────────────┐
+│  REQUESTED   │  ← técnico cria sessão no portal
+└──────┬───────┘
+       │ agente aceita (ou heartbeat confirma)
+       ▼
+┌──────────────┐
+│   STARTED    │  ← conexão RustDesk ativa
+└──────┬───────┘
+       │ técnico encerra ou timeout
+       ▼
+┌──────────────┐
+│    ENDED     │  ← sessão encerrada (auditada)
+└──────────────┘
+```
+
+### Cleanup de sessões
+
+**Endpoint:** `POST /api/remote/sessions/cleanup`
+
+Remove sessões presas em REQUESTED ou STARTED por muito tempo sem atividade de heartbeat.
+
+---
+
+## Fila de comandos — RemoteAgentCommand
+
+```prisma
+model RemoteAgentCommand {
+  id          String                 // UUID
+  hostId      String
+  type        RemoteAgentCommandType // REAPPLY_ALIAS | REAPPLY_CONFIG | UPGRADE_CLIENT | ROTATE_TOKEN_REQUIRED
+  payload     Json?                  // dados adicionais do comando
+  status      CommandStatus          // PENDING | ACKNOWLEDGED
+  result      String?                // SUCCESS | FAILURE
+  message     String?                // mensagem de resultado
+  createdAt   DateTime
+  acknowledgedAt DateTime?
+}
+```
+
+### Fluxo de comando
+
+```
+1. Portal enfileira comando (status: PENDING)
+
+2. Agente recebe pendingCommands no próximo heartbeat
+
+3. Agente executa o comando
+
+4. Agente envia ACK:
+   POST /api/remote/rustdesk/ack
+   { agentToken, commandId, result: 'SUCCESS' | 'FAILURE', message }
+
+5. Portal atualiza status: ACKNOWLEDGED
+```
+
+### Tipos de comando e efeito
+
+| Tipo                    | O que o agente faz                                          |
+|-------------------------|-------------------------------------------------------------|
+| `REAPPLY_ALIAS`         | Reescreve o alias do RustDesk no arquivo de config local    |
+| `REAPPLY_CONFIG`        | Reaplica config completa (relay server, chave, alias)       |
+| `UPGRADE_CLIENT`        | Baixa e instala nova versão do RustDesk                     |
+| `ROTATE_TOKEN_REQUIRED` | Solicita novo agentToken no próximo ciclo                   |
+
+---
+
+## Eventos de host (RemoteHostEvent)
+
+O portal registra eventos de auditoria para cada host:
+
+- Heartbeat recebido
+- Sessão iniciada/encerrada
+- Comando enfileirado/confirmado
+- Token rotacionado
+
+Consultados via:
+```
+GET /api/remote/hosts/:id/events
+GET /api/remote/hosts/:id/ack-events
+```
+
+---
+
+## Fleet Stats
+
+**Endpoint:** `GET /api/remote/hosts/fleet-stats`
+
+Retorna contagem de hosts por status operacional:
+
+```json
+{
+  "total": 42,
+  "online": 28,
+  "recent": 8,
+  "offline": 5,
+  "misconfigured": 1,
+  "sessionBusy": 0
+}
+```
+
+Exibido no dashboard de infraestrutura em `/portal/infraestrutura`.
