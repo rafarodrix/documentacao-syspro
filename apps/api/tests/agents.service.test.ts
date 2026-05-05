@@ -43,7 +43,7 @@ describe("AgentsService desired state", () => {
     prisma.agentDevice.findUnique.mockResolvedValue({
       remoteHost: {
         id: "host-1",
-        remoteHostSysproUpdates: [
+        sysproUpdates: [
           {
             companyId: "company-a",
             companyLabel: "Empresa A",

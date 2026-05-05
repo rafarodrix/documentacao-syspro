@@ -1,30 +1,30 @@
 import type { Ticket, Release } from "@dosc-syspro/core";
 import { formatRecency } from "@dosc-syspro/shared";
 
-export type MobileTicketListItem = Pick<Ticket, "id" | "title" | "status" | "priority" | "number"> & {
+export type MobileTicketListItem = Pick<Ticket, "id" | "subject" | "status" | "priority" | "number"> & {
   updatedLabel: string;
 };
 
-export type MobileReleaseListItem = Pick<Release, "slug" | "title" | "category"> & {
+export type MobileReleaseListItem = Pick<Release, "id" | "title" | "type"> & {
   updatedLabel: string;
 };
 
 export function toMobileTicketListItem(ticket: Ticket): MobileTicketListItem {
   return {
     id: ticket.id,
-    title: ticket.title,
+    subject: ticket.subject,
     status: ticket.status,
     priority: ticket.priority,
     number: ticket.number,
-    updatedLabel: formatRecency(ticket.updatedAt),
+    updatedLabel: formatRecency(ticket.lastUpdate),
   };
 }
 
 export function toMobileReleaseListItem(release: Release): MobileReleaseListItem {
   return {
-    slug: release.slug,
+    id: release.id,
     title: release.title,
-    category: release.category,
-    updatedLabel: formatRecency(release.updatedAt),
+    type: release.type,
+    updatedLabel: formatRecency(release.isoDate),
   };
 }
