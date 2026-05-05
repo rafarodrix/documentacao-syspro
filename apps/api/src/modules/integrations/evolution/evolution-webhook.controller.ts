@@ -97,6 +97,14 @@ export class EvolutionWebhookController {
       normalizedEvent === 'messages.upsert' ||
       isContactMessageRoute ||
       isGroupMessageRoute;
+    const isDeleteEvent =
+      normalizedEvent === 'messages.delete' ||
+      normalizedEvent === 'message.delete' ||
+      this.hasDeletePayload(eventPayload);
+    const isEditEvent =
+      normalizedEvent === 'messages.edit' ||
+      normalizedEvent === 'message.edit' ||
+      this.hasEditPayload(eventPayload);
     const isReceiptEvent =
       normalizedEvent === 'receipt' ||
       normalizedEvent === 'read_receipt' ||
@@ -111,7 +119,17 @@ export class EvolutionWebhookController {
       normalizedEvent.startsWith('call.') ||
       normalizedEvent.startsWith('calls.');
 
-    if (isInboundMessageEvent) {
+    if (isDeleteEvent) {
+      await this.processIncomingMessage.handleDeleteEvent(eventPayload, {
+        instanceId: resolvedInstanceId,
+        connection: resolvedContext,
+      });
+    } else if (isEditEvent) {
+      await this.processIncomingMessage.handleEditEvent(eventPayload, {
+        instanceId: resolvedInstanceId,
+        connection: resolvedContext,
+      });
+    } else if (isInboundMessageEvent) {
       await this.processIncomingMessage.execute(eventPayload, {
         instanceId: resolvedInstanceId,
         connection: resolvedContext,
@@ -224,6 +242,37 @@ export class EvolutionWebhookController {
       status?.includes('reject') ||
       status?.includes('terminate') ||
       status?.includes('accept')
+    );
+  }
+
+  private hasDeletePayload(payload: any): boolean {
+    return Boolean(
+      payload?.targetMessageId ||
+      payload?.TargetMessageID ||
+      payload?.deleted === true ||
+      payload?.isDeleted === true ||
+      payload?.protocolMessage?.key?.id ||
+      payload?.message?.protocolMessage?.key?.id ||
+      payload?.Message?.protocolMessage?.key?.id ||
+      payload?.data?.MessageID ||
+      payload?.data?.targetMessageId ||
+      payload?.data?.TargetMessageID ||
+      payload?.data?.deleted === true ||
+      payload?.data?.isDeleted === true ||
+      payload?.data?.protocolMessage?.key?.id ||
+      payload?.data?.message?.protocolMessage?.key?.id ||
+      payload?.data?.Message?.protocolMessage?.key?.id
+    );
+  }
+
+  private hasEditPayload(payload: any): boolean {
+    return Boolean(
+      payload?.EditTargetID ||
+      payload?.editTargetId ||
+      payload?.message?.editedMessage ||
+      payload?.data?.EditTargetID ||
+      payload?.data?.editTargetId ||
+      payload?.data?.message?.editedMessage
     );
   }
 

@@ -142,7 +142,20 @@ export class ChatwootClient {
           continue;
         }
 
-        return await response.json();
+        if (response.status === 204) {
+          return null;
+        }
+
+        const rawText = await response.text();
+        if (!rawText.trim()) {
+          return null;
+        }
+
+        try {
+          return JSON.parse(rawText);
+        } catch {
+          return rawText;
+        }
       } catch (error: any) {
         const isClientError =
           error?.message &&
@@ -378,6 +391,32 @@ export class ChatwootClient {
       `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages/${messageId}`,
       'PUT',
       { status }
+    );
+  }
+
+  async updateMessageContent(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    messageId: string,
+    content: string,
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages/${messageId}`,
+      'PUT',
+      { content }
+    );
+  }
+
+  async deleteMessage(
+    config: ChatwootConnectionConfig,
+    conversationId: string,
+    messageId: string,
+  ) {
+    return this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations/${conversationId}/messages/${messageId}`,
+      'DELETE',
     );
   }
 
