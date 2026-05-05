@@ -5,6 +5,7 @@ import type { CompanyActionResponse, CompanyRegistryLookupResponse } from "@/fea
 function fallbackLookupErrorMessage(status: number) {
   return status > 0 ? `Falha HTTP ${status} ao consultar CNPJ.` : "Erro ao consultar CNPJ.";
 }
+import { trpc } from "@/lib/api/trpc-client";
 
 export async function lookupCompanyProfileByCnpjClient(
   cnpj: string,
@@ -15,20 +16,8 @@ export async function lookupCompanyProfileByCnpjClient(
   }
 
   try {
-    const response = await fetch(`/api/companies/lookup-cnpj?cnpj=${encodeURIComponent(normalizedCnpj)}`, {
-      method: "GET",
-      cache: "no-store",
-      credentials: "include",
-    });
-
-    try {
-      return (await response.json()) as CompanyActionResponse<CompanyRegistryLookupResponse>;
-    } catch {
-      return {
-        success: false,
-        message: fallbackLookupErrorMessage(response.status),
-      };
-    }
+    const data = await trpc.companies.lookupCompanyProfileByCnpj.query({ cnpj: normalizedCnpj });
+    return data as CompanyActionResponse<CompanyRegistryLookupResponse>;
   } catch {
     return {
       success: false,
