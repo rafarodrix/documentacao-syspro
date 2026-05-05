@@ -276,15 +276,24 @@ export class ProcessOutgoingMessageUseCase {
           filename: mediaPayload.filename || fileName,
         }));
 
-        const sendResult = await this.evolutionClient.sendMedia(
-          linkContext.evolution,
-          phone,
-          mediaPayload.dataUrl,
-          mediaPayload.mimetype || fileType,
-          mediaPayload.filename || fileName,
-          attachmentIndex === 0 ? (content || '') : '',
-          this.buildAttachmentClientMessageId(messageId, attachmentIndex, attachments.length),
-        );
+        const normalizedMimeType = String(mediaPayload.mimetype || fileType || '').toLowerCase();
+        const clientMessageId = this.buildAttachmentClientMessageId(messageId, attachmentIndex, attachments.length);
+        const sendResult = normalizedMimeType === 'image/webp'
+          ? await this.evolutionClient.sendStickerMessage(
+              linkContext.evolution,
+              phone,
+              mediaPayload.dataUrl,
+              clientMessageId,
+            )
+          : await this.evolutionClient.sendMedia(
+              linkContext.evolution,
+              phone,
+              mediaPayload.dataUrl,
+              mediaPayload.mimetype || fileType,
+              mediaPayload.filename || fileName,
+              attachmentIndex === 0 ? (content || '') : '',
+              clientMessageId,
+            );
         await this.reconcileWhatsappNumberIfNeeded(
           link,
           phone,

@@ -125,6 +125,7 @@ export class ProcessIncomingMessageUseCase {
       else if (messagePayload?.imageMessage?.caption) textContent = messagePayload.imageMessage.caption;
       else if (messagePayload?.videoMessage?.caption) textContent = messagePayload.videoMessage.caption;
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
+      else if (messagePayload?.stickerMessage?.caption) textContent = messagePayload.stickerMessage.caption;
       else textContent = '';
 
       if (isGroupChat) {
@@ -143,6 +144,10 @@ export class ProcessIncomingMessageUseCase {
         isMedia = true;
         mimeType = messagePayload.imageMessage.mimetype || 'image/jpeg';
         fileName = 'imagem.jpg';
+      } else if (messagePayload?.stickerMessage) {
+        isMedia = true;
+        mimeType = messagePayload.stickerMessage.mimetype || 'image/webp';
+        fileName = 'figurinha.webp';
       } else if (messagePayload?.videoMessage) {
         isMedia = true;
         mimeType = messagePayload.videoMessage.mimetype || 'video/mp4';
@@ -304,6 +309,7 @@ export class ProcessIncomingMessageUseCase {
       messagePayload?.base64,
       rawMessage?.base64,
       messagePayload?.imageMessage?.base64,
+      messagePayload?.stickerMessage?.base64,
       messagePayload?.videoMessage?.base64,
       messagePayload?.documentMessage?.base64,
       messagePayload?.audioMessage?.base64,
@@ -325,6 +331,8 @@ export class ProcessIncomingMessageUseCase {
 
     const urlCandidates = [
       messagePayload?.imageMessage?.url,
+      messagePayload?.stickerMessage?.url,
+      messagePayload?.stickerMessage?.URL,
       messagePayload?.videoMessage?.url,
       messagePayload?.documentMessage?.url,
       messagePayload?.audioMessage?.url,

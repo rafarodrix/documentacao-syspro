@@ -372,6 +372,126 @@ export class EvolutionClient {
     throw lastError ?? new Error('Evolution send failed via /send/media: no candidates available.');
   }
 
+  async sendStickerMessage(
+    config: EvolutionConnectionConfig,
+    number: string,
+    stickerUrlOrBase64: string,
+    clientMessageId?: string,
+  ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
+    if (!config.apiUrl || !config.apiKey) {
+      console.warn('[EvolutionClient] Credenciais ausentes. Envio de figurinha ignorado.');
+      return {};
+    }
+
+    const normalizedNumbers = this.buildOutboundNumberCandidates(number);
+    const instance = this.resolveInstance(config.instance);
+    const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    const requestStartedAt = Date.now();
+    const sharedHeaders = this.buildAuthHeaders(config.apiKey);
+    const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
+    const requestMessageId = this.buildRequestMessageId(clientMessageId);
+    const normalizedSticker = this.normalizeMediaInput(stickerUrlOrBase64);
+
+    let lastError: EvolutionOutboundError | null = null;
+
+    for (let index = 0; index < normalizedNumbers.length; index += 1) {
+      const attemptNumber = normalizedNumbers[index];
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_request_sticker',
+        providerFlavor: 'evolution_go',
+        route: '/send/sticker',
+        authHeaderMode,
+        requestMessageId,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: attemptNumber,
+        mediaInputKind: normalizedSticker.kind,
+        mediaLength: normalizedSticker.value.length,
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
+      }));
+
+      const response = await fetch(`${baseUrl}/send/sticker`, {
+        method: 'POST',
+        headers: sharedHeaders,
+        body: JSON.stringify({
+          id: requestMessageId,
+          number: attemptNumber,
+          sticker: normalizedSticker.value,
+          delay: 1200,
+        }),
+      });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const messageId = this.extractMessageId(payload);
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_response_sticker',
+          providerFlavor: 'evolution_go',
+          route: '/send/sticker',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          providerMessageId: messageId ?? null,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+          durationMs: Date.now() - requestStartedAt,
+        }));
+        return { messageId, resolvedWhatsappNumber: attemptNumber };
+      }
+
+      const responseError = await response.text().catch(() => 'unknown_error');
+      const outboundError = this.buildOutboundError(response.status, responseError, '/send/sticker');
+      lastError = outboundError;
+      const hasFallbackCandidate = index < normalizedNumbers.length - 1;
+
+      if (outboundError.code === 'WHATSAPP_NUMBER_NOT_REGISTERED' && hasFallbackCandidate) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_retry_sticker_with_legacy_brazilian_variant',
+          providerFlavor: 'evolution_go',
+          route: '/send/sticker',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          fallbackWhatsappNumber: normalizedNumbers[index + 1],
+          status: response.status,
+          error: responseError,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+        }));
+        continue;
+      }
+
+      this.logger.error(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_error_sticker',
+        providerFlavor: 'evolution_go',
+        route: '/send/sticker',
+        authHeaderMode,
+        requestMessageId,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: attemptNumber,
+        status: response.status,
+        error: responseError,
+        diagnostics: this.buildProviderDiagnostics(response.status),
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
+        durationMs: Date.now() - requestStartedAt,
+      }));
+      throw outboundError;
+    }
+
+    throw lastError ?? new Error('Evolution send failed via /send/sticker: no candidates available.');
+  }
+
   async deleteMessageForEveryone(
     config: EvolutionConnectionConfig,
     input: {
@@ -721,7 +841,7 @@ export class EvolutionClient {
   private buildOutboundError(
     status: number,
     providerBody: string,
-    route: '/send/text' | '/send/media',
+    route: '/send/text' | '/send/media' | '/send/sticker',
   ): EvolutionOutboundError {
     const normalizedBody = String(providerBody ?? '').toLowerCase();
 
