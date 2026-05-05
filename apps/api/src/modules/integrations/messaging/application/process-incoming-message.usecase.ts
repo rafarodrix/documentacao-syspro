@@ -1461,10 +1461,6 @@ export class ProcessIncomingMessageUseCase {
     phone: string,
     settings: ChatwootBehaviorSettings,
   ) {
-    if (settings.resolvedCustomerReplyAction !== 'new_conversation') {
-      return link;
-    }
-
     if (!link?.chatwootConversationId || !link?.chatwootContactId) {
       return link;
     }
@@ -1475,7 +1471,27 @@ export class ProcessIncomingMessageUseCase {
         String(link.chatwootConversationId),
       );
       const status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
-      if (status !== 'resolved' && status !== 'archived') {
+      const customAttributes = this.readConversationCustomAttributesFromPayload(conversation);
+      const hasPendingCsat =
+        (status === 'resolved' || status === 'archived') &&
+        this.readBoolean(customAttributes.csat_pending);
+      const shouldRotatePendingConversation =
+        status === 'pending' &&
+        this.shouldCreateNewConversationForCompletedCsat(customAttributes);
+
+      if (hasPendingCsat) {
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: 'resolved_conversation_kept_for_pending_csat',
+          connectionKey: connection.connectionKey,
+          whatsappNumber: phone,
+          chatwootConversationId: link.chatwootConversationId,
+          previousStatus: status ?? null,
+        }));
+        return link;
+      }
+
+      if (status !== 'resolved' && status !== 'archived' && !shouldRotatePendingConversation) {
         return link;
       }
 
@@ -1502,9 +1518,12 @@ export class ProcessIncomingMessageUseCase {
 
       this.logger.log(JSON.stringify({
         flow: 'evolution_to_chatwoot',
-        stage: 'resolved_conversation_replaced_before_inbound',
+        stage: shouldRotatePendingConversation
+          ? 'completed_csat_pending_conversation_replaced_before_inbound'
+          : 'resolved_conversation_replaced_before_inbound',
         connectionKey: connection.connectionKey,
         whatsappNumber: phone,
+        previousStatus: status ?? null,
         previousConversationId: link.chatwootConversationId,
         nextConversationId: newConversationId,
       }));
@@ -1530,6 +1549,43 @@ export class ProcessIncomingMessageUseCase {
     return normalized;
   }
 
+  private shouldCreateNewConversationForCompletedCsat(
+    customAttributes: Record<string, unknown>,
+  ): boolean {
+    if (this.readBoolean(customAttributes.csat_pending)) {
+      return false;
+    }
+
+    if (customAttributes.csat_responded_at) {
+      return true;
+    }
+
+    const csatStatus = String(customAttributes.csat_status ?? '').trim().toLowerCase();
+    return csatStatus === 'recorded' || csatStatus === 'low_score' || csatStatus === 'skipped_no_score';
+  }
+
+  private readConversationCustomAttributesFromPayload(payload: any): Record<string, unknown> {
+    const value =
+      payload?.conversation?.custom_attributes ??
+      payload?.custom_attributes ??
+      payload?.meta?.custom_attributes ??
+      payload?.payload?.custom_attributes;
+
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? { ...(value as Record<string, unknown>) }
+      : {};
+  }
+
+  private readBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === 'true' || normalized === '1' || normalized === 'yes';
+    }
+    return false;
+  }
+
   private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
     const setting = await this.prisma.systemSetting.findUnique({
       where: { key: ProcessIncomingMessageUseCase.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
@@ -1542,7 +1598,10 @@ export class ProcessIncomingMessageUseCase {
 
     try {
       const parsed = JSON.parse(setting.value);
-      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
+      const validation = chatwootBehaviorSettingsSchema.safeParse({
+        ...parsed,
+        resolvedCustomerReplyAction: 'new_conversation',
+      });
       return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
     } catch {
       return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;

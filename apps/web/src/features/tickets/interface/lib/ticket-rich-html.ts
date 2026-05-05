@@ -42,20 +42,8 @@ const TICKET_TAG_ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
   img: new Set(["src", "alt", "title"]),
 };
 
-type SanitizeRenderedTicketHtmlOptions = {
-  preserveInternalClasses?: boolean;
-};
-
-export function sanitizeTicketEditorHtml(html: string) {
-  return html
-    .replace(/\sstyle="[^"]*"/gi, "")
-    .replace(/\sclass="[^"]*"/gi, "")
-    .replace(/\sdata-[a-z0-9-]+="[^"]*"/gi, "");
-}
-
 export function sanitizeTicketRenderedHtml(
   html: string,
-  options: SanitizeRenderedTicketHtmlOptions = {},
 ) {
   if (!html.trim() || typeof window === "undefined") return html;
 
@@ -81,11 +69,6 @@ export function sanitizeTicketRenderedHtml(
         ...(TICKET_TAG_ALLOWED_ATTRIBUTES[tagName] ?? new Set<string>()),
       ]);
 
-      const allowInternalResourceClasses =
-        options.preserveInternalClasses === true &&
-        element.closest(".ticket-detail-internal-html") !== null &&
-        (tagName === "div" || tagName === "p" || tagName === "a");
-
       for (const attribute of Array.from(element.attributes)) {
         const attributeName = attribute.name.toLowerCase();
         const attributeValue = attribute.value.trim();
@@ -96,9 +79,7 @@ export function sanitizeTicketRenderedHtml(
         }
 
         if (attributeName === "class") {
-          if (!allowInternalResourceClasses) {
-            element.removeAttribute(attribute.name);
-          }
+          element.removeAttribute(attribute.name);
           continue;
         }
 

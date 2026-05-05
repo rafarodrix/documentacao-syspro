@@ -56,6 +56,7 @@ import {
   useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
+import { markdownToPlainText, normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
 
 type CustomerEmailOption = {
   companyId: string;
@@ -89,10 +90,6 @@ interface CreateTicketPageFormProps {
 
 type TicketTeam = "SUPORTE" | "DESENVOLVIMENTO";
 
-function stripHtml(value: string) {
-  return value.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").trim();
-}
-
 function getTeamLabel(settings: TicketModuleSettings, team: string) {
   return settings.teams.find((item) => item.value === team)?.label || (team === "DESENVOLVIMENTO" ? "Desenvolvimento" : "Suporte");
 }
@@ -124,7 +121,9 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
   const [customerOptionsError, setCustomerOptionsError] = useState<string | null>(null);
   const [clientCompanies, setClientCompanies] = useState<CompanyOption[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState(initialContext?.companyId?.trim() || "");
-  const [descriptionHtml, setDescriptionHtml] = useState(initialContext?.description?.trim() || "");
+  const [descriptionMarkdown, setDescriptionMarkdown] = useState(
+    normalizeTicketMarkdownInput(initialContext?.description?.trim() || ""),
+  );
   const ticketSettings = useTicketModuleSettings();
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
@@ -143,7 +142,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
   });
 
   const watchedSubject = form.watch("subject");
-  const descriptionText = stripHtml(descriptionHtml);
+  const descriptionText = markdownToPlainText(descriptionMarkdown);
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
 
   const filteredCategories = useMemo(
@@ -338,7 +337,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
       try {
         const formData = new FormData();
         formData.append("subject", data.subject);
-        formData.append("description", descriptionHtml || data.description);
+        formData.append("description", descriptionMarkdown || data.description);
         formData.append("priority", data.priority);
         formData.append("type", data.type);
 
@@ -541,8 +540,8 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                     <Label>Descricao detalhada</Label>
                   </div>
                   <TicketRichTextEditor
-                    value={descriptionHtml}
-                    onChange={setDescriptionHtml}
+                    value={descriptionMarkdown}
+                    onChange={setDescriptionMarkdown}
                     placeholder="Informe o passo a passo, resultado esperado, mensagens de erro, ambiente e usuarios afetados."
                     className="ticket-create-editor"
                     minHeightClassName="min-h-80"
@@ -552,7 +551,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                   ) : (
                     <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <AlertCircle className="h-3.5 w-3.5" />
-                      Minimo de 20 caracteres. Evite dados sensiveis quando anexar evidencias.
+                      Minimo de 20 caracteres. Markdown suportado para listas, codigo e links.
                     </p>
                   )}
                   <TicketAttachmentField

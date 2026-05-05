@@ -1,25 +1,17 @@
 "use client";
 
-import { useEffect, type ComponentProps, type MouseEvent } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
+import { useRef, type ComponentProps, type MouseEvent } from "react";
 import {
-  ArrowLeft,
-  ArrowRight,
   Bold,
   Code2,
+  Heading2,
+  Heading3,
   Italic,
   Link2,
   List,
   ListOrdered,
-  Pilcrow,
   Quote,
   RemoveFormatting,
-  Strikethrough,
-  Underline as UnderlineIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,21 +23,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { sanitizeTicketEditorHtml } from "@/features/tickets/interface/lib/ticket-rich-html";
+import { markdownToPlainText, normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
 import { cn } from "@/lib/utils";
 
 type TicketRichTextEditorTemplate = {
   id: string;
   label: string;
-  html: string;
+  value: string;
 };
 
 type TicketRichTextEditorProps = {
@@ -63,17 +49,41 @@ const DEFAULT_TEMPLATES: TicketRichTextEditorTemplate[] = [
   {
     id: "reproducao",
     label: "Passos para reproduzir",
-    html: "<h2>Passos para reproduzir</h2><ol><li></li><li></li><li></li></ol><h3>Resultado atual</h3><p></p><h3>Resultado esperado</h3><p></p>",
+    value: [
+      "## Passos para reproduzir",
+      "1. ",
+      "2. ",
+      "3. ",
+      "",
+      "### Resultado atual",
+      "",
+      "### Resultado esperado",
+    ].join("\n"),
   },
   {
     id: "impacto",
     label: "Impacto e urgencia",
-    html: "<h2>Impacto</h2><ul><li>Usuarios afetados:</li><li>Processo afetado:</li><li>Frequencia:</li></ul><h3>Urgencia operacional</h3><p></p>",
+    value: [
+      "## Impacto",
+      "- Usuarios afetados:",
+      "- Processo afetado:",
+      "- Frequencia:",
+      "",
+      "### Urgencia operacional",
+    ].join("\n"),
   },
   {
     id: "analise",
     label: "Contexto tecnico",
-    html: "<h2>Contexto tecnico</h2><ul><li>Base/ambiente:</li><li>Modulo:</li><li>Versao:</li><li>Mensagem de erro:</li></ul><h3>Evidencias</h3><p></p>",
+    value: [
+      "## Contexto tecnico",
+      "- Base/ambiente:",
+      "- Modulo:",
+      "- Versao:",
+      "- Mensagem de erro:",
+      "",
+      "### Evidencias",
+    ].join("\n"),
   },
 ];
 
@@ -87,138 +97,179 @@ export function TicketRichTextEditor({
   showTemplates = true,
   compact = false,
 }: TicketRichTextEditorProps) {
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [2, 3] },
-      }),
-      Underline,
-      Link.configure({
-        autolink: true,
-        linkOnPaste: true,
-        openOnClick: false,
-      }),
-      Placeholder.configure({
-        placeholder,
-      }),
-    ],
-    content: value,
-    editorProps: {
-      transformPastedHTML: sanitizeTicketEditorHtml,
-      transformPastedText: (text) => text.replace(/\r\n/g, "\n").replace(/\u00a0/g, " "),
-      attributes: {
-        class: cn(
-          "ticket-rich-text-editor__content prose prose-sm max-w-none px-4 py-3 text-foreground outline-none",
-          "prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground",
-          "prose-code:text-foreground prose-pre:bg-muted/70 prose-pre:text-foreground",
-          "prose-blockquote:border-l-primary/40 prose-blockquote:text-muted-foreground",
-          minHeightClassName,
-        ),
-      },
-    },
-    onUpdate: ({ editor: currentEditor }) => {
-      onChange(sanitizeTicketEditorHtml(currentEditor.getHTML()));
-    },
-  });
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => {
-    if (!editor) return;
-    const currentHtml = editor.getHTML();
-
-    if (value !== currentHtml) {
-      editor.commands.setContent(value || "", false);
-    }
-  }, [editor, value]);
-
-  if (!editor) {
-    return <div className={cn("rounded-xl border border-border/60 bg-muted/20", minHeightClassName, className)} />;
-  }
-
-  const activeEditor = editor;
-  const preserveEditorSelection = (event: MouseEvent<HTMLElement>) => {
+  function preserveSelection(event: MouseEvent<HTMLElement>) {
     event.preventDefault();
-  };
+  }
 
-  const currentBlockType = editor.isActive("heading", { level: 2 })
-    ? "heading-2"
-    : editor.isActive("heading", { level: 3 })
-      ? "heading-3"
-      : "paragraph";
+  function updateSelection(
+    transform: (context: {
+      currentValue: string;
+      selectedValue: string;
+      selectionStart: number;
+      selectionEnd: number;
+    }) => {
+      nextValue: string;
+      nextSelectionStart: number;
+      nextSelectionEnd: number;
+    },
+  ) {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-  function applyBlockType(value: string) {
-    const chain = activeEditor.chain().focus();
-    const { from, to, empty } = activeEditor.state.selection;
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const selectedValue = value.slice(selectionStart, selectionEnd);
+    const result = transform({
+      currentValue: value,
+      selectedValue,
+      selectionStart,
+      selectionEnd,
+    });
 
-    if (value === "heading-2") {
-      if (!empty) {
-        convertSelectionToHeading(2, from, to);
-        return;
+    onChange(result.nextValue);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(result.nextSelectionStart, result.nextSelectionEnd);
+    });
+  }
+
+  function wrapSelection(prefix: string, suffix = prefix, placeholderText = "texto") {
+    updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
+      const content = selectedValue || placeholderText;
+      const replacement = `${prefix}${content}${suffix}`;
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        replacement +
+        currentValue.slice(selectionEnd);
+      const contentStart = selectionStart + prefix.length;
+      const contentEnd = contentStart + content.length;
+
+      return {
+        nextValue,
+        nextSelectionStart: contentStart,
+        nextSelectionEnd: contentEnd,
+      };
+    });
+  }
+
+  function toggleLinePrefix(prefix: string, placeholderText: string) {
+    updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
+      const selected = selectedValue || placeholderText;
+      const lines = selected.split("\n");
+      const shouldRemove = lines.every((line) => line.startsWith(prefix));
+      const replacement = lines
+        .map((line) => {
+          if (shouldRemove) {
+            return line.startsWith(prefix) ? line.slice(prefix.length) : line;
+          }
+          return line ? `${prefix}${line}` : prefix.trimEnd();
+        })
+        .join("\n");
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        replacement +
+        currentValue.slice(selectionEnd);
+      return {
+        nextValue,
+        nextSelectionStart: selectionStart,
+        nextSelectionEnd: selectionStart + replacement.length,
+      };
+    });
+  }
+
+  function setHeading(level: 2 | 3) {
+    const prefix = `${"#".repeat(level)} `;
+    updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
+      const selected = selectedValue || "Titulo";
+      const lines = selected.split("\n");
+      const replacement = lines
+        .map((line) => {
+          const withoutHeading = line.replace(/^#{1,6}\s+/, "");
+          return withoutHeading ? `${prefix}${withoutHeading}` : prefix.trimEnd();
+        })
+        .join("\n");
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        replacement +
+        currentValue.slice(selectionEnd);
+      return {
+        nextValue,
+        nextSelectionStart: selectionStart,
+        nextSelectionEnd: selectionStart + replacement.length,
+      };
+    });
+  }
+
+  function clearFormatting() {
+    updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
+      const source = selectedValue || currentValue;
+      const cleaned = markdownToPlainText(source);
+
+      if (selectedValue) {
+        const nextValue =
+          currentValue.slice(0, selectionStart) +
+          cleaned +
+          currentValue.slice(selectionEnd);
+        return {
+          nextValue,
+          nextSelectionStart: selectionStart,
+          nextSelectionEnd: selectionStart + cleaned.length,
+        };
       }
-      chain.toggleHeading({ level: 2 }).run();
-      return;
-    }
 
-    if (value === "heading-3") {
-      if (!empty) {
-        convertSelectionToHeading(3, from, to);
-        return;
-      }
-      chain.toggleHeading({ level: 3 }).run();
-      return;
-    }
-
-    chain.setParagraph().run();
+      return {
+        nextValue: cleaned,
+        nextSelectionStart: cleaned.length,
+        nextSelectionEnd: cleaned.length,
+      };
+    });
   }
 
-  function convertSelectionToHeading(level: 2 | 3, from: number, to: number) {
-    const selectedText = activeEditor.state.doc.textBetween(from, to, "\n").trim();
-
-    if (!selectedText) {
-      activeEditor.chain().focus().toggleHeading({ level }).run();
-      return;
-    }
-
-    const headingBlocks = selectedText
-      .split(/\n+/)
-      .map((block) => block.trim())
-      .filter(Boolean)
-      .map((block) => ({
-        type: "heading" as const,
-        attrs: { level },
-        content: [{ type: "text" as const, text: block }],
-      }));
-
-    if (!headingBlocks.length) {
-      activeEditor.chain().focus().toggleHeading({ level }).run();
-      return;
-    }
-
-    activeEditor
-      .chain()
-      .focus()
-      .insertContentAt({ from, to }, headingBlocks)
-      .run();
+  function insertCodeBlock() {
+    updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
+      const content = selectedValue || "codigo";
+      const replacement = `\`\`\`\n${content}\n\`\`\``;
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        replacement +
+        currentValue.slice(selectionEnd);
+      const contentStart = selectionStart + 4;
+      const contentEnd = contentStart + content.length;
+      return {
+        nextValue,
+        nextSelectionStart: contentStart,
+        nextSelectionEnd: contentEnd,
+      };
+    });
   }
 
-  function insertTemplate(templateHtml: string) {
-    activeEditor.chain().focus().insertContent(templateHtml).run();
+  function insertTemplate(templateValue: string) {
+    updateSelection(({ currentValue, selectionStart, selectionEnd }) => {
+      const trimmedCurrent = currentValue.trimEnd();
+      const prefix = trimmedCurrent ? "\n\n" : "";
+      const normalizedTemplate = normalizeTicketMarkdownInput(templateValue).trim();
+      const replacement = `${prefix}${normalizedTemplate}`;
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        replacement +
+        currentValue.slice(selectionEnd);
+      const cursor = selectionStart + replacement.length;
+      return {
+        nextValue,
+        nextSelectionStart: cursor,
+        nextSelectionEnd: cursor,
+      };
+    });
   }
 
-  function toggleLink() {
-    const previousUrl = activeEditor.getAttributes("link").href as string | undefined;
-    const nextUrl = window.prompt("Informe a URL do link", previousUrl || "https://");
-
-    if (nextUrl === null) return;
-
-    const trimmedUrl = nextUrl.trim();
-
-    if (!trimmedUrl) {
-      activeEditor.chain().focus().unsetLink().run();
-      return;
-    }
-
-    activeEditor.chain().focus().extendMarkRange("link").setLink({ href: trimmedUrl }).run();
+  function insertLink() {
+    const url = window.prompt("Informe a URL do link", "https://");
+    if (url === null) return;
+    const normalizedUrl = url.trim();
+    if (!normalizedUrl) return;
+    wrapSelection("[", `](${normalizedUrl})`, "link");
   }
 
   const toolbarButtonClassName =
@@ -227,128 +278,91 @@ export function TicketRichTextEditor({
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border/60 bg-background shadow-sm", className)}>
       <div className={cn("flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/25 px-3 py-2", compact && "gap-1.5 px-2.5 py-2")}>
-        <div className="min-w-[7.5rem]">
-          <Select value={currentBlockType} onValueChange={applyBlockType}>
-            <SelectTrigger
-              className="h-8 w-[7.5rem] border-border/60 bg-background px-2.5 text-xs"
-              onMouseDown={(event) => event.preventDefault()}
-            >
-              <div className="flex items-center gap-2">
-                <Pilcrow className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="paragraph">Normal</SelectItem>
-              <SelectItem value="heading-2">Titulo</SelectItem>
-              <SelectItem value="heading-3">Subtitulo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
         <ToolbarButton
-          label="Desfazer"
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().chain().focus().undo().run()}
+          label="Titulo"
+          onMouseDown={preserveSelection}
+          onClick={() => setHeading(2)}
           className={toolbarButtonClassName}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <Heading2 className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
-          label="Refazer"
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().chain().focus().redo().run()}
+          label="Subtitulo"
+          onMouseDown={preserveSelection}
+          onClick={() => setHeading(3)}
           className={toolbarButtonClassName}
         >
-          <ArrowRight className="h-4 w-4" />
+          <Heading3 className="h-4 w-4" />
         </ToolbarButton>
         <div className="mx-1 h-5 w-px bg-border/60" />
         <ToolbarButton
           label="Negrito"
-          active={editor.isActive("bold")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleBold().run()}
+          onMouseDown={preserveSelection}
+          onClick={() => wrapSelection("**", "**")}
           className={toolbarButtonClassName}
         >
           <Bold className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           label="Italico"
-          active={editor.isActive("italic")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
+          onMouseDown={preserveSelection}
+          onClick={() => wrapSelection("_", "_")}
           className={toolbarButtonClassName}
         >
           <Italic className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
-          label="Sublinhado"
-          active={editor.isActive("underline")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={toolbarButtonClassName}
-        >
-          <UnderlineIcon className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Tachado"
-          active={editor.isActive("strike")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={toolbarButtonClassName}
-        >
-          <Strikethrough className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
           label="Lista"
-          active={editor.isActive("bulletList")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onMouseDown={preserveSelection}
+          onClick={() => toggleLinePrefix("- ", "Item da lista")}
           className={toolbarButtonClassName}
         >
           <List className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           label="Lista numerada"
-          active={editor.isActive("orderedList")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onMouseDown={preserveSelection}
+          onClick={() => toggleLinePrefix("1. ", "Item numerado")}
           className={toolbarButtonClassName}
         >
           <ListOrdered className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           label="Citacao"
-          active={editor.isActive("blockquote")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          onMouseDown={preserveSelection}
+          onClick={() => toggleLinePrefix("> ", "Observacao importante")}
           className={toolbarButtonClassName}
         >
           <Quote className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
+          label="Codigo inline"
+          onMouseDown={preserveSelection}
+          onClick={() => wrapSelection("`", "`", "codigo")}
+          className={toolbarButtonClassName}
+        >
+          <Code2 className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton
           label="Bloco de codigo"
-          active={editor.isActive("codeBlock")}
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onMouseDown={preserveSelection}
+          onClick={insertCodeBlock}
           className={toolbarButtonClassName}
         >
           <Code2 className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           label="Link"
-          active={editor.isActive("link")}
-          onMouseDown={preserveEditorSelection}
-          onClick={toggleLink}
+          onMouseDown={preserveSelection}
+          onClick={insertLink}
           className={toolbarButtonClassName}
         >
           <Link2 className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           label="Limpar formatacao"
-          onMouseDown={preserveEditorSelection}
-          onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+          onMouseDown={preserveSelection}
+          onClick={clearFormatting}
           className={toolbarButtonClassName}
         >
           <RemoveFormatting className="h-4 w-4" />
@@ -363,7 +377,7 @@ export function TicketRichTextEditor({
                   variant="outline"
                   size="sm"
                   className="h-8 rounded-md border-border/60 text-xs"
-                  onMouseDown={preserveEditorSelection}
+                  onMouseDown={preserveSelection}
                 >
                   Templates
                 </Button>
@@ -372,7 +386,7 @@ export function TicketRichTextEditor({
                 <DropdownMenuLabel className="text-xs">Blocos sugeridos</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {templates.map((template) => (
-                  <DropdownMenuItem key={template.id} className="text-xs" onClick={() => insertTemplate(template.html)}>
+                  <DropdownMenuItem key={template.id} className="text-xs" onClick={() => insertTemplate(template.value)}>
                     {template.label}
                   </DropdownMenuItem>
                 ))}
@@ -380,12 +394,22 @@ export function TicketRichTextEditor({
             </DropdownMenu>
           ) : null}
           <span className="text-[11px] text-muted-foreground">
-            {editor.getText().trim().length} caracteres
+            {markdownToPlainText(value).length} caracteres
           </span>
         </div>
       </div>
 
-      <EditorContent editor={editor} className="bg-background" />
+      <Textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className={cn(
+          "resize-y rounded-none border-0 px-4 py-3 font-mono text-sm leading-6 shadow-none focus-visible:ring-0",
+          "bg-background text-foreground placeholder:text-muted-foreground",
+          minHeightClassName,
+        )}
+      />
     </div>
   );
 }
@@ -393,12 +417,10 @@ export function TicketRichTextEditor({
 function ToolbarButton({
   label,
   children,
-  active,
   className,
   ...props
 }: ComponentProps<typeof Button> & {
   label: string;
-  active?: boolean;
 }) {
   return (
     <Tooltip>
@@ -408,7 +430,6 @@ function ToolbarButton({
           variant="ghost"
           size="sm"
           className={className}
-          data-active={active}
           {...props}
         >
           {children}

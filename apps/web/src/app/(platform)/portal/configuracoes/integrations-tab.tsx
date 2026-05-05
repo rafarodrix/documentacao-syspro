@@ -154,9 +154,10 @@ function ChatwootDiagnosticsTab() {
     return `${baseOrigin}/portal/infraestrutura/hosts/{{conversation.custom_attributes.host_id}}?ticketNumber={{conversation.custom_attributes.ticket_number}}`;
   }, [portalOrigin]);
   const csatCanReopen = behavior.csatEnabled && behavior.csatReopenOnLowScore;
-  const canConfigureReopenStatuses = behavior.reopenConversationOnCustomerReply;
   const csatRequestLength = behavior.csatRequestMessage.trim().length;
   const csatThankYouLength = behavior.csatThankYouMessage.trim().length;
+  const csatInvalidReplyRetryLength = behavior.csatInvalidReplyRetryMessage.trim().length;
+  const csatInvalidReplyFinalLength = behavior.csatInvalidReplyFinalMessage.trim().length;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -355,39 +356,24 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="reopenConversationOnCustomerReply"
                     label="Reabrir quando o cliente responder"
-                    description="Chave mestre da reabertura automatica. Os status abaixo definem em quais estados a conversa pode voltar para open."
+                    description="Chave mestre da reabertura automatica para conversas em pending ou snoozed. Conversas resolved ou archived sempre iniciam um novo atendimento."
                     checked={behavior.reopenConversationOnCustomerReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
                     }
                   />
-                  <div className={`flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4 ${!canConfigureReopenStatuses ? "opacity-60" : ""}`}>
+                  <div className="flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4">
                     <div className="min-w-0 space-y-1">
-                      <Label htmlFor="resolvedCustomerReplyAction" className={`text-sm font-medium ${!canConfigureReopenStatuses ? "cursor-not-allowed" : "cursor-pointer"}`}>
+                      <Label className="text-sm font-medium">
                         Politica para conversa resolvida
                       </Label>
                       <span className="block break-words text-sm text-muted-foreground">
-                        Define se uma nova mensagem do cliente em conversa resolved/archived reabre a conversa atual ou força a criacao de uma nova.
+                        O comportamento legado de reabrir a conversa atual foi removido. Mensagens novas em conversas resolved ou archived sempre abrem uma nova conversa.
                       </span>
                     </div>
-                    <Select
-                      value={behavior.resolvedCustomerReplyAction}
-                      onValueChange={(value) =>
-                        setBehavior((prev) => ({
-                          ...prev,
-                          resolvedCustomerReplyAction: value as ChatwootBehaviorSettings["resolvedCustomerReplyAction"],
-                        }))
-                      }
-                      disabled={!canConfigureReopenStatuses}
-                    >
-                      <SelectTrigger id="resolvedCustomerReplyAction">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="reopen">Reabrir conversa atual</SelectItem>
-                        <SelectItem value="new_conversation">Abrir nova conversa</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground">
+                      Abrir nova conversa
+                    </div>
                   </div>
                   <BehaviorToggle
                     id="reopenSnoozedConversationOnCustomerReply"
@@ -397,7 +383,7 @@ function ChatwootDiagnosticsTab() {
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenSnoozedConversationOnCustomerReply: checked }))
                     }
-                    disabled={!canConfigureReopenStatuses}
+                    disabled={!behavior.reopenConversationOnCustomerReply}
                   />
                   <BehaviorToggle
                     id="reopenPendingConversationOnCustomerReply"
@@ -407,7 +393,7 @@ function ChatwootDiagnosticsTab() {
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenPendingConversationOnCustomerReply: checked }))
                     }
-                    disabled={!canConfigureReopenStatuses}
+                    disabled={!behavior.reopenConversationOnCustomerReply}
                   />
                   <BehaviorToggle
                     id="releaseConversationLinkOnResolved"
@@ -577,6 +563,27 @@ function ChatwootDiagnosticsTab() {
                       />
                       <p className="text-xs text-muted-foreground">Registrado no estado do Chatwoot para uso do fluxo operacional e timeout assistido.</p>
                     </div>
+
+                    <div className="min-w-0 space-y-2">
+                      <Label htmlFor="csatInvalidReplyMaxAttempts">Tentativas de resposta invalida</Label>
+                      <Input
+                        id="csatInvalidReplyMaxAttempts"
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={behavior.csatInvalidReplyMaxAttempts}
+                        disabled={!behavior.csatEnabled}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({
+                            ...prev,
+                            csatInvalidReplyMaxAttempts: Number(event.target.value || prev.csatInvalidReplyMaxAttempts),
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Quantas vezes o cliente pode responder fora da faixa de 1 a 5 antes do sistema encerrar a avaliacao e forcar um novo atendimento.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="grid min-w-0 gap-4 md:grid-cols-2">
@@ -649,6 +656,74 @@ function ChatwootDiagnosticsTab() {
                           : "Ative a automacao acima para enviar essa confirmacao final."}
                       </p>
                     </div>
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="csatInvalidReplyRetryMessage">Mensagem para resposta invalida</Label>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span>{csatInvalidReplyRetryLength}/1000</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() =>
+                              setBehavior((prev) => ({
+                                ...prev,
+                                csatInvalidReplyRetryMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatInvalidReplyRetryMessage,
+                              }))
+                            }
+                          >
+                            Restaurar
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        id="csatInvalidReplyRetryMessage"
+                        className="min-h-32"
+                        value={behavior.csatInvalidReplyRetryMessage}
+                        disabled={!behavior.csatEnabled}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({ ...prev, csatInvalidReplyRetryMessage: event.target.value }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enviada quando o cliente responde algo diferente de uma nota valida. O contador de tentativa e acrescentado pelo backend.
+                      </p>
+                    </div>
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="csatInvalidReplyFinalMessage">Mensagem ao encerrar a avaliacao</Label>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span>{csatInvalidReplyFinalLength}/1000</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={() =>
+                              setBehavior((prev) => ({
+                                ...prev,
+                                csatInvalidReplyFinalMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatInvalidReplyFinalMessage,
+                              }))
+                            }
+                          >
+                            Restaurar
+                          </Button>
+                        </div>
+                      </div>
+                      <Textarea
+                        id="csatInvalidReplyFinalMessage"
+                        className="min-h-32"
+                        value={behavior.csatInvalidReplyFinalMessage}
+                        disabled={!behavior.csatEnabled}
+                        onChange={(event) =>
+                          setBehavior((prev) => ({ ...prev, csatInvalidReplyFinalMessage: event.target.value }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enviada quando o limite de respostas invalidas e atingido e a proxima mensagem do cliente passara a abrir um novo atendimento.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
@@ -661,8 +736,10 @@ function ChatwootDiagnosticsTab() {
                       {behavior.csatTriggerStatus === "resolved_only" ? " (apenas status resolved)" : " (status resolved ou archived)"}
                       {" -> "}enviar CSAT
                       {" -> "}aguardar resposta por ate {behavior.csatPendingTimeoutHours}h
+                      {" -> "}cobrar nota invalida ate {behavior.csatInvalidReplyMaxAttempts}x
                       {behavior.sendCsatThankYouMessage ? " -> confirmar recebimento da nota" : ""}
                       {csatCanReopen ? ` -> reabrir se nota <= ${behavior.csatLowScoreThreshold}` : ""}
+                      {" -> "}nova conversa apos esgotar tentativas
                     </span>
                   </div>
 

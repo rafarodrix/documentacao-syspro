@@ -28,6 +28,7 @@ import { TicketAttachmentField } from "@/features/tickets/interface/components/t
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
+import { normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
 import { cn } from "@/lib/utils";
 
 interface TicketDialogProps {
@@ -93,8 +94,8 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setSelectedModule,
     selectedTeam,
     setSelectedTeam,
-    descriptionHtml,
-    setDescriptionHtml,
+    descriptionMarkdown,
+    setDescriptionMarkdown,
     databaseUrl,
     setDatabaseUrl,
     developmentVideoUrl,
@@ -156,7 +157,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
       type: form.getValues("type"),
       priority: priority || form.getValues("priority"),
     });
-    setDescriptionHtml(description);
+    setDescriptionMarkdown(normalizeTicketMarkdownInput(description));
 
     if (customerEmailParam) {
       setCustomerEmail(customerEmailParam.trim().toLowerCase());
@@ -173,7 +174,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     });
     setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, searchParams, setCustomerCompany, setCustomerEmail, setDescriptionHtml]);
+  }, [form, searchParams, setCustomerCompany, setCustomerEmail, setDescriptionMarkdown]);
 
   const source = searchParams?.get("source") || "";
   const chatwootConversationId = searchParams?.get("chatwootConversationId") || "";
@@ -303,8 +304,8 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                         </FormLabel>
                         <FormControl>
                           <TicketRichTextEditor
-                            value={descriptionHtml}
-                            onChange={setDescriptionHtml}
+                            value={descriptionMarkdown}
+                            onChange={setDescriptionMarkdown}
                             placeholder="Descreva o passo a passo, resultado esperado, mensagens de erro, impacto e evidencias relevantes."
                             className="bg-white dark:bg-muted/30"
                             minHeightClassName="min-h-[280px]"
@@ -578,4 +579,3 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     </Dialog>
   );
 }
-

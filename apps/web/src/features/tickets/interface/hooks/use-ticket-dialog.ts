@@ -12,6 +12,7 @@ import {
     useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { toast } from "sonner";
+import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
 
 type UseTicketDialogOptions = {
     isSystemUser?: boolean;
@@ -29,10 +30,6 @@ type CompanyOption = {
     name: string;
 };
 
-function stripHtml(value: string) {
-    return value.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ").trim();
-}
-
 export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogOptions = {}) {
     const searchParams = useSearchParams();
     const [files, setFiles] = useState<File[]>([]);
@@ -49,7 +46,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [selectedTeam, setSelectedTeam] = useState<string>(
         options.isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
     );
-    const [descriptionHtml, setDescriptionHtml] = useState("");
+    const [descriptionMarkdown, setDescriptionMarkdown] = useState("");
     const [databaseUrl, setDatabaseUrl] = useState("");
     const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
     const [isCustomerOptionsLoading, setIsCustomerOptionsLoading] = useState(false);
@@ -90,9 +87,9 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     });
 
     useEffect(() => {
-        const plainText = stripHtml(descriptionHtml);
+        const plainText = markdownToPlainText(descriptionMarkdown);
         form.setValue("description", plainText, { shouldValidate: plainText.length > 0 });
-    }, [descriptionHtml, form]);
+    }, [descriptionMarkdown, form]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -201,7 +198,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 logInfo("submit.start_transition");
                 const formData = new FormData();
                 formData.append("subject", data.subject);
-                formData.append("description", descriptionHtml || data.description);
+                formData.append("description", descriptionMarkdown || data.description);
                 formData.append("priority", data.priority);
                 formData.append("type", data.type);
                 if (options.isSystemUser) {
@@ -251,7 +248,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                     setCustomerEmail("");
                     setCustomerCompany(null);
                     setSearchQuery("");
-                    setDescriptionHtml("");
+                    setDescriptionMarkdown("");
                     setDatabaseUrl("");
                     setDevelopmentVideoUrl("");
                     if (clientCompanies.length > 0) {
@@ -296,8 +293,8 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setSelectedModule,
         selectedTeam,
         setSelectedTeam,
-        descriptionHtml,
-        setDescriptionHtml,
+        descriptionMarkdown,
+        setDescriptionMarkdown,
         databaseUrl,
         setDatabaseUrl,
         developmentVideoUrl,

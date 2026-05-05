@@ -55,6 +55,7 @@ async function bootstrap() {
   // Prefixo universal para as rotas do NestJS
   app.setGlobalPrefix('api');
   
+
   // Porta configurada no Dokploy
   const port = process.env.PORT || 3001;
   

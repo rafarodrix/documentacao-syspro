@@ -13,8 +13,6 @@
     "emitDecoratorMetadata": true,
     "noEmit": true,
     "paths": {
-      "@dosc-syspro/application": ["../../packages/application/src/index.ts"],
-      "@dosc-syspro/application/*": ["../../packages/application/src/*"],
       "@dosc-syspro/config": ["../../packages/config/src/index.ts"],
       "@dosc-syspro/config/*": ["../../packages/config/src/*"],
       "@dosc-syspro/shared": ["../../packages/shared/src/index.ts"],

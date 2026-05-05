@@ -30,6 +30,7 @@ export class ChatwootWebhookController {
   private static readonly SYSTEM_MESSAGE_FLAG = 'syspro_system_message';
   private static readonly SKIP_AUTO_PENDING_ONCE_FLAG = 'tris_skip_auto_pending_once';
   private static readonly LAST_AUTO_REOPENED_AT_FLAG = 'tris_last_auto_reopened_at';
+  private static readonly CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG = 'tris_csat_force_resolved_on_next_open';
 
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
@@ -483,13 +484,13 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if ((status === 'resolved' || status === 'archived') && settings.resolvedCustomerReplyAction !== 'reopen') {
+    if (status === 'resolved' || status === 'archived') {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'conversation_reopen_skipped_for_resolved_reply',
         conversationId,
         previousStatus: status,
-        resolvedCustomerReplyAction: settings.resolvedCustomerReplyAction,
+        resolvedCustomerReplyAction: 'new_conversation',
         connectionKey: resolvedContext.connectionKey,
       }));
       return;
@@ -611,7 +612,7 @@ export class ChatwootWebhookController {
       context.message?.content_attributes?.message,
     );
     if (score === null) {
-      return false;
+      return this.handleInvalidCsatReply(conversationId, customAttributes, resolvedContext, settings);
     }
 
     const contact = this.extractContactPhone(payload) ?? this.toOptionalString(customAttributes.csat_contact) ?? null;
@@ -653,6 +654,8 @@ export class ChatwootWebhookController {
         csat_status: isLowScore ? 'low_score' : 'recorded',
         csat_score: score,
         csat_responded_at: respondedAt,
+        csat_invalid_reply_count: 0,
+        [ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG]: !isLowScore || !settings.csatReopenOnLowScore,
       },
       { useSystemBot: settings.systemMessagesUseBotIdentity },
     );
@@ -732,7 +735,11 @@ export class ChatwootWebhookController {
     conversationId: string,
     status: string,
   ) {
-    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
+    const customAttributes = await this.resolveLatestConversationCustomAttributes(
+      payload,
+      resolvedContext,
+      conversationId,
+    );
     if (this.shouldSkipCsat(customAttributes)) {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_portal',
@@ -746,7 +753,11 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if (this.readBoolean(customAttributes.csat_pending) || customAttributes.csat_responded_at) {
+    if (
+      this.readBoolean(customAttributes.csat_pending) ||
+      this.hasCompletedCsatState(customAttributes) ||
+      this.readBoolean(customAttributes[ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG])
+    ) {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_portal',
         stage: 'csat_skipped_existing_state',
@@ -780,6 +791,7 @@ export class ChatwootWebhookController {
         csat_status: 'pending',
         csat_requested_at: requestedAt,
         csat_timeout_at: timeoutAt,
+        csat_invalid_reply_count: 0,
         csat_agent_id: agent.id,
         csat_agent_name: agent.name,
         csat_contact: contact,
@@ -824,6 +836,32 @@ export class ChatwootWebhookController {
     }
   }
 
+  private async resolveLatestConversationCustomAttributes(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext,
+    conversationId: string,
+  ): Promise<Record<string, unknown>> {
+    const inlineAttributes = this.readConversationCustomAttributesFromPayload(payload);
+
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
+      const latestAttributes = this.readConversationCustomAttributesFromPayload(conversation);
+      return {
+        ...inlineAttributes,
+        ...latestAttributes,
+      };
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_latest_custom_attributes_lookup_failed',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+        error: error?.message ?? 'unknown_error',
+      }));
+      return inlineAttributes;
+    }
+  }
+
   private readConversationCustomAttributesFromPayload(payload: any): Record<string, unknown> {
     const value =
       payload?.conversation?.custom_attributes ??
@@ -845,6 +883,19 @@ export class ChatwootWebhookController {
     return closureOrigin === 'inactivity_timeout';
   }
 
+  private hasCompletedCsatState(customAttributes: Record<string, unknown>): boolean {
+    if (customAttributes.csat_responded_at || customAttributes.csat_abandoned_at) {
+      return true;
+    }
+
+    const csatStatus = String(customAttributes.csat_status ?? '').trim().toLowerCase();
+    return (
+      csatStatus === 'recorded' ||
+      csatStatus === 'low_score' ||
+      csatStatus === 'skipped_no_score'
+    );
+  }
+
   private parseCsatScore(value: unknown): number | null {
     const normalized = String(value ?? '').trim();
     if (!/^[1-5]$/.test(normalized)) {
@@ -857,6 +908,75 @@ export class ChatwootWebhookController {
     }
 
     return score;
+  }
+
+  private async handleInvalidCsatReply(
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+  ): Promise<boolean> {
+    const invalidReplyCount = this.parseOptionalInt(customAttributes.csat_invalid_reply_count) ?? 0;
+    const nextInvalidReplyCount = invalidReplyCount + 1;
+    const maxAttempts = settings.csatInvalidReplyMaxAttempts;
+    const exhaustedAttempts = nextInvalidReplyCount >= maxAttempts;
+    const now = new Date().toISOString();
+
+    await this.chatwootClient.updateConversationCustomAttributes(
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      {
+        ...customAttributes,
+        csat_pending: exhaustedAttempts ? false : true,
+        csat_status: exhaustedAttempts ? 'skipped_no_score' : 'pending_retry',
+        csat_invalid_reply_count: nextInvalidReplyCount,
+        csat_last_invalid_reply_at: now,
+        [ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG]: true,
+        ...(exhaustedAttempts ? { csat_abandoned_at: now } : {}),
+      },
+      { useSystemBot: settings.systemMessagesUseBotIdentity },
+    );
+
+    const reminderMessage = exhaustedAttempts
+      ? settings.csatInvalidReplyFinalMessage.trim()
+      : `${settings.csatInvalidReplyRetryMessage.trim()}\n\nTentativa ${nextInvalidReplyCount}/${maxAttempts}.`;
+
+    await this.chatwootClient.createOutgoingMessage(
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      reminderMessage,
+      {
+        useSystemBot: settings.systemMessagesUseBotIdentity,
+        contentAttributes: this.buildSystemMessageAttributes(),
+      },
+    );
+
+    await this.chatwootClient.toggleConversationStatus(
+      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      'resolved',
+      { useSystemBot: settings.systemMessagesUseBotIdentity },
+    );
+
+    if (exhaustedAttempts) {
+      await this.prisma.conversationLink.deleteMany({
+        where: {
+          chatwootConversationId: conversationId,
+          connectionKey: resolvedContext.connectionKey,
+        },
+      });
+    }
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_portal',
+      stage: exhaustedAttempts ? 'csat_invalid_reply_exhausted' : 'csat_invalid_reply_reminded',
+      conversationId,
+      invalidReplyCount: nextInvalidReplyCount,
+      maxAttempts,
+      connectionKey: resolvedContext.connectionKey,
+    }));
+
+    return true;
   }
 
   private extractAgentIdentity(payload: any): { id?: string; name?: string } {
@@ -886,6 +1006,19 @@ export class ChatwootWebhookController {
     if (!normalized) return null;
     const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private parseOptionalInt(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return Math.trunc(value);
+    }
+
+    const normalized = this.toOptionalString(value);
+    if (!normalized || !/^-?\d+$/.test(normalized)) {
+      return null;
+    }
+
+    return Number.parseInt(normalized, 10);
   }
 
   private async resolveCurrentConversationAssigneeId(
@@ -973,6 +1106,12 @@ export class ChatwootWebhookController {
     }
 
     if (status === 'open' && resolvedContext) {
+      const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
+      if (this.readBoolean(customAttributes[ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG])) {
+        await this.forceResolveConversationAfterCsatReply(conversationId, customAttributes, resolvedContext, settings);
+        return;
+      }
+
       await this.clearCsatSkipMarkersOnConversationOpen(payload, resolvedContext, settings, conversationId);
       return;
     }
@@ -1060,6 +1199,46 @@ export class ChatwootWebhookController {
         connectionKey: resolvedContext.connectionKey,
         previousClosureOrigin: closureOrigin,
         previousSkipCsat: hasSkipCsat,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+  }
+
+  private async forceResolveConversationAfterCsatReply(
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+  ) {
+    try {
+      await this.chatwootClient.toggleConversationStatus(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        'resolved',
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+      await this.chatwootClient.updateConversationCustomAttributes(
+        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+        conversationId,
+        {
+          ...customAttributes,
+          [ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG]: false,
+        },
+        { useSystemBot: settings.systemMessagesUseBotIdentity },
+      );
+
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_open_event_reverted_to_resolved',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+      }));
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_open_event_revert_failed',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
         error: error?.message ?? 'unknown_error',
       }));
     }
@@ -1362,6 +1541,7 @@ export class ChatwootWebhookController {
       const parsed = JSON.parse(setting.value);
       const validation = chatwootBehaviorSettingsSchema.safeParse({
         ...parsed,
+        resolvedCustomerReplyAction: 'new_conversation',
         systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
       });
       return validation.success ? validation.data : fallback;
