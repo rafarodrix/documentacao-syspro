@@ -87,6 +87,14 @@ const nextConfig = {
 
     return [
       {
+        source: '/api/trpc',
+        destination: `${normalizedBackendApiBase}/trpc`,
+      },
+      {
+        source: '/api/trpc/:path*',
+        destination: `${normalizedBackendApiBase}/trpc/:path*`,
+      },
+      {
         source: '/api/auth/:path*',
         destination: `${normalizedBackendApiBase}/auth/:path*`,
       },
