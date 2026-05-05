@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
-import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
+import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import type { CompanyRegistryLookupResponse } from "@/features/company/application/company-view.types";
 
 type LookupProfile = NonNullable<CompanyRegistryLookupResponse["profile"]>;
@@ -126,7 +126,7 @@ export function ConsultaCnpjTool() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const result = await lookupCompanyProfileByCnpjClient(digits);
+    const result = await lookupCompanyProfileByCnpjAction(digits);
     if (!result.success || !result.data) {
       setLookupResult(null);
       setErrorMessage(result.message || "Nao foi possivel consultar o CNPJ.");

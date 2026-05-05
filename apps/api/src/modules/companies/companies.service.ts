@@ -344,10 +344,7 @@ export class CompaniesService {
   async getAdminView(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getCompanyViewScope(requester);
-    const companies = await this.listCompanies(undefined, rawHeaders);
-
     return {
-      companies,
       isGlobalView: accessScope.isGlobal,
     };
   }

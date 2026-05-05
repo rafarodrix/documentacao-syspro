@@ -8,7 +8,7 @@ import { Building2, CircleDollarSign, FileSearch, Target, UsersRound } from "luc
 import { toast } from "sonner";
 import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLead, type CrmLeadManualContact } from "@dosc-syspro/contracts/crm";
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
-import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
+import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -237,7 +237,7 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
     }
 
     setIsLookupLoading(true);
-    const result = await lookupCompanyProfileByCnpjClient(normalizedCnpj);
+    const result = await lookupCompanyProfileByCnpjAction(normalizedCnpj);
 
     if (!result.success || !result.data?.profile) {
       toast.error(result.message || "Nao foi possivel consultar o CNPJ.");

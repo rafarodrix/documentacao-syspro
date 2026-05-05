@@ -36,9 +36,12 @@ export async function createCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
 ): Promise<ActionResponse> {
   try {
-    await trpc.companies.create.mutate({ data: data as any });
+    const result = await trpc.companies.create.mutate({ data: data as any }) as ActionResponse;
+    if (!result.success) {
+      return result;
+    }
     revalidateCadastrosViews();
-    return { success: true };
+    return result;
   } catch {
     return { success: false, message: "Erro ao cadastrar empresa." };
   }
@@ -49,9 +52,12 @@ export async function updateCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
 ): Promise<ActionResponse> {
   try {
-    await trpc.companies.update.mutate({ id, data: data as any });
+    const result = await trpc.companies.update.mutate({ id, data: data as any }) as ActionResponse;
+    if (!result.success) {
+      return result;
+    }
     revalidateCadastrosViews();
-    return { success: true };
+    return result;
   } catch {
     return { success: false, message: "Erro ao atualizar empresa." };
   }
@@ -64,12 +70,15 @@ export async function updateCompanyStatusAction(
   details?: string | null,
 ): Promise<ActionResponse> {
   try {
-    await trpc.companies.updateStatus.mutate({
+    const result = await trpc.companies.updateStatus.mutate({
       id,
       data: { status, reason: reason ?? null, details: details ?? null },
-    });
+    }) as ActionResponse;
+    if (!result.success) {
+      return result;
+    }
     revalidateCadastrosViews();
-    return { success: true };
+    return result;
   } catch {
     return { success: false, message: "Erro ao atualizar status da empresa." };
   }
@@ -77,9 +86,12 @@ export async function updateCompanyStatusAction(
 
 export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
   try {
-    await trpc.companies.remove.mutate({ id });
+    const result = await trpc.companies.remove.mutate({ id }) as ActionResponse;
+    if (!result.success) {
+      return result;
+    }
     revalidateCadastrosViews();
-    return { success: true };
+    return result;
   } catch {
     return { success: false, message: "Erro ao excluir empresa." };
   }

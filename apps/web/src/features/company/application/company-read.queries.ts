@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { trpc } from "@/lib/api/trpc-client";
 import type {
   CompanyEditViewData,
@@ -55,9 +54,5 @@ export async function getCadastrosCompaniesAdminViewData(filters?: {
 }
 
 export async function getCompanyEditViewData(companyId: string): Promise<CompanyEditViewData> {
-  try {
-    return (await trpc.companies.getEditView.query({ id: companyId })) as CompanyEditViewData;
-  } catch {
-    notFound();
-  }
+  return (await trpc.companies.getEditView.query({ id: companyId })) as CompanyEditViewData;
 }

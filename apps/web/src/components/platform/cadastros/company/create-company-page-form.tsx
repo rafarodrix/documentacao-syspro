@@ -21,8 +21,7 @@ import type {
   CompanyRegistryLookupResponse,
   CompanyOption,
 } from "@/features/company/application/company-view.types";
-import { createCompanyAction, updateCompanyAction } from "@/features/company/application/company-write.actions";
-import { lookupCompanyProfileByCnpjClient } from "@/features/company/infrastructure/gateways/company-lookup-cnpj.gateway";
+import { createCompanyAction, updateCompanyAction, lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { Form } from "@/components/ui/form";
@@ -231,7 +230,7 @@ export function CreateCompanyPageForm({
     const tid = toast.loading("Consultando CNPJ...");
     try {
       const result: CompanyActionResponse<CompanyRegistryLookupResponse> =
-        await lookupCompanyProfileByCnpjClient(normalizedCnpj);
+        await lookupCompanyProfileByCnpjAction(normalizedCnpj);
 
       if (!result.success || !result.data?.profile) {
         toast.dismiss(tid);
