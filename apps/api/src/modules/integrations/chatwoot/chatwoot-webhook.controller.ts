@@ -735,7 +735,11 @@ export class ChatwootWebhookController {
     conversationId: string,
     status: string,
   ) {
-    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
+    const customAttributes = await this.resolveLatestConversationCustomAttributes(
+      payload,
+      resolvedContext,
+      conversationId,
+    );
     if (this.shouldSkipCsat(customAttributes)) {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_portal',
@@ -749,7 +753,11 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if (this.readBoolean(customAttributes.csat_pending) || customAttributes.csat_responded_at) {
+    if (
+      this.readBoolean(customAttributes.csat_pending) ||
+      this.hasCompletedCsatState(customAttributes) ||
+      this.readBoolean(customAttributes[ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG])
+    ) {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_portal',
         stage: 'csat_skipped_existing_state',
@@ -828,6 +836,32 @@ export class ChatwootWebhookController {
     }
   }
 
+  private async resolveLatestConversationCustomAttributes(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext,
+    conversationId: string,
+  ): Promise<Record<string, unknown>> {
+    const inlineAttributes = this.readConversationCustomAttributesFromPayload(payload);
+
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
+      const latestAttributes = this.readConversationCustomAttributesFromPayload(conversation);
+      return {
+        ...inlineAttributes,
+        ...latestAttributes,
+      };
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'csat_latest_custom_attributes_lookup_failed',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+        error: error?.message ?? 'unknown_error',
+      }));
+      return inlineAttributes;
+    }
+  }
+
   private readConversationCustomAttributesFromPayload(payload: any): Record<string, unknown> {
     const value =
       payload?.conversation?.custom_attributes ??
@@ -847,6 +881,19 @@ export class ChatwootWebhookController {
 
     const closureOrigin = String(customAttributes.closure_origin ?? '').trim().toLowerCase();
     return closureOrigin === 'inactivity_timeout';
+  }
+
+  private hasCompletedCsatState(customAttributes: Record<string, unknown>): boolean {
+    if (customAttributes.csat_responded_at || customAttributes.csat_abandoned_at) {
+      return true;
+    }
+
+    const csatStatus = String(customAttributes.csat_status ?? '').trim().toLowerCase();
+    return (
+      csatStatus === 'recorded' ||
+      csatStatus === 'low_score' ||
+      csatStatus === 'skipped_no_score'
+    );
   }
 
   private parseCsatScore(value: unknown): number | null {
