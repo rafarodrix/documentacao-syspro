@@ -1471,7 +1471,12 @@ export class ProcessIncomingMessageUseCase {
         String(link.chatwootConversationId),
       );
       const status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
-      if (status !== 'resolved' && status !== 'archived') {
+      const customAttributes = this.readConversationCustomAttributesFromPayload(conversation);
+      const shouldRotatePendingConversation =
+        status === 'pending' &&
+        this.shouldCreateNewConversationForCompletedCsat(customAttributes);
+
+      if (status !== 'resolved' && status !== 'archived' && !shouldRotatePendingConversation) {
         return link;
       }
 
@@ -1498,9 +1503,12 @@ export class ProcessIncomingMessageUseCase {
 
       this.logger.log(JSON.stringify({
         flow: 'evolution_to_chatwoot',
-        stage: 'resolved_conversation_replaced_before_inbound',
+        stage: shouldRotatePendingConversation
+          ? 'completed_csat_pending_conversation_replaced_before_inbound'
+          : 'resolved_conversation_replaced_before_inbound',
         connectionKey: connection.connectionKey,
         whatsappNumber: phone,
+        previousStatus: status ?? null,
         previousConversationId: link.chatwootConversationId,
         nextConversationId: newConversationId,
       }));
@@ -1524,6 +1532,43 @@ export class ProcessIncomingMessageUseCase {
     if (normalized === 'resolved' || normalized === 'archived') return normalized;
     if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
     return normalized;
+  }
+
+  private shouldCreateNewConversationForCompletedCsat(
+    customAttributes: Record<string, unknown>,
+  ): boolean {
+    if (this.readBoolean(customAttributes.csat_pending)) {
+      return false;
+    }
+
+    if (customAttributes.csat_responded_at) {
+      return true;
+    }
+
+    const csatStatus = String(customAttributes.csat_status ?? '').trim().toLowerCase();
+    return csatStatus === 'recorded' || csatStatus === 'low_score' || csatStatus === 'skipped_no_score';
+  }
+
+  private readConversationCustomAttributesFromPayload(payload: any): Record<string, unknown> {
+    const value =
+      payload?.conversation?.custom_attributes ??
+      payload?.custom_attributes ??
+      payload?.meta?.custom_attributes ??
+      payload?.payload?.custom_attributes;
+
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? { ...(value as Record<string, unknown>) }
+      : {};
+  }
+
+  private readBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === 'true' || normalized === '1' || normalized === 'yes';
+    }
+    return false;
   }
 
   private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
