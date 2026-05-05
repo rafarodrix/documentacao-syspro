@@ -1493,9 +1493,19 @@ export class CompaniesService {
   }
 
   private async getCompanyViewScope(requester: { userId: string; role: Role; email?: string }) {
-    return this.authorizationService.resolveCompanyAccessScope(
+    const primaryScope = await this.authorizationService.resolveCompanyAccessScope(
       requester as { userId: string; role: Role; email: string },
       'companies:view_own',
+      'companies:view_all',
+    );
+
+    if (primaryScope.isGlobal || primaryScope.companyIds.length > 0) {
+      return primaryScope;
+    }
+
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester as { userId: string; role: Role; email: string },
+      'companies:view',
       'companies:view_all',
     );
   }
