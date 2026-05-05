@@ -55,6 +55,7 @@ import {
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/company-write.actions"
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences"
+import { trpc } from "@/lib/api/trpc-client"
 
 interface CompanyTabProps {
   data: CompanyListItem[]
@@ -338,26 +339,23 @@ export function CompanyTab({
     async function loadCompanies() {
       setLoadingList(true)
       try {
-        const params = new URLSearchParams()
-        if (searchTerm.trim()) params.set("search", searchTerm.trim())
-        if (filterStatus !== "ALL") params.set("status", filterStatus)
-        params.set("page", String(page))
-        params.set("pageSize", String(COMPANIES_PAGE_SIZE))
+        const response = (await trpc.companies.list.query({
+          search: searchTerm.trim() || undefined,
+          status: filterStatus !== "ALL" ? filterStatus : undefined,
+          page: String(page),
+          pageSize: String(COMPANIES_PAGE_SIZE),
+        })) as CompanyListResponse;
 
-        const response = await fetch(`/api/companies?${params.toString()}`, { cache: "no-store" })
-        if (!response.ok) throw new Error(`Falha ao carregar empresas (${response.status})`)
-
-        const payload = companyListResponseSchema.parse(await response.json()) as CompanyListResponse
         if (!active) return
 
-        setItems(payload.items)
+        setItems(response.items)
         setPagination({
-          page: payload.pagination.page,
-          pageSize: payload.pagination.pageSize,
-          total: payload.pagination.total,
-          totalPages: Math.max(1, Math.ceil(payload.pagination.total / payload.pagination.pageSize)),
-          hasPreviousPage: payload.pagination.hasPreviousPage,
-          hasNextPage: payload.pagination.hasNextPage,
+          page: response.pagination.page,
+          pageSize: response.pagination.pageSize,
+          total: response.pagination.total,
+          totalPages: Math.max(1, Math.ceil(response.pagination.total / response.pagination.pageSize)),
+          hasPreviousPage: response.pagination.hasPreviousPage,
+          hasNextPage: response.pagination.hasNextPage,
         })
       } catch (error) {
         if (!active) return
