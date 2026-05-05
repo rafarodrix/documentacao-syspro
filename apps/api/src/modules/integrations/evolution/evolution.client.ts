@@ -32,6 +32,17 @@ export class EvolutionOutboundError extends Error {
   }
 }
 
+export class EvolutionMessageDeleteError extends Error {
+  constructor(
+    message: string,
+    public readonly providerStatus: number,
+    public readonly providerBody: string,
+  ) {
+    super(message);
+    this.name = 'EvolutionMessageDeleteError';
+  }
+}
+
 export function readEvolutionConfigFromRuntime(): EvolutionConnectionConfig {
   const config = readEvolutionRuntimeConfig();
   return {
@@ -361,6 +372,206 @@ export class EvolutionClient {
     throw lastError ?? new Error('Evolution send failed via /send/media: no candidates available.');
   }
 
+  async sendStickerMessage(
+    config: EvolutionConnectionConfig,
+    number: string,
+    stickerUrlOrBase64: string,
+    clientMessageId?: string,
+  ): Promise<{ messageId?: string; resolvedWhatsappNumber?: string }> {
+    if (!config.apiUrl || !config.apiKey) {
+      console.warn('[EvolutionClient] Credenciais ausentes. Envio de figurinha ignorado.');
+      return {};
+    }
+
+    const normalizedNumbers = this.buildOutboundNumberCandidates(number);
+    const instance = this.resolveInstance(config.instance);
+    const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    const requestStartedAt = Date.now();
+    const sharedHeaders = this.buildAuthHeaders(config.apiKey);
+    const authHeaderMode = this.describeAuthHeaders(sharedHeaders);
+    const requestMessageId = this.buildRequestMessageId(clientMessageId);
+    const normalizedSticker = this.normalizeMediaInput(stickerUrlOrBase64);
+
+    let lastError: EvolutionOutboundError | null = null;
+
+    for (let index = 0; index < normalizedNumbers.length; index += 1) {
+      const attemptNumber = normalizedNumbers[index];
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_request_sticker',
+        providerFlavor: 'evolution_go',
+        route: '/send/sticker',
+        authHeaderMode,
+        requestMessageId,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: attemptNumber,
+        mediaInputKind: normalizedSticker.kind,
+        mediaLength: normalizedSticker.value.length,
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
+      }));
+
+      const response = await fetch(`${baseUrl}/send/sticker`, {
+        method: 'POST',
+        headers: sharedHeaders,
+        body: JSON.stringify({
+          id: requestMessageId,
+          number: attemptNumber,
+          sticker: normalizedSticker.value,
+          delay: 1200,
+        }),
+      });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const messageId = this.extractMessageId(payload);
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_response_sticker',
+          providerFlavor: 'evolution_go',
+          route: '/send/sticker',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          providerMessageId: messageId ?? null,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+          durationMs: Date.now() - requestStartedAt,
+        }));
+        return { messageId, resolvedWhatsappNumber: attemptNumber };
+      }
+
+      const responseError = await response.text().catch(() => 'unknown_error');
+      const outboundError = this.buildOutboundError(response.status, responseError, '/send/sticker');
+      lastError = outboundError;
+      const hasFallbackCandidate = index < normalizedNumbers.length - 1;
+
+      if (outboundError.code === 'WHATSAPP_NUMBER_NOT_REGISTERED' && hasFallbackCandidate) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_evolution',
+          stage: 'provider_retry_sticker_with_legacy_brazilian_variant',
+          providerFlavor: 'evolution_go',
+          route: '/send/sticker',
+          authHeaderMode,
+          requestMessageId,
+          evolutionBaseUrl: baseUrl,
+          evolutionInstance: instance,
+          whatsappNumber: attemptNumber,
+          fallbackWhatsappNumber: normalizedNumbers[index + 1],
+          status: response.status,
+          error: responseError,
+          attempt: index + 1,
+          totalAttempts: normalizedNumbers.length,
+        }));
+        continue;
+      }
+
+      this.logger.error(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_error_sticker',
+        providerFlavor: 'evolution_go',
+        route: '/send/sticker',
+        authHeaderMode,
+        requestMessageId,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        whatsappNumber: attemptNumber,
+        status: response.status,
+        error: responseError,
+        diagnostics: this.buildProviderDiagnostics(response.status),
+        attempt: index + 1,
+        totalAttempts: normalizedNumbers.length,
+        durationMs: Date.now() - requestStartedAt,
+      }));
+      throw outboundError;
+    }
+
+    throw lastError ?? new Error('Evolution send failed via /send/sticker: no candidates available.');
+  }
+
+  async deleteMessageForEveryone(
+    config: EvolutionConnectionConfig,
+    input: {
+      messageId: string;
+      remoteJid: string;
+      fromMe?: boolean;
+      participant?: string | null;
+    },
+  ): Promise<void> {
+    if (!config.apiUrl || !config.apiKey) {
+      this.logger.warn('[EvolutionClient] Credenciais ausentes. Exclusao de mensagem ignorada.');
+      return;
+    }
+
+    const instance = this.resolveInstance(config.instance);
+    const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    const remoteJid = this.normalizeRemoteJid(input.remoteJid);
+    const headers = this.buildAuthHeaders(config.apiKey);
+    const startedAt = Date.now();
+    const route = '/message/delete';
+    const url = `${baseUrl}/message/delete`;
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_request_delete_message',
+      providerFlavor: 'evolution_go',
+      route,
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      messageId: input.messageId,
+      remoteJid,
+    }));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        chat: remoteJid,
+        messageId: input.messageId,
+      }),
+    });
+
+    if (response.ok) {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_response_delete_message',
+        providerFlavor: 'evolution_go',
+        route,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        messageId: input.messageId,
+        remoteJid,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+      }));
+      return;
+    }
+
+    const providerBody = await response.text().catch(() => 'unknown_error');
+    this.logger.error(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_error_delete_message',
+      providerFlavor: 'evolution_go',
+      route,
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      messageId: input.messageId,
+      remoteJid,
+      status: response.status,
+      error: providerBody,
+      durationMs: Date.now() - startedAt,
+    }));
+
+    throw new EvolutionMessageDeleteError(
+      `Evolution Go delete message failed via ${route}: status=${response.status} body=${providerBody}`,
+      response.status,
+      providerBody,
+    );
+  }
+
   async fetchProfilePicture(
     config: EvolutionConnectionConfig,
     number: string
@@ -449,6 +660,14 @@ export class EvolutionClient {
     const digits = recipient.replace(/\D/g, '');
     if (!digits) return digits;
     return digits.startsWith('55') ? digits : `55${digits}`;
+  }
+
+  private normalizeRemoteJid(value: string): string {
+    const normalized = this.normalizeNumber(value);
+    if (normalized.includes('@')) {
+      return normalized;
+    }
+    return `${normalized}@s.whatsapp.com`;
   }
 
   private buildOutboundNumberCandidates(number: string): string[] {
@@ -622,7 +841,7 @@ export class EvolutionClient {
   private buildOutboundError(
     status: number,
     providerBody: string,
-    route: '/send/text' | '/send/media',
+    route: '/send/text' | '/send/media' | '/send/sticker',
   ): EvolutionOutboundError {
     const normalizedBody = String(providerBody ?? '').toLowerCase();
 

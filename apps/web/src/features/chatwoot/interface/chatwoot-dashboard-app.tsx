@@ -39,6 +39,7 @@ import {
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { toTicketListItems } from "@/features/tickets/application/ticket-list.mapper";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/api/trpc-client";
 
 type ChatwootAppContext = {
   conversation: {
@@ -561,21 +562,7 @@ export function ChatwootDashboardApp() {
       try {
         setIsLoadingCompanyOptions(true);
         setCompanyOptionsError(null);
-        const response = await fetch("/api/companies/options", {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          setCompanyOptions([]);
-          setCompanyOptionsError(
-            response.status === 401
-              ? "Faca login no portal neste navegador para buscar empresas."
-              : "Nao foi possivel buscar as empresas para vinculo.",
-          );
-          return;
-        }
-        const json = (await response.json()) as CompanyOption[];
+        const json = await trpc.companies.getOptions.query();
         setCompanyOptions(Array.isArray(json) ? json : []);
         setHasLoadedCompanyOptions(true);
       } catch (error) {

@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module, MiddlewareConsumer, RequestMethod, forwardRef } from '@nestjs/common';
 import { TrpcService } from './trpc.service';
 import { TrpcRouter } from './trpc.router';
 import * as trpcExpress from '@trpc/server/adapters/express';
@@ -8,9 +8,9 @@ import { createContext } from './trpc.context';
 import { CompaniesModule } from '../companies/companies.module';
 
 @Module({
-  imports: [CompaniesModule],
+  imports: [forwardRef(() => CompaniesModule)],
   providers: [TrpcService, TrpcRouter],
-  exports: [TrpcRouter],
+  exports: [TrpcService, TrpcRouter],
 })
 export class TrpcModule {
   constructor(private readonly trpcRouter: TrpcRouter) {}

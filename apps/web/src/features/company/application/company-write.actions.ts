@@ -1,49 +1,17 @@
 "use server";
 
-import { headers } from "next/headers";
 import type {
   CompanyInactivationReasonValue,
   CompanyStatusValue,
   CreateCompanyInput,
   CreateCompanyOutput,
 } from "@dosc-syspro/contracts/company";
-import { getBackendApiBaseUrl } from "@/lib/backend-api";
+import { trpc } from "@/lib/api/trpc-client";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type {
   CompanyActionResponse as ActionResponse,
   CompanyRegistryLookupResponse,
 } from "@/features/company/application/company-view.types";
-
-async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-  const upstreamHeaders = new Headers(init?.headers ?? {});
-
-  if (cookie) {
-    upstreamHeaders.set("cookie", cookie);
-  }
-
-  if (!upstreamHeaders.has("content-type") && init?.body) {
-    upstreamHeaders.set("content-type", "application/json");
-  }
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: upstreamHeaders,
-    cache: "no-store",
-  });
-}
-
-async function parseActionResponse<T = void>(response: Response, fallbackMessage: string): Promise<ActionResponse<T>> {
-  try {
-    return (await response.json()) as ActionResponse<T>;
-  } catch {
-    return {
-      success: false,
-      message: fallbackMessage,
-    } as ActionResponse<T>;
-  }
-}
 
 export async function lookupCompanyProfileByCnpjAction(
   cnpj: string,
@@ -54,8 +22,8 @@ export async function lookupCompanyProfileByCnpjAction(
   }
 
   try {
-    const response = await apiRequest(`/companies/lookup-cnpj?cnpj=${encodeURIComponent(normalizedCnpj)}`);
-    return await parseActionResponse<CompanyRegistryLookupResponse>(response, "Erro ao consultar CNPJ.");
+    const data = await trpc.companies.lookupCompanyProfileByCnpj.query({ cnpj: normalizedCnpj });
+    return data as ActionResponse<CompanyRegistryLookupResponse>;
   } catch {
     return {
       success: false,
@@ -68,16 +36,11 @@ export async function createCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
 ): Promise<ActionResponse> {
   try {
-    const response = await apiRequest("/companies", {
-      method: "POST",
-      body: JSON.stringify({ data }),
-    });
-
-    const result = await parseActionResponse(response, "Erro ao cadastrar empresa.");
-    if (result.success) {
-      revalidateCadastrosViews();
+    const result = await trpc.companies.create.mutate({ data: data as any }) as ActionResponse;
+    if (!result.success) {
+      return result;
     }
-
+    revalidateCadastrosViews();
     return result;
   } catch {
     return { success: false, message: "Erro ao cadastrar empresa." };
@@ -89,16 +52,11 @@ export async function updateCompanyAction(
   data: CreateCompanyInput | CreateCompanyOutput,
 ): Promise<ActionResponse> {
   try {
-    const response = await apiRequest(`/companies/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      body: JSON.stringify({ data }),
-    });
-
-    const result = await parseActionResponse(response, "Erro ao atualizar empresa.");
-    if (result.success) {
-      revalidateCadastrosViews();
+    const result = await trpc.companies.update.mutate({ id, data: data as any }) as ActionResponse;
+    if (!result.success) {
+      return result;
     }
-
+    revalidateCadastrosViews();
     return result;
   } catch {
     return { success: false, message: "Erro ao atualizar empresa." };
@@ -112,16 +70,14 @@ export async function updateCompanyStatusAction(
   details?: string | null,
 ): Promise<ActionResponse> {
   try {
-    const response = await apiRequest(`/companies/${encodeURIComponent(id)}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status, reason: reason ?? null, details: details ?? null }),
-    });
-
-    const result = await parseActionResponse(response, "Erro ao atualizar status da empresa.");
-    if (result.success) {
-      revalidateCadastrosViews();
+    const result = await trpc.companies.updateStatus.mutate({
+      id,
+      data: { status, reason: reason ?? null, details: details ?? null },
+    }) as ActionResponse;
+    if (!result.success) {
+      return result;
     }
-
+    revalidateCadastrosViews();
     return result;
   } catch {
     return { success: false, message: "Erro ao atualizar status da empresa." };
@@ -130,15 +86,11 @@ export async function updateCompanyStatusAction(
 
 export async function deleteCompanyAction(id: string): Promise<ActionResponse> {
   try {
-    const response = await apiRequest(`/companies/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-
-    const result = await parseActionResponse(response, "Erro ao excluir empresa.");
-    if (result.success) {
-      revalidateCadastrosViews();
+    const result = await trpc.companies.remove.mutate({ id }) as ActionResponse;
+    if (!result.success) {
+      return result;
     }
-
+    revalidateCadastrosViews();
     return result;
   } catch {
     return { success: false, message: "Erro ao excluir empresa." };

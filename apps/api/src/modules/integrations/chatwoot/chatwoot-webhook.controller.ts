@@ -14,6 +14,7 @@ import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../settings/integration-context.service';
 import { ChatwootClient, type ChatwootConnectionConfig } from './chatwoot.client';
+import { EvolutionClient } from '../evolution/evolution.client';
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
   chatwootBehaviorSettingsSchema,
@@ -37,6 +38,7 @@ export class ChatwootWebhookController {
     private readonly prisma: PrismaService,
     private readonly integrationContext: IntegrationContextService,
     private readonly chatwootClient: ChatwootClient,
+    private readonly evolutionClient: EvolutionClient,
   ) {}
 
   @Post()
@@ -245,7 +247,14 @@ export class ChatwootWebhookController {
         this.logger.debug('Evento conversation_updated recebido; nenhuma acao remota no WhatsApp configurada.');
         break;
       case 'message_updated':
-        this.logger.debug('Evento message_updated ignorado: exclusao remota no WhatsApp via endpoint legado removida.');
+        if (this.shouldPropagateMessageDeletion(payload, conversationMessage)) {
+          await this.handleMessageDeleted(payload, resolvedContext);
+          break;
+        }
+        this.logger.debug('Evento message_updated recebido sem indicio de exclusao remota.');
+        break;
+      case 'message_deleted':
+        await this.handleMessageDeleted(payload, resolvedContext);
         break;
       default:
         this.logger.debug(`Evento Chatwoot nao processado/ignorado: ${payload?.event}`);
@@ -308,6 +317,149 @@ export class ChatwootWebhookController {
     ) {
       await this.reopenConversationForCustomerReply(payload, resolvedContext, settings);
     }
+  }
+
+  private shouldPropagateMessageDeletion(payload: any, conversationMessage: any | null): boolean {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+
+    const explicitFlags = [
+      payload?.deleted,
+      payload?.is_deleted,
+      payload?.content_attributes?.deleted,
+      message?.deleted,
+      message?.is_deleted,
+      message?.content_attributes?.deleted,
+      conversationMessage?.deleted,
+      conversationMessage?.is_deleted,
+      conversationMessage?.content_attributes?.deleted,
+      payload?.deleted_at,
+      message?.deleted_at,
+      conversationMessage?.deleted_at,
+    ];
+
+    if (explicitFlags.some(Boolean)) {
+      return true;
+    }
+
+    const contentCandidates = [
+      payload?.content,
+      message?.content,
+      conversationMessage?.content,
+    ]
+      .map((value) => String(value ?? '').trim().toLowerCase())
+      .filter(Boolean);
+
+    return contentCandidates.some((content) =>
+      content.includes('this message was deleted') ||
+      content.includes('message deleted') ||
+      content.includes('mensagem apagada') ||
+      content.includes('mensagem exclu') ||
+      content.includes('mensagem foi apagada')
+    );
+  }
+
+  private async handleMessageDeleted(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext | null,
+  ): Promise<void> {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const chatwootMessageId =
+      payload?.id?.toString?.() ??
+      message?.id?.toString?.() ??
+      null;
+
+    if (!chatwootMessageId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_skipped_missing_message_id',
+        event: payload?.event ?? null,
+      }));
+      return;
+    }
+
+    const messageLink = resolvedContext?.connectionKey
+      ? await this.prisma.messageLink.findUnique({
+          where: {
+            connectionKey_chatwootMessageId: {
+              connectionKey: resolvedContext.connectionKey,
+              chatwootMessageId,
+            },
+          },
+        })
+      : await this.prisma.messageLink.findFirst({
+          where: { chatwootMessageId },
+        });
+
+    if (!messageLink?.evolutionMessageId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_skipped_link_not_found',
+        event: payload?.event ?? null,
+        chatwootMessageId,
+        resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
+      }));
+      return;
+    }
+
+    const conversationLink = await this.prisma.conversationLink.findFirst({
+      where: {
+        connectionKey: messageLink.connectionKey,
+        chatwootConversationId: messageLink.chatwootConversationId,
+      },
+    });
+
+    if (!conversationLink?.whatsappNumber) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_skipped_remote_jid_not_found',
+        event: payload?.event ?? null,
+        chatwootMessageId,
+        evolutionMessageId: messageLink.evolutionMessageId,
+        connectionKey: messageLink.connectionKey,
+        chatwootConversationId: messageLink.chatwootConversationId,
+      }));
+      return;
+    }
+
+    const integrationContext =
+      resolvedContext?.connectionKey === messageLink.connectionKey
+        ? resolvedContext
+        : await this.integrationContext.resolveByConnectionKey(messageLink.connectionKey);
+
+    if (!integrationContext) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'delete_message_skipped_connection_not_resolved',
+        event: payload?.event ?? null,
+        chatwootMessageId,
+        evolutionMessageId: messageLink.evolutionMessageId,
+        connectionKey: messageLink.connectionKey,
+      }));
+      return;
+    }
+
+    await this.evolutionClient.deleteMessageForEveryone(integrationContext.evolution, {
+      messageId: messageLink.evolutionMessageId,
+      remoteJid: conversationLink.whatsappNumber,
+      fromMe: true,
+    });
+
+    await this.prisma.messageLink.deleteMany({
+      where: {
+        connectionKey: messageLink.connectionKey,
+        chatwootMessageId,
+      },
+    });
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'delete_message_propagated',
+      event: payload?.event ?? null,
+      chatwootMessageId,
+      evolutionMessageId: messageLink.evolutionMessageId,
+      connectionKey: messageLink.connectionKey,
+      remoteJid: conversationLink.whatsappNumber,
+    }));
   }
 
   private async markConversationPendingAfterAgentReply(

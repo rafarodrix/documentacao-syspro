@@ -1,32 +1,9 @@
-import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import { companyListResponseSchema } from "@dosc-syspro/contracts/company";
-import { getBackendApiBaseUrl } from "@/lib/backend-api";
+import { trpc } from "@/lib/api/trpc-client";
 import type {
   CompanyEditViewData,
   CompanyListResponse,
   CompanyOption,
 } from "@/features/company/application/company-view.types";
-
-async function apiRequest(path: string, init?: RequestInit) {
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-  const upstreamHeaders = new Headers(init?.headers ?? {});
-
-  if (cookie) {
-    upstreamHeaders.set("cookie", cookie);
-  }
-
-  if (!upstreamHeaders.has("content-type") && init?.body) {
-    upstreamHeaders.set("content-type", "application/json");
-  }
-
-  return fetch(`${getBackendApiBaseUrl()}${path}`, {
-    ...init,
-    headers: upstreamHeaders,
-    cache: "no-store",
-  });
-}
 
 export async function getCompaniesQuery(filters?: {
   search?: string;
@@ -34,24 +11,24 @@ export async function getCompaniesQuery(filters?: {
   page?: number;
   pageSize?: number;
 }) {
-  const params = new URLSearchParams();
-  if (filters?.search?.trim()) params.set("search", filters.search.trim());
-  if (filters?.status && filters.status !== "ALL") params.set("status", filters.status);
-  if (filters?.page) params.set("page", String(filters.page));
-  if (filters?.pageSize) params.set("pageSize", String(filters.pageSize));
-
-  const response = await apiRequest(`/companies${params.toString() ? `?${params.toString()}` : ""}`);
-  if (!response.ok) {
+  try {
+    return (await trpc.companies.list.query({
+      search: filters?.search?.trim() || undefined,
+      status: filters?.status && filters.status !== "ALL" ? (filters.status as any) : undefined,
+      page: filters?.page ? String(filters.page) : undefined,
+      pageSize: filters?.pageSize ? String(filters.pageSize) : undefined,
+    })) as CompanyListResponse;
+  } catch {
     return null;
   }
-
-  return companyListResponseSchema.parse(await response.json()) as CompanyListResponse;
 }
 
 export async function getCompanyOptionsAction(): Promise<CompanyOption[]> {
-  const response = await apiRequest("/companies/options");
-  if (!response.ok) return [];
-  return response.json();
+  try {
+    return (await trpc.companies.getOptions.query()) as CompanyOption[];
+  } catch {
+    return [];
+  }
 }
 
 export async function getCadastrosCompaniesAdminViewData(filters?: {
@@ -61,18 +38,15 @@ export async function getCadastrosCompaniesAdminViewData(filters?: {
   pageSize?: number;
 }): Promise<{ isGlobalView: boolean; list: CompanyListResponse } | { error: string }> {
   try {
-    const [response, list] = await Promise.all([
-      apiRequest("/companies/view/admin"),
+    const [adminView, list] = await Promise.all([
+      trpc.companies.getAdminView.query(),
       getCompaniesQuery(filters),
     ]);
-    if (!response.ok) {
-      return { error: "Erro ao buscar empresas." };
-    }
+    
     if (!list) {
       return { error: "Erro ao buscar empresas." };
     }
 
-    const adminView = await response.json() as { isGlobalView: boolean };
     return { isGlobalView: adminView.isGlobalView, list };
   } catch {
     return { error: "Erro ao buscar empresas." };
@@ -80,7 +54,5 @@ export async function getCadastrosCompaniesAdminViewData(filters?: {
 }
 
 export async function getCompanyEditViewData(companyId: string): Promise<CompanyEditViewData> {
-  const response = await apiRequest(`/companies/${encodeURIComponent(companyId)}/edit-view`);
-  if (!response.ok) notFound();
-  return (await response.json()) as CompanyEditViewData;
+  return (await trpc.companies.getEditView.query({ id: companyId })) as CompanyEditViewData;
 }

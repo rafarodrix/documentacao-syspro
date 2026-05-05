@@ -125,6 +125,7 @@ export class ProcessIncomingMessageUseCase {
       else if (messagePayload?.imageMessage?.caption) textContent = messagePayload.imageMessage.caption;
       else if (messagePayload?.videoMessage?.caption) textContent = messagePayload.videoMessage.caption;
       else if (messagePayload?.documentMessage?.caption) textContent = messagePayload.documentMessage.caption;
+      else if (messagePayload?.stickerMessage?.caption) textContent = messagePayload.stickerMessage.caption;
       else textContent = '';
 
       if (isGroupChat) {
@@ -143,6 +144,10 @@ export class ProcessIncomingMessageUseCase {
         isMedia = true;
         mimeType = messagePayload.imageMessage.mimetype || 'image/jpeg';
         fileName = 'imagem.jpg';
+      } else if (messagePayload?.stickerMessage) {
+        isMedia = true;
+        mimeType = messagePayload.stickerMessage.mimetype || 'image/webp';
+        fileName = 'figurinha.webp';
       } else if (messagePayload?.videoMessage) {
         isMedia = true;
         mimeType = messagePayload.videoMessage.mimetype || 'video/mp4';
@@ -208,6 +213,11 @@ export class ProcessIncomingMessageUseCase {
           textContent,
           attachment
         );
+        await this.persistInboundMessageLink({
+          evolutionMessageId: messageId,
+          chatwootConversationId: conversationId,
+          connection: resolvedConnection,
+        });
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'forwarded',
@@ -248,6 +258,11 @@ export class ProcessIncomingMessageUseCase {
               textContent,
               attachment
             );
+            await this.persistInboundMessageLink({
+              evolutionMessageId: messageId,
+              chatwootConversationId: conversationId,
+              connection: resolvedConnection,
+            });
             this.logger.log(JSON.stringify({
               flow: 'evolution_to_chatwoot',
               stage: 'forwarded_after_auto_heal',
@@ -294,6 +309,7 @@ export class ProcessIncomingMessageUseCase {
       messagePayload?.base64,
       rawMessage?.base64,
       messagePayload?.imageMessage?.base64,
+      messagePayload?.stickerMessage?.base64,
       messagePayload?.videoMessage?.base64,
       messagePayload?.documentMessage?.base64,
       messagePayload?.audioMessage?.base64,
@@ -315,6 +331,8 @@ export class ProcessIncomingMessageUseCase {
 
     const urlCandidates = [
       messagePayload?.imageMessage?.url,
+      messagePayload?.stickerMessage?.url,
+      messagePayload?.stickerMessage?.URL,
       messagePayload?.videoMessage?.url,
       messagePayload?.documentMessage?.url,
       messagePayload?.audioMessage?.url,
@@ -423,6 +441,126 @@ export class ProcessIncomingMessageUseCase {
       if (!evolutionMsgId || !chatwootStatus) continue;
       await this.syncStatusToChatwoot(evolutionMsgId.toString(), chatwootStatus, context?.instanceId, context?.connection);
     }
+  }
+
+  async handleDeleteEvent(
+    payload: any,
+    context?: { instanceId?: string; connection?: ResolvedIntegrationContext }
+  ) {
+    const targetEvolutionMessageId = this.extractDeletedTargetEvolutionMessageId(payload);
+    if (!targetEvolutionMessageId) {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'delete_event_ignored_missing_target',
+        instanceId: context?.instanceId ?? null,
+      }));
+      return;
+    }
+
+    const resolvedConnection =
+      context?.connection ??
+      await this.integrationContext.getDefaultContext();
+    if (!resolvedConnection) return;
+
+    const link = await this.prisma.messageLink.findUnique({
+      where: {
+        connectionKey_evolutionMessageId: {
+          connectionKey: resolvedConnection.connectionKey,
+          evolutionMessageId: targetEvolutionMessageId,
+        },
+      },
+    });
+
+    if (!link?.chatwootMessageId) {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'delete_event_link_not_found',
+        instanceId: context?.instanceId ?? null,
+        evolutionMessageId: targetEvolutionMessageId,
+      }));
+      return;
+    }
+
+    await this.chatwootClient.deleteMessage(
+      resolvedConnection.chatwoot,
+      link.chatwootConversationId,
+      link.chatwootMessageId,
+    );
+
+    await this.prisma.messageLink.deleteMany({
+      where: {
+        connectionKey: resolvedConnection.connectionKey,
+        evolutionMessageId: targetEvolutionMessageId,
+      },
+    });
+
+    this.logger.log(JSON.stringify({
+      flow: 'evolution_to_chatwoot',
+      stage: 'delete_event_propagated',
+      instanceId: context?.instanceId ?? null,
+      evolutionMessageId: targetEvolutionMessageId,
+      chatwootConversationId: link.chatwootConversationId,
+      chatwootMessageId: link.chatwootMessageId,
+    }));
+  }
+
+  async handleEditEvent(
+    payload: any,
+    context?: { instanceId?: string; connection?: ResolvedIntegrationContext }
+  ) {
+    const targetEvolutionMessageId = this.extractEditedTargetEvolutionMessageId(payload);
+    const editedContent = this.extractEditedContent(payload);
+    if (!targetEvolutionMessageId || editedContent === null) {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'edit_event_ignored_missing_payload',
+        instanceId: context?.instanceId ?? null,
+        evolutionMessageId: targetEvolutionMessageId ?? null,
+        hasContent: editedContent !== null,
+      }));
+      return;
+    }
+
+    const resolvedConnection =
+      context?.connection ??
+      await this.integrationContext.getDefaultContext();
+    if (!resolvedConnection) return;
+
+    const link = await this.prisma.messageLink.findUnique({
+      where: {
+        connectionKey_evolutionMessageId: {
+          connectionKey: resolvedConnection.connectionKey,
+          evolutionMessageId: targetEvolutionMessageId,
+        },
+      },
+    });
+
+    if (!link?.chatwootMessageId) {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'edit_event_link_not_found',
+        instanceId: context?.instanceId ?? null,
+        evolutionMessageId: targetEvolutionMessageId,
+      }));
+      return;
+    }
+
+    await this.chatwootClient.updateMessageContent(
+      resolvedConnection.chatwoot,
+      link.chatwootConversationId,
+      link.chatwootMessageId,
+      editedContent,
+    );
+
+    this.logger.log(JSON.stringify({
+      flow: 'evolution_to_chatwoot',
+      stage: 'edit_event_propagated',
+      instanceId: context?.instanceId ?? null,
+      evolutionMessageId: targetEvolutionMessageId,
+      chatwootConversationId: link.chatwootConversationId,
+      chatwootMessageId: link.chatwootMessageId,
+      contentLength: editedContent.length,
+    }));
   }
 
   async handleCallEvent(
@@ -989,6 +1127,121 @@ export class ProcessIncomingMessageUseCase {
     const normalized = state.toUpperCase();
     if (normalized === 'DELIVERED') return 'delivered';
     if (normalized === 'READ' || normalized === 'READSELF') return 'read';
+    return null;
+  }
+
+  private async persistInboundMessageLink(input: {
+    evolutionMessageId?: string;
+    chatwootConversationId: string;
+    connection: ResolvedIntegrationContext;
+  }) {
+    const evolutionMessageId = String(input.evolutionMessageId ?? '').trim();
+    if (!evolutionMessageId) return;
+
+    const conversation = await this.chatwootClient.getConversationDetails(
+      input.connection.chatwoot,
+      input.chatwootConversationId,
+    );
+    const chatwootMessageId = this.extractNewestChatwootMessageId(conversation);
+    if (!chatwootMessageId) {
+      this.logger.debug(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'inbound_link_skipped_missing_chatwoot_message_id',
+        evolutionMessageId,
+        chatwootConversationId: input.chatwootConversationId,
+      }));
+      return;
+    }
+
+    try {
+      await this.prisma.messageLink.create({
+        data: {
+          chatwootMessageId,
+          chatwootConversationId: input.chatwootConversationId,
+          evolutionMessageId,
+          companyId: null,
+          connectionId: input.connection.connectionId ?? null,
+          connectionKey: input.connection.connectionKey,
+        },
+      });
+    } catch {
+      // Vinculo ja existente ou corrida concorrente.
+    }
+  }
+
+  private extractNewestChatwootMessageId(conversation: any): string | undefined {
+    const messages = Array.isArray(conversation?.messages) ? conversation.messages : [];
+    const latest = [...messages]
+      .filter((item: any) => String(item?.id ?? '').trim())
+      .sort((a: any, b: any) => Number(b?.id ?? 0) - Number(a?.id ?? 0))[0];
+    const id = latest?.id?.toString?.();
+    return id ? String(id) : undefined;
+  }
+
+  private extractDeletedTargetEvolutionMessageId(payload: any): string | undefined {
+    const candidates = [
+      payload?.messageId,
+      payload?.MessageID,
+      payload?.targetMessageId,
+      payload?.TargetMessageID,
+      payload?.protocolMessage?.key?.id,
+      payload?.message?.protocolMessage?.key?.id,
+      payload?.Message?.protocolMessage?.key?.id,
+      payload?.message?.messageContextInfo?.messageSecret,
+      payload?.data?.messageId,
+      payload?.data?.MessageID,
+      payload?.data?.targetMessageId,
+      payload?.data?.TargetMessageID,
+      payload?.data?.protocolMessage?.key?.id,
+      payload?.data?.message?.protocolMessage?.key?.id,
+      payload?.data?.Message?.protocolMessage?.key?.id,
+    ];
+
+    return this.readFirstString(...candidates);
+  }
+
+  private extractEditedTargetEvolutionMessageId(payload: any): string | undefined {
+    const candidates = [
+      payload?.EditTargetID,
+      payload?.editTargetId,
+      payload?.targetMessageId,
+      payload?.TargetMessageID,
+      payload?.message?.editedMessage?.message?.protocolMessage?.key?.id,
+      payload?.message?.protocolMessage?.key?.id,
+      payload?.data?.EditTargetID,
+      payload?.data?.editTargetId,
+      payload?.data?.targetMessageId,
+      payload?.data?.TargetMessageID,
+      payload?.data?.message?.editedMessage?.message?.protocolMessage?.key?.id,
+      payload?.data?.message?.protocolMessage?.key?.id,
+    ];
+
+    return this.readFirstString(...candidates);
+  }
+
+  private extractEditedContent(payload: any): string | null {
+    const candidates = [
+      payload?.editedText,
+      payload?.text,
+      payload?.message?.conversation,
+      payload?.message?.extendedTextMessage?.text,
+      payload?.message?.editedMessage?.message?.conversation,
+      payload?.message?.editedMessage?.message?.extendedTextMessage?.text,
+      payload?.Message?.conversation,
+      payload?.Message?.extendedTextMessage?.text,
+      payload?.data?.editedText,
+      payload?.data?.text,
+      payload?.data?.message?.conversation,
+      payload?.data?.message?.extendedTextMessage?.text,
+      payload?.data?.message?.editedMessage?.message?.conversation,
+      payload?.data?.message?.editedMessage?.message?.extendedTextMessage?.text,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate === undefined || candidate === null) continue;
+      return String(candidate);
+    }
+
     return null;
   }
 
