@@ -22,7 +22,7 @@ import { AlertCircle, Bot, FileText, Headset, History, Loader2, MessageSquareTex
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketMessagePagination } from "./ticket-view.types";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
-import { sanitizeTicketRenderedHtml } from "@/features/tickets/interface/lib/ticket-rich-html";
+import { TicketMessageContent } from "@/features/tickets/interface/components/ticket-message-content";
 
 interface TicketChatProps {
     ticketId: string;
@@ -380,27 +380,19 @@ function Timeline({
 
                                     <div
                                         className={cn(
-                                            "prose prose-sm min-w-0 w-fit max-w-[min(100%,42rem)]! rounded-2xl p-3 text-sm shadow-sm wrap-anywhere **:max-w-full **:wrap-anywhere",
-                                            "[&_p]:whitespace-normal [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word",
-                                            "prose-pre:max-w-full prose-pre:overflow-x-hidden prose-pre:rounded-lg prose-pre:border prose-pre:bg-black prose-pre:p-3 prose-pre:text-white prose-pre:whitespace-pre-wrap",
-                                            "prose-a:break-all prose-code:break-all prose-code:whitespace-pre-wrap",
-                                            "[&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-xl [&_table]:border [&_table]:border-border/70",
-                                            "[&_thead]:bg-muted/60 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35",
-                                            "[&_th]:border [&_th]:border-border/60 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:align-top [&_th]:font-semibold [&_th]:text-foreground",
-                                            "[&_td]:border [&_td]:border-border/60 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-foreground",
-                                            "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0",
+                                            "min-w-0 w-fit max-w-[min(100%,42rem)]! rounded-2xl p-3 text-sm shadow-sm wrap-anywhere",
                                             article.isInternal
                                                 ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
                                                 : messageIsMe
                                                     ? "rounded-tr-sm bg-primary text-primary-foreground **:text-primary-foreground"
                                                     : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
                                         )}
-                                        dangerouslySetInnerHTML={{
-                                            __html: sanitizeTicketRenderedHtml(article.body, {
-                                                preserveInternalClasses: technicalResource,
-                                            }),
-                                        }}
-                                    />
+                                    >
+                                        <TicketMessageContent
+                                            body={article.body}
+                                            technicalResource={technicalResource}
+                                        />
+                                    </div>
                                 </div>
 
                                 {messageIsMe && (

@@ -270,10 +270,7 @@ export async function replyTicketAction(
   }
 
   try {
-    const attachmentNote = hasAttachments
-      ? `\n\n[Anexos enviados via portal: ${(attachments || []).map((file) => file.filename).join(", ")}]`
-      : "";
-    const outbound = `${body || "Mensagem com anexos"}${attachmentNote}`.trim();
+    const outbound = buildTicketReplyHtml(body, attachments ?? []);
 
     const result = await replyTicketGateway(ticketId, { message: outbound, visibility });
 
@@ -287,6 +284,53 @@ export async function replyTicketAction(
     console.error("Erro ao responder chamado:", error);
     return { success: false, error: "Erro ao enviar." };
   }
+}
+
+function buildTicketReplyHtml(
+  body: string,
+  attachments: { filename: string; data: string; "mime-type": string }[],
+) {
+  const sections: string[] = [];
+
+  if (body) {
+    sections.push(body);
+  }
+
+  if (!attachments.length) {
+    return body;
+  }
+
+  const imageBlocks = attachments
+    .filter((file) => file["mime-type"].startsWith("image/") && file.data.trim())
+    .map((file) => {
+      const mimeType = escapeHtml(file["mime-type"] || "image/png");
+      const filename = escapeHtml(file.filename || "imagem");
+      const base64 = String(file.data || "").replace(/\s+/g, "");
+      return `<figure><img src="data:${mimeType};base64,${base64}" alt="${filename}" title="${filename}" /><figcaption>${filename}</figcaption></figure>`;
+    });
+
+  if (imageBlocks.length) {
+    sections.push(imageBlocks.join(""));
+  }
+
+  const otherAttachments = attachments.filter((file) => !file["mime-type"].startsWith("image/"));
+  if (otherAttachments.length) {
+    const items = otherAttachments
+      .map((file) => `<li>${escapeHtml(file.filename || "anexo")}</li>`)
+      .join("");
+    sections.push(`<p><strong>Anexos enviados via portal</strong></p><ul>${items}</ul>`);
+  }
+
+  return sections.join("<p><br></p>").trim();
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export async function ticketQuickAction(input: {

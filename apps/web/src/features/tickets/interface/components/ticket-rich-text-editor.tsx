@@ -111,7 +111,8 @@ export function TicketRichTextEditor({
         class: cn(
           "ticket-rich-text-editor__content prose prose-sm max-w-none px-4 py-3 text-foreground outline-none",
           "prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground",
-          "prose-code:text-foreground prose-pre:bg-muted/70 prose-pre:text-foreground",
+          "prose-code:text-foreground prose-pre:border prose-pre:border-white/10 prose-pre:bg-zinc-950 prose-pre:text-zinc-100",
+          "[&_pre]:text-zinc-100 [&_pre_*]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-zinc-100",
           "prose-blockquote:border-l-primary/40 prose-blockquote:text-muted-foreground",
           minHeightClassName,
         ),
