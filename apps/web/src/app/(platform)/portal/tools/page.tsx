@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Scale, Wrench } from "lucide-react";
-import { ToolsHub } from "@/components/platform/tools/ToolsHub";
+import { ToolsHub } from "@/components/platform/tools/tools-hub";
 import { TaxReformWorkspace } from "@/features/tax/interface";
 import { cn } from "@/lib/utils";
 

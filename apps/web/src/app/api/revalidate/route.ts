@@ -1,4 +1,4 @@
-﻿import crypto from "crypto";
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 

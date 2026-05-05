@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyOptionsAction } from "@/features/company/application/company-read.queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
-import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/CadastrosAccessDenied";
+import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 
 interface CadastrosEmpresaNovoPageProps {

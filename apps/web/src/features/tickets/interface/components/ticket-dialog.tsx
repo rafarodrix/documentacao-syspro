@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -284,7 +284,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     name="subject"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold">Qual o problema ou solicitaÃ§Ã£o?</FormLabel>
+                        <FormLabel className="text-base font-semibold">Qual o problema ou solicitação?</FormLabel>
                         <FormControl>
                           <Input placeholder="Ex: Erro ao emitir Nota Fiscal na empresa matriz..." className="h-12 bg-white dark:bg-muted/30 focus:bg-background text-base shadow-sm" {...field} />
                         </FormControl>
@@ -299,7 +299,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     render={() => (
                       <FormItem className="flex-1 flex flex-col">
                         <FormLabel className="flex justify-between w-full">
-                            Detalhamento TÃ©cnico
+                            Detalhamento Técnico
                             <span className="text-xs font-normal text-muted-foreground flex gap-1 items-center"><Info className="w-3 h-3"/> Passo a Passo</span>
                         </FormLabel>
                         <FormControl>
@@ -361,7 +361,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider bg-muted p-2 rounded-md w-fit border border-border/40">
                         <AlertCircle className="h-3.5 w-3.5" />
-                        <span>AtribuiÃ§Ã£o e SLA</span>
+                        <span>Atribuição e SLA</span>
                       </div>
                       <div className="hidden lg:block text-xs text-muted-foreground opacity-70">Passo 2 de 2</div>
                   </div>
@@ -490,7 +490,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     </FormItem>
                     
                     <FormItem>
-                      <Label className="text-xs">MÃ³dulo (Local Erro)</Label>
+                      <Label className="text-xs">Módulo (Local Erro)</Label>
                       <TicketModuleCascadeSelect
                         options={ticketSettings.modules}
                         value={selectedModule}

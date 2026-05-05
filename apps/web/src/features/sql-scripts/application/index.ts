@@ -1,2 +1,2 @@
-﻿export * from './sql-script-read.queries';
+export * from './sql-script-read.queries';
 

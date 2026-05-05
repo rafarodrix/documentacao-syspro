@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth-helpers";
 import { getCrmLeadById } from "@/features/crm/application/crm-read.queries";
-import { CreateLeadPageForm } from "@/features/crm/interface/CreateLeadPageForm";
+import { CreateLeadPageForm } from "@/features/crm/interface/create-lead-page-form";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 
 type PageProps = {

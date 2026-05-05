@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Activity, BarChart3, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
-import { RegistryPagination } from "@/components/platform/shared/RegistryListScaffold";
+import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
 import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";

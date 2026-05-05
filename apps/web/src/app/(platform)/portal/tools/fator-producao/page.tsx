@@ -1,4 +1,4 @@
-import { ProductionFactorCalculator } from "@/components/platform/tools/fator-producao/ProductionFactorCalculator";
+import { ProductionFactorCalculator } from "@/components/platform/tools/fator-producao/production-factor-calculator";
 
 export default function AdminFatorProducaoToolPage() {
   return (

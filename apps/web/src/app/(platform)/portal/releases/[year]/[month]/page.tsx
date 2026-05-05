@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReleases } from "@/features/releases/application/release-read.queries";
-import { ReleasesClientPage } from "@/components/releases/ClientPage";
+import { ReleasesClientPage } from "@/components/releases/client-page";
 import { releaseMonthNames } from "@/features/releases/domain";
 
 export const dynamic = "force-dynamic";

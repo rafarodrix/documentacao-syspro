@@ -1,2 +1,2 @@
-﻿export * from './contract.types';
+export * from './contract.types';
 

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { AnalisadorXMLTool } from "@/components/platform/tools/analisador-xml/AnalisadorXMLTool";
+import { AnalisadorXMLTool } from "@/components/platform/tools/analisador-xml/analisador-xml-tool";
 
 export const metadata: Metadata = {
   title: "Analisador de XML Fiscal | Ferramentas Admin",

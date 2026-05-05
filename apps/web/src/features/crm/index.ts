@@ -1,3 +1,3 @@
 export * from "./application/crm-read.queries";
-export * from "./interface/LeadManagementPage";
-export * from "./interface/CreateLeadPageForm";
+export * from "./interface/lead-management-page";
+export * from "./interface/create-lead-page-form";

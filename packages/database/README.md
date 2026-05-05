@@ -1,4 +1,4 @@
-﻿# @dosc-syspro/database
+# @dosc-syspro/database
 
 Pacote responsável por centralizar a camada de banco do workspace.
 

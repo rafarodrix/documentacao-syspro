@@ -1,2 +1,2 @@
-﻿export * from './use-address-lookup';
+export * from './use-address-lookup';
 

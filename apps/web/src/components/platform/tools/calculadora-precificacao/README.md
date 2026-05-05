@@ -1,4 +1,4 @@
-﻿# Calculadora de Precificacao e Markup
+# Calculadora de Precificacao e Markup
 
 Ferramenta para calculo de preco de venda, margem, markup e leitura basica de custo fixo.
 

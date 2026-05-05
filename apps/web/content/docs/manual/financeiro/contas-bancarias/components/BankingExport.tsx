@@ -17,7 +17,7 @@ const BankingExport = () => {
         const margin = 14;
         const primaryColor: [number, number, number] = [51, 122, 183];
 
-        // --- CABE?ALHO ---
+        // --- CABEÇALHO ---
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.rect(0, 0, pageWidth, 15, 'F');
 
@@ -29,10 +29,10 @@ const BankingExport = () => {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(80, 80, 80);
-        const introText = "Para realizarmos a homologa??o junto ao banco e configurar a emissão de boletos, preencha os dados abaixo:";
+        const introText = "Para realizarmos a homologação junto ao banco e configurar a emissão de boletos, preencha os dados abaixo:";
         doc.text(doc.splitTextToSize(introText, pageWidth - (margin * 2)), margin, 40);
 
-        // --- FUN??O AUXILIAR PARA CRIAR SEÇÕES ---
+        // --- Função Auxiliar para Criar Seções ---
         const createFormTable = (title: string, data: string[][], startY: number) => {
             doc.setFont("helvetica", "bold");
             doc.setFontSize(11);

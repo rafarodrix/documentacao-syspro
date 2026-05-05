@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -457,7 +457,7 @@ export function RemoteHostDetailsPanel({
         paths: resolvedPaths,
       },
     };
-  }, [details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, systemSnapshot]);
+  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, systemSnapshot]);
   const autoHealStatusIcon = useMemo(
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
     [agentHealthCard.autoHeal.status]

@@ -1,4 +1,4 @@
-﻿# Calculadora de DIFAL e Antecipacao de ICMS
+# Calculadora de DIFAL e Antecipacao de ICMS
 
 Ferramenta para calculo do Diferencial de Aliquota (DIFAL) e da antecipacao parcial de ICMS em operacoes interestaduais.
 

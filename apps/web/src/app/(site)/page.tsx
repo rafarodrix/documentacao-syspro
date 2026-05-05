@@ -1,10 +1,10 @@
-﻿import { Metadata } from "next";
+import { Metadata } from "next";
 
 // 1. Importacao dos componentes modulares.
-import { HeroSection } from "@/components/site/HeroSection";
-import { TrilinkEcosystem } from "@/components/site/TrilinkEcosystem";
-import { DownloadsSection } from "@/components/site/DownloadsSection";
-import { FinalCTA } from "@/components/site/FinalCTA";
+import { HeroSection } from "@/components/site/hero-section";
+import { TrilinkEcosystem } from "@/components/site/trilink-ecosystem";
+import { DownloadsSection } from "@/components/site/downloads-section";
+import { FinalCTA } from "@/components/site/final-cta";
 
 // 2. Logica de negocio e tipos.
 import { getReleases } from "@/features/releases/application/release-read.queries";

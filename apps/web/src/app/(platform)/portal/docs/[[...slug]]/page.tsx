@@ -13,16 +13,16 @@ import { requireSession } from '@/lib/auth-helpers';
 import {
   canUserAccessDocUrl,
 } from '@/lib/docs-access';
-import { DocsHomePage } from '@/components/docs/home/DocsHomePage';
-import { DocsPageViewTracker } from '@/components/docs/DocsPageViewTracker';
-import { DocsMetaChips } from '@/components/docs/DocsMetaChips';
-import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/DocsFeatureBadge';
-import { DocsReadingTime } from '@/components/docs/DocsReadingTime';
-import { DocsKeyboardShortcuts } from '@/components/docs/DocsKeyboardShortcuts';
-import { DocsTocScrollSpy } from '@/components/docs/DocsTocScrollSpy';
-import { DocsSurface } from '@/components/docs/DocsSurface';
-import { DocsReadingProgress } from '@/components/docs/DocsReadingProgress';
-import SuporteSection from '@/components/docs/SuporteSection';
+import { DocsHomePage } from '@/components/docs/home/docs-home-page';
+import { DocsPageViewTracker } from '@/components/docs/docs-page-view-tracker';
+import { DocsMetaChips } from '@/components/docs/docs-meta-chips';
+import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/docs-feature-badge';
+import { DocsReadingTime } from '@/components/docs/docs-reading-time';
+import { DocsKeyboardShortcuts } from '@/components/docs/docs-keyboard-shortcuts';
+import { DocsTocScrollSpy } from '@/components/docs/docs-toc-scroll-spy';
+import { DocsSurface } from '@/components/docs/docs-surface';
+import { DocsReadingProgress } from '@/components/docs/docs-reading-progress';
+import SuporteSection from '@/components/docs/suporte-section';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 import {
   estimateReadingTimeMinutes,

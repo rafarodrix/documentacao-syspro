@@ -1,16 +1,16 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { RecentCompanies } from "@/components/platform/app/dashboard/RecentCompanies";
-import { RecentRecords } from "@/components/platform/app/dashboard/RecentRecords";
-import { ActivityChart } from "@/components/platform/app/dashboard/ActivityChart";
-import { OpenTicketsInsights } from "@/components/platform/app/dashboard/OpenTicketsInsights";
+import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
+import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
+import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
+import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SefazOperationsPanel } from "@/components/sefaz/SefazOperationsPanel";
+import { SefazOperationsPanel } from "@/components/sefaz/sefaz-operations-panel";
 import Link from "next/link";
-import { MagicCard } from "@/components/magicui/MagicCard";
-import { NumberTicker } from "@/components/magicui/NumberTicker";
-import { ShineBorder } from "@/components/magicui/ShineBorder";
+import { MagicCard } from "@/components/magicui/magic-card";
+import { NumberTicker } from "@/components/magicui/number-ticker";
+import { ShineBorder } from "@/components/magicui/shine-border";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import {
   ArrowUpRight,
@@ -355,7 +355,7 @@ export default async function DashboardPage() {
               <DashboardMetricCard
                 title="Risco operacional"
                 value={(adminData.crm?.overdueLeads ?? 0) + (adminData.crm?.noNextStepLeads ?? 0)}
-                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados â€¢ ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
+                helper={`${adminData.crm?.overdueLeads ?? 0} atrasados • ${adminData.crm?.noNextStepLeads ?? 0} sem proximo passo`}
                 icon={TrendingDown as any}
                 tone="red"
               />

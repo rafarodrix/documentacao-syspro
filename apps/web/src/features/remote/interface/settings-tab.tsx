@@ -5,7 +5,7 @@ import {
   SettingsTabsRail,
   SettingsTabsRailTrigger,
 } from "@/app/(platform)/portal/configuracoes/settings-shell";
-import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/RemoteModuleSettingsForm";
+import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/remote-module-settings-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 

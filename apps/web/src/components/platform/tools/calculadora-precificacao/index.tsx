@@ -1,10 +1,10 @@
-﻿'use client';
+'use client';
 
 import { usePricingCalculator } from './use-pricing-calculator';
-import { Step1Custos } from './components/Step1Custos';
-import { Step2Precificacao } from './components/Step2Precificacao';
-import { PricingResults } from './components/PricingResults';
-import { PricingExplanation } from './components/PricingExplanation';
+import { Step1Custos } from './components/step1-custos';
+import { Step2Precificacao } from './components/step2-precificacao';
+import { PricingResults } from './components/pricing-results';
+import { PricingExplanation } from './components/pricing-explanation';
 
 export function CalculadoraPrecificacao() {
     const {

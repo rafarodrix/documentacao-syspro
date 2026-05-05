@@ -31,7 +31,7 @@ export default function GeradorPdfRequisitos() {
     doc.text('Guia Oficial de Requisitos Mínimos e Infraestrutura do Syspro ERP', 14, 26);
     doc.line(14, 30, pageWidth - 14, 30);
 
-    // --- SEÇÃO 1: SERVIDORES ---
+    // --- Seção 1: Servidores ---
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...corPrimaria);
@@ -51,7 +51,7 @@ export default function GeradorPdfRequisitos() {
       alternateRowStyles: { fillColor: [250, 250, 250] },
     });
 
-    // --- SEÇÃO 2: ESTA??ES ---
+    // --- Seção 2: Estações ---
     const finalYServer = doc.lastAutoTable?.finalY || 80;
     doc.text('2. Estações de Trabalho', 14, finalYServer + 12);
 
@@ -66,7 +66,7 @@ export default function GeradorPdfRequisitos() {
       styles: { fontSize: 8 },
     });
 
-    // --- SEÇÃO 3: INFORMAÇÕES ADICIONAIS ---
+    // --- Seção 3: Informações Adicionais ---
     const finalYEstacoes = doc.lastAutoTable?.finalY || 150;
     const startYInfo = finalYEstacoes + 15;
 

@@ -35,14 +35,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { ConfirmActionDialog } from "../shared/ConfirmActionDialog"
+import { ConfirmActionDialog } from "../shared/confirm-action-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
-import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/ClickableRecord"
+import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
 import {
   RegistryEmptyState,
   RegistryFeedback,
@@ -51,7 +51,7 @@ import {
   RegistryTableCard,
   RegistryToolbar,
   type RegistryPaginationState,
-} from "@/components/platform/shared/RegistryListScaffold"
+} from "@/components/platform/shared/registry-list-scaffold"
 
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/company-write.actions"
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences"
