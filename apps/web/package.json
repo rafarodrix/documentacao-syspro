@@ -26,7 +26,6 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@dosc-syspro/application": "file:../../packages/application",
     "@dosc-syspro/config": "file:../../packages/config",
     "@dosc-syspro/contracts": "file:../../packages/contracts",
     "@dosc-syspro/core": "file:../../packages/core",
@@ -82,8 +81,8 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.66.1",
     "react-icons": "^5.5.0",
-    "react-markdown": "^10.1.0",
     "react-katex": "^3.1.0",
+    "react-markdown": "^10.1.0",
     "react-to-print": "^3.2.0",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
