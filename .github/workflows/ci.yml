@@ -37,9 +37,15 @@ jobs:
 
       - name: Prisma schema validate
         run: npm run db:validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost/ci
+          DIRECT_URL: postgresql://ci:ci@localhost/ci
 
       - name: Prisma generate smoke
         run: npm run db:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost/ci
+          DIRECT_URL: postgresql://ci:ci@localhost/ci
 
       - name: Docs check
         run: npm run docs:check
