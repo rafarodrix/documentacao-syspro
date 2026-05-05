@@ -14,6 +14,7 @@ import { ShineBorder } from "@/components/magicui/shine-border";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import {
   ArrowUpRight,
+  BarChart2,
   BookOpen,
   Building2,
   DollarSign,
@@ -225,6 +226,13 @@ export default async function DashboardPage() {
                 {(adminData.sefazFocusUfs?.length ?? 0) + 1}
               </span>
             </TabsTrigger>
+            <TabsTrigger value="analise" className="gap-2 px-4 py-2">
+              <BarChart2 className="h-4 w-4" />
+              Análise
+              <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {openTicketsNow}
+              </span>
+            </TabsTrigger>
             {hasCadastrosAccess ? (
               <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
                 <Building2 className="h-4 w-4" />
@@ -246,16 +254,14 @@ export default async function DashboardPage() {
           </TabsList>
 
           <TabsContent value="operacional" className="space-y-4">
-            <SefazOperationsPanel
-              focusUfs={adminData.sefazFocusUfs ?? []}
-              scopedStatuses={adminData.sefazStatuses ?? []}
-              nationalStatuses={adminData.sefazNationalStatuses ?? []}
-              configuredRoutes={adminData.sefazConfiguredRoutes ?? []}
-              canViewAvailability={canViewAvailability}
-            />
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {/* CARDS DE CADASTROS MOVIDOS PARA ABA CADASTROS */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <SefazOperationsPanel
+                focusUfs={adminData.sefazFocusUfs ?? []}
+                scopedStatuses={adminData.sefazStatuses ?? []}
+                nationalStatuses={adminData.sefazNationalStatuses ?? []}
+                configuredRoutes={adminData.sefazConfiguredRoutes ?? []}
+                canViewAvailability={canViewAvailability}
+              />
 
               <Card className="border-border/50 bg-muted/30 shadow-none">
                 <CardHeader className="pb-2">
@@ -284,7 +290,9 @@ export default async function DashboardPage() {
                 scopeMode={adminTicketScopeMode}
               />
             </div>
+          </TabsContent>
 
+          <TabsContent value="analise" className="space-y-4">
             <OpenTicketsInsights
               records={adminData.openTicketRecords}
               scopeMode={adminTicketScopeMode}
@@ -305,8 +313,6 @@ export default async function DashboardPage() {
                 />
               </div>
             </div>
-
-              {/* RECENT RECORDS MOVIDOS PARA ABA CADASTROS */}
           </TabsContent>
 
           {canAccessCrm ? (
