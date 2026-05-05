@@ -28,6 +28,7 @@
       "@dosc-syspro/contracts/sefaz-routes": ["../../packages/contracts/src/sefaz/sefaz-routes.types.ts"],
       "@dosc-syspro/contracts/ticket": ["../../packages/contracts/src/ticket/index.ts"],
       "@dosc-syspro/contracts/user": ["../../packages/contracts/src/user/index.ts"],
+      "@dosc-syspro/app-api/types": ["../../apps/api/src/exports.ts"],
       "@dosc-syspro/core": ["../../packages/core/src/index.ts"],
       "@dosc-syspro/core/*": ["../../packages/core/src/*"],
       "@dosc-syspro/database": ["../../packages/database/src/index.ts"],
