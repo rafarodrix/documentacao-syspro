@@ -21,6 +21,7 @@ import { CrmModule } from './modules/crm/crm.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { DocumentosModule } from './modules/documentos/documentos.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { TrpcModule } from './modules/trpc/trpc.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AutomationModule } from './modules/automation/automation.module';
     AgentsModule,
     DocumentosModule,
     AutomationModule,
+    TrpcModule,
   ],
   controllers: [AppController],
   providers: [AppService],

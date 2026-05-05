@@ -1,4 +1,4 @@
-﻿FROM node:20-alpine AS builder
+FROM node:20-alpine AS builder
 
 RUN apk add --no-cache openssl
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig*.json ./
 COPY apps/api/package.json ./apps/api/package.json
-COPY packages/application/package.json ./packages/application/package.json
+
 COPY packages/config/package.json ./packages/config/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/core/package.json ./packages/core/package.json
@@ -20,7 +20,7 @@ RUN npm pkg delete scripts.postinstall
 RUN npm install -w @dosc-syspro/app-api --include-workspace-root --no-audit --no-fund
 
 COPY apps/api ./apps/api
-COPY packages/application ./packages/application
+
 COPY packages/config ./packages/config
 COPY packages/contracts ./packages/contracts
 COPY packages/core ./packages/core
@@ -44,7 +44,7 @@ ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine
 
 COPY package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages/application ./packages/application
+
 COPY --from=builder /app/packages/config ./packages/config
 COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/packages/core ./packages/core
