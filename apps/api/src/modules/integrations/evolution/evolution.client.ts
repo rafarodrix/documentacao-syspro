@@ -32,6 +32,17 @@ export class EvolutionOutboundError extends Error {
   }
 }
 
+export class EvolutionMessageDeleteError extends Error {
+  constructor(
+    message: string,
+    public readonly providerStatus: number,
+    public readonly providerBody: string,
+  ) {
+    super(message);
+    this.name = 'EvolutionMessageDeleteError';
+  }
+}
+
 export function readEvolutionConfigFromRuntime(): EvolutionConnectionConfig {
   const config = readEvolutionRuntimeConfig();
   return {
@@ -361,6 +372,86 @@ export class EvolutionClient {
     throw lastError ?? new Error('Evolution send failed via /send/media: no candidates available.');
   }
 
+  async deleteMessageForEveryone(
+    config: EvolutionConnectionConfig,
+    input: {
+      messageId: string;
+      remoteJid: string;
+      fromMe?: boolean;
+      participant?: string | null;
+    },
+  ): Promise<void> {
+    if (!config.apiUrl || !config.apiKey) {
+      this.logger.warn('[EvolutionClient] Credenciais ausentes. Exclusao de mensagem ignorada.');
+      return;
+    }
+
+    const instance = this.resolveInstance(config.instance);
+    const baseUrl = config.apiUrl.replace(/\/+$/, '');
+    const remoteJid = this.normalizeRemoteJid(input.remoteJid);
+    const headers = this.buildAuthHeaders(config.apiKey);
+    const startedAt = Date.now();
+    const route = '/message/delete';
+    const url = `${baseUrl}/message/delete`;
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_request_delete_message',
+      providerFlavor: 'evolution_go',
+      route,
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      messageId: input.messageId,
+      remoteJid,
+    }));
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        chat: remoteJid,
+        messageId: input.messageId,
+      }),
+    });
+
+    if (response.ok) {
+      this.logger.log(JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'provider_response_delete_message',
+        providerFlavor: 'evolution_go',
+        route,
+        evolutionBaseUrl: baseUrl,
+        evolutionInstance: instance,
+        messageId: input.messageId,
+        remoteJid,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+      }));
+      return;
+    }
+
+    const providerBody = await response.text().catch(() => 'unknown_error');
+    this.logger.error(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'provider_error_delete_message',
+      providerFlavor: 'evolution_go',
+      route,
+      evolutionBaseUrl: baseUrl,
+      evolutionInstance: instance,
+      messageId: input.messageId,
+      remoteJid,
+      status: response.status,
+      error: providerBody,
+      durationMs: Date.now() - startedAt,
+    }));
+
+    throw new EvolutionMessageDeleteError(
+      `Evolution Go delete message failed via ${route}: status=${response.status} body=${providerBody}`,
+      response.status,
+      providerBody,
+    );
+  }
+
   async fetchProfilePicture(
     config: EvolutionConnectionConfig,
     number: string
@@ -449,6 +540,14 @@ export class EvolutionClient {
     const digits = recipient.replace(/\D/g, '');
     if (!digits) return digits;
     return digits.startsWith('55') ? digits : `55${digits}`;
+  }
+
+  private normalizeRemoteJid(value: string): string {
+    const normalized = this.normalizeNumber(value);
+    if (normalized.includes('@')) {
+      return normalized;
+    }
+    return `${normalized}@s.whatsapp.com`;
   }
 
   private buildOutboundNumberCandidates(number: string): string[] {
