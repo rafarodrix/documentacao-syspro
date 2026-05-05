@@ -270,7 +270,7 @@ export async function replyTicketAction(
   }
 
   try {
-    const outbound = buildTicketReplyHtml(body, attachments ?? []);
+    const outbound = buildTicketReplyMarkdown(body, attachments ?? []);
 
     const result = await replyTicketGateway(ticketId, { message: outbound, visibility });
 
@@ -286,7 +286,7 @@ export async function replyTicketAction(
   }
 }
 
-function buildTicketReplyHtml(
+function buildTicketReplyMarkdown(
   body: string,
   attachments: { filename: string; data: string; "mime-type": string }[],
 ) {
@@ -303,34 +303,31 @@ function buildTicketReplyHtml(
   const imageBlocks = attachments
     .filter((file) => file["mime-type"].startsWith("image/") && file.data.trim())
     .map((file) => {
-      const mimeType = escapeHtml(file["mime-type"] || "image/png");
-      const filename = escapeHtml(file.filename || "imagem");
+      const mimeType = file["mime-type"] || "image/png";
+      const filename = escapeMarkdown(file.filename || "imagem");
       const base64 = String(file.data || "").replace(/\s+/g, "");
-      return `<figure><img src="data:${mimeType};base64,${base64}" alt="${filename}" title="${filename}" /><figcaption>${filename}</figcaption></figure>`;
+      return `![${filename}](data:${mimeType};base64,${base64})`;
     });
 
   if (imageBlocks.length) {
-    sections.push(imageBlocks.join(""));
+    sections.push(imageBlocks.join("\n\n"));
   }
 
   const otherAttachments = attachments.filter((file) => !file["mime-type"].startsWith("image/"));
   if (otherAttachments.length) {
     const items = otherAttachments
-      .map((file) => `<li>${escapeHtml(file.filename || "anexo")}</li>`)
-      .join("");
-    sections.push(`<p><strong>Anexos enviados via portal</strong></p><ul>${items}</ul>`);
+      .map((file) => `- ${escapeMarkdown(file.filename || "anexo")}`)
+      .join("\n");
+    sections.push(["**Anexos enviados via portal**", items].join("\n"));
   }
 
-  return sections.join("<p><br></p>").trim();
+  return sections.join("\n\n").trim();
 }
 
-function escapeHtml(value: string) {
+function escapeMarkdown(value: string) {
   return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/\\/g, "\\\\")
+    .replace(/([\[\]\(\)`*_!#>~-])/g, "\\$1");
 }
 
 export async function ticketQuickAction(input: {

@@ -54,6 +54,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
+import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./ticket-view.types";
@@ -651,33 +652,22 @@ function withTechnicalResourceArticles(articles: TicketArticleItem[], ticket: Ti
 
     if (!missingResources.length) return cleanedArticles;
 
-    const resourceItemsMarkup = missingResources
+    const resourceMarkdown = missingResources
         .map((resource) => {
-            const safeLabel = escapeHtml(resource.label);
-            const safeUrl = escapeHtml(resource.url);
-            return [
-                "<div class=\"not-prose rounded-xl border border-border/60 bg-background/60 px-3 py-2\">",
-                `<p class="m-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">${safeLabel}</p>`,
-                `<a class="mt-1 block break-all text-sm font-medium text-primary underline underline-offset-4" href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`,
-                "</div>",
-            ].join("");
+            return [`### ${resource.label}`, `[${resource.url}](${resource.url})`].join("\n");
         })
-        .join("");
+        .join("\n\n");
 
-    const resourceMarkup = [
-        "<div class=\"ticket-detail-internal-html not-prose mt-4 rounded-2xl border border-border/60 bg-muted/40 p-3\">",
-        "<p class=\"m-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground\">Recursos para abertura do ticket</p>",
-        "<div class=\"mt-3 space-y-2\">",
-        resourceItemsMarkup,
-        "</div>",
-        "</div>",
-    ].join("");
+    const resourceBody = [
+        "## Recursos tecnicos para abertura do ticket",
+        resourceMarkdown,
+    ].join("\n\n");
 
     const nextArticles = [...cleanedArticles];
     nextArticles.splice(openingArticleIndex + 1, 0, {
         id: "opening-technical-resources",
         from: "Recursos internos",
-        body: resourceMarkup,
+        body: resourceBody,
         createdAt: openingArticle.createdAt,
         sender: "Agent",
         isInternal: true,
@@ -730,16 +720,7 @@ function isTechnicalResourceArticle(article: TicketArticleItem) {
 }
 
 function stripHtml(value: string) {
-    return value.replace(/<[^>]*>?/gm, "");
-}
-
-function escapeHtml(value: string) {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+    return markdownToPlainText(value);
 }
 
 function SidebarField({ label, value }: { label: string; value: ReactNode }) {

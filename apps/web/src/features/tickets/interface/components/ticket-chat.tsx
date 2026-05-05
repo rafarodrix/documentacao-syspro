@@ -23,6 +23,11 @@ import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketMessagePagination } from "./ticket-view.types";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
 import { TicketMessageContent } from "@/features/tickets/interface/components/ticket-message-content";
+import {
+    appendMarkdownBlock,
+    markdownToPlainText,
+    normalizeTicketMarkdownInput,
+} from "@/features/tickets/lib/ticket-markdown";
 
 interface TicketChatProps {
     ticketId: string;
@@ -72,8 +77,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
     }, [articles]);
 
     const insertTemplate = (body: string) => {
-        const html = body.trim().startsWith("<") ? body : `<p>${body}</p>`;
-        setMessage((current) => `${current || ""}${current ? "<p><br></p>" : ""}${html}`);
+        setMessage((current) => appendMarkdownBlock(current, normalizeTicketMarkdownInput(body)));
     };
 
     const handleLoadOlder = async (container: HTMLDivElement | null) => {
@@ -202,7 +206,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                         templates={quickTemplates.map((template) => ({
                                             id: template.id,
                                             label: template.label,
-                                            html: template.value.trim().startsWith("<") ? template.value : `<p>${template.value}</p>`,
+                                            value: template.value,
                                         }))}
                                     />
                                 </div>
@@ -390,7 +394,6 @@ function Timeline({
                                     >
                                         <TicketMessageContent
                                             body={article.body}
-                                            technicalResource={technicalResource}
                                         />
                                     </div>
                                 </div>
@@ -414,7 +417,7 @@ function Timeline({
 }
 
 function stripHtml(value: string) {
-    return value.replace(/<[^>]*>?/gm, "");
+    return markdownToPlainText(value);
 }
 
 function parseHistoryEvent(value: string) {

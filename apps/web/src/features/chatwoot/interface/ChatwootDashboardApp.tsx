@@ -189,6 +189,35 @@ function resolveApiPriorityFromSettingValue(value: string): TicketPriorityOption
   return "NORMAL";
 }
 
+function buildChatwootTicketDescription(input: {
+  companyName?: string;
+  contactName?: string;
+  customerPhone?: string;
+  ticketNumber?: string;
+  hostId?: string;
+}) {
+  return [
+    "## Atendimento originado no Chatwoot",
+    "",
+    input.companyName ? `- Empresa: ${input.companyName}` : "",
+    input.contactName ? `- Contato: ${input.contactName}` : "",
+    input.customerPhone ? `- Telefone/WhatsApp: ${input.customerPhone}` : "",
+    input.ticketNumber ? `- Ticket referenciado na conversa: #${input.ticketNumber}` : "",
+    input.hostId ? `- Host em contexto: ${input.hostId}` : "",
+    "",
+    "## Descricao do problema",
+    "",
+    "## Passos para reproduzir",
+    "1. ",
+    "2. ",
+    "3. ",
+    "",
+    "## Evidencias",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function ChatwootDashboardApp() {
   const ticketSettings = useTicketModuleSettings();
   const [context, setContext] = useState<ChatwootAppContext | null>(null);
@@ -297,7 +326,13 @@ export function ChatwootDashboardApp() {
       customerWhatsapp: customerPhone,
       customerEmail,
       subject: contactName ? `${contactName} - Novo ticket` : "Novo ticket",
-      description: "Atendimento originado no Chatwoot.",
+      description: buildChatwootTicketDescription({
+        companyName: effectiveCompanyName,
+        contactName,
+        customerPhone,
+        ticketNumber,
+        hostId,
+      }),
     });
     if (effectiveCompanyId) ticketParams.set("companyId", effectiveCompanyId);
 
@@ -484,17 +519,13 @@ export function ChatwootDashboardApp() {
     const defaultTitle = resolved.ticketNumber
       ? `${contactLabel} - continuidade do atendimento`
       : `${contactLabel} - novo ticket`;
-    const defaultDescription = [
-      "Atendimento originado no Chatwoot.",
-      resolved.companyName ? `Empresa: ${resolved.companyName}` : "",
-      effectiveContactName ? `Contato: ${effectiveContactName}` : "",
-      resolved.customerPhone ? `Telefone: ${resolved.customerPhone}` : "",
-      resolved.ticketNumber ? `Ticket referenciado na conversa: #${resolved.ticketNumber}` : "",
-      resolved.hostId ? `Host em contexto: ${resolved.hostId}` : "",
-      "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const defaultDescription = buildChatwootTicketDescription({
+      companyName: resolved.companyName,
+      contactName: effectiveContactName,
+      customerPhone: resolved.customerPhone,
+      ticketNumber: resolved.ticketNumber,
+      hostId: resolved.hostId,
+    });
 
     setEmbeddedTicketForm((current) => {
       const nextTitle = current.title.trim() ? current.title : defaultTitle;

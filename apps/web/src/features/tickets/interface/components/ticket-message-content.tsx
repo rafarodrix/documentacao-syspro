@@ -8,13 +8,11 @@ import { sanitizeTicketRenderedHtml } from "@/features/tickets/interface/lib/tic
 
 type TicketMessageContentProps = {
   body: string;
-  technicalResource?: boolean;
   className?: string;
 };
 
 export function TicketMessageContent({
   body,
-  technicalResource = false,
   className,
 }: TicketMessageContentProps) {
   if (looksLikeHtml(body)) {
@@ -22,9 +20,7 @@ export function TicketMessageContent({
       <div
         className={cn(ticketMessageContentClassName, className)}
         dangerouslySetInnerHTML={{
-          __html: sanitizeTicketRenderedHtml(body, {
-            preserveInternalClasses: technicalResource,
-          }),
+          __html: sanitizeTicketRenderedHtml(body),
         }}
       />
     );
