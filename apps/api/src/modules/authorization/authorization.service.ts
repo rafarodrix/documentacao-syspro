@@ -607,11 +607,29 @@ export class AuthorizationService {
           where: { key: profile.key },
           select: {
             id: true,
-            permissions: {
-              select: { id: true },
-            },
           },
         });
+
+        const syncSystemProfilePermissions = async (profileId: string, permissionKeys: SettingsPermissionKey[]) => {
+          const permissions = await tx.permission.findMany({
+            where: { key: { in: permissionKeys as string[] } },
+            select: { id: true },
+          });
+
+          await tx.accessProfilePermission.deleteMany({
+            where: { profileId },
+          });
+
+          if (permissions.length > 0) {
+            await tx.accessProfilePermission.createMany({
+              data: permissions.map((permission) => ({
+                profileId,
+                permissionId: permission.id,
+              })),
+              skipDuplicates: true,
+            });
+          }
+        };
 
         if (!existingProfile) {
           const savedProfile = await tx.accessProfile.create({
@@ -625,20 +643,7 @@ export class AuthorizationService {
             select: { id: true },
           });
 
-          const permissions = await tx.permission.findMany({
-            where: { key: { in: profile.permissions as string[] } },
-            select: { id: true },
-          });
-
-          if (permissions.length > 0) {
-            await tx.accessProfilePermission.createMany({
-              data: permissions.map((permission) => ({
-                profileId: savedProfile.id,
-                permissionId: permission.id,
-              })),
-              skipDuplicates: true,
-            });
-          }
+          await syncSystemProfilePermissions(savedProfile.id, profile.permissions);
           continue;
         }
 
@@ -650,22 +655,7 @@ export class AuthorizationService {
           },
         });
 
-        if (existingProfile.permissions.length === 0) {
-          const permissions = await tx.permission.findMany({
-            where: { key: { in: profile.permissions as string[] } },
-            select: { id: true },
-          });
-
-          if (permissions.length > 0) {
-            await tx.accessProfilePermission.createMany({
-              data: permissions.map((permission) => ({
-                profileId: existingProfile.id,
-                permissionId: permission.id,
-              })),
-              skipDuplicates: true,
-            });
-          }
-        }
+        await syncSystemProfilePermissions(existingProfile.id, profile.permissions);
       }
     });
   }
