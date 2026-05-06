@@ -1176,23 +1176,60 @@ export class DashboardService {
     const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
     const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
 
-    const [sefazRecords, nationalSefazRecords] = await Promise.all([
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [sefazRecords, nationalSefazRecords, historyRecords] = await Promise.all([
       this.prisma.sefazStatusCurrent
         .findMany({ where: { uf: { in: dashboardUFs } }, orderBy: { checkedAt: 'desc' } })
         .catch(() => []),
       this.prisma.sefazStatusCurrent
         .findMany({ orderBy: { checkedAt: 'desc' } })
         .catch(() => []),
+      this.prisma.sefazStatus
+        .findMany({
+          where: { checkedAt: { gte: since } },
+          orderBy: { checkedAt: 'asc' },
+          select: { uf: true, service: true, status: true, latency: true },
+        })
+        .catch(() => []),
     ]);
 
-    const mapRecord = (r: (typeof sefazRecords)[number]) => ({
-      uf: r.uf,
-      service: r.service,
-      status: r.status,
-      latency: r.latency,
-      checkedAt: r.checkedAt.toISOString(),
-      changedAt: r.changedAt.toISOString(),
-    });
+    const historyMap = new Map<string, { status: string; latency: number }[]>();
+    for (const r of historyRecords) {
+      const key = `${r.uf}:${r.service}`;
+      if (!historyMap.has(key)) historyMap.set(key, []);
+      historyMap.get(key)!.push({ status: r.status, latency: r.latency });
+    }
+
+    function computeMetrics(records: { status: string; latency: number }[]) {
+      if (!records.length) return { uptimePct: undefined, incidentCount: undefined, latencyHistory: [] as number[] };
+      const total = records.length;
+      const onlineCount = records.filter((r) => r.status === 'ONLINE').length;
+      const uptimePct = Math.round((onlineCount / total) * 1000) / 10;
+      let incidents = 0;
+      let prevOnline = true;
+      for (const r of records) {
+        const isOnline = r.status === 'ONLINE';
+        if (prevOnline && !isOnline) incidents++;
+        prevOnline = isOnline;
+      }
+      const latencyHistory = records.slice(-12).map((r) => r.latency);
+      return { uptimePct, incidentCount: incidents, latencyHistory };
+    }
+
+    const mapRecord = (r: (typeof sefazRecords)[number]) => {
+      const key = `${r.uf}:${r.service}`;
+      const metrics = computeMetrics(historyMap.get(key) ?? []);
+      return {
+        uf: r.uf,
+        service: r.service,
+        status: r.status,
+        latency: r.latency,
+        checkedAt: r.checkedAt.toISOString(),
+        changedAt: r.changedAt.toISOString(),
+        ...metrics,
+      };
+    };
 
     return {
       success: true as const,

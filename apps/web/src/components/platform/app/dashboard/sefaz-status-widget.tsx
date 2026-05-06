@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";
+import { LatencySparkline } from "./latency-sparkline";
 
 type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
 
@@ -22,6 +23,16 @@ const NO_READING_STATUS = {
   color: "text-slate-400",
   dot: "bg-slate-400",
 };
+
+function formatDuration(isoDate: string): string {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  if (totalMinutes < 1) return "agora";
+  if (totalMinutes < 60) return `${totalMinutes}min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+}
 
 interface SefazStatusWidgetProps {
   title: string;
@@ -62,13 +73,17 @@ export function SefazStatusWidget({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
-        <StatusRow label="NFe" active={nfeActive} status={nfeStatus} latency={nfe?.latency} rawStatus={nfe?.status} />
+        <StatusRow
+          label="NFe"
+          active={nfeActive}
+          status={nfeStatus}
+          record={nfe}
+        />
         <StatusRow
           label="NFC-e"
           active={nfceActive}
           status={nfceStatus}
-          latency={nfce?.latency}
-          rawStatus={nfce?.status}
+          record={nfce}
           className="border-t border-border/60 pt-3"
         />
       </CardContent>
@@ -80,34 +95,75 @@ function StatusRow({
   label,
   active,
   status,
-  latency,
-  rawStatus,
+  record,
   className,
 }: {
   label: string;
   active: boolean;
   status: { label: string; color: string; dot: string };
-  latency?: number;
-  rawStatus?: string;
+  record?: DashboardSefazStatus;
   className?: string;
 }) {
+  const duration = record?.changedAt ? formatDuration(record.changedAt) : null;
+  const uptimePct = record?.uptimePct;
+  const incidentCount = record?.incidentCount;
+  const latencyHistory = record?.latencyHistory ?? [];
+  const rawStatus = record?.status;
+  const latency = record?.latency;
+
   return (
-    <div className={cn("flex items-center justify-between gap-3", className)}>
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-        <div className="mt-1 flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-            {rawStatus === "ONLINE" ? (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            ) : null}
-            <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", status.dot)} />
-          </span>
-          <span className={cn("text-sm font-semibold", status.color)}>{status.label}</span>
+    <div className={cn("space-y-2", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+              {rawStatus === "ONLINE" ? (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              ) : null}
+              <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", status.dot)} />
+            </span>
+            <span className={cn("text-sm font-semibold", status.color)}>{status.label}</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <p className="font-mono text-xs text-muted-foreground">
+            {!active ? "Desativado" : !latency || rawStatus === "OFFLINE" ? "Sem leitura" : `${latency}ms`}
+          </p>
+          {active && duration ? (
+            <p className="text-[10px] text-muted-foreground/70">há {duration}</p>
+          ) : null}
         </div>
       </div>
-      <p className="font-mono text-xs text-muted-foreground">
-        {!active ? "Desativado" : !latency || rawStatus === "OFFLINE" ? "Sem leitura" : `${latency}ms`}
-      </p>
+
+      {active && (uptimePct !== undefined || latencyHistory.length >= 2) ? (
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {uptimePct !== undefined ? (
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                  uptimePct >= 99
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : uptimePct >= 90
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400",
+                )}
+              >
+                {uptimePct.toFixed(1)}% uptime
+              </span>
+            ) : null}
+            {incidentCount !== undefined && incidentCount > 0 ? (
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {incidentCount} {incidentCount === 1 ? "incidente" : "incidentes"}
+              </span>
+            ) : null}
+          </div>
+          {latencyHistory.length >= 2 ? (
+            <LatencySparkline data={latencyHistory} status={rawStatus ?? "ONLINE"} />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
