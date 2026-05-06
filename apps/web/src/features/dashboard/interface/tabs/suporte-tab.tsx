@@ -1,27 +1,12 @@
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
 import { TicketsSummary } from "@/features/tickets/interface";
-import type {
-  DashboardActivityPoint,
-  DashboardOpenTicketRecord,
-  DashboardTicketSummary,
-} from "@dosc-syspro/contracts/dashboard";
+import { getSuporteData } from "../../application";
 
-export function SuporteTab({
-  openTicketRecords,
-  tickets,
-  totalOpen,
-  activity,
-  scopeMode,
-  allowAreaFilter,
-}: {
-  openTicketRecords: DashboardOpenTicketRecord[];
-  tickets: DashboardTicketSummary[];
-  totalOpen: number;
-  activity: DashboardActivityPoint[];
-  scopeMode: "all" | "development";
-  allowAreaFilter: boolean;
-}) {
+export async function SuporteTab() {
+  const data = await getSuporteData();
+  const { openTicketRecords, tickets, totalOpen, activity, scopeMode, allowAreaFilter } = data;
+
   return (
     <div className="space-y-4">
       <OpenTicketsInsights
