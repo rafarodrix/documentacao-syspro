@@ -1058,7 +1058,7 @@ export class SettingsController {
 
   @Post('contracts')
   async createContract(@Req() req: Request, @Body() body: unknown) {
-    await this.assertContractsWriteAccess(req.headers);
+    await this.assertContractsCreateAccess(req.headers);
     const parsed = createContractSchema.parse(body);
 
     const company = await this.prisma.company.findUnique({
@@ -1132,6 +1132,54 @@ export class SettingsController {
     });
 
     return { success: true, message: 'Contrato atualizado com sucesso.' };
+  }
+
+  @Delete('contracts/:id')
+  async deleteContract(@Req() req: Request, @Param('id') id: string) {
+    await this.assertContractsDeleteAccess(req.headers);
+
+    const contract = await this.prisma.contract.findUnique({
+      where: { id },
+      select: { id: true, companyId: true, status: true },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contrato nao encontrado.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.contract.delete({
+        where: { id },
+      });
+
+      const activeContracts = await tx.contract.count({
+        where: {
+          companyId: contract.companyId,
+          status: ContractStatus.ACTIVE,
+        },
+      });
+
+      if (contract.status === ContractStatus.ACTIVE && activeContracts === 0) {
+        await tx.company.update({
+          where: { id: contract.companyId },
+          data: {
+            status: CompanyStatus.SUSPENDED,
+            observacoes: 'Contrato ativo excluido sem substituicao.',
+          },
+        });
+
+        await tx.user.updateMany({
+          where: {
+            deletedAt: null,
+            role: { in: [Role.CLIENTE_ADMIN, Role.CLIENTE_USER] },
+            memberships: { some: { companyId: contract.companyId } },
+          },
+          data: { isActive: false },
+        });
+      }
+    });
+
+    return { success: true, message: 'Contrato excluido com sucesso.' };
   }
 
   @Post('contracts/batch-readjust')
@@ -1716,10 +1764,21 @@ export class SettingsController {
 
   private async assertContractsWriteAccess(rawHeaders: Request['headers']) {
     await this.authorizationService.assertPermission(rawHeaders, 'contracts:edit');
+  }
+
+  private async assertContractsCreateAccess(rawHeaders: Request['headers']) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    if (requester.role !== Role.ADMIN) {
+    const canCreate =
+      await this.authorizationService.userHasPermission(requester, 'contracts:create') ||
+      await this.authorizationService.userHasPermission(requester, 'contracts:edit');
+
+    if (!canCreate) {
       throw new ForbiddenException('Permissao negada.');
     }
+  }
+
+  private async assertContractsDeleteAccess(rawHeaders: Request['headers']) {
+    await this.authorizationService.assertPermission(rawHeaders, 'contracts:delete');
   }
 
   private async readStoredChatwootBehaviorSettings() {

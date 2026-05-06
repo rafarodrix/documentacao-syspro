@@ -6,6 +6,7 @@ import type {
   UserAccessListItem,
 } from "@dosc-syspro/contracts/user";
 import { callWebApi } from "@/lib/web-api";
+import { trpc } from "@/lib/api/trpc-client";
 
 
 type ActionError = { error: string };
@@ -21,7 +22,7 @@ export async function getUsersAdminViewData(): Promise<
   try {
     const [usersResponse, companiesResponse] = await Promise.all([
       apiRequest("/users"),
-      apiRequest("/companies/options"),
+      trpc.companies.getOptions.query(),
     ]);
 
     if (!usersResponse.ok) {
@@ -29,9 +30,7 @@ export async function getUsersAdminViewData(): Promise<
     }
 
     const usersPayload = (await usersResponse.json()) as UserAccessListItem[];
-    const companiesPayload = companiesResponse.ok
-      ? ((await companiesResponse.json()) as UserAccessCompanyOption[])
-      : [];
+    const companiesPayload = companiesResponse as UserAccessCompanyOption[];
 
     const isGlobalView = usersPayload.some((user) =>
       user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE",
@@ -50,15 +49,13 @@ export async function getUsersAdminViewData(): Promise<
 export async function getUserEditViewData(userId: string): Promise<UserAccessEditViewData> {
   const [userResponse, companiesResponse] = await Promise.all([
     apiRequest(`/users/${encodeURIComponent(userId)}`),
-    apiRequest("/companies/options"),
+    trpc.companies.getOptions.query(),
   ]);
 
   if (!userResponse.ok) notFound();
 
   const user = (await userResponse.json()) as UserAccessListItem;
-  const companies = companiesResponse.ok
-    ? ((await companiesResponse.json()) as UserAccessCompanyOption[])
-    : [];
+  const companies = companiesResponse as UserAccessCompanyOption[];
   const isSystemUser = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
 
   return {

@@ -7,6 +7,7 @@ import { SefazTab } from "./tabs/sefaz-tab";
 import { CadastrosTab } from "./tabs/cadastros-tab";
 import { ComercialTab } from "./tabs/comercial-tab";
 import { TabSkeleton, TabListSkeleton } from "./components/tab-skeleton";
+import { AdminStatusBar } from "./components/admin-status-bar";
 
 export function AdminDashboard({
   role,
@@ -17,8 +18,11 @@ export function AdminDashboard({
   canAccessCrm: boolean;
   canViewAvailability: boolean;
 }) {
+  const isDeveloper = role === "DEVELOPER";
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
+      <AdminStatusBar role={role} />
       <Tabs defaultValue="operacional" className="space-y-4">
         <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
           <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
@@ -33,10 +37,12 @@ export function AdminDashboard({
             <Activity className="h-4 w-4" />
             SEFAZ
           </TabsTrigger>
-          <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
-            <Building2 className="h-4 w-4" />
-            Cadastros
-          </TabsTrigger>
+          {!isDeveloper ? (
+            <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
+              <Building2 className="h-4 w-4" />
+              Cadastros
+            </TabsTrigger>
+          ) : null}
           {canAccessCrm ? (
             <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
               <Target className="h-4 w-4" />
@@ -63,11 +69,13 @@ export function AdminDashboard({
           </Suspense>
         </TabsContent>
 
-        <TabsContent value="cadastros">
-          <Suspense fallback={<TabListSkeleton />}>
-            <CadastrosTab />
-          </Suspense>
-        </TabsContent>
+        {!isDeveloper ? (
+          <TabsContent value="cadastros">
+            <Suspense fallback={<TabListSkeleton />}>
+              <CadastrosTab />
+            </Suspense>
+          </TabsContent>
+        ) : null}
 
         {canAccessCrm ? (
           <TabsContent value="comercial">

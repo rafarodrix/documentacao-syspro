@@ -45,6 +45,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "users:reset_password",
     "contracts:view",
     "contracts:edit",
+    "contracts:delete",
     "crm:view",
     "crm:manage",
     "remote:view",

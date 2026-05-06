@@ -33,7 +33,7 @@ import {
     Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
+import { deleteContractAction, updateContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
 import { getContractSuspendImpactAction } from "@/features/contracts/application/contract-read.queries";
 import {
     ContractBlockReason,
@@ -47,6 +47,8 @@ import { fetchSettingsPreferences } from "@/features/settings/application/prefer
 
 interface ContractsTableProps {
     contracts: ContractListItem[];
+    canEdit: boolean;
+    canDelete: boolean;
 }
 
 const formatCurrency = (val: number) =>
@@ -60,7 +62,7 @@ const toNumber = (value: number | string) => {
     return Number(value);
 };
 
-export function ContractsTable({ contracts }: ContractsTableProps) {
+export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTableProps) {
     const fallbackContractReason = DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS[0]?.key ?? "EMPRESA_FECHOU";
     const [items, setItems] = useState<ContractListItem[]>(contracts);
     const [isPending, startTransition] = useTransition();
@@ -73,6 +75,7 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
     const [suspendImpact, setSuspendImpact] = useState<ContractSuspendImpact | null>(null);
     const [isImpactLoading, setIsImpactLoading] = useState(false);
     const [editTarget, setEditTarget] = useState<ContractListItem | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<ContractListItem | null>(null);
     const [allowTaxOverride, setAllowTaxOverride] = useState(false);
     const [editForm, setEditForm] = useState({
         contractNumber: "",
@@ -190,6 +193,22 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 setItems((prev) => prev.map((contract) => (
                     contract.id === contractId ? { ...contract, status: "ACTIVE" } : contract
                 )));
+                return;
+            }
+
+            toast.error(result.error);
+        });
+    };
+
+    const handleDelete = () => {
+        if (!deleteTarget) return;
+
+        startTransition(async () => {
+            const result = await deleteContractAction(deleteTarget.id);
+            if (result.success) {
+                toast.success(result.message ?? "Contrato excluido com sucesso.");
+                setItems((prev) => prev.filter((contract) => contract.id !== deleteTarget.id));
+                setDeleteTarget(null);
                 return;
             }
 
@@ -429,6 +448,35 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Excluir contrato</DialogTitle>
+                        <DialogDescription>
+                            {deleteTarget?.status === "ACTIVE"
+                                ? "A exclusao e definitiva. Se este for o ultimo contrato ativo da empresa, a empresa e os usuarios cliente vinculados serao bloqueados."
+                                : "A exclusao e definitiva e remove este contrato da base."}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {deleteTarget ? (
+                        <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                            <p className="font-medium text-foreground">{deleteTarget.company.razaoSocial}</p>
+                            <p className="text-xs text-muted-foreground">CNPJ: {deleteTarget.company.cnpj}</p>
+                        </div>
+                    ) : null}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isPending}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
+                            Excluir definitivamente
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
                 <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
@@ -552,37 +600,52 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
                                                         <DropdownMenuLabel className="text-xs text-muted-foreground">Gerenciar Contrato</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
 
-                                                        <DropdownMenuItem onClick={() => openEditDialog(contract)} className="cursor-pointer gap-2">
-                                                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                                                            Editar Termos
-                                                        </DropdownMenuItem>
+                                                        {canEdit ? (
+                                                            <DropdownMenuItem onClick={() => openEditDialog(contract)} className="cursor-pointer gap-2">
+                                                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                Editar Termos
+                                                            </DropdownMenuItem>
+                                                        ) : null}
 
                                                         <DropdownMenuItem onClick={() => toast.info("Em breve: Historico")} className="cursor-pointer gap-2">
                                                             <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
                                                             Ver Repasses
                                                         </DropdownMenuItem>
 
-                                                        <DropdownMenuSeparator />
+                                                        {canEdit || canDelete ? <DropdownMenuSeparator /> : null}
 
-                                                        {isActive ? (
+                                                        {canEdit ? (
+                                                            isActive ? (
+                                                                <DropdownMenuItem
+                                                                    disabled={isPending}
+                                                                    onClick={() => setSuspendTarget(contract)}
+                                                                    className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    Suspender
+                                                                </DropdownMenuItem>
+                                                            ) : (
+                                                                <DropdownMenuItem
+                                                                    disabled={isPending}
+                                                                    onClick={() => handleActivate(contract.id)}
+                                                                    className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 cursor-pointer gap-2"
+                                                                >
+                                                                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                                                                    Reativar
+                                                                </DropdownMenuItem>
+                                                            )
+                                                        ) : null}
+
+                                                        {canDelete ? (
                                                             <DropdownMenuItem
                                                                 disabled={isPending}
-                                                                onClick={() => setSuspendTarget(contract)}
-                                                                className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2"
+                                                                onClick={() => setDeleteTarget(contract)}
+                                                                className="text-rose-700 focus:text-rose-700 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2"
                                                             >
                                                                 <Trash2 className="h-3.5 w-3.5" />
-                                                                Suspender
+                                                                Excluir
                                                             </DropdownMenuItem>
-                                                        ) : (
-                                                            <DropdownMenuItem
-                                                                disabled={isPending}
-                                                                onClick={() => handleActivate(contract.id)}
-                                                                className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 cursor-pointer gap-2"
-                                                            >
-                                                                <ArrowRightLeft className="h-3.5 w-3.5" />
-                                                                Reativar
-                                                            </DropdownMenuItem>
-                                                        )}
+                                                        ) : null}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
@@ -597,5 +660,4 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
         </>
     );
 }
-
 

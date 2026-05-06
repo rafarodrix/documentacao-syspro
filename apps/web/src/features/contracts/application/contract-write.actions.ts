@@ -44,7 +44,11 @@ async function parseActionResponse<T = void>(
 export async function createContractAction(data: CreateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
 
-  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
+  const canCreate =
+    session &&
+    ((await currentUserHasPermission("contracts:create")) || (await currentUserHasPermission("contracts:edit")));
+
+  if (!canCreate) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -56,6 +60,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
   try {
     const response = await apiRequest("/platform/contracts", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...validation.data,
         minimumWage: validation.data.minimumWage > 0 ? validation.data.minimumWage : 1412,
@@ -90,6 +95,7 @@ export async function updateContractAction(data: UpdateContractOutput): Promise<
     const parsed = validation.data;
     const response = await apiRequest(`/platform/contracts/${encodeURIComponent(parsed.id)}`, {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...parsed,
         taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
@@ -125,6 +131,7 @@ export async function batchReadjustContractsAction(
   try {
     const response = await apiRequest("/platform/contracts/batch-readjust", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(validation.data),
     });
 
@@ -154,6 +161,7 @@ export async function updateContractStatusAction(
   try {
     const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}/status`, {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         status,
         reason: reason ?? null,
@@ -170,5 +178,28 @@ export async function updateContractStatusAction(
   } catch (error) {
     console.error("Erro ao atualizar status do contrato:", error);
     return { success: false, error: "Erro ao atualizar status do contrato." };
+  }
+}
+
+export async function deleteContractAction(contractId: string): Promise<ContractActionResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("contracts:delete"))) {
+    return { success: false, error: "Permissao negada." };
+  }
+
+  try {
+    const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}`, {
+      method: "DELETE",
+    });
+
+    const result = await parseActionResponse(response, "Erro ao excluir contrato.");
+    if (result.success) {
+      revalidateContractsViews();
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Erro ao excluir contrato:", error);
+    return { success: false, error: "Erro ao excluir contrato." };
   }
 }

@@ -1,6 +1,7 @@
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
 import { TicketsSummary } from "@/features/tickets/interface";
+import { TicketPriorityChart } from "../components/ticket-priority-chart";
 import { getSuporteData } from "../../application";
 
 export async function SuporteTab() {
@@ -13,9 +14,13 @@ export async function SuporteTab() {
         records={openTicketRecords}
         scopeMode={scopeMode}
         allowAreaFilter={allowAreaFilter}
+        showScopeHeader={false}
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="min-w-0">
+          <TicketPriorityChart records={openTicketRecords} />
+        </div>
         <div className="min-w-0">
           <TicketsSummary tickets={tickets} totalOpen={totalOpen} />
         </div>

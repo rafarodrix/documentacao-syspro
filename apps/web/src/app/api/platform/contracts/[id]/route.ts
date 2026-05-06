@@ -11,3 +11,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     path: `/settings/contracts/${id}`,
   });
 }
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  return proxyToBackend(request, {
+    path: `/settings/contracts/${id}`,
+  });
+}

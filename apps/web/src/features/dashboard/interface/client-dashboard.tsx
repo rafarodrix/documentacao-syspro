@@ -9,6 +9,7 @@ import { ActivityChart } from "@/components/platform/app/dashboard/activity-char
 import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
 import { SefazOperationsPanel } from "@/components/sefaz/sefaz-operations-panel";
 import { TicketsSummary } from "@/features/tickets/interface";
+import { TicketPriorityChart } from "@/features/dashboard/interface/components/ticket-priority-chart";
 import type { ClientDashboardView } from "@dosc-syspro/contracts/dashboard";
 
 export function ClientDashboard({
@@ -59,14 +60,6 @@ export function ClientDashboard({
           </div>
         </div>
       </div>
-
-      <SefazOperationsPanel
-        focusUfs={data.sefazFocusUfs ?? []}
-        scopedStatuses={data.sefazStatuses ?? []}
-        nationalStatuses={data.sefazNationalStatuses ?? []}
-        configuredRoutes={data.sefazConfiguredRoutes ?? []}
-        canViewAvailability={canViewAvailability}
-      />
 
       <div className={`grid grid-cols-1 gap-4 ${data.dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
         <MagicCard className="rounded-xl">
@@ -137,13 +130,21 @@ export function ClientDashboard({
         ) : null}
       </div>
 
+      <SefazOperationsPanel
+        focusUfs={data.sefazFocusUfs ?? []}
+        scopedStatuses={data.sefazStatuses ?? []}
+        nationalStatuses={data.sefazNationalStatuses ?? []}
+        configuredRoutes={data.sefazConfiguredRoutes ?? []}
+        canViewAvailability={canViewAvailability}
+      />
+
       <OpenTicketsInsights records={data.openTicketRecords} scopeMode="own" />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="min-w-0">
-          <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
+          <TicketPriorityChart records={data.openTicketRecords} />
         </div>
-        <div className="min-w-0">
+        <div className="col-span-1 min-w-0 xl:col-span-2">
           <ActivityChart
             title="Atualizacoes de chamados"
             description="Movimento dos seus chamados nos ultimos 7 dias"
@@ -153,6 +154,8 @@ export function ClientDashboard({
           />
         </div>
       </div>
+
+      <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
 
       <div className="flex justify-end">
         <Button asChild variant="ghost" className="gap-2 text-muted-foreground">

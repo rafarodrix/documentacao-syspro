@@ -20,6 +20,7 @@ type OpenTicketsInsightsProps = {
   records: DashboardOpenTicketRecord[];
   scopeMode: TicketScopeMode;
   allowAreaFilter?: boolean;
+  showScopeHeader?: boolean;
 };
 
 type GroupedItem = {
@@ -190,6 +191,7 @@ export function OpenTicketsInsights({
   records,
   scopeMode,
   allowAreaFilter = false,
+  showScopeHeader = true,
 }: OpenTicketsInsightsProps) {
   const { resolvedTheme, theme } = useTheme();
   const [areaFilter, setAreaFilter] = useState<TicketArea>(getDefaultAreaFilter(scopeMode));
@@ -264,6 +266,7 @@ export function OpenTicketsInsights({
 
   return (
     <div className="space-y-3">
+      {showScopeHeader ? (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card/40 px-4 py-3">
         <div className="space-y-1">
           <h3 className="text-base font-semibold text-foreground">{getScopeTitle(scopeMode)}</h3>
@@ -321,6 +324,7 @@ export function OpenTicketsInsights({
           ) : null}
         </div>
       </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <BreakdownCard
