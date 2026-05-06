@@ -1,4 +1,4 @@
-import { FileText, Headset, KeyRound, Sparkles, Users } from "lucide-react";
+import { FileText, Headset, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
@@ -8,12 +8,8 @@ export async function OperacionalTab() {
   const data = await getOperacionalData();
   const { dailyPassword, ticketCounts, ticketFlow, contracts } = data;
 
-  const todayActivity =
-    (ticketFlow.opened.at(-1)?.value ?? 0) +
-    (ticketFlow.inProgress.at(-1)?.value ?? 0);
-  const yesterdayActivity =
-    (ticketFlow.opened.at(-2)?.value ?? 0) +
-    (ticketFlow.inProgress.at(-2)?.value ?? 0);
+  const todayActivity = (ticketFlow.opened.at(-1)?.value ?? 0) + (ticketFlow.inProgress.at(-1)?.value ?? 0);
+  const yesterdayActivity = (ticketFlow.opened.at(-2)?.value ?? 0) + (ticketFlow.inProgress.at(-2)?.value ?? 0);
   const activityDelta = todayActivity - yesterdayActivity;
 
   return (
@@ -45,22 +41,6 @@ export async function OperacionalTab() {
           icon={Headset as any}
           tone="blue"
           trend={{ delta: activityDelta, label: "movimentos vs ontem", downIsGood: true }}
-        />
-
-        <DashboardMetricCard
-          title="Fila Suporte"
-          value={ticketCounts.support}
-          helper="Tickets na equipe de suporte"
-          icon={Users as any}
-          tone="blue"
-        />
-
-        <DashboardMetricCard
-          title="Fila Desenvolvimento"
-          value={ticketCounts.development}
-          helper="Tickets na equipe de desenvolvimento"
-          icon={Sparkles as any}
-          tone="amber"
         />
 
         {contracts ? (

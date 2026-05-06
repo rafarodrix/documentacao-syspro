@@ -14,6 +14,7 @@ export async function SuporteTab() {
         records={openTicketRecords}
         scopeMode={scopeMode}
         allowAreaFilter={allowAreaFilter}
+        showScopeHeader={false}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

@@ -197,7 +197,7 @@ export function SefazOperationsPanel({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Status por estado + Nacional lado a lado */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
           {groupedFocus.map((group) => (
             <SefazStatusWidget
               key={group.uf}
