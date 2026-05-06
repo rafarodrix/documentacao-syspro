@@ -6,11 +6,10 @@ import type {
   DashboardSefazStatus,
 } from "@dosc-syspro/contracts/dashboard";
 import { getSefazOperationalProfile } from "@dosc-syspro/contracts";
-import { Activity, Globe2, RadioTower, RefreshCw, ShieldAlert } from "lucide-react";
+import { Activity, Globe2, Map, RadioTower, RefreshCw, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { SefazStatusWidget } from "../platform/app/dashboard/sefaz-status-widget";
 import { SefazNationalGrid } from "./sefaz-national-grid";
 import { cn } from "../../lib/utils";
@@ -71,7 +70,9 @@ function aggregateNationalServiceStatus(
   nationalStatuses: DashboardSefazStatus[],
   activeRouteSet: Set<string>,
 ): DashboardSefazStatus | undefined {
-  const candidates = nationalStatuses.filter((item) => activeRouteSet.has(buildRouteKey(item.uf, item.service)) && item.service === service);
+  const candidates = nationalStatuses.filter(
+    (item) => activeRouteSet.has(buildRouteKey(item.uf, item.service)) && item.service === service,
+  );
   if (!candidates.length) return undefined;
 
   const worst = [...candidates].sort((left, right) => {
@@ -181,8 +182,12 @@ export function SefazOperationsPanel({
 
   const selectedUf = selectedScope === nationalScopeKey ? null : selectedScope;
   const selectedProfile = selectedUf ? getSefazOperationalProfile(selectedUf) : null;
-  const nfeActive = selectedUf ? activeRouteSet.has(buildRouteKey(selectedUf, "NFE")) : effectiveConfiguredRoutes.some((route) => route.active && route.service === "NFE");
-  const nfceActive = selectedUf ? activeRouteSet.has(buildRouteKey(selectedUf, "NFCE")) : effectiveConfiguredRoutes.some((route) => route.active && route.service === "NFCE");
+  const nfeActive = selectedUf
+    ? activeRouteSet.has(buildRouteKey(selectedUf, "NFE"))
+    : effectiveConfiguredRoutes.some((route) => route.active && route.service === "NFE");
+  const nfceActive = selectedUf
+    ? activeRouteSet.has(buildRouteKey(selectedUf, "NFCE"))
+    : effectiveConfiguredRoutes.some((route) => route.active && route.service === "NFCE");
 
   return (
     <Card className="border-border/50 bg-card/70">
@@ -230,95 +235,94 @@ export function SefazOperationsPanel({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="operacional" className="space-y-4">
-          <TabsList className="h-auto flex-wrap bg-muted/40 p-1">
-            <TabsTrigger value="operacional">Operacional</TabsTrigger>
-            {canViewAvailability ? <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger> : null}
-          </TabsList>
-
-          <TabsContent value="operacional" className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {orderedFocusUfs.map((uf) => (
-                <Button
-                  key={uf}
-                  type="button"
-                  variant={selectedScope === uf ? "default" : "outline"}
-                  size="sm"
-                  className={cn("h-8 min-w-12 px-3", selectedScope === uf && "shadow-sm")}
-                  onClick={() => setSelectedScope(uf)}
-                >
-                  {uf}
-                </Button>
-              ))}
+      <CardContent className="space-y-6">
+        {/* Monitoramento por autorizador */}
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {orderedFocusUfs.map((uf) => (
               <Button
+                key={uf}
                 type="button"
-                variant={selectedScope === nationalScopeKey ? "default" : "outline"}
+                variant={selectedScope === uf ? "default" : "outline"}
                 size="sm"
-                className={cn("h-8 px-3", selectedScope === nationalScopeKey && "shadow-sm")}
-                onClick={() => setSelectedScope(nationalScopeKey)}
+                className={cn("h-8 min-w-12 px-3", selectedScope === uf && "shadow-sm")}
+                onClick={() => setSelectedScope(uf)}
               >
-                <Globe2 className="mr-2 h-3.5 w-3.5" />
-                Ambiente nacional
+                {uf}
               </Button>
+            ))}
+            <Button
+              type="button"
+              variant={selectedScope === nationalScopeKey ? "default" : "outline"}
+              size="sm"
+              className={cn("h-8 px-3", selectedScope === nationalScopeKey && "shadow-sm")}
+              onClick={() => setSelectedScope(nationalScopeKey)}
+            >
+              <Globe2 className="mr-2 h-3.5 w-3.5" />
+              Ambiente nacional
+            </Button>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+            <SefazStatusWidget
+              title={selectedUf ? `SEFAZ ${selectedUf}` : "SEFAZ Ambiente nacional"}
+              nfe={selectedUf ? selectedGroup.nfe : selectedNationalNfe}
+              nfce={selectedUf ? selectedGroup.nfce : selectedNationalNfce}
+              nfeActive={nfeActive}
+              nfceActive={nfceActive}
+            />
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              {selectedUf ? (
+                <>
+                  <ScopeMeta
+                    icon={RadioTower}
+                    label="Autorizador principal"
+                    value={selectedProfile?.mainAuthorizer ?? "Nao mapeado"}
+                  />
+                  <ScopeMeta
+                    icon={Activity}
+                    label="Consulta cadastro"
+                    value={selectedProfile?.cadastroAuthorizer ?? "Consulta estadual ou nao aplicavel"}
+                  />
+                  <ScopeMeta
+                    icon={ShieldAlert}
+                    label="Contingencia"
+                    value={selectedProfile?.contingencyAuthorizer ?? "Sem contingencia mapeada"}
+                  />
+                </>
+              ) : (
+                <>
+                  <ScopeMeta
+                    icon={Globe2}
+                    label="Rotas ativas"
+                    value={`${effectiveConfiguredRoutes.filter((route) => route.active).length} monitoradas`}
+                  />
+                  <ScopeMeta
+                    icon={Activity}
+                    label="Escopo"
+                    value="Leitura consolidada das rotas ativas no ambiente"
+                  />
+                </>
+              )}
             </div>
+          </div>
+        </div>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
-              <SefazStatusWidget
-                title={selectedUf ? `SEFAZ ${selectedUf}` : "SEFAZ Ambiente nacional"}
-                nfe={selectedUf ? selectedGroup.nfe : selectedNationalNfe}
-                nfce={selectedUf ? selectedGroup.nfce : selectedNationalNfce}
-                nfeActive={nfeActive}
-                nfceActive={nfceActive}
-              />
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                {selectedUf ? (
-                  <>
-                    <ScopeMeta
-                      icon={RadioTower}
-                      label="Autorizador principal"
-                      value={selectedProfile?.mainAuthorizer ?? "Nao mapeado"}
-                    />
-                    <ScopeMeta
-                      icon={Activity}
-                      label="Consulta cadastro"
-                      value={selectedProfile?.cadastroAuthorizer ?? "Consulta estadual ou nao aplicavel"}
-                    />
-                    <ScopeMeta
-                      icon={ShieldAlert}
-                      label="Contingencia"
-                      value={selectedProfile?.contingencyAuthorizer ?? "Sem contingencia mapeada"}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <ScopeMeta
-                      icon={Globe2}
-                      label="Rotas ativas"
-                      value={`${effectiveConfiguredRoutes.filter((route) => route.active).length} monitoradas`}
-                    />
-                    <ScopeMeta
-                      icon={Activity}
-                      label="Escopo"
-                      value="Leitura consolidada das rotas ativas no ambiente"
-                    />
-                  </>
-                )}
-              </div>
+        {/* Disponibilidade Nacional */}
+        {canViewAvailability ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 border-t border-border/50 pt-4">
+              <Map className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium text-muted-foreground">Disponibilidade Nacional</h3>
             </div>
-          </TabsContent>
-
-          {canViewAvailability ? (
-            <TabsContent value="disponibilidade" className="space-y-4">
-              <SefazNationalGrid
-                data={effectiveNationalStatuses}
-                focusUfs={orderedFocusUfs}
-                activeRouteKeys={Array.from(activeRouteSet)}
-              />
-            </TabsContent>
-          ) : null}
-        </Tabs>
+            <SefazNationalGrid
+              data={effectiveNationalStatuses}
+              focusUfs={orderedFocusUfs}
+              activeRouteKeys={Array.from(activeRouteSet)}
+            />
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

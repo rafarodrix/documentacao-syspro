@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
+import { CrmStageChart } from "../components/crm-stage-chart";
 import { getComercialData } from "../../application";
 
 export async function ComercialTab() {
@@ -11,7 +12,6 @@ export async function ComercialTab() {
   const { contracts, crm } = data;
 
   const stageDistribution = crm?.stageDistribution ?? [];
-  const maxCount = Math.max(...stageDistribution.map((e) => e.count), 1);
 
   return (
     <div className="space-y-4">
@@ -66,27 +66,7 @@ export async function ComercialTab() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
-        <Card className="border-border/50 bg-card/70">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Distribuicao do funil</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {stageDistribution.map((item) => {
-              const width = `${Math.max((item.count / maxCount) * 100, item.count > 0 ? 8 : 0)}%`;
-              return (
-                <div key={item.stage} className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-3 text-xs">
-                    <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="tabular-nums text-muted-foreground">{item.count}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted/60">
-                    <div className="h-2 rounded-full bg-primary/70" style={{ width }} />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+        <CrmStageChart distribution={stageDistribution} />
 
         <Card className="border-border/50 bg-card/70">
           <CardHeader className="pb-3">
