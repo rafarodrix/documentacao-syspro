@@ -107,7 +107,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
             const result = await createContractAction(data);
             if (result.success) {
                 toast.success("Contrato criado com sucesso.");
-                router.replace("/portal/configuracoes?tab=contracts");
+                router.replace("/portal/contratos");
                 return;
             }
 
@@ -117,7 +117,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
 
     if (mode === "button") {
         return (
-            <Button className="h-9 gap-2" onClick={() => router.push("/portal/configuracoes?tab=contracts&mode=create")}>
+            <Button className="h-9 gap-2" onClick={() => router.push("/portal/contratos?mode=create")}>
                 <PlusCircle className="h-4 w-4" /> Novo Contrato
             </Button>
         );
@@ -130,7 +130,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                     <h2 className="text-2xl font-semibold tracking-tight">Cadastro de Contrato</h2>
                     <p className="text-sm text-muted-foreground">Tela padrao full-screen para operacoes de cadastro.</p>
                 </div>
-                <Button variant="outline" className="gap-2" onClick={() => router.replace("/portal/configuracoes?tab=contracts")}>
+                <Button variant="outline" className="gap-2" onClick={() => router.replace("/portal/contratos")}>
                     <ArrowLeft className="h-4 w-4" />
                     Voltar
                 </Button>
@@ -319,5 +319,4 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
         </div>
     );
 }
-
 
