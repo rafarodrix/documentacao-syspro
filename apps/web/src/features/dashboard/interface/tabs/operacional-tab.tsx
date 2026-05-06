@@ -1,6 +1,7 @@
 import { Clock, FileText, Headset, KeyRound, RadioTower, Sparkles, Users, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
+import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { cn } from "@/lib/utils";
 import { getOperacionalData } from "../../application";
 
@@ -36,7 +37,7 @@ const sefazLabels: Record<SefazHealth, string> = {
 
 export async function OperacionalTab() {
   const data = await getOperacionalData();
-  const { dailyPassword, ticketCounts, sefazHealth, sefazRoutesCount, contracts } = data;
+  const { dailyPassword, ticketCounts, sefazHealth, sefazRoutesCount, contracts, activity } = data;
 
   const openTicketsNow = ticketCounts.total;
   const openTicketsWaiting = ticketCounts.waiting;
@@ -45,6 +46,7 @@ export async function OperacionalTab() {
   const openTicketsDevelopment = ticketCounts.development;
 
   return (
+    <div className="space-y-4">
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Card className="border-border/50 bg-muted/30 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
@@ -128,6 +130,15 @@ export async function OperacionalTab() {
           tone="emerald"
         />
       ) : null}
+    </div>
+
+    <ActivityChart
+      title="Atividade de tickets"
+      description="Atualizacoes e movimentacoes nos ultimos 7 dias"
+      points={activity}
+      badgeLabel="Fila geral"
+      emptyLabel="Sem movimentacao recente"
+    />
     </div>
   );
 }

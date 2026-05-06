@@ -239,18 +239,41 @@ export function SefazOperationsPanel({
         {/* Monitoramento por autorizador */}
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            {orderedFocusUfs.map((uf) => (
-              <Button
-                key={uf}
-                type="button"
-                variant={selectedScope === uf ? "default" : "outline"}
-                size="sm"
-                className={cn("h-8 min-w-12 px-3", selectedScope === uf && "shadow-sm")}
-                onClick={() => setSelectedScope(uf)}
-              >
-                {uf}
-              </Button>
-            ))}
+            {orderedFocusUfs.map((uf) => {
+              const nfe = effectiveScopedStatuses.find((s) => s.uf === uf && s.service === "NFE");
+              const nfce = effectiveScopedStatuses.find((s) => s.uf === uf && s.service === "NFCE");
+              const statuses = [nfe, nfce].filter(Boolean) as DashboardSefazStatus[];
+              const avgLatency = statuses.length
+                ? Math.round(statuses.reduce((sum, s) => sum + s.latency, 0) / statuses.length)
+                : null;
+              const hasOffline = statuses.some((s) => s.status === "OFFLINE");
+              const hasUnstable = statuses.some((s) => s.status === "UNSTABLE");
+              const dotColor = hasOffline
+                ? "bg-destructive"
+                : hasUnstable
+                  ? "bg-amber-500"
+                  : statuses.length > 0
+                    ? "bg-emerald-500"
+                    : "bg-muted-foreground/40";
+              return (
+                <Button
+                  key={uf}
+                  type="button"
+                  variant={selectedScope === uf ? "default" : "outline"}
+                  size="sm"
+                  className={cn("h-8 gap-1.5 px-3", selectedScope === uf && "shadow-sm")}
+                  onClick={() => setSelectedScope(uf)}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
+                  {uf}
+                  {avgLatency !== null ? (
+                    <span className={cn("text-[10px] tabular-nums", selectedScope === uf ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                      {avgLatency}ms
+                    </span>
+                  ) : null}
+                </Button>
+              );
+            })}
             <Button
               type="button"
               variant={selectedScope === nationalScopeKey ? "default" : "outline"}
