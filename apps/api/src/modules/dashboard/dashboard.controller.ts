@@ -10,4 +10,9 @@ export class DashboardController {
   getDashboard(@Req() req: Request) {
     return this.dashboardService.getDashboard(req.headers);
   }
+
+  @Get('sefaz')
+  getSefazStatus(@Req() req: Request) {
+    return this.dashboardService.getSefazStatus(req.headers);
+  }
 }

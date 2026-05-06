@@ -844,4 +844,38 @@ export class DashboardService {
       },
     };
   }
+
+  async getSefazStatus(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+    const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
+    const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
+
+    const [sefazRecords, nationalSefazRecords] = await Promise.all([
+      this.prisma.sefazStatusCurrent
+        .findMany({ where: { uf: { in: dashboardUFs } }, orderBy: { checkedAt: 'desc' } })
+        .catch(() => []),
+      this.prisma.sefazStatusCurrent
+        .findMany({ orderBy: { checkedAt: 'desc' } })
+        .catch(() => []),
+    ]);
+
+    const mapRecord = (r: (typeof sefazRecords)[number]) => ({
+      uf: r.uf,
+      service: r.service,
+      status: r.status,
+      latency: r.latency,
+      checkedAt: r.checkedAt.toISOString(),
+      changedAt: r.changedAt.toISOString(),
+    });
+
+    return {
+      success: true as const,
+      data: {
+        focusUfs: dashboardUFs,
+        sefazStatuses: sefazRecords.map(mapRecord),
+        sefazNationalStatuses: nationalSefazRecords.map(mapRecord),
+        sefazConfiguredRoutes: configuredSefazRoutes,
+      },
+    };
+  }
 }

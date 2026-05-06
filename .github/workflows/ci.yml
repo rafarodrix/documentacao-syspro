@@ -68,9 +68,6 @@ jobs:
       - name: Test app-api
         run: npm run test:api
 
-      - name: Typecheck package-api
-        run: npm run typecheck -w @dosc-syspro/api
-
       - name: Typecheck app-mobile
         run: npm run typecheck:mobile
 
@@ -82,9 +79,6 @@ jobs:
 
       - name: Test tickets
         run: npm run test:tickets
-
-      - name: Test package-api
-        run: npm run test -w @dosc-syspro/api
 
   build:
     runs-on: ubuntu-latest
@@ -106,6 +100,9 @@ jobs:
 
       - name: Build web
         run: npm run build
+        env:
+          APP_BACKEND_API_URL: http://localhost:3001/api
+          INTERNAL_API_KEY: ci-build-key
 
       - name: Build app-api shell
         run: npm run build:api

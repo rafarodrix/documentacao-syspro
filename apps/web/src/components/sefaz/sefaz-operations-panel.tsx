@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   DashboardSefazConfiguredRoute,
   DashboardSefazStatus,
 } from "@dosc-syspro/contracts/dashboard";
 import { getSefazOperationalProfile } from "@dosc-syspro/contracts";
-import { Activity, Globe2, RadioTower, ShieldAlert } from "lucide-react";
+import { Activity, Globe2, RadioTower, RefreshCw, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -14,6 +14,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { SefazStatusWidget } from "../platform/app/dashboard/sefaz-status-widget";
 import { SefazNationalGrid } from "./sefaz-national-grid";
 import { cn } from "../../lib/utils";
+
+const REFRESH_INTERVAL_MS = 60_000;
+
+type SefazLiveData = {
+  focusUfs: string[];
+  scopedStatuses: DashboardSefazStatus[];
+  nationalStatuses: DashboardSefazStatus[];
+  configuredRoutes: DashboardSefazConfiguredRoute[];
+};
+
+async function fetchSefazStatus(): Promise<SefazLiveData | null> {
+  try {
+    const res = await fetch("/api/dashboard/sefaz", { cache: "no-store" });
+    if (!res.ok) return null;
+    const body = await res.json();
+    if (!body.success || !body.data) return null;
+    return {
+      focusUfs: body.data.focusUfs,
+      scopedStatuses: body.data.sefazStatuses,
+      nationalStatuses: body.data.sefazNationalStatuses,
+      configuredRoutes: body.data.sefazConfiguredRoutes,
+    };
+  } catch {
+    return null;
+  }
+}
 
 type ScopeKey = string;
 
@@ -94,42 +120,69 @@ export function SefazOperationsPanel({
   configuredRoutes: DashboardSefazConfiguredRoute[];
   canViewAvailability?: boolean;
 }) {
-  const groupedFocus = useMemo(() => groupSefazByUF(scopedStatuses), [scopedStatuses]);
+  const [liveData, setLiveData] = useState<SefazLiveData | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const refresh = useCallback(async (manual = false) => {
+    if (manual) setIsRefreshing(true);
+    const data = await fetchSefazStatus();
+    if (data) {
+      setLiveData(data);
+      setLastUpdated(new Date());
+    }
+    if (manual) setIsRefreshing(false);
+  }, []);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => refresh(), REFRESH_INTERVAL_MS);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [refresh]);
+
+  const effectiveScopedStatuses = liveData?.scopedStatuses ?? scopedStatuses;
+  const effectiveNationalStatuses = liveData?.nationalStatuses ?? nationalStatuses;
+  const effectiveConfiguredRoutes = liveData?.configuredRoutes ?? configuredRoutes;
+  const effectiveFocusUfs = liveData?.focusUfs ?? focusUfs;
+
+  const groupedFocus = useMemo(() => groupSefazByUF(effectiveScopedStatuses), [effectiveScopedStatuses]);
   const availableFocusUfs = groupedFocus.map((item) => item.uf);
-  const orderedFocusUfs = (availableFocusUfs.length ? availableFocusUfs : focusUfs).filter(Boolean);
+  const orderedFocusUfs = (availableFocusUfs.length ? availableFocusUfs : effectiveFocusUfs).filter(Boolean);
   const nationalScopeKey = "__NATIONAL__";
   const [selectedScope, setSelectedScope] = useState<ScopeKey>(orderedFocusUfs[0] ?? nationalScopeKey);
 
   const activeRouteSet = useMemo(
     () =>
       new Set(
-        configuredRoutes
+        effectiveConfiguredRoutes
           .filter((route) => route.active)
           .map((route) => buildRouteKey(route.uf, route.service)),
       ),
-    [configuredRoutes],
+    [effectiveConfiguredRoutes],
   );
 
   const selectedGroup =
     groupedFocus.find((item) => item.uf === selectedScope) ?? {
       uf: selectedScope,
-      nfe: nationalStatuses.find((item) => item.uf === selectedScope && item.service === "NFE"),
-      nfce: nationalStatuses.find((item) => item.uf === selectedScope && item.service === "NFCE"),
+      nfe: effectiveNationalStatuses.find((item) => item.uf === selectedScope && item.service === "NFE"),
+      nfce: effectiveNationalStatuses.find((item) => item.uf === selectedScope && item.service === "NFCE"),
     };
 
   const selectedNationalNfe = useMemo(
-    () => aggregateNationalServiceStatus("NFE", nationalStatuses, activeRouteSet),
-    [nationalStatuses, activeRouteSet],
+    () => aggregateNationalServiceStatus("NFE", effectiveNationalStatuses, activeRouteSet),
+    [effectiveNationalStatuses, activeRouteSet],
   );
   const selectedNationalNfce = useMemo(
-    () => aggregateNationalServiceStatus("NFCE", nationalStatuses, activeRouteSet),
-    [nationalStatuses, activeRouteSet],
+    () => aggregateNationalServiceStatus("NFCE", effectiveNationalStatuses, activeRouteSet),
+    [effectiveNationalStatuses, activeRouteSet],
   );
 
   const selectedUf = selectedScope === nationalScopeKey ? null : selectedScope;
   const selectedProfile = selectedUf ? getSefazOperationalProfile(selectedUf) : null;
-  const nfeActive = selectedUf ? activeRouteSet.has(buildRouteKey(selectedUf, "NFE")) : configuredRoutes.some((route) => route.active && route.service === "NFE");
-  const nfceActive = selectedUf ? activeRouteSet.has(buildRouteKey(selectedUf, "NFCE")) : configuredRoutes.some((route) => route.active && route.service === "NFCE");
+  const nfeActive = selectedUf ? activeRouteSet.has(buildRouteKey(selectedUf, "NFE")) : effectiveConfiguredRoutes.some((route) => route.active && route.service === "NFE");
+  const nfceActive = selectedUf ? activeRouteSet.has(buildRouteKey(selectedUf, "NFCE")) : effectiveConfiguredRoutes.some((route) => route.active && route.service === "NFCE");
 
   return (
     <Card className="border-border/50 bg-card/70">
@@ -140,8 +193,24 @@ export function SefazOperationsPanel({
               <Activity className="h-4 w-4 text-amber-500" />
               Operacao SEFAZ
             </CardTitle>
+            {lastUpdated ? (
+              <p className="text-[11px] text-muted-foreground">
+                Atualizado em {lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            ) : null}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+              onClick={() => refresh(true)}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "Atualizando..." : "Atualizar"}
+            </Button>
             <Badge variant="outline" className="gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Online
@@ -227,7 +296,7 @@ export function SefazOperationsPanel({
                     <ScopeMeta
                       icon={Globe2}
                       label="Rotas ativas"
-                      value={`${configuredRoutes.filter((route) => route.active).length} monitoradas`}
+                      value={`${effectiveConfiguredRoutes.filter((route) => route.active).length} monitoradas`}
                     />
                     <ScopeMeta
                       icon={Activity}
@@ -243,7 +312,7 @@ export function SefazOperationsPanel({
           {canViewAvailability ? (
             <TabsContent value="disponibilidade" className="space-y-4">
               <SefazNationalGrid
-                data={nationalStatuses}
+                data={effectiveNationalStatuses}
                 focusUfs={orderedFocusUfs}
                 activeRouteKeys={Array.from(activeRouteSet)}
               />
