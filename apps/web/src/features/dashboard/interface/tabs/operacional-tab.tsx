@@ -2,10 +2,16 @@ import { FileText, Headset, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
+import { TrustReleaseCard } from "../components/trust-release-card";
 import { getOperacionalData } from "../../application";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 
 export async function OperacionalTab() {
-  const data = await getOperacionalData();
+  const [data, canReleaseInTrust] = await Promise.all([
+    getOperacionalData(),
+    currentUserHasPermission("dashboard:release_trust" as SettingsPermissionKey),
+  ]);
   const { dailyPassword, ticketCounts, ticketFlow, contracts } = data;
 
   const todayActivity = (ticketFlow.opened.at(-1)?.value ?? 0) + (ticketFlow.inProgress.at(-1)?.value ?? 0);
@@ -52,6 +58,8 @@ export async function OperacionalTab() {
             tone="emerald"
           />
         ) : null}
+
+        {canReleaseInTrust ? <TrustReleaseCard /> : null}
       </div>
 
       <TicketFlowChart flow={ticketFlow} />
