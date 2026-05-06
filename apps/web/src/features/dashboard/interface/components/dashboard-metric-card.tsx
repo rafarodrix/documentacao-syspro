@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import type { Target } from "lucide-react";
 
 export function formatCurrency(value: number) {
@@ -13,18 +14,49 @@ const toneClasses = {
   red: "bg-red-500/10 text-red-500",
 } as const;
 
+type Trend = {
+  delta: number;
+  label: string;
+  downIsGood?: boolean;
+};
+
+function TrendIndicator({ delta, label, downIsGood }: Trend) {
+  if (delta === 0) {
+    return (
+      <p className="mt-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        <Minus className="h-3 w-3" />
+        Estavel {label}
+      </p>
+    );
+  }
+
+  const isPositive = delta > 0;
+  const isGood = downIsGood ? !isPositive : isPositive;
+  const colorClass = isGood ? "text-emerald-500" : "text-red-500";
+  const Icon = isPositive ? TrendingUp : TrendingDown;
+
+  return (
+    <p className={cn("mt-1 flex items-center gap-1 text-xs font-medium", colorClass)}>
+      <Icon className="h-3 w-3" />
+      {isPositive ? "+" : ""}{delta} {label}
+    </p>
+  );
+}
+
 export function DashboardMetricCard({
   title,
   value,
   helper,
   icon: Icon,
   tone,
+  trend,
 }: {
   title: string;
   value: number | string;
   helper: string;
   icon: typeof Target;
   tone: keyof typeof toneClasses;
+  trend?: Trend;
 }) {
   return (
     <Card className="h-full border-border/50 bg-card/70">
@@ -36,7 +68,12 @@ export function DashboardMetricCard({
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <div className="text-3xl font-bold tracking-tight tabular-nums">{value}</div>
-        <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+        {trend ? (
+          <TrendIndicator {...trend} />
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+        )}
+        {trend ? <p className="text-xs text-muted-foreground">{helper}</p> : null}
       </CardContent>
     </Card>
   );

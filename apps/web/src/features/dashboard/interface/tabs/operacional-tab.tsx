@@ -45,6 +45,10 @@ export async function OperacionalTab() {
   const openTicketsSupport = ticketCounts.support;
   const openTicketsDevelopment = ticketCounts.development;
 
+  const todayActivity = activity.at(-1)?.value ?? 0;
+  const yesterdayActivity = activity.at(-2)?.value ?? 0;
+  const activityDelta = todayActivity - yesterdayActivity;
+
   return (
     <div className="space-y-4">
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -69,6 +73,7 @@ export async function OperacionalTab() {
         helper={`${openTicketsWaiting} aguardando · ${openTicketsInProgress} em andamento`}
         icon={Headset as any}
         tone="blue"
+        trend={{ delta: activityDelta, label: "movimentos vs ontem", downIsGood: true }}
       />
 
       <DashboardMetricCard
