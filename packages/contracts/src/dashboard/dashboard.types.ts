@@ -135,6 +135,61 @@ export const dashboardCadastrosSummarySchema = z.object({
 });
 
 
+// Per-tab data schemas
+export const adminOperacionalDataSchema = z.object({
+  dailyPassword: dashboardDailyPasswordSchema.nullable().optional(),
+  ticketCounts: z.object({
+    total: z.number().int().nonnegative(),
+    support: z.number().int().nonnegative(),
+    development: z.number().int().nonnegative(),
+    waiting: z.number().int().nonnegative(),
+    inProgress: z.number().int().nonnegative(),
+  }),
+  sefazHealth: z.enum(['online', 'unstable', 'offline', 'unknown']),
+  sefazRoutesCount: z.number().int().nonnegative(),
+  contracts: dashboardContractsSummarySchema.optional(),
+  ticketWarning: z.string().optional(),
+});
+
+export const adminSuporteDataSchema = z.object({
+  openTicketRecords: z.array(dashboardOpenTicketRecordSchema).default([]),
+  tickets: z.array(dashboardTicketSummarySchema),
+  totalOpen: z.number().int().nonnegative(),
+  activity: z.array(dashboardActivityPointSchema),
+  ticketWarning: z.string().optional(),
+  scopeMode: z.enum(['all', 'development']),
+  allowAreaFilter: z.boolean(),
+});
+
+export const adminCadastrosDataSchema = z.object({
+  canViewCompanies: z.boolean(),
+  canViewContacts: z.boolean(),
+  canViewUsers: z.boolean(),
+  companies: z.array(dashboardCompanySummarySchema),
+  recentContacts: z.array(dashboardRecentContactSchema).default([]),
+  recentUsers: z.array(dashboardRecentUserSchema).default([]),
+  cadastros: dashboardCadastrosSummarySchema.optional(),
+  companiesCount: z.number().int().nonnegative(),
+  contactsCount: z.number().int().nonnegative(),
+  usersCount: z.number().int().nonnegative(),
+});
+
+export const adminComercialDataSchema = z.object({
+  crm: dashboardCrmSummarySchema.optional(),
+  contracts: dashboardContractsSummarySchema.optional(),
+});
+
+export const adminTabResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.unknown().optional(),
+  error: z.string().optional(),
+});
+
+export type AdminOperacionalData = z.infer<typeof adminOperacionalDataSchema>;
+export type AdminSuporteData = z.infer<typeof adminSuporteDataSchema>;
+export type AdminCadastrosData = z.infer<typeof adminCadastrosDataSchema>;
+export type AdminComercialData = z.infer<typeof adminComercialDataSchema>;
+
 const dashboardViewBaseSchema = z.object({
   ticketWarning: z.string().optional(),
   dailyPassword: dashboardDailyPasswordSchema.nullable().optional(),

@@ -845,6 +845,310 @@ export class DashboardService {
     };
   }
 
+  async getOperacionalData(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+
+    const [dailyPassword, configuredSefazRoutes, dashboardUFs] = await Promise.all([
+      this.resolveDailyPassword(rawHeaders),
+      this.getConfiguredSefazRoutes(),
+      this.getUserDashboardUFs(requester.userId),
+    ]);
+
+    const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
+
+    const canViewCrm =
+      (await this.authorizationService.userHasPermission(requester, 'crm:view', { acceptCompanyScope: true })) ||
+      (await this.authorizationService.userHasPermission(requester, 'crm:manage', { acceptCompanyScope: true }));
+
+    const companyScope = await this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'companies:view_own',
+      'companies:view_all',
+    );
+    const contractsBaseWhere = this.buildScopedContractsWhere(
+      companyScope.isGlobal ? undefined : companyScope.companyIds,
+    );
+
+    let ticketWarning: string | undefined;
+    let ticketsResponse: Awaited<ReturnType<TicketsService['findAll']>> | null = null;
+
+    try {
+      ticketsResponse = await withTimeout(
+        this.ticketsService.findAll(
+          { page: '1', pageSize: '200', ...(dashboardTicketTeam ? { team: dashboardTicketTeam } : {}) },
+          rawHeaders,
+        ),
+        DASHBOARD_TICKETS_TIMEOUT_MS,
+        'Operacional tickets',
+      );
+    } catch {
+      ticketWarning = getDashboardTimeoutWarning();
+    }
+
+    const [sefazRecords, activeContracts] = await Promise.all([
+      this.prisma.sefazStatusCurrent
+        .findMany({ where: { uf: { in: dashboardUFs } }, orderBy: { checkedAt: 'desc' } })
+        .catch(() => []),
+      canViewCrm
+        ? this.prisma.contract
+            .findMany({ where: { status: 'ACTIVE', ...contractsBaseWhere }, select: { totalValue: true } })
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
+    const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
+    const openRecords = toOpenTicketRecordItems(records);
+    const scopedRecords = dashboardTicketTeam
+      ? openRecords.filter((r) => r.team === dashboardTicketTeam)
+      : openRecords;
+
+    const hasSefazOffline = sefazRecords.some((r) => r.status === 'OFFLINE');
+    const hasSefazUnstable = sefazRecords.some((r) => r.status === 'UNSTABLE');
+    const sefazHealth = hasSefazOffline
+      ? 'offline'
+      : hasSefazUnstable
+        ? 'unstable'
+        : sefazRecords.length > 0
+          ? 'online'
+          : 'unknown';
+
+    return {
+      success: true as const,
+      data: {
+        dailyPassword,
+        ticketCounts: {
+          total: scopedRecords.length,
+          support: scopedRecords.filter((r) => r.team === 'SUPORTE').length,
+          development: scopedRecords.filter((r) => r.team === 'DESENVOLVIMENTO').length,
+          waiting: scopedRecords.filter((r) => r.status === 'Aberto').length,
+          inProgress: scopedRecords.filter((r) => r.status !== 'Aberto').length,
+        },
+        sefazHealth: sefazHealth as 'online' | 'unstable' | 'offline' | 'unknown',
+        sefazRoutesCount: configuredSefazRoutes.filter((r) => r.active).length,
+        contracts: canViewCrm
+          ? {
+              activeContracts: activeContracts.length,
+              totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
+            }
+          : undefined,
+        ticketWarning,
+      },
+    };
+  }
+
+  async getSuporteData(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+
+    const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
+    const allowAreaFilter = requester.role === Role.ADMIN;
+
+    let ticketWarning: string | undefined;
+    let ticketsResponse: Awaited<ReturnType<TicketsService['findAll']>> | null = null;
+
+    try {
+      ticketsResponse = await withTimeout(
+        this.ticketsService.findAll(
+          { page: '1', pageSize: '200', ...(dashboardTicketTeam ? { team: dashboardTicketTeam } : {}) },
+          rawHeaders,
+        ),
+        DASHBOARD_TICKETS_TIMEOUT_MS,
+        'Suporte tickets',
+      );
+    } catch {
+      ticketWarning = getDashboardTimeoutWarning();
+    }
+
+    const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
+    const normalizedTickets = toTicketSummaryItems(records);
+    const openTicketRecords = toOpenTicketRecordItems(records);
+    const tickets = normalizedTickets.filter((t) => t.status !== 'Resolvido').slice(0, 5);
+    const totalOpen =
+      ticketsResponse?.success && ticketsResponse.statusCounts
+        ? ticketsResponse.statusCounts.open +
+          ticketsResponse.statusCounts.development +
+          ticketsResponse.statusCounts.testing
+        : normalizedTickets.filter((t) => t.status !== 'Resolvido').length;
+
+    return {
+      success: true as const,
+      data: {
+        openTicketRecords,
+        tickets,
+        totalOpen,
+        activity: toSeries(normalizedTickets.map((t) => new Date(t.lastUpdate))),
+        ticketWarning,
+        scopeMode: (dashboardTicketTeam === 'DESENVOLVIMENTO' ? 'development' : 'all') as 'all' | 'development',
+        allowAreaFilter,
+      },
+    };
+  }
+
+  async getCadastrosData(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+
+    const [
+      canViewCompaniesModule,
+      canViewContactsDirect,
+      canViewContactsScoped,
+      canViewContactsGlobal,
+      canViewUsersDirect,
+      canViewUsersScoped,
+      canViewUsersGlobal,
+      companyScope,
+      contactScope,
+      userScope,
+    ] = await Promise.all([
+      this.authorizationService.userHasPermission(requester, 'companies:view', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'contacts:view', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'contacts:view_team', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'contacts:view_all'),
+      this.authorizationService.userHasPermission(requester, 'users:view', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'users:view_all'),
+      this.authorizationService.resolveCompanyAccessScope(requester, 'companies:view_own', 'companies:view_all'),
+      this.authorizationService.resolveCompanyAccessScope(requester, 'contacts:view_team', 'contacts:view_all'),
+      this.authorizationService.resolveCompanyAccessScope(requester, 'users:view_team', 'users:view_all'),
+    ]);
+
+    const canViewContactsModule = canViewContactsDirect || canViewContactsScoped || canViewContactsGlobal;
+    const canViewUsersModule = canViewUsersGlobal || canViewUsersScoped || canViewUsersDirect;
+
+    const scopedCompanyIds = companyScope.isGlobal ? undefined : companyScope.companyIds;
+    const scopedContactIds = contactScope.isGlobal ? undefined : contactScope.companyIds;
+    const scopedUserIds = userScope.isGlobal ? undefined : userScope.companyIds;
+
+    const companyBaseWhere = this.buildScopedCompaniesWhere(scopedCompanyIds);
+    const userBaseWhere = this.buildScopedUsersWhere(scopedUserIds);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [
+      companiesCount,
+      companiesThisMonth,
+      inactivatedCompaniesThisMonth,
+      usersCount,
+      usersThisMonth,
+      inactivatedUsersThisMonth,
+      contactsCount,
+      contactsThisMonth,
+      inactivatedContactsThisMonth,
+      recentCompanies,
+      recentInactivatedCompanies,
+      recentContacts,
+      recentInactivatedContacts,
+      recentUsers,
+      recentInactivatedUsers,
+    ] = await Promise.all([
+      canViewCompaniesModule ? this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } }) : Promise.resolve(0),
+      canViewCompaniesModule ? this.prisma.company.count({ where: { ...companyBaseWhere, createdAt: { gte: monthStart } } }) : Promise.resolve(0),
+      canViewCompaniesModule ? this.prisma.company.count({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] }, updatedAt: { gte: monthStart } } }) : Promise.resolve(0),
+      this.prisma.user.count({ where: userBaseWhere }),
+      this.prisma.user.count({ where: { ...userBaseWhere, createdAt: { gte: monthStart } } }),
+      this.prisma.user.count({ where: { ...userBaseWhere, isActive: false, updatedAt: { gte: monthStart } } }),
+      canViewContactsModule ? (this.prisma as any).companyContactCompanyLink.count({ where: scopedContactIds ? { companyId: { in: scopedContactIds } } : undefined }) : Promise.resolve(0),
+      canViewContactsModule ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { companyLinks: { some: { companyId: { in: scopedContactIds } } }, createdAt: { gte: monthStart } } : { createdAt: { gte: monthStart } } }) : Promise.resolve(0),
+      canViewContactsModule ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { status: 'ARCHIVED', companyLinks: { some: { companyId: { in: scopedContactIds } } }, updatedAt: { gte: monthStart } } : { status: 'ARCHIVED', updatedAt: { gte: monthStart } } }) : Promise.resolve(0),
+      canViewCompaniesModule ? this.prisma.company.findMany({ where: companyBaseWhere, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } }) : Promise.resolve([]),
+      canViewCompaniesModule ? this.prisma.company.findMany({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] } }, orderBy: { updatedAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } }) : Promise.resolve([]),
+      canViewContactsModule ? (this.prisma as any).companyContact.findMany({ where: scopedContactIds ? { status: { not: 'ARCHIVED' }, companyLinks: { some: { companyId: { in: scopedContactIds } } } } : { status: { not: 'ARCHIVED' } }, orderBy: [{ createdAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, whatsapp: true, createdAt: true, companyLinks: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
+      canViewContactsModule ? (this.prisma as any).companyContact.findMany({ where: scopedContactIds ? { status: 'ARCHIVED', companyLinks: { some: { companyId: { in: scopedContactIds } } } } : { status: 'ARCHIVED' }, orderBy: [{ updatedAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, whatsapp: true, createdAt: true, companyLinks: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
+      canViewUsersModule ? this.prisma.user.findMany({ where: userBaseWhere, orderBy: [{ createdAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, role: true, createdAt: true, memberships: { orderBy: [{ createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
+      canViewUsersModule ? this.prisma.user.findMany({ where: { ...userBaseWhere, isActive: false }, orderBy: [{ updatedAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, role: true, createdAt: true, memberships: { orderBy: [{ createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
+    ]);
+
+    const mapCompany = (company: any) => ({
+      id: company.id,
+      razaoSocial: company.razaoSocial,
+      nomeFantasia: company.nomeFantasia,
+      cnpj: company.cnpj,
+      status: company.status,
+      createdAt: company.createdAt.toISOString(),
+      membershipsCount: company._count?.memberships ?? 0,
+      contactsCount: company.contactLinks?.length ?? 0,
+      cidade: company.addresses?.[0]?.cidade ?? null,
+      estado: company.addresses?.[0]?.estado ?? null,
+    });
+
+    const mapContact = (contact: any) => ({
+      id: contact.id,
+      name: contact.name?.trim() || contact.email?.trim() || contact.whatsapp?.trim() || 'Contato sem nome',
+      email: contact.email ?? null,
+      whatsapp: contact.whatsapp ?? null,
+      createdAt: contact.createdAt.toISOString(),
+      companyNames: Array.from(new Set((contact.companyLinks ?? []).map((l: any) => l.company?.nomeFantasia || l.company?.razaoSocial).filter(Boolean) as string[])),
+    });
+
+    const mapUser = (user: any) => ({
+      id: user.id,
+      name: user.name?.trim() || user.email,
+      email: user.email,
+      role: String(user.role),
+      createdAt: user.createdAt.toISOString(),
+      companyNames: Array.from(new Set((user.memberships ?? []).map((m: any) => m.company?.nomeFantasia || m.company?.razaoSocial).filter(Boolean) as string[])),
+    });
+
+    return {
+      success: true as const,
+      data: {
+        canViewCompanies: canViewCompaniesModule,
+        canViewContacts: canViewContactsModule,
+        canViewUsers: canViewUsersModule || userScope.isGlobal,
+        companies: recentCompanies.map(mapCompany),
+        recentContacts: recentContacts.map(mapContact),
+        recentUsers: recentUsers.map(mapUser),
+        companiesCount,
+        contactsCount,
+        usersCount,
+        cadastros: {
+          companies: { total: companiesCount, registeredThisMonth: companiesThisMonth, inactivatedThisMonth: inactivatedCompaniesThisMonth },
+          contacts: { total: contactsCount, registeredThisMonth: contactsThisMonth, inactivatedThisMonth: inactivatedContactsThisMonth },
+          users: { total: usersCount, registeredThisMonth: usersThisMonth, inactivatedThisMonth: inactivatedUsersThisMonth },
+          recentInactivatedCompanies: recentInactivatedCompanies.map(mapCompany),
+          recentInactivatedContacts: recentInactivatedContacts.map(mapContact),
+          recentInactivatedUsers: recentInactivatedUsers.map(mapUser),
+        },
+      },
+    };
+  }
+
+  async getComercialData(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+
+    const canViewCrm =
+      (await this.authorizationService.userHasPermission(requester, 'crm:view', { acceptCompanyScope: true })) ||
+      (await this.authorizationService.userHasPermission(requester, 'crm:manage', { acceptCompanyScope: true }));
+
+    if (!canViewCrm) {
+      return { success: true as const, data: { crm: undefined, contracts: undefined } };
+    }
+
+    const companyScope = await this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'companies:view_own',
+      'companies:view_all',
+    );
+    const contractsBaseWhere = this.buildScopedContractsWhere(
+      companyScope.isGlobal ? undefined : companyScope.companyIds,
+    );
+
+    const [crmLeads, activeContracts] = await Promise.all([
+      (this.prisma as any).crmLead.findMany({ select: { stage: true, estimatedValue: true, expectedCloseAt: true, nextStep: true } }).catch(() => []),
+      this.prisma.contract.findMany({ where: { status: 'ACTIVE', ...contractsBaseWhere }, select: { totalValue: true } }).catch(() => []),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        crm: buildCrmSummary(crmLeads),
+        contracts: {
+          activeContracts: activeContracts.length,
+          totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
+        },
+      },
+    };
+  }
+
   async getSefazStatus(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
