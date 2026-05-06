@@ -56,6 +56,7 @@ export async function createContractAction(data: CreateContractOutput): Promise<
   try {
     const response = await apiRequest("/platform/contracts", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...validation.data,
         minimumWage: validation.data.minimumWage > 0 ? validation.data.minimumWage : 1412,
@@ -90,6 +91,7 @@ export async function updateContractAction(data: UpdateContractOutput): Promise<
     const parsed = validation.data;
     const response = await apiRequest(`/platform/contracts/${encodeURIComponent(parsed.id)}`, {
       method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...parsed,
         taxRate: parsed.allowTaxOverride ? parsed.taxRate : DEFAULT_CONTRACT_TAX_RATE,
@@ -125,6 +127,7 @@ export async function batchReadjustContractsAction(
   try {
     const response = await apiRequest("/platform/contracts/batch-readjust", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(validation.data),
     });
 
@@ -154,6 +157,7 @@ export async function updateContractStatusAction(
   try {
     const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}/status`, {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         status,
         reason: reason ?? null,
