@@ -44,7 +44,11 @@ async function parseActionResponse<T = void>(
 export async function createContractAction(data: CreateContractOutput): Promise<ContractActionResponse> {
   const session = await getProtectedSession();
 
-  if (!session || !(await currentUserHasPermission("contracts:edit"))) {
+  const canCreate =
+    session &&
+    ((await currentUserHasPermission("contracts:create")) || (await currentUserHasPermission("contracts:edit")));
+
+  if (!canCreate) {
     return { success: false, error: "Permissao negada." };
   }
 
@@ -174,5 +178,28 @@ export async function updateContractStatusAction(
   } catch (error) {
     console.error("Erro ao atualizar status do contrato:", error);
     return { success: false, error: "Erro ao atualizar status do contrato." };
+  }
+}
+
+export async function deleteContractAction(contractId: string): Promise<ContractActionResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("contracts:delete"))) {
+    return { success: false, error: "Permissao negada." };
+  }
+
+  try {
+    const response = await apiRequest(`/platform/contracts/${encodeURIComponent(contractId)}`, {
+      method: "DELETE",
+    });
+
+    const result = await parseActionResponse(response, "Erro ao excluir contrato.");
+    if (result.success) {
+      revalidateContractsViews();
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Erro ao excluir contrato:", error);
+    return { success: false, error: "Erro ao excluir contrato." };
   }
 }

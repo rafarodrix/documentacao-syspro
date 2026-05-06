@@ -44,6 +44,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "users:reset_password",
     "contracts:view",
     "contracts:edit",
+    "contracts:delete",
     "crm:view",
     "crm:manage",
     "remote:view",

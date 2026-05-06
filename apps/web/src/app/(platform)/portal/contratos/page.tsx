@@ -20,6 +20,8 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
   const canCreateContracts = await currentUserHasAnyPermission(["contracts:create", "contracts:edit"], {
     acceptCompanyScope: true,
   });
+  const canEditContracts = await currentUserHasPermission("contracts:edit");
+  const canDeleteContracts = await currentUserHasPermission("contracts:delete");
   if (isCreateMode && !canCreateContracts) {
     redirect("/portal/contratos");
   }
@@ -47,7 +49,11 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
       ) : (
         <>
           <ContractStats contracts={contractsView.contracts} />
-          <ContractsTable contracts={contractsView.contracts} />
+          <ContractsTable
+            contracts={contractsView.contracts}
+            canEdit={canEditContracts}
+            canDelete={canDeleteContracts}
+          />
         </>
       )}
     </div>

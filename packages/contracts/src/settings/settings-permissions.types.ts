@@ -46,6 +46,7 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "contracts:view", label: "Visualizar contratos", module: "contracts", description: "Permite consultar contratos." },
   { key: "contracts:create", label: "Criar contrato", module: "contracts", description: "Permite cadastrar contrato." },
   { key: "contracts:edit", label: "Editar contrato", module: "contracts", description: "Permite alterar contrato existente." },
+  { key: "contracts:delete", label: "Excluir contrato", module: "contracts", description: "Permite excluir contrato definitivamente." },
   { key: "crm:view", label: "Visualizar CRM comercial", module: "crm", description: "Permite acessar a area comercial e o pipeline de leads." },
   { key: "crm:manage", label: "Gerenciar leads e pipeline", module: "crm", description: "Permite criar, editar e conduzir leads no CRM." },
   { key: "remote:view", label: "Visualizar infraestrutura remota", module: "remote", description: "Permite acessar hosts, sessoes e relatorios da infraestrutura remota." },
