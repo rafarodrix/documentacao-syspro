@@ -135,6 +135,12 @@ export const dashboardCadastrosSummarySchema = z.object({
 });
 
 
+export const dashboardTicketFlowSchema = z.object({
+  opened: z.array(dashboardActivityPointSchema).default([]),
+  inProgress: z.array(dashboardActivityPointSchema).default([]),
+  closed: z.array(dashboardActivityPointSchema).default([]),
+});
+
 // Per-tab data schemas
 export const adminOperacionalDataSchema = z.object({
   dailyPassword: dashboardDailyPasswordSchema.nullable().optional(),
@@ -148,7 +154,7 @@ export const adminOperacionalDataSchema = z.object({
   sefazHealth: z.enum(['online', 'unstable', 'offline', 'unknown']),
   sefazRoutesCount: z.number().int().nonnegative(),
   contracts: dashboardContractsSummarySchema.optional(),
-  activity: z.array(dashboardActivityPointSchema).default([]),
+  ticketFlow: dashboardTicketFlowSchema.default({ opened: [], inProgress: [], closed: [] }),
   ticketWarning: z.string().optional(),
 });
 
@@ -288,6 +294,7 @@ export function getDailyPasswordForDate(date = new Date(), timeZone = PORTAL_DAS
 }
 
 export type DashboardActivityPoint = z.infer<typeof dashboardActivityPointSchema>;
+export type DashboardTicketFlow = z.infer<typeof dashboardTicketFlowSchema>;
 export type DashboardTicketSummary = z.infer<typeof dashboardTicketSummarySchema>;
 export type DashboardOpenTicketRecord = z.infer<typeof dashboardOpenTicketRecordSchema>;
 export type DashboardTicketKpis = z.infer<typeof dashboardTicketKpisSchema>;

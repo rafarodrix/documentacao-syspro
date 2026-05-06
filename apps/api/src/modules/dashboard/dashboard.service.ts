@@ -912,7 +912,26 @@ export class DashboardService {
           ? 'online'
           : 'unknown';
 
-    const activity = toSeries(records.map((r) => new Date(r.updatedAt)));
+    const progressStatuses = new Set(['IN_PROGRESS', 'UNASSIGNED', 'WAITING_CUSTOMER', 'WAITING_INTERNAL']);
+    const closedStatuses = new Set(['RESOLVED', 'ARCHIVED']);
+
+    const ticketFlow = {
+      opened: toSeries(
+        records
+          .filter((r) => !progressStatuses.has(r.status) && !closedStatuses.has(r.status))
+          .map((r) => new Date(r.createdAt)),
+      ),
+      inProgress: toSeries(
+        records
+          .filter((r) => progressStatuses.has(r.status))
+          .map((r) => new Date(r.updatedAt)),
+      ),
+      closed: toSeries(
+        records
+          .filter((r) => closedStatuses.has(r.status))
+          .map((r) => new Date(r.updatedAt)),
+      ),
+    };
 
     return {
       success: true as const,
@@ -933,7 +952,7 @@ export class DashboardService {
               totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
             }
           : undefined,
-        activity,
+        ticketFlow,
         ticketWarning,
       },
     };
