@@ -4,15 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
-import type { DashboardContractsSummary, DashboardCrmSummary } from "@dosc-syspro/contracts/dashboard";
+import { getComercialData } from "../../application";
 
-export function ComercialTab({
-  contracts,
-  crm,
-}: {
-  contracts?: DashboardContractsSummary;
-  crm?: DashboardCrmSummary;
-}) {
+export async function ComercialTab() {
+  const data = await getComercialData();
+  const { contracts, crm } = data;
+
   const stageDistribution = crm?.stageDistribution ?? [];
   const maxCount = Math.max(...stageDistribution.map((e) => e.count), 1);
 

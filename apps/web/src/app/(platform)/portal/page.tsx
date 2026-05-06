@@ -6,19 +6,18 @@ import { AdminDashboard } from "@/features/dashboard/interface/admin-dashboard";
 import { ClientDashboard } from "@/features/dashboard/interface/client-dashboard";
 
 const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
+const SYSTEM_ROLES = new Set(["ADMIN", "DEVELOPER", "SUPORTE"]);
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const [canAccessCrm, canViewAvailability, data] = await Promise.all([
+  const [canAccessCrm, canViewAvailability] = await Promise.all([
     currentUserHasAnyPermission(["crm:view", "crm:manage"], { acceptCompanyScope: true }),
     currentUserHasPermission(DASHBOARD_VIEW_AVAILABILITY, { acceptCompanyScope: true }),
-    getDashboardData(),
   ]);
 
-  if (data.mode === "admin") {
+  if (SYSTEM_ROLES.has(session.role)) {
     return (
       <AdminDashboard
-        data={data}
         role={session.role}
         canAccessCrm={canAccessCrm}
         canViewAvailability={canViewAvailability}
@@ -26,5 +25,9 @@ export default async function DashboardPage() {
     );
   }
 
+  const data = await getDashboardData();
+  if (data.mode !== "client") {
+    return null;
+  }
   return <ClientDashboard data={data} canViewAvailability={canViewAvailability} />;
 }

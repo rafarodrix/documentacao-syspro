@@ -1,28 +1,17 @@
 import { SefazOperationsPanel } from "@/components/sefaz/sefaz-operations-panel";
-import type {
-  DashboardSefazConfiguredRoute,
-  DashboardSefazStatus,
-} from "@dosc-syspro/contracts/dashboard";
+import { callWebApi } from "@/lib/web-api";
 
-export function SefazTab({
-  focusUfs,
-  scopedStatuses,
-  nationalStatuses,
-  configuredRoutes,
-  canViewAvailability,
-}: {
-  focusUfs: string[];
-  scopedStatuses: DashboardSefazStatus[];
-  nationalStatuses: DashboardSefazStatus[];
-  configuredRoutes: DashboardSefazConfiguredRoute[];
-  canViewAvailability: boolean;
-}) {
+export async function SefazTab({ canViewAvailability }: { canViewAvailability: boolean }) {
+  const res = await callWebApi("/api/dashboard/sefaz");
+  const body = await res.json().catch(() => null);
+  const sefazData = body?.data;
+
   return (
     <SefazOperationsPanel
-      focusUfs={focusUfs}
-      scopedStatuses={scopedStatuses}
-      nationalStatuses={nationalStatuses}
-      configuredRoutes={configuredRoutes}
+      focusUfs={sefazData?.focusUfs ?? []}
+      scopedStatuses={sefazData?.sefazStatuses ?? []}
+      nationalStatuses={sefazData?.sefazNationalStatuses ?? []}
+      configuredRoutes={sefazData?.sefazConfiguredRoutes ?? []}
       canViewAvailability={canViewAvailability}
     />
   );

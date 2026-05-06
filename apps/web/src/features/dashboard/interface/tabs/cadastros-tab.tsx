@@ -3,36 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
 import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
 import { cn } from "@/lib/utils";
-import type {
-  DashboardCadastrosSummary,
-  DashboardCompanySummary,
-  DashboardRecentContact,
-  DashboardRecentUser,
-} from "@dosc-syspro/contracts/dashboard";
+import { getCadastrosData } from "../../application";
 
-export function CadastrosTab({
-  canViewCompanies,
-  canViewContacts,
-  canViewUsers,
-  companies,
-  recentContacts,
-  recentUsers,
-  cadastros,
-  companiesCount,
-  contactsCount,
-  usersCount,
-}: {
-  canViewCompanies: boolean;
-  canViewContacts: boolean;
-  canViewUsers: boolean;
-  companies: DashboardCompanySummary[];
-  recentContacts: DashboardRecentContact[];
-  recentUsers: DashboardRecentUser[];
-  cadastros?: DashboardCadastrosSummary;
-  companiesCount: number;
-  contactsCount: number;
-  usersCount: number;
-}) {
+export async function CadastrosTab() {
+  const data = await getCadastrosData();
+  const {
+    canViewCompanies,
+    canViewContacts,
+    canViewUsers,
+    companies,
+    recentContacts,
+    recentUsers,
+    cadastros,
+    companiesCount,
+    contactsCount,
+    usersCount,
+  } = data;
+
   const colsClass = canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1";
 
   return (

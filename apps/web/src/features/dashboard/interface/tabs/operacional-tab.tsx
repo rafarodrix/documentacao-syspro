@@ -2,7 +2,7 @@ import { Clock, FileText, Headset, KeyRound, RadioTower, Sparkles, Users, Zap } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { cn } from "@/lib/utils";
-import type { DashboardContractsSummary, DashboardDailyPassword } from "@dosc-syspro/contracts/dashboard";
+import { getOperacionalData } from "../../application";
 
 type SefazHealth = "online" | "unstable" | "offline" | "unknown";
 
@@ -34,27 +34,16 @@ const sefazLabels: Record<SefazHealth, string> = {
   unknown: "Sem dados",
 };
 
-export function OperacionalTab({
-  dailyPassword,
-  openTicketsNow,
-  openTicketsWaiting,
-  openTicketsInProgress,
-  openTicketsSupport,
-  openTicketsDevelopment,
-  sefazHealth,
-  sefazRoutesCount,
-  contracts,
-}: {
-  dailyPassword: DashboardDailyPassword | null | undefined;
-  openTicketsNow: number;
-  openTicketsWaiting: number;
-  openTicketsInProgress: number;
-  openTicketsSupport: number;
-  openTicketsDevelopment: number;
-  sefazHealth: SefazHealth;
-  sefazRoutesCount: number;
-  contracts?: DashboardContractsSummary;
-}) {
+export async function OperacionalTab() {
+  const data = await getOperacionalData();
+  const { dailyPassword, ticketCounts, sefazHealth, sefazRoutesCount, contracts } = data;
+
+  const openTicketsNow = ticketCounts.total;
+  const openTicketsWaiting = ticketCounts.waiting;
+  const openTicketsInProgress = ticketCounts.inProgress;
+  const openTicketsSupport = ticketCounts.support;
+  const openTicketsDevelopment = ticketCounts.development;
+
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Card className="border-border/50 bg-muted/30 shadow-none">
