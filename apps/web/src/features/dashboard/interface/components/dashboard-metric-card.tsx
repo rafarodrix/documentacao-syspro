@@ -1,0 +1,43 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import type { Target } from "lucide-react";
+
+export function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+const toneClasses = {
+  blue: "bg-sky-500/10 text-sky-500",
+  amber: "bg-amber-500/10 text-amber-500",
+  emerald: "bg-emerald-500/10 text-emerald-500",
+  red: "bg-red-500/10 text-red-500",
+} as const;
+
+export function DashboardMetricCard({
+  title,
+  value,
+  helper,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: number | string;
+  helper: string;
+  icon: typeof Target;
+  tone: keyof typeof toneClasses;
+}) {
+  return (
+    <Card className="h-full border-border/50 bg-card/70">
+      <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
+        <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", toneClasses[tone])}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className="text-3xl font-bold tracking-tight tabular-nums">{value}</div>
+        <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+      </CardContent>
+    </Card>
+  );
+}
