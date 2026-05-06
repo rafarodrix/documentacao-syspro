@@ -1,8 +1,11 @@
 import { Clock, FileText, Headset, KeyRound, RadioTower, Sparkles, Users, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
+import { TrustReleaseCard } from "../components/trust-release-card";
 import { cn } from "@/lib/utils";
 import { getOperacionalData } from "../../application";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 
 type SefazHealth = "online" | "unstable" | "offline" | "unknown";
 
@@ -35,7 +38,10 @@ const sefazLabels: Record<SefazHealth, string> = {
 };
 
 export async function OperacionalTab() {
-  const data = await getOperacionalData();
+  const [data, canReleaseInTrust] = await Promise.all([
+    getOperacionalData(),
+    currentUserHasPermission("dashboard:release_trust" as SettingsPermissionKey),
+  ]);
   const { dailyPassword, ticketCounts, sefazHealth, sefazRoutesCount, contracts } = data;
 
   const openTicketsNow = ticketCounts.total;
@@ -128,6 +134,8 @@ export async function OperacionalTab() {
           tone="emerald"
         />
       ) : null}
+
+      {canReleaseInTrust ? <TrustReleaseCard /> : null}
     </div>
   );
 }

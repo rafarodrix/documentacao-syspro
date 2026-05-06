@@ -18,6 +18,7 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "dashboard:stats_full", label: "Visualizar estatisticas completas", module: "dashboard", description: "Libera indicadores operacionais completos." },
   { key: "dashboard:view_availability", label: "Visualizar aba de disponibilidade", module: "dashboard", description: "Libera a aba de disponibilidade no painel operacional." },
   { key: "dashboard:view_daily_password", label: "Visualizar senha diaria", module: "dashboard", description: "Exibe a senha do dia calculada automaticamente no portal." },
+  { key: "dashboard:release_trust", label: "Liberar acesso em confianca", module: "dashboard", description: "Permite emitir liberacao de 5 dias em confianca para clientes no mes de vencimento." },
   { key: "companies:view", label: "Visualizar lista de empresas", module: "companies", description: "Permite acessar o cadastro de empresas." },
   { key: "companies:view_all", label: "Visualizar todas as empresas", module: "companies", description: "Libera escopo global para empresas." },
   { key: "companies:view_own", label: "Visualizar empresas do proprio escopo", module: "companies", description: "Restringe a visao as empresas vinculadas." },

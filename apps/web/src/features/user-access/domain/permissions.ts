@@ -25,6 +25,7 @@ export const ACCESS_MATRIX: AccessControlMatrix = {
     "dashboard:stats_full",
     DASHBOARD_VIEW_AVAILABILITY,
     "dashboard:view_daily_password",
+    "dashboard:release_trust",
     "companies:view",
     "companies:view_all",
     "companies:create",
