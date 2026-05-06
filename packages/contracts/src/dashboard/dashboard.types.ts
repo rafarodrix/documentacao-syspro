@@ -71,6 +71,9 @@ export const dashboardSefazStatusSchema = z.object({
   latency: z.number().int().nonnegative(),
   checkedAt: z.string().min(1),
   changedAt: z.string().min(1),
+  uptimePct: z.number().min(0).max(100).optional(),
+  incidentCount: z.number().int().nonnegative().optional(),
+  latencyHistory: z.array(z.number().int().nonnegative()).default([]),
 });
 
 export const dashboardSefazConfiguredRouteSchema = z.object({
