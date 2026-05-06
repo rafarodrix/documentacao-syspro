@@ -61,14 +61,6 @@ export function ClientDashboard({
         </div>
       </div>
 
-      <SefazOperationsPanel
-        focusUfs={data.sefazFocusUfs ?? []}
-        scopedStatuses={data.sefazStatuses ?? []}
-        nationalStatuses={data.sefazNationalStatuses ?? []}
-        configuredRoutes={data.sefazConfiguredRoutes ?? []}
-        canViewAvailability={canViewAvailability}
-      />
-
       <div className={`grid grid-cols-1 gap-4 ${data.dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
         <MagicCard className="rounded-xl">
           <Card className="h-full border-border/50 bg-card/70">
@@ -137,6 +129,14 @@ export function ClientDashboard({
           </MagicCard>
         ) : null}
       </div>
+
+      <SefazOperationsPanel
+        focusUfs={data.sefazFocusUfs ?? []}
+        scopedStatuses={data.sefazStatuses ?? []}
+        nationalStatuses={data.sefazNationalStatuses ?? []}
+        configuredRoutes={data.sefazConfiguredRoutes ?? []}
+        canViewAvailability={canViewAvailability}
+      />
 
       <OpenTicketsInsights records={data.openTicketRecords} scopeMode="own" />
 

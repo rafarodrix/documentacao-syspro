@@ -912,6 +912,8 @@ export class DashboardService {
           ? 'online'
           : 'unknown';
 
+    const activity = toSeries(records.map((r) => new Date(r.updatedAt)));
+
     return {
       success: true as const,
       data: {
@@ -931,6 +933,7 @@ export class DashboardService {
               totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
             }
           : undefined,
+        activity,
         ticketWarning,
       },
     };

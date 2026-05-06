@@ -148,6 +148,7 @@ export const adminOperacionalDataSchema = z.object({
   sefazHealth: z.enum(['online', 'unstable', 'offline', 'unknown']),
   sefazRoutesCount: z.number().int().nonnegative(),
   contracts: dashboardContractsSummarySchema.optional(),
+  activity: z.array(dashboardActivityPointSchema).default([]),
   ticketWarning: z.string().optional(),
 });
 
