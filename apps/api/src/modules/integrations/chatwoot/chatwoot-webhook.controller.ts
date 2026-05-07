@@ -24,6 +24,11 @@ import {
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {
   private readonly logger = new Logger(ChatwootWebhookController.name);
+  private static readonly CANCELLATION_LABEL_TO_CLOSURE_ORIGIN: Record<string, string> = {
+    cancelado_cliente: 'cancelled_by_customer',
+    cancelado_agente: 'cancelled_by_agent',
+    spam: 'spam',
+  };
   private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
   private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
   private static readonly CSAT_RATING_MIN = 1;
@@ -1272,6 +1277,17 @@ export class ChatwootWebhookController {
       return;
     }
 
+    let skippedByCancellationLabel = false;
+    if (resolvedContext) {
+      skippedByCancellationLabel = await this.applyCancellationLabelClosurePolicy(
+        payload,
+        resolvedContext,
+        settings,
+        conversationId,
+        status,
+      );
+    }
+
     if (status === 'archived' && settings.csatTriggerStatus === 'resolved_only') {
       this.logger.debug(JSON.stringify({
         flow: 'chatwoot_to_portal',
@@ -1283,11 +1299,14 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if (settings.csatEnabled && resolvedContext) {
+    if (!skippedByCancellationLabel && settings.csatEnabled && resolvedContext) {
       await this.triggerCsatSurveyForResolvedConversation(payload, resolvedContext, settings, conversationId, status);
     }
 
-    const shouldKeepLinkForCsat = settings.csatEnabled && Boolean(resolvedContext);
+    const shouldKeepLinkForCsat =
+      !skippedByCancellationLabel &&
+      settings.csatEnabled &&
+      Boolean(resolvedContext);
     if (!settings.releaseConversationLinkOnResolved || shouldKeepLinkForCsat) {
       return;
     }
@@ -1354,6 +1373,69 @@ export class ChatwootWebhookController {
         error: error?.message ?? 'unknown_error',
       }));
     }
+  }
+
+  private async applyCancellationLabelClosurePolicy(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+    conversationId: string,
+    status: string,
+  ): Promise<boolean> {
+    const labels = await this.resolveConversationLabels(payload, resolvedContext, conversationId);
+    const closureOrigin = this.resolveCancellationClosureOriginFromLabels(labels);
+    if (!closureOrigin) {
+      return false;
+    }
+
+    const customAttributes = await this.resolveLatestConversationCustomAttributes(
+      payload,
+      resolvedContext,
+      conversationId,
+    );
+
+    const nextAttributes = {
+      ...customAttributes,
+      skip_csat: true,
+      closure_origin: closureOrigin,
+    };
+
+    if (
+      !this.readBoolean(customAttributes.skip_csat) ||
+      this.toOptionalString(customAttributes.closure_origin) !== closureOrigin
+    ) {
+      try {
+        await this.chatwootClient.updateConversationCustomAttributes(
+          this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+          conversationId,
+          nextAttributes,
+          { useSystemBot: settings.systemMessagesUseBotIdentity },
+        );
+      } catch (error: any) {
+        this.logger.warn(JSON.stringify({
+          flow: 'chatwoot_to_portal',
+          stage: 'cancellation_label_policy_custom_attributes_failed',
+          conversationId,
+          status,
+          connectionKey: resolvedContext.connectionKey,
+          closureOrigin,
+          labels,
+          error: error?.message ?? 'unknown_error',
+        }));
+      }
+    }
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_portal',
+      stage: 'csat_skipped_by_cancellation_label',
+      conversationId,
+      status,
+      connectionKey: resolvedContext.connectionKey,
+      closureOrigin,
+      labels,
+    }));
+
+    return true;
   }
 
   private async forceResolveConversationAfterCsatReply(
@@ -1535,6 +1617,76 @@ export class ChatwootWebhookController {
     if (normalized === 'resolved' || normalized === 'archived') return normalized;
     if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
     return normalized;
+  }
+
+  private async resolveConversationLabels(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext,
+    conversationId: string,
+  ): Promise<string[]> {
+    const fromPayload = this.extractConversationLabels(payload);
+    if (fromPayload.length > 0) {
+      return fromPayload;
+    }
+
+    try {
+      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
+      return this.extractConversationLabels(conversation);
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_portal',
+        stage: 'conversation_labels_lookup_failed',
+        conversationId,
+        connectionKey: resolvedContext.connectionKey,
+        error: error?.message ?? 'unknown_error',
+      }));
+      return [];
+    }
+  }
+
+  private extractConversationLabels(payload: any): string[] {
+    const candidates = [
+      payload?.labels,
+      payload?.conversation?.labels,
+      payload?.meta?.labels,
+      payload?.payload?.labels,
+    ];
+
+    for (const candidate of candidates) {
+      if (!Array.isArray(candidate)) {
+        continue;
+      }
+
+      const labels = candidate
+        .map((value: any) =>
+          this.toOptionalString(
+            typeof value === 'string'
+              ? value
+              : value?.title ?? value?.name ?? value?.label,
+          ),
+        )
+        .filter((value): value is string => Boolean(value))
+        .map((value) => value.trim().toLowerCase());
+
+      if (labels.length > 0) {
+        return Array.from(new Set(labels));
+      }
+    }
+
+    return [];
+  }
+
+  private resolveCancellationClosureOriginFromLabels(labels: string[]): string | null {
+    for (const label of labels) {
+      const normalized = label.trim().toLowerCase();
+      const closureOrigin =
+        ChatwootWebhookController.CANCELLATION_LABEL_TO_CLOSURE_ORIGIN[normalized];
+      if (closureOrigin) {
+        return closureOrigin;
+      }
+    }
+
+    return null;
   }
 
   private isSystemManagedOutgoingMessage(payload: any): boolean {
