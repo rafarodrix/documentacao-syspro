@@ -46,6 +46,16 @@ function filterVisiblePermissionKeys(keys: string[]): SettingsPermissionKey[] {
   return keys.filter(isVisiblePermissionKey);
 }
 
+const DEFAULT_SYSTEM_PROFILES = buildDefaultPermissionProfiles();
+
+function getVisiblePermissionDefinitions() {
+  return SETTINGS_PERMISSION_DEFINITIONS.filter((permission) => isVisiblePermissionKey(permission.key));
+}
+
+function getDefaultSystemProfilePermissions(profileKey: string): SettingsPermissionKey[] {
+  return DEFAULT_SYSTEM_PROFILES.find((profile) => profile.key === profileKey)?.permissions ?? [];
+}
+
 @Injectable()
 export class AuthorizationService {
   constructor(
@@ -243,47 +253,30 @@ export class AuthorizationService {
   async getPermissionsCatalog(): Promise<SettingsPermissionsCatalog> {
     await this.syncSystemAuthorizationCatalog();
 
-    const [permissions, profiles] = await Promise.all([
-      this.prisma.permission.findMany({
-        where: { isActive: true },
-        orderBy: [{ moduleKey: 'asc' }, { key: 'asc' }],
-        select: {
-          key: true,
-          label: true,
-          moduleKey: true,
-          description: true,
-        },
-      }),
-      this.prisma.accessProfile.findMany({
-        where: { isActive: true },
-        orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
-        select: {
-          key: true,
-          name: true,
-          permissions: {
-            select: {
-              permission: {
-                select: { key: true },
-              },
+    const profiles = await this.prisma.accessProfile.findMany({
+      where: { isActive: true },
+      orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
+      select: {
+        key: true,
+        name: true,
+        isSystem: true,
+        permissions: {
+          select: {
+            permission: {
+              select: { key: true },
             },
           },
         },
-      }),
-    ]);
+      },
+    });
 
-    const visiblePermissionKeys = new Set<SettingsPermissionKey>();
-    const visiblePermissions: SettingsPermissionsCatalog['permissions'] = permissions
-      .filter((permission) => isVisiblePermissionKey(permission.key))
-      .map((permission) => {
-        const key = permission.key as SettingsPermissionKey;
-        visiblePermissionKeys.add(key);
-        return {
-          key,
-          label: permission.label,
-          module: permission.moduleKey,
-          description: permission.description || '',
-        };
-      });
+    const visiblePermissions: SettingsPermissionsCatalog['permissions'] = getVisiblePermissionDefinitions().map((permission) => ({
+      key: permission.key,
+      label: permission.label,
+      module: permission.module,
+      description: permission.description,
+    }));
+    const visiblePermissionKeys = new Set<SettingsPermissionKey>(visiblePermissions.map((permission) => permission.key));
 
     return {
       matrixEnabled: true,
@@ -291,9 +284,14 @@ export class AuthorizationService {
       profiles: profiles.map((profile) => ({
         key: profile.key as SettingsProfileKey,
         label: profile.name,
-        permissions: profile.permissions
-          .map((item) => item.permission.key as SettingsPermissionKey)
-          .filter((key) => visiblePermissionKeys.has(key)),
+        permissions: Array.from(
+          new Set<SettingsPermissionKey>([
+            ...profile.permissions
+              .map((item) => item.permission.key as SettingsPermissionKey)
+              .filter((key) => visiblePermissionKeys.has(key)),
+            ...(profile.isSystem ? getDefaultSystemProfilePermissions(profile.key) : []),
+          ]),
+        ).filter((key) => visiblePermissionKeys.has(key)),
       })),
     };
   }
@@ -394,9 +392,14 @@ export class AuthorizationService {
           description: profile.description ?? undefined,
           isSystem: profile.isSystem,
           isActive: profile.isActive,
-          permissions: profile.permissions
-            .map((item) => item.permission.key)
-            .filter(isVisiblePermissionKey),
+          permissions: Array.from(
+            new Set<SettingsPermissionKey>([
+              ...profile.permissions
+                .map((item) => item.permission.key)
+                .filter(isVisiblePermissionKey),
+              ...(profile.isSystem ? getDefaultSystemProfilePermissions(profile.key) : []),
+            ]),
+          ),
         })),
       users: users.map((user) => ({
         id: user.id,
@@ -664,6 +667,7 @@ export class AuthorizationService {
     const profile = await this.prisma.accessProfile.findUnique({
       where: { key: profileKey },
       select: {
+        isSystem: true,
         permissions: {
           select: {
             permission: {
@@ -674,7 +678,12 @@ export class AuthorizationService {
       },
     });
 
-    return filterVisiblePermissionKeys(profile?.permissions.map((item) => item.permission.key) ?? []);
+    return Array.from(
+      new Set<SettingsPermissionKey>([
+        ...filterVisiblePermissionKeys(profile?.permissions.map((item) => item.permission.key) ?? []),
+        ...(profile?.isSystem ? getDefaultSystemProfilePermissions(profileKey) : []),
+      ]),
+    );
   }
 
   private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
