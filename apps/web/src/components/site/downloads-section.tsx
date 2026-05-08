@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button, Card, CardContent, Badge } from "@dosc-syspro/ui";
 import { Download, ExternalLink, HardDrive, MonitorDown } from "lucide-react";
 
 export function DownloadsSection() {

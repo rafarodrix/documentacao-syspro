@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 export function FinalCTA() {

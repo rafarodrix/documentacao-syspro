@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Instagram, Mail, Youtube, Globe, Download, ExternalLink, ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear();
@@ -49,6 +49,7 @@ export function SiteFooter() {
 
             {/* Botoes sociais */}
             <div className="flex items-center gap-2">
+              {/* ds-allow: surface accent — hover colors de botoes sociais */}
               <SocialButton href="https://www.youtube.com/channel/UCcH7GYfmvIE9_UlWAUH8h2Q" icon={Youtube} label="YouTube" hoverColor="hover:text-red-500 hover:border-red-500/20 hover:bg-red-500/5" />
               <SocialButton href="https://www.instagram.com/trilinksoftwares" icon={Instagram} label="Instagram" hoverColor="hover:text-pink-500 hover:border-pink-500/20 hover:bg-pink-500/5" />
               <SocialButton href="mailto:trilinksuporte@gmail.com" icon={Mail} label="Email" hoverColor="hover:text-primary hover:border-primary/20 hover:bg-primary/5" />
