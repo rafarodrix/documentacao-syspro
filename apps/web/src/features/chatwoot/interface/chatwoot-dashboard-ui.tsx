@@ -77,16 +77,6 @@ export function DetailItem({
   );
 }
 
-export function QuickStatCard({ label, value, helper }: { label: string; value: string; helper: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-2 truncate text-sm font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
-    </div>
-  );
-}
-
 export function RemoteHostStatusBadges({ host }: { host: RemoteHostEntry }) {
   const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
   const productMeta = getRemoteProductStatusMeta(host.productStatus);

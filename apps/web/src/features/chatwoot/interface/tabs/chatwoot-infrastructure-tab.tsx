@@ -17,6 +17,8 @@ import { getRemoteOperationalStatusMeta } from "@/features/remote/domain";
 export function ChatwootInfrastructureTab() {
   const {
     resolved,
+    linkedCompanies,
+    contextCompanyId,
     companyHosts,
     isLoadingHosts,
     hostError,
@@ -28,6 +30,9 @@ export function ChatwootInfrastructureTab() {
     handleStartHostSession,
   } = useChatwootDashboard();
 
+  const hasMultipleLinkedCompanies = linkedCompanies.length > 1;
+  const needsContextSelection = hasMultipleLinkedCompanies && !contextCompanyId;
+  const canUseInfrastructure = canOpenInfrastructureHosts && !needsContextSelection;
   const recommendedOperationalMeta = recommendedHost
     ? getRemoteOperationalStatusMeta(recommendedHost.operationalStatus)
     : null;
@@ -42,7 +47,11 @@ export function ChatwootInfrastructureTab() {
               <Monitor className="h-4 w-4 text-primary" />
               Infraestrutura
             </CardTitle>
-            <CardDescription>Hosts e atalhos operacionais da empresa em contexto.</CardDescription>
+            <CardDescription>
+              {needsContextSelection
+                ? "Selecione a empresa em contexto no topo do painel para carregar os hosts corretos."
+                : "Hosts e atalhos operacionais da empresa em contexto."}
+            </CardDescription>
           </div>
           <Button
             type="button"
@@ -59,20 +68,35 @@ export function ChatwootInfrastructureTab() {
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">{resolved.companyName || "Sem vinculo"}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+              {resolved.companyName || (needsContextSelection ? "Selecionar empresa" : "Sem vinculo")}
+            </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hosts</p>
-            <p className="mt-1 text-sm font-semibold text-foreground">{companyHosts.length} disponive{companyHosts.length !== 1 ? "is" : "l"}</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {canUseInfrastructure ? `${companyHosts.length} disponive${companyHosts.length !== 1 ? "is" : "l"}` : "Contexto pendente"}
+            </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recomendado</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedSummary.value}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+              {canUseInfrastructure ? recommendedSummary.value : "Selecione a empresa"}
+            </p>
           </div>
         </div>
 
+        {needsContextSelection ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
+            <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para continuar.</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+              Ver seletor
+            </Button>
+          </div>
+        ) : null}
+
         {/* Recommended host */}
-        {recommendedHost ? (
+        {canUseInfrastructure && recommendedHost ? (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -119,12 +143,15 @@ export function ChatwootInfrastructureTab() {
         {/* List states */}
         {isLoadingHosts ? <InlineLoading label="Carregando hosts..." /> : null}
         {hostError ? <InlineWarning message={hostError} /> : null}
-        {!isLoadingHosts && !hostError && companyHosts.length === 0 ? (
+        {!isLoadingHosts && !hostError && !canUseInfrastructure ? (
+          <EmptyState label="Selecione a empresa em contexto no topo do painel para carregar os hosts corretos." />
+        ) : null}
+        {!isLoadingHosts && !hostError && canUseInfrastructure && companyHosts.length === 0 ? (
           <EmptyState label="Nenhum host encontrado para esta empresa." />
         ) : null}
 
         {/* Remaining hosts */}
-        {!isLoadingHosts && !hostError && companyHosts.length > 0 ? (
+        {!isLoadingHosts && !hostError && canUseInfrastructure && companyHosts.length > 0 ? (
           <div className="space-y-1.5">
             {companyHosts.filter((host) => host.id !== recommendedHost?.id).map((host) => {
               const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
@@ -176,7 +203,7 @@ export function ChatwootInfrastructureTab() {
           asChild
           variant="secondary"
           className="mt-1 w-full gap-2"
-          disabled={!canOpenInfrastructureHosts}
+          disabled={!canUseInfrastructure}
         >
           <Link href={resolved.infrastructureHostsHref} target="_blank" rel="noreferrer">
             <Waypoints className="h-4 w-4" />

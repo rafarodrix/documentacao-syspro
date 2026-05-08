@@ -60,7 +60,7 @@ export function ChatwootTicketsTab() {
             </CardTitle>
             <CardDescription>
               {needsContextSelection
-                ? "Selecione a empresa em contexto na Visao geral para listar e abrir tickets no escopo correto."
+                ? "Selecione a empresa em contexto no topo do painel para listar e abrir tickets no escopo correto."
                 : "Chamados abertos da empresa em contexto, com abertura rapida sem sair do Chatwoot."}
             </CardDescription>
           </div>
@@ -115,9 +115,9 @@ export function ChatwootTicketsTab() {
 
         {needsContextSelection ? (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
-            <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto na Visao geral para continuar.</span>
-            <Button type="button" size="sm" variant="outline" onClick={() => setActiveTab("overview")}>
-              Ir para Visao geral
+            <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para continuar.</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+              Ver seletor
             </Button>
           </div>
         ) : null}
@@ -353,7 +353,7 @@ export function ChatwootTicketsTab() {
           <EmptyState
             label={
               needsContextSelection
-                ? "Selecione a empresa em contexto na Visao geral para listar os tickets corretos."
+                ? "Selecione a empresa em contexto no topo do painel para listar os tickets corretos."
                 : hasLinkedCompanies
                   ? "Defina a empresa em contexto para liberar os tickets desta conversa."
                   : "Nenhuma empresa vinculada encontrada para este contato."

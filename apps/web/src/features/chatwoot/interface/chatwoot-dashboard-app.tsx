@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Building2, Loader2, MessageSquare, Monitor, RefreshCw, Ticket } from "lucide-react";
+import { Loader2, MessageSquare, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
@@ -993,31 +993,42 @@ export function ChatwootDashboardApp() {
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <Ticket className="h-3.5 w-3.5" />
-                  Tickets
+            {linkedCompanies.length > 0 ? (
+              <div className="rounded-2xl border border-border/60 bg-card px-3 py-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Empresa em contexto
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {linkedCompanies.length > 1
+                        ? "A selecao abaixo altera tickets, infraestrutura e os detalhes exibidos nas abas."
+                        : "O contexto abaixo guia tickets, infraestrutura e os detalhes exibidos nas abas."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {linkedCompanies.map((company) => {
+                      const isActive = company.id === resolved.companyId;
+
+                      return (
+                        <button
+                          key={company.id}
+                          type="button"
+                          onClick={() => handleSelectContextCompany(company.id)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isActive
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                          }`}
+                        >
+                          {getCompanyLabel(company)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <p className="mt-1 text-sm font-semibold text-foreground">{latestTickets.length} em aberto</p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <Monitor className="h-3.5 w-3.5" />
-                  Infra
-                </div>
-                <p className="mt-1 text-sm font-semibold text-foreground">{companyHosts.length} host{companyHosts.length !== 1 ? "s" : ""}</p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  Empresa
-                </div>
-                <p className="mt-1 truncate text-sm font-semibold text-foreground">
-                  {resolved.companyName || (linkedCompanies.length > 1 ? "Selecionar empresa" : "Pendente de vinculo")}
-                </p>
-              </div>
-            </div>
+            ) : null}
           </div>
         </div>
 
