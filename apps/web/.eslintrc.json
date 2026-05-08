@@ -4,5 +4,14 @@
   "rules": {
     "trilink-tokens/no-hex-colors": "warn",
     "trilink-tokens/no-raw-tailwind-palette": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/features/remote/**/*.{ts,tsx}"],
+      "rules": {
+        "trilink-tokens/no-hex-colors": "off",
+        "trilink-tokens/no-raw-tailwind-palette": "off"
+      }
+    }
+  ]
 }
