@@ -594,7 +594,7 @@ export function ChatwootDashboardApp() {
         setIsLoadingPortalContact(true);
         setContactLookupError(null);
         const result = await trpc.contacts.list.query({ q, limit: "10" });
-        const entries = result.items;
+        const entries = result.items as ContactLookupEntry[];
         const matched =
           entries.find((entry) => {
             const entryWhatsapp = normalizeDigits(String(entry.whatsapp || ""));

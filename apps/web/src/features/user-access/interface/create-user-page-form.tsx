@@ -158,7 +158,7 @@ export function CreateUserPageForm({
         setLoadingContacts(true);
 
         const result = await trpc.contacts.list.query({ limit: "100", q: query || undefined });
-        const normalized = result.items;
+        const normalized = result.items as ContactOption[];
         const filtered = selectedRoleIsClient
           ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
           : normalized;
