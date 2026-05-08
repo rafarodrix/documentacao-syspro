@@ -1,8 +1,7 @@
 "use client";
 
 import { Search, Bug, Rocket, Layers, Sparkles } from "lucide-react";
-import { Input } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
+import { Input, Button } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 export type FilterType = "all" | "melhoria" | "bug" | "nova_funcionalidade";

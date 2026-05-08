@@ -21,12 +21,7 @@ import {
   SettingsTabsRailTrigger,
 } from "@/app/(platform)/portal/configuracoes/settings-shell";
 
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Tabs, TabsContent } from "@dosc-syspro/ui";
+import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent } from "@dosc-syspro/ui";
 import {
   Loader2, Save, DollarSign, ShieldAlert, Headset, Mail, Phone,
   Banknote, Lock, SlidersHorizontal, Settings

@@ -9,13 +9,7 @@ import { toast } from "sonner";
 import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLead, type CrmLeadManualContact } from "@dosc-syspro/contracts/crm";
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Badge } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatCNPJ } from "@/lib/formatters";
 

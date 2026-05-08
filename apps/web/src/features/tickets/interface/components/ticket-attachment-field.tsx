@@ -2,8 +2,7 @@
 
 import { FileText, Paperclip, Upload, X } from "lucide-react";
 
-import { Button } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
+import { Button, Label } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 interface TicketAttachmentFieldProps {

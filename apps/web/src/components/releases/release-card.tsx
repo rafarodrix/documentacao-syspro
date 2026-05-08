@@ -1,7 +1,6 @@
 "use client";
 
-import { Card, CardHeader, CardContent, CardFooter } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Card, CardHeader, CardContent, CardFooter, Badge } from "@dosc-syspro/ui";
 import { PlayCircle, FileText, Bug, Rocket, Sparkles } from "lucide-react";
 import type { Release } from "@dosc-syspro/core";
 import { cn } from "@/lib/utils";

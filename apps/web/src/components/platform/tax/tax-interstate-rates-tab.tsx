@@ -8,10 +8,7 @@ import {
 } from "@dosc-syspro/contracts/settings";
 import { SEFAZ_UFS } from "@dosc-syspro/contracts";
 import { updateInterstateIcmsSettingsAction } from "@/features/settings/application/settings-write.actions";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Badge } from "@dosc-syspro/ui";
 import { Landmark, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 

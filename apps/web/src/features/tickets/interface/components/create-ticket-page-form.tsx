@@ -24,8 +24,7 @@ import {
   type TicketModuleSettingsPriority,
 } from "@dosc-syspro/contracts/ticket";
 
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import {
   Form,
   FormControl,
@@ -34,15 +33,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
 import {

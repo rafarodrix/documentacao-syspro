@@ -27,8 +27,7 @@ import {
   SettingsTabsRail,
   SettingsTabsRailTrigger,
 } from "@/app/(platform)/portal/configuracoes/settings-shell";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Switch, Tabs, TabsContent, Textarea } from "@dosc-syspro/ui";
 import {
   Form,
   FormControl,
@@ -38,10 +37,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@dosc-syspro/ui";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
 
 function createBindingId() {
   return `wa-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

@@ -6,17 +6,7 @@ import { MessageSquareWarning, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 import { updateTicketClassificationAction } from "@/features/tickets/application/ticket-actions";
-import { Button } from "@dosc-syspro/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Textarea } from "@dosc-syspro/ui";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketTestingReturnDialogProps {

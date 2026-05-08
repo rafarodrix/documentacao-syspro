@@ -18,15 +18,7 @@ import {
   SettingsTabsRail,
   SettingsTabsRailTrigger,
 } from "./settings-shell";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Tabs, TabsContent } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, Textarea } from "@dosc-syspro/ui";
 
 type IntegrationDiagnostics = {
   success: boolean;

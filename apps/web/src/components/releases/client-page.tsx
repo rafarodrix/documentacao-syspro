@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calendar } from "lucide-react";
-import { Button } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Button, Badge } from "@dosc-syspro/ui";
 import { ReleasesFilter, type FilterType } from "./releases-filter";
 import { MonthlyReleasesClient } from "./monthly-releases-client";
 import { releaseMonthNames } from "@/features/releases/domain";

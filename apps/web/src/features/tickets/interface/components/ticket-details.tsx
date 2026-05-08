@@ -32,30 +32,10 @@ import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ti
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { TicketTestingReturnDialog } from "@/features/tickets/interface/components/ticket-testing-return-dialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@dosc-syspro/ui";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
-import { Separator } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./ticket-view.types";
 

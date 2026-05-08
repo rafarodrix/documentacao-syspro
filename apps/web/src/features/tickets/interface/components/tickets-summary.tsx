@@ -1,5 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge } from "@dosc-syspro/ui";
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";

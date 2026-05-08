@@ -3,12 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import type { TicketModuleSettingsOption } from "@dosc-syspro/contracts/ticket";
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Button, Input, Label, Popover, PopoverContent, PopoverTrigger, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { getTicketModuleCascadeState, resolveTicketModuleValueFromCascade } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { cn } from "@/lib/utils";
 

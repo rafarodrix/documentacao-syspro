@@ -62,3 +62,34 @@ export {
 } from "./dropdown-menu";
 export { Avatar, AvatarImage, AvatarFallback } from "./avatar";
 export { Alert, AlertTitle, AlertDescription } from "./alert";
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from "./table";
+export { Separator } from "./separator";
+export { Skeleton } from "./skeleton";
+export { Switch } from "./switch";
+export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "./popover";
+export { ScrollArea, ScrollBar } from "./scroll-area";
+export { Checkbox } from "./checkbox";
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./accordion";
+export { Progress } from "./progress";
+export {
+  AlertDialog,
+  AlertDialogPortal,
+  AlertDialogOverlay,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "./alert-dialog";

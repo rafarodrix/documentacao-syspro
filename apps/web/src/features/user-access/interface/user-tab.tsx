@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation";
 import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Avatar, AvatarFallback, AvatarImage } from "@dosc-syspro/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@dosc-syspro/ui";
 import {
   MoreHorizontal,
   Shield,
@@ -21,7 +19,6 @@ import {
   Pencil,
   Link2,
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {

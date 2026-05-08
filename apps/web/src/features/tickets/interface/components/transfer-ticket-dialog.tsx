@@ -6,13 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRightLeft, Check, Loader2 } from "lucide-react";
 import type { TicketModuleSettingsOption } from "@dosc-syspro/contracts/ticket";
-import { Button } from "@dosc-syspro/ui";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Textarea } from "@dosc-syspro/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger, Textarea } from "@dosc-syspro/ui";
 import { transferTicketAction } from "@/features/tickets/application/ticket-actions";
 import { cn } from "@/lib/utils";
 

@@ -5,8 +5,7 @@ import { useMemo, useState } from "react";
 import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
-import { Badge } from "@dosc-syspro/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 

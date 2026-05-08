@@ -5,8 +5,7 @@ import { useMemo } from "react";
 import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import type { DashboardCrmStageSummary } from "@dosc-syspro/contracts/dashboard";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 

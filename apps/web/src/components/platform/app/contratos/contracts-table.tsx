@@ -3,25 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
-import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@dosc-syspro/ui";
-import { Card } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
-import { Switch } from "@/components/ui/switch";
-import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@dosc-syspro/ui";
-import {
-    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@dosc-syspro/ui";
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@dosc-syspro/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, Badge, Button, Input, Label, Textarea, Switch, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import {
     Building2,
     CalendarClock,

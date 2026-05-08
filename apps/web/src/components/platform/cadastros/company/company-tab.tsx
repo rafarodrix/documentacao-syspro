@@ -15,31 +15,10 @@ import {
   type CompanyInactivationReasonOption,
 } from "@dosc-syspro/contracts/settings"
 import { toast } from "sonner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@dosc-syspro/ui"
-import { Button } from "@dosc-syspro/ui"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@dosc-syspro/ui"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui";
 import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@dosc-syspro/ui"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/confirm-action-dialog"
-import { Input } from "@dosc-syspro/ui"
-import { Label } from "@dosc-syspro/ui"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
@@ -882,6 +861,4 @@ export function CompanyTab({
     </>
   )
 }
-
-
 

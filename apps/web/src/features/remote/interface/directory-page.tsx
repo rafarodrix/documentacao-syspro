@@ -21,25 +21,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
-import { Badge } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dosc-syspro/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@dosc-syspro/ui";
+import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";

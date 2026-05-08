@@ -3,10 +3,7 @@ import Link from "next/link";
 import { getReleases } from "@/features/releases/application/release-read.queries";
 import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/domain";
 import { Calendar, Rocket, Bug, ArrowRight, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
-import { Separator } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, Badge, Separator, Button } from "@dosc-syspro/ui";
 
 export const metadata: Metadata = {
   title: "Changelog e Atualizacoes",

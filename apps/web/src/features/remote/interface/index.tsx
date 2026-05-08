@@ -1,6 +1,4 @@
-import { Badge } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@dosc-syspro/ui";
 import type { RemotePlatformOverview, RemotePlatformStatus } from "@/features/remote/domain/remote-host.types";
 import { Building2, Database, KeyRound, LaptopMinimal } from "lucide-react";
 

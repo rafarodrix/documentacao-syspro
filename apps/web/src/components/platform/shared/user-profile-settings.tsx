@@ -5,14 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { CurrentUserProfile, UserProfileCompany } from "@dosc-syspro/contracts/user";
 import { formatCEP, formatCNPJ, formatPhone } from "@/lib/formatters";
-import { Avatar, AvatarFallback, AvatarImage } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
+import { Avatar, AvatarFallback, AvatarImage, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, User } from "lucide-react";
 import { trpc } from "@/lib/api/trpc-client";
 
