@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
-import { Role } from '@prisma/client';
+import type { Role } from '@prisma/client';
 import type {
   DashboardCrmSummary,
   DashboardDailyPassword,
@@ -224,11 +224,6 @@ function buildCrmSummary(leads: any[]): DashboardCrmSummary {
   };
 }
 
-function getDashboardTicketTeam(role: Role): 'SUPORTE' | 'DESENVOLVIMENTO' | undefined {
-  if (role === Role.DEVELOPER) return 'DESENVOLVIMENTO';
-  return undefined;
-}
-
 type DashboardSefazCurrentRecord = {
   uf: string;
   service: 'NFE' | 'NFCE';
@@ -433,6 +428,15 @@ export class DashboardService {
     };
   }
 
+  private async getDashboardTicketTeam(requester: { userId: string; role: Role; email: string }) {
+    const hasDevelopmentScope = await this.authorizationService.userHasPermission(
+      requester,
+      'dashboard:view_development_scope',
+    );
+
+    return hasDevelopmentScope ? 'DESENVOLVIMENTO' : undefined;
+  }
+
   async getDashboard(rawHeaders?: IncomingHttpHeaders): Promise<DashboardResponse> {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const dailyPassword = await this.resolveDailyPassword(rawHeaders);
@@ -479,7 +483,7 @@ export class DashboardService {
       const companyBaseWhere = this.buildScopedCompaniesWhere(scopedCompanyIds);
       const contractsBaseWhere = this.buildScopedContractsWhere(scopedCompanyIds);
       const userBaseWhere = this.buildScopedUsersWhere(scopedUserIds);
-      const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
+      const dashboardTicketTeam = await this.getDashboardTicketTeam(requester);
 
       const [
         companiesCount,
@@ -918,7 +922,7 @@ export class DashboardService {
       this.getUserDashboardUFs(requester.userId),
     ]);
 
-    const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
+    const dashboardTicketTeam = await this.getDashboardTicketTeam(requester);
 
     const canViewCrm =
       (await this.authorizationService.userHasPermission(requester, 'crm:view', { acceptCompanyScope: true })) ||
@@ -1025,7 +1029,7 @@ export class DashboardService {
   async getSuporteData(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
 
-    const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
+    const dashboardTicketTeam = await this.getDashboardTicketTeam(requester);
     const allowAreaFilter = await this.authorizationService.userHasPermission(requester, 'dashboard:stats_full');
 
     let ticketWarning: string | undefined;

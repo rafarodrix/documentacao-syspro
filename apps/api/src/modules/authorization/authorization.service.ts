@@ -103,19 +103,33 @@ export class AuthorizationService {
     permission: SettingsPermissionKey,
     options?: { acceptCompanyScope?: boolean },
   ) {
-    await this.syncSystemAuthorizationCatalog();
+    return this.hasPermissionForUser(
+      requester.userId,
+      requester.role as SettingsProfileKey,
+      permission,
+      options,
+    );
+  }
 
-    const fallbackPermissions = await this.getFallbackPermissionsForProfileKey(requester.role as SettingsProfileKey);
-    if (fallbackPermissions.includes(permission)) {
-      return true;
+  async userIdHasPermission(
+    userId: string,
+    permission: SettingsPermissionKey,
+    options?: { acceptCompanyScope?: boolean },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, deletedAt: true, isActive: true },
+    });
+
+    if (!user || user.deletedAt || !user.isActive) {
+      return false;
     }
 
-    const assignments = await this.getPermissionAssignments(requester.userId);
-
-    return assignments.some(
-      (assignment) =>
-        assignment.permissionKeys.includes(permission) &&
-        (options?.acceptCompanyScope || assignment.scopeType === 'GLOBAL'),
+    return this.hasPermissionForUser(
+      userId,
+      user.role as SettingsProfileKey,
+      permission,
+      options,
     );
   }
 
@@ -717,6 +731,28 @@ export class AuthorizationService {
         assignment.profile.permissions.map((profilePermission) => profilePermission.permission.key),
       ),
     }));
+  }
+
+  private async hasPermissionForUser(
+    userId: string,
+    profileKey: SettingsProfileKey,
+    permission: SettingsPermissionKey,
+    options?: { acceptCompanyScope?: boolean },
+  ) {
+    await this.syncSystemAuthorizationCatalog();
+
+    const fallbackPermissions = await this.getFallbackPermissionsForProfileKey(profileKey);
+    if (fallbackPermissions.includes(permission)) {
+      return true;
+    }
+
+    const assignments = await this.getPermissionAssignments(userId);
+
+    return assignments.some(
+      (assignment) =>
+        assignment.permissionKeys.includes(permission) &&
+        (options?.acceptCompanyScope || assignment.scopeType === 'GLOBAL'),
+    );
   }
 
   private async replaceProfilePermissions(

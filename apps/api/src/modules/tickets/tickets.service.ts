@@ -76,6 +76,7 @@ export class TicketsService {
         ? data.metadata.source.trim().toLowerCase()
         : null;
     const isChatwootTicket = metadataSource === 'chatwoot';
+    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
 
     let resolvedCompanyId = data.companyId?.trim() || undefined;
     let resolvedContactId = data.companyContactId;
@@ -180,7 +181,13 @@ export class TicketsService {
 
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
-    const normalizedTeam = this.resolveTicketTeam(data.team, requester.role, settings, normalizedCategory, isSystemAdmin);
+    const normalizedTeam = this.resolveTicketTeam(
+      data.team,
+      settings,
+      normalizedCategory,
+      isSystemAdmin && ticketCapabilities.canRouteDevelopment,
+      ticketCapabilities.canOwnDevelopmentQueue,
+    );
     const normalizedCategoryType = this.resolveCategoryType(settings, normalizedCategory, normalizedTeam);
     const databaseUrl = data.databaseUrl?.trim() || null;
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
@@ -699,7 +706,7 @@ export class TicketsService {
       data: {
         lastMessagePreview: message.trim().slice(0, 500),
         lastMessageAt: new Date(),
-        ...(this.authorizationService.isSystemRole(requester.role) && !ticket.slaResponseHitAt
+        ...((await this.authorizationService.userHasPermission(requester, 'tickets:manage', { acceptCompanyScope: true })) && !ticket.slaResponseHitAt
           ? { slaResponseHitAt: new Date() }
           : {}),
       },
@@ -747,9 +754,16 @@ export class TicketsService {
     const publishToReleases = input.publishToReleases;
     const shouldPublishToReleases = publishToReleases === true;
     const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
+    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
     const requestedTeam =
       input.team !== undefined
-        ? this.resolveTicketTeam(input.team, requester.role, settings, undefined, accessScope.isGlobal)
+        ? this.resolveTicketTeam(
+            input.team,
+            settings,
+            undefined,
+            accessScope.isGlobal && ticketCapabilities.canRouteDevelopment,
+            ticketCapabilities.canOwnDevelopmentQueue,
+          )
         : undefined;
     const previousTeam =
       typeof existingMetadata.currentTeam === 'string' && existingMetadata.currentTeam.trim()
@@ -862,16 +876,20 @@ export class TicketsService {
           const resolverName = resolver?.name?.trim() || resolver?.email || requester.email;
           currentMetadata.resolvedByName = resolverName;
           currentMetadata.resolvedByRole = requester.role;
-          if (requester.role === Role.DEVELOPER) {
+          if (ticketCapabilities.canOwnDevelopmentQueue) {
             currentMetadata.developmentOwnerUserId = requester.userId;
             currentMetadata.developmentOwnerName = resolverName;
-          } else {
+          }
+          if (ticketCapabilities.canOwnSupportQueue) {
             currentMetadata.supportOwnerUserId = requester.userId;
             currentMetadata.supportOwnerName = resolverName;
           }
 
           if (typeof currentMetadata.currentTeam !== 'string' || !currentMetadata.currentTeam.trim()) {
-            currentMetadata.currentTeam = requester.role === Role.DEVELOPER ? 'DESENVOLVIMENTO' : 'SUPORTE';
+            currentMetadata.currentTeam =
+              ticketCapabilities.canOwnDevelopmentQueue && !ticketCapabilities.canOwnSupportQueue
+                ? 'DESENVOLVIMENTO'
+                : 'SUPORTE';
           }
         }
 
@@ -882,7 +900,7 @@ export class TicketsService {
         const hasDevelopmentOwner =
           typeof currentMetadata.developmentOwnerUserId === 'string' && currentMetadata.developmentOwnerUserId.trim().length > 0;
 
-        if (requester.role === Role.DEVELOPER && !hasDevelopmentOwner && !shouldResetDevelopmentWorkflow) {
+        if (ticketCapabilities.canOwnDevelopmentQueue && !hasDevelopmentOwner && !shouldResetDevelopmentWorkflow) {
           const developerName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
           currentMetadata.developmentOwnerUserId = requester.userId;
           currentMetadata.developmentOwnerName = developerName;
@@ -895,7 +913,7 @@ export class TicketsService {
           }
         }
 
-        if (requester.role !== Role.DEVELOPER && !hasSupportOwner && !shouldResetDevelopmentWorkflow) {
+        if (ticketCapabilities.canOwnSupportQueue && !hasSupportOwner && !shouldResetDevelopmentWorkflow) {
           const supportName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
           currentMetadata.supportOwnerUserId = requester.userId;
           currentMetadata.supportOwnerName = supportName;
@@ -920,7 +938,11 @@ export class TicketsService {
           if (!supportOwner) {
             throw new NotFoundException('Analista de suporte nao encontrado.');
           }
-          if (supportOwner.role !== Role.SUPORTE && supportOwner.role !== Role.ADMIN) {
+          const canOwnSupportQueue = await this.authorizationService.userIdHasPermission(
+            supportOwner.id,
+            'tickets:own_support_queue',
+          );
+          if (!canOwnSupportQueue) {
             throw new BadRequestException('O analista responsavel precisa ser um usuario de Suporte ou Admin.');
           }
 
@@ -957,7 +979,11 @@ export class TicketsService {
           if (!developmentOwner) {
             throw new NotFoundException('Desenvolvedor nao encontrado.');
           }
-          if (developmentOwner.role !== Role.DEVELOPER && developmentOwner.role !== Role.ADMIN) {
+          const canOwnDevelopmentQueue = await this.authorizationService.userIdHasPermission(
+            developmentOwner.id,
+            'tickets:own_development_queue',
+          );
+          if (!canOwnDevelopmentQueue) {
             throw new BadRequestException('O desenvolvedor responsavel precisa ser um usuario de Desenvolvimento ou Admin.');
           }
 
@@ -993,17 +1019,21 @@ export class TicketsService {
           });
 
           if (assignee) {
+            const [assigneeCanOwnDevelopmentQueue, assigneeCanOwnSupportQueue] = await Promise.all([
+              this.authorizationService.userIdHasPermission(assignee.id, 'tickets:own_development_queue'),
+              this.authorizationService.userIdHasPermission(assignee.id, 'tickets:own_support_queue'),
+            ]);
             const assigneeName = assignee.name?.trim() || assignee.email;
             currentMetadata.currentOwnerUserId = assignee.id;
             currentMetadata.currentOwnerName = assigneeName;
             currentMetadata.currentOwnerRole = assignee.role;
 
-            if (assignee.role === Role.DEVELOPER || assignee.role === Role.ADMIN) {
+            if (assigneeCanOwnDevelopmentQueue) {
               currentMetadata.developmentOwnerUserId = assignee.id;
               currentMetadata.developmentOwnerName = assigneeName;
             }
 
-            if (assignee.role === Role.SUPORTE || assignee.role === Role.ADMIN) {
+            if (assigneeCanOwnSupportQueue) {
               currentMetadata.supportOwnerUserId = assignee.id;
               currentMetadata.supportOwnerName = assigneeName;
             }
@@ -1247,19 +1277,26 @@ export class TicketsService {
       : {};
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
+    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
+    const currentTeam =
+      typeof currentMetadata.currentTeam === 'string' && currentMetadata.currentTeam.trim()
+        ? currentMetadata.currentTeam.trim().toUpperCase()
+        : ticketCapabilities.canOwnDevelopmentQueue && !ticketCapabilities.canOwnSupportQueue
+          ? 'DESENVOLVIMENTO'
+          : 'SUPORTE';
     
     currentMetadata.currentOwnerUserId = requester.userId;
     currentMetadata.currentOwnerName = requesterName;
     currentMetadata.currentOwnerRole = requester.role;
+    currentMetadata.currentTeam = currentTeam;
 
-    if (requester.role === Role.DEVELOPER) {
+    if (ticketCapabilities.canOwnDevelopmentQueue && currentTeam === 'DESENVOLVIMENTO') {
       currentMetadata.developmentOwnerUserId = requester.userId;
       currentMetadata.developmentOwnerName = requesterName;
-      currentMetadata.currentTeam = 'DESENVOLVIMENTO';
-    } else {
+    }
+    if (ticketCapabilities.canOwnSupportQueue && currentTeam === 'SUPORTE') {
       currentMetadata.supportOwnerUserId = requester.userId;
       currentMetadata.supportOwnerName = requesterName;
-      currentMetadata.currentTeam = 'SUPORTE';
     }
 
     const assignmentBody = this.ticketHistoryService.buildAssignmentBody({
@@ -1323,8 +1360,15 @@ export class TicketsService {
 
     const requesterName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
     const settings = await this.getTicketModuleSettings();
+    const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
     const resolvedTeam = input.team
-      ? this.resolveTicketTeam(input.team, requester.role, settings, input.category, accessScope.isGlobal)
+      ? this.resolveTicketTeam(
+          input.team,
+          settings,
+          input.category,
+          accessScope.isGlobal && ticketCapabilities.canRouteDevelopment,
+          ticketCapabilities.canOwnDevelopmentQueue,
+        )
       : undefined;
     const triageBody = this.ticketHistoryService.buildTriageBody({
       requesterName,
@@ -1394,10 +1438,10 @@ export class TicketsService {
 
   private resolveTicketTeam(
     requestedTeam: string | undefined,
-    role: Role,
     settings: TicketModuleSettings,
     category?: string | null,
     allowDevelopment = true,
+    preferDevelopment = false,
   ): 'SUPORTE' | 'DESENVOLVIMENTO' {
     const normalizedRequestedTeam = requestedTeam?.trim().toUpperCase();
     if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO') {
@@ -1409,7 +1453,7 @@ export class TicketsService {
       return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : categoryDefaultTeam;
     }
 
-    if (role === Role.DEVELOPER && allowDevelopment) {
+    if (preferDevelopment && allowDevelopment) {
       return 'DESENVOLVIMENTO';
     }
 
@@ -1499,6 +1543,20 @@ export class TicketsService {
     if (!canManage) {
       throw new ForbiddenException('Sem permissao para gerenciar tickets.');
     }
+  }
+
+  private async getTicketOperatorCapabilities(requester: { userId: string; role: Role; email: string }) {
+    const [canRouteDevelopment, canOwnSupportQueue, canOwnDevelopmentQueue] = await Promise.all([
+      this.authorizationService.userHasPermission(requester, 'tickets:route_development'),
+      this.authorizationService.userHasPermission(requester, 'tickets:own_support_queue'),
+      this.authorizationService.userHasPermission(requester, 'tickets:own_development_queue'),
+    ]);
+
+    return {
+      canRouteDevelopment,
+      canOwnSupportQueue,
+      canOwnDevelopmentQueue,
+    };
   }
 
   private assertTicketAccess(companyId: string | null, accessScope: { isGlobal: boolean; companyIds: string[] }) {

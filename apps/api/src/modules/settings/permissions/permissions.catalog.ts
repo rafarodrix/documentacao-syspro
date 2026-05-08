@@ -6,6 +6,11 @@ import {
 } from '@dosc-syspro/contracts/settings';
 
 const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
+const DASHBOARD_VIEW_DEVELOPMENT_SCOPE = "dashboard:view_development_scope" as SettingsPermissionKey;
+const TICKETS_ROUTE_DEVELOPMENT = "tickets:route_development" as SettingsPermissionKey;
+const TICKETS_OWN_SUPPORT_QUEUE = "tickets:own_support_queue" as SettingsPermissionKey;
+const TICKETS_OWN_DEVELOPMENT_QUEUE = "tickets:own_development_queue" as SettingsPermissionKey;
+const ALL_PERMISSION_KEYS = SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key) as SettingsPermissionKey[];
 
 const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
   ADMIN: 'Administrador',
@@ -16,8 +21,8 @@ const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
 };
 
 export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPermissionKey[]> = {
-  ADMIN: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
-  DEVELOPER: SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key),
+  ADMIN: ALL_PERMISSION_KEYS.filter((permission) => permission !== DASHBOARD_VIEW_DEVELOPMENT_SCOPE),
+  DEVELOPER: ALL_PERMISSION_KEYS.filter((permission) => permission !== TICKETS_OWN_SUPPORT_QUEUE),
   SUPORTE: [
     "profile:edit_personal",
     "profile:edit_company",
@@ -58,6 +63,8 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "tools:all",
     "tickets:view_all",
     "tickets:manage",
+    TICKETS_ROUTE_DEVELOPMENT,
+    TICKETS_OWN_SUPPORT_QUEUE,
     "users:view_internal",
   ],
   CLIENTE_ADMIN: [

@@ -15,6 +15,7 @@ export const SETTINGS_HIDDEN_PERMISSION_KEYS = [
 
 export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "dashboard:view", label: "Visualizar dashboard", module: "dashboard", description: "Acessa a visao principal do portal." },
+  { key: "dashboard:view_development_scope", label: "Visualizar escopo de desenvolvimento", module: "dashboard", description: "Aplica escopo padrao do painel operacional para a fila de desenvolvimento." },
   { key: "dashboard:stats_full", label: "Visualizar estatisticas completas", module: "dashboard", description: "Libera indicadores operacionais completos." },
   { key: "dashboard:view_availability", label: "Visualizar aba de disponibilidade", module: "dashboard", description: "Libera a aba de disponibilidade no painel operacional." },
   { key: "dashboard:view_daily_password", label: "Visualizar senha diaria", module: "dashboard", description: "Exibe a senha do dia calculada automaticamente no portal." },
@@ -64,6 +65,9 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "tickets:view_all", label: "Visualizar todos os chamados", module: "tickets", description: "Libera visao global de tickets." },
   { key: "tickets:create", label: "Criar chamado", module: "tickets", description: "Permite abrir novo ticket." },
   { key: "tickets:manage", label: "Gerenciar chamados", module: "tickets", description: "Permite atuar operacionalmente em tickets." },
+  { key: "tickets:route_development", label: "Encaminhar para desenvolvimento", module: "tickets", description: "Permite direcionar tickets para a fila de desenvolvimento." },
+  { key: "tickets:own_support_queue", label: "Atuar como responsavel de suporte", module: "tickets", description: "Permite assumir e manter ownership operacional da fila de suporte." },
+  { key: "tickets:own_development_queue", label: "Atuar como responsavel de desenvolvimento", module: "tickets", description: "Permite assumir e manter ownership operacional da fila de desenvolvimento." },
   { key: "system_team:view", label: "Visualizar equipe interna (Obsoleto)", module: "system_team", description: "Permite ver equipe interna." },
   { key: "system_team:manage", label: "Gerenciar equipe interna (Obsoleto)", module: "system_team", description: "Permite criar e editar equipe interna." },
 ] as const;
