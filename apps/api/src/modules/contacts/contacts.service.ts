@@ -214,7 +214,7 @@ export class ContactsService {
       throw new BadRequestException('CPF deve conter 11 digitos.');
     }
     const jobTitle = input.jobTitle?.trim() || null;
-    const companyIds = this.normalizeCompanyIds(input.companyIds, input.companyId);
+    const companyIds = this.normalizeCompanyIds(input.companyIds);
     await this.assertCompanyIdsAllowedForRequester(requester, companyIds);
     const existing = whatsapp
       ? await (this.prisma.companyContact as any).findFirst({
@@ -314,8 +314,8 @@ export class ContactsService {
     if (!existing) throw new NotFoundException('Contato nao encontrado');
     await this.assertContactManageableByRequester(requester, existing);
 
-    const nextCompanyIds = input.companyId !== undefined || input.companyIds !== undefined
-      ? this.normalizeCompanyIds(input.companyIds, input.companyId)
+    const nextCompanyIds = input.companyIds !== undefined
+      ? this.normalizeCompanyIds(input.companyIds)
       : this.extractCompanyIds(existing);
     await this.assertCompanyIdsAllowedForRequester(requester, nextCompanyIds);
 
@@ -333,7 +333,7 @@ export class ContactsService {
     }
     if (input.jobTitle !== undefined) data.jobTitle = input.jobTitle?.trim() || null;
     if (input.whatsapp !== undefined) data.whatsapp = this.normalizePhone(input.whatsapp);
-    if (input.companyId !== undefined || input.companyIds !== undefined) {
+    if (input.companyIds !== undefined) {
       data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
     }
     data.searchText = buildContactSearchText({
@@ -352,7 +352,7 @@ export class ContactsService {
           data,
         });
 
-        if (input.companyId !== undefined || input.companyIds !== undefined) {
+        if (input.companyIds !== undefined) {
           await this.syncContactCompanies(tx, contactId, nextCompanyIds);
         }
 
@@ -606,10 +606,9 @@ export class ContactsService {
     return [];
   }
 
-  private normalizeCompanyIds(companyIds?: string[] | null, companyId?: string | null): string[] {
+  private normalizeCompanyIds(companyIds?: string[] | null): string[] {
     const values = [
       ...(Array.isArray(companyIds) ? companyIds : []),
-      ...(companyId ? [companyId] : []),
     ]
       .map((value) => String(value ?? '').trim())
       .filter(Boolean);

@@ -27,6 +27,9 @@ Gerencia empresas do portal (clientes Trilink).
 - Controle de acesso com escopo (usuário CLIENTE vê apenas sua empresa)
 - Inativação em cascata sobre contratos, contatos e vínculos derivados
 
+**Fluxo relacionado:**
+- `empresa-usuarios-contatos-fluxos.md` — visão integrada dos três módulos
+
 ---
 
 ## contacts
@@ -64,6 +67,9 @@ Gerencia contatos vinculados a empresas. **Totalmente migrado para tRPC** — se
 - Controle de acesso por empresa via `AuthorizationService`
 - Stats de contatos por empresa
 - Sincronização de apresentação do contato no Chatwoot após mutações
+
+**Fluxo relacionado:**
+- `empresa-usuarios-contatos-fluxos.md` — vínculo M:N com empresas e impacto em usuários
 
 **Componentes web que consomem `trpc.contacts.*`:**
 - `src/features/contact/interface/*` — boundary de UI do módulo de contatos
@@ -111,6 +117,9 @@ Gerencia usuários do portal. **Totalmente migrado para tRPC** — sem controlle
 - SSO com Chatwoot com provisionamento automático de agente
 - Controle de acesso por escopo: admin global vs. gestor de unidade
 - Usuário cliente sempre deriva escopo de empresa a partir do contato associado
+
+**Fluxo relacionado:**
+- `empresa-usuarios-contatos-fluxos.md` — herança de escopo via contato e sincronização de memberships
 
 ---
 
