@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
-import { contactOptionSchema, type ContactOption } from "@dosc-syspro/contracts/contact";
+import { type ContactOption } from "@dosc-syspro/contracts/contact";
 import { AnimatePresence, motion } from "framer-motion";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -157,21 +157,8 @@ export function CreateUserPageForm({
       try {
         setLoadingContacts(true);
 
-        const params = new URLSearchParams({ limit: "100" });
-        if (query) params.set("q", query);
-
-        const response = await fetch(`/api/contacts?${params.toString()}`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          setContactOptions([]);
-          return;
-        }
-
-        const payload = contactOptionSchema.array().safeParse(await response.json());
-        const normalized = payload.success ? payload.data : [];
+        const result = await trpc.contacts.list.query({ limit: "100", q: query || undefined });
+        const normalized = result.items;
         const filtered = selectedRoleIsClient
           ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
           : normalized;
@@ -203,18 +190,12 @@ export function CreateUserPageForm({
 
     const loadSelectedContact = async () => {
       try {
-        const response = await fetch(`/api/contacts/${currentContactId}`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!response.ok) return;
-        const payload = contactOptionSchema.safeParse(await response.json());
-        if (cancelled || !payload.success || !payload.data?.id) return;
+        const contact = await trpc.contacts.getOne.query({ id: currentContactId });
+        if (cancelled || !contact?.id) return;
 
         setContactOptions((prev) => {
-          if (prev.some((contact) => contact.id === payload.data.id)) return prev;
-          return [payload.data, ...prev];
+          if (prev.some((c) => c.id === contact.id)) return prev;
+          return [contact, ...prev];
         });
       } catch {
         return;

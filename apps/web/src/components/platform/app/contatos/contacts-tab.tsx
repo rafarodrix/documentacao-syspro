@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { contactListResponseSchema, contactStatsSchema, type ContactListItem, type ContactStats as ContactStatsContract } from "@dosc-syspro/contracts/contact";
+import { type ContactListItem, type ContactStats as ContactStatsContract } from "@dosc-syspro/contracts/contact";
+import { trpc } from "@/lib/api/trpc-client";
 import {
   Building2,
   Briefcase,
@@ -122,10 +123,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
   const [confirmDialog, setConfirmDialog] = useState<{ type: "delete" | "unlink"; contact: ContactItem } | null>(null);
 
   const loadContactStats = async () => {
-    const response = await fetch("/api/contacts/stats", { cache: "no-store" });
-    if (!response.ok) throw new Error(`Falha ao carregar contadores (${response.status})`);
-
-    const data = contactStatsSchema.parse(await response.json());
+    const data = await trpc.contacts.getStats.query();
     setContactStats(data);
   };
 
@@ -133,17 +131,13 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setLoadingList(true);
 
     try {
-      const params = new URLSearchParams();
-      if (scope === "unlinked") params.set("unlinked", "true");
-      if (scope === "linked") params.set("unlinked", "false");
-      if (searchTerm.trim()) params.set("q", searchTerm.trim());
-      params.set("page", String(page));
-      params.set("pageSize", String(CONTACTS_PAGE_SIZE));
+      const data = await trpc.contacts.list.query({
+        unlinked: scope === "unlinked" ? "true" : scope === "linked" ? "false" : undefined,
+        q: searchTerm.trim() || undefined,
+        page: String(page),
+        pageSize: String(CONTACTS_PAGE_SIZE),
+      });
 
-      const response = await fetch(`/api/contacts?${params.toString()}`, { cache: "no-store" });
-      if (!response.ok) throw new Error(`Falha ao carregar contatos (${response.status})`);
-
-      const data = contactListResponseSchema.parse(await response.json());
       const items = data.items;
       const nextPagination = data.pagination;
       const normalizedPagination: RegistryPaginationState = {
@@ -223,13 +217,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setLoadingId(contact.id);
 
     try {
-      const response = await fetch(`/api/contacts/${contact.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyIds: [] }),
-      });
-      if (!response.ok) throw new Error(`Falha ao desvincular (${response.status})`);
-
+      await trpc.contacts.update.mutate({ id: contact.id, data: { companyIds: [] } });
       toast.success("Empresas desvinculadas com sucesso.");
       await refreshContactsView();
     } catch (error) {
@@ -244,9 +232,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setLoadingId(contact.id);
 
     try {
-      const response = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error(`Falha ao excluir contato (${response.status})`);
-
+      await trpc.contacts.remove.mutate({ id: contact.id });
       toast.success("Contato removido da lista com sucesso.");
       await refreshContactsView();
     } catch (error) {
@@ -261,17 +247,8 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setSyncing(true);
 
     try {
-      const response = await fetch("/api/contacts/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || payload?.success === false) {
-        throw new Error(payload?.message || `Falha ao sincronizar contatos (${response.status})`);
-      }
-
-      toast.success(payload?.message || "Sincronizacao concluida.");
+      const payload = await trpc.contacts.sync.mutate({});
+      toast.success((payload as { message?: string })?.message || "Sincronizacao concluida.");
       await refreshContactsView();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao sincronizar contatos";

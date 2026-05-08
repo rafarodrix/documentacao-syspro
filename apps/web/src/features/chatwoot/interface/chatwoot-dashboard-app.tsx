@@ -593,26 +593,8 @@ export function ChatwootDashboardApp() {
       try {
         setIsLoadingPortalContact(true);
         setContactLookupError(null);
-        const params = new URLSearchParams({
-          q,
-          limit: "10",
-        });
-        const response = await fetch(`/api/contacts?${params.toString()}`, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          setPortalContactMatch(null);
-          setContactLookupError(
-            response.status === 401
-              ? "Faca login no portal neste navegador para localizar contatos do cadastro."
-              : "Nao foi possivel verificar se o contato ja existe no portal.",
-          );
-          return;
-        }
-        const json = (await response.json()) as ContactLookupEntry[];
-        const entries = Array.isArray(json) ? json : [];
+        const result = await trpc.contacts.list.query({ q, limit: "10" });
+        const entries = result.items;
         const matched =
           entries.find((entry) => {
             const entryWhatsapp = normalizeDigits(String(entry.whatsapp || ""));
@@ -623,7 +605,7 @@ export function ChatwootDashboardApp() {
               (email && entryEmail === email),
             );
           }) ?? null;
-        setPortalContactMatch(matched);
+        setPortalContactMatch(matched as ContactLookupEntry | null);
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
         setPortalContactMatch(null);
@@ -644,51 +626,30 @@ export function ChatwootDashboardApp() {
       setIsBindingCompany(true);
       setCompanyBindingFeedback(null);
 
-      let response: Response;
+      let updatedContact: ContactLookupEntry | null = null;
       if (portalContactMatch?.id) {
-        response = await fetch(`/api/contacts/${portalContactMatch.id}`, {
-          method: "PATCH",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const result = await trpc.contacts.update.mutate({
+          id: portalContactMatch.id,
+          data: {
             companyIds: Array.from(
               new Set([...(portalContactMatch.companyIds ?? []), selectedCompanyOption.id]),
             ),
-          }),
+          },
         });
+        updatedContact = result as unknown as ContactLookupEntry;
       } else {
-        response = await fetch("/api/contacts", {
-          method: "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: effectiveContactName,
-            email: resolved.customerEmail || undefined,
-            phone: resolved.customerPhone || undefined,
-            whatsapp: resolved.customerPhone || undefined,
-            notes: "Contato criado/vinculado pelo Dashboard App do Chatwoot.",
-            companyIds: [selectedCompanyOption.id],
-          }),
+        const result = await trpc.contacts.create.mutate({
+          name: effectiveContactName,
+          email: resolved.customerEmail || undefined,
+          phone: resolved.customerPhone || undefined,
+          whatsapp: resolved.customerPhone || undefined,
+          notes: "Contato criado/vinculado pelo Dashboard App do Chatwoot.",
+          companyIds: [selectedCompanyOption.id],
         });
+        updatedContact = result as unknown as ContactLookupEntry;
       }
 
-      const json = (await response.json().catch(() => null)) as
-        | (ContactLookupEntry & { message?: string; error?: string })
-        | null;
-      if (!response.ok) {
-        setCompanyBindingFeedback({
-          tone: "error",
-          message:
-            json?.error ||
-            json?.message ||
-            (response.status === 401
-              ? "Faca login no portal neste navegador para vincular o contato."
-              : "Nao foi possivel vincular a empresa ao contato."),
-        });
-        return;
-      }
-
-      setPortalContactMatch(json && json.id ? json : portalContactMatch);
+      setPortalContactMatch(updatedContact?.id ? updatedContact : portalContactMatch);
       setManualLinkedCompany(selectedCompanyOption);
       setCompanyBindingFeedback({
         tone: "success",
@@ -714,28 +675,13 @@ export function ChatwootDashboardApp() {
     try {
       setIsSavingContactName(true);
       setCompanyBindingFeedback(null);
-      const response = await fetch(`/api/contacts/${portalContactMatch.id}`, {
-        method: "PATCH",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nextName }),
+      const updated = await trpc.contacts.update.mutate({
+        id: portalContactMatch.id,
+        data: { name: nextName },
       });
-      const json = (await response.json().catch(() => null)) as (ContactLookupEntry & { error?: string; message?: string }) | null;
-      if (!response.ok) {
-        setCompanyBindingFeedback({
-          tone: "error",
-          message:
-            json?.error ||
-            json?.message ||
-            (response.status === 401
-              ? "Faca login no portal neste navegador para atualizar o nome do contato."
-              : "Nao foi possivel atualizar o nome do contato."),
-        });
-        return;
-      }
 
-      if (json?.id) {
-        setPortalContactMatch(json);
+      if (updated?.id) {
+        setPortalContactMatch(updated as unknown as ContactLookupEntry);
       }
       setCompanyBindingFeedback({
         tone: "success",
