@@ -1,7 +1,7 @@
 # Package: @dosc-syspro/contracts
 
 > Zod schemas e tipos TypeScript para todos os domínios do monorepo.
-> Atualizado em: 2026-05-05
+> Atualizado em: 2026-05-08
 
 ---
 
@@ -24,7 +24,7 @@ O package usa exports condicionais (subpath imports):
 |--------------------------------|-------------------------------------------------------|
 | `@dosc-syspro/contracts`       | Re-exporta tudo (barrel)                              |
 | `@dosc-syspro/contracts/company`        | Schemas de empresa (list, create, update, status) |
-| `@dosc-syspro/contracts/contact`        | Schemas de contatos                           |
+| `@dosc-syspro/contracts/contact`        | Schemas de contatos (create, update, list, stats) |
 | `@dosc-syspro/contracts/ticket`         | Schemas de tickets (status, priority, history) |
 | `@dosc-syspro/contracts/user`           | Schemas de usuários e perfis                  |
 | `@dosc-syspro/contracts/agent`          | Schemas de agentes/dispositivos               |
@@ -86,22 +86,58 @@ Versão dos payloads: sufixo `.v1` permite versionamento sem breaking change.
 ## Uso no código
 
 ```typescript
-// Na API (validação de entrada)
+// Na API (validação de entrada REST — controllers legados)
 import { HeartbeatPayloadV1Schema } from '@dosc-syspro/contracts/remote'
 
 const parsed = HeartbeatPayloadV1Schema.safeParse(body)
 if (!parsed.success) throw new BadRequestException(parsed.error)
 
+// Na API (input de tRPC router — validação automática)
+import { createContactSchema, updateContactSchema } from '@dosc-syspro/contracts/contact'
+
+create: this.trpc.publicProcedure
+  .input(createContactSchema)
+  .mutation(({ input, ctx }) => this.contactsService.createContact(input, ctx.headers))
+
 // No Web (tipagem de formulários)
-import type { CreateCompanyInput } from '@dosc-syspro/contracts/company'
-const form: CreateCompanyInput = { ... }
+import type { CreateContactInput } from '@dosc-syspro/contracts/contact'
+const form: CreateContactInput = { ... }
 ```
+
+---
+
+## Padrão create vs update
+
+Domínios com tRPC usam **dois schemas distintos** para criar e atualizar:
+
+| Schema            | Campos opcionais | Campos nullable | Quando usar                        |
+|-------------------|-----------------|-----------------|-------------------------------------|
+| `create<X>Schema` | Sim (`.optional()`) | Não          | Criar novo registro                 |
+| `update<X>Schema` | Sim (`.optional()`) | Sim (`.nullable()`) | Atualizar — permite limpar campos |
+
+**Por quê dois schemas?**
+
+No create, campos vazios podem ser simplesmente omitidos (`undefined`). No update, o usuário pode querer **limpar** um campo que tinha valor (ex.: remover o email de um contato) — isso requer `null` explícito para que o Prisma execute `SET NULL` no banco.
+
+```typescript
+// create: undefined para campos não informados
+await trpc.contacts.create.mutate({ name: "João", companyIds: [] })
+
+// update: null para limpar campos, undefined para não alterar
+await trpc.contacts.update.mutate({
+  id: contactId,
+  data: { email: null }  // limpa o email no banco
+})
+```
+
+**Atenção no service:** quando o método de update recebe o input do tRPC, usar `z.output<typeof updateSchema>` (não `z.input`) como tipo do parâmetro — o tRPC entrega o tipo pós-transform. Usar o tipo de input pode causar inferência `unknown` em campos com `.transform()` na schema.
 
 ---
 
 ## Convenções
 
-- Schemas nomeados como `<Entidade>Schema` (PascalCase)
-- Tipos inferidos como `type <Entidade> = z.infer<typeof <Entidade>Schema>`
-- Payloads versionados como `<Ação>PayloadV1` para futura evolução
-- Schemas de listagem incluem paginação e filtros padronizados
+- Schemas nomeados como `<Ação><Entidade>Schema` (ex: `createContactSchema`, `updateContactSchema`)
+- Tipos de input inferidos via `z.input<typeof schema>` (antes dos transforms Zod)
+- Tipos de output inferidos via `z.output<typeof schema>` (após os transforms Zod)
+- Payloads REST externos versionados como `<Ação>PayloadV1` para futura evolução
+- Schemas de listagem incluem paginação e filtros padronizados via `paginationQuerySchema`
