@@ -3,18 +3,14 @@ import { Calendar, Bug, Rocket, Sparkles } from "lucide-react";
 import { getReleases } from "@/features/releases/application/release-read.queries";
 import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/domain";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter, Badge, Separator } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 
 export async function ReleasesIndexPage() {
   const releases = await getReleases();
   const monthsByYear = groupReleasesByDate(releases);
 
   if (!monthsByYear || monthsByYear.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/30 rounded-lg border border-dashed">
-        <Bug className="w-10 h-10 mb-2 opacity-20" />
-        <p>Nenhuma atualização encontrada.</p>
-      </div>
-    );
+    return <EmptyState icon={Bug} title="Nenhuma atualização encontrada." dashed />;
   }
 
   let isFirstGlobalCard = true;

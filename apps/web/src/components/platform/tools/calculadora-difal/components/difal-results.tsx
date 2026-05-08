@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { ResultadoCalculo } from '../types';
 import { formatCurrency } from '@/lib/formatters';
+import { EmptyState } from '@/components/patterns';
 
 interface ResultRowProps {
     icon: LucideIcon;
@@ -36,11 +37,13 @@ interface DifalResultsProps {
 export function DifalResults({ resultados, finalidade }: DifalResultsProps) {
     if (!resultados) {
         return (
-            <div className="bg-card border-2 border-dashed rounded-lg p-8 text-center h-full flex flex-col items-center justify-center">
-                <div className="p-3 bg-muted rounded-full mb-3"><Calculator className="text-muted-foreground" size={32} /></div>
-                <h3 className="text-md font-semibold">Aguardando dados</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">Preencha os valores para calcular.</p>
-            </div>
+            <EmptyState
+                icon={Calculator}
+                title="Aguardando dados"
+                description="Preencha os valores para calcular."
+                dashed
+                className="h-full bg-card"
+            />
         );
     }
 

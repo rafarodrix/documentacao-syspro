@@ -22,6 +22,7 @@ import type {
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
 import { Card, CardContent, Button, Input, Badge } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 
 type StatusFilter = "all" | "online" | "offline";
 
@@ -279,11 +280,13 @@ function FilterPill(props: {
 function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-muted-foreground border border-dashed rounded-lg">
-        <ServerOff className="w-8 h-8" />
-        <span className="text-sm font-medium">Nenhum dispositivo encontrado</span>
-        <span className="text-xs">Ajuste filtros ou aguarde o proximo heartbeat dos agentes.</span>
-      </div>
+      <EmptyState
+        icon={ServerOff}
+        title="Nenhum dispositivo encontrado"
+        description="Ajuste filtros ou aguarde o proximo heartbeat dos agentes."
+        dashed
+        compact
+      />
     );
   }
 

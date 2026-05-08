@@ -1,16 +1,20 @@
 import { getTaxClassificationListViewData } from "@/features/tax/application/tax-read.queries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from "@dosc-syspro/ui";
 import { FileText, Database, ArrowRight } from "lucide-react";
+import { EmptyState } from "@/components/patterns";
 
 export async function TaxClassificationList() {
   const { totalCount, items, previewLimit } = await getTaxClassificationListViewData();
 
   if (totalCount === 0) {
     return (
-      <div className="mt-4 flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 p-8 text-muted-foreground">
-        <Database className="mb-2 h-10 w-10 opacity-20" />
-        <p className="text-sm">Nenhuma classificação encontrada.</p>
-        <p className="text-xs">Clique em &quot;Sincronizar&quot; para popular a base.</p>
+      <div className="mt-4">
+        <EmptyState
+          icon={Database}
+          title="Nenhuma classificação encontrada."
+          description='Clique em "Sincronizar" para popular a base.'
+          dashed
+        />
       </div>
     );
   }
