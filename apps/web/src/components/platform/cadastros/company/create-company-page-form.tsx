@@ -1,3 +1,1 @@
-export {
-  CreateCompanyPageForm,
-} from "@/features/company/interface/create-company-page-form";
+export { CreateCompanyPageForm } from "@/features/company/interface/create-company-page-form";

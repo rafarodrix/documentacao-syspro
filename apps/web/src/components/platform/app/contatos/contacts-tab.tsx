@@ -1,3 +1,1 @@
-export {
-  ContactsTab,
-} from "@/features/contact/interface/contacts-tab";
+export { ContactsTab } from "@/features/contact/interface/contacts-tab";
