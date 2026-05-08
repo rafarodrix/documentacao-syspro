@@ -17,18 +17,21 @@ import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { Button } from "@dosc-syspro/ui";
-// ds-roadmap: Avatar, DropdownMenu, Sheet pendentes em @dosc-syspro/ui
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Button,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@dosc-syspro/ui";
 
 export async function SiteHeader() {
   const session = await getProtectedSession();
