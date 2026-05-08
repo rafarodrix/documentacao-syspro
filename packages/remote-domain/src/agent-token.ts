@@ -1,7 +1,17 @@
 const DEFAULT_AGENT_TOKEN_TTL_DAYS = 30;
 
+function readRemoteAgentTokenTtlDaysEnv() {
+  const runtime = globalThis as typeof globalThis & {
+    process?: {
+      env?: Record<string, string | undefined>;
+    };
+  };
+
+  return runtime.process?.env?.REMOTE_AGENT_TOKEN_TTL_DAYS;
+}
+
 export function getRemoteAgentTokenTtlDays() {
-  const rawValue = process.env.REMOTE_AGENT_TOKEN_TTL_DAYS?.trim();
+  const rawValue = readRemoteAgentTokenTtlDaysEnv()?.trim();
   const parsed = rawValue ? Number(rawValue) : NaN;
 
   if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 365) {
