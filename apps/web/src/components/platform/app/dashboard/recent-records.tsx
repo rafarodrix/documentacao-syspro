@@ -1,7 +1,7 @@
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Button } from "@dosc-syspro/ui";
+import { Badge, Button } from "@dosc-syspro/ui";
 import { ArrowUpRight, UserRound, Users } from "lucide-react"
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, SectionCard } from "@/components/patterns";
 
 export interface RecentRecordItem {
   id: string
@@ -66,24 +66,21 @@ export function RecentRecords({
   const Icon = icon === "user" ? Users : UserRound
 
   return (
-    <Card className="w-full border-border/50 flex flex-col">
-      <CardHeader className="pb-3 px-5 pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-            <CardDescription className="text-xs mt-0.5">{description}</CardDescription>
-          </div>
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
-            <Link href={viewAllHref}>
-              Ver todos
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="px-5 pb-5 flex-1">
-        {items.length === 0 ? (
+    <SectionCard
+      title={title}
+      description={description}
+      action={
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
+          <Link href={viewAllHref}>
+            Ver todos
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </Button>
+      }
+      className="w-full border-border/50 flex flex-col"
+      contentClassName="flex-1"
+    >
+      {items.length === 0 ? (
           <EmptyState
             icon={Icon}
             title={emptyTitle}
@@ -129,7 +126,6 @@ export function RecentRecords({
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </SectionCard>
   )
 }

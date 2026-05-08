@@ -1,9 +1,9 @@
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button } from "@dosc-syspro/ui";
+import { Badge, Button } from "@dosc-syspro/ui";
 import { Building2, ArrowUpRight, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CompanyStatus } from "@prisma/client"
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, SectionCard } from "@/components/patterns";
 
 export interface RecentCompanyItem {
   id: string
@@ -58,26 +58,21 @@ function getInitials(name: string): string {
 
 export function RecentCompanies({ companies }: RecentCompaniesProps) {
   return (
-    <Card className="w-full flex flex-col border-border/50">
-      <CardHeader className="pb-3 px-5 pt-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-semibold">Ultimos Cadastros</CardTitle>
-            <CardDescription className="text-xs mt-0.5">
-              Empresas recentes na plataforma
-            </CardDescription>
-          </div>
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
-            <Link href="/portal/cadastros">
-              Ver todos
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="px-5 pb-5 flex-1">
-        {companies.length === 0 ? (
+    <SectionCard
+      title="Ultimos Cadastros"
+      description="Empresas recentes na plataforma"
+      action={
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
+          <Link href="/portal/cadastros">
+            Ver todos
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </Button>
+      }
+      className="w-full flex flex-col border-border/50"
+      contentClassName="flex-1"
+    >
+      {companies.length === 0 ? (
           <EmptyState
             icon={Building2}
             title="Nenhuma empresa cadastrada"
@@ -142,7 +137,6 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </SectionCard>
   )
 }

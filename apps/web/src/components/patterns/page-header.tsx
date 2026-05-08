@@ -15,6 +15,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
+/* eslint-disable trilink-tokens/no-raw-tailwind-palette -- badge variant palette intentional; no semantic token for info/success/warning/purple */
 const BADGE_STYLES: Record<NonNullable<PageHeaderBadge["variant"]>, string> = {
   default: "bg-muted text-muted-foreground border-border",
   info: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
@@ -22,6 +23,7 @@ const BADGE_STYLES: Record<NonNullable<PageHeaderBadge["variant"]>, string> = {
   warning: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
   purple: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
 };
+/* eslint-enable trilink-tokens/no-raw-tailwind-palette */
 
 export function PageHeader({
   title,

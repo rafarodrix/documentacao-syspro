@@ -11,6 +11,7 @@ interface MetricCardProps {
   className?: string;
 }
 
+/* eslint-disable trilink-tokens/no-raw-tailwind-palette -- tone palette intentional; no semantic token for info/success/warning/danger */
 const TONE_STYLES: Record<NonNullable<MetricCardProps["tone"]>, string> = {
   info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
   success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
@@ -18,6 +19,7 @@ const TONE_STYLES: Record<NonNullable<MetricCardProps["tone"]>, string> = {
   warning: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   danger: "bg-red-500/10 text-red-600 dark:text-red-300",
 };
+/* eslint-enable trilink-tokens/no-raw-tailwind-palette */
 
 export function MetricCard({
   title,
