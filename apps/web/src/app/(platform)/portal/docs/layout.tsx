@@ -26,7 +26,7 @@ export default async function PortalDocsLayout({ children }: { children: ReactNo
     <RootProvider>
       <PortalShellModeController showSidebar={false} />
       <main className="portal-docs-shell min-h-0 [--fd-banner-height:0px] [--portal-docs-top-offset:3.5rem]">
-        <DocsLayoutClient docsTree={docsTree} role={session.role}>
+        <DocsLayoutClient docsTree={docsTree}>
           {children}
         </DocsLayoutClient>
       </main>

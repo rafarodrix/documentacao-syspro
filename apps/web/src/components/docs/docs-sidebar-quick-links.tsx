@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { BookOpenText, ChevronDown, CircleHelp, LifeBuoy, ReceiptText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Role } from '@prisma/client';
 import { useEffect, useState } from 'react';
 import {
   Collapsible,
@@ -22,17 +21,14 @@ const BASE_LINKS: QuickLink[] = [
   { href: '/portal/docs/suporte', label: 'Suporte', icon: LifeBuoy },
 ];
 
-const SYSTEM_LINKS: QuickLink[] = [
+const TECHNICAL_LINKS: QuickLink[] = [
   { href: '/portal/docs/manuais-tecnicos', label: 'Manuais Técnicos', icon: BookOpenText },
 ];
 
-export function DocsSidebarQuickLinks({ role }: { role: Role }) {
-  const isSystemRole = role === 'ADMIN' || role === 'DEVELOPER' || role === 'SUPORTE';
-  const quickLinks = isSystemRole ? [...BASE_LINKS, ...SYSTEM_LINKS] : BASE_LINKS;
-
+export function DocsSidebarQuickLinks({ canViewTechnical }: { canViewTechnical: boolean }) {
+  const quickLinks = canViewTechnical ? [...BASE_LINKS, ...TECHNICAL_LINKS] : BASE_LINKS;
   const [open, setOpen] = useState(true);
 
-  // Inicializa a preferência de open/close do localStorage
   useEffect(() => {
     const isCompact = window.matchMedia('(max-height: 860px)').matches;
     const saved = readStorage<string>(DOCS_STORAGE_KEYS.quickLinksOpen, '');
@@ -40,7 +36,6 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
     if (saved === '0') { setOpen(false); return; }
     if (saved === '1') { setOpen(true); return; }
 
-    // Sem preferência salva: usar viewport como fallback
     setOpen(!isCompact);
   }, []);
 
@@ -83,4 +78,3 @@ export function DocsSidebarQuickLinks({ role }: { role: Role }) {
     </div>
   );
 }
-

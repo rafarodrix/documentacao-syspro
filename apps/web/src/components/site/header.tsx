@@ -13,10 +13,10 @@ import {
   Menu,
   User,
 } from "lucide-react";
-import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import {
   Button,
   Avatar,
@@ -43,7 +43,7 @@ export async function SiteHeader() {
         role: session.role,
       }
     : null;
-  const canViewTechnical = user?.role ? hasAllowedRole(user.role, SYSTEM_ROLES) : false;
+  const canViewTechnical = user ? await currentUserHasPermission("tools:all") : false;
   const dashboardUrl = "/portal";
   const docsNavItems = [
     {
@@ -322,5 +322,4 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
-
 

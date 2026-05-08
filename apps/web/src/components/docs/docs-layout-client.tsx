@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Role } from '@prisma/client';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { DocsLayout as NotebookLayout } from 'fumadocs-ui/layouts/notebook';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
@@ -10,39 +9,25 @@ import { DocsSidebarItem } from '@/components/docs/docs-sidebar-item';
 import { DocsSidebarInlineCollapse } from '@/components/docs/docs-sidebar-inline-collapse';
 import { DOCS_STORAGE_KEYS, readStorage } from '@/lib/docs-storage';
 
-function getDefaultLayoutForRole(role: Role): 'docs' | 'notebook' {
-  if (role === 'SUPORTE' || role === 'DEVELOPER') return 'notebook';
-  return 'docs';
-}
-
 export function DocsLayoutClient({
   docsTree,
-  role,
   children,
 }: {
   docsTree: PageTreeRoot;
-  role: Role;
   children: ReactNode;
 }) {
-  const isAdmin = role === 'ADMIN';
-
-  // `null` enquanto hidratando → evita flash de layout errado no SSR
-  const [adminLayoutMode, setAdminLayoutMode] = useState<'docs' | 'notebook' | null>(null);
+  const [layoutPreference, setLayoutPreference] = useState<'docs' | 'notebook' | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) return;
     const saved = readStorage<string>(DOCS_STORAGE_KEYS.adminLayout, '');
     if (saved === 'docs' || saved === 'notebook') {
-      setAdminLayoutMode(saved);
+      setLayoutPreference(saved);
     } else {
-      setAdminLayoutMode('docs');
+      setLayoutPreference('docs');
     }
-  }, [isAdmin]);
+  }, []);
 
-  const layoutMode = useMemo(() => {
-    if (isAdmin) return adminLayoutMode ?? 'docs';
-    return getDefaultLayoutForRole(role);
-  }, [isAdmin, adminLayoutMode, role]);
+  const layoutMode = useMemo(() => layoutPreference ?? 'docs', [layoutPreference]);
 
   const sharedSidebarProps = {
     className: 'docs-sidebar-shell portal-docs-sidebar',

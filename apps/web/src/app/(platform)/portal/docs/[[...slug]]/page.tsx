@@ -42,13 +42,14 @@ export default async function PortalDocsPage(props: {
   const session = await requireSession();
   const slug = params.slug ?? [];
   const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
+  const canBypassSegmentAccess = await currentUserHasPermission("users:view_internal");
   const docUrl = `${DOCS_BASE_PATH}${slug.length ? `/${slug.join('/')}` : ''}`;
 
   const canAccessCurrentDoc = await canUserAccessDocUrl({
     url: docUrl,
-    role: session.role,
     userId: session.userId,
     canViewTechnical: canViewTechnicalDocs,
+    canBypassSegmentAccess,
   });
   if (!canAccessCurrentDoc) {
     redirect(DOCS_BASE_PATH);
@@ -63,7 +64,12 @@ export default async function PortalDocsPage(props: {
 
     const visibility = await Promise.all(
       allPages.map((item) =>
-        canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId, canViewTechnical: canViewTechnicalDocs }),
+        canUserAccessDocUrl({
+          url: item.url,
+          userId: session.userId,
+          canViewTechnical: canViewTechnicalDocs,
+          canBypassSegmentAccess,
+        }),
       ),
     );
 
@@ -84,7 +90,6 @@ export default async function PortalDocsPage(props: {
           <DocsHomePage
             pages={visiblePages}
             canViewTechnical={canViewTechnicalDocs}
-            role={session.role}
             releaseSummaries={releaseSummaries}
           />
         </DocsBody>
@@ -129,7 +134,12 @@ export default async function PortalDocsPage(props: {
   const navigationPool = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
   const navigationVisibility = await Promise.all(
     navigationPool.map((item) =>
-      canUserAccessDocUrl({ url: item.url, role: session.role, userId: session.userId, canViewTechnical: canViewTechnicalDocs }),
+      canUserAccessDocUrl({
+        url: item.url,
+        userId: session.userId,
+        canViewTechnical: canViewTechnicalDocs,
+        canBypassSegmentAccess,
+      }),
     ),
   );
   const visibleNavigationPages = navigationPool.filter((_, i) => navigationVisibility[i]);

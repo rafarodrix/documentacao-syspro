@@ -7,7 +7,6 @@ import { Breadcrumbs } from "./breadcrumbs"
 import { CommandPaletteTrigger } from "./command-palette-trigger"
 import { NotificationsMenu } from "./notifications-menu"
 import type { Role } from "@prisma/client"
-import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { RemoteActiveSessionsCounter } from "@/features/remote/interface/active-sessions-counter"
 import type { NavigationAccess } from "@/components/platform/app/layout/app-sidebar"
 
@@ -35,8 +34,6 @@ export function ClientHeader({
   canWatchRemoteSessions = false,
   navigationAccess,
 }: ClientHeaderProps) {
-  const isSystemUser = SYSTEM_ROLES.includes(user.role)
-
   return (
     <header className="hidden md:flex sticky top-0 z-40 h-14 items-center gap-3 border-b border-border/40 bg-background/95 px-4 backdrop-blur-md">
       {showSidebarToggle && (
@@ -57,7 +54,7 @@ export function ClientHeader({
 
       <div className="flex flex-1 items-center justify-center gap-2">
         <CommandPaletteTrigger navigationAccess={navigationAccess} />
-        {isSystemUser && canWatchRemoteSessions && (
+        {canWatchRemoteSessions && (
           <RemoteActiveSessionsCounter initialCount={initialActiveSessionsCount} />
         )}
       </div>

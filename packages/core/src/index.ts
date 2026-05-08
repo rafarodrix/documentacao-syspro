@@ -27,10 +27,6 @@ export {
   SYSTEM_ROLES,
   CLIENT_ROLES,
   CADASTRO_MANAGER_ROLES,
-  CADASTROS_ROUTE_RULES,
-  DOCS_ROUTE_RULES,
-  SIDEBAR_ROLE_RULES,
-  hasAllowedRole,
 } from "./config/route-access";
 export type { AppRole } from "./config/route-access";
 export { ROLE_LABELS, getRoleLabel } from "./config/role-labels";

@@ -1,8 +1,9 @@
 import { cache } from "react"
 import { headers } from "next/headers"
-import type { AppRole } from "@dosc-syspro/core"
 import { redirect } from "next/navigation"
 import { resolveServerOrigin } from "@/lib/server-origin"
+
+import type { AppRole } from "@dosc-syspro/core"
 
 export type UserRole = AppRole
 
@@ -50,20 +51,5 @@ export const getProtectedSession = cache(async (): Promise<ProtectedSession | nu
 export async function requireSession(): Promise<ProtectedSession> {
   const session = await getProtectedSession()
   if (!session) redirect("/login")
-  return session
-}
-
-/**
- * Variante que exige role especifica.
- * Redireciona para /login se nao autenticado, ou para /portal se sem permissao.
- */
-export async function requireRole(
-  allowedRoles: AppRole[],
-  unauthorizedRedirect = "/portal"
-): Promise<ProtectedSession> {
-  const session = await requireSession()
-  if (!allowedRoles.includes(session.role)) {
-    redirect(unauthorizedRedirect)
-  }
   return session
 }

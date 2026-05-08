@@ -15,12 +15,6 @@ type Summary = {
   sefazRoutesCount: number;
 };
 
-const roleLabels: Record<string, string> = {
-  ADMIN: "Administrador",
-  DEVELOPER: "Desenvolvedor",
-  SUPORTE: "Suporte",
-};
-
 const sefazDot: Record<SefazHealth, string> = {
   online: "bg-emerald-500",
   unstable: "animate-pulse bg-amber-500",
@@ -42,7 +36,7 @@ const sefazColor: Record<SefazHealth, string> = {
   unknown: "text-muted-foreground",
 };
 
-export function AdminStatusBar({ role }: { role: string }) {
+export function AdminStatusBar() {
   const [summary, setSummary] = useState<Summary | null>(null);
 
   useEffect(() => {
@@ -67,7 +61,7 @@ export function AdminStatusBar({ role }: { role: string }) {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Visao</span>
-          <span className="font-semibold text-foreground">{roleLabels[role] ?? role}</span>
+          <span className="font-semibold text-foreground">Operacao interna</span>
         </div>
 
         {summary ? (

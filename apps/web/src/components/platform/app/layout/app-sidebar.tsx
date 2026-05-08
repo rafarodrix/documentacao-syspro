@@ -7,7 +7,6 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
-import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { getRoleLabel as getUnifiedRoleLabel } from "@dosc-syspro/core"
 import {
   Avatar,
@@ -33,7 +32,6 @@ import {
   ChevronUp,
   Settings,
   FileText,
-  ShieldCheck,
   HelpCircle,
   Monitor,
   Smartphone,
@@ -91,7 +89,7 @@ const NAV_CADASTROS: NavItemType[] = [
 
 const NAV_SUPPORT: NavItemType[] = [
   { title: "Tickets", href: "/portal/tickets", icon: Ticket },
-  { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, roles: [...SYSTEM_ROLES], newTab: true },
+  { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, newTab: true },
   { title: "Infraestrutura", href: "/portal/infraestrutura", icon: Monitor },
 ]
 
@@ -137,11 +135,9 @@ function NavGroup({ title, children, collapsed }: { title: string; children: Rea
 }
 
 function SidebarBrand({
-  isSystemUser,
   onClose,
   collapsed,
 }: {
-  isSystemUser: boolean
   onClose?: () => void
   collapsed?: boolean
 }) {
@@ -157,12 +153,10 @@ function SidebarBrand({
           <div
             className={cn(
               "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-all duration-300",
-              isSystemUser
-                ? "bg-violet-600 group-hover:bg-violet-700 group-hover:shadow-violet-500/25 group-hover:shadow-md" // ds-allow: surface accent
-                : "bg-linear-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
+              "bg-linear-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
             )}
           >
-            {isSystemUser ? <ShieldCheck className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
+            <Sparkles className="h-4.5 w-4.5" />
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -184,12 +178,6 @@ function SidebarBrand({
                 sizes="112px"
               />
             </div>
-            {isSystemUser && (
-              // ds-allow: surface accent
-              <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wider">
-                Admin
-              </span>
-            )}
           </div>
         )}
       </Link>
@@ -199,13 +187,11 @@ function SidebarBrand({
 
 function SidebarFooter({
   user,
-  isSystemUser,
   onClose,
   collapsed,
   navigationAccess,
 }: {
   user: SidebarUser
-  isSystemUser: boolean
   onClose?: () => void
   collapsed?: boolean
   navigationAccess?: NavigationAccess
@@ -234,9 +220,7 @@ function SidebarFooter({
               <AvatarFallback
                 className={cn(
                   "text-[11px] font-bold",
-                  isSystemUser
-                    ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300" // ds-allow: surface accent
-                    : "bg-primary/10 text-primary",
+                  "bg-primary/10 text-primary",
                 )}
               >
                 {getInitials(user.name)}
@@ -305,10 +289,11 @@ function SidebarFooter({
 
 export function AppSidebar({ user, mobile = false, onClose, collapsed = false, navigationAccess }: AppSidebarProps) {
   const pathname = usePathname()
-  const isSystemUser = SYSTEM_ROLES.includes(user.role)
   const isSidebarCollapsed = !mobile && collapsed
   const supportNavItems = NAV_SUPPORT.map((item) =>
-    item.href === "/portal/tickets" ? { ...item, title: isSystemUser ? "Tickets" : "Meus Chamados" } : item,
+    item.href === "/portal/tickets"
+      ? { ...item, title: navigationAccess?.tickets ? "Chamados" : item.title }
+      : item,
   )
   const mainItems = filterByAccess(NAV_MAIN, {
     "/portal": navigationAccess?.dashboard,
@@ -353,7 +338,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
           : cn("h-screen fixed left-0 top-0 hidden md:flex transition-[width] duration-200", isSidebarCollapsed ? "w-16" : "w-64"),
       )}
     >
-      <SidebarBrand isSystemUser={isSystemUser} onClose={onClose} collapsed={isSidebarCollapsed} />
+      <SidebarBrand onClose={onClose} collapsed={isSidebarCollapsed} />
 
       <div className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-2 py-3 pb-4 space-y-4">
         <div className="space-y-0.5">
@@ -403,7 +388,6 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
 
       <SidebarFooter
         user={user}
-        isSystemUser={isSystemUser}
         onClose={onClose}
         collapsed={isSidebarCollapsed}
         navigationAccess={navigationAccess}

@@ -2,7 +2,6 @@
 
 import { useMemo, type CSSProperties } from 'react';
 import Link from 'next/link';
-import type { Role } from '@prisma/client';
 import { BookOpen, ChevronRight, Clock, History, Search } from 'lucide-react';
 import { LargeSearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
 import { DocsSectionHeader } from '@/components/docs/docs-section-header';
@@ -25,12 +24,11 @@ const staggerStyle = (index: number): CSSProperties => ({
 type DocsHomePageProps = {
   pages: DocsHomeEntry[];
   canViewTechnical: boolean;
-  role: Role;
   releaseSummaries: ReleaseMonthSummary[];
 };
 
-export function DocsHomePage({ pages, canViewTechnical, role, releaseSummaries }: DocsHomePageProps) {
-  const { derived } = useDocsDashboard(pages, role, canViewTechnical);
+export function DocsHomePage({ pages, canViewTechnical, releaseSummaries }: DocsHomePageProps) {
+  const { derived } = useDocsDashboard(pages, canViewTechnical);
 
   const quickLinks = useMemo(() => {
     return canViewTechnical

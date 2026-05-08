@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Role } from '@prisma/client';
 import { DOCS_STORAGE_KEYS, readStorage } from '@/lib/docs-storage';
 import type { RecentDocItem, PopularMap } from '@/lib/docs-storage';
 import { parseDate } from '@/lib/docs-utils';
@@ -43,7 +42,7 @@ type InsightsApiResponse = {
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useDocsDashboard(pages: DocsHomeEntry[], role: Role, canViewTechnical: boolean) {
+export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boolean) {
   const [recentItems, setRecentItems] = useState<RecentDocItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
   const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
@@ -139,7 +138,7 @@ export function useDocsDashboard(pages: DocsHomeEntry[], role: Role, canViewTech
     derived: { latestUpdates, mostAccessed, recent, continueReading, globalPopular, rolePopular },
     metrics: {
       totalPages: pages.length,
-      insightCount: rolePopular.length + globalPopular.length + mostAccessed.length,
+      insightCount: rolePopular.length + globalPopular.length + mostAccessed.length + (canViewTechnical ? 1 : 0),
     },
   };
 }

@@ -9,7 +9,6 @@ export type NavItemType = {
   title: string
   href: string
   icon: LucideIcon
-  roles?: string[]
   badge?: string
   newTab?: boolean
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCookieCache } from "better-auth/cookies";
-import { APP_ROLES, CADASTROS_ROUTE_RULES, DOCS_ROUTE_RULES, SYSTEM_ROLES, hasAllowedRole, type AppRole } from "@dosc-syspro/core";
+import { APP_ROLES, type AppRole } from "@dosc-syspro/core";
 
 type CachedRole = { role: AppRole; expiresAt: number };
 type SessionCachePayload = {
@@ -11,8 +11,6 @@ type SessionCachePayload = {
 
 const ROLE_CACHE_TTL_MS = 30 * 1000;
 const ROLE_CACHE_MAX_ITEMS = 1000;
-const REMOTE_PLATFORM_ROLES: AppRole[] = [...SYSTEM_ROLES, "CLIENTE_ADMIN"];
-
 const globalForRoleCache = globalThis as unknown as { __sessionRoleCache?: Map<string, CachedRole> };
 const sessionRoleCache = globalForRoleCache.__sessionRoleCache ?? new Map<string, CachedRole>();
 globalForRoleCache.__sessionRoleCache = sessionRoleCache;
@@ -122,51 +120,9 @@ export async function middleware(request: NextRequest) {
     return redirectTo(request, "/portal");
   }
 
-  if (
-    resolvedRole &&
-    (
-      pathname.startsWith("/portal/cadastros") ||
-      pathname.startsWith(CADASTROS_ROUTE_RULES.contatos.pathPrefix) ||
-      pathname.startsWith("/portal/infraestrutura") ||
-      pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix)
-    )
-  ) {
-    if (pathname === "/portal/cadastros" && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.empresa.allowed)) {
-      return redirectTo(request, CADASTROS_ROUTE_RULES.root.redirectIfBlocked);
-    }
-
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.sistema.pathPrefix) && !hasAllowedRole(resolvedRole, SYSTEM_ROLES)) {
-      return redirectTo(request, CADASTROS_ROUTE_RULES.sistema.redirectIfBlocked);
-    }
-
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.empresa.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.empresa.allowed)) {
-      return redirectTo(request, CADASTROS_ROUTE_RULES.empresa.redirectIfBlocked);
-    }
-
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.usuarios.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.usuarios.allowed)) {
-      return redirectTo(request, CADASTROS_ROUTE_RULES.usuarios.redirectIfBlocked);
-    }
-
-    if (pathname.startsWith(CADASTROS_ROUTE_RULES.contatos.pathPrefix) && !hasAllowedRole(resolvedRole, CADASTROS_ROUTE_RULES.contatos.allowed)) {
-      return redirectTo(request, CADASTROS_ROUTE_RULES.contatos.redirectIfBlocked);
-    }
-
-    if (pathname.startsWith("/portal/infraestrutura") && !hasAllowedRole(resolvedRole, REMOTE_PLATFORM_ROLES)) {
-      return redirectTo(request, "/portal");
-    }
-
-    if (
-      pathname.startsWith(DOCS_ROUTE_RULES.technical.pathPrefix) &&
-      !hasAllowedRole(resolvedRole, DOCS_ROUTE_RULES.technical.allowed)
-    ) {
-      return redirectTo(request, DOCS_ROUTE_RULES.technical.redirectIfBlocked);
-    }
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
-

@@ -10,19 +10,17 @@ import { TabSkeleton, TabListSkeleton } from "./components/tab-skeleton";
 import { AdminStatusBar } from "./components/admin-status-bar";
 
 export function AdminDashboard({
-  role,
   canAccessCrm,
+  canAccessCadastros,
   canViewAvailability,
 }: {
-  role: string;
   canAccessCrm: boolean;
+  canAccessCadastros: boolean;
   canViewAvailability: boolean;
 }) {
-  const isDeveloper = role === "DEVELOPER";
-
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
-      <AdminStatusBar role={role} />
+      <AdminStatusBar />
       <Tabs defaultValue="operacional" className="space-y-4">
         <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
           <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
@@ -37,7 +35,7 @@ export function AdminDashboard({
             <Activity className="h-4 w-4" />
             SEFAZ
           </TabsTrigger>
-          {!isDeveloper ? (
+          {canAccessCadastros ? (
             <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
               <Building2 className="h-4 w-4" />
               Cadastros
@@ -69,7 +67,7 @@ export function AdminDashboard({
           </Suspense>
         </TabsContent>
 
-        {!isDeveloper ? (
+        {canAccessCadastros ? (
           <TabsContent value="cadastros">
             <Suspense fallback={<TabListSkeleton />}>
               <CadastrosTab />
