@@ -62,22 +62,36 @@ Tokens semanticos ja estao registrados no `tailwind.config.ts` (via `theme.exten
 
 ## Componentes — sempre via `@dosc-syspro/ui`
 
-### Lista atual (apos esta adocao)
+### Lista atual (2026-05-08 — 24 componentes)
 
-| Primitivo  | Status      | Origem                 |
-| ---------- | ----------- | ---------------------- |
-| Button     | Estavel     | `@dosc-syspro/ui`      |
-| Badge      | Estavel     | `@dosc-syspro/ui`      |
-| Card*      | Estavel     | `@dosc-syspro/ui`      |
-| Input      | Estavel     | `@dosc-syspro/ui`      |
-| Label      | Estavel     | `@dosc-syspro/ui`      |
-| Textarea   | Estavel     | `@dosc-syspro/ui`      |
-| Dialog     | **Novo**    | `@dosc-syspro/ui`      |
-| Select     | **Novo**    | `@dosc-syspro/ui`      |
-| Tabs       | **Novo**    | `@dosc-syspro/ui`      |
-| Tooltip    | **Novo**    | `@dosc-syspro/ui`      |
+| Primitivo        | Status    | Origem            |
+| ---------------- | --------- | ----------------- |
+| Button           | Estavel   | `@dosc-syspro/ui` |
+| Badge            | Estavel   | `@dosc-syspro/ui` |
+| Card             | Estavel   | `@dosc-syspro/ui` |
+| Input            | Estavel   | `@dosc-syspro/ui` |
+| Label            | Estavel   | `@dosc-syspro/ui` |
+| Textarea         | Estavel   | `@dosc-syspro/ui` |
+| Dialog           | Estavel   | `@dosc-syspro/ui` |
+| AlertDialog      | Estavel   | `@dosc-syspro/ui` |
+| Select           | Estavel   | `@dosc-syspro/ui` |
+| Tabs             | Estavel   | `@dosc-syspro/ui` |
+| Tooltip          | Estavel   | `@dosc-syspro/ui` |
+| Sheet            | Estavel   | `@dosc-syspro/ui` |
+| DropdownMenu     | Estavel   | `@dosc-syspro/ui` |
+| Avatar           | Estavel   | `@dosc-syspro/ui` |
+| Alert            | Estavel   | `@dosc-syspro/ui` |
+| Table            | Estavel   | `@dosc-syspro/ui` |
+| Separator        | Estavel   | `@dosc-syspro/ui` |
+| Skeleton         | Estavel   | `@dosc-syspro/ui` |
+| Switch           | Estavel   | `@dosc-syspro/ui` |
+| Popover          | Estavel   | `@dosc-syspro/ui` |
+| ScrollArea       | Estavel   | `@dosc-syspro/ui` |
+| Checkbox         | Estavel   | `@dosc-syspro/ui` |
+| Accordion        | Estavel   | `@dosc-syspro/ui` |
+| Progress         | Estavel   | `@dosc-syspro/ui` |
 
-A roadmap inclui: Sheet, Popover, DropdownMenu, Accordion, Avatar, Alert, Separator, Skeleton, Sidebar, DataTable.
+Roadmap pendente: Form (react-hook-form wrapper), Toggle, Calendar.
 
 ### Exemplo de migracao
 
