@@ -1,12 +1,12 @@
 # API — Módulo tRPC
 
-> `apps/api/src/modules/trpc/` · Atualizado em: 2026-05-05
+> `apps/api/src/modules/trpc/` · Atualizado em: 2026-05-08
 
 ---
 
 ## Responsabilidade
 
-O módulo `trpc` expõe um roteador tRPC que o frontend (`apps/web`) consome para chamadas type-safe. Segue o padrão **federated router** — cada domínio registra seu sub-roteador no router principal.
+O módulo `trpc` expõe um roteador tRPC que o frontend (`apps/web`) consome para chamadas type-safe. Segue o padrão **federated router** — cada domínio registra seu sub-roteador no router principal via `forwardRef` para resolver dependências circulares.
 
 ---
 
@@ -14,77 +14,143 @@ O módulo `trpc` expõe um roteador tRPC que o frontend (`apps/web`) consome par
 
 ```
 src/modules/trpc/
-├── trpc.module.ts      ← módulo NestJS, importa todos os módulos de domínio
-├── trpc.router.ts      ← router principal (mescla sub-routers)
-├── trpc.service.ts     ← inicialização do tRPC (context, middlewares)
-└── trpc.context.ts     ← extrai contexto da request (user, session, scope)
+├── trpc.module.ts      ← módulo NestJS; importa módulos de domínio com forwardRef
+├── trpc.router.ts      ← router principal (mescla sub-routers de cada domínio)
+├── trpc.service.ts     ← inicialização do tRPC (publicProcedure, router, mergeRouters)
+└── trpc.context.ts     ← extrai contexto da request (headers, req, res)
 ```
 
 ---
 
 ## Router principal
 
-O `trpc.router.ts` agrega procedures de cada domínio:
+O `trpc.router.ts` agrega os sub-routers de cada domínio migrado:
 
 ```typescript
-export const appRouter = router({
-  companies:   companiesRouter,
-  contacts:    contactsRouter,
-  users:       usersRouter,
-  tickets:     ticketsRouter,
-  crm:         crmRouter,
-  dashboard:   dashboardRouter,
-  releases:    releasesRouter,
-  settings:    settingsRouter,
-  agents:      agentsRouter,
-  tax:         taxRouter,
-  // ...
-})
+// apps/api/src/modules/trpc/trpc.router.ts
+@Injectable()
+export class TrpcRouter {
+  public appRouter!: ReturnType<typeof this.createRouter>;
 
-export type AppRouter = typeof appRouter
+  constructor(
+    private readonly trpc: TrpcService,
+    private readonly companiesRouter: CompaniesRouter,
+    private readonly usersRouter: UsersRouter,
+  ) {
+    this.appRouter = this.createRouter();
+  }
+
+  private createRouter() {
+    return this.trpc.router({
+      hello:     this.trpc.publicProcedure.query(() => ({ message: 'Hello from tRPC!' })),
+      companies: this.companiesRouter.router,
+      users:     this.usersRouter.router,
+    });
+  }
+}
+
+export type AppRouter = TrpcRouter['appRouter'];
 ```
 
-O tipo `AppRouter` é exportado e importado pelo `apps/web` para inferência automática.
+O tipo `AppRouter` é exportado via `apps/api/src/exports.ts` e importado pelo `apps/web` para inferência automática de tipos end-to-end.
 
 ---
 
 ## Contexto tRPC
 
-`trpc.context.ts` extrai da request HTTP:
-- Sessão do usuário (Better Auth)
-- Role e permissões resolvidas
-- CompanyIds vinculadas
-- IP e headers para rate limiting
+`trpc.context.ts` extrai apenas o necessário da request HTTP:
 
-Disponível em todas as procedures via `ctx`.
+```typescript
+export const createContext = ({ req, res }: CreateExpressContextOptions) => ({
+  headers: req.headers,
+  req,
+  res,
+});
+```
+
+O contexto disponibiliza `ctx.headers` para todas as procedures. A autenticação e autorização são resolvidas **dentro de cada service** via `AuthorizationService.getRequester(rawHeaders)` — não há middleware tRPC dedicado a isso.
 
 ---
 
-## Middlewares
+## Padrão de sub-roteador por domínio
 
-- **`isAuthenticated`**: garante sessão válida — procedures protegidas usam este middleware
-- **`hasPermission(permission)`**: verifica permissão granular
-- **`hasRole(role)`**: verifica role mínimo
+Cada módulo de domínio expõe um `*Router` injectable que encapsula suas procedures:
+
+```typescript
+// exemplo: companies.router.ts
+@Injectable()
+export class CompaniesRouter {
+  public router!: ReturnType<typeof this.createRouter>;
+
+  constructor(
+    private readonly trpc: TrpcService,
+    private readonly companiesService: CompaniesService,
+  ) {
+    this.router = this.createRouter();
+  }
+
+  private createRouter() {
+    return this.trpc.router({
+      list: this.trpc.publicProcedure
+        .input(companyListQuerySchema)
+        .query(({ input, ctx }) =>
+          this.companiesService.listCompanies(input, ctx.headers),
+        ),
+      // ...
+    });
+  }
+}
+```
+
+**Regras do padrão:**
+- Todas as procedures usam `publicProcedure` — a autenticação fica no service
+- O `input` usa schemas Zod de `@dosc-syspro/contracts`
+- O `ctx.headers` é sempre repassado ao service para resolução do requester
+- Queries → `.query()` · Mutações → `.mutation()`
+
+---
+
+## Registro no módulo
+
+Para adicionar um novo domínio ao tRPC:
+
+1. Criar `<nome>.router.ts` no módulo de domínio
+2. Adicionar `forwardRef(() => TrpcModule)` nos imports do módulo de domínio
+3. Exportar `<Nome>Router` do módulo de domínio
+4. Importar `forwardRef(() => <Nome>Module)` no `TrpcModule`
+5. Injetar `<Nome>Router` no `TrpcRouter` e montar: `nome: this.<nome>Router.router`
 
 ---
 
 ## Consumindo no frontend
 
 ```typescript
-// apps/web (tRPC client)
-const companies = await trpc.companies.list.query({ page: 1 })
-const ticket = await trpc.tickets.create.mutate({ ... })
+// apps/web — Server Component / Server Action
+import { trpc } from "@/lib/api/trpc-client";
+
+const users     = await trpc.users.list.query({ search: "joao" });
+const companies = await trpc.companies.getOptions.query();
+await trpc.users.create.mutate({ name: "João", email: "joao@empresa.com", role: "CLIENTE_USER", ... });
 ```
 
-Erros do servidor são propagados como `TRPCError` e tratados no cliente automaticamente.
+```typescript
+// apps/web — Client Component ("use client")
+import { trpc } from "@/lib/api/trpc-client";
+
+await trpc.users.update.mutate({ id: userId, data: { isActive: false } });
+```
+
+No servidor, o cliente usa `getBackendApiBaseUrl()` diretamente. No browser, passa pelo rewrite `/api/trpc → backend/trpc` configurado em `next.config.ts`.
+
+Erros do backend (`ForbiddenException`, `NotFoundException`, etc.) são propagados como `TRPCClientError` e acessíveis via `error.message`.
 
 ---
 
 ## Endpoint
 
-O roteador tRPC fica montado em:
+O middleware tRPC fica montado em:
 ```
-POST /trpc/[procedure]
+/trpc/*   (GET e POST — Express adapter padrão)
 ```
 
-Não usa GET para queries (configuração padrão do tRPC HTTP adapter no NestJS).
+O Next.js redireciona `/api/trpc/*` para este endpoint via rewrite.

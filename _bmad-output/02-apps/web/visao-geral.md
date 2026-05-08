@@ -142,18 +142,20 @@ Componentes customizados disponíveis nos MDX:
 
 As API Routes em `src/app/api/` fazem proxy para o NestJS usando `backend-proxy.ts`.
 
-Grupos de rotas:
-- `/api/companies/**` — CRUD de empresas
+Grupos de rotas (proxy REST):
 - `/api/contacts/**` — contatos
 - `/api/tickets/**` — tickets
 - `/api/remote/**` — acesso remoto (hosts, sessões, RustDesk)
 - `/api/remote-admin/**` — procedimentos administrativos remotos
 - `/api/platform/**` — configurações, permissões, integrações
-- `/api/users/**` — gestão de usuários
 - `/api/tax/**` — tributação
 - `/api/crm/**` — CRM
 - `/api/search` — busca full-text
 - `/api/sefaz/**` — consulta status SEFAZ
+
+> **Domínios migrados para tRPC** (sem rota proxy REST):
+> - `companies` → `trpc.companies.*`
+> - `users` → `trpc.users.*`
 
 ---
 
