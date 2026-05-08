@@ -3,6 +3,7 @@
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge, Input, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { Search, Wallet } from "lucide-react";
+import { EmptyState } from "@/components/patterns";
 import type { TaxCredPresumidoListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
@@ -119,13 +120,8 @@ function TaxCredPresumidoPanelComponent({ items }: { items: TaxCredPresumidoList
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                    <div className="flex flex-col items-center gap-3">
-                      <span>Nenhum registro de credito presumido encontrado com os filtros atuais.</span>
-                      <Button size="sm" onClick={handleSync}>
-                        Sincronizar credito presumido
-                      </Button>
-                    </div>
+                  <TableCell colSpan={5}>
+                    <EmptyState icon={Wallet} title="Nenhum registro de credito presumido encontrado com os filtros atuais." action={{ label: "Sincronizar credito presumido", onClick: handleSync }} compact />
                   </TableCell>
                 </TableRow>
               ) : (

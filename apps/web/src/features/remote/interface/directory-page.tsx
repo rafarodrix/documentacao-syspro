@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
 import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/patterns";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
@@ -906,19 +907,14 @@ export function RemotePlatformDirectoryPanel({
           </div>
         </div>
       ) : !shouldShowPendingItems ? (
-        <div className="rounded-2xl border border-dashed border-border/50 bg-card/50 p-10 text-center">
-          <Monitor className="mx-auto h-8 w-8 text-muted-foreground/30" />
-          <p className="mt-4 text-sm font-medium text-foreground">Nenhum host encontrado</p>
-          <p className="text-sm text-muted-foreground">
-            {searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo."}
-          </p>
-          {hasActiveFilters && (
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); }}>
-              <X className="mr-2 h-3.5 w-3.5" />
-              Limpar filtros
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Monitor}
+          title="Nenhum host encontrado"
+          description={searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo."}
+          action={hasActiveFilters ? { label: "Limpar filtros", onClick: () => { setSearchTerm(""); setScopeFilter("all"); setCompanyFilter("all"); setHeartbeatFilter("all"); setAgentFilter("all"); } } : undefined}
+          dashed
+          className="rounded-2xl border-border/50 bg-card/50 py-10"
+        />
       ) : null}
     </div>
   );

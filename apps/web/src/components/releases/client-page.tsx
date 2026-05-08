@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, SearchX } from "lucide-react";
 import { Button, Badge } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 import { ReleasesFilter, type FilterType } from "./releases-filter";
 import { MonthlyReleasesClient } from "./monthly-releases-client";
 import { releaseMonthNames } from "@/features/releases/domain";
@@ -89,19 +90,12 @@ export function ReleasesClientPage({ initialReleases, year, month }: ReleasesCli
       </div>
 
       {filteredBugs.length === 0 && filteredMelhorias.length === 0 && filteredNovasFuncionalidades.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-muted/20 py-20 text-center">
-          <p className="text-muted-foreground">Nenhum resultado encontrado para sua busca.</p>
-          <Button
-            variant="link"
-            onClick={() => {
-              setSearchTerm("");
-              setActiveFilter("all");
-            }}
-            className="mt-2"
-          >
-            Limpar filtros
-          </Button>
-        </div>
+        <EmptyState
+          icon={SearchX}
+          title="Nenhum resultado encontrado para sua busca."
+          action={{ label: "Limpar filtros", onClick: () => { setSearchTerm(""); setActiveFilter("all"); } }}
+          dashed
+        />
       ) : (
         <MonthlyReleasesClient melhorias={filteredMelhorias} bugs={filteredBugs} novasFuncionalidades={filteredNovasFuncionalidades} />
       )}

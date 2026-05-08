@@ -3,6 +3,7 @@
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { Input, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 import type { TaxAnexoListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
@@ -124,13 +125,8 @@ function TaxAnexosPanelComponent({ items }: { items: TaxAnexoListItem[] }) {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                    <div className="flex flex-col items-center gap-3">
-                      <span>Nenhum anexo encontrado com os filtros atuais.</span>
-                      <Button size="sm" onClick={handleSync}>
-                        Sincronizar anexos
-                      </Button>
-                    </div>
+                  <TableCell colSpan={5}>
+                    <EmptyState icon={FileText} title="Nenhum anexo encontrado com os filtros atuais." action={{ label: "Sincronizar anexos", onClick: handleSync }} compact />
                   </TableCell>
                 </TableRow>
               ) : (

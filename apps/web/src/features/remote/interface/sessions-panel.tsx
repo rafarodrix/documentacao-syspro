@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge, Button, Card, CardContent, CardHeader, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { Activity, BarChart3, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
 import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
+import { EmptyState } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";
@@ -280,12 +281,7 @@ export function RemoteSessionsPanel({
                     />
                   ))
                 ) : (
-                  <Card className="col-span-full border-dashed bg-muted/5">
-                    <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-                      <Monitor className="mb-4 h-10 w-10 text-muted-foreground/30" />
-                      <p className="text-sm font-medium text-muted-foreground">Nenhuma sessão ativa no momento.</p>
-                    </CardContent>
-                  </Card>
+                  <EmptyState icon={Monitor} title="Nenhuma sessão ativa no momento." compact dashed className="col-span-full" />
                 )}
               </div>
             </section>
@@ -307,7 +303,7 @@ export function RemoteSessionsPanel({
                     {pastSessions.length > 0 ? (
                       pastSessions.map((session) => <SessionListRow key={session.id} session={session} />)
                     ) : (
-                      <div className="py-8 text-center text-sm text-muted-foreground">Nenhum histórico de sessões encontrado.</div>
+                      <EmptyState title="Nenhum histórico de sessões encontrado." compact />
                     )}
                   </div>
                 </CardContent>

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge } from
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/patterns";
 import type { TicketSummaryItem } from "@/features/tickets/domain/ticket-model";
 
 interface TicketsSummaryProps {
@@ -65,15 +66,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
 
       <CardContent className="px-5 pb-5">
         {tickets.length === 0 ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-center">
-            <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center border border-border">
-              <Headset className="h-5 w-5 text-muted-foreground/40" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Sem chamados abertos</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Tudo resolvido por aqui</p>
-            </div>
-          </div>
+          <EmptyState icon={Headset} title="Sem chamados abertos" description="Tudo resolvido por aqui" className="min-h-[320px]" />
         ) : (
           <div className="space-y-1.5">
             {tickets.map((ticket) => {
