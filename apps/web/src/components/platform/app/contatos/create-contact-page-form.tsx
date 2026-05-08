@@ -6,9 +6,9 @@ import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
-import { trpc } from "@/lib/api/trpc-client";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import { includesNormalizedSearch, normalizeSearchText } from "@dosc-syspro/shared";
+import { createContactAction, updateContactAction } from "@/features/contact/application/contact-write.actions";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Building2,
@@ -225,41 +225,30 @@ export function CreateContactPageForm({
       return;
     }
 
-    try {
-      if (isEdit && contactId) {
-        await trpc.contacts.update.mutate({
-          id: contactId,
-          data: {
-            name: data.name.trim(),
-            email: data.email?.trim() || null,
-            phone: phone || null,
-            cpf: normalizeDigits(cpf) || null,
-            jobTitle: data.jobTitle?.trim() || null,
-            whatsapp: whatsapp || null,
-            notes: data.notes?.trim() || null,
-            companyIds: data.companyIds ?? [],
-          },
-        });
-      } else {
-        await trpc.contacts.create.mutate({
-          name: data.name.trim(),
-          email: data.email?.trim() || undefined,
-          phone: phone || undefined,
-          cpf: normalizeDigits(cpf) || undefined,
-          jobTitle: data.jobTitle?.trim() || undefined,
-          whatsapp: whatsapp || undefined,
-          notes: data.notes?.trim() || undefined,
-          companyIds: data.companyIds ?? [],
-        });
-      }
+    const payload = {
+      name: data.name.trim(),
+      email: isEdit ? data.email?.trim() || null : data.email?.trim() || undefined,
+      phone: isEdit ? phone || null : phone || undefined,
+      cpf: isEdit ? normalizeDigits(cpf) || null : normalizeDigits(cpf) || undefined,
+      jobTitle: isEdit ? data.jobTitle?.trim() || null : data.jobTitle?.trim() || undefined,
+      whatsapp: isEdit ? whatsapp || null : whatsapp || undefined,
+      notes: isEdit ? data.notes?.trim() || null : data.notes?.trim() || undefined,
+      companyIds: data.companyIds ?? [],
+    };
 
-      toast.success(isEdit ? "Contato atualizado com sucesso." : "Contato cadastrado com sucesso.");
-      router.push(backHref);
-      router.refresh();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : (isEdit ? "Erro ao atualizar contato." : "Erro ao cadastrar contato.");
-      toast.error(message);
+    const result =
+      isEdit && contactId
+        ? await updateContactAction(contactId, payload)
+        : await createContactAction(payload as CreateContactInput);
+
+    if (!result.success) {
+      toast.error(result.message);
+      return;
     }
+
+    toast.success(result.message || (isEdit ? "Contato atualizado com sucesso." : "Contato cadastrado com sucesso."));
+    router.push(backHref);
+    router.refresh();
   }
 
   return (

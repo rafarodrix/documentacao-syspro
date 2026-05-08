@@ -22,6 +22,7 @@ export function revalidateCadastrosViews() {
     "/portal/cadastros",
     "/portal/cadastros/empresa",
     "/portal/cadastros/usuarios",
+    "/portal/contatos",
   ]);
 }
 
@@ -78,4 +79,3 @@ export function revalidateTicketViews(ticketId?: string | number) {
 
   revalidateTicketCollections();
 }
-

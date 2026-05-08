@@ -19,6 +19,7 @@ import { RegistryFormScaffold, type RegistryFormSection } from "@/components/pla
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { trpc } from "@/lib/api/trpc-client";
+import { createUserAction, updateUserAction } from "@/features/user-access/application/user-access-write.actions";
 import {
   AlertCircle,
   Building2,
@@ -307,13 +308,17 @@ export function CreateUserPageForm({
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
     try {
-      if (mode === "edit" && userId) {
-        await trpc.users.update.mutate({ id: userId, data: payload });
-      } else {
-        await trpc.users.create.mutate(payload);
+      const result =
+        mode === "edit" && userId
+          ? await updateUserAction(userId, payload)
+          : await createUserAction(payload);
+
+      if (!result.success) {
+        toast.error(result.message);
+        return;
       }
 
-      toast.success(mode === "edit" ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso.");
+      toast.success(result.message || (mode === "edit" ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso."));
       router.push(backHref);
       router.refresh();
     } catch (error) {

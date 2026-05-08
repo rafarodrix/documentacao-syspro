@@ -32,7 +32,7 @@ import {
   RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
-import { trpc } from "@/lib/api/trpc-client";
+import { updateUserStatusAction } from "@/features/user-access/application/user-access-write.actions";
 
 type UserWithRelations = UserAccessListItem;
 const USERS_PAGE_SIZE = 50;
@@ -291,14 +291,15 @@ export function UserTab({ data, isAdmin, canManage, canViewInternal = true }: Us
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
     try {
-      await trpc.users.update.mutate({ id: userId, data: { isActive: nextActive } });
-      toast.success("Status alterado.");
-      setFeedback({ type: "success", message: "Status alterado com sucesso." });
+      const result = await updateUserStatusAction(userId, nextActive);
+      if (!result.success) {
+        toast.error(result.message);
+        setFeedback({ type: "error", message: result.message });
+        return;
+      }
+      toast.success(result.message || "Status alterado.");
+      setFeedback({ type: "success", message: result.message || "Status alterado com sucesso." });
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isActive: nextActive } : u)));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro ao alterar status.";
-      toast.error(message);
-      setFeedback({ type: "error", message });
     } finally {
       setLoadingId(null);
     }

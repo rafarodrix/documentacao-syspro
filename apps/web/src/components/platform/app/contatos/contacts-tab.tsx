@@ -54,6 +54,7 @@ import {
   type RegistryPaginationState,
 } from "@/components/platform/shared/registry-list-scaffold";
 import { cn } from "@/lib/utils";
+import { deleteContactAction, syncContactsAction, unlinkContactCompaniesAction } from "@/features/contact/application/contact-write.actions";
 
 type ContactItem = ContactListItem;
 
@@ -217,12 +218,13 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setLoadingId(contact.id);
 
     try {
-      await trpc.contacts.update.mutate({ id: contact.id, data: { companyIds: [] } });
-      toast.success("Empresas desvinculadas com sucesso.");
+      const result = await unlinkContactCompaniesAction(contact.id);
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(result.message || "Empresas desvinculadas com sucesso.");
       await refreshContactsView();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao desvincular";
-      toast.error(message);
     } finally {
       setLoadingId(null);
     }
@@ -232,12 +234,13 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setLoadingId(contact.id);
 
     try {
-      await trpc.contacts.remove.mutate({ id: contact.id });
-      toast.success("Contato removido da lista com sucesso.");
+      const result = await deleteContactAction(contact.id);
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(result.message || "Contato removido da lista com sucesso.");
       await refreshContactsView();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao excluir contato";
-      toast.error(message);
     } finally {
       setLoadingId(null);
     }
@@ -247,12 +250,13 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setSyncing(true);
 
     try {
-      const payload = await trpc.contacts.sync.mutate({});
-      toast.success((payload as { message?: string })?.message || "Sincronizacao concluida.");
+      const result = await syncContactsAction();
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(result.message || "Sincronizacao concluida.");
       await refreshContactsView();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao sincronizar contatos";
-      toast.error(message);
     } finally {
       setSyncing(false);
     }
