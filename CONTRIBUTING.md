@@ -1,4 +1,4 @@
-# Trilink Design System â€” Guia de Contribuicao e Migracao
+# Trilink Design System — Guia de Contribuicao e Migracao
 
 Este guia mora idealmente em `CONTRIBUTING.md` na raiz do monorepo `documentacao-syspro`. Ele e o **manual de adocao** do design system.
 
@@ -6,14 +6,14 @@ Este guia mora idealmente em `CONTRIBUTING.md` na raiz do monorepo `documentacao
 
 ## TL;DR
 
-1. **Cores, fontes, radii, sombras, spacing** â†’ SEMPRE de `var(--*)`. Nunca hex literal, nunca `text-gray-500`.
-2. **Componentes de UI** (Button, Card, Input, Badge, Dialog, Select, Tabs, Tooltip) â†’ SEMPRE de `@dosc-syspro/ui`. Nunca redeclare local.
-3. **Tipografia** â†’ use as classes utilitarias (`.eyebrow`, `.lead`, `.caption`) ou as escalas `--text-*`. Nunca `font-family` literal.
+1. **Cores, fontes, radii, sombras, spacing** → SEMPRE de `var(--*)`. Nunca hex literal, nunca `text-gray-500`.
+2. **Componentes de UI** (Button, Card, Input, Badge, Dialog, Select, Tabs, Tooltip) → SEMPRE de `@dosc-syspro/ui`. Nunca redeclare local.
+3. **Tipografia** → use as classes utilitarias (`.eyebrow`, `.lead`, `.caption`) ou as escalas `--text-*`. Nunca `font-family` literal.
 4. **Antes de mergear**: rode `pnpm lint:ds` localmente. CI tambem roda.
 
 ---
 
-## Tokens â€” fonte unica de verdade
+## Tokens — fonte unica de verdade
 
 Arquivo canonico: **`packages/ui/src/tokens.css`**.
 
@@ -54,13 +54,13 @@ Tokens semanticos ja estao registrados no `tailwind.config.ts` (via `theme.exten
 
 **Quase nunca.** As excecoes legitimas sao:
 
-1. **Charts** (`Recharts`, `tremor`) â€” use `var(--chart-1..5)` se possivel; senao a paleta Tailwind 500/600 e tolerada com comentario `// ds-allow: chart`.
-2. **Per-surface accents** (icon tiles em landing/dashboard cards). Use `bg-blue-500/10 text-blue-500` â€” esses utilitarios `/10 /20` em cima de paleta sao OK porque servem ao sistema de "tile com matiz". O linter os ignora.
+1. **Charts** (`Recharts`, `tremor`) — use `var(--chart-1..5)` se possivel; senao a paleta Tailwind 500/600 e tolerada com comentario `// ds-allow: chart`.
+2. **Per-surface accents** (icon tiles em landing/dashboard cards). Use `bg-blue-500/10 text-blue-500` — esses utilitarios `/10 /20` em cima de paleta sao OK porque servem ao sistema de "tile com matiz". O linter os ignora.
 3. **States destrutivos especificos** quando `--destructive` nao basta (ex.: `text-red-700` em zona dark). Sempre com `// ds-allow: <razao>`.
 
 ---
 
-## Componentes â€” sempre via `@dosc-syspro/ui`
+## Componentes — sempre via `@dosc-syspro/ui`
 
 ### Lista atual (apos esta adocao)
 
@@ -173,22 +173,22 @@ Comentarios `ds-allow:` sao auditados em PR review.
 
 ## Migracao por sprint
 
-### Sprint 1 â€” Site marketing
+### Sprint 1 — Site marketing
 - `src/app/(site)/**` + `src/components/site/**`
 - Substituir `@/components/ui/*` por `@dosc-syspro/ui` onde ja exportado.
 - Rodar audit; reduzir `01-hex-colors.txt` para zero nessa pasta.
 
-### Sprint 2 â€” Auth
+### Sprint 2 — Auth
 - `src/app/(autenticacao)/**` + `src/components/auth/**`.
 
-### Sprint 3 â€” Portal shell
+### Sprint 3 — Portal shell
 - `src/components/platform/app/layout/*` (sidebar, header, breadcrumbs).
 - Esta sprint pode portar Sidebar para `packages/ui` se valer reuso.
 
-### Sprint 4..N â€” Modulos do portal
+### Sprint 4..N — Modulos do portal
 - `atendimento`, `cadastros`, `comercial`, `financeiro`, `configuracoes`. Um por sprint.
 
-### Sprint final â€” Chatwoot embed
+### Sprint final — Chatwoot embed
 - `src/app/(platform)/chatwoot/**`. Iframe, menor risco de UI.
 
 Cada sprint termina com:
@@ -218,4 +218,4 @@ bash adoption/audit.sh
 # saida em design-audit/
 ```
 
-Os arquivos numerados (01..08) listam violacoes por categoria. Comece pela #02 (palette crua) e #05 (componentes locais) â€” sao as de maior impacto.
+Os arquivos numerados (01..08) listam violacoes por categoria. Comece pela #02 (palette crua) e #05 (componentes locais) — sao as de maior impacto.
