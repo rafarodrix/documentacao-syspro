@@ -744,7 +744,6 @@ export class SettingsController {
     const normalizedBotToken = parsed.systemMessageApiToken.trim();
     const sanitized = {
       ...parsed,
-      resolvedCustomerReplyAction: "new_conversation" as const,
       systemMessageApiToken: normalizedBotToken,
     };
     const { systemMessageApiToken, ...storedBehavior } = sanitized;
@@ -1806,7 +1805,6 @@ export class SettingsController {
       const parsed = JSON.parse(behaviorSetting.value);
       const validation = chatwootBehaviorSettingsSchema.safeParse({
         ...parsed,
-        resolvedCustomerReplyAction: "new_conversation",
         systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? "" : "",
       });
       return validation.success ? validation.data : fallback;

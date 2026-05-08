@@ -43,7 +43,6 @@ export class ChatwootSettingsService {
       const parsed = JSON.parse(setting.value);
       const validation = chatwootBehaviorSettingsSchema.safeParse({
         ...parsed,
-        resolvedCustomerReplyAction: 'new_conversation',
         systemMessageApiToken,
       });
       return validation.success ? validation.data : fallback;

@@ -337,15 +337,6 @@ function ChatwootDiagnosticsTab() {
                     }
                   />
                   <BehaviorToggle
-                    id="markConversationPendingOnAgentReply"
-                    label="Marcar como pendente apos resposta do agente"
-                    description="Ao enviar resposta publica do agente, o backend tenta mover a conversa para pending. A primeira resposta apos uma reabertura automatica do cliente nao repende a conversa."
-                    checked={behavior.markConversationPendingOnAgentReply}
-                    onCheckedChange={(checked) =>
-                      setBehavior((prev) => ({ ...prev, markConversationPendingOnAgentReply: checked }))
-                    }
-                  />
-                  <BehaviorToggle
                     id="reopenConversationOnCustomerReply"
                     label="Reabrir quando o cliente responder"
                     description="Chave mestre da reabertura automatica para conversas em pending ou snoozed. Conversas resolved ou archived sempre iniciam um novo atendimento."
@@ -354,19 +345,6 @@ function ChatwootDiagnosticsTab() {
                       setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
                     }
                   />
-                  <div className="flex min-w-0 min-h-28 flex-col gap-3 rounded-lg border bg-background p-4">
-                    <div className="min-w-0 space-y-1">
-                      <Label className="text-sm font-medium">
-                        Politica para conversa resolvida
-                      </Label>
-                      <span className="block break-words text-sm text-muted-foreground">
-                        O comportamento legado de reabrir a conversa atual foi removido. Mensagens novas em conversas resolved ou archived sempre abrem uma nova conversa.
-                      </span>
-                    </div>
-                    <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground">
-                      Abrir nova conversa
-                    </div>
-                  </div>
                   <BehaviorToggle
                     id="reopenSnoozedConversationOnCustomerReply"
                     label="Reabrir quando estiver adiada"
@@ -394,15 +372,6 @@ function ChatwootDiagnosticsTab() {
                     checked={behavior.releaseConversationLinkOnResolved}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, releaseConversationLinkOnResolved: checked }))
-                    }
-                  />
-                  <BehaviorToggle
-                    id="ticketCreationAppEnabled"
-                    label="Preparar Dashboard App do Chatwoot"
-                    description="Mantem a opcao registrada para habilitar o painel embutido do Chatwoot com ticket manual e acesso remoto no portal."
-                    checked={behavior.ticketCreationAppEnabled}
-                    onCheckedChange={(checked) =>
-                      setBehavior((prev) => ({ ...prev, ticketCreationAppEnabled: checked }))
                     }
                   />
                 </div>
@@ -721,9 +690,7 @@ function ChatwootDiagnosticsTab() {
                   <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
                     Fluxo atual:
                     <span className="ml-1 text-foreground">
-                      {behavior.markConversationPendingOnAgentReply
-                        ? "resposta publica do agente -> pending (exceto 1a resposta apos reabertura automatica)"
-                        : "resposta publica do agente"}
+                      resposta publica do agente
                       {" -> "}resolver conversa
                       {behavior.csatTriggerStatus === "resolved_only" ? " (apenas status resolved)" : " (status resolved ou archived)"}
                       {" -> "}enviar CSAT
@@ -735,8 +702,7 @@ function ChatwootDiagnosticsTab() {
                     </span>
                   </div>
 
-                  {behavior.ticketCreationAppEnabled && (
-                    <div className="min-w-0 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                  <div className="min-w-0 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
                       <p className="break-words">
                         O portal aceita a abertura direta em
                         <span className="mx-1 break-all font-mono text-foreground">/portal/tickets/novo?source=chatwoot</span>
@@ -885,7 +851,6 @@ function ChatwootDiagnosticsTab() {
                         </Button>
                       </div>
                     </div>
-                  )}
                 </div>
                 </>
               )}

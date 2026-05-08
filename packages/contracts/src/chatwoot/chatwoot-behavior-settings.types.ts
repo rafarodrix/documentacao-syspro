@@ -2,16 +2,13 @@ import { z } from "zod";
 
 export const chatwootBehaviorSettingsSchema = z.object({
   autoAssignOnFirstAgentReply: z.boolean().default(true),
-  markConversationPendingOnAgentReply: z.boolean().default(false),
   reopenConversationOnCustomerReply: z.boolean().default(true),
-  resolvedCustomerReplyAction: z.literal("new_conversation").default("new_conversation"),
   reopenSnoozedConversationOnCustomerReply: z.boolean().default(true),
   reopenPendingConversationOnCustomerReply: z.boolean().default(false),
   releaseConversationLinkOnResolved: z.boolean().default(true),
   prependAgentNameOnOutbound: z.boolean().default(true),
   systemMessagesUseBotIdentity: z.boolean().default(false),
   systemMessageApiToken: z.string().trim().max(500).default(""),
-  ticketCreationAppEnabled: z.boolean().default(false),
   csatEnabled: z.boolean().default(false),
   csatTriggerStatus: z.enum(["resolved_or_archived", "resolved_only"]).default("resolved_or_archived"),
   sendCsatThankYouMessage: z.boolean().default(true),
@@ -50,16 +47,13 @@ export type ChatwootBehaviorSettings = z.output<typeof chatwootBehaviorSettingsS
 
 export const DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS: ChatwootBehaviorSettings = {
   autoAssignOnFirstAgentReply: true,
-  markConversationPendingOnAgentReply: false,
   reopenConversationOnCustomerReply: true,
-  resolvedCustomerReplyAction: "new_conversation",
   reopenSnoozedConversationOnCustomerReply: true,
   reopenPendingConversationOnCustomerReply: false,
   releaseConversationLinkOnResolved: true,
   prependAgentNameOnOutbound: true,
   systemMessagesUseBotIdentity: false,
   systemMessageApiToken: "",
-  ticketCreationAppEnabled: false,
   csatEnabled: false,
   csatTriggerStatus: "resolved_or_archived",
   sendCsatThankYouMessage: true,

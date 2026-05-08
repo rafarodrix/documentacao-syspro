@@ -1956,10 +1956,7 @@ export class ProcessIncomingMessageUseCase {
 
     try {
       const parsed = JSON.parse(setting.value);
-      const validation = chatwootBehaviorSettingsSchema.safeParse({
-        ...parsed,
-        resolvedCustomerReplyAction: 'new_conversation',
-      });
+      const validation = chatwootBehaviorSettingsSchema.safeParse(parsed);
       return validation.success ? validation.data : DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;
     } catch {
       return DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS;

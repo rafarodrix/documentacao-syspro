@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
 import type { ResolvedIntegrationContext } from '../../settings/integration-context.service';
 import { ChatwootClient } from './chatwoot.client';
 import { ChatwootPayloadParser } from './chatwoot-payload.parser';
@@ -9,11 +8,7 @@ import type { ChatwootBehaviorSettings } from '@dosc-syspro/contracts/chatwoot';
 export class ChatwootBehaviorService {
   private readonly logger = new Logger(ChatwootBehaviorService.name);
 
-  static readonly SKIP_AUTO_PENDING_ONCE_FLAG = 'tris_skip_auto_pending_once';
-  static readonly LAST_AUTO_REOPENED_AT_FLAG = 'tris_last_auto_reopened_at';
-
   constructor(
-    private readonly prisma: PrismaService,
     private readonly chatwootClient: ChatwootClient,
   ) {}
 
@@ -49,97 +44,8 @@ export class ChatwootBehaviorService {
       }));
     }
 
-    if (
-      settings.markConversationPendingOnAgentReply &&
-      !context.isPrivate &&
-      (context.messageType === 'outgoing' || context.messageType === 'template')
-    ) {
-      await this.markConversationPendingAfterAgentReply(payload, resolvedContext, settings);
-    } else if (settings.markConversationPendingOnAgentReply) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skipped',
-        messageType: context.messageType,
-        isPrivate: context.isPrivate,
-        messageId: context.messageId ?? null,
-      }));
-    }
-
     if (settings.reopenConversationOnCustomerReply && context.messageType === 'incoming') {
       await this.reopenConversationForCustomerReply(payload, resolvedContext, settings);
-    }
-  }
-
-  async markConversationPendingAfterAgentReply(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ): Promise<void> {
-    const conversationId = ChatwootPayloadParser.extractConversationId(payload);
-    if (!conversationId) return;
-
-    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
-    if (ChatwootPayloadParser.readBoolean(customAttributes[ChatwootBehaviorService.SKIP_AUTO_PENDING_ONCE_FLAG])) {
-      await this.clearSkipAutoPendingMarker(conversationId, customAttributes, resolvedContext, settings);
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skipped_after_auto_reopen',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-      return;
-    }
-
-    let status = ChatwootPayloadParser.normalizeConversationStatus(
-      payload?.conversation?.status ?? payload?.status ?? payload?.meta?.status,
-    );
-    if (!status) {
-      try {
-        const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-        status = ChatwootPayloadParser.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'conversation_pending_status_lookup_failed',
-          conversationId,
-          error: error?.message ?? 'unknown_error',
-        }));
-        return;
-      }
-    }
-
-    if (status === 'pending' || status === 'resolved' || status === 'archived' || status === 'snoozed') {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skipped_by_status',
-        conversationId,
-        status,
-      }));
-      return;
-    }
-
-    try {
-      await this.chatwootClient.toggleConversationStatus(
-        ChatwootPayloadParser.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        'pending',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_marked_pending_after_agent_reply',
-        conversationId,
-        previousStatus: status ?? null,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_failed',
-        conversationId,
-        previousStatus: status ?? null,
-        error: error?.message ?? 'unknown_error',
-      }));
     }
   }
 
@@ -261,21 +167,10 @@ export class ChatwootBehaviorService {
     }
 
     try {
-      const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
       await this.chatwootClient.toggleConversationStatus(
         ChatwootPayloadParser.withSystemMessageConfig(resolvedContext.chatwoot, settings),
         conversationId,
         'open',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-      await this.chatwootClient.updateConversationCustomAttributes(
-        ChatwootPayloadParser.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        {
-          ...customAttributes,
-          [ChatwootBehaviorService.SKIP_AUTO_PENDING_ONCE_FLAG]: true,
-          [ChatwootBehaviorService.LAST_AUTO_REOPENED_AT_FLAG]: new Date().toISOString(),
-        },
         { useSystemBot: settings.systemMessagesUseBotIdentity },
       );
       this.logger.log(JSON.stringify({
@@ -291,30 +186,6 @@ export class ChatwootBehaviorService {
         stage: 'conversation_reopen_failed',
         conversationId,
         previousStatus: status ?? null,
-        error: error?.message ?? 'unknown_error',
-      }));
-    }
-  }
-
-  async clearSkipAutoPendingMarker(
-    conversationId: string,
-    customAttributes: Record<string, unknown>,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ): Promise<void> {
-    try {
-      await this.chatwootClient.updateConversationCustomAttributes(
-        ChatwootPayloadParser.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        { ...customAttributes, [ChatwootBehaviorService.SKIP_AUTO_PENDING_ONCE_FLAG]: false },
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skip_flag_clear_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
         error: error?.message ?? 'unknown_error',
       }));
     }
