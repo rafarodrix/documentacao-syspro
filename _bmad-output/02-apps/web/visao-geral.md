@@ -156,6 +156,7 @@ Grupos de rotas (proxy REST):
 > **Domínios migrados para tRPC** (sem rota proxy REST):
 > - `companies` → `trpc.companies.*`
 > - `users` → `trpc.users.*`
+> - `contacts` → `trpc.contacts.*`
 
 ---
 
