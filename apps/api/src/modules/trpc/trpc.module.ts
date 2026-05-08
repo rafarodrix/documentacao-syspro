@@ -6,9 +6,10 @@ import * as trpcExpress from '@trpc/server/adapters/express';
 import { createContext } from './trpc.context';
 
 import { CompaniesModule } from '../companies/companies.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [forwardRef(() => CompaniesModule)],
+  imports: [forwardRef(() => CompaniesModule), forwardRef(() => UsersModule)],
   providers: [TrpcService, TrpcRouter],
   exports: [TrpcService, TrpcRouter],
 })

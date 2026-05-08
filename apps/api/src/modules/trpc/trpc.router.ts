@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { TrpcService } from './trpc.service';
 
 import { CompaniesRouter } from '../companies/companies.router';
+import { UsersRouter } from '../users/users.router';
 
 @Injectable()
 export class TrpcRouter {
@@ -10,6 +11,7 @@ export class TrpcRouter {
   constructor(
     private readonly trpc: TrpcService,
     private readonly companiesRouter: CompaniesRouter,
+    private readonly usersRouter: UsersRouter,
   ) {
     this.appRouter = this.createRouter();
   }
@@ -20,6 +22,7 @@ export class TrpcRouter {
         return { message: 'Hello from tRPC inside NestJS!' };
       }),
       companies: this.companiesRouter.router,
+      users: this.usersRouter.router,
     });
   }
 }
