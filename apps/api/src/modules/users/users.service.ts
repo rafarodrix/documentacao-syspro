@@ -76,16 +76,13 @@ export class UsersService {
         throw new ForbiddenException('Acesso negado.');
       }
 
-      const companyIds =
-        requester.role === Role.CLIENTE_ADMIN
-          ? await this.authorizationService.getManagedCompanyIds(requester.userId)
-          : (
-              await this.authorizationService.resolveCompanyAccessScope(
-                requester,
-                canViewTeam ? 'users:view_team' : 'users:view',
-                'users:view_all',
-              )
-            ).companyIds;
+      const companyIds = (
+        await this.authorizationService.resolveCompanyAccessScope(
+          requester,
+          canViewTeam ? 'users:view_team' : 'users:view',
+          'users:view_all',
+        )
+      ).companyIds;
 
       if (!companyIds.length) return [];
 
@@ -120,13 +117,25 @@ export class UsersService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
     const canViewInternal = await this.authorizationService.userHasPermission(requester, 'users:view_internal');
+    const canViewScoped = await this.authorizationService.userHasPermission(requester, 'users:view', {
+      acceptCompanyScope: true,
+    });
+    const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
+      acceptCompanyScope: true,
+    });
 
-    if (!isGlobalView && requester.role === Role.CLIENTE_ADMIN) {
-      await this.assertClientManagerCanManageTarget(requester.userId, id);
+    if (!isGlobalView && !canViewTeam && !canViewScoped) {
+      throw new ForbiddenException('Acesso negado.');
     }
 
-    if (!isGlobalView && requester.role !== Role.CLIENTE_ADMIN) {
-      throw new ForbiddenException('Acesso negado.');
+    if (!isGlobalView) {
+      const companyScope = await this.authorizationService.resolveCompanyAccessScope(
+        requester,
+        canViewTeam ? 'users:view_team' : 'users:view',
+        'users:view_all',
+      );
+
+      await this.assertCompanyScopedManagerCanManageTarget(companyScope.companyIds, id);
     }
 
     const user = await this.prisma.user.findUnique({
@@ -146,9 +155,11 @@ export class UsersService {
       acceptCompanyScope: true,
     });
     const isGlobalUserManager = await this.authorizationService.userHasPermission(requester, 'users:view_all');
-    const isClientManager = requester.role === Role.CLIENTE_ADMIN;
+    const managedCompanyIds = isGlobalUserManager
+      ? []
+      : await this.authorizationService.getManagedCompanyIds(requester.userId);
 
-    if (!canCreateUsers || (!isGlobalUserManager && !isClientManager)) {
+    if (!canCreateUsers || (!isGlobalUserManager && managedCompanyIds.length === 0)) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -209,9 +220,11 @@ export class UsersService {
     const canCreateUsers = await this.authorizationService.userHasPermission(requester, 'users:create', {
       acceptCompanyScope: true,
     });
-    const isClientManager = requester.role === Role.CLIENTE_ADMIN;
+    const managedCompanyIds = isGlobalUserManager
+      ? []
+      : await this.authorizationService.getManagedCompanyIds(requester.userId);
 
-    if (!canCreateUsers || (!isGlobalUserManager && !isClientManager)) {
+    if (!canCreateUsers || (!isGlobalUserManager && managedCompanyIds.length === 0)) {
       throw new ForbiddenException('Acesso negado.');
     }
 
@@ -252,10 +265,9 @@ export class UsersService {
     }
 
     const userRole = data.role || Role.CLIENTE_USER;
-    this.assertRequesterCanManageRole(requester.role, userRole, canManageInternal);
+    this.assertRequesterCanManageRole(userRole, canManageInternal);
 
-    if (isClientManager) {
-      const managedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
+    if (!isGlobalUserManager) {
       if (!CLIENT_ROLES.includes(userRole)) {
         throw new ForbiddenException('Gestor pode cadastrar apenas usuarios da unidade.');
       }
@@ -336,28 +348,27 @@ export class UsersService {
     const canEditUsers = await this.authorizationService.userHasPermission(requester, 'users:edit', {
       acceptCompanyScope: true,
     });
-    const isClientManager = requester.role === Role.CLIENTE_ADMIN;
+    const managedCompanyIds = isGlobalUserManager
+      ? []
+      : await this.authorizationService.getManagedCompanyIds(requester.userId);
 
-    if (!canEditUsers || (!isGlobalUserManager && !isClientManager)) throw new ForbiddenException('Acesso negado.');
+    if (!canEditUsers || (!isGlobalUserManager && managedCompanyIds.length === 0)) throw new ForbiddenException('Acesso negado.');
 
     const data = input;
 
     const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
-    this.assertRequesterCanManageRole(requester.role, user.role, canManageInternal);
+    this.assertRequesterCanManageRole(user.role, canManageInternal);
     if (data.role) {
-      this.assertRequesterCanManageRole(requester.role, data.role, canManageInternal);
+      this.assertRequesterCanManageRole(data.role, canManageInternal);
     }
 
-    let managedCompanyIds: string[] = [];
-    if (isClientManager) {
-      await this.assertClientManagerCanManageTarget(requester.userId, id);
+    if (!isGlobalUserManager) {
+      await this.assertCompanyScopedManagerCanManageTarget(managedCompanyIds, id);
 
       if (data.role && !CLIENT_ROLES.includes(data.role)) {
         throw new ForbiddenException('Gestor nao pode atribuir perfil interno.');
       }
-
-      managedCompanyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
     }
 
     const normalizedContactId = data.contactId === undefined
@@ -368,7 +379,7 @@ export class UsersService {
       throw new BadRequestException('Contato obrigatorio para atualizar usuario.');
     }
 
-    if (isClientManager && normalizedContactId) {
+    if (!isGlobalUserManager && normalizedContactId) {
       await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
     }
 
@@ -410,12 +421,18 @@ export class UsersService {
     const canUpdateStatus = await this.authorizationService.userHasPermission(requester, 'users:status', {
       acceptCompanyScope: true,
     });
+    const managedCompanyIds = isGlobalView
+      ? []
+      : await this.authorizationService.getManagedCompanyIds(requester.userId);
     if (requester.userId === id) throw new ForbiddenException('Operacao invalida.');
     if (!canUpdateStatus) throw new ForbiddenException('Acesso negado.');
 
+    if (!isGlobalView && managedCompanyIds.length === 0) {
+      throw new ForbiddenException('Acesso negado.');
+    }
+
     if (!isGlobalView) {
-      if (requester.role !== Role.CLIENTE_ADMIN) throw new ForbiddenException('Acesso negado.');
-      await this.assertClientManagerCanManageTarget(requester.userId, id);
+      await this.assertCompanyScopedManagerCanManageTarget(managedCompanyIds, id);
     }
 
     const targetUser = await this.prisma.user.findUnique({
@@ -423,7 +440,7 @@ export class UsersService {
       select: { role: true },
     });
     if (!targetUser) throw new NotFoundException('Usuario nao encontrado');
-    this.assertRequesterCanManageRole(requester.role, targetUser.role, canManageInternal);
+    this.assertRequesterCanManageRole(targetUser.role, canManageInternal);
 
     const removedUser = await this.prisma.user.update({
       where: { id },
@@ -436,7 +453,10 @@ export class UsersService {
 
   async getChatwootSsoLinkForCurrentUser(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    if (!this.authorizationService.isSystemRole(requester.role)) {
+    const canAccessAtendimento = await this.authorizationService.userHasPermission(requester, 'atendimento:view', {
+      acceptCompanyScope: true,
+    });
+    if (!canAccessAtendimento) {
       throw new ForbiddenException('Acesso ao Chatwoot permitido apenas para atendentes internos.');
     }
 
@@ -1282,25 +1302,21 @@ export class UsersService {
     }
   }
 
-  private getManageableRolesForRequester(role: Role, canManageInternal: boolean): Role[] {
+  private getManageableRolesForRequester(canManageInternal: boolean): Role[] {
     if (!canManageInternal) return [...CLIENT_ROLES];
-    if (role === Role.ADMIN) return [...SYSTEM_ROLES, ...CLIENT_ROLES];
-    if (role === Role.DEVELOPER) return [Role.DEVELOPER, ...CLIENT_ROLES];
-    if (role === Role.SUPORTE) return [Role.SUPORTE, ...CLIENT_ROLES];
-    if (role === Role.CLIENTE_ADMIN) return [...CLIENT_ROLES];
-    return [];
+    return [...SYSTEM_ROLES, ...CLIENT_ROLES];
   }
 
-  private assertRequesterCanManageRole(requesterRole: Role, targetRole: Role, canManageInternal: boolean) {
-    const allowedRoles = this.getManageableRolesForRequester(requesterRole, canManageInternal);
+  private assertRequesterCanManageRole(targetRole: Role, canManageInternal: boolean) {
+    const allowedRoles = this.getManageableRolesForRequester(canManageInternal);
     if (!allowedRoles.includes(targetRole)) {
       throw new ForbiddenException(
-        `${ROLE_LABELS[requesterRole]} nao pode gerenciar usuario com perfil ${ROLE_LABELS[targetRole]}.`,
+        `Sem permissao para gerenciar usuario com perfil ${ROLE_LABELS[targetRole]}.`,
       );
     }
   }
 
-  private async assertClientManagerCanManageTarget(managerUserId: string, targetUserId: string) {
+  private async assertCompanyScopedManagerCanManageTarget(managedCompanyIds: string[], targetUserId: string) {
     const targetUser = await this.prisma.user.findUnique({
       where: { id: targetUserId },
       select: { role: true, deletedAt: true },
@@ -1314,7 +1330,6 @@ export class UsersService {
       throw new ForbiddenException('Voce nao pode editar este usuario.');
     }
 
-    const managedCompanyIds = await this.authorizationService.getManagedCompanyIds(managerUserId);
     if (!managedCompanyIds.length) {
       throw new ForbiddenException('Voce nao pode editar este usuario.');
     }

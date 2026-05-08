@@ -18,7 +18,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { TicketsService } from '../tickets/tickets.service';
 
-const SYSTEM_ROLES: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
 const DASHBOARD_TICKETS_TIMEOUT_MS = 4000;
 
 function timeoutError(label: string, timeoutMs: number) {
@@ -437,9 +436,9 @@ export class DashboardService {
   async getDashboard(rawHeaders?: IncomingHttpHeaders): Promise<DashboardResponse> {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const dailyPassword = await this.resolveDailyPassword(rawHeaders);
-    const isSystemUser = SYSTEM_ROLES.includes(requester.role);
+    const hasInternalDashboard = await this.authorizationService.userHasPermission(requester, 'users:view_internal');
 
-    if (isSystemUser) {
+    if (hasInternalDashboard) {
       const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
       const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
       const { start } = getLast7DaysRange();
@@ -1027,7 +1026,7 @@ export class DashboardService {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
 
     const dashboardTicketTeam = getDashboardTicketTeam(requester.role);
-    const allowAreaFilter = requester.role === Role.ADMIN;
+    const allowAreaFilter = await this.authorizationService.userHasPermission(requester, 'dashboard:stats_full');
 
     let ticketWarning: string | undefined;
     let ticketsResponse: Awaited<ReturnType<TicketsService['findAll']>> | null = null;
