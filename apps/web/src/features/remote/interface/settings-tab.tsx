@@ -5,7 +5,7 @@ import {
   SettingsTabsRail,
   SettingsTabsRailTrigger,
 } from "@/app/(platform)/portal/configuracoes/settings-shell";
-import { RemoteModuleSettingsForm } from "@/components/platform/app/settings/remote-module-settings-form";
+import { RemoteModuleSettingsForm } from "@/features/settings/interface";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent } from "@dosc-syspro/ui";
 
 type RemoteAccessSettingsTabProps = {
