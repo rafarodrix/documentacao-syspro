@@ -5,7 +5,8 @@
     "packageManager":  "npm@10.9.7",
     "workspaces":  [
                        "apps/*",
-                       "packages/*"
+                       "packages/*",
+                       "tools/*"
                    ],
     "scripts":  {
                     "build":  "npm run build -w @dosc-syspro/web",
@@ -46,11 +47,12 @@
                     "test:e2e:headed":  "npm run test:e2e:headed -w @dosc-syspro/web",
                     "test:e2e:ui":  "npm run test:e2e:ui -w @dosc-syspro/web",
                     "lint:remote":  "npm run lint:remote -w @dosc-syspro/web",
-                    "lint:ds":      "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" --rulesdir tools/eslint-plugin-trilink-tokens && stylelint \"**/*.{css,scss}\" --config stylelint.config.mjs",
-                    "lint:ds:fix":  "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" --rulesdir tools/eslint-plugin-trilink-tokens --fix && stylelint \"**/*.{css,scss}\" --config stylelint.config.mjs --fix"
+                    "lint:ds":      "bash adoption/audit.sh",
+                    "lint:ds:fix":  "bash adoption/audit.sh"
                 },
     "dependencies":  {},
     "devDependencies":  {
-                            "dotenv-cli":  "^11.0.0"
+                            "dotenv-cli":  "^11.0.0",
+                            "eslint-plugin-trilink-tokens": "*"
                         }
 }

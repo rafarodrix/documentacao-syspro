@@ -1,14 +1,4 @@
 {
-  "plugins": ["trilink-tokens"],
-  "rules": {
-    "trilink-tokens/no-hex-colors": "error",
-    "trilink-tokens/no-raw-tailwind-palette": "warn"
-  },
-  "settings": {
-    "trilink-tokens": {
-      "allowedFiles": ["**/tokens.css", "**/colors_and_type.css"]
-    }
-  },
   "overrides": [
     {
       "files": [
