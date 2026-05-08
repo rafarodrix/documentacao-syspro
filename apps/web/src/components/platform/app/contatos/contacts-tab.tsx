@@ -42,7 +42,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {

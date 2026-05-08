@@ -55,7 +55,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./ticket-view.types";
 

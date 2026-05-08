@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
 import { formatDateSafe } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";

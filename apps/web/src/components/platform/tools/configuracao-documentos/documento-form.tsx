@@ -37,7 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@dosc-syspro/ui";
 
 interface DocumentoFormProps {
     initialValues?: DocumentoFormValues | null;

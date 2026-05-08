@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+} from "@dosc-syspro/ui";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

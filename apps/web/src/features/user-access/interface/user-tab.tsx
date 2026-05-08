@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {

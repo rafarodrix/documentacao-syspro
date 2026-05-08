@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@dosc-syspro/ui";
 import {
   RegistryFilterGroup,
   RegistryTableCard,

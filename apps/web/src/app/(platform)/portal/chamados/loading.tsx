@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@dosc-syspro/ui";
 
 export default function ChamadosLoading() {
   return (

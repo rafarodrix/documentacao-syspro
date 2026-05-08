@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@dosc-syspro/ui";
 import {
     PlusCircle, Loader2, DollarSign, RefreshCw, CalendarDays, Percent, Calculator, ArrowLeft,
 } from "lucide-react";

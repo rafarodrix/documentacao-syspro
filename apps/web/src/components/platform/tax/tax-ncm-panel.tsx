@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@dosc-syspro/ui";
 import type { TaxNcmListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";

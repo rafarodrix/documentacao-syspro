@@ -6,7 +6,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@dosc-syspro/ui";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Database, ArrowRight } from "lucide-react";
 

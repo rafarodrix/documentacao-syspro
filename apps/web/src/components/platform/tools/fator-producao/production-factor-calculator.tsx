@@ -14,7 +14,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table"
+} from "@dosc-syspro/ui"
 import { Card, CardContent } from "@/components/ui/card"
 import {
     Accordion,

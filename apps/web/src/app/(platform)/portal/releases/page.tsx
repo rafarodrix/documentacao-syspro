@@ -5,7 +5,7 @@ import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/doma
 import { Calendar, Rocket, Bug, ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@dosc-syspro/ui";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
