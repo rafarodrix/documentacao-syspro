@@ -205,3 +205,25 @@ O `@dosc-syspro/ui` é um **shadcn/ui port mantido internamente** no monorepo. O
 [ ] npm run lint:ds passa localmente
 [ ] ds-allow usa // (JS comment), nunca {/* */} em posição de statement
 ```
+
+
+A padronização está **substancialmente concluída**. O que foi feito:
+
+**Concluído:**
+- Camada `patterns` com 6 componentes (EmptyState, PageHeader, MetricCard, SearchToolbar, FilterTabs, SectionCard)
+- ESLint em modo `error` para hex/palette raw na camada `patterns`
+- Migrações de `SectionCard` e `EmptyState` nos principais pontos do portal
+- Arquivos órfãos removidos (3 arquivos)
+- Documentação da camada (`README.md` + hierarquia no `packages/ui/README.md`)
+
+**Ainda pendente / decisão em aberto:**
+
+1. **Storybook** para `packages/ui` — estava no plano original, nunca iniciado. Valor: catálogo visual dos primitives para o time.
+
+2. **Padrão `CardTitle` com ícone** — ~15 arquivos usam `<CardTitle className="flex items-center gap-2"><Icon/>Título</CardTitle>`. Opções: adicionar prop `icon` no `SectionCard`, ou deixar como está (esses cards têm layouts muito variados).
+
+3. **Warnings de lint:ds** — ainda existem dezenas de `warning` de raw palette em features (ex: `tickets-table`, `user-tab`). CI passa, mas são dívida técnica. Poderiam virar `error` gradualmente por feature.
+
+4. **`custom-card.tsx`** — usa cores hardcoded (`bg-white dark:bg-neutral-800`), usada em ~15 MDX docs. Não dá para remover, mas poderia ser migrada para tokens semânticos.
+
+**Recomendação de próximo passo:** O de maior impacto é o item 3 — elevar os warnings de `lint:ds` para `error` feature por feature, forçando a limpeza gradual. Os itens 1 e 2 são opcionais. Quer seguir por esse caminho?

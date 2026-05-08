@@ -21,6 +21,11 @@ export class DashboardController {
     return this.dashboardService.getSuporteData(req.headers);
   }
 
+  @Get('suporte/atendimentos')
+  getAtendimentosData(@Req() req: Request) {
+    return this.dashboardService.getAtendimentosData(req.headers);
+  }
+
   @Get('cadastros')
   getCadastrosData(@Req() req: Request) {
     return this.dashboardService.getCadastrosData(req.headers);

@@ -1,39 +1,35 @@
-import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
-import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
-import { TicketsSummary } from "@/features/tickets/interface";
-import { TicketPriorityChart } from "../components/ticket-priority-chart";
-import { getSuporteData } from "../../application";
+import { Suspense } from "react";
+import { Headset, Ticket } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
+import { TabListSkeleton } from "../components/tab-skeleton";
+import { SupportTicketsSubtab } from "./support-tickets-subtab";
+import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
 
 export async function SuporteTab() {
-  const data = await getSuporteData();
-  const { openTicketRecords, tickets, totalOpen, activity, scopeMode, allowAreaFilter } = data;
-
   return (
-    <div className="space-y-4">
-      <OpenTicketsInsights
-        records={openTicketRecords}
-        scopeMode={scopeMode}
-        allowAreaFilter={allowAreaFilter}
-        showScopeHeader={false}
-      />
+    <Tabs defaultValue="tickets" className="space-y-4">
+      <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
+        <TabsTrigger value="tickets" className="gap-2 px-4 py-2">
+          <Ticket className="h-4 w-4" />
+          Tickets
+        </TabsTrigger>
+        <TabsTrigger value="atendimentos" className="gap-2 px-4 py-2">
+          <Headset className="h-4 w-4" />
+          Atendimentos
+        </TabsTrigger>
+      </TabsList>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="min-w-0">
-          <TicketPriorityChart records={openTicketRecords} />
-        </div>
-        <div className="min-w-0">
-          <TicketsSummary tickets={tickets} totalOpen={totalOpen} />
-        </div>
-        <div className="min-w-0">
-          <ActivityChart
-            title="Atualizacoes de tickets"
-            description="Movimento operacional dos ultimos 7 dias"
-            points={activity}
-            badgeLabel="Fila operacional"
-            emptyLabel="Sem atividade recente no periodo"
-          />
-        </div>
-      </div>
-    </div>
+      <TabsContent value="tickets">
+        <Suspense fallback={<TabListSkeleton />}>
+          <SupportTicketsSubtab />
+        </Suspense>
+      </TabsContent>
+
+      <TabsContent value="atendimentos">
+        <Suspense fallback={<TabListSkeleton />}>
+          <SupportAtendimentosSubtab />
+        </Suspense>
+      </TabsContent>
+    </Tabs>
   );
 }

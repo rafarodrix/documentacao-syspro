@@ -171,6 +171,37 @@ export const adminSuporteDataSchema = z.object({
   allowAreaFilter: z.boolean(),
 });
 
+export const dashboardConversationStatusSummarySchema = z.object({
+  status: z.enum(["Novo", "Sem responsavel", "Triagem", "Em andamento", "Aguardando cliente", "Aguardando interno", "Teste", "Resolvido", "Arquivado"]),
+  count: z.number().int().nonnegative(),
+});
+
+export const dashboardConversationChannelSummarySchema = z.object({
+  channel: z.enum(["WHATSAPP", "EMAIL", "PORTAL", "PHONE"]),
+  count: z.number().int().nonnegative(),
+});
+
+export const dashboardConversationAssigneeLoadSchema = z.object({
+  userId: z.string().nullable(),
+  name: z.string().min(1),
+  openCount: z.number().int().nonnegative(),
+  waitingCount: z.number().int().nonnegative(),
+});
+
+export const adminAtendimentosDataSchema = z.object({
+  openCount: z.number().int().nonnegative(),
+  unassignedCount: z.number().int().nonnegative(),
+  resolvedCount: z.number().int().nonnegative(),
+  unlinkedCount: z.number().int().nonnegative(),
+  avgFirstResponseMinutes: z.number().nonnegative().nullable(),
+  avgResolutionHours: z.number().nonnegative().nullable(),
+  activity: z.array(dashboardActivityPointSchema).default([]),
+  statusCounts: z.array(dashboardConversationStatusSummarySchema).default([]),
+  channelCounts: z.array(dashboardConversationChannelSummarySchema).default([]),
+  assigneeLoads: z.array(dashboardConversationAssigneeLoadSchema).default([]),
+  warning: z.string().optional(),
+});
+
 export const adminCadastrosDataSchema = z.object({
   canViewCompanies: z.boolean(),
   canViewContacts: z.boolean(),
@@ -197,6 +228,7 @@ export const adminTabResponseSchema = z.object({
 
 export type AdminOperacionalData = z.infer<typeof adminOperacionalDataSchema>;
 export type AdminSuporteData = z.infer<typeof adminSuporteDataSchema>;
+export type AdminAtendimentosData = z.infer<typeof adminAtendimentosDataSchema>;
 export type AdminCadastrosData = z.infer<typeof adminCadastrosDataSchema>;
 export type AdminComercialData = z.infer<typeof adminComercialDataSchema>;
 

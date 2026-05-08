@@ -174,6 +174,37 @@ function buildTicketKpis(records: DashboardTicketSummary[]): DashboardTicketKpis
   return { open, pending, resolved };
 }
 
+function mapConversationStatus(status: string) {
+  switch (status) {
+    case 'UNASSIGNED':
+      return 'Sem responsavel';
+    case 'TRIAGE':
+      return 'Triagem';
+    case 'IN_PROGRESS':
+      return 'Em andamento';
+    case 'WAITING_CUSTOMER':
+      return 'Aguardando cliente';
+    case 'WAITING_INTERNAL':
+      return 'Aguardando interno';
+    case 'TESTING':
+      return 'Teste';
+    case 'RESOLVED':
+      return 'Resolvido';
+    case 'ARCHIVED':
+      return 'Arquivado';
+    default:
+      return 'Novo';
+  }
+}
+
+function averageDurationInMinutes(items: Array<{ startedAt: Date; endedAt: Date | null | undefined }>) {
+  const valid = items.filter((item) => item.endedAt instanceof Date && item.endedAt >= item.startedAt);
+  if (!valid.length) return null;
+
+  const totalMs = valid.reduce((sum, item) => sum + (item.endedAt!.getTime() - item.startedAt.getTime()), 0);
+  return Math.round((totalMs / valid.length / 60000) * 10) / 10;
+}
+
 function buildCrmSummary(leads: any[]): DashboardCrmSummary {
   const today = startOfDay();
   const stages: Array<'LEAD' | 'MQL' | 'SQL' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST'> = [
@@ -1069,6 +1100,136 @@ export class DashboardService {
         ticketWarning,
         scopeMode: (dashboardTicketTeam === 'DESENVOLVIMENTO' ? 'development' : 'all') as 'all' | 'development',
         allowAreaFilter,
+      },
+    };
+  }
+
+  async getAtendimentosData(rawHeaders?: IncomingHttpHeaders) {
+    await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+
+    const { start } = getLast7DaysRange();
+    const openStatuses = ['NEW', 'UNASSIGNED', 'TRIAGE', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'WAITING_INTERNAL', 'TESTING'];
+    const resolvedStatuses = new Set(['RESOLVED', 'ARCHIVED']);
+
+    const conversations = await this.prisma.conversation.findMany({
+      where: {
+        OR: [
+          { createdAt: { gte: start } },
+          { closedAt: { gte: start } },
+          { lastMessageAt: { gte: start } },
+          { status: { in: openStatuses as any } },
+        ],
+      },
+      select: {
+        id: true,
+        status: true,
+        channel: true,
+        companyId: true,
+        companyContactId: true,
+        assignedUserId: true,
+        createdAt: true,
+        lastMessageAt: true,
+        closedAt: true,
+        slaResponseHitAt: true,
+        assignedUser: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: [{ lastMessageAt: 'desc' }, { createdAt: 'desc' }],
+      take: 400,
+    });
+
+    const activeConversations = conversations.filter((conversation) => !resolvedStatuses.has(conversation.status));
+    const resolvedConversations = conversations.filter(
+      (conversation) => resolvedStatuses.has(conversation.status) && conversation.closedAt && conversation.closedAt >= start,
+    );
+
+    const avgFirstResponseMinutes = averageDurationInMinutes(
+      conversations
+        .filter((conversation) => conversation.createdAt >= start)
+        .map((conversation) => ({
+          startedAt: conversation.createdAt,
+          endedAt: conversation.slaResponseHitAt,
+        })),
+    );
+
+    const avgResolutionMinutes = averageDurationInMinutes(
+      resolvedConversations.map((conversation) => ({
+        startedAt: conversation.createdAt,
+        endedAt: conversation.closedAt,
+      })),
+    );
+
+    const statusOrder = ['Novo', 'Sem responsavel', 'Triagem', 'Em andamento', 'Aguardando cliente', 'Aguardando interno', 'Teste', 'Resolvido', 'Arquivado'];
+    const statusCountsMap = new Map<string, number>();
+    for (const status of statusOrder) statusCountsMap.set(status, 0);
+    for (const conversation of conversations) {
+      const key = mapConversationStatus(conversation.status);
+      statusCountsMap.set(key, (statusCountsMap.get(key) || 0) + 1);
+    }
+
+    const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
+    const channelCountsMap = new Map<string, number>();
+    for (const channel of channelOrder) channelCountsMap.set(channel, 0);
+    for (const conversation of activeConversations) {
+      channelCountsMap.set(conversation.channel, (channelCountsMap.get(conversation.channel) || 0) + 1);
+    }
+
+    const assigneeLoadMap = new Map<string, { userId: string | null; name: string; openCount: number; waitingCount: number }>();
+    for (const conversation of activeConversations) {
+      const key = conversation.assignedUserId || '__unassigned__';
+      const name =
+        conversation.assignedUser?.name?.trim() ||
+        conversation.assignedUser?.email?.trim() ||
+        'Sem responsavel';
+      const current = assigneeLoadMap.get(key) || {
+        userId: conversation.assignedUserId,
+        name,
+        openCount: 0,
+        waitingCount: 0,
+      };
+
+      current.openCount += 1;
+      if (conversation.status === 'WAITING_CUSTOMER' || conversation.status === 'WAITING_INTERNAL') {
+        current.waitingCount += 1;
+      }
+
+      assigneeLoadMap.set(key, current);
+    }
+
+    return {
+      success: true as const,
+      data: {
+        openCount: activeConversations.length,
+        unassignedCount: activeConversations.filter((conversation) => conversation.status === 'UNASSIGNED' || !conversation.assignedUserId).length,
+        resolvedCount: resolvedConversations.length,
+        unlinkedCount: activeConversations.filter((conversation) => !conversation.companyId && !conversation.companyContactId).length,
+        avgFirstResponseMinutes,
+        avgResolutionHours: avgResolutionMinutes === null ? null : Math.round((avgResolutionMinutes / 60) * 10) / 10,
+        activity: toSeries(conversations.map((conversation) => conversation.lastMessageAt ?? conversation.createdAt)),
+        statusCounts: statusOrder.map((status) => ({
+          status: status as
+            | 'Novo'
+            | 'Sem responsavel'
+            | 'Triagem'
+            | 'Em andamento'
+            | 'Aguardando cliente'
+            | 'Aguardando interno'
+            | 'Teste'
+            | 'Resolvido'
+            | 'Arquivado',
+          count: statusCountsMap.get(status) || 0,
+        })),
+        channelCounts: channelOrder.map((channel) => ({
+          channel,
+          count: channelCountsMap.get(channel) || 0,
+        })),
+        assigneeLoads: Array.from(assigneeLoadMap.values())
+          .sort((left, right) => right.openCount - left.openCount || right.waitingCount - left.waitingCount)
+          .slice(0, 6),
       },
     };
   }

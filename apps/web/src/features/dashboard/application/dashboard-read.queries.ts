@@ -2,11 +2,13 @@ import {
   dashboardResponseSchema,
   adminOperacionalDataSchema,
   adminSuporteDataSchema,
+  adminAtendimentosDataSchema,
   adminCadastrosDataSchema,
   adminComercialDataSchema,
   type DashboardView,
   type AdminOperacionalData,
   type AdminSuporteData,
+  type AdminAtendimentosData,
   type AdminCadastrosData,
   type AdminComercialData,
 } from "@dosc-syspro/contracts/dashboard";
@@ -53,6 +55,10 @@ export function getOperacionalData(): Promise<AdminOperacionalData> {
 
 export function getSuporteData(): Promise<AdminSuporteData> {
   return fetchTabData("/api/dashboard/suporte", adminSuporteDataSchema);
+}
+
+export function getAtendimentosData(): Promise<AdminAtendimentosData> {
+  return fetchTabData("/api/dashboard/suporte/atendimentos", adminAtendimentosDataSchema);
 }
 
 export function getCadastrosData(): Promise<AdminCadastrosData> {
