@@ -15,7 +15,6 @@ import { requestRemoteSessionAction } from "@/features/remote/application/sessio
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getSuggestedCategoryForTeam,
@@ -949,80 +948,75 @@ export function ChatwootDashboardApp() {
         requestRefresh,
       }}
     >
-      <div className="min-h-screen bg-background px-3 py-2 text-foreground">
-        <div className="mx-auto w-full max-w-none space-y-3">
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="space-y-3">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    Painel do Atendimento
-                  </CardTitle>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={requestRefresh}>
-                    Atualizar contexto
-                  </Button>
-                  {contactEditHref ? (
-                    <Button asChild variant="secondary" size="sm">
-                      <Link href={contactEditHref} target="_blank" rel="noreferrer">
-                        Abrir contato
-                      </Link>
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {status === "loading" ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Aguardando dados da conversa enviados pelo Chatwoot.
-                </div>
-              ) : null}
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
+        {/* App header — compact, no wrapping card */}
+        <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Painel do Atendimento</span>
+            {resolved.companyName ? (
+              <span className="hidden truncate text-xs text-muted-foreground sm:block">
+                · {resolved.companyName}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {status === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={requestRefresh}>
+              Atualizar
+            </Button>
+            {contactEditHref ? (
+              <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                  Contato
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </div>
 
-              {status === "empty" ? (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-                  O Chatwoot ainda nao enviou o contexto desta conversa para o app. Reabra a aba do painel ou confira se o Dashboard App foi configurado neste endpoint.
-                </div>
-              ) : null}
+        {/* Empty state banner */}
+        {status === "empty" ? (
+          <div className="mx-3 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+            O Chatwoot ainda nao enviou o contexto desta conversa. Reabra a aba ou confirme se o Dashboard App esta configurado neste endpoint.
+          </div>
+        ) : null}
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid h-auto w-full grid-cols-3 p-1">
-                  <TabsTrigger value="overview" className="gap-2 py-2">
-                    Visao geral
-                  </TabsTrigger>
-                  <TabsTrigger value="tickets" className="gap-2 py-2">
-                    Tickets
-                    {latestTickets.length > 0 ? (
-                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
-                        {latestTickets.length}
-                      </span>
-                    ) : null}
-                  </TabsTrigger>
-                  <TabsTrigger value="infrastructure" className="gap-2 py-2">
-                    Infraestrutura
-                    {companyHosts.length > 0 ? (
-                      <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
-                        {companyHosts.length}
-                      </span>
-                    ) : null}
-                  </TabsTrigger>
-                </TabsList>
+        {/* Tab navigation + content */}
+        <div className="flex-1 px-3 py-3">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid h-auto w-full grid-cols-3 p-0.5">
+              <TabsTrigger value="overview" className="py-1.5 text-xs">
+                Visao geral
+              </TabsTrigger>
+              <TabsTrigger value="tickets" className="gap-1.5 py-1.5 text-xs">
+                Tickets
+                {latestTickets.length > 0 ? (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
+                    {latestTickets.length}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+              <TabsTrigger value="infrastructure" className="gap-1.5 py-1.5 text-xs">
+                Infra
+                {companyHosts.length > 0 ? (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
+                    {companyHosts.length}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+            </TabsList>
 
-                <TabsContent value="overview" className="space-y-3">
-                  <ChatwootOverviewTab />
-                </TabsContent>
-                <TabsContent value="tickets" className="space-y-3">
-                  <ChatwootTicketsTab />
-                </TabsContent>
-                <TabsContent value="infrastructure" className="space-y-3">
-                  <ChatwootInfrastructureTab />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+            <TabsContent value="overview" className="mt-3 space-y-3">
+              <ChatwootOverviewTab />
+            </TabsContent>
+            <TabsContent value="tickets" className="mt-3 space-y-3">
+              <ChatwootTicketsTab />
+            </TabsContent>
+            <TabsContent value="infrastructure" className="mt-3 space-y-3">
+              <ChatwootInfrastructureTab />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </ChatwootDashboardContext.Provider>

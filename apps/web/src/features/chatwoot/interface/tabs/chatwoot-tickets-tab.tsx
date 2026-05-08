@@ -49,22 +49,20 @@ export function ChatwootTicketsTab() {
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Ticket className="h-4 w-4 text-primary" />
               Tickets da empresa
             </CardTitle>
-            <CardDescription>
-              Abra o ticket sem sair do Chatwoot e acompanhe somente os chamados ainda abertos desta empresa.
-            </CardDescription>
+            <CardDescription>Chamados abertos — abra novos sem sair do Chatwoot.</CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 gap-2">
             <Button
               type="button"
               variant={showEmbeddedTicketForm ? "secondary" : "default"}
               size="sm"
-              className="gap-2"
+              className="gap-1.5"
               onClick={() => {
                 setShowEmbeddedTicketForm((current) => !current);
                 setActiveTab("tickets");
@@ -72,8 +70,8 @@ export function ChatwootTicketsTab() {
               }}
               disabled={!canCreateTicket}
             >
-              <Ticket className="h-4 w-4" />
-              {showEmbeddedTicketForm ? "Fechar formulario" : "Criar ticket aqui"}
+              <Ticket className="h-3.5 w-3.5" />
+              {showEmbeddedTicketForm ? "Fechar" : "Novo ticket"}
             </Button>
             <Button
               type="button"
@@ -81,21 +79,25 @@ export function ChatwootTicketsTab() {
               size="sm"
               onClick={() => setTicketReloadToken((current) => current + 1)}
             >
-              Atualizar lista
+              Atualizar
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+
+        {/* Embedded ticket creation form */}
         {showEmbeddedTicketForm ? (
           <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
-            <form className="space-y-3" onSubmit={handleEmbeddedTicketSubmit}>
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <form onSubmit={handleEmbeddedTicketSubmit}>
+              <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_18rem]">
+
+                {/* Left — content */}
                 <div className="space-y-4 p-4 xl:border-r xl:border-border/60">
-                  <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
                     <MessageSquare className="h-3.5 w-3.5" />
                     Resumo do chamado
-                  </div>
+                  </p>
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-foreground">Assunto</label>
                     <Input
@@ -108,35 +110,34 @@ export function ChatwootTicketsTab() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="text-sm font-semibold text-foreground">Descricao detalhada</label>
-                      <span className="text-[11px] text-muted-foreground">Passo a passo validado pelo analista</span>
-                    </div>
+                    <label className="text-sm font-semibold text-foreground">Descricao</label>
                     <Textarea
                       value={embeddedTicketForm.description}
                       onChange={(event) =>
                         setEmbeddedTicketForm((current) => ({ ...current, description: event.target.value }))
                       }
-                      placeholder="Informe o passo a passo, resultado esperado, mensagem de erro e usuarios impactados."
-                      className="min-h-55 bg-background leading-relaxed"
+                      placeholder="Passo a passo, resultado esperado, mensagem de erro e usuarios impactados."
+                      className="min-h-48 bg-background leading-relaxed"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Use o mesmo nivel de detalhe da abertura normal do modulo para reduzir retrabalho.
-                    </p>
                   </div>
                 </div>
 
-                <div className="space-y-3 bg-muted/5 p-4">
-                  <div className="inline-flex items-center gap-2 rounded-md border border-border/40 bg-muted px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-foreground">
+                {/* Right — classification */}
+                <div className="space-y-3 border-t border-border/60 bg-muted/5 p-4 xl:border-t-0">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     <Waypoints className="h-3.5 w-3.5" />
-                    Informacoes
+                    Classificacao
+                  </p>
+
+                  {/* Context strip — compact, no duplicate boxes */}
+                  <div className="rounded-md border border-border/40 bg-background px-2.5 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{resolved.companyName || resolved.companyId || "—"}</span>
+                    <span className="mx-1.5 text-border">·</span>
+                    <span>{effectiveContactName || "—"}</span>
+                    {resolved.customerPhone ? <span className="mx-1.5 text-border">·</span> : null}
+                    {resolved.customerPhone ? <span>{resolved.customerPhone}</span> : null}
                   </div>
-                  <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Classificacao</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Define fila, prioridade, categoria e modulo inicial do chamado.
-                    </p>
-                  </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Setor</label>
                     <Select
@@ -155,7 +156,7 @@ export function ChatwootTicketsTab() {
                         })
                       }
                     >
-                      <SelectTrigger className="h-10 bg-background">
+                      <SelectTrigger className="h-9 bg-background">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -176,7 +177,7 @@ export function ChatwootTicketsTab() {
                         setEmbeddedTicketForm((current) => ({ ...current, priorityValue: value }))
                       }
                     >
-                      <SelectTrigger className="h-10 bg-background">
+                      <SelectTrigger className="h-9 bg-background">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -197,7 +198,7 @@ export function ChatwootTicketsTab() {
                         setEmbeddedTicketForm((current) => ({ ...current, category: value }))
                       }
                     >
-                      <SelectTrigger className="h-10 bg-background">
+                      <SelectTrigger className="h-9 bg-background">
                         <SelectValue placeholder="Selecione a categoria" />
                       </SelectTrigger>
                       <SelectContent>
@@ -223,84 +224,70 @@ export function ChatwootTicketsTab() {
                       labels={{ single: "Modulo, submodulo e tela" }}
                     />
                   </div>
-
-                  <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
-                    <p className="mt-1 font-medium">{resolved.companyName || resolved.companyId || "Sem empresa"}</p>
-                  </div>
-                  <div className="rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
-                    <p className="mt-1 font-medium">{effectiveContactName || "Nao identificado"}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {resolved.customerPhone || resolved.customerEmail || "Sem telefone/e-mail"}
-                    </p>
-                  </div>
                 </div>
               </div>
 
               {hasExistingTicket ? (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-                  Esta conversa ja referencia o ticket #{existingTicket.number}. Abra outro apenas se a demanda realmente precisar ser separada.
+                <div className="mx-4 mb-1 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                  Esta conversa ja referencia o ticket #{existingTicket.number}. Abra outro apenas se a demanda precisar ser separada.
                 </div>
               ) : null}
 
               {embeddedTicketFeedback ? (
-                <InlineNotice tone={embeddedTicketFeedback.tone} message={embeddedTicketFeedback.message} />
+                <div className="mx-4 mb-1">
+                  <InlineNotice tone={embeddedTicketFeedback.tone} message={embeddedTicketFeedback.message} />
+                </div>
               ) : null}
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-4 pb-1 pt-3">
-                <p className="text-xs text-muted-foreground">
-                  O envio usa a mesma sessao do portal neste navegador e mantem o atendente dentro da conversa.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild type="button" variant="outline" size="sm">
-                    <Link href={resolved.ticketHref} target="_blank" rel="noreferrer">
-                      Tela completa
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setEmbeddedTicketForm((current) => ({ ...current, title: "", description: "" }));
-                      setEmbeddedTicketFeedback(null);
-                    }}
-                  >
-                    Limpar
-                  </Button>
-                  <Button type="submit" size="sm" className="gap-2" disabled={isSubmittingEmbeddedTicket}>
-                    {isSubmittingEmbeddedTicket ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ticket className="h-4 w-4" />}
-                    Criar ticket
-                  </Button>
-                </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-4 py-3">
+                <Button asChild type="button" variant="ghost" size="sm">
+                  <Link href={resolved.ticketHref} target="_blank" rel="noreferrer">
+                    Tela completa
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEmbeddedTicketForm((current) => ({ ...current, title: "", description: "" }));
+                    setEmbeddedTicketFeedback(null);
+                  }}
+                >
+                  Limpar
+                </Button>
+                <Button type="submit" size="sm" className="gap-1.5" disabled={isSubmittingEmbeddedTicket}>
+                  {isSubmittingEmbeddedTicket ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ticket className="h-3.5 w-3.5" />}
+                  Criar ticket
+                </Button>
               </div>
             </form>
           </div>
         ) : null}
 
+        {/* Priority ticket highlight */}
         {priorityTicket ? (
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">
-                  {matchedExistingTicket ? "Ticket da conversa" : "Ticket mais relevante"}
-                </p>
-                <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                <div className="flex items-center gap-2">
+                  <ContextBadge tone={matchedExistingTicket ? "good" : "neutral"}>
+                    {matchedExistingTicket ? "Ticket da conversa" : "Mais relevante"}
+                  </ContextBadge>
+                  <ContextBadge tone="neutral">{priorityTicket.statusLabel}</ContextBadge>
+                </div>
+                <p className="mt-1.5 truncate text-sm font-semibold text-foreground">
                   #{priorityTicket.number} · {priorityTicket.title}
                 </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <ContextBadge tone={matchedExistingTicket ? "good" : "neutral"}>
-                    {priorityTicket.statusLabel}
-                  </ContextBadge>
-                  <span>Atualizado em {formatRelativeDate(priorityTicket.updatedAt)}</span>
-                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Atualizado {formatRelativeDate(priorityTicket.updatedAt)}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" className="gap-2">
+              <div className="flex shrink-0 gap-2">
+                <Button asChild size="sm" className="gap-1.5">
                   <Link href={`/portal/tickets/${priorityTicket.id}`} target="_blank" rel="noreferrer">
-                    <ArrowUpRight className="h-4 w-4" />
-                    Abrir ticket
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    Abrir
                   </Link>
                 </Button>
                 <Button
@@ -310,50 +297,50 @@ export function ChatwootTicketsTab() {
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(String(priorityTicket.number));
-                      toast.success("Numero do ticket copiado.");
+                      toast.success("Numero copiado.");
                     } catch {
-                      toast.error("Nao foi possivel copiar o numero do ticket.");
+                      toast.error("Nao foi possivel copiar.");
                     }
                   }}
                 >
-                  Copiar numero
+                  Copiar #
                 </Button>
               </div>
             </div>
           </div>
         ) : null}
 
-        {isLoadingTickets ? <InlineLoading label="Carregando tickets reais da empresa..." /> : null}
+        {/* Ticket list states */}
+        {isLoadingTickets ? <InlineLoading label="Carregando tickets..." /> : null}
         {ticketError ? <InlineWarning message={ticketError} /> : null}
         {!isLoadingTickets && !ticketError && latestTickets.length === 0 ? (
           <EmptyState label="Nenhum ticket aberto encontrado para esta empresa." />
         ) : null}
+
+        {/* Remaining tickets (priority excluded) */}
         {!isLoadingTickets && !ticketError && latestTickets.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {latestTickets.filter((ticket) => ticket.id !== priorityTicket?.id).map((ticket) => (
-              <div key={ticket.id} className="rounded-lg border border-border/60 bg-card p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      #{ticket.number} · {ticket.title}
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {ticket.number === resolved.ticketNumber ? (
-                        <ContextBadge tone="good">Ticket da conversa</ContextBadge>
-                      ) : null}
-                      <span className="inline-flex items-center gap-1">
-                        <Clock3 className="h-3 w-3" />
-                        Criado em {formatRelativeDate(ticket.createdAt)}
-                      </span>
-                      <span>Estagio atual: {ticket.statusLabel}</span>
-                    </div>
+              <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    #{ticket.number} · {ticket.title}
+                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <ContextBadge tone={ticket.number === resolved.ticketNumber ? "good" : "neutral"}>
+                      {ticket.statusLabel}
+                    </ContextBadge>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 className="h-3 w-3" />
+                      {formatRelativeDate(ticket.createdAt)}
+                    </span>
                   </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/portal/tickets/${ticket.id}`} target="_blank" rel="noreferrer">
-                      Ver
-                    </Link>
-                  </Button>
                 </div>
+                <Button asChild variant="ghost" size="sm" className="shrink-0">
+                  <Link href={`/portal/tickets/${ticket.id}`} target="_blank" rel="noreferrer">
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
               </div>
             ))}
           </div>
