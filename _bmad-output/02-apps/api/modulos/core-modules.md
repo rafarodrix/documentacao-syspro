@@ -61,6 +61,15 @@ Gerencia contatos vinculados a empresas. **Totalmente migrado para tRPC** — se
 - Controle de acesso por empresa via `AuthorizationService`
 - Stats de contatos por empresa
 
+**Componentes web que consomem `trpc.contacts.*`:**
+- `src/components/platform/app/contatos/contacts-tab.tsx` — listagem, stats, unlink, delete, sync
+- `src/components/platform/app/contatos/create-contact-page-form.tsx` — formulário create/edit
+- `src/app/(platform)/portal/contatos/[id]/editar/page.tsx` — server page (getOne)
+- `src/features/user-access/interface/create-user-page-form.tsx` — busca de contatos para vincular usuário
+- `src/features/chatwoot/interface/chatwoot-dashboard-app.tsx` — lookup e criação de contatos pelo Chatwoot
+
+> `src/components/platform/cadastros/company/tabs/company-contact-tab.tsx` recebe dados via props — não faz chamadas tRPC diretamente.
+
 ---
 
 ## users

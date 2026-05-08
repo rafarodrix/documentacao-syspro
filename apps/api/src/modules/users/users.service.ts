@@ -20,7 +20,7 @@ import {
   userAccessListItemSchema,
   type CreateUserInput,
   type CurrentUserProfile,
-  type UpdateCurrentUserProfileInput,
+  type UpdateCurrentUserProfileOutput,
   type UpdateUserInput,
   type UserAccessListItem,
   type UserEmailAvailabilityResult,
@@ -698,7 +698,7 @@ export class UsersService {
     };
   }
 
-  async updateCurrentProfile(input: UpdateCurrentUserProfileInput, rawHeaders?: IncomingHttpHeaders) {
+  async updateCurrentProfile(input: UpdateCurrentUserProfileOutput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
 
     const [user, canEditPersonal, canEditCompany] = await Promise.all([
