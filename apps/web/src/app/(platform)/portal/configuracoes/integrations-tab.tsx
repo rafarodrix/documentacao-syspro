@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bot, CheckCircle2, HardDrive, Loader2, MessageSquare, Plug, RefreshCw, Save, Server, TriangleAlert } from "lucide-react";
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
@@ -157,6 +157,15 @@ function ChatwootDiagnosticsTab() {
     }
   }, []);
 
+  async function copyToClipboard(value: string, successMessage: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(successMessage);
+    } catch {
+      toast.error("Nao foi possivel copiar a URL.");
+    }
+  }
+
   return (
     <Card className="border-border/60 bg-card/95 shadow-sm">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -166,7 +175,7 @@ function ChatwootDiagnosticsTab() {
             Chatwoot
           </CardTitle>
           <CardDescription>
-            Diagnostico seguro da integracao usada para atendimento, inbox e roteamento de mensagens.
+            Configure a operacao do Chatwoot com leitura mais clara do ambiente, da conexao principal e das automacoes.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
@@ -179,60 +188,64 @@ function ChatwootDiagnosticsTab() {
           <LoadingState label="Carregando diagnostico do Chatwoot..." />
         ) : (
           <>
-            <div className="grid gap-3 md:grid-cols-3">
-              <StatusTile label="Status" ok={Boolean(chatwoot?.configured)} okText="Configurado" failText="Incompleto" />
-              <InfoTile label="Origem" value={chatwoot?.source || "N/A"} />
-              <InfoTile label="Conexoes ativas" value={String(chatwoot?.activeConnections ?? 0)} />
-            </div>
+            <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <StatusTile label="Status" ok={Boolean(chatwoot?.configured)} okText="Configurado" failText="Incompleto" />
+                <InfoTile label="Origem" value={chatwoot?.source || "N/A"} />
+                <InfoTile label="Conexoes ativas" value={String(chatwoot?.activeConnections ?? 0)} />
+              </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              {Object.entries(runtime).map(([key, value]) => (
-                <StatusLine key={key} label={formatRuntimeKey(key)} ok={value} />
-              ))}
-            </div>
-
-            <pre className="overflow-x-auto rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-              {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
-            </pre>
-
-            <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="text-base font-semibold">Conexao principal do Chatwoot</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configuracao persistida para URL, inbox, credenciais e webhook. Em SaaS, isso substitui o uso exclusivo de variaveis de ambiente.
-                  </p>
+              <SectionShell
+                title="Leitura rapida do ambiente"
+                description="Resumo tecnico do runtime e validacoes minimas do contexto ativo."
+              >
+                <div className="grid gap-3 md:grid-cols-2">
+                  {Object.entries(runtime).map(([key, value]) => (
+                    <StatusLine key={key} label={formatRuntimeKey(key)} ok={value} />
+                  ))}
                 </div>
+
+                <details className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">Diagnostico tecnico bruto</summary>
+                  <pre className="mt-3 overflow-x-auto rounded-lg border bg-background p-3 text-xs text-muted-foreground">
+                    {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
+                  </pre>
+                </details>
+              </SectionShell>
+            </div>
+
+            <SectionShell
+              title="Conexao principal"
+              description="Dados persistidos para URL, inbox, credenciais e webhook do ambiente principal."
+              action={
                 <Button size="sm" onClick={saveIntegrationSettings} disabled={isIntegrationSettingsLoading || isIntegrationSettingsSaving}>
                   {isIntegrationSettingsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Salvar conexao
                 </Button>
-              </div>
+              }
+            >
 
               {isIntegrationSettingsLoading ? (
                 <LoadingState label="Carregando configuracao principal do Chatwoot..." />
               ) : (
                 <div className="grid min-w-0 gap-4 md:grid-cols-2">
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-url">URL</Label>
+                  <FormField id="chatwoot-url" label="URL">
                     <Input
                       id="chatwoot-url"
                       value={integrationSettings.url}
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, url: event.target.value }))}
                       placeholder="https://chatwoot.seudominio.com"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-account-id">Account ID</Label>
+                  </FormField>
+                  <FormField id="chatwoot-account-id" label="Account ID">
                     <Input
                       id="chatwoot-account-id"
                       value={integrationSettings.accountId}
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, accountId: event.target.value }))}
                       placeholder="1"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-api-token">API Token</Label>
+                  </FormField>
+                  <FormField id="chatwoot-api-token" label="API Token">
                     <Input
                       id="chatwoot-api-token"
                       type="password"
@@ -240,9 +253,8 @@ function ChatwootDiagnosticsTab() {
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, apiToken: event.target.value }))}
                       placeholder="Token principal do Chatwoot"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-platform-api-token">Platform API Token</Label>
+                  </FormField>
+                  <FormField id="chatwoot-platform-api-token" label="Platform API Token">
                     <Input
                       id="chatwoot-platform-api-token"
                       type="password"
@@ -250,27 +262,24 @@ function ChatwootDiagnosticsTab() {
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, platformApiToken: event.target.value }))}
                       placeholder="Token da Platform API"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-inbox-id">Inbox ID</Label>
+                  </FormField>
+                  <FormField id="chatwoot-inbox-id" label="Inbox ID">
                     <Input
                       id="chatwoot-inbox-id"
                       value={integrationSettings.inboxId}
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, inboxId: event.target.value }))}
                       placeholder="123"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-inbox-identifier">Inbox Identifier</Label>
+                  </FormField>
+                  <FormField id="chatwoot-inbox-identifier" label="Inbox Identifier">
                     <Input
                       id="chatwoot-inbox-identifier"
                       value={integrationSettings.inboxIdentifier}
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, inboxIdentifier: event.target.value }))}
                       placeholder="whatsapp-suporte"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-webhook-secret">Webhook Secret</Label>
+                  </FormField>
+                  <FormField id="chatwoot-webhook-secret" label="Webhook Secret">
                     <Input
                       id="chatwoot-webhook-secret"
                       type="password"
@@ -278,9 +287,12 @@ function ChatwootDiagnosticsTab() {
                       onChange={(event) => setIntegrationSettings((prev) => ({ ...prev, webhookSecret: event.target.value }))}
                       placeholder="Secret do webhook"
                     />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="chatwoot-webhook-skew">Tolerancia do webhook (segundos)</Label>
+                  </FormField>
+                  <FormField
+                    id="chatwoot-webhook-skew"
+                    label="Tolerancia do webhook"
+                    description="Janela em segundos para assinatura e clock skew."
+                  >
                     <Input
                       id="chatwoot-webhook-skew"
                       type="number"
@@ -294,34 +306,35 @@ function ChatwootDiagnosticsTab() {
                         }))
                       }
                     />
-                  </div>
+                  </FormField>
                 </div>
               )}
-            </div>
+            </SectionShell>
 
-            <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="text-base font-semibold">Automacoes do Webhook</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Regras aplicadas quando o Chatwoot envia eventos para o backend.
-                  </p>
-                </div>
+            <SectionShell
+              title="Automacoes do webhook"
+              description="Regras aplicadas quando o Chatwoot envia eventos para o backend."
+              action={
                 <Button size="sm" onClick={save} disabled={isBehaviorLoading || isSaving}>
                   {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Salvar
+                  Salvar automacoes
                 </Button>
-              </div>
+              }
+            >
 
               {isBehaviorLoading ? (
                 <LoadingState label="Carregando automacoes do Chatwoot..." />
               ) : (
                 <>
+                <SettingsGroup
+                  title="Operacao e reabertura"
+                  description="Atribuicao, rotulo do agente e retorno do cliente em conversas em espera."
+                >
                 <div className="grid gap-3 md:grid-cols-2">
                   <BehaviorToggle
                     id="prependAgentNameOnOutbound"
                     label="Enviar nome do atendente no WhatsApp"
-                    description="Prefixa a resposta enviada ao cliente com o nome do atendente em destaque, por exemplo '*Rafael Rodrigues:* Olá, como posso ajudar?'."
+                    description="Prefixa a resposta publica com o nome do agente."
                     checked={behavior.prependAgentNameOnOutbound}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, prependAgentNameOnOutbound: checked }))
@@ -330,7 +343,7 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="autoAssignOnFirstAgentReply"
                     label="Autoatribuir ao primeiro agente que responder"
-                    description="Quando uma mensagem de saida de agente chegar sem responsavel na conversa, o backend atribui a conversa a esse agente."
+                    description="Assume a conversa para o primeiro agente que responder sem responsavel definido."
                     checked={behavior.autoAssignOnFirstAgentReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, autoAssignOnFirstAgentReply: checked }))
@@ -338,8 +351,8 @@ function ChatwootDiagnosticsTab() {
                   />
                   <BehaviorToggle
                     id="reopenConversationOnCustomerReply"
-                    label="Reabrir quando o cliente responder"
-                    description="Chave mestre da reabertura automatica para conversas em pending ou snoozed. Conversas resolved ou archived sempre iniciam um novo atendimento."
+                    label="Permitir reabertura em conversa em espera"
+                    description="Habilita a reabertura automatica de pending e snoozed."
                     checked={behavior.reopenConversationOnCustomerReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenConversationOnCustomerReply: checked }))
@@ -358,7 +371,7 @@ function ChatwootDiagnosticsTab() {
                   <BehaviorToggle
                     id="reopenPendingConversationOnCustomerReply"
                     label="Reabrir tambem quando estiver pendente"
-                    description="Quando ativo, resposta do cliente em conversa pending tambem promove para open. Deixe desligado para evitar ruido operacional no Chatwoot."
+                    description="Ative apenas se quiser trazer pending de volta para open no primeiro retorno do cliente."
                     checked={behavior.reopenPendingConversationOnCustomerReply}
                     onCheckedChange={(checked) =>
                       setBehavior((prev) => ({ ...prev, reopenPendingConversationOnCustomerReply: checked }))
@@ -375,15 +388,13 @@ function ChatwootDiagnosticsTab() {
                     }
                   />
                 </div>
+                </SettingsGroup>
 
-                <div className="grid min-w-0 gap-4 rounded-lg border bg-background p-4">
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-semibold">Identidade tecnica das mensagens do sistema</h4>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Use um bot tecnico para CSAT e outras mensagens automaticas, evitando que o nome do admin apareca no Chatwoot e no WhatsApp.
-                    </p>
-                  </div>
-
+                <SettingsGroup
+                  title="Identidade tecnica das mensagens do sistema"
+                  description="Use um bot tecnico para CSAT e outras mensagens automaticas, sem expor um usuario administrativo."
+                >
+                <div className="grid min-w-0 gap-4">
                   <div className="grid min-w-0 gap-3 md:grid-cols-2">
                     <BehaviorToggle
                       id="systemMessagesUseBotIdentity"
@@ -396,8 +407,11 @@ function ChatwootDiagnosticsTab() {
                     />
                   </div>
 
-                  <div className="min-w-0 space-y-2">
-                    <Label htmlFor="systemMessageApiToken">Token do bot no Chatwoot</Label>
+                  <FormField
+                    id="systemMessageApiToken"
+                    label="Token do bot no Chatwoot"
+                    description="Access token do AgentBot ou usuario tecnico dedicado."
+                  >
                     <Input
                       id="systemMessageApiToken"
                       type="password"
@@ -407,32 +421,28 @@ function ChatwootDiagnosticsTab() {
                       }
                       placeholder="Cole aqui o access token do AgentBot"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Token dedicado do AgentBot/usuario tecnico. O nome usado nas mensagens passa a ser o proprio nome configurado no Chatwoot para esse bot.
-                    </p>
-                  </div>
+                  </FormField>
                 </div>
+                </SettingsGroup>
 
-                <div className="grid min-w-0 gap-4 rounded-lg border bg-background p-4">
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-semibold">CSAT no WhatsApp</h4>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Envia avaliacao automatica quando a conversa for resolvida no Chatwoot e trata a resposta do cliente no webhook.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant="outline">1 Pessimo</Badge>
-                      <Badge variant="outline">2 Ruim</Badge>
-                      <Badge variant="outline">3 Regular</Badge>
-                      <Badge variant="outline">4 Bom</Badge>
-                      <Badge variant="outline">5 Excelente</Badge>
-                    </div>
+                <SettingsGroup
+                  title="CSAT no WhatsApp"
+                  description="Pesquisa automatica no fechamento da conversa, com tratamento de nota e tentativas invalidas."
+                >
+                <div className="grid min-w-0 gap-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">1 Pessimo</Badge>
+                    <Badge variant="outline">2 Ruim</Badge>
+                    <Badge variant="outline">3 Regular</Badge>
+                    <Badge variant="outline">4 Bom</Badge>
+                    <Badge variant="outline">5 Excelente</Badge>
                   </div>
 
                   <div className="grid min-w-0 gap-3 md:grid-cols-2">
                     <BehaviorToggle
                       id="csatEnabled"
                       label="Habilitar CSAT automatico"
-                      description="Ativa a pesquisa automatica no fechamento da conversa. A politica abaixo define se vale para resolved e archived ou apenas resolved."
+                      description="Dispara avaliacao no encerramento conforme a politica de status."
                       checked={behavior.csatEnabled}
                       onCheckedChange={(checked) =>
                         setBehavior((prev) => ({ ...prev, csatEnabled: checked }))
@@ -441,7 +451,7 @@ function ChatwootDiagnosticsTab() {
                     <BehaviorToggle
                       id="sendCsatThankYouMessage"
                       label="Enviar mensagem apos a nota"
-                      description="Quando o cliente responder a avaliacao com uma nota valida, o backend envia uma confirmacao final."
+                      description="Confirma ao cliente quando a resposta valida for recebida."
                       checked={behavior.sendCsatThankYouMessage}
                       onCheckedChange={(checked) =>
                         setBehavior((prev) => ({ ...prev, sendCsatThankYouMessage: checked }))
@@ -450,7 +460,7 @@ function ChatwootDiagnosticsTab() {
                     <BehaviorToggle
                       id="csatReopenOnLowScore"
                       label="Reabrir conversa em nota baixa"
-                      description="Quando o cliente responder com nota igual ou abaixo do limite, o backend reabre a conversa automaticamente."
+                      description="Reabre automaticamente quando a nota ficar igual ou abaixo do limite."
                       checked={behavior.csatReopenOnLowScore}
                       onCheckedChange={(checked) =>
                         setBehavior((prev) => ({ ...prev, csatReopenOnLowScore: checked }))
@@ -459,8 +469,11 @@ function ChatwootDiagnosticsTab() {
                   </div>
 
                   <div className="grid min-w-0 gap-4 md:grid-cols-2">
-                    <div className={`min-w-0 space-y-2 ${!behavior.csatEnabled ? "opacity-60" : ""}`}>
-                      <Label htmlFor="csatTriggerStatus">Disparar CSAT quando status for</Label>
+                    <FormField
+                      id="csatTriggerStatus"
+                      label="Disparar CSAT quando status for"
+                      description="Use apenas resolved se archived for usado por rotina tecnica."
+                    >
                       <Select
                         value={behavior.csatTriggerStatus}
                         onValueChange={(value) =>
@@ -479,13 +492,17 @@ function ChatwootDiagnosticsTab() {
                           <SelectItem value="resolved_only">Apenas resolved</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Use `apenas resolved` se a sua operacao arquiva conversas por rotina tecnica e nao quer disparar avaliacao nesses casos.
-                      </p>
-                    </div>
+                    </FormField>
 
-                    <div className="min-w-0 space-y-2">
-                      <Label htmlFor="csatLowScoreThreshold">Limite de nota baixa</Label>
+                    <FormField
+                      id="csatLowScoreThreshold"
+                      label="Limite de nota baixa"
+                      description={
+                        csatCanReopen
+                          ? "Notas ate esse valor reabrem a conversa."
+                          : "Disponivel apenas com CSAT ativo e reabertura por nota baixa habilitada."
+                      }
+                    >
                       <Input
                         id="csatLowScoreThreshold"
                         type="number"
@@ -500,15 +517,13 @@ function ChatwootDiagnosticsTab() {
                           }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {csatCanReopen
-                          ? "Notas ate esse valor reabrem a conversa automaticamente."
-                          : "Disponivel apenas quando o CSAT estiver ativo e a reabertura por nota baixa estiver habilitada."}
-                      </p>
-                    </div>
+                    </FormField>
 
-                    <div className="min-w-0 space-y-2">
-                      <Label htmlFor="csatPendingTimeoutHours">Timeout do CSAT (horas)</Label>
+                    <FormField
+                      id="csatPendingTimeoutHours"
+                      label="Timeout do CSAT (horas)"
+                      description="Avaliacao pendente e encerrada ao fim desse prazo."
+                    >
                       <Input
                         id="csatPendingTimeoutHours"
                         type="number"
@@ -522,11 +537,13 @@ function ChatwootDiagnosticsTab() {
                           }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">Apos esse prazo, a avaliacao pendente e encerrada e a proxima interacao segue como novo atendimento.</p>
-                    </div>
+                    </FormField>
 
-                    <div className="min-w-0 space-y-2">
-                      <Label htmlFor="csatInvalidReplyMaxAttempts">Tentativas de resposta invalida</Label>
+                    <FormField
+                      id="csatInvalidReplyMaxAttempts"
+                      label="Tentativas de resposta invalida"
+                      description="Limite antes de encerrar a avaliacao e tratar a proxima mensagem como novo atendimento."
+                    >
                       <Input
                         id="csatInvalidReplyMaxAttempts"
                         type="number"
@@ -541,150 +558,101 @@ function ChatwootDiagnosticsTab() {
                           }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Quantas vezes o cliente pode responder fora da faixa de 1 a 5 antes do sistema encerrar a avaliacao e forcar um novo atendimento.
-                      </p>
-                    </div>
+                    </FormField>
                   </div>
 
                   <div className="grid min-w-0 gap-4 md:grid-cols-2">
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="csatRequestMessage">Mensagem de solicitacao</Label>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span>{csatRequestLength}/2000</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-[11px]"
-                            onClick={() =>
-                              setBehavior((prev) => ({
-                                ...prev,
-                                csatRequestMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatRequestMessage,
-                              }))
-                            }
-                          >
-                            Restaurar
-                          </Button>
-                        </div>
-                      </div>
+                    <MessageTemplateField
+                      id="csatRequestMessage"
+                      label="Mensagem de solicitacao"
+                      counter={`${csatRequestLength}/2000`}
+                      description="Enviada logo apos a conversa ser resolvida."
+                      onRestore={() =>
+                        setBehavior((prev) => ({
+                          ...prev,
+                          csatRequestMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatRequestMessage,
+                        }))
+                      }
+                    >
                       <Textarea
                         id="csatRequestMessage"
-                        className="min-h-40"
+                        className="min-h-32"
                         value={behavior.csatRequestMessage}
                         onChange={(event) =>
                           setBehavior((prev) => ({ ...prev, csatRequestMessage: event.target.value }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Essa mensagem e enviada logo apos a conversa ser resolvida.
-                      </p>
-                    </div>
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="csatThankYouMessage">Mensagem pos-avaliacao</Label>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span>{csatThankYouLength}/1000</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-[11px]"
-                            onClick={() =>
-                              setBehavior((prev) => ({
-                                ...prev,
-                                csatThankYouMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatThankYouMessage,
-                              }))
-                            }
-                          >
-                            Restaurar
-                          </Button>
-                        </div>
-                      </div>
+                    </MessageTemplateField>
+                    <MessageTemplateField
+                      id="csatThankYouMessage"
+                      label="Mensagem pos-avaliacao"
+                      counter={`${csatThankYouLength}/1000`}
+                      description={
+                        behavior.sendCsatThankYouMessage
+                          ? "Enviada depois que o cliente responde com uma nota valida."
+                          : "Ative a confirmacao para enviar essa mensagem final."
+                      }
+                      onRestore={() =>
+                        setBehavior((prev) => ({
+                          ...prev,
+                          csatThankYouMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatThankYouMessage,
+                        }))
+                      }
+                    >
                       <Textarea
                         id="csatThankYouMessage"
-                        className="min-h-40"
+                        className="min-h-32"
                         value={behavior.csatThankYouMessage}
                         disabled={!behavior.sendCsatThankYouMessage}
                         onChange={(event) =>
                           setBehavior((prev) => ({ ...prev, csatThankYouMessage: event.target.value }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {behavior.sendCsatThankYouMessage
-                          ? "Enviada depois que o cliente responde com uma nota valida."
-                          : "Ative a automacao acima para enviar essa confirmacao final."}
-                      </p>
-                    </div>
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="csatInvalidReplyRetryMessage">Mensagem para resposta invalida</Label>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span>{csatInvalidReplyRetryLength}/1000</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-[11px]"
-                            onClick={() =>
-                              setBehavior((prev) => ({
-                                ...prev,
-                                csatInvalidReplyRetryMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatInvalidReplyRetryMessage,
-                              }))
-                            }
-                          >
-                            Restaurar
-                          </Button>
-                        </div>
-                      </div>
+                    </MessageTemplateField>
+                    <MessageTemplateField
+                      id="csatInvalidReplyRetryMessage"
+                      label="Mensagem para resposta invalida"
+                      counter={`${csatInvalidReplyRetryLength}/1000`}
+                      description="Usada nas tentativas intermediarias; o contador e acrescentado pelo backend."
+                      onRestore={() =>
+                        setBehavior((prev) => ({
+                          ...prev,
+                          csatInvalidReplyRetryMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatInvalidReplyRetryMessage,
+                        }))
+                      }
+                    >
                       <Textarea
                         id="csatInvalidReplyRetryMessage"
-                        className="min-h-32"
+                        className="min-h-28"
                         value={behavior.csatInvalidReplyRetryMessage}
                         disabled={!behavior.csatEnabled}
                         onChange={(event) =>
                           setBehavior((prev) => ({ ...prev, csatInvalidReplyRetryMessage: event.target.value }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Enviada quando o cliente responde algo diferente de uma nota valida. O contador de tentativa e acrescentado pelo backend.
-                      </p>
-                    </div>
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="csatInvalidReplyFinalMessage">Mensagem ao encerrar a avaliacao</Label>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span>{csatInvalidReplyFinalLength}/1000</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-[11px]"
-                            onClick={() =>
-                              setBehavior((prev) => ({
-                                ...prev,
-                                csatInvalidReplyFinalMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatInvalidReplyFinalMessage,
-                              }))
-                            }
-                          >
-                            Restaurar
-                          </Button>
-                        </div>
-                      </div>
+                    </MessageTemplateField>
+                    <MessageTemplateField
+                      id="csatInvalidReplyFinalMessage"
+                      label="Mensagem ao encerrar a avaliacao"
+                      counter={`${csatInvalidReplyFinalLength}/1000`}
+                      description="Enviada quando o limite e atingido e a proxima mensagem passa a abrir um novo atendimento."
+                      onRestore={() =>
+                        setBehavior((prev) => ({
+                          ...prev,
+                          csatInvalidReplyFinalMessage: DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS.csatInvalidReplyFinalMessage,
+                        }))
+                      }
+                    >
                       <Textarea
                         id="csatInvalidReplyFinalMessage"
-                        className="min-h-32"
+                        className="min-h-28"
                         value={behavior.csatInvalidReplyFinalMessage}
                         disabled={!behavior.csatEnabled}
                         onChange={(event) =>
                           setBehavior((prev) => ({ ...prev, csatInvalidReplyFinalMessage: event.target.value }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Enviada quando o limite de respostas invalidas e atingido e a proxima mensagem do cliente passara a abrir um novo atendimento.
-                      </p>
-                    </div>
+                    </MessageTemplateField>
                   </div>
 
                   <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
@@ -702,159 +670,53 @@ function ChatwootDiagnosticsTab() {
                     </span>
                   </div>
 
-                  <div className="min-w-0 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-                      <p className="break-words">
-                        O portal aceita a abertura direta em
-                        <span className="mx-1 break-all font-mono text-foreground">/portal/tickets/novo?source=chatwoot</span>
-                        com os parametros
-                        <span className="mx-1 break-all font-mono text-foreground">chatwootConversationId</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">chatwootContactId</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">chatwootAccountId</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">chatwootConversationUrl</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">customerName</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">customerPhone</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">customerWhatsapp</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">customerEmail</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">companyId</span>,
-                        <span className="mx-1 break-all font-mono text-foreground">subject</span>
-                        e
-                        <span className="ml-1 break-all font-mono text-foreground">description</span>.
-                      </p>
-                      <p className="mt-2">
-                        Quando esse link for usado, a tela de criacao ja abre vinculada ao atendimento importado do Chatwoot e envia os metadados junto com o ticket.
-                      </p>
-                      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-                        Para o Painel de Aplicativos do Chatwoot, use a URL fixa do Dashboard App. A criacao de ticket continua manual e so e liberada quando o contato estiver vinculado a uma empresa no portal.
-                      </div>
-                      <div className="min-w-0 space-y-2">
-                        <Label htmlFor="chatwoot-dashboard-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          URL do Dashboard App embutido
-                        </Label>
-                        <Textarea
-                          id="chatwoot-dashboard-app-url"
-                          readOnly
-                          value={dashboardAppUrl}
-                          className="min-h-20 w-full min-w-0 break-all font-mono text-xs"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Esse endpoint embute um painel proprio dentro da conversa do Chatwoot com duas acoes manuais: criar ticket e abrir acesso remoto.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={async () => {
-                              try {
-                                await navigator.clipboard.writeText(dashboardAppUrl);
-                                toast.success("URL do Dashboard App copiada.");
-                              } catch {
-                                toast.error("Nao foi possivel copiar a URL.");
-                              }
-                            }}
-                          >
-                            Copiar URL do Dashboard App
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="min-w-0 space-y-2 border-t border-border/60 pt-3">
-                        <Label htmlFor="chatwoot-ticket-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Atalho direto opcional para ticket
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Use este link apenas se quiser um atalho externo. Para o painel embutido do Chatwoot, prefira a URL fixa acima.
-                        </p>
-                        <Textarea
-                          id="chatwoot-ticket-app-url"
-                          readOnly
-                          value={ticketCreationAppUrl}
-                          className="min-h-28 w-full min-w-0 break-all font-mono text-xs"
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={async () => {
-                              try {
-                                await navigator.clipboard.writeText(ticketCreationAppUrl);
-                                toast.success("URL do app copiada.");
-                              } catch {
-                                toast.error("Nao foi possivel copiar a URL.");
-                              }
-                            }}
-                          >
-                            Copiar URL do app
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="min-w-0 space-y-2 border-t border-border/60 pt-3">
-                        <Label htmlFor="chatwoot-remote-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Atalho direto opcional para hosts da empresa
-                        </Label>
-                        <Textarea
-                          id="chatwoot-remote-app-url"
-                          readOnly
-                          value={remoteDirectoryAppUrl}
-                          className="min-h-24 w-full min-w-0 break-all font-mono text-xs"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Esse app abre a plataforma remota ja filtrada pela empresa do contato e preserva o numero do ticket quando a conversa ja estiver vinculada.
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(remoteDirectoryAppUrl);
-                              toast.success("URL dos hosts copiada.");
-                            } catch {
-                              toast.error("Nao foi possivel copiar a URL.");
-                            }
-                          }}
-                        >
-                          Copiar URL dos hosts
-                        </Button>
-                      </div>
-                      <div className="min-w-0 space-y-2 border-t border-border/60 pt-3">
-                        <Label htmlFor="chatwoot-remote-host-app-url" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Atalho direto opcional para host especifico
-                        </Label>
-                        <Textarea
-                          id="chatwoot-remote-host-app-url"
-                          readOnly
-                          value={remoteHostAppUrl}
-                          className="min-h-24 w-full min-w-0 break-all font-mono text-xs"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Use essa variante quando a conversa ja tiver o atributo <span className="break-all font-mono text-foreground">host_id</span> sincronizado.
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(remoteHostAppUrl);
-                              toast.success("URL do host copiada.");
-                            } catch {
-                              toast.error("Nao foi possivel copiar a URL.");
-                            }
-                          }}
-                        >
-                          Copiar URL do host
-                        </Button>
-                      </div>
-                    </div>
                 </div>
+                </SettingsGroup>
+
+                <SettingsGroup
+                  title="Apps e atalhos"
+                  description="URLs prontas para o painel de aplicativos do Chatwoot e para atalhos externos do portal."
+                >
+                  <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="text-sm text-muted-foreground">
+                      Use o Dashboard App como entrada principal dentro do Chatwoot. Os outros links servem como atalhos externos para fluxos especificos.
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      <CopyInfoCard
+                        title="Dashboard App embutido"
+                        description="Painel dentro da conversa com acoes manuais como criar ticket e abrir acesso remoto."
+                        value={dashboardAppUrl}
+                        copyLabel="Copiar URL do Dashboard App"
+                        onCopy={() => copyToClipboard(dashboardAppUrl, "URL do Dashboard App copiada.")}
+                      />
+                      <CopyInfoCard
+                        title="Atalho direto opcional para ticket"
+                        description="Use apenas se quiser um link externo. Para o painel embutido, prefira a URL fixa acima."
+                        value={ticketCreationAppUrl}
+                        copyLabel="Copiar URL do app"
+                        onCopy={() => copyToClipboard(ticketCreationAppUrl, "URL do app copiada.")}
+                      />
+                      <CopyInfoCard
+                        title="Atalho para hosts da empresa"
+                        description="Abre a plataforma remota filtrada pela empresa do contato e preserva o numero do ticket quando houver vinculo."
+                        value={remoteDirectoryAppUrl}
+                        copyLabel="Copiar URL dos hosts"
+                        onCopy={() => copyToClipboard(remoteDirectoryAppUrl, "URL dos hosts copiada.")}
+                      />
+                      <CopyInfoCard
+                        title="Atalho para host especifico"
+                        description="Use quando a conversa ja tiver o atributo host_id sincronizado."
+                        value={remoteHostAppUrl}
+                        copyLabel="Copiar URL do host"
+                        onCopy={() => copyToClipboard(remoteHostAppUrl, "URL do host copiada.")}
+                      />
+                    </div>
+                  </div>
+                </SettingsGroup>
                 </>
               )}
-            </div>
+            </SectionShell>
           </>
         )}
       </CardContent>
@@ -878,14 +740,140 @@ function BehaviorToggle({
   disabled?: boolean;
 }) {
   return (
-    <div className={`flex min-w-0 min-h-28 items-start gap-3 rounded-lg border bg-background p-4 ${disabled ? "opacity-60" : ""}`}>
-      <Checkbox id={id} checked={checked} disabled={disabled} onCheckedChange={(value) => onCheckedChange(value === true)} />
+    <div className={`flex min-w-0 items-start justify-between gap-4 rounded-xl border border-border/70 bg-background px-4 py-3 ${disabled ? "opacity-60" : ""}`}>
       <span className="min-w-0 space-y-1">
-        <Label htmlFor={id} className={`text-sm font-medium ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
+        <Label htmlFor={id} className={`block text-sm font-medium ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
           {label}
         </Label>
-        <span className="block break-words text-sm text-muted-foreground">{description}</span>
+        <span className="block text-sm text-muted-foreground">{description}</span>
       </span>
+      <Checkbox id={id} checked={checked} disabled={disabled} onCheckedChange={(value) => onCheckedChange(value === true)} />
+    </div>
+  );
+}
+
+function SectionShell({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SettingsGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-4 rounded-xl border border-border/70 bg-background p-4">
+      <div className="space-y-1">
+        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function FormField({
+  id,
+  label,
+  description,
+  children,
+}: {
+  id: string;
+  label: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      {children}
+      {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+    </div>
+  );
+}
+
+function MessageTemplateField({
+  id,
+  label,
+  counter,
+  description,
+  onRestore,
+  children,
+}: {
+  id: string;
+  label: string;
+  counter: string;
+  description: string;
+  onRestore: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-2 rounded-xl border border-border/70 bg-background p-4">
+      <div className="flex items-center justify-between gap-3">
+        <Label htmlFor={id}>{label}</Label>
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+          <span>{counter}</span>
+          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[11px]" onClick={onRestore}>
+            Restaurar
+          </Button>
+        </div>
+      </div>
+      {children}
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function CopyInfoCard({
+  title,
+  description,
+  value,
+  copyLabel,
+  onCopy,
+}: {
+  title: string;
+  description: string;
+  value: string;
+  copyLabel: string;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-xl border border-border/70 bg-background p-4">
+      <div className="space-y-1">
+        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      <Textarea readOnly value={value} className="min-h-24 w-full min-w-0 break-all font-mono text-xs" />
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={onCopy}>
+          {copyLabel}
+        </Button>
+      </div>
     </div>
   );
 }
