@@ -188,10 +188,24 @@ export const dashboardConversationAssigneeLoadSchema = z.object({
   waitingCount: z.number().int().nonnegative(),
 });
 
+export const dashboardAtendimentoAssigneeOptionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+});
+
 export const adminAtendimentosDataSchema = z.object({
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
+  appliedAssigneeId: z.string().trim().optional(),
+  appliedContactQuery: z.string().trim().optional(),
+  totalCount: z.number().int().nonnegative(),
   openCount: z.number().int().nonnegative(),
   unassignedCount: z.number().int().nonnegative(),
   resolvedCount: z.number().int().nonnegative(),
+  cancelledCount: z.number().int().nonnegative(),
+  cancelledByCustomerCount: z.number().int().nonnegative(),
+  cancelledByAgentCount: z.number().int().nonnegative(),
+  spamCount: z.number().int().nonnegative(),
   unlinkedCount: z.number().int().nonnegative(),
   avgFirstResponseMinutes: z.number().nonnegative().nullable(),
   avgResolutionHours: z.number().nonnegative().nullable(),
@@ -199,6 +213,7 @@ export const adminAtendimentosDataSchema = z.object({
   statusCounts: z.array(dashboardConversationStatusSummarySchema).default([]),
   channelCounts: z.array(dashboardConversationChannelSummarySchema).default([]),
   assigneeLoads: z.array(dashboardConversationAssigneeLoadSchema).default([]),
+  assigneeOptions: z.array(dashboardAtendimentoAssigneeOptionSchema).default([]),
   warning: z.string().optional(),
 });
 

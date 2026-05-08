@@ -16,6 +16,8 @@ import type { TicketModuleRecord } from '@dosc-syspro/contracts/ticket';
 import { SETTING_KEYS } from '@dosc-syspro/contracts/settings';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { IntegrationContextService } from '../settings/integration-context.service';
+import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { TicketsService } from '../tickets/tickets.service';
 
 const DASHBOARD_TICKETS_TIMEOUT_MS = 4000;
@@ -205,6 +207,38 @@ function averageDurationInMinutes(items: Array<{ startedAt: Date; endedAt: Date 
   return Math.round((totalMs / valid.length / 60000) * 10) / 10;
 }
 
+function parseDateInput(value?: string, endOfDay = false) {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return null;
+  const base = new Date(`${normalized}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`);
+  return Number.isNaN(base.getTime()) ? null : base;
+}
+
+function extractChatwootConversationLabels(conversation: any): string[] {
+  const labels = Array.isArray(conversation?.labels) ? conversation.labels : [];
+  return labels.map((item: unknown) => String(item ?? '').trim().toLowerCase()).filter(Boolean);
+}
+
+function extractChatwootAssignee(conversation: any) {
+  const assignee = conversation?.meta?.assignee ?? conversation?.assignee ?? conversation?.last_non_activity_message?.conversation?.assignee;
+  const id = String(assignee?.id ?? '').trim();
+  const name = String(assignee?.name ?? assignee?.available_name ?? assignee?.email ?? '').trim();
+  return id ? { id, name: name || id } : null;
+}
+
+function extractChatwootContactText(conversation: any) {
+  const candidates = [
+    conversation?.meta?.sender?.name,
+    conversation?.meta?.sender?.phone_number,
+    conversation?.meta?.sender?.identifier,
+    conversation?.last_non_activity_message?.sender?.name,
+    conversation?.last_non_activity_message?.sender?.phone_number,
+    conversation?.contact?.name,
+    conversation?.contact?.phone_number,
+  ];
+  return candidates.map((item) => String(item ?? '').trim()).filter(Boolean).join(' ').toLowerCase();
+}
+
 function buildCrmSummary(leads: any[]): DashboardCrmSummary {
   const today = startOfDay();
   const stages: Array<'LEAD' | 'MQL' | 'SQL' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST'> = [
@@ -334,6 +368,8 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
+    private readonly integrationContext: IntegrationContextService,
+    private readonly chatwootClient: ChatwootClient,
     private readonly ticketsService: TicketsService,
   ) {}
 
@@ -1104,132 +1140,171 @@ export class DashboardService {
     };
   }
 
-  async getAtendimentosData(rawHeaders?: IncomingHttpHeaders) {
+  async getAtendimentosData(
+    rawHeaders?: IncomingHttpHeaders,
+    filters?: { from?: string; to?: string; assigneeId?: string; contact?: string },
+  ) {
     await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
 
-    const { start } = getLast7DaysRange();
-    const openStatuses = ['NEW', 'UNASSIGNED', 'TRIAGE', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'WAITING_INTERNAL', 'TESTING'];
-    const resolvedStatuses = new Set(['RESOLVED', 'ARCHIVED']);
+    const periodStart = parseDateInput(filters?.from) ?? startOfDay();
+    const periodEnd = parseDateInput(filters?.to, true) ?? new Date();
+    const assigneeId = String(filters?.assigneeId ?? '').trim();
+    const contactQuery = String(filters?.contact ?? '').trim().toLowerCase();
+    const contexts = await this.integrationContext.listActiveContexts();
 
-    const conversations = await this.prisma.conversation.findMany({
-      where: {
-        OR: [
-          { createdAt: { gte: start } },
-          { closedAt: { gte: start } },
-          { lastMessageAt: { gte: start } },
-          { status: { in: openStatuses as any } },
-        ],
-      },
-      select: {
-        id: true,
-        status: true,
-        channel: true,
-        companyId: true,
-        companyContactId: true,
-        assignedUserId: true,
-        createdAt: true,
-        lastMessageAt: true,
-        closedAt: true,
-        slaResponseHitAt: true,
-        assignedUser: {
-          select: {
-            name: true,
-            email: true,
-          },
+    if (!contexts.length) {
+      return {
+        success: true as const,
+        data: {
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
+          totalCount: 0,
+          openCount: 0,
+          unassignedCount: 0,
+          resolvedCount: 0,
+          cancelledCount: 0,
+          cancelledByCustomerCount: 0,
+          cancelledByAgentCount: 0,
+          spamCount: 0,
+          unlinkedCount: 0,
+          avgFirstResponseMinutes: null,
+          avgResolutionHours: null,
+          activity: [],
+          statusCounts: [],
+          channelCounts: [],
+          assigneeLoads: [],
+          assigneeOptions: [],
+          warning: 'Nenhum contexto ativo do Chatwoot foi encontrado para o dashboard.',
         },
-      },
-      orderBy: [{ lastMessageAt: 'desc' }, { createdAt: 'desc' }],
-      take: 400,
-    });
-
-    const activeConversations = conversations.filter((conversation) => !resolvedStatuses.has(conversation.status));
-    const resolvedConversations = conversations.filter(
-      (conversation) => resolvedStatuses.has(conversation.status) && conversation.closedAt && conversation.closedAt >= start,
-    );
-
-    const avgFirstResponseMinutes = averageDurationInMinutes(
-      conversations
-        .filter((conversation) => conversation.createdAt >= start)
-        .map((conversation) => ({
-          startedAt: conversation.createdAt,
-          endedAt: conversation.slaResponseHitAt,
-        })),
-    );
-
-    const avgResolutionMinutes = averageDurationInMinutes(
-      resolvedConversations.map((conversation) => ({
-        startedAt: conversation.createdAt,
-        endedAt: conversation.closedAt,
-      })),
-    );
-
-    const statusOrder = ['Novo', 'Sem responsavel', 'Triagem', 'Em andamento', 'Aguardando cliente', 'Aguardando interno', 'Teste', 'Resolvido', 'Arquivado'];
-    const statusCountsMap = new Map<string, number>();
-    for (const status of statusOrder) statusCountsMap.set(status, 0);
-    for (const conversation of conversations) {
-      const key = mapConversationStatus(conversation.status);
-      statusCountsMap.set(key, (statusCountsMap.get(key) || 0) + 1);
-    }
-
-    const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
-    const channelCountsMap = new Map<string, number>();
-    for (const channel of channelOrder) channelCountsMap.set(channel, 0);
-    for (const conversation of activeConversations) {
-      channelCountsMap.set(conversation.channel, (channelCountsMap.get(conversation.channel) || 0) + 1);
-    }
-
-    const assigneeLoadMap = new Map<string, { userId: string | null; name: string; openCount: number; waitingCount: number }>();
-    for (const conversation of activeConversations) {
-      const key = conversation.assignedUserId || '__unassigned__';
-      const name =
-        conversation.assignedUser?.name?.trim() ||
-        conversation.assignedUser?.email?.trim() ||
-        'Sem responsavel';
-      const current = assigneeLoadMap.get(key) || {
-        userId: conversation.assignedUserId,
-        name,
-        openCount: 0,
-        waitingCount: 0,
       };
+    }
 
-      current.openCount += 1;
-      if (conversation.status === 'WAITING_CUSTOMER' || conversation.status === 'WAITING_INTERNAL') {
-        current.waitingCount += 1;
+    const items: any[] = [];
+    const assigneeOptionsMap = new Map<string, string>();
+
+    for (const context of contexts) {
+      const agents = await this.chatwootClient.listAgents(context.chatwoot).catch(() => []);
+      for (const agent of agents) {
+        const id = String(agent?.id ?? '').trim();
+        const name = String(agent?.name ?? agent?.available_name ?? agent?.email ?? '').trim();
+        if (id && name) assigneeOptionsMap.set(id, name);
       }
 
-      assigneeLoadMap.set(key, current);
+      for (let page = 1; page <= 8; page += 1) {
+        const pageItems = await this.chatwootClient.listConversations(context.chatwoot, { page, status: 'all' }).catch(() => []);
+        if (!pageItems.length) break;
+        items.push(...pageItems);
+        if (pageItems.length < 25) break;
+      }
     }
+
+    const filtered = items.filter((conversation) => {
+      const createdAtValue = Number(conversation?.created_at ?? 0);
+      const createdAt = Number.isFinite(createdAtValue) ? new Date(createdAtValue * 1000) : new Date(conversation?.created_at ?? conversation?.timestamp ?? 0);
+      if (!(createdAt instanceof Date) || Number.isNaN(createdAt.getTime())) return false;
+      if (createdAt < periodStart || createdAt > periodEnd) return false;
+
+      const assignee = extractChatwootAssignee(conversation);
+      if (assigneeId && assignee?.id !== assigneeId) return false;
+      if (contactQuery && !extractChatwootContactText(conversation).includes(contactQuery)) return false;
+      return true;
+    });
+
+    const statusLabelMap: Record<string, string> = {
+      open: 'Em andamento',
+      pending: 'Aguardando cliente',
+      snoozed: 'Aguardando interno',
+      resolved: 'Resolvido',
+    };
+    const statusOrder = ['Sem responsavel', 'Em andamento', 'Aguardando cliente', 'Aguardando interno', 'Resolvido', 'Arquivado'] as const;
+    const statusCountsMap = new Map<string, number>(statusOrder.map((status) => [status, 0]));
+    const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
+    const channelCountsMap = new Map<string, number>(channelOrder.map((channel) => [channel, 0]));
+    const assigneeLoadMap = new Map<string, { userId: string | null; name: string; openCount: number; waitingCount: number }>();
+
+    let cancelledByCustomerCount = 0;
+    let cancelledByAgentCount = 0;
+    let spamCount = 0;
+    let resolvedCount = 0;
+    let openCount = 0;
+    let unassignedCount = 0;
+
+    for (const conversation of filtered) {
+      const labels = extractChatwootConversationLabels(conversation);
+      const isCancelledByCustomer = labels.includes('cancelado_cliente');
+      const isCancelledByAgent = labels.includes('cancelado_agente');
+      const isSpam = labels.includes('spam');
+      if (isCancelledByCustomer) cancelledByCustomerCount += 1;
+      if (isCancelledByAgent) cancelledByAgentCount += 1;
+      if (isSpam) spamCount += 1;
+
+      const rawStatus = String(conversation?.status ?? '').trim().toLowerCase();
+      const status =
+        !extractChatwootAssignee(conversation) && rawStatus === 'open'
+          ? 'Sem responsavel'
+          : rawStatus === 'resolved' && (isCancelledByCustomer || isCancelledByAgent)
+            ? 'Arquivado'
+            : statusLabelMap[rawStatus] ?? 'Em andamento';
+      statusCountsMap.set(status, (statusCountsMap.get(status) || 0) + 1);
+
+      const channelRaw = String(conversation?.meta?.channel ?? conversation?.channel ?? '').trim().toLowerCase();
+      const mappedChannel =
+        channelRaw.includes('email') ? 'EMAIL' :
+        channelRaw.includes('portal') ? 'PORTAL' :
+        channelRaw.includes('phone') ? 'PHONE' :
+        'WHATSAPP';
+      channelCountsMap.set(mappedChannel, (channelCountsMap.get(mappedChannel) || 0) + 1);
+
+      const assignee = extractChatwootAssignee(conversation);
+      if (!assignee) {
+        unassignedCount += 1;
+      } else {
+        const current = assigneeLoadMap.get(assignee.id) || { userId: assignee.id, name: assignee.name, openCount: 0, waitingCount: 0 };
+        if (rawStatus !== 'resolved') current.openCount += 1;
+        if (rawStatus === 'pending' || rawStatus === 'snoozed') current.waitingCount += 1;
+        assigneeLoadMap.set(assignee.id, current);
+      }
+
+      if (rawStatus === 'resolved') resolvedCount += 1;
+      else openCount += 1;
+    }
+
+    const avgFirstResponseMinutes = averageDurationInMinutes(
+      filtered.map((conversation) => {
+        const created = new Date(Number(conversation?.created_at ?? 0) * 1000);
+        const firstReply = conversation?.first_reply_created_at ? new Date(Number(conversation.first_reply_created_at) * 1000) : null;
+        return { startedAt: created, endedAt: firstReply };
+      }),
+    );
 
     return {
       success: true as const,
       data: {
-        openCount: activeConversations.length,
-        unassignedCount: activeConversations.filter((conversation) => conversation.status === 'UNASSIGNED' || !conversation.assignedUserId).length,
-        resolvedCount: resolvedConversations.length,
-        unlinkedCount: activeConversations.filter((conversation) => !conversation.companyId && !conversation.companyContactId).length,
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString(),
+        appliedAssigneeId: assigneeId || undefined,
+        appliedContactQuery: contactQuery || undefined,
+        totalCount: filtered.length,
+        openCount,
+        unassignedCount,
+        resolvedCount,
+        cancelledCount: cancelledByCustomerCount + cancelledByAgentCount,
+        cancelledByCustomerCount,
+        cancelledByAgentCount,
+        spamCount,
+        unlinkedCount: 0,
         avgFirstResponseMinutes,
-        avgResolutionHours: avgResolutionMinutes === null ? null : Math.round((avgResolutionMinutes / 60) * 10) / 10,
-        activity: toSeries(conversations.map((conversation) => conversation.lastMessageAt ?? conversation.createdAt)),
-        statusCounts: statusOrder.map((status) => ({
-          status: status as
-            | 'Novo'
-            | 'Sem responsavel'
-            | 'Triagem'
-            | 'Em andamento'
-            | 'Aguardando cliente'
-            | 'Aguardando interno'
-            | 'Teste'
-            | 'Resolvido'
-            | 'Arquivado',
-          count: statusCountsMap.get(status) || 0,
-        })),
-        channelCounts: channelOrder.map((channel) => ({
-          channel,
-          count: channelCountsMap.get(channel) || 0,
-        })),
-        assigneeLoads: Array.from(assigneeLoadMap.values())
-          .sort((left, right) => right.openCount - left.openCount || right.waitingCount - left.waitingCount)
-          .slice(0, 6),
+        avgResolutionHours: null,
+        activity: toSeries(
+          filtered.map((conversation) => new Date(Number(conversation?.created_at ?? 0) * 1000)),
+        ),
+        statusCounts: statusOrder.map((status) => ({ status, count: statusCountsMap.get(status) || 0 })),
+        channelCounts: channelOrder.map((channel) => ({ channel, count: channelCountsMap.get(channel) || 0 })),
+        assigneeLoads: Array.from(assigneeLoadMap.values()).sort((left, right) => right.openCount - left.openCount).slice(0, 8),
+        assigneeOptions: Array.from(assigneeOptionsMap.entries())
+          .map(([id, name]) => ({ id, name }))
+          .sort((left, right) => left.name.localeCompare(right.name)),
+        warning: contexts.length > 1 ? 'Dashboard consolidado a partir de multiplos contextos ativos do Chatwoot.' : undefined,
       },
     };
   }

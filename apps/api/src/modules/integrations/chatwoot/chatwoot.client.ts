@@ -632,6 +632,29 @@ export class ChatwootClient {
     return Array.isArray(response) ? response : [];
   }
 
+  async listConversations(
+    config: ChatwootConnectionConfig,
+    input: { page?: number; status?: 'all' | 'open' | 'resolved' | 'pending' | 'snoozed'; q?: string },
+  ): Promise<any[]> {
+    const params = new URLSearchParams();
+    params.set('page', String(input.page ?? 1));
+    params.set('status', input.status ?? 'all');
+    if (input.q?.trim()) params.set('q', input.q.trim());
+
+    const response = await this.request(
+      config,
+      `/api/v1/accounts/${config.accountId}/conversations?${params.toString()}`,
+      'GET',
+    );
+    return Array.isArray(response?.data?.payload)
+      ? response.data.payload
+      : Array.isArray(response?.payload)
+        ? response.payload
+        : Array.isArray(response)
+          ? response
+          : [];
+  }
+
   // ──────────────────────────────────────────────────────
   // Inbox resolution
   // ──────────────────────────────────────────────────────

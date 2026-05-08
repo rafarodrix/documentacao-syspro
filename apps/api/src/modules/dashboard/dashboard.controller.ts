@@ -1,4 +1,4 @@
-import { Controller, Get, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { DashboardService } from './dashboard.service';
 
@@ -22,8 +22,14 @@ export class DashboardController {
   }
 
   @Get('suporte/atendimentos')
-  getAtendimentosData(@Req() req: Request) {
-    return this.dashboardService.getAtendimentosData(req.headers);
+  getAtendimentosData(
+    @Req() req: Request,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('assigneeId') assigneeId?: string,
+    @Query('contact') contact?: string,
+  ) {
+    return this.dashboardService.getAtendimentosData(req.headers, { from, to, assigneeId, contact });
   }
 
   @Get('cadastros')

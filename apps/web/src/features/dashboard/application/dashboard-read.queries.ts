@@ -57,8 +57,19 @@ export function getSuporteData(): Promise<AdminSuporteData> {
   return fetchTabData("/api/dashboard/suporte", adminSuporteDataSchema);
 }
 
-export function getAtendimentosData(): Promise<AdminAtendimentosData> {
-  return fetchTabData("/api/dashboard/suporte/atendimentos", adminAtendimentosDataSchema);
+export function getAtendimentosData(params?: {
+  from?: string;
+  to?: string;
+  assigneeId?: string;
+  contact?: string;
+}): Promise<AdminAtendimentosData> {
+  const query = new URLSearchParams();
+  if (params?.from?.trim()) query.set("from", params.from.trim());
+  if (params?.to?.trim()) query.set("to", params.to.trim());
+  if (params?.assigneeId?.trim()) query.set("assigneeId", params.assigneeId.trim());
+  if (params?.contact?.trim()) query.set("contact", params.contact.trim());
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return fetchTabData(`/api/dashboard/suporte/atendimentos${suffix}`, adminAtendimentosDataSchema);
 }
 
 export function getCadastrosData(): Promise<AdminCadastrosData> {
