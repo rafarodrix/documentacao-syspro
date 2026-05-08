@@ -5,13 +5,14 @@ import { Clock3, Loader2, Monitor, Waypoints } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import {
-  ContextBadge,
   EmptyState,
   InlineLoading,
   InlineWarning,
+  RemoteHostStatusBadges,
   formatRelativeDate,
+  getRemoteHostSummary,
 } from "../chatwoot-dashboard-ui";
-import { getRemoteOperationalStatusMeta, getRemoteProductStatusMeta } from "@/features/remote/domain";
+import { getRemoteOperationalStatusMeta } from "@/features/remote/domain";
 
 export function ChatwootInfrastructureTab() {
   const {
@@ -30,9 +31,7 @@ export function ChatwootInfrastructureTab() {
   const recommendedOperationalMeta = recommendedHost
     ? getRemoteOperationalStatusMeta(recommendedHost.operationalStatus)
     : null;
-  const recommendedProductMeta = recommendedHost
-    ? getRemoteProductStatusMeta(recommendedHost.productStatus)
-    : null;
+  const recommendedSummary = getRemoteHostSummary(recommendedHost);
 
   return (
     <Card className="border-border/60 shadow-sm">
@@ -68,7 +67,7 @@ export function ChatwootInfrastructureTab() {
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recomendado</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedHost?.name || "Nenhum destaque"}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedSummary.value}</p>
           </div>
         </div>
 
@@ -79,16 +78,7 @@ export function ChatwootInfrastructureTab() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-semibold text-foreground">{recommendedHost.name}</p>
-                  {recommendedOperationalMeta ? (
-                    <ContextBadge tone={recommendedOperationalMeta.tone}>
-                      {recommendedOperationalMeta.title}
-                    </ContextBadge>
-                  ) : null}
-                  {recommendedProductMeta ? (
-                    <ContextBadge tone={recommendedProductMeta.tone}>
-                      {recommendedProductMeta.label}
-                    </ContextBadge>
-                  ) : null}
+                  <RemoteHostStatusBadges host={recommendedHost} />
                 </div>
                 {recommendedHost.agent.lastHeartbeatAt ? (
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -138,15 +128,13 @@ export function ChatwootInfrastructureTab() {
           <div className="space-y-1.5">
             {companyHosts.filter((host) => host.id !== recommendedHost?.id).map((host) => {
               const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
-              const productMeta = getRemoteProductStatusMeta(host.productStatus);
 
               return (
                 <div key={host.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{host.name}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <ContextBadge tone={operationalMeta.tone}>{operationalMeta.title}</ContextBadge>
-                      <ContextBadge tone={productMeta.tone}>{productMeta.label}</ContextBadge>
+                      <RemoteHostStatusBadges host={host} />
                       {host.agent.lastHeartbeatAt ? (
                         <span className="inline-flex items-center gap-1">
                           <Clock3 className="h-3 w-3" />
@@ -155,7 +143,7 @@ export function ChatwootInfrastructureTab() {
                       ) : null}
                     </div>
                   </div>
-                <div className="flex shrink-0 gap-1.5">
+                  <div className="flex shrink-0 gap-1.5">
                   <Button
                     type="button"
                     variant="outline"
@@ -177,7 +165,7 @@ export function ChatwootInfrastructureTab() {
                       Ver
                     </Link>
                   </Button>
-                </div>
+                  </div>
                 </div>
               );
             })}

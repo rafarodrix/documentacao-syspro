@@ -957,34 +957,40 @@ export function ChatwootDashboardApp() {
         <div className="border-b border-border/60 bg-background/85 backdrop-blur">
           <div className="space-y-3 px-3 py-3">
             <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <MessageSquare className="h-4 w-4" />
-              </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">Painel do Atendimento</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {resolved.companyName || "Sem empresa em contexto"}
-                  {resolved.contactName ? ` - ${resolved.contactName}` : ""}
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Painel do Atendimento</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {resolved.companyName || "Sem empresa em contexto"}
+                      {resolved.contactName ? ` - ${resolved.contactName}` : ""}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {status === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
-            <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={requestRefresh}>
-              <RefreshCw className="h-3.5 w-3.5" />
-              Atualizar
-            </Button>
-            {contactEditHref ? (
-              <Button asChild variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
-                <Link href={contactEditHref} target="_blank" rel="noreferrer">
-                  Contato
-                </Link>
-              </Button>
-            ) : null}
-          </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {status === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                  onClick={requestRefresh}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Atualizar
+                </Button>
+                {contactEditHref ? (
+                  <Button asChild variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
+                    <Link href={contactEditHref} target="_blank" rel="noreferrer">
+                      Contato
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-3">

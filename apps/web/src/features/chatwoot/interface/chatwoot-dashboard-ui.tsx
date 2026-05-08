@@ -3,8 +3,9 @@
 import type { ReactNode } from "react";
 import { Badge } from "@dosc-syspro/ui";
 import { Loader2 } from "lucide-react";
+import { getRemoteOperationalStatusMeta, getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { cn } from "@/lib/utils";
-import type { ContactCompanyEntry } from "./chatwoot-dashboard-types";
+import type { ContactCompanyEntry, RemoteHostEntry } from "./chatwoot-dashboard-types";
 
 export function InlineNotice({ tone, message }: { tone: "success" | "error"; message: string }) {
   return (
@@ -84,6 +85,35 @@ export function QuickStatCard({ label, value, helper }: { label: string; value: 
       <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
     </div>
   );
+}
+
+export function RemoteHostStatusBadges({ host }: { host: RemoteHostEntry }) {
+  const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
+  const productMeta = getRemoteProductStatusMeta(host.productStatus);
+
+  return (
+    <>
+      <ContextBadge tone={operationalMeta.tone}>{operationalMeta.title}</ContextBadge>
+      <ContextBadge tone={productMeta.tone}>{productMeta.label}</ContextBadge>
+    </>
+  );
+}
+
+export function getRemoteHostSummary(host: RemoteHostEntry | null) {
+  if (!host) {
+    return {
+      value: "Sem host em destaque",
+      helper: "Nenhum host em contexto para esta conversa.",
+    };
+  }
+
+  const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
+  const productMeta = getRemoteProductStatusMeta(host.productStatus);
+
+  return {
+    value: host.name,
+    helper: `${operationalMeta.title} | ${productMeta.label}`,
+  };
 }
 
 export function GuidedStep({ index, title, description }: { index: number; title: string; description: string }) {
