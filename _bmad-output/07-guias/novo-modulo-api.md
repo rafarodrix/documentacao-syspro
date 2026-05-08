@@ -144,15 +144,26 @@ private createRouter() {
 
 ## Passo 5 — Adicionar schemas ao contracts
 
+Sempre defina **dois schemas separados**: um para criar (sem nullable) e outro para atualizar (com nullable para permitir limpar campos).
+
 ```typescript
 // packages/contracts/src/exemplo/exemplo.types.ts
 import { z } from 'zod'
 
+// CREATE: campos opcionais mas não nullable
 export const createExemploSchema = z.object({
   name: z.string().min(1),
+  description: z.string().optional(),
+})
+
+// UPDATE: mesmos campos, todos opcionais e nullable (permite limpar)
+export const updateExemploSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
 })
 
 export type CreateExemploInput = z.input<typeof createExemploSchema>
+export type UpdateExemploInput = z.input<typeof updateExemploSchema>
 ```
 
 ```typescript
@@ -161,6 +172,8 @@ export * from './exemplo.types'
 ```
 
 Registrar subpath export no `package.json` do package contracts.
+
+> **Atenção no service:** o parâmetro do método de update deve ser tipado com `z.output<typeof updateExemploSchema>` — não `z.input`. O tRPC entrega o tipo pós-transform; usar o tipo de input pode causar inferência `unknown` em campos com `.transform()` na schema.
 
 ---
 
@@ -184,5 +197,7 @@ await trpc.exemplo.create.mutate({ name: "Novo item" })
 - [ ] `<nome>.module.ts` com `forwardRef(() => TrpcModule)` nos imports e router exportado
 - [ ] `TrpcModule` importando o novo módulo com `forwardRef`
 - [ ] `TrpcRouter` injetando e montando o sub-router
-- [ ] Schemas Zod em `@dosc-syspro/contracts/<nome>`
+- [ ] `create<Nome>Schema` em `@dosc-syspro/contracts/<nome>` (campos opcionais, sem nullable)
+- [ ] `update<Nome>Schema` em `@dosc-syspro/contracts/<nome>` (campos nullable para permitir clearing)
+- [ ] Parâmetros de update no service tipados com `z.output<typeof update<Nome>Schema>`
 - [ ] Testes de autorização em `apps/web/tests/` ou `apps/api/tests/`
