@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DocsSurface } from '@/components/docs/docs-surface';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ToggleGroup, ToggleGroupItem } from "@dosc-syspro/ui";
 
 type Vote = 'yes' | 'no';
 type FeedbackReason = 'desatualizado' | 'incompleto' | 'dificil' | 'nao-encontrei';

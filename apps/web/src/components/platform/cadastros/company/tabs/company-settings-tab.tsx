@@ -8,8 +8,7 @@ import {
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
 import type { CompanyRemoteConnectionInput } from "@/features/company/application/company-view.types";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button, Badge, Card, CardContent } from "@dosc-syspro/ui";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button, Badge, Card, CardContent } from "@dosc-syspro/ui";
 import { Server, Network, Plus, Trash2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 

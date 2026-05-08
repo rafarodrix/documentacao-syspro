@@ -9,8 +9,7 @@ import { createUserSchema, type CreateUserInput, type UserRoleValue } from "@dos
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import { type ContactOption } from "@dosc-syspro/contracts/contact";
 import { AnimatePresence, motion } from "framer-motion";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input, Badge, Button, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Badge, Button, Popover, PopoverContent, PopoverTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";

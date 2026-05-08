@@ -56,6 +56,9 @@ jobs:
       - name: Lint remote strict
         run: npm run lint:remote
 
+      - name: Lint design system
+        run: npm run lint:ds
+
       - name: Typecheck contracts
         run: npm run typecheck:contracts
 

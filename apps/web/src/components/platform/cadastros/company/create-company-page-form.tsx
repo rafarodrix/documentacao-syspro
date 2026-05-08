@@ -24,8 +24,7 @@ import type {
 import { createCompanyAction, updateCompanyAction, lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
-import { Form } from "@/components/ui/form";
-import { Badge, Button } from "@dosc-syspro/ui";
+import { Form, Badge, Button } from "@dosc-syspro/ui";
 import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";

@@ -1,3 +1,4 @@
+/* eslint-disable trilink-tokens/no-hex-colors */
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
