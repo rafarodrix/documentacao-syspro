@@ -12,6 +12,7 @@ import { lookupCompanyProfileByCnpjAction } from "@/features/company/application
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Badge } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatCNPJ } from "@/lib/formatters";
+import { PageHeader } from "@/components/patterns";
 
 type LeadFormState = {
   title: string;
@@ -333,22 +334,20 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto flex max-w-5xl flex-col gap-6 p-6 pb-20">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{isEdit ? "Editar lead" : "Novo lead"}</h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Organize o cadastro em quatro frentes: essenciais, empresa, contatos e qualificacao comercial.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button type="button" variant="outline" asChild>
-            <Link href="/portal/comercial/leads">Cancelar</Link>
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Salvando..." : isEdit ? "Salvar alteracoes" : "Salvar lead"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={isEdit ? "Editar lead" : "Novo lead"}
+        description="Organize o cadastro em quatro frentes: essenciais, empresa, contatos e qualificacao comercial."
+        actions={
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" asChild>
+              <Link href="/portal/comercial/leads">Cancelar</Link>
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Salvando..." : isEdit ? "Salvar alteracoes" : "Salvar lead"}
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-4">
         <FlowCard title="Essenciais" description="Entrada no funil" ready={essentialReady} icon={Target} />
