@@ -11,6 +11,19 @@ import {
   InlineWarning,
   formatRelativeDate,
 } from "../chatwoot-dashboard-ui";
+import { getRemoteOperationalStatusMeta, getRemoteProductStatusMeta } from "@/features/remote/domain";
+
+function getOperationalTone(status: "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY") {
+  if (status === "ONLINE") return "good" as const;
+  if (status === "OFFLINE") return "neutral" as const;
+  return "warn" as const;
+}
+
+function getProductTone(status: "AWAITING_LINK" | "PROVISIONING_REMOTE" | "REMOTE_READY" | "ATTENTION_REQUIRED" | "IN_SERVICE") {
+  if (status === "REMOTE_READY") return "good" as const;
+  if (status === "ATTENTION_REQUIRED") return "warn" as const;
+  return "neutral" as const;
+}
 
 export function ChatwootInfrastructureTab() {
   const {
@@ -26,8 +39,15 @@ export function ChatwootInfrastructureTab() {
     handleStartHostSession,
   } = useChatwootDashboard();
 
+  const recommendedOperationalMeta = recommendedHost
+    ? getRemoteOperationalStatusMeta(recommendedHost.operationalStatus)
+    : null;
+  const recommendedProductMeta = recommendedHost
+    ? getRemoteProductStatusMeta(recommendedHost.productStatus)
+    : null;
+
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -35,7 +55,7 @@ export function ChatwootInfrastructureTab() {
               <Monitor className="h-4 w-4 text-primary" />
               Infraestrutura
             </CardTitle>
-            <CardDescription>Hosts desta empresa para acesso remoto e abertura no portal.</CardDescription>
+            <CardDescription>Hosts e atalhos operacionais da empresa em contexto.</CardDescription>
           </div>
           <Button
             type="button"
@@ -48,24 +68,47 @@ export function ChatwootInfrastructureTab() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-4">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">{resolved.companyName || "Sem vinculo"}</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hosts</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{companyHosts.length} disponive{companyHosts.length !== 1 ? "is" : "l"}</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recomendado</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">{recommendedHost?.name || "Nenhum destaque"}</p>
+          </div>
+        </div>
 
         {/* Recommended host */}
         {recommendedHost ? (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-semibold text-foreground">{recommendedHost.name}</p>
-                  <ContextBadge tone={recommendedHost.agent.rustdeskId?.trim() ? "good" : "warn"}>
-                    {recommendedHost.agent.rustdeskId?.trim() ? "Online" : "Sem acesso"}
-                  </ContextBadge>
+                  {recommendedOperationalMeta ? (
+                    <ContextBadge tone={getOperationalTone(recommendedHost.operationalStatus)}>
+                      {recommendedOperationalMeta.title}
+                    </ContextBadge>
+                  ) : null}
+                  {recommendedProductMeta ? (
+                    <ContextBadge tone={getProductTone(recommendedHost.productStatus)}>
+                      {recommendedProductMeta.label}
+                    </ContextBadge>
+                  ) : null}
                 </div>
                 {recommendedHost.agent.lastHeartbeatAt ? (
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock3 className="h-3 w-3" />
                     Visto {formatRelativeDate(recommendedHost.agent.lastHeartbeatAt)}
                   </p>
+                ) : recommendedOperationalMeta ? (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{recommendedOperationalMeta.description}</p>
                 ) : null}
               </div>
               <div className="flex shrink-0 gap-2">
@@ -105,22 +148,25 @@ export function ChatwootInfrastructureTab() {
         {/* Remaining hosts */}
         {!isLoadingHosts && !hostError && companyHosts.length > 0 ? (
           <div className="space-y-1.5">
-            {companyHosts.filter((host) => host.id !== recommendedHost?.id).map((host) => (
-              <div key={host.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{host.name}</p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <ContextBadge tone={host.agent.rustdeskId?.trim() ? "good" : "warn"}>
-                      {host.agent.rustdeskId?.trim() ? "Online" : "Sem acesso"}
-                    </ContextBadge>
-                    {host.agent.lastHeartbeatAt ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock3 className="h-3 w-3" />
-                        {formatRelativeDate(host.agent.lastHeartbeatAt)}
-                      </span>
-                    ) : null}
+            {companyHosts.filter((host) => host.id !== recommendedHost?.id).map((host) => {
+              const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
+              const productMeta = getRemoteProductStatusMeta(host.productStatus);
+
+              return (
+                <div key={host.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{host.name}</p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <ContextBadge tone={getOperationalTone(host.operationalStatus)}>{operationalMeta.title}</ContextBadge>
+                      <ContextBadge tone={getProductTone(host.productStatus)}>{productMeta.label}</ContextBadge>
+                      {host.agent.lastHeartbeatAt ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 className="h-3 w-3" />
+                          {formatRelativeDate(host.agent.lastHeartbeatAt)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
                 <div className="flex shrink-0 gap-1.5">
                   <Button
                     type="button"
@@ -144,8 +190,9 @@ export function ChatwootInfrastructureTab() {
                     </Link>
                   </Button>
                 </div>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         ) : null}
 

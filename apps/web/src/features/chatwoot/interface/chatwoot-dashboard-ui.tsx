@@ -10,7 +10,7 @@ export function InlineNotice({ tone, message }: { tone: "success" | "error"; mes
   return (
     <div
       className={cn(
-        "rounded-lg border p-3 text-sm",
+        "rounded-xl border px-3 py-2.5 text-sm shadow-sm",
         tone === "success"
           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
           : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -28,7 +28,7 @@ export function ContextBadge({ children, tone }: { children: ReactNode; tone: "g
       : tone === "warn"
         ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
         : "border-border/60 bg-background text-muted-foreground";
-  return <Badge variant="outline" className={className}>{children}</Badge>;
+  return <Badge variant="outline" className={cn("h-6 rounded-full px-2.5 text-[11px] font-medium", className)}>{children}</Badge>;
 }
 
 export function InlineLoading({ label }: { label: string }) {
@@ -42,7 +42,7 @@ export function InlineLoading({ label }: { label: string }) {
 
 export function InlineWarning({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 shadow-sm dark:text-amber-300">
       {message}
     </div>
   );
@@ -50,7 +50,7 @@ export function InlineWarning({ message }: { message: string }) {
 
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+    <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
       {label}
     </div>
   );
@@ -68,7 +68,7 @@ export function DetailItem({
   breakAll?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-background px-3 py-2">
+    <div className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={cn("mt-1 text-sm font-medium text-foreground", breakAll && "break-all")}>{value}</p>
       {helper ? <p className="mt-1 text-xs text-muted-foreground">{helper}</p> : null}
@@ -78,7 +78,7 @@ export function DetailItem({
 
 export function QuickStatCard({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-3">
+    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-2 truncate text-sm font-semibold text-foreground">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
@@ -88,7 +88,7 @@ export function QuickStatCard({ label, value, helper }: { label: string; value: 
 
 export function GuidedStep({ index, title, description }: { index: number; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-3">
+    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
       <div className="flex items-center gap-2">
         <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
           {index}

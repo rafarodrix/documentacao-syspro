@@ -52,7 +52,7 @@ export function ChatwootOverviewTab() {
   } = useChatwootDashboard();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Context strip — replaces 3 heavy QuickStatCards */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
         <span>

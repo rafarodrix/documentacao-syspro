@@ -42,7 +42,7 @@ type RemoteHostDirectoryItem = RemotePlatformDirectory["items"][number];
 
 export type RemoteHostEntry = Pick<
   RemoteHostDirectoryItem,
-  "id" | "name" | "productStatus" | "companyId" | "companyName"
+  "id" | "name" | "productStatus" | "operationalStatus" | "companyId" | "companyName"
 > & {
   agent: Pick<RemoteHostDirectoryItem["agent"], "rustdeskId" | "lastHeartbeatAt">;
 };

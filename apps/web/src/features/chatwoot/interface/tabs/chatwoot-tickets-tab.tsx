@@ -43,7 +43,7 @@ export function ChatwootTicketsTab() {
   } = useChatwootDashboard();
 
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -51,7 +51,7 @@ export function ChatwootTicketsTab() {
               <Ticket className="h-4 w-4 text-primary" />
               Tickets da empresa
             </CardTitle>
-            <CardDescription>Chamados abertos — abra novos sem sair do Chatwoot.</CardDescription>
+            <CardDescription>Chamados abertos da empresa em contexto, com abertura rapida sem sair do Chatwoot.</CardDescription>
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
@@ -80,7 +80,21 @@ export function ChatwootTicketsTab() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">{resolved.companyName || "Sem vinculo"}</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">{effectiveContactName || "Nao identificado"}</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Volume</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{latestTickets.length} ticket{latestTickets.length !== 1 ? "s" : ""} aberto{latestTickets.length !== 1 ? "s" : ""}</p>
+          </div>
+        </div>
 
         {/* Embedded ticket creation form */}
         {showEmbeddedTicketForm ? (
@@ -126,11 +140,11 @@ export function ChatwootTicketsTab() {
                   </p>
 
                   {/* Context strip — compact, no duplicate boxes */}
-                  <div className="rounded-md border border-border/40 bg-background px-2.5 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{resolved.companyName || resolved.companyId || "—"}</span>
-                    <span className="mx-1.5 text-border">·</span>
-                    <span>{effectiveContactName || "—"}</span>
-                    {resolved.customerPhone ? <span className="mx-1.5 text-border">·</span> : null}
+                  <div className="rounded-lg border border-border/40 bg-background px-2.5 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{resolved.companyName || resolved.companyId || "-"}</span>
+                    <span className="mx-1.5 text-border">|</span>
+                    <span>{effectiveContactName || "-"}</span>
+                    {resolved.customerPhone ? <span className="mx-1.5 text-border">|</span> : null}
                     {resolved.customerPhone ? <span>{resolved.customerPhone}</span> : null}
                   </div>
 
@@ -273,7 +287,7 @@ export function ChatwootTicketsTab() {
                   <ContextBadge tone="neutral">{priorityTicket.statusLabel}</ContextBadge>
                 </div>
                 <p className="mt-1.5 truncate text-sm font-semibold text-foreground">
-                  #{priorityTicket.number} · {priorityTicket.title}
+                  #{priorityTicket.number} - {priorityTicket.title}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Atualizado {formatRelativeDate(priorityTicket.updatedAt)}
@@ -320,7 +334,7 @@ export function ChatwootTicketsTab() {
               <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">
-                    #{ticket.number} · {ticket.title}
+                    #{ticket.number} - {ticket.title}
                   </p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <ContextBadge tone={ticket.number === resolved.ticketNumber ? "good" : "neutral"}>

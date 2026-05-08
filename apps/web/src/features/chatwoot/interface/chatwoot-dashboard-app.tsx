@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Building2, Loader2, MessageSquare, Monitor, RefreshCw, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
@@ -631,6 +631,7 @@ export function ChatwootDashboardApp() {
             name: item.name.trim() || "Host sem nome",
             companyId: item.companyId,
             companyName: item.companyName,
+            operationalStatus: item.operationalStatus,
             productStatus: item.productStatus,
             agent: {
               rustdeskId: item.agent.rustdeskId,
@@ -951,30 +952,64 @@ export function ChatwootDashboardApp() {
         requestRefresh,
       }}
     >
-      <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <div className="flex min-h-screen flex-col bg-[linear-gradient(180deg,rgba(59,130,246,0.05),transparent_28%),hsl(var(--background))] text-foreground">
         {/* App header — compact, no wrapping card */}
-        <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Painel do Atendimento</span>
-            {resolved.companyName ? (
-              <span className="hidden truncate text-xs text-muted-foreground sm:block">
-                · {resolved.companyName}
-              </span>
-            ) : null}
+        <div className="border-b border-border/60 bg-background/85 backdrop-blur">
+          <div className="space-y-3 px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <MessageSquare className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Painel do Atendimento</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {resolved.companyName || "Sem empresa em contexto"}
+                  {resolved.contactName ? ` - ${resolved.contactName}` : ""}
+                </p>
+              </div>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {status === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
-            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={requestRefresh}>
+            <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={requestRefresh}>
+              <RefreshCw className="h-3.5 w-3.5" />
               Atualizar
             </Button>
             {contactEditHref ? (
-              <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+              <Button asChild variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
                 <Link href={contactEditHref} target="_blank" rel="noreferrer">
                   Contato
                 </Link>
               </Button>
             ) : null}
+          </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Ticket className="h-3.5 w-3.5" />
+                  Tickets
+                </div>
+                <p className="mt-1 text-sm font-semibold text-foreground">{latestTickets.length} em aberto</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Monitor className="h-3.5 w-3.5" />
+                  Infra
+                </div>
+                <p className="mt-1 text-sm font-semibold text-foreground">{companyHosts.length} host{companyHosts.length !== 1 ? "s" : ""}</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-card px-3 py-2.5">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Empresa
+                </div>
+                <p className="mt-1 truncate text-sm font-semibold text-foreground">{resolved.companyName || "Pendente de vinculo"}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -988,11 +1023,11 @@ export function ChatwootDashboardApp() {
         {/* Tab navigation + content */}
         <div className="flex-1 px-3 py-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-3 p-0.5">
-              <TabsTrigger value="overview" className="py-1.5 text-xs">
+            <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border/60 bg-card p-1">
+              <TabsTrigger value="overview" className="rounded-xl py-2 text-xs">
                 Visao geral
               </TabsTrigger>
-              <TabsTrigger value="tickets" className="gap-1.5 py-1.5 text-xs">
+              <TabsTrigger value="tickets" className="gap-1.5 rounded-xl py-2 text-xs">
                 Tickets
                 {latestTickets.length > 0 ? (
                   <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
@@ -1000,7 +1035,7 @@ export function ChatwootDashboardApp() {
                   </span>
                 ) : null}
               </TabsTrigger>
-              <TabsTrigger value="infrastructure" className="gap-1.5 py-1.5 text-xs">
+              <TabsTrigger value="infrastructure" className="gap-1.5 rounded-xl py-2 text-xs">
                 Infra
                 {companyHosts.length > 0 ? (
                   <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
