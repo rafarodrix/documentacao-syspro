@@ -5,12 +5,7 @@ import { toast } from "sonner";
 import { type SefazRoutesInput } from "@dosc-syspro/contracts/sefaz-routes";
 import { runSefazCheckAction, updateSefazRoutesAction } from "@/features/settings/application/settings-write.actions";
 import { buildDefaultSefazRoutes } from "@dosc-syspro/contracts/sefaz-endpoints";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Switch, Badge, Label } from "@dosc-syspro/ui";
 import { Plus, Trash2, Save, RefreshCw, CheckCircle2, ListChecks } from "lucide-react";
 
 interface SefazRoutesTabProps {

@@ -5,26 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Cpu, Link2, Loader2, Search, Unlink } from "lucide-react";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@dosc-syspro/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Input } from "@dosc-syspro/ui";
 import { fetchAgentDeviceListClient } from "@/features/agents/application/agent-client.queries";
 import { patchAgentDevice } from "@/features/agents/application/agent-write.actions";
 import { LinkedDeviceCard } from "./linked-device-card";

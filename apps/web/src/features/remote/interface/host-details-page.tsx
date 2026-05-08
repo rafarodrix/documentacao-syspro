@@ -26,12 +26,7 @@ import {
   Archive,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@dosc-syspro/ui";
-import { Button, buttonVariants } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
+import { Badge, Button, buttonVariants, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";

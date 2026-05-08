@@ -6,16 +6,7 @@ import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { getRoleLabel } from "@dosc-syspro/core"
 import { LogOut, User, Settings, HelpCircle, MessagesSquare } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@dosc-syspro/ui"
-import { Button } from "@dosc-syspro/ui"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@dosc-syspro/ui"
+import { Avatar, AvatarFallback, AvatarImage, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@dosc-syspro/ui";
 
 interface UserProfileProps {
   user: {

@@ -5,26 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Flag, Video } from "lucide-react";
 import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
-import { Button } from "@dosc-syspro/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dosc-syspro/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Input, Label, Textarea } from "@dosc-syspro/ui";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketFinalizeDialogProps {

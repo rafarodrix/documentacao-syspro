@@ -1,9 +1,8 @@
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Progress } from "@dosc-syspro/ui";
 import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { useAckStream } from "@/features/remote/interface/hooks";
-import { Progress } from "@/components/ui/progress";
 import { Activity, HardDrive, Cpu } from "lucide-react";
 
 type HostTechnicalTabProps = {

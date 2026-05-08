@@ -10,11 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Separator } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Separator, Badge } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";

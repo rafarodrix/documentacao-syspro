@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Building2, Headphones, Loader2 } from "lucide-react";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import {
   CompanyOperationalSettingsCard,

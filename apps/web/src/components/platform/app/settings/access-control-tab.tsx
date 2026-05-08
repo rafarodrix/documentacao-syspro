@@ -9,23 +9,7 @@ import type {
   SettingsPermissionsAdminView,
   SettingsUserAccessProfileCreateInput,
 } from "@dosc-syspro/contracts/settings";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@dosc-syspro/ui";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Switch, Label, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Checkbox, Tabs, TabsContent, TabsList, TabsTrigger, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Progress, Avatar, AvatarFallback, ScrollArea, ScrollBar } from "@dosc-syspro/ui";
 import {
   createSettingsUserAccessProfileAction,
   removeSettingsUserAccessProfileAction,

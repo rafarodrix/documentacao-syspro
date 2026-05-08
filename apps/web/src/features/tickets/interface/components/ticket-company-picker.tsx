@@ -3,9 +3,7 @@
 import { useMemo, useState } from "react";
 import { Building2, Check, ChevronsUpDown, Loader2, Search, UserRound, PlusCircle } from "lucide-react";
 
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button, Input, Popover, PopoverContent, PopoverTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 export type TicketCompanyPickerOption = {

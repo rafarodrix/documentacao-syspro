@@ -1,18 +1,8 @@
 "use client";
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Badge } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
+import { Badge, Input, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { Search, Wallet } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@dosc-syspro/ui";
 import type { TaxCredPresumidoListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";

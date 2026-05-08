@@ -3,9 +3,7 @@
 import type { ElementType, ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Search, X, type LucideIcon } from "lucide-react";
 
-import { Button } from "@dosc-syspro/ui";
-import { Card, CardContent } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, Input } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 export function RegistryFeedback({

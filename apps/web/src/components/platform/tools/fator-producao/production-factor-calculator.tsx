@@ -5,24 +5,7 @@ import {
     Plus, Trash2, FileDown, HelpCircle,
     Package, Scale, RefreshCcw, Settings, Box
 } from "lucide-react"
-import { Input } from "@dosc-syspro/ui"
-import { Button } from "@dosc-syspro/ui"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@dosc-syspro/ui"
-import { Card, CardContent } from "@dosc-syspro/ui"
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Label } from "@dosc-syspro/ui"
+import { Input, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, CardContent, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Label } from "@dosc-syspro/ui";
 import { toast } from "sonner"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"

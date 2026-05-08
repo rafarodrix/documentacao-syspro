@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Building2, Clock, ExternalLink, Monitor, WifiOff } from "lucide-react";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
-import { Badge } from "@dosc-syspro/ui";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 
 function relativeTime(lagSeconds: number | null): string {
   if (lagSeconds === null) return "nunca";

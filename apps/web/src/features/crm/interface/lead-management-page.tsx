@@ -16,25 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CrmLead, CrmLeadStage } from "@dosc-syspro/contracts/crm";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { CardContent } from "@dosc-syspro/ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@dosc-syspro/ui";
-import { Separator } from "@dosc-syspro/ui";
+import { Badge, Button, CardContent, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Separator } from "@dosc-syspro/ui";
 import {
   RegistryFilterGroup,
   RegistryTableCard,

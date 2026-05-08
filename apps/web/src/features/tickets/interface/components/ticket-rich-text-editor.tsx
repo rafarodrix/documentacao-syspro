@@ -14,17 +14,7 @@ import {
   RemoveFormatting,
 } from "lucide-react";
 
-import { Button } from "@dosc-syspro/ui";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@dosc-syspro/ui";
-import { Textarea } from "@dosc-syspro/ui";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Textarea, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import { markdownToPlainText, normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
 import { cn } from "@/lib/utils";
 

@@ -1,7 +1,6 @@
 import { ArrowUpRight, BookOpen, Headset, KeyRound, PlusCircle, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, Button } from "@dosc-syspro/ui";
 import { MagicCard } from "@/components/magicui/magic-card";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ShineBorder } from "@/components/magicui/shine-border";

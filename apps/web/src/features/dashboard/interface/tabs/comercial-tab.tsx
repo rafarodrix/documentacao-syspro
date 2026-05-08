@@ -1,7 +1,6 @@
 import { ArrowUpRight, DollarSign, FileText, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, Button } from "@dosc-syspro/ui";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
 import { CrmStageChart } from "../components/crm-stage-chart";

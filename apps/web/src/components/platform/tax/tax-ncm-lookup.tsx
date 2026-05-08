@@ -2,9 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { Search, Link2, FileText, ShieldCheck } from "lucide-react";
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Button, Input, Badge } from "@dosc-syspro/ui";
 
 type LookupResponse = {
   ok: boolean;

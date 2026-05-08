@@ -1,8 +1,7 @@
 import type { RemoteConfiguredHostItem, RemoteAgentCommandType, RemoteAgentCommandStatus } from "@dosc-syspro/contracts/remote";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import type { LucideIcon } from "lucide-react";
-import { Badge } from "@dosc-syspro/ui";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
+import { Badge, Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatRelativeHeartbeat, formatHourMinute, getCommandStatusMeta, extractStringFromPayload } from "../host-details.helpers";
 import { EXPECTED_SCHEMA_VERSIONS, AGENT_COMMAND_LABEL, AGENT_ACK_REASON_LABEL } from "../host-details.constants";

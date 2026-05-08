@@ -1,13 +1,5 @@
 import { getTaxClassificationListViewData } from "@/features/tax/application/tax-read.queries";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge } from "@dosc-syspro/ui";
 import { FileText, Database, ArrowRight } from "lucide-react";
 
 export async function TaxClassificationList() {

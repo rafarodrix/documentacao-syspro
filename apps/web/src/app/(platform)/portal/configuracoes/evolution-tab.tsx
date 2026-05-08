@@ -8,13 +8,7 @@ import {
   evolutionSettingsSchema,
   type EvolutionSettings,
 } from "@dosc-syspro/contracts/evolution";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
-import { Button } from "@dosc-syspro/ui";
-import { Input } from "@dosc-syspro/ui";
-import { Label } from "@dosc-syspro/ui";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Badge, Button, Input, Label, Checkbox, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import { Loader2, Save, RefreshCw, CircleHelp, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import {

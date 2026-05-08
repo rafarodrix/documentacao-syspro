@@ -2,16 +2,7 @@ import Link from "next/link";
 import { Calendar, Bug, Rocket, Sparkles } from "lucide-react";
 import { getReleases } from "@/features/releases/application/release-read.queries";
 import { groupReleasesByDate, releaseMonthNames } from "@/features/releases/domain";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-  CardFooter,
-} from "@dosc-syspro/ui";
-import { Badge } from "@dosc-syspro/ui";
-import { Separator } from "@dosc-syspro/ui";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter, Badge, Separator } from "@dosc-syspro/ui";
 
 export async function ReleasesIndexPage() {
   const releases = await getReleases();
