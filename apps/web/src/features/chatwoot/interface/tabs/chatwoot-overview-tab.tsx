@@ -12,21 +12,17 @@ import {
   InlineLoading,
   InlineNotice,
   InlineWarning,
-  QuickStatCard,
   RemoteHostStatusBadges,
   getCompanyLabel,
-  getRemoteHostSummary,
 } from "../chatwoot-dashboard-ui";
 
 export function ChatwootOverviewTab() {
   const {
     resolved,
-    latestTickets,
     linkedCompanies,
-    priorityTicket,
+    contextCompanyId,
     recommendedHost,
     primaryCompany,
-    orderedLinkedCompanies,
     effectiveContactName,
     contactEditHref,
     portalContactMatch,
@@ -47,33 +43,18 @@ export function ChatwootOverviewTab() {
     setCompanySearchTerm,
     setSelectedCompanyId,
     setCompanyBindingFeedback,
+    handleSelectContextCompany,
     handleCopySummary,
     handleBindCompany,
     handleSaveContactName,
   } = useChatwootDashboard();
 
-  const hostSummary = getRemoteHostSummary(recommendedHost);
-  const linkedCompaniesValue = resolved.companyId
-    ? `${linkedCompanies.length} empresa${linkedCompanies.length !== 1 ? "s" : ""} vinculada${linkedCompanies.length !== 1 ? "s" : ""}`
-    : "Pendente de vinculo";
-  const linkedCompaniesHelper = resolved.companyId
-    ? primaryCompany
-      ? `Empresa ativa: ${getCompanyLabel(primaryCompany)}`
-      : "Empresa ja vinculada ao contato."
-    : "Sem empresa ativa para tickets e infraestrutura.";
+  const hasMultipleLinkedCompanies = linkedCompanies.length > 1;
+  const canChooseContextCompany = linkedCompanies.length > 0;
+  const shouldShowBindingWizard = !resolved.companyId && linkedCompanies.length === 0;
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-3">
-        <QuickStatCard
-          label="Tickets"
-          value={`${latestTickets.length} em aberto`}
-          helper={priorityTicket ? `Prioridade atual: #${priorityTicket.number}` : "Sem ticket em destaque nesta conversa."}
-        />
-        <QuickStatCard label="Infra" value={hostSummary.value} helper={hostSummary.helper} />
-        <QuickStatCard label="Vinculo" value={linkedCompaniesValue} helper={linkedCompaniesHelper} />
-      </div>
-
       <div className="grid gap-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-3">
@@ -114,61 +95,89 @@ export function ChatwootOverviewTab() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Building2 className="h-4 w-4 text-primary" />
-              Empresa em contexto
+              Empresa e contexto operacional
             </CardTitle>
             <CardDescription>
-              {resolved.companyId
-                ? "Empresa ativa para tickets e infraestrutura nesta conversa."
-                : "Nenhuma empresa vinculada a este contato ainda."}
+              {hasMultipleLinkedCompanies
+                ? "Este contato possui mais de uma empresa vinculada. Selecione qual deve guiar tickets e infraestrutura."
+                : resolved.companyId
+                  ? "Empresa ativa para tickets e infraestrutura nesta conversa."
+                  : "Nenhuma empresa vinculada a este contato ainda."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {primaryCompany ? (
+            {canChooseContextCompany ? (
               <>
-                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{getCompanyLabel(primaryCompany)}</p>
-                      {primaryCompany.razaoSocial !== getCompanyLabel(primaryCompany) ? (
-                        <p className="mt-0.5 text-xs text-muted-foreground">{primaryCompany.razaoSocial}</p>
-                      ) : null}
-                    </div>
-                    <DetailItem
-                      label="ID"
-                      value={primaryCompany.id}
-                      helper={resolved.companyId ? "Ativo nesta conversa" : "Pronto para vinculo"}
-                    />
-                  </div>
-                </div>
-
-                {recommendedHost ? (
-                  <div className="rounded-lg border border-border/60 bg-card px-3 py-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground">{recommendedHost.name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Host recomendado para acesso remoto neste contexto.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <RemoteHostStatusBadges host={recommendedHost} />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
                 <div className="space-y-2">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Configuracoes operacionais
+                    Empresa em contexto
                   </p>
-                  {orderedLinkedCompanies.map((company) => (
-                    <CompanyOperationalSettingsCard
-                      key={company.id}
-                      company={company}
-                      isActive={company.id === resolved.companyId}
-                    />
-                  ))}
+                  <div className="flex flex-wrap gap-2">
+                    {linkedCompanies.map((company) => {
+                      const isActive = company.id === contextCompanyId;
+
+                      return (
+                        <button
+                          key={company.id}
+                          type="button"
+                          onClick={() => handleSelectContextCompany(company.id)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            isActive
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                          }`}
+                        >
+                          {getCompanyLabel(company)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {primaryCompany ? (
+                  <>
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{getCompanyLabel(primaryCompany)}</p>
+                          {primaryCompany.razaoSocial !== getCompanyLabel(primaryCompany) ? (
+                            <p className="mt-0.5 text-xs text-muted-foreground">{primaryCompany.razaoSocial}</p>
+                          ) : null}
+                        </div>
+                        <DetailItem
+                          label="ID"
+                          value={primaryCompany.id}
+                          helper={hasMultipleLinkedCompanies ? "Selecionada para esta conversa" : "Ativa nesta conversa"}
+                        />
+                      </div>
+
+                      {recommendedHost ? (
+                        <div className="mt-3 rounded-lg border border-border/60 bg-card px-3 py-3">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground">{recommendedHost.name}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Host recomendado para acesso remoto neste contexto.
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              <RemoteHostStatusBadges host={recommendedHost} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Configuracoes operacionais
+                      </p>
+                      <CompanyOperationalSettingsCard company={primaryCompany} isActive />
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState label="Selecione uma empresa acima para liberar o contexto operacional desta conversa." />
+                )}
               </>
             ) : (
               <EmptyState label="Nenhuma empresa vinculada encontrada para este contato." />
@@ -177,7 +186,7 @@ export function ChatwootOverviewTab() {
         </Card>
       </div>
 
-      {!resolved.companyId ? (
+      {shouldShowBindingWizard ? (
         <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-3">
@@ -300,6 +309,7 @@ export function ChatwootOverviewTab() {
                       {filteredCompanyOptions.length > 0 ? (
                         filteredCompanyOptions.map((company) => {
                           const isSelected = selectedCompanyId === company.id;
+
                           return (
                             <button
                               key={company.id}

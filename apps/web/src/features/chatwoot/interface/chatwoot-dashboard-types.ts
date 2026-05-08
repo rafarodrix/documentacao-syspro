@@ -141,9 +141,8 @@ export type ChatwootDashboardState = {
   isBindingCompany: boolean;
   companyBindingFeedback: FeedbackState;
   primaryCompany: ContactCompanyEntry | null;
-  additionalLinkedCompanies: ContactCompanyEntry[];
-  orderedLinkedCompanies: ContactCompanyEntry[];
   linkedCompanies: ContactCompanyEntry[];
+  contextCompanyId: string;
   contactEditHref: string;
 
   // Actions
@@ -159,6 +158,7 @@ export type ChatwootDashboardState = {
   setCompanyBindingFeedback: React.Dispatch<React.SetStateAction<FeedbackState>>;
   setStartingHostId: React.Dispatch<React.SetStateAction<string | null>>;
   setStatus: React.Dispatch<React.SetStateAction<"loading" | "ready" | "empty">>;
+  handleSelectContextCompany: (companyId: string) => void;
   handleCopySummary: () => Promise<void>;
   handleBindCompany: () => Promise<void>;
   handleSaveContactName: () => Promise<void>;

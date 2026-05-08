@@ -170,7 +170,6 @@ export function ChatwootDashboardApp() {
   const [companyBindingFeedback, setCompanyBindingFeedback] = useState<FeedbackState>(null);
   const [contactNameDraft, setContactNameDraft] = useState("");
   const [isSavingContactName, setIsSavingContactName] = useState(false);
-  const [hasAutoSelectedTab, setHasAutoSelectedTab] = useState(false);
 
   // ── Chatwoot postMessage listener ──────────────────
 
@@ -220,9 +219,9 @@ export function ChatwootDashboardApp() {
     const conversationId = pickFirstValue(context?.conversation?.id);
     const accountId = pickFirstValue(context?.conversation?.account_id);
     const contactId = pickFirstValue(context?.contact?.id);
-    const effectiveCompanyId = companyId || manualLinkedCompany?.id || "";
+    const effectiveCompanyId = manualLinkedCompany?.id || companyId || "";
     const effectiveCompanyName =
-      companyName || manualLinkedCompany?.nomeFantasia || manualLinkedCompany?.razaoSocial || "";
+      manualLinkedCompany?.nomeFantasia || manualLinkedCompany?.razaoSocial || companyName || "";
 
     const ticketParams = new URLSearchParams({
       source: "chatwoot",
@@ -300,13 +299,6 @@ export function ChatwootDashboardApp() {
   const priorityTicket = matchedExistingTicket ?? latestTickets[0] ?? null;
   const recommendedHost = companyHosts[0] ?? null;
 
-  const initialSuggestedTab = useMemo(() => {
-    if (!resolved.companyId) return "overview";
-    if (matchedExistingTicket) return "tickets";
-    if (companyHosts.length > 0) return "infrastructure";
-    return "tickets";
-  }, [companyHosts.length, matchedExistingTicket, resolved.companyId]);
-
   const filteredCompanyOptions = useMemo(() => {
     const q = companySearchTerm.trim();
     if (!q) return companyOptions.slice(0, 8);
@@ -355,39 +347,34 @@ export function ChatwootDashboardApp() {
   }, [manualLinkedCompany, portalContactMatch?.companies, resolved.companyId, resolved.companyName]);
 
   const primaryCompany = useMemo(
-    () => linkedCompanies.find((company) => company.id === resolved.companyId) ?? linkedCompanies[0] ?? null,
+    () =>
+      linkedCompanies.find((company) => company.id === resolved.companyId) ??
+      (linkedCompanies.length === 1 ? linkedCompanies[0] ?? null : null),
     [linkedCompanies, resolved.companyId],
-  );
-
-  const additionalLinkedCompanies = useMemo(
-    () => linkedCompanies.filter((company) => company.id !== primaryCompany?.id),
-    [linkedCompanies, primaryCompany?.id],
   );
 
   const effectiveContactName =
     contactNameDraft.trim() || portalContactMatch?.name || resolved.contactName || "Contato Chatwoot";
 
-  const orderedLinkedCompanies = useMemo(
-    () => (primaryCompany ? [primaryCompany, ...additionalLinkedCompanies] : []),
-    [additionalLinkedCompanies, primaryCompany],
-  );
-
   // ── Auto tab selection ──────────────────────────────
 
   useEffect(() => {
-    setHasAutoSelectedTab(false);
+    setActiveTab("overview");
+    setManualLinkedCompany(null);
   }, [resolved.conversationId]);
 
   useEffect(() => {
-    if (status !== "ready" || hasAutoSelectedTab) return;
-    if (!resolved.companyId) {
-      setActiveTab("overview");
-      setHasAutoSelectedTab(true);
-      return;
-    }
-    setActiveTab(initialSuggestedTab);
-    setHasAutoSelectedTab(true);
-  }, [hasAutoSelectedTab, initialSuggestedTab, resolved.companyId, status]);
+    if (manualLinkedCompany?.id) return;
+    if (resolved.companyId) return;
+    if (linkedCompanies.length !== 1) return;
+
+    const [onlyCompany] = linkedCompanies;
+    setManualLinkedCompany({
+      id: onlyCompany.id,
+      razaoSocial: onlyCompany.razaoSocial,
+      nomeFantasia: onlyCompany.nomeFantasia ?? null,
+    });
+  }, [linkedCompanies, manualLinkedCompany?.id, resolved.companyId]);
 
   // ── Sync ticket form fields from settings ──────────
 
@@ -710,6 +697,19 @@ export function ChatwootDashboardApp() {
     }
   }
 
+  function handleSelectContextCompany(companyId: string) {
+    const nextCompany = linkedCompanies.find((company) => company.id === companyId);
+    if (!nextCompany) return;
+
+    setManualLinkedCompany({
+      id: nextCompany.id,
+      razaoSocial: nextCompany.razaoSocial,
+      nomeFantasia: nextCompany.nomeFantasia ?? null,
+    });
+    setTicketReloadToken((current) => current + 1);
+    setHostReloadToken((current) => current + 1);
+  }
+
   async function handleBindCompany() {
     if (!selectedCompanyOption || isBindingCompany || resolved.companyId) return;
 
@@ -928,9 +928,8 @@ export function ChatwootDashboardApp() {
         isBindingCompany,
         companyBindingFeedback,
         primaryCompany,
-        additionalLinkedCompanies,
-        orderedLinkedCompanies,
         linkedCompanies,
+        contextCompanyId: resolved.companyId,
         contactEditHref,
         setActiveTab,
         setTicketReloadToken,
@@ -944,6 +943,7 @@ export function ChatwootDashboardApp() {
         setCompanyBindingFeedback,
         setStartingHostId,
         setStatus,
+        handleSelectContextCompany,
         handleCopySummary,
         handleBindCompany,
         handleSaveContactName,
@@ -965,7 +965,7 @@ export function ChatwootDashboardApp() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">Painel do Atendimento</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {resolved.companyName || "Sem empresa em contexto"}
+                      {resolved.companyName || (linkedCompanies.length > 1 ? "Selecionar empresa em contexto" : "Sem empresa em contexto")}
                       {resolved.contactName ? ` - ${resolved.contactName}` : ""}
                     </p>
                   </div>
@@ -1013,7 +1013,9 @@ export function ChatwootDashboardApp() {
                   <Building2 className="h-3.5 w-3.5" />
                   Empresa
                 </div>
-                <p className="mt-1 truncate text-sm font-semibold text-foreground">{resolved.companyName || "Pendente de vinculo"}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                  {resolved.companyName || (linkedCompanies.length > 1 ? "Selecionar empresa" : "Pendente de vinculo")}
+                </p>
               </div>
             </div>
           </div>
