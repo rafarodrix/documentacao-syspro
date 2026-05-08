@@ -9,8 +9,8 @@ import {
   CardContent,
   CardDescription,
   CardFooter,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
 import { Separator } from "@dosc-syspro/ui";
 
 export async function ReleasesIndexPage() {

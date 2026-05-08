@@ -6,7 +6,7 @@ import { MessageSquareWarning, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 import { updateTicketClassificationAction } from "@/features/tickets/application/ticket-actions";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +14,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketTestingReturnDialogProps {

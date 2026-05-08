@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Activity, Building2, Headset, Target, Zap } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { OperacionalTab } from "./tabs/operacional-tab";
 import { SuporteTab } from "./tabs/suporte-tab";
 import { SefazTab } from "./tabs/sefaz-tab";

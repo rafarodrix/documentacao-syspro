@@ -1,5 +1,5 @@
 import { Skeleton } from "@dosc-syspro/ui";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@dosc-syspro/ui";
 import { Separator } from "@dosc-syspro/ui";
 
 // ----------------------------------------------------------------------

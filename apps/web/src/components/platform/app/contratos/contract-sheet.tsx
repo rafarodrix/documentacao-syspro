@@ -14,10 +14,10 @@ import { getSystemParamsAction } from "@/features/contracts/application/contract
 import type { ContractCompanyOption } from "@/features/contracts/domain/contract.types";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@dosc-syspro/ui";
 import {

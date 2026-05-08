@@ -1,5 +1,5 @@
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@dosc-syspro/ui";
 import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
 import { useAckStream } from "@/features/remote/interface/hooks";

@@ -6,22 +6,22 @@ import type { ContractListItem, ContractSuspendImpact } from "@/features/contrac
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@dosc-syspro/ui";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import { Switch } from "@/components/ui/switch";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@dosc-syspro/ui";
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+} from "@dosc-syspro/ui";
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+} from "@dosc-syspro/ui";
 import {
     Building2,
     CalendarClock,

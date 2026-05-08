@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@dosc-syspro/ui";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContactCompanyEntry } from "./chatwoot-dashboard-types";

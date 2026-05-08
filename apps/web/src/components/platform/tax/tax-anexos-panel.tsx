@@ -2,9 +2,9 @@
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Input } from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
 import {
   Table,
   TableBody,

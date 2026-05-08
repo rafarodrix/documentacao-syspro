@@ -18,15 +18,15 @@ import {
   SettingsTabsRail,
   SettingsTabsRailTrigger,
 } from "./settings-shell";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Tabs, TabsContent } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 
 type IntegrationDiagnostics = {
   success: boolean;

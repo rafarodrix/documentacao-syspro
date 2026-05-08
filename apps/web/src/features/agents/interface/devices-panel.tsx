@@ -21,10 +21,10 @@ import type {
   AgentDeviceSummary,
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
 
 type StatusFilter = "all" | "online" | "offline";
 

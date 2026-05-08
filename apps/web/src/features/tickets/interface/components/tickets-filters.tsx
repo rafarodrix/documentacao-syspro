@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@dosc-syspro/ui";
 import { CalendarDays, Filter, Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Button } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { formatModuleOptionLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { type TicketStatusGroup, type QueueKey } from "@dosc-syspro/core";

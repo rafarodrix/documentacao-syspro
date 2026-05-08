@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, AlertTriangle, Info, ShieldAlert, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 type NotificationLevel = "critical" | "warning" | "info";

@@ -1,8 +1,8 @@
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dosc-syspro/ui"
+import { Badge } from "@dosc-syspro/ui"
 import { Building2, ArrowUpRight, Plus, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@dosc-syspro/ui"
 import { cn } from "@/lib/utils"
 import { CompanyStatus } from "@prisma/client"
 

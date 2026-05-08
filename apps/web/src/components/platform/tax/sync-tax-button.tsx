@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import { RefreshCw, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import type { TaxSyncChunkResponse } from "@/features/tax/domain/tax.types";

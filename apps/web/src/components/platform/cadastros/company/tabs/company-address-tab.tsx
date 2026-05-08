@@ -3,9 +3,9 @@
 import { useFormContext } from "react-hook-form";
 import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input } from "@dosc-syspro/ui";
 import { Loader2, MapPin, Search } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@dosc-syspro/ui";
 
 interface CompanyAddressTabProps {
   isLoadingCep: boolean;

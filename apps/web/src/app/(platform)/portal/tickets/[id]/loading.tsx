@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@dosc-syspro/ui";
 import { Skeleton } from "@dosc-syspro/ui";
 
 export default function TicketDetailsLoading() {

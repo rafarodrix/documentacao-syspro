@@ -14,8 +14,8 @@ import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@dosc-syspro/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import {
   getSuggestedCategoryForTeam,
   useTicketModuleSettings,

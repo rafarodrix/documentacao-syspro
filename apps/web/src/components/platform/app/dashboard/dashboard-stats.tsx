@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Building2, Minus, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 

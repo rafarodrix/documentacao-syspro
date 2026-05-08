@@ -6,8 +6,8 @@ import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { getRoleLabel } from "@dosc-syspro/core"
 import { LogOut, User, Settings, HelpCircle, MessagesSquare } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@dosc-syspro/ui"
+import { Button } from "@dosc-syspro/ui"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@dosc-syspro/ui"
 
 interface UserProfileProps {
   user: {

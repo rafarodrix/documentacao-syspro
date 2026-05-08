@@ -8,7 +8,7 @@ import {
 import { DocumentoForm } from './documento-form';
 import { type DocumentoFormValues } from '@dosc-syspro/contracts/documento';
 import type { DocumentoItem } from '@/features/documentos/domain/documento.types';
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts/documento-config";
 import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/documentos/application/documento-write.actions';
 

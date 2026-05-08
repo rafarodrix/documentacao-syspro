@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, Building2, ContactRound, FileText, Monitor, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@dosc-syspro/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@dosc-syspro/ui";
 import type { NavigationAccess } from "@/components/platform/app/layout/app-sidebar";
 import { cn } from "@/lib/utils";
 

@@ -11,8 +11,8 @@ import {
   Users,
 } from "lucide-react";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 function formatDuration(seconds: number | null) {

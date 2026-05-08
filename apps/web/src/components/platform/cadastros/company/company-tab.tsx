@@ -23,8 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@dosc-syspro/ui"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@dosc-syspro/ui"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@dosc-syspro/ui"
 import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
 import {
   DropdownMenu,
@@ -33,13 +33,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@dosc-syspro/ui"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "../shared/confirm-action-dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Input } from "@dosc-syspro/ui"
+import { Label } from "@dosc-syspro/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"

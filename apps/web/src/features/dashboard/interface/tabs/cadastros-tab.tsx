@@ -1,5 +1,5 @@
 import { Building2, TrendingDown, TrendingUp, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
 import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
 import { cn } from "@/lib/utils";

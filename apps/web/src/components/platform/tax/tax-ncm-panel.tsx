@@ -1,9 +1,9 @@
 "use client";
 
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
 import { Search, Boxes } from "lucide-react";
 import {
   Table,

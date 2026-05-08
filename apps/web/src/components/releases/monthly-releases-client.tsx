@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import { Bug, Rocket, Sparkles } from "lucide-react";
 import { ReleaseCard } from "./release-card";
 import type { Release } from "@dosc-syspro/core";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@dosc-syspro/ui";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@dosc-syspro/ui";
 
 interface MonthlyReleasesClientProps {
   melhorias: Release[];

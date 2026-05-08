@@ -8,10 +8,10 @@ import {
 } from "@dosc-syspro/contracts/company";
 import type { CompanyOption } from "@/features/company/application/company-view.types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { Building2, FileText, Users2, ListTree } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@dosc-syspro/ui";
 
 interface CompanyFiscalTabProps {
   companies: CompanyOption[];

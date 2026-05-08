@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { type ReactNode } from 'react';
 import { getProtectedSession } from '@/lib/auth-helpers';
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@dosc-syspro/ui";
 export default async function PlatformRootLayout({
   children,
 }: {
