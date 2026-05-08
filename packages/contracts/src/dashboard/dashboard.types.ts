@@ -216,6 +216,8 @@ export const dashboardCsatAgentPerformanceSchema = z.object({
 export const adminAtendimentosDataSchema = z.object({
   periodStart: z.string().min(1),
   periodEnd: z.string().min(1),
+  refreshedAt: z.string().min(1),
+  cacheTtlSeconds: z.number().int().positive(),
   appliedAssigneeId: z.string().trim().optional(),
   appliedContactQuery: z.string().trim().optional(),
   totalCount: z.number().int().nonnegative(),

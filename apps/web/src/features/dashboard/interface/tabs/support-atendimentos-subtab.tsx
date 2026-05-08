@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { adminAtendimentosDataSchema } from "@dosc-syspro/contracts/dashboard";
 import {
   Button,
@@ -19,11 +19,15 @@ import {
 } from "@dosc-syspro/ui";
 import {
   AlertTriangle,
-  CheckCircle2,
+  Clock3,
   Inbox,
+  Loader2,
   MessageSquareText,
+  RefreshCw,
   Search,
+  ShieldAlert,
   UserRound,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { SectionCard } from "@/components/patterns";
@@ -76,10 +80,24 @@ function formatScore(value: number | null) {
   });
 }
 
+function formatDateTime(value?: string) {
+  if (!value) return "Sem historico";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Sem historico";
+  return parsed.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 const toneClasses = {
   blue: "bg-sky-500/10 text-sky-500",
   amber: "bg-amber-500/10 text-amber-500",
   emerald: "bg-emerald-500/10 text-emerald-500",
+  rose: "bg-rose-500/10 text-rose-500",
 } as const;
 
 function ClientMetricCard({
@@ -118,12 +136,14 @@ async function getAtendimentosData(params?: {
   to?: string;
   assigneeId?: string;
   contact?: string;
+  refresh?: boolean;
 }) {
   const query = new URLSearchParams();
   if (params?.from?.trim()) query.set("from", params.from.trim());
   if (params?.to?.trim()) query.set("to", params.to.trim());
   if (params?.assigneeId?.trim()) query.set("assigneeId", params.assigneeId.trim());
   if (params?.contact?.trim()) query.set("contact", params.contact.trim());
+  if (params?.refresh) query.set("refresh", "1");
 
   const suffix = query.size ? `?${query.toString()}` : "";
   const res = await fetch(`/api/dashboard/suporte/atendimentos${suffix}`, {
@@ -154,16 +174,26 @@ export function SupportAtendimentosSubtab() {
   const [to, setTo] = useState(todayRange.to);
   const [assigneeId, setAssigneeId] = useState("");
   const [contact, setContact] = useState("");
+  const [refreshTick, setRefreshTick] = useState(0);
+  const forceRefreshRef = useRef(false);
   const [data, setData] = useState<AtendimentosData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    const isManualRefresh = forceRefreshRef.current;
+    forceRefreshRef.current = false;
+
+    if (isManualRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
-    getAtendimentosData({ from, to, assigneeId, contact })
+    getAtendimentosData({ from, to, assigneeId, contact, refresh: isManualRefresh })
       .then((result) => {
         if (!active) return;
         setData(result);
@@ -175,15 +205,30 @@ export function SupportAtendimentosSubtab() {
       .finally(() => {
         if (!active) return;
         setLoading(false);
+        setRefreshing(false);
       });
 
     return () => {
       active = false;
     };
-  }, [from, to, assigneeId, contact]);
+  }, [from, to, assigneeId, contact, refreshTick]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setRefreshTick((current) => current + 1);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const statusBase = useMemo(() => Math.max(data?.totalCount ?? 0, 1), [data?.totalCount]);
   const csatBase = useMemo(() => Math.max(data?.csatResponseCount ?? 0, 1), [data?.csatResponseCount]);
+  const waitingCount = useMemo(
+    () =>
+      (data?.statusCounts ?? [])
+        .filter((item) => item.status === "Aguardando cliente" || item.status === "Aguardando interno")
+        .reduce((sum, item) => sum + item.count, 0),
+    [data?.statusCounts],
+  );
 
   const applyPreset = (preset: "today" | "7d" | "30d") => {
     const next = buildRangePreset(preset);
@@ -199,9 +244,34 @@ export function SupportAtendimentosSubtab() {
   return (
     <div className="space-y-4">
       <Card className="border-border/60 bg-card/70 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Filtros de atendimento</CardTitle>
-          <CardDescription>Padrao em hoje, com recorte por periodo, atendente e contato.</CardDescription>
+        <CardHeader className="gap-3 pb-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Atendimentos</CardTitle>
+            <CardDescription>
+              Visao operacional do Chatwoot com filtros por periodo, atendente e contato.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/70 px-2.5 py-1">
+              <Clock3 className="h-3.5 w-3.5" />
+              Atualizado em {formatDateTime(data?.refreshedAt)}
+            </span>
+            <span className="rounded-md border border-border/60 bg-background/70 px-2.5 py-1">
+              Cache {data?.cacheTtlSeconds ?? 45}s
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                forceRefreshRef.current = true;
+                setRefreshTick((current) => current + 1);
+              }}
+              disabled={loading || refreshing}
+            >
+              {refreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Atualizar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -231,28 +301,15 @@ export function SupportAtendimentosSubtab() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="atendimentos-from">De</Label>
-              <Input
-                id="atendimentos-from"
-                type="date"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-              />
+              <Input id="atendimentos-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="atendimentos-to">Ate</Label>
-              <Input
-                id="atendimentos-to"
-                type="date"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-              />
+              <Input id="atendimentos-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Atendente</Label>
-              <Select
-                value={assigneeId || "__all__"}
-                onValueChange={(value) => setAssigneeId(value === "__all__" ? "" : value)}
-              >
+              <Select value={assigneeId || "__all__"} onValueChange={(value) => setAssigneeId(value === "__all__" ? "" : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -288,6 +345,7 @@ export function SupportAtendimentosSubtab() {
           {error}
         </div>
       ) : null}
+
       {data?.warning ? (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -295,38 +353,14 @@ export function SupportAtendimentosSubtab() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <ClientMetricCard
-          title="Total"
-          value={data?.totalCount ?? 0}
-          helper="Atendimentos no periodo"
-          icon={Inbox}
-          tone="blue"
-        />
-        <ClientMetricCard
-          title="Abertos"
-          value={data?.openCount ?? 0}
-          helper="Ainda em andamento"
-          icon={UserRound}
-          tone="amber"
-        />
-        <ClientMetricCard
-          title="Resolvidos"
-          value={data?.resolvedCount ?? 0}
-          helper="Encerrados no recorte"
-          icon={CheckCircle2}
-          tone="emerald"
-        />
-        <ClientMetricCard
-          title="CSAT medio"
-          value={formatScore(data?.csatAverageScore ?? null)}
-          helper={`${data?.csatResponseCount ?? 0} respostas no periodo`}
-          icon={MessageSquareText}
-          tone="blue"
-        />
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <ClientMetricCard title="Total" value={data?.totalCount ?? 0} helper="Atendimentos no periodo" icon={Inbox} tone="blue" />
+        <ClientMetricCard title="Em andamento" value={data?.openCount ?? 0} helper="Fila operacional ativa" icon={UserRound} tone="amber" />
+        <ClientMetricCard title="Aguardando" value={waitingCount} helper="Cliente ou retorno interno" icon={Users} tone="blue" />
+        <ClientMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} respostas`} icon={MessageSquareText} tone="emerald" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
         <ActivityChart
           title="Volume de atendimentos"
           description={loading ? "Carregando periodo selecionado" : "Conversas criadas no periodo filtrado"}
@@ -335,9 +369,63 @@ export function SupportAtendimentosSubtab() {
           emptyLabel="Sem conversas no recorte"
         />
 
+        <div className="grid gap-4">
+          <SectionCard
+            title="Ritmo operacional"
+            description="Leitura curta da fila atual."
+            className="border-border/50 bg-card/70"
+            contentClassName="space-y-3 text-sm"
+          >
+            <ExecutiveLine
+              label="Sem responsavel"
+              value={`${data?.unassignedCount ?? 0}`}
+              emphasis={(data?.unassignedCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
+            />
+            <ExecutiveLine label="Aguardando cliente" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`} />
+            <ExecutiveLine label="Aguardando interno" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`} />
+            <ExecutiveLine label="Primeira resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} />
+            <ExecutiveLine label="Resolucao media" value={formatHours(data?.avgResolutionHours ?? null)} />
+          </SectionCard>
+
+          <SectionCard
+            title="Encerramentos"
+            description="Fechamentos e excecoes do recorte."
+            className="border-border/50 bg-card/70"
+            contentClassName="space-y-3 text-sm"
+          >
+            <ExecutiveLine label="Resolvidos" value={`${data?.resolvedCount ?? 0}`} />
+            <ExecutiveLine
+              label="Cancelados"
+              value={`${data?.cancelledCount ?? 0}`}
+              emphasis={(data?.cancelledCount ?? 0) > 0 ? "text-amber-500" : "text-foreground"}
+            />
+            <ExecutiveLine label="Cancelado cliente" value={`${data?.cancelledByCustomerCount ?? 0}`} />
+            <ExecutiveLine label="Cancelado agente" value={`${data?.cancelledByAgentCount ?? 0}`} />
+            <ExecutiveLine label="Spam" value={`${data?.spamCount ?? 0}`} />
+          </SectionCard>
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard
-          title="Leitura executiva"
-          description="Resumo operacional e de satisfacao no recorte atual."
+          title="Saude do CSAT"
+          description="Indicadores principais de satisfacao."
+          className="border-border/50 bg-card/70"
+          contentClassName="space-y-3 text-sm"
+        >
+          <ExecutiveLine label="Respondido" value={`${data?.csatResponseCount ?? 0} · ${formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)}`} />
+          <ExecutiveLine label="Elegivel" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
+          <ExecutiveLine
+            label="Notas baixas"
+            value={`${data?.csatLowScoreCount ?? 0} · ${formatPercent(data?.csatLowScoreCount ?? 0, data?.csatResponseCount ?? 0)}`}
+            emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
+          />
+          <ExecutiveLine label="CSAT ignorado" value={`${data?.csatSkippedCount ?? 0}`} />
+        </SectionCard>
+
+        <SectionCard
+          title="Risco operacional"
+          description="Itens que merecem atencao."
           className="border-border/50 bg-card/70"
           contentClassName="space-y-3 text-sm"
         >
@@ -347,114 +435,69 @@ export function SupportAtendimentosSubtab() {
             emphasis={(data?.unassignedCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
           />
           <ExecutiveLine
-            label="Cancelados"
-            value={`${data?.cancelledCount ?? 0}`}
-            emphasis={(data?.cancelledCount ?? 0) > 0 ? "text-amber-500" : "text-foreground"}
-          />
-          <ExecutiveLine label="CSAT ignorado" value={`${data?.csatSkippedCount ?? 0}`} />
-          <ExecutiveLine label="CSAT elegivel" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
-          <ExecutiveLine
             label="Notas baixas"
             value={`${data?.csatLowScoreCount ?? 0}`}
-            emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
+            emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-amber-500" : "text-foreground"}
           />
-          <ExecutiveLine label="Primeira resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} />
-          <ExecutiveLine label="Resolucao media" value={formatHours(data?.avgResolutionHours ?? null)} />
-          <ExecutiveLine label="Cancelado cliente" value={`${data?.cancelledByCustomerCount ?? 0}`} />
-          <ExecutiveLine label="Cancelado agente" value={`${data?.cancelledByAgentCount ?? 0}`} />
-          <ExecutiveLine label="Spam" value={`${data?.spamCount ?? 0}`} />
+          <ExecutiveLine label="Cancelados" value={`${data?.cancelledCount ?? 0}`} />
+          <ExecutiveLine label="Sem vinculo" value={`${data?.unlinkedCount ?? 0}`} />
+        </SectionCard>
+
+        <SectionCard
+          title="Cobertura"
+          description="Quem esta sustentando a operacao."
+          className="border-border/50 bg-card/70"
+          contentClassName="space-y-3 text-sm"
+        >
+          <ExecutiveLine label="Atendentes ativos" value={`${data?.assigneeLoads?.length ?? 0}`} />
+          <ExecutiveLine label="Top contatos" value={`${data?.topContacts?.length ?? 0}`} />
+          <ExecutiveLine label="Canais ativos" value={`${(data?.channelCounts ?? []).filter((item) => item.count > 0).length}`} />
+          <ExecutiveLine label="Faixas CSAT" value={`${(data?.csatScoreDistribution ?? []).filter((item) => item.count > 0).length}`} />
         </SectionCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard
-          title="Status e canais"
-          description="Distribuicao da fila e origem dos atendimentos."
-          className="border-border/50 bg-card/70"
-          contentClassName="grid gap-4 lg:grid-cols-2"
+          title="Status da fila"
+          description="Distribuicao dos atendimentos por status."
+          className="border-border/50 bg-card/70 xl:col-span-2"
+          contentClassName="grid gap-3 lg:grid-cols-2"
         >
-          <div className="space-y-3">
-            {(data?.statusCounts ?? []).map((item) => (
-              <div key={item.status} className="space-y-1">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-muted-foreground">{item.status}</span>
-                  <span className="font-medium tabular-nums">{item.count}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary/70"
-                    style={{ width: `${Math.min(100, (item.count / statusBase) * 100)}%` }}
-                  />
-                </div>
+          {(data?.statusCounts ?? []).map((item) => (
+            <div key={item.status} className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">{item.status}</span>
+                <span className="font-medium tabular-nums">{item.count}</span>
               </div>
-            ))}
-          </div>
-          <div className="space-y-3">
-            {(data?.channelCounts ?? []).map((item) => (
-              <ExecutiveLine
-                key={item.channel}
-                label={item.channel}
-                value={`${item.count} · ${formatPercent(item.count, data?.totalCount ?? 0)}`}
-              />
-            ))}
-          </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div className="h-2 rounded-full bg-primary/70" style={{ width: `${Math.min(100, (item.count / statusBase) * 100)}%` }} />
+              </div>
+            </div>
+          ))}
         </SectionCard>
 
         <SectionCard
-          title="CSAT"
-          description="Satisfacao real capturada no periodo filtrado."
+          title="Canais"
+          description="Origem dos atendimentos."
           className="border-border/50 bg-card/70"
           contentClassName="space-y-3"
         >
-          <ExecutiveLine label="Nota media" value={formatScore(data?.csatAverageScore ?? null)} />
-          <ExecutiveLine
-            label="Respondido"
-            value={`${data?.csatResponseCount ?? 0} · ${formatPercent(
-              data?.csatResponseCount ?? 0,
-              data?.csatEligibleResolvedCount ?? 0,
-            )}`}
-          />
-          <ExecutiveLine
-            label="Notas baixas"
-            value={`${data?.csatLowScoreCount ?? 0} · ${formatPercent(
-              data?.csatLowScoreCount ?? 0,
-              data?.csatResponseCount ?? 0,
-            )}`}
-            emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
-          />
-          <div className="space-y-3 pt-1">
-            {(data?.csatScoreDistribution ?? []).map((item) => (
-              <div key={item.score} className="space-y-1">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-muted-foreground">Nota {item.score}</span>
-                  <span className="font-medium tabular-nums">{item.count}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary/70"
-                    style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          {(data?.channelCounts ?? []).map((item) => (
+            <ExecutiveLine key={item.channel} label={item.channel} value={`${item.count} · ${formatPercent(item.count, data?.totalCount ?? 0)}`} />
+          ))}
         </SectionCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
           title="Carga por atendente"
-          description="Fila aberta e itens aguardando por responsavel."
+          description="Quem esta com mais itens abertos ou aguardando."
           className="border-border/50 bg-card/70"
           contentClassName="space-y-3"
         >
           {(data?.assigneeLoads ?? []).length ? (
             (data?.assigneeLoads ?? []).map((item) => (
-              <ExecutiveLine
-                key={`${item.userId ?? "none"}-${item.name}`}
-                label={item.name}
-                value={`${item.openCount} abertas · ${item.waitingCount} aguardando`}
-              />
+              <ExecutiveLine key={`${item.userId ?? "none"}-${item.name}`} label={item.name} value={`${item.openCount} abertas · ${item.waitingCount} aguardando`} />
             ))
           ) : (
             <p className="text-sm text-muted-foreground">Sem atendentes identificados no recorte.</p>
@@ -463,7 +506,7 @@ export function SupportAtendimentosSubtab() {
 
         <SectionCard
           title="CSAT por atendente"
-          description="Quem recebeu mais respostas e onde estao as notas baixas."
+          description="Respostas recebidas e concentracao de notas baixas."
           className="border-border/50 bg-card/70"
           contentClassName="space-y-3"
         >
@@ -482,20 +525,48 @@ export function SupportAtendimentosSubtab() {
         </SectionCard>
       </div>
 
-      <SectionCard
-        title="Contatos mais recorrentes"
-        description="Quem mais acionou a operacao no periodo filtrado."
-        className="border-border/50 bg-card/70"
-        contentClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
-      >
-        {(data?.topContacts ?? []).length ? (
-          (data?.topContacts ?? []).map((item) => (
-            <ExecutiveLine key={item.key} label={item.name} value={`${item.count} atend. · ${item.channel}`} />
-          ))
-        ) : (
-          <p className="text-sm text-muted-foreground">Sem contatos identificados no recorte.</p>
-        )}
-      </SectionCard>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SectionCard
+          title="Distribuicao do CSAT"
+          description="Notas recebidas no periodo."
+          className="border-border/50 bg-card/70"
+          contentClassName="space-y-3"
+        >
+          {(data?.csatScoreDistribution ?? []).map((item) => (
+            <div key={item.score} className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Nota {item.score}</span>
+                <span className="font-medium tabular-nums">{item.count}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div className="h-2 rounded-full bg-primary/70" style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }} />
+              </div>
+            </div>
+          ))}
+        </SectionCard>
+
+        <SectionCard
+          title="Contatos mais recorrentes"
+          description="Quem mais acionou a operacao no recorte filtrado."
+          className="border-border/50 bg-card/70"
+          contentClassName="space-y-3"
+        >
+          {(data?.topContacts ?? []).length ? (
+            (data?.topContacts ?? []).map((item) => (
+              <ExecutiveLine key={item.key} label={item.name} value={`${item.count} atend. · ${item.channel}`} />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Sem contatos identificados no recorte.</p>
+          )}
+        </SectionCard>
+      </div>
+
+      {!loading && (data?.unassignedCount ?? 0) > 0 ? (
+        <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-700">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Existem atendimentos sem responsavel neste recorte. Vale revisar distribuicao e ownership da fila.</span>
+        </div>
+      ) : null}
     </div>
   );
 }

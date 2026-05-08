@@ -450,6 +450,9 @@ function mapDashboardSefazStatus(
 
 @Injectable()
 export class DashboardService {
+  private static readonly ATENDIMENTOS_CACHE_TTL_MS = 45_000;
+  private readonly atendimentosCache = new Map<string, { expiresAt: number; payload: any }>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
@@ -1227,7 +1230,7 @@ export class DashboardService {
 
   async getAtendimentosData(
     rawHeaders?: IncomingHttpHeaders,
-    filters?: { from?: string; to?: string; assigneeId?: string; contact?: string },
+    filters?: { from?: string; to?: string; assigneeId?: string; contact?: string; refresh?: boolean },
   ) {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const canViewAtendimentos =
@@ -1241,14 +1244,28 @@ export class DashboardService {
     const periodEnd = parseDateInput(filters?.to, true) ?? new Date();
     const assigneeId = String(filters?.assigneeId ?? '').trim();
     const contactQuery = String(filters?.contact ?? '').trim().toLowerCase();
+    const cacheKey = [
+      requester.userId,
+      periodStart.toISOString(),
+      periodEnd.toISOString(),
+      assigneeId || '__all__',
+      contactQuery || '__all__',
+    ].join('|');
+    const forceRefresh = Boolean(filters?.refresh);
+    const cached = this.atendimentosCache.get(cacheKey);
+    if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
+      return cached.payload;
+    }
     const contexts = await this.integrationContext.listActiveContexts();
 
     if (!contexts.length) {
-      return {
+      const payload = {
         success: true as const,
         data: {
           periodStart: periodStart.toISOString(),
           periodEnd: periodEnd.toISOString(),
+          refreshedAt: new Date().toISOString(),
+          cacheTtlSeconds: Math.floor(DashboardService.ATENDIMENTOS_CACHE_TTL_MS / 1000),
           totalCount: 0,
           openCount: 0,
           unassignedCount: 0,
@@ -1276,6 +1293,11 @@ export class DashboardService {
           warning: 'Nenhum contexto ativo do Chatwoot foi encontrado para o dashboard.',
         },
       };
+      this.atendimentosCache.set(cacheKey, {
+        expiresAt: Date.now() + DashboardService.ATENDIMENTOS_CACHE_TTL_MS,
+        payload,
+      });
+      return payload;
     }
 
     const items: any[] = [];
@@ -1463,11 +1485,13 @@ export class DashboardService {
       csatAgentMap.set(key, current);
     }
 
-    return {
+    const payload = {
       success: true as const,
       data: {
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
+        refreshedAt: new Date().toISOString(),
+        cacheTtlSeconds: Math.floor(DashboardService.ATENDIMENTOS_CACHE_TTL_MS / 1000),
         appliedAssigneeId: assigneeId || undefined,
         appliedContactQuery: contactQuery || undefined,
         totalCount: filtered.length,
@@ -1514,6 +1538,11 @@ export class DashboardService {
         warning: contexts.length > 1 ? 'Dashboard consolidado a partir de multiplos contextos ativos do Chatwoot.' : undefined,
       },
     };
+    this.atendimentosCache.set(cacheKey, {
+      expiresAt: Date.now() + DashboardService.ATENDIMENTOS_CACHE_TTL_MS,
+      payload,
+    });
+    return payload;
   }
 
   async getCadastrosData(rawHeaders?: IncomingHttpHeaders) {

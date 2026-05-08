@@ -28,8 +28,15 @@ export class DashboardController {
     @Query('to') to?: string,
     @Query('assigneeId') assigneeId?: string,
     @Query('contact') contact?: string,
+    @Query('refresh') refresh?: string,
   ) {
-    return this.dashboardService.getAtendimentosData(req.headers, { from, to, assigneeId, contact });
+    return this.dashboardService.getAtendimentosData(req.headers, {
+      from,
+      to,
+      assigneeId,
+      contact,
+      refresh: refresh === '1' || refresh === 'true',
+    });
   }
 
   @Get('cadastros')
