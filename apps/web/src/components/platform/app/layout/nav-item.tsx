@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui"
 import { LucideIcon } from "lucide-react"
 
 export type NavItemType = {
