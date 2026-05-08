@@ -81,8 +81,20 @@ export const createContactSchema = z.object({
   companyIds: z.array(z.string()).default([]),
 });
 
+export const updateContactSchema = z.object({
+  name: z.string().min(1, "Informe o nome do contato").trim().optional(),
+  email: z.string().email("Informe um e-mail valido").nullable().optional(),
+  phone: z.string().nullable().optional(),
+  cpf: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
+  whatsapp: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  companyIds: z.array(z.string()).optional(),
+});
+
 export type CreateContactInput = z.input<typeof createContactSchema>;
 export type CreateContactOutput = z.output<typeof createContactSchema>;
+export type UpdateContactInput = z.input<typeof updateContactSchema>;
 export type ContactListItem = z.output<typeof contactListItemSchema>;
 export type ContactListQuery = z.infer<typeof contactListQuerySchema>;
 export type ContactListResponse = z.output<typeof contactListResponseSchema>;
