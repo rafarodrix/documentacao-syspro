@@ -9,16 +9,18 @@ import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { SYSTEM_ROLES } from "@dosc-syspro/core"
 import { getRoleLabel as getUnifiedRoleLabel } from "@dosc-syspro/core"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NavItem, NavItemType } from "./nav-item"
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@dosc-syspro/ui"
+import { NavItem, NavItemType } from "./nav-item"
 import {
   LayoutDashboard,
   BookOpen,
@@ -156,7 +158,7 @@ function SidebarBrand({
             className={cn(
               "h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-all duration-300",
               isSystemUser
-                ? "bg-violet-600 group-hover:bg-violet-700 group-hover:shadow-violet-500/25 group-hover:shadow-md"
+                ? "bg-violet-600 group-hover:bg-violet-700 group-hover:shadow-violet-500/25 group-hover:shadow-md" // ds-allow: surface accent
                 : "bg-linear-to-br from-primary to-primary/70 group-hover:shadow-primary/25 group-hover:shadow-md group-hover:scale-105",
             )}
           >
@@ -183,6 +185,7 @@ function SidebarBrand({
               />
             </div>
             {isSystemUser && (
+              // ds-allow: surface accent
               <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wider">
                 Admin
               </span>
@@ -232,7 +235,7 @@ function SidebarFooter({
                 className={cn(
                   "text-[11px] font-bold",
                   isSystemUser
-                    ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300"
+                    ? "bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300" // ds-allow: surface accent
                     : "bg-primary/10 text-primary",
                 )}
               >
@@ -288,7 +291,7 @@ function SidebarFooter({
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            className="cursor-pointer gap-2 text-sm text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
+            className="cursor-pointer gap-2 text-sm text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20" // ds-allow: status
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />

@@ -26,6 +26,7 @@ packages/*/src/**/*.js
 packages/*/tests/**/*.js
 build_output.log
 *.tsbuildinfo
+design-audit/
 next-env.d.ts
 .turbo/
 .gocache/

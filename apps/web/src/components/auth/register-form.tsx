@@ -2,10 +2,7 @@
 
 import Link from "next/link"
 import { useRegister } from "@/features/auth/interface"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button, Input, Label, Alert, AlertDescription, AlertTitle } from "@dosc-syspro/ui"
 import { Loader2, Mail, Lock, User, AlertCircle } from "lucide-react"
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 import { cn } from "@/lib/utils"

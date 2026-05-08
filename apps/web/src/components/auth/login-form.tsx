@@ -3,12 +3,9 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useLogin } from "@/features/auth/interface"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button, Input, Label, Alert, AlertDescription, AlertTitle } from "@dosc-syspro/ui"
 import { Loader2, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper"
 
 export function LoginForm() {

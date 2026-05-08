@@ -12,15 +12,16 @@ import {
   Menu,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@dosc-syspro/ui";
-// ds-roadmap: DropdownMenu, Sheet pendentes em @dosc-syspro/ui
 import {
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@dosc-syspro/ui";
 
 export function StaticSiteHeader() {
   const docsNavItems = [
