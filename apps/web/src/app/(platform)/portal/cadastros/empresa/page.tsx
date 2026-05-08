@@ -41,6 +41,11 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
       : "ALL";
 
   await requireSession();
+  const canViewCompanies = await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
+    acceptCompanyScope: true,
+  });
+  if (!canViewCompanies) return <CadastrosAccessDenied />;
+
   const result = await getCadastrosCompaniesAdminViewData({
     search: initialCompanySearch,
     status: normalizedInitialStatus,
@@ -49,15 +54,10 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
   });
 
   if ("error" in result) return <div>Erro: {result.error}</div>;
-  const canViewCompanies = await currentUserHasAnyPermission(["companies:view", "companies:view_own", "companies:view_all"], {
-    acceptCompanyScope: true,
-  });
   const canCreateCompanies = await currentUserHasPermission("companies:create");
   const canEditCompanies = await currentUserHasPermission("companies:edit", { acceptCompanyScope: true });
   const canToggleCompanies = await currentUserHasPermission("companies:status");
   const canDeleteCompanies = await currentUserHasPermission("companies:delete");
-
-  if (!canViewCompanies) return <CadastrosAccessDenied />;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -86,4 +86,3 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
     </div>
   );
 }
-
