@@ -47,7 +47,7 @@
                     "test:e2e:headed":  "npm run test:e2e:headed -w @dosc-syspro/web",
                     "test:e2e:ui":  "npm run test:e2e:ui -w @dosc-syspro/web",
                     "lint:remote":  "npm run lint:remote -w @dosc-syspro/web",
-                    "lint:ds":      "bash adoption/audit.sh",
+                    "lint:ds":      "bash adoption/audit.sh && npm run lint -w @dosc-syspro/web",
                     "lint:ds:fix":  "bash adoption/audit.sh"
                 },
     "dependencies":  {},

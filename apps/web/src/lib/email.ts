@@ -39,7 +39,8 @@ export async function sendResetPasswordEmail(email: string, resetLink: string, u
       from: `"Trilink Suporte" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: "Redefinicao de Senha - Syspro ERP",
-      html: `
+      // eslint-disable-next-line trilink-tokens/no-hex-colors
+    html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
           <h2 style="color: #333;">Ola, ${userName}</h2>
           <p style="color: #555; font-size: 16px;">
