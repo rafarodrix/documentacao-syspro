@@ -185,7 +185,7 @@ function SidebarBrand({
               />
             </div>
             {isSystemUser && (
-              {/* ds-allow: surface accent */}
+              // ds-allow: surface accent
               <span className="text-[10px] font-semibold text-violet-500 dark:text-violet-400 uppercase tracking-wider">
                 Admin
               </span>
