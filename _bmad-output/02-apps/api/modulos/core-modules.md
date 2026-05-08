@@ -32,13 +32,33 @@ Gerencia empresas do portal (clientes Trilink).
 
 **Path:** `src/modules/contacts/`
 
-Gerencia contatos vinculados a empresas.
+Gerencia contatos vinculados a empresas. **Totalmente migrado para tRPC** — sem controller REST.
+
+| Arquivo                  | Responsabilidade                                       |
+|--------------------------|-------------------------------------------------------|
+| `contacts.router.ts`     | Procedures tRPC de contatos                           |
+| `contacts.service.ts`    | Lógica: CRUD, vincular empresa, sync com Evolution    |
+| `contacts.module.ts`     | Módulo NestJS com `forwardRef(TrpcModule)`            |
+
+**Procedures tRPC expostas (`trpc.contacts.*`):**
+
+| Procedure    | Tipo     | Descrição                                              |
+|--------------|----------|--------------------------------------------------------|
+| `list`       | query    | Lista contatos com filtros `q`, `unlinked`, `companyId`, paginação |
+| `getUnlinked`| query    | Retorna contatos sem empresa vinculada                 |
+| `getStats`   | query    | Totais: linked, unlinked, withEmail, withPhone         |
+| `getOne`     | query    | Busca contato por ID                                   |
+| `create`     | mutation | Cria contato com vínculos de empresa                   |
+| `update`     | mutation | Atualiza dados ou empresas do contato (campos nullable)|
+| `link`       | mutation | Vincula contato a uma empresa específica               |
+| `remove`     | mutation | Arquiva contato (soft-delete)                          |
+| `sync`       | mutation | Sincroniza contatos do Evolution (WhatsApp)            |
 
 **Funcionalidades:**
 - Contatos com CPF, email, telefone, cargo
 - `source`: MANUAL | WHATSAPP | IMPORT
 - Sincronização de contatos com Evolution (WhatsApp)
-- Controle de acesso por empresa via `user-contact-access.service.ts`
+- Controle de acesso por empresa via `AuthorizationService`
 - Stats de contatos por empresa
 
 ---

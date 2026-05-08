@@ -1,6 +1,6 @@
 # API — Módulo tRPC
 
-> `apps/api/src/modules/trpc/` · Atualizado em: 2026-05-08
+> `apps/api/src/modules/trpc/` · Atualizado em: 2026-05-08 (contacts adicionado)
 
 ---
 
@@ -36,6 +36,7 @@ export class TrpcRouter {
     private readonly trpc: TrpcService,
     private readonly companiesRouter: CompaniesRouter,
     private readonly usersRouter: UsersRouter,
+    private readonly contactsRouter: ContactsRouter,
   ) {
     this.appRouter = this.createRouter();
   }
@@ -45,6 +46,7 @@ export class TrpcRouter {
       hello:     this.trpc.publicProcedure.query(() => ({ message: 'Hello from tRPC!' })),
       companies: this.companiesRouter.router,
       users:     this.usersRouter.router,
+      contacts:  this.contactsRouter.router,
     });
   }
 }

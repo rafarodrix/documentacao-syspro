@@ -19,7 +19,7 @@ export async function getUsersAdminViewData(): Promise<
       trpc.companies.getOptions.query(),
     ]);
 
-    const isGlobalView = users.some((user) =>
+    const isGlobalView = (users as UserAccessListItem[]).some((user) =>
       user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE",
     );
 

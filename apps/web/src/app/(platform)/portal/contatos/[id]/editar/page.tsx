@@ -2,7 +2,7 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyOptionsAction } from "@/features/company/application/company-read.queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/create-contact-page-form";
-import { callWebApi } from "@/lib/web-api";
+import { trpc } from "@/lib/api/trpc-client";
 import { notFound } from "next/navigation";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 
@@ -29,12 +29,11 @@ type ContactDetail = {
 };
 
 async function getContactById(id: string): Promise<ContactDetail | null> {
-  const response = await callWebApi(`/api/contacts/${encodeURIComponent(id)}`, {
-    method: "GET",
-  });
-
-  if (!response.ok) return null;
-  return (await response.json()) as ContactDetail;
+  try {
+    return await trpc.contacts.getOne.query({ id }) as ContactDetail;
+  } catch {
+    return null;
+  }
 }
 
 export default async function EditarContatoPage({ params }: PageProps) {

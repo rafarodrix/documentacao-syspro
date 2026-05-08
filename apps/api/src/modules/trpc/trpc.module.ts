@@ -7,9 +7,10 @@ import { createContext } from './trpc.context';
 
 import { CompaniesModule } from '../companies/companies.module';
 import { UsersModule } from '../users/users.module';
+import { ContactsModule } from '../contacts/contacts.module';
 
 @Module({
-  imports: [forwardRef(() => CompaniesModule), forwardRef(() => UsersModule)],
+  imports: [forwardRef(() => CompaniesModule), forwardRef(() => UsersModule), forwardRef(() => ContactsModule)],
   providers: [TrpcService, TrpcRouter],
   exports: [TrpcService, TrpcRouter],
 })

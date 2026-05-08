@@ -64,6 +64,11 @@ users.list                   // query
 users.update                 // mutation
 users.getCurrentProfile      // query
 users.getChatwootSsoLink     // query
+contacts.list                // query
+contacts.getStats            // query
+contacts.create              // mutation
+contacts.update              // mutation
+contacts.sync                // mutation
 ```
 
 Os types são automaticamente inferidos — sem geração de código manual.
@@ -89,6 +94,7 @@ Rotas relevantes no proxy:
 > **Domínios já migrados para tRPC (sem proxy REST):**
 > - `companies` → `trpc.companies.*`
 > - `users` → `trpc.users.*`
+> - `contacts` → `trpc.contacts.*`
 
 ---
 
