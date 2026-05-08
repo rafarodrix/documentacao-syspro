@@ -2,7 +2,7 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 @import "tw-animate-css";
-@import "@dosc-syspro/ui/tokens.css";
+@import "../../../../packages/ui/src/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 

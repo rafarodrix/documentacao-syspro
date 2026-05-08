@@ -93,7 +93,8 @@ Arquivo: `packages/ui/src/tokens.css` — **fonte única de verdade** para desig
 tokens.css
   └── re-exportado por packages/ui (export "./tokens.css")
         └── importado em apps/web/src/app/globals.css
-              @import "@dosc-syspro/ui/tokens.css";
+              @import "../../../../packages/ui/src/tokens.css";
+              (caminho relativo — @tailwindcss/postcss não resolve symlinks de workspace)
 ```
 
 ### Categorias de tokens
