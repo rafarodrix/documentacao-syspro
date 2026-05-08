@@ -6,6 +6,7 @@ import {
   type ChatwootBehaviorSettings,
 } from '@dosc-syspro/contracts/chatwoot';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
+import { buildChatwootContactDisplayName } from '../../chatwoot/chatwoot-contact-presentation';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { EvolutionClient } from '../../evolution/evolution.client';
 import { R2StorageService } from '../../storage/r2-storage.service';
@@ -1491,9 +1492,11 @@ export class ProcessIncomingMessageUseCase {
 
         const primaryCompany = sysproContact.companyLinks[0]?.company;
         const primaryCompanyId = sysproContact.companyLinks[0]?.companyId;
-        const contactName = primaryCompany
-          ? `${sysproContact.name} | ${primaryCompany.nomeFantasia || primaryCompany.razaoSocial}`
-          : sysproContact.name;
+        const primaryCompanyName = primaryCompany?.nomeFantasia || primaryCompany?.razaoSocial || null;
+        const contactName = buildChatwootContactDisplayName({
+          contactName: sysproContact.name,
+          companyName: primaryCompanyName,
+        });
 
         let picResult: { profilePictureUrl?: string } = {};
         try {
@@ -2006,7 +2009,10 @@ export class ProcessIncomingMessageUseCase {
     try {
       if (chatwootLink.contactIdentifier) {
         await this.chatwootClient.updateContact(connection.chatwoot, chatwootLink.contactIdentifier, {
-          name: contact.name,
+          name: buildChatwootContactDisplayName({
+            contactName: contact.name,
+            companyName: primaryCompanyName,
+          }),
           phone_number: phone.startsWith('+') ? phone : `+${phone}`,
           additional_attributes: {
             last_name: primaryCompanyName ? `| ${primaryCompanyName}` : null,

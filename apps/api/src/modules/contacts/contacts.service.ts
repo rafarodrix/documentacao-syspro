@@ -11,6 +11,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EvolutionClient } from '../integrations/evolution/evolution.client';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
+import { buildChatwootContactDisplayName } from '../integrations/chatwoot/chatwoot-contact-presentation';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { buildContactSearchWhere } from '../shared/search/domain-search';
@@ -765,6 +766,10 @@ export class ContactsService {
         );
         const primaryCompany = companies[0] ?? null;
         const primaryCompanyName = this.formatCompanyDisplayName(primaryCompany);
+        const chatwootDisplayName = buildChatwootContactDisplayName({
+          contactName: updatedContact.name,
+          companyName: primaryCompanyName,
+        });
         const primaryCompanyAddress = primaryCompany?.addresses?.[0] ?? null;
         const companyNames = companies.map((company) => this.formatCompanyDisplayName(company)).filter(Boolean);
         const chatwootLastName = primaryCompanyName ? `| ${primaryCompanyName}` : null;
@@ -822,7 +827,7 @@ export class ContactsService {
         };
 
         await this.chatwootClient.updateContact(context.chatwoot, link.chatwootContactId, {
-          name: updatedContact.name,
+          name: chatwootDisplayName,
           phone_number: this.formatChatwootPhoneNumber(updatedContact.whatsapp),
           ...(updatedContact.email ? { email: updatedContact.email } : {}),
           additional_attributes: {
@@ -848,7 +853,7 @@ export class ContactsService {
           whatsapp: updatedContact.whatsapp,
           chatwootContactId: link.chatwootContactId,
           connectionKey: link.connectionKey,
-          name: updatedContact.name,
+          name: chatwootDisplayName,
           additionalAttributes: {
             last_name: chatwootLastName,
             company_name: primaryCompanyName || null,

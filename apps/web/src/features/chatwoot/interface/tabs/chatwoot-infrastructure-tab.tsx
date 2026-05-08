@@ -10,7 +10,6 @@ import {
   InlineWarning,
   RemoteHostStatusBadges,
   formatRelativeDate,
-  getRemoteHostSummary,
 } from "../chatwoot-dashboard-ui";
 import { getRemoteOperationalStatusMeta } from "@/features/remote/domain";
 
@@ -36,7 +35,6 @@ export function ChatwootInfrastructureTab() {
   const recommendedOperationalMeta = recommendedHost
     ? getRemoteOperationalStatusMeta(recommendedHost.operationalStatus)
     : null;
-  const recommendedSummary = getRemoteHostSummary(recommendedHost);
 
   return (
     <Card className="border-border/60 shadow-sm">
@@ -73,15 +71,15 @@ export function ChatwootInfrastructureTab() {
             </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hosts</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
             <p className="mt-1 text-sm font-semibold text-foreground">
-              {canUseInfrastructure ? `${companyHosts.length} disponive${companyHosts.length !== 1 ? "is" : "l"}` : "Contexto pendente"}
+              {resolved.contactName || "Nao identificado"}
             </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recomendado</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hosts</p>
             <p className="mt-1 truncate text-sm font-semibold text-foreground">
-              {canUseInfrastructure ? recommendedSummary.value : "Selecione a empresa"}
+              {canUseInfrastructure ? `${companyHosts.length} disponive${companyHosts.length !== 1 ? "is" : "l"}` : "Contexto pendente"}
             </p>
           </div>
         </div>
