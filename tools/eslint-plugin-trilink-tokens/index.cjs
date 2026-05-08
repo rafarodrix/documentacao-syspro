@@ -31,6 +31,17 @@ const SEMANTIC_REPLACEMENTS = {
   "border-neutral-200": "border-border",
 };
 
+function hasDsAllow(context, node) {
+  const src = context.getSourceCode ? context.getSourceCode() : context.sourceCode;
+  const comments = src.getAllComments();
+  const line = node.loc.start.line;
+  return comments.some(
+    (c) =>
+      c.value.includes("ds-allow") &&
+      (c.loc.end.line === line || c.loc.end.line === line - 1)
+  );
+}
+
 module.exports = {
   rules: {
     "no-hex-colors": {
@@ -46,6 +57,7 @@ module.exports = {
         return {
           Literal(node) {
             if (typeof node.value !== "string") return;
+            if (hasDsAllow(context, node)) return;
             const m = node.value.match(HEX_RE);
             if (m)
               context.report({ node, messageId: "hex", data: { value: m[0] } });
@@ -53,6 +65,7 @@ module.exports = {
           TemplateElement(node) {
             const raw = node.value && node.value.raw;
             if (!raw) return;
+            if (hasDsAllow(context, node)) return;
             const m = raw.match(HEX_RE);
             if (m)
               context.report({ node, messageId: "hex", data: { value: m[0] } });
@@ -76,6 +89,7 @@ module.exports = {
       create(context) {
         function check(node, value) {
           if (typeof value !== "string") return;
+          if (hasDsAllow(context, node)) return;
           const m = value.match(RAW_PALETTE_RE);
           if (!m) return;
           const cls = m[0];

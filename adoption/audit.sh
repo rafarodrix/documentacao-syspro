@@ -22,12 +22,14 @@ grep -RInE $EXCLUDE \
   --include='*.{ts,tsx,js,jsx,css,scss,mdx}' \
   '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?\b' "$ROOT" \
   | grep -vE '/(public|assets|img|fonts)/' \
+  | grep -v 'ds-allow' \
   > "$OUT/01-hex-colors.txt" || true
 
 # 2) Tailwind palette cores cruas (deveriam vir de tokens semanticos)
 grep -RInE $EXCLUDE \
   --include='*.{ts,tsx,js,jsx,html,mdx}' \
   '\b(text|bg|border|ring|from|to|via|fill|stroke|divide|outline|placeholder|caret|accent|decoration)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(50|100|200|300|400|500|600|700|800|900|950)\b' "$ROOT" \
+  | grep -v 'ds-allow' \
   > "$OUT/02-tailwind-raw-palette.txt" || true
 
 # 3) Inline styles (escapam ao token system)
