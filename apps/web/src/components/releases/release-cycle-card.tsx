@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, Bug, Calendar, Rocket, Sparkles } from 'lucide-react';
 import { Card, CardContent } from "@dosc-syspro/ui";
 import { cn } from '@/lib/utils';
+import { EmptyState } from "@/components/patterns";
 import type { ReleaseMonthSummary } from '@/features/releases/domain/release-grouping';
 
 type ReleaseCycleCardProps = {
@@ -94,9 +95,7 @@ export function ReleaseCycleCard({
               </Link>
             ))
           ) : (
-            <div className="col-span-full rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">
-              Nenhuma atualizacao recente.
-            </div>
+            <EmptyState icon={BarChart3} title="Nenhuma atualizacao recente." compact dashed className="col-span-full" />
           )}
         </div>
       </CardContent>

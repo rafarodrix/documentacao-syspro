@@ -3,6 +3,7 @@
 import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Badge, Input, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { Search, Boxes } from "lucide-react";
+import { EmptyState } from "@/components/patterns";
 import type { TaxNcmListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
@@ -243,13 +244,8 @@ function TaxNcmPanelComponent({ items }: { items: TaxNcmListItem[] }) {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                    <div className="flex flex-col items-center gap-3">
-                      <span>Nenhum NCM encontrado com os filtros atuais.</span>
-                      <Button size="sm" onClick={handleSync}>
-                        Sincronizar NCM
-                      </Button>
-                    </div>
+                  <TableCell colSpan={5}>
+                    <EmptyState icon={Boxes} title="Nenhum NCM encontrado com os filtros atuais." action={{ label: "Sincronizar NCM", onClick: handleSync }} compact />
                   </TableCell>
                 </TableRow>
               ) : (
