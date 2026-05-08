@@ -366,7 +366,7 @@ export class ChatwootBehaviorService {
         conversationId,
         error: error?.message ?? 'unknown_error',
       }));
-      return 'lookup_failed';
+      return null;
     }
   }
 
