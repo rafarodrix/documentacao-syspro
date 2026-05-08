@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { adminAtendimentosDataSchema } from "@dosc-syspro/contracts/dashboard";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { AlertTriangle, Ban, CheckCircle2, Clock3, Inbox, MessageSquareText, Search, UserRound, UsersRound } from "lucide-react";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
-import { getAtendimentosData } from "../../application";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 
 function toDateInputValue(date: Date) {
@@ -50,6 +50,36 @@ function formatScore(value: number | null) {
 }
 
 type AtendimentosData = Awaited<ReturnType<typeof getAtendimentosData>>;
+
+async function getAtendimentosData(params?: {
+  from?: string;
+  to?: string;
+  assigneeId?: string;
+  contact?: string;
+}) {
+  const query = new URLSearchParams();
+  if (params?.from?.trim()) query.set("from", params.from.trim());
+  if (params?.to?.trim()) query.set("to", params.to.trim());
+  if (params?.assigneeId?.trim()) query.set("assigneeId", params.assigneeId.trim());
+  if (params?.contact?.trim()) query.set("contact", params.contact.trim());
+
+  const suffix = query.size ? `?${query.toString()}` : "";
+  const res = await fetch(`/api/dashboard/suporte/atendimentos${suffix}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const payload = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const error =
+      payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
+        ? payload.error
+        : `Falha HTTP ${res.status}`;
+    throw new Error(error);
+  }
+
+  return adminAtendimentosDataSchema.parse(payload?.data);
+}
 
 export function SupportAtendimentosSubtab() {
   const todayRange = useMemo(() => buildRangePreset("today"), []);

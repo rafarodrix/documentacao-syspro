@@ -553,7 +553,7 @@ function ChatwootDiagnosticsTab() {
                           }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">Registrado no estado do Chatwoot para uso do fluxo operacional e timeout assistido.</p>
+                      <p className="text-xs text-muted-foreground">Apos esse prazo, a avaliacao pendente e encerrada e a proxima interacao segue como novo atendimento.</p>
                     </div>
 
                     <div className="min-w-0 space-y-2">

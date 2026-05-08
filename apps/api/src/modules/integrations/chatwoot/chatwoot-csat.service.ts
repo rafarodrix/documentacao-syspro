@@ -11,6 +11,8 @@ export class ChatwootCsatService {
   private readonly logger = new Logger(ChatwootCsatService.name);
 
   static readonly CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG = 'tris_csat_force_resolved_on_next_open';
+  private static readonly CSAT_TIMEOUT_CLOSURE_ORIGIN = 'inactivity_timeout';
+  private static readonly CSAT_VOICE_CLOSURE_ORIGIN = 'voice_followup';
   private static readonly CSAT_RATING_MIN = 1;
   private static readonly CSAT_RATING_MAX = 5;
 
@@ -37,6 +39,30 @@ export class ChatwootCsatService {
       payload, resolvedContext, conversationId,
     );
     if (!ChatwootPayloadParser.readBoolean(customAttributes.csat_pending)) return false;
+
+    if (this.hasPendingCsatTimedOut(customAttributes, settings)) {
+      await this.completePendingCsatWithoutAttempt(
+        conversationId,
+        customAttributes,
+        resolvedContext,
+        settings,
+        ChatwootCsatService.CSAT_TIMEOUT_CLOSURE_ORIGIN,
+        'csat_pending_timed_out_before_reply',
+      );
+      return false;
+    }
+
+    if (this.shouldInterruptPendingCsatForVoiceMessage(payload)) {
+      await this.completePendingCsatWithoutAttempt(
+        conversationId,
+        customAttributes,
+        resolvedContext,
+        settings,
+        ChatwootCsatService.CSAT_VOICE_CLOSURE_ORIGIN,
+        'csat_pending_interrupted_by_voice_message',
+      );
+      return false;
+    }
 
     const score = this.parseCsatScore(
       payload?.content ??
@@ -441,5 +467,72 @@ export class ChatwootCsatService {
     if (customAttributes.csat_responded_at || customAttributes.csat_abandoned_at) return true;
     const csatStatus = String(customAttributes.csat_status ?? '').trim().toLowerCase();
     return csatStatus === 'recorded' || csatStatus === 'low_score' || csatStatus === 'skipped_no_score';
+  }
+
+  private hasPendingCsatTimedOut(
+    customAttributes: Record<string, unknown>,
+    settings: ChatwootBehaviorSettings,
+  ): boolean {
+    const timeoutAt = ChatwootPayloadParser.parseOptionalDate(customAttributes.csat_timeout_at);
+    if (timeoutAt) {
+      return timeoutAt.getTime() <= Date.now();
+    }
+
+    const requestedAt = ChatwootPayloadParser.parseOptionalDate(customAttributes.csat_requested_at);
+    if (!requestedAt) return false;
+
+    return requestedAt.getTime() + settings.csatPendingTimeoutHours * 60 * 60 * 1000 <= Date.now();
+  }
+
+  private shouldInterruptPendingCsatForVoiceMessage(payload: any): boolean {
+    const candidates = [
+      ...(Array.isArray(payload?.attachments) ? payload.attachments : []),
+      ...(Array.isArray(payload?.message?.attachments) ? payload.message.attachments : []),
+      ...(Array.isArray(payload?.conversation?.messages?.[0]?.attachments) ? payload.conversation.messages[0].attachments : []),
+    ];
+
+    return candidates.some((attachment: any) => {
+      const fileType = String(attachment?.file_type ?? attachment?.data?.content_type ?? attachment?.content_type ?? '').trim().toLowerCase();
+      const mimeType = String(attachment?.data?.content_type ?? attachment?.mimetype ?? '').trim().toLowerCase();
+      return fileType === 'audio' || mimeType.startsWith('audio/');
+    });
+  }
+
+  private async completePendingCsatWithoutAttempt(
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+    resolvedContext: ResolvedIntegrationContext,
+    settings: ChatwootBehaviorSettings,
+    closureOrigin: string,
+    stage: string,
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    await this.chatwootClient.updateConversationCustomAttributes(
+      ChatwootPayloadParser.withSystemMessageConfig(resolvedContext.chatwoot, settings),
+      conversationId,
+      {
+        ...customAttributes,
+        csat_pending: false,
+        csat_status: 'skipped_no_score',
+        csat_abandoned_at: customAttributes.csat_abandoned_at ?? now,
+        skip_csat: true,
+        closure_origin: closureOrigin,
+      },
+      { useSystemBot: settings.systemMessagesUseBotIdentity },
+    );
+
+    if (settings.releaseConversationLinkOnResolved) {
+      await this.prisma.conversationLink.deleteMany({
+        where: { chatwootConversationId: conversationId, connectionKey: resolvedContext.connectionKey },
+      });
+    }
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_portal',
+      stage,
+      conversationId,
+      connectionKey: resolvedContext.connectionKey,
+      closureOrigin,
+    }));
   }
 }

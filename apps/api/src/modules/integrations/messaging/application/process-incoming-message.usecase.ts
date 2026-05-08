@@ -16,6 +16,8 @@ import { IntegrationContextService, type ResolvedIntegrationContext } from '../.
 export class ProcessIncomingMessageUseCase {
   private readonly logger = new Logger(ProcessIncomingMessageUseCase.name);
   private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
+  private static readonly CSAT_TIMEOUT_CLOSURE_ORIGIN = 'inactivity_timeout';
+  private static readonly CSAT_VOICE_CLOSURE_ORIGIN = 'voice_followup';
   private readonly conversationLinkLocks = new Map<string, Promise<void>>();
 
   constructor(
@@ -202,7 +204,10 @@ export class ProcessIncomingMessageUseCase {
       try {
         const link = isGroupChat
           ? await this.resolveOrCreateGroupConversationLink(String(remoteJid), resolvedConnection)
-          : await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection, behaviorSettings);
+          : await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection, behaviorSettings, {
+              interactionKind: messagePayload?.audioMessage ? 'audio' : 'message',
+              messageId,
+            });
         contactIdentifier = link.contactIdentifier;
         conversationId = link.conversationId;
 
@@ -247,6 +252,10 @@ export class ProcessIncomingMessageUseCase {
               pushName,
               resolvedConnection,
               behaviorSettings,
+              {
+                interactionKind: messagePayload?.audioMessage ? 'audio' : 'message',
+                messageId,
+              },
             );
             contactIdentifier = recreatedLink.contactIdentifier;
             conversationId = recreatedLink.conversationId;
@@ -658,6 +667,10 @@ export class ProcessIncomingMessageUseCase {
           callInfo.pushName ?? 'Cliente WhatsApp',
           resolvedConnection,
           behaviorSettings,
+          {
+            interactionKind: 'call',
+            messageId: callInfo.callId,
+          },
         );
         const content = this.buildCallLogMessage(callInfo);
 
@@ -1410,6 +1423,7 @@ export class ProcessIncomingMessageUseCase {
     pushName: string,
     connection: ResolvedIntegrationContext,
     behaviorSettings: ChatwootBehaviorSettings,
+    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string },
   ): Promise<{ contactIdentifier: string; conversationId: string }> {
     const lockKey = `${connection.connectionKey}:${phone}`;
 
@@ -1428,7 +1442,7 @@ export class ProcessIncomingMessageUseCase {
       let conversationId = link?.chatwootConversationId;
 
       if (link) {
-        link = await this.applyResolvedConversationReusePolicy(link, connection, phone, behaviorSettings);
+        link = await this.applyResolvedConversationReusePolicy(link, connection, phone, behaviorSettings, inboundContext);
         contactIdentifier = link?.chatwootContactId;
         conversationId = link?.chatwootConversationId;
       }
@@ -1713,6 +1727,7 @@ export class ProcessIncomingMessageUseCase {
     connection: ResolvedIntegrationContext,
     phone: string,
     settings: ChatwootBehaviorSettings,
+    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string },
   ) {
     if (!link?.chatwootConversationId || !link?.chatwootContactId) {
       return link;
@@ -1731,8 +1746,23 @@ export class ProcessIncomingMessageUseCase {
       const shouldRotatePendingConversation =
         status === 'pending' &&
         this.shouldCreateNewConversationForCompletedCsat(customAttributes);
+      const pendingCsatTimedOut = hasPendingCsat && this.isPendingCsatTimedOut(customAttributes, settings);
+      const shouldBreakPendingCsatForInbound =
+        hasPendingCsat &&
+        (pendingCsatTimedOut || inboundContext?.interactionKind === 'audio' || inboundContext?.interactionKind === 'call');
 
-      if (hasPendingCsat) {
+      if (shouldBreakPendingCsatForInbound) {
+        const closureOrigin = pendingCsatTimedOut
+          ? ProcessIncomingMessageUseCase.CSAT_TIMEOUT_CLOSURE_ORIGIN
+          : ProcessIncomingMessageUseCase.CSAT_VOICE_CLOSURE_ORIGIN;
+        await this.completePendingCsatBeforeNewConversation(
+          connection,
+          String(link.chatwootConversationId),
+          customAttributes,
+          closureOrigin,
+          inboundContext,
+        );
+      } else if (hasPendingCsat) {
         this.logger.log(JSON.stringify({
           flow: 'evolution_to_chatwoot',
           stage: 'resolved_conversation_kept_for_pending_csat',
@@ -1817,6 +1847,74 @@ export class ProcessIncomingMessageUseCase {
     return csatStatus === 'recorded' || csatStatus === 'low_score' || csatStatus === 'skipped_no_score';
   }
 
+  private isPendingCsatTimedOut(
+    customAttributes: Record<string, unknown>,
+    settings: ChatwootBehaviorSettings,
+  ): boolean {
+    if (!this.readBoolean(customAttributes.csat_pending)) {
+      return false;
+    }
+
+    const timeoutAt = this.parseOptionalDate(customAttributes.csat_timeout_at);
+    if (timeoutAt) {
+      return timeoutAt.getTime() <= Date.now();
+    }
+
+    const requestedAt = this.parseOptionalDate(customAttributes.csat_requested_at);
+    if (!requestedAt) {
+      return false;
+    }
+
+    const timeoutMs = settings.csatPendingTimeoutHours * 60 * 60 * 1000;
+    return requestedAt.getTime() + timeoutMs <= Date.now();
+  }
+
+  private async completePendingCsatBeforeNewConversation(
+    connection: ResolvedIntegrationContext,
+    conversationId: string,
+    customAttributes: Record<string, unknown>,
+    closureOrigin: string,
+    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string },
+  ) {
+    const now = new Date().toISOString();
+    const nextAttributes = {
+      ...customAttributes,
+      csat_pending: false,
+      csat_status: 'skipped_no_score',
+      csat_abandoned_at: customAttributes.csat_abandoned_at ?? now,
+      skip_csat: true,
+      closure_origin: closureOrigin,
+    };
+
+    try {
+      await this.chatwootClient.updateConversationCustomAttributes(
+        connection.chatwoot,
+        conversationId,
+        nextAttributes,
+      );
+      this.logger.log(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'pending_csat_closed_before_new_conversation',
+        connectionKey: connection.connectionKey,
+        chatwootConversationId: conversationId,
+        closureOrigin,
+        interactionKind: inboundContext?.interactionKind ?? 'message',
+        messageId: inboundContext?.messageId ?? null,
+      }));
+    } catch (error: any) {
+      this.logger.warn(JSON.stringify({
+        flow: 'evolution_to_chatwoot',
+        stage: 'pending_csat_close_failed_before_new_conversation',
+        connectionKey: connection.connectionKey,
+        chatwootConversationId: conversationId,
+        closureOrigin,
+        interactionKind: inboundContext?.interactionKind ?? 'message',
+        messageId: inboundContext?.messageId ?? null,
+        error: error?.message ?? 'unknown_error',
+      }));
+    }
+  }
+
   private readConversationCustomAttributesFromPayload(payload: any): Record<string, unknown> {
     const value =
       payload?.conversation?.custom_attributes ??
@@ -1837,6 +1935,13 @@ export class ProcessIncomingMessageUseCase {
       return normalized === 'true' || normalized === '1' || normalized === 'yes';
     }
     return false;
+  }
+
+  private parseOptionalDate(value: unknown): Date | null {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
