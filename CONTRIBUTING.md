@@ -9,7 +9,7 @@ Este guia mora idealmente em `CONTRIBUTING.md` na raiz do monorepo `documentacao
 1. **Cores, fontes, radii, sombras, spacing** → SEMPRE de `var(--*)`. Nunca hex literal, nunca `text-gray-500`.
 2. **Componentes de UI** (Button, Card, Input, Badge, Dialog, Select, Tabs, Tooltip) → SEMPRE de `@dosc-syspro/ui`. Nunca redeclare local.
 3. **Tipografia** → use as classes utilitarias (`.eyebrow`, `.lead`, `.caption`) ou as escalas `--text-*`. Nunca `font-family` literal.
-4. **Antes de mergear**: rode `pnpm lint:ds` localmente. CI tambem roda.
+4. **Antes de mergear**: rode `npm run lint:ds` localmente. CI tambem roda.
 
 ---
 
@@ -147,16 +147,16 @@ Nao use `style={{ padding: '13px' }}` ou margens magicas em px.
 ### Local
 
 ```bash
-pnpm lint:ds        # ESLint + Stylelint configurados
-pnpm lint:ds:fix    # auto-fix onde possivel
+npm run lint:ds        # ESLint + Stylelint configurados
+npm run lint:ds:fix    # auto-fix onde possivel
 ```
 
 ### CI (`.github/workflows/lint.yml`)
 
 ```yaml
-- run: pnpm install
-- run: pnpm lint:ds
-- run: pnpm stylelint "**/*.{css,scss}"
+- run: npm install
+- run: npm run lint:ds
+- run: npm run lint:ds
 ```
 
 ### Como suprimir uma regra (raro)
@@ -205,7 +205,7 @@ Cada sprint termina com:
 [ ] Nenhum text-gray-* / bg-zinc-* / etc sem // ds-allow
 [ ] Componentes de UI vem de @dosc-syspro/ui (ou justificado)
 [ ] Tipografia via classe utilitaria, nao font-family literal
-[ ] pnpm lint:ds passa
+[ ] npm run lint:ds passa
 [ ] Screenshots before/after se a mudanca afeta UI
 ```
 

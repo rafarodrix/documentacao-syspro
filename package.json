@@ -45,7 +45,9 @@
                     "test:e2e:install":  "npm run test:e2e:install -w @dosc-syspro/web",
                     "test:e2e:headed":  "npm run test:e2e:headed -w @dosc-syspro/web",
                     "test:e2e:ui":  "npm run test:e2e:ui -w @dosc-syspro/web",
-                    "lint:remote":  "npm run lint:remote -w @dosc-syspro/web"
+                    "lint:remote":  "npm run lint:remote -w @dosc-syspro/web",
+                    "lint:ds":      "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" --rulesdir tools/eslint-plugin-trilink-tokens && stylelint \"**/*.{css,scss}\" --config stylelint.config.mjs",
+                    "lint:ds:fix":  "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" --rulesdir tools/eslint-plugin-trilink-tokens --fix && stylelint \"**/*.{css,scss}\" --config stylelint.config.mjs --fix"
                 },
     "dependencies":  {},
     "devDependencies":  {
