@@ -59,7 +59,10 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 
 	deviceMod := devicemodule.New(logger)
 
+	// deviceMod must run before remotemodule so that GetSyncSnapshots returns
+	// populated data on the very first reconcile cycle.
 	modules := []reconcile.Module{
+		deviceMod,
 		remotemodule.New(
 			portalClient,
 			stateStore,
@@ -74,7 +77,6 @@ func BootstrapService(ctx context.Context) (*Container, error) {
 		tunnelmodule.New(),
 		backupmodule.New(),
 		supportmodule.New(),
-		deviceMod,
 	}
 
 	reconcileService := reconcile.NewService(
