@@ -1,6 +1,6 @@
 # Agent — Fluxo Operacional
 
-> Como o agente se registra, opera e executa comandos do portal. Atualizado em: 2026-05-05
+> Como o agente se registra, opera e executa comandos do portal. Atualizado em: 2026-05-08
 
 ---
 
@@ -24,24 +24,32 @@ Instalação
     ▼ (persiste agentToken com DPAPI)
 [Ciclo Operacional] ───────────────────────────────────────────────
 
-    ┌─────────── a cada 30s ──────────────┐
-    │  POST /api/remote/rustdesk/heartbeat │
-    │  { agentToken, rustdeskId, stats }   │
-    │  ◄── { pendingCommands: [...] }       │
-    └──────────────────────────────────────┘
+    ┌─────────── a cada 30s ──────────────────────────────┐
+    │  POST /api/agents/heartbeat  (internal API key)      │
+    │  { deviceId, agentVersion, remoteLinkContext }        │
+    │  ◄── { received: true }                              │
+    │  Atualiza: AgentDevice.lastHeartbeatAt               │
+    └──────────────────────────────────────────────────────┘
 
-    ┌─────────── a cada 45s ──────────────┐
-    │  Reconcile: Inspect → Plan → Apply  │
-    │  Aplica comandos pendentes           │
-    │  POST /api/remote/rustdesk/ack       │
-    │  { agentToken, commandId, result }   │
-    └──────────────────────────────────────┘
-
-    ┌─────────── a cada 60s ──────────────┐
-    │  POST /api/remote/rustdesk/sync      │
-    │  { agentToken, sysproUpdates, ... }  │
-    └──────────────────────────────────────┘
+    ┌─────────── a cada 45s ──────────────────────────────┐
+    │  Reconcile: Inspect → Plan → Apply (todos os módulos)│
+    │  Ordem de execução:                                  │
+    │    1. device   → coleta CPU, RAM, disco, processos   │
+    │    2. remote   → POST /api/remote/rustdesk/sync      │
+    │                  (inclui agentMetrics do device)      │
+    │                  Atualiza: RemoteHost.lastHeartbeatAt │
+    │                            RemoteHost.lastAgentMetrics│
+    │    3. tunnel / backup / support                       │
+    │  ACKs pendentes também são enviados neste ciclo:     │
+    │    POST /api/remote/rustdesk/ack                     │
+    └──────────────────────────────────────────────────────┘
 ```
+
+> **Nota sobre heartbeat vs sync:** O `RemoteHost.lastHeartbeatAt` (exibido como
+> "Heartbeat" na coluna do portal) é atualizado pelo **sync** (45s), não pelo
+> heartbeat separado de 30s. O endpoint `/api/agents/heartbeat` só atualiza
+> `AgentDevice` (painel de agentes). Não existe endpoint
+> `/api/remote/rustdesk/heartbeat`.
 
 ---
 
@@ -52,11 +60,11 @@ O agente usa um `discoveryToken` (gerado no instalador ou fornecido pelo portal)
 **Payload enviado:**
 ```json
 {
+  "schemaVersion": "discover.payload.v1",
   "discoveryToken": "disc_abc123",
   "rustdeskId": "123456789",
-  "hostname": "PC-CLIENTE-01",
-  "os": "Windows 11",
-  "arch": "x64"
+  "machineName": "PC-CLIENTE-01",
+  "agentVersion": "go-agent-v1"
 }
 ```
 
@@ -66,7 +74,7 @@ O agente usa um `discoveryToken` (gerado no instalador ou fornecido pelo portal)
 |-------------------|------------------------------------------------------|------------------------|
 | `REGISTER`        | Token válido, máquina não registrada ainda           | Bootstrap              |
 | `LINK`            | Token válido, vincular a host descoberto existente   | Bootstrap              |
-| `ALREADY_LINKED`  | Máquina já registrada — usar token existente         | Heartbeat              |
+| `ALREADY_LINKED`  | Máquina já registrada — usar token existente         | Sync                   |
 
 ---
 
@@ -77,11 +85,11 @@ O agente troca o `installToken` por um `agentToken` permanente.
 **Payload enviado:**
 ```json
 {
-  "installToken": "inst_xyz789",
+  "installToken": "rhost_...",
   "rustdeskId": "123456789",
-  "hostname": "PC-CLIENTE-01",
-  "os": "Windows 11",
-  "sysproPath": "C:\\Syspro\\Server\\SysproServer.exe"
+  "machineName": "PC-CLIENTE-01",
+  "agentVersion": "go-agent-v1",
+  "currentAlias": "PC-CLIENTE-01"
 }
 ```
 
@@ -89,11 +97,10 @@ O agente troca o `installToken` por um `agentToken` permanente.
 ```json
 {
   "agentToken": "agt_...",
-  "expiresAt": "2027-05-05T00:00:00Z",
-  "rustdeskConfig": {
-    "relayServer": "relay.trilink.com.br",
-    "alias": "PC-CLIENTE-01"
-  }
+  "agentTokenExpiresAt": "2027-05-05T00:00:00Z",
+  "serverHost": "relay.trilink.com.br",
+  "apiHost": "api.trilink.com.br",
+  "alias": "PC-CLIENTE-01"
 }
 ```
 
@@ -101,75 +108,113 @@ O `agentToken` é persistido localmente com DPAPI e usado em todas as chamadas s
 
 ---
 
-## Fase 3 — Heartbeat (loop de 30s)
+## Fase 3 — Heartbeat separado (loop de 30s)
 
-Mantém o host marcado como online no portal e recebe comandos pendentes.
+Mantém o `AgentDevice` atualizado no banco. **Não** atualiza `RemoteHost`.
+
+**Endpoint:** `POST /api/agents/heartbeat` (autenticado com `x-internal-api-key`)
 
 **Payload enviado:**
 ```json
 {
-  "agentToken": "agt_...",
-  "rustdeskId": "123456789",
-  "uptime": 86400,
-  "cpuUsage": 12.5,
-  "ramUsage": 45.2
+  "deviceId": "WIN-ABC123",
+  "agentVersion": "go-agent-v1",
+  "remoteLinkContext": {
+    "remoteHostId": "host_...",
+    "companyId": "company_...",
+    "rustdeskId": "123456789"
+  }
 }
 ```
 
 **Resposta:**
 ```json
 {
-  "ok": true,
-  "pendingCommands": [
-    { "id": "cmd_001", "type": "REAPPLY_CONFIG", "payload": { ... } }
-  ]
+  "success": true,
+  "data": { "received": true, "receivedAt": "..." }
 }
 ```
 
 ---
 
-## Fase 4 — Reconcile (loop de 45s)
+## Fase 4 — Reconcile (loop de 45s) — Coleta + Sync combinados
 
-O reconcile aplica comandos recebidos no heartbeat:
+O reconcile executa todos os módulos em sequência a cada 45s. A ordem importa:
 
+### 4.1 Device module (executa primeiro)
+
+Coleta snapshots do sistema operacional via Win32 APIs nativas:
+
+| Snapshot         | Frequência       | Campos principais                              |
+|------------------|------------------|------------------------------------------------|
+| `agentMetrics`   | Todo ciclo       | `cpuLoadPct`, `memoryUsedPct`, `rebootPending` |
+| `sysproProcesses`| Todo ciclo       | status dos serviços Windows monitorados        |
+| `diskSnapshot`   | A cada 4 ciclos  | `letter`, `totalMb`, `freeMb`, `usedPct`       |
+| `sysproVersions` | A cada 80 ciclos | versão do `SysproServer.exe`                   |
+
+### 4.2 Remote module (executa após device)
+
+Envia sync ao portal com todos os snapshots do device:
+
+```json
+POST /api/remote/rustdesk/sync
+{
+  "schemaVersion": "sync.payload.v1",
+  "agentToken": "agt_...",
+  "rustdeskId": "123456789",
+  "agentMetrics": {
+    "cpuLoadPct": 12.5,
+    "memoryUsedPct": 45.2,
+    "memoryTotalMb": 16384,
+    "rebootPending": false
+  },
+  "diskSnapshot": [...],
+  "sysproProcesses": [...],
+  "sysproVersions": { ... },
+  "sysproUpdates": [...]
+}
 ```
-Inspect: lê estado atual (RustDesk rodando? Configurado corretamente?)
-Plan:    calcula diferença entre current state e desired state
-Apply:   executa ações para alinhar estados
-```
 
-Após executar cada comando, envia ACK:
+**O sync atualiza no banco:**
+- `RemoteHost.lastHeartbeatAt` → exibido como coluna **Heartbeat** no portal
+- `RemoteHost.lastAgentMetrics` → exibido como coluna **Métricas** (CPU%, RAM%)
+- `RemoteHost.lastDiskSnapshot`, `lastSysproProcessSnapshot`, etc.
+
+### 4.3 ACKs de comandos
+
+Após executar comandos recebidos no sync anterior:
 
 ```json
 POST /api/remote/rustdesk/ack
 {
+  "schemaVersion": "ack.payload.v1",
   "agentToken": "agt_...",
   "commandId": "cmd_001",
-  "result": "SUCCESS",
+  "status": "ACKNOWLEDGED",
+  "reasonCode": "COMMAND_PROCESSED",
   "message": "Configuração reaplicada com sucesso"
 }
 ```
 
 ---
 
-## Fase 5 — Sync (loop de 60s)
+## Como as métricas aparecem no portal
 
-Reporta dados do Syspro instalado na máquina:
-
-```json
-POST /api/remote/rustdesk/sync
-{
-  "agentToken": "agt_...",
-  "sysproUpdates": [
-    {
-      "path": "C:\\Syspro\\Server\\SysproServer.exe",
-      "version": "3.12.1",
-      "lastModified": "2026-04-20T10:00:00Z"
-    }
-  ],
-  "deviceInfo": { ... }
-}
 ```
+device.Apply()           → coleta agentMetrics { cpuLoadPct, memoryUsedPct }
+remote.runSync()         → inclui agentMetrics no RemoteSyncRequest
+processSync (domain)     → normaliza, valida
+persistSync (infra)      → salva em RemoteHost.lastAgentMetrics (JSON)
+getRemotePlatformDirectory → normalizeLastAgentMetrics:
+                             cpuLoad  ← record.cpuLoadPct
+                             ramUsedPc ← record.memoryUsedPct
+Web UI (directory-page)  → exibe item.lastAgentMetrics.cpuLoad e .ramUsedPc
+```
+
+**Por que métricas aparecem `—` em alguns hosts:**
+1. O agente nunca completou o bootstrap → sem `agentToken` → sync nunca executou
+2. `AgentAPIEnabled = false` + sem `localDesiredState` com device habilitado → device module desabilitado
+3. O host está offline há muitos dias e os dados nunca foram coletados
 
 ---
 
@@ -186,7 +231,7 @@ POST /api/remote/rustdesk/sync
 
 ## Status operacional (visto no portal)
 
-O portal calcula o status baseado no `lastHeartbeatAt`:
+O portal calcula o status baseado no `RemoteHost.lastHeartbeatAt` (atualizado pelo sync):
 
 | Status UI            | Termo técnico   | Critério                              |
 |----------------------|-----------------|---------------------------------------|

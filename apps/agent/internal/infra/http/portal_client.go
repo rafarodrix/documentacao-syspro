@@ -232,6 +232,12 @@ func (c *PortalClient) localDesiredState() domain.DesiredState {
 			BootstrapEnabled: true,
 			SyncEnabled:      true,
 		},
+		Device: domain.DeviceDesiredState{
+			Enabled:          true,
+			Version:          c.cfg.Agent.Version,
+			CollectInventory: true,
+			CollectMetrics:   true,
+		},
 	}
 }
 
