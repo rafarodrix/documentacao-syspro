@@ -54,10 +54,10 @@ grep -RIlE $EXCLUDE \
   | xargs -I{} sh -c 'grep -L "@dosc-syspro/ui" "{}" || true' \
   > "$OUT/05-local-ui-components.txt" || true
 
-# 6) Imports diretos de "@/components/ui/*" — BLOQUEANTE: use @dosc-syspro/ui
+# 6) Imports de components/ui/* (alias @/ ou caminho relativo) — BLOQUEANTE
 grep -RInE $EXCLUDE \
   --include='*.{ts,tsx,js,jsx}' \
-  "from ['\"]@/components/ui/" "$ROOT" \
+  "from ['\"](@/|[.]{1,2}/[./]*)components/ui/" "$ROOT" \
   > "$OUT/06-shadcn-passthrough-imports.txt" || true
 
 # 7) Spacing magico (margem/padding em px hardcoded)
