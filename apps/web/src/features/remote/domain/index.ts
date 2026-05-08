@@ -4,3 +4,8 @@ export {
   getRemoteOperationalStatusMeta,
   getRemoteProductStatusMeta,
 } from "./operational-status";
+export type {
+  RemoteOperationalStatusMeta,
+  RemoteProductStatusMeta,
+  RemoteStatusTone,
+} from "./operational-status";

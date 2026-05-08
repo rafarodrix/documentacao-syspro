@@ -13,18 +13,6 @@ import {
 } from "../chatwoot-dashboard-ui";
 import { getRemoteOperationalStatusMeta, getRemoteProductStatusMeta } from "@/features/remote/domain";
 
-function getOperationalTone(status: "ONLINE" | "RECENT" | "OFFLINE" | "MISCONFIGURED" | "SESSION_BUSY") {
-  if (status === "ONLINE") return "good" as const;
-  if (status === "OFFLINE") return "neutral" as const;
-  return "warn" as const;
-}
-
-function getProductTone(status: "AWAITING_LINK" | "PROVISIONING_REMOTE" | "REMOTE_READY" | "ATTENTION_REQUIRED" | "IN_SERVICE") {
-  if (status === "REMOTE_READY") return "good" as const;
-  if (status === "ATTENTION_REQUIRED") return "warn" as const;
-  return "neutral" as const;
-}
-
 export function ChatwootInfrastructureTab() {
   const {
     resolved,
@@ -92,12 +80,12 @@ export function ChatwootInfrastructureTab() {
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm font-semibold text-foreground">{recommendedHost.name}</p>
                   {recommendedOperationalMeta ? (
-                    <ContextBadge tone={getOperationalTone(recommendedHost.operationalStatus)}>
+                    <ContextBadge tone={recommendedOperationalMeta.tone}>
                       {recommendedOperationalMeta.title}
                     </ContextBadge>
                   ) : null}
                   {recommendedProductMeta ? (
-                    <ContextBadge tone={getProductTone(recommendedHost.productStatus)}>
+                    <ContextBadge tone={recommendedProductMeta.tone}>
                       {recommendedProductMeta.label}
                     </ContextBadge>
                   ) : null}
@@ -157,8 +145,8 @@ export function ChatwootInfrastructureTab() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{host.name}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <ContextBadge tone={getOperationalTone(host.operationalStatus)}>{operationalMeta.title}</ContextBadge>
-                      <ContextBadge tone={getProductTone(host.productStatus)}>{productMeta.label}</ContextBadge>
+                      <ContextBadge tone={operationalMeta.tone}>{operationalMeta.title}</ContextBadge>
+                      <ContextBadge tone={productMeta.tone}>{productMeta.label}</ContextBadge>
                       {host.agent.lastHeartbeatAt ? (
                         <span className="inline-flex items-center gap-1">
                           <Clock3 className="h-3 w-3" />
