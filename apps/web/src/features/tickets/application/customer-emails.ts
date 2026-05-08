@@ -38,8 +38,8 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
 
 export async function getCustomerEmailOptionsForCurrentUser(url: string) {
   const session = await getProtectedSession();
-  const canAccess = session && (await currentUserHasPermission("tickets:view_all"));
-  if (!canAccess) {
+  const hasInternalTicketAccess = session && (await currentUserHasPermission("tickets:view_all"));
+  if (!hasInternalTicketAccess) {
     return {
       authorized: false,
       options: [] as CustomerEmailOption[],

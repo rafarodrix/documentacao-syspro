@@ -36,13 +36,13 @@ export async function getUserEditViewData(userId: string): Promise<UserAccessEdi
     trpc.companies.getOptions.query(),
   ]);
 
-  const isSystemUser = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
+  const hasInternalRole = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
 
   return {
-    context: isSystemUser ? "SYSTEM" : "CLIENT",
+    context: hasInternalRole ? "SYSTEM" : "CLIENT",
     userId: user.id,
     companies: companies as UserAccessCompanyOption[],
-    isAdmin: isSystemUser,
+    isAdmin: hasInternalRole,
     initialData: {
       name: user.name ?? "",
       email: user.email,

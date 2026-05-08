@@ -43,7 +43,7 @@ interface TicketDetailsProps {
     ticket?: TicketDetailsItem;
     articles: TicketArticleItem[];
     messagePagination?: TicketMessagePagination;
-    isAdmin: boolean;
+    canManageTickets: boolean;
     error?: string;
     currentUserId?: string;
 }
@@ -58,7 +58,7 @@ type InternalUserOption = {
     isActive?: boolean;
 };
 
-export function TicketDetails({ ticket, articles, messagePagination, isAdmin, error, currentUserId }: TicketDetailsProps) {
+export function TicketDetails({ ticket, articles, messagePagination, canManageTickets, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -175,8 +175,8 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
         currentPriority !== initialPriority;
     const movingToDevelopment = currentTeam === "DESENVOLVIMENTO" && initialTeam !== "DESENVOLVIMENTO";
     const returningFromTesting = normalizeStatusValue(ticket?.status) === "TESTING";
-    const requiresTransferNote = movingToDevelopment && isAdmin;
-    const requiresTestingReturnNote = returningFromTesting && isAdmin && ticketSettings.requireTestingReturnReason;
+    const requiresTransferNote = movingToDevelopment && canManageTickets;
+    const requiresTestingReturnNote = returningFromTesting && canManageTickets && ticketSettings.requireTestingReturnReason;
 
     const persistWorkflowChange = (status?: TicketModuleStatus, successMessage = "Alteracoes salvas.") => {
         if (!ticket) return;
@@ -363,7 +363,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                             id="transfer-ticket-btn"
                                             value={currentTeam}
                                             label={resolveOptionLabel(ticketSettings.teams, currentTeam)}
-                                            disabled={!isAdmin || isPending}
+                                            disabled={!canManageTickets || isPending}
                                             options={ticketSettings.teams.map((team) => ({ value: team.value, label: team.label }))}
                                             onChange={changeTeam}
                                         />
@@ -373,14 +373,14 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                             value={currentCategory}
                                             fallback="Nao definida"
                                             options={categoryOptions}
-                                            disabled={!isAdmin || isPending}
+                                            disabled={!canManageTickets || isPending}
                                             onChange={(category) => changeClassification({ category })}
                                         />
                                     </EditableSidebarField>
                                     <EditableSidebarField label="Estagio atual">
                                         <StatusDropdown
                                             status={ticket.status}
-                                            disabled={!isAdmin || isPending}
+                                            disabled={!canManageTickets || isPending}
                                             onChange={changeStatus}
                                         />
                                     </EditableSidebarField>
@@ -388,7 +388,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                         <PriorityDropdown
                                             priority={currentPriority}
                                             options={ticketSettings.priorities}
-                                            disabled={!isAdmin || isPending}
+                                            disabled={!canManageTickets || isPending}
                                             onChange={(priority) => changeClassification({ priority })}
                                         />
                                     </EditableSidebarField>
@@ -397,7 +397,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                             options={ticketSettings.modules}
                                             value={currentModule}
                                             onChange={(module) => changeClassification({ module })}
-                                            disabled={!isAdmin || isPending}
+                                            disabled={!canManageTickets || isPending}
                                             compact
                                             mode="single"
                                             labels={{
@@ -426,7 +426,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                             Ao voltar de <span className="font-medium text-foreground">Em teste</span> para <span className="font-medium text-foreground">Em desenvolvimento</span>, o sistema abre uma tela para registrar o motivo como nota interna e disparar a automacao.
                                         </div>
                                     )}
-                                    {isAdmin && classificationDirty && (
+                                    {canManageTickets && classificationDirty && (
                                         <div className="flex gap-2">
                                             <Button
                                                 type="button"
@@ -456,7 +456,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                 <Separator />
                                 <SlaCompact ticket={ticket} isClosedTicket={isClosedTicket} />
 
-                                {isClosedTicket && isAdmin && canManageRelease && (
+                                {isClosedTicket && canManageTickets && canManageRelease && (
                                     <>
                                         <Separator />
                                         <section className="space-y-2">
@@ -477,7 +477,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                 <section className="space-y-3">
                                     <SupportPeopleFields
                                         ticket={ticket}
-                                        isAdmin={isAdmin}
+                                        canManageTickets={canManageTickets}
                                         isPending={isPending}
                                         supportUsers={supportUsers}
                                         developmentUsers={developmentUsers}
@@ -501,7 +501,7 @@ export function TicketDetails({ ticket, articles, messagePagination, isAdmin, er
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
                                 </section>
 
-                                {isAdmin && !isClosedTicket && (
+                                {canManageTickets && !isClosedTicket && (
                                     <>
                                         <Separator />
                                         <section className="space-y-2">
@@ -756,14 +756,14 @@ function DetailDate({ value, fallback }: { value?: string | null; fallback: stri
 
 function SupportPeopleFields({
     ticket,
-    isAdmin,
+    canManageTickets,
     isPending,
     supportUsers,
     developmentUsers,
     onUpdateOwners,
 }: {
     ticket: TicketDetailsItem;
-    isAdmin: boolean;
+    canManageTickets: boolean;
     isPending: boolean;
     supportUsers: InternalUserOption[];
     developmentUsers: InternalUserOption[];
@@ -776,7 +776,7 @@ function SupportPeopleFields({
 
     return (
         <>
-            {isAdmin ? (
+            {canManageTickets ? (
                 <EditableSidebarField label="Analista responsavel">
                     <OwnerSelect
                         value={supportId}
@@ -799,7 +799,7 @@ function SupportPeopleFields({
                     }
                 />
             )}
-            {isAdmin ? (
+            {canManageTickets ? (
                 <EditableSidebarField label="Desenvolvedor">
                     <OwnerSelect
                         value={developerId}

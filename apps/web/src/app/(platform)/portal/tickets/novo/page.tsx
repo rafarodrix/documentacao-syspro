@@ -13,7 +13,7 @@ function readQueryParam(value: string | string[] | undefined) {
 
 export default async function NovoTicketPage({ searchParams }: NovoTicketPageProps) {
   await requireSession();
-  const isSystemUser = await currentUserHasPermission("tickets:view_all");
+  const hasInternalTicketAccess = await currentUserHasPermission("tickets:view_all");
   const params = searchParams ? await searchParams : undefined;
   const source = readQueryParam(params?.source).toLowerCase();
   const initialContext = source === "chatwoot"
@@ -35,7 +35,7 @@ export default async function NovoTicketPage({ searchParams }: NovoTicketPagePro
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <CreateTicketPageForm isSystemUser={isSystemUser} initialContext={initialContext} />
+      <CreateTicketPageForm hasInternalTicketAccess={hasInternalTicketAccess} initialContext={initialContext} />
     </div>
   );
 }

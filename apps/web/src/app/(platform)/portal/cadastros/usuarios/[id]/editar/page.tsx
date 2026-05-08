@@ -31,7 +31,7 @@ export default async function CadastrosUsuariosEditarPage({ params }: PageProps)
       userId={view.userId}
       companies={view.companies}
       context={view.context}
-      isAdmin={view.isAdmin}
+      canAssignAdminRole={view.isAdmin}
       allowedRoles={allowedRoles}
       backHref="/portal/cadastros/usuarios"
       initialData={view.initialData}

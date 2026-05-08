@@ -33,7 +33,6 @@ export default async function CadastrosUsuariosPage() {
       />
       <UserTab
         data={result.users}
-        isAdmin={isGlobalView || result.isGlobalView}
         canManage={canManage}
         canViewInternal={canViewInternal}
       />

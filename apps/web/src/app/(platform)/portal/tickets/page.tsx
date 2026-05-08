@@ -121,7 +121,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   return (
     <TicketsContainer
       tickets={data}
-      isAdmin={canManageTickets}
+      canManageTickets={canManageTickets}
       pagination={safePagination}
       staleWarning={staleWarning}
       queue={queue}

@@ -15,7 +15,7 @@ interface TicketsFiltersProps {
     setStatusFilter: (val: TicketStatusGroup) => void;
     closedWindow: ClosedTicketsWindow;
     setClosedWindow: (val: ClosedTicketsWindow) => void;
-    isAdmin: boolean;
+    canManageTickets: boolean;
     counts: TicketStatusCounts;
     team: TicketTeamFilter;
     setTeamFilter: (val: TicketTeamFilter) => void;
@@ -44,7 +44,7 @@ export function TicketsFilters({
     setStatusFilter,
     closedWindow,
     setClosedWindow,
-    isAdmin,
+    canManageTickets,
     counts,
     team,
     setTeamFilter,
@@ -91,13 +91,13 @@ export function TicketsFilters({
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                         <Input
                             id="global-ticket-search"
-                            placeholder={isAdmin ? "Buscar por assunto, ID ou cliente..." : "Buscar por assunto ou ID..."}
+                            placeholder={canManageTickets ? "Buscar por assunto, ID ou cliente..." : "Buscar por assunto ou ID..."}
                             className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50 w-full"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    {isAdmin && (
+                    {canManageTickets && (
                         <div className="flex items-center gap-2 shrink-0">
                             <Button
                                 type="button"
@@ -132,7 +132,7 @@ export function TicketsFilters({
                 </div>
             </div>
 
-            {isAdmin && showFilters && (
+            {canManageTickets && showFilters && (
                 <div className="rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="space-y-1.5">
@@ -220,7 +220,7 @@ export function TicketsFilters({
                 </div>
             )}
 
-            {!isAdmin && statusFilter === "closed" && (
+            {!canManageTickets && statusFilter === "closed" && (
                 <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3 px-1">
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
                         <CalendarDays className="h-3.5 w-3.5" /> Periodo dos fechados

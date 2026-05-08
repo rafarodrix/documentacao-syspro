@@ -25,7 +25,7 @@ export default async function CadastrosUsuariosNovoPage() {
     <CreateUserPageForm
       companies={companies}
       context="UNIFIED"
-      isAdmin={isGlobalView}
+      canAssignAdminRole={isGlobalView}
       allowedRoles={allowedRoles}
       backHref="/portal/cadastros/usuarios"
     />

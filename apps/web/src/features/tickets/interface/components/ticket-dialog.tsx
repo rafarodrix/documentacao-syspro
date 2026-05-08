@@ -26,10 +26,10 @@ import { normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-mark
 import { cn } from "@/lib/utils";
 
 interface TicketDialogProps {
-  isSystemUser?: boolean;
+  hasInternalTicketAccess?: boolean;
 }
 
-export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
+export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogProps) {
   const [open, setOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -37,12 +37,12 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
   const diagPrefix = "[TicketsDiag][TicketDialog]";
 
   const logInfo = (event: string, payload?: Record<string, unknown>) => {
-    console.info(diagPrefix, { event, at: new Date().toISOString(), isSystemUser, ...payload });
+    console.info(diagPrefix, { event, at: new Date().toISOString(), hasInternalTicketAccess, ...payload });
   };
 
   const logError = (event: string, error: unknown, payload?: Record<string, unknown>) => {
     const normalized = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
-    console.error(diagPrefix, { event, at: new Date().toISOString(), isSystemUser, ...payload, error: normalized });
+    console.error(diagPrefix, { event, at: new Date().toISOString(), hasInternalTicketAccess, ...payload, error: normalized });
   };
 
   useEffect(() => {
@@ -94,9 +94,9 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
     setDatabaseUrl,
     developmentVideoUrl,
     setDevelopmentVideoUrl,
-  } = useTicketDialog(() => setOpen(false), { isSystemUser });
+  } = useTicketDialog(() => setOpen(false), { hasInternalTicketAccess });
 
-  const systemCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
+  const internalCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
     const opts: TicketCompanyPickerOption[] = [];
     const usedIds = new Set<string>();
 
@@ -178,7 +178,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
   const customerName = searchParams?.get("customerName") || "";
   const customerPhone = searchParams?.get("customerPhone") || "";
   const customerWhatsapp = searchParams?.get("customerWhatsapp") || "";
-  const showTechnicalContext = isSystemUser || source === "chatwoot";
+  const showTechnicalContext = hasInternalTicketAccess || source === "chatwoot";
 
   const clearNewTicketParams = () => {
     const params = new URLSearchParams(searchParams?.toString() || "");
@@ -251,7 +251,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                 onSubmit={(event) => {
                   logInfo("dialog.submit_start", { filesCount: files.length });
                   try {
-                    if (!isSystemUser && clientCompanies.length > 1 && !selectedCompanyId) {
+                    if (!hasInternalTicketAccess && clientCompanies.length > 1 && !selectedCompanyId) {
                       toast.error("Selecione para qual empresa o chamado esta sendo aberto.");
                       event.preventDefault();
                       return;
@@ -360,14 +360,14 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                       <div className="hidden lg:block text-xs text-muted-foreground opacity-70">Passo 2 de 2</div>
                   </div>
 
-                  {isSystemUser && (
+                  {hasInternalTicketAccess && (
                     <FormItem className="space-y-3 bg-white dark:bg-background rounded-xl p-4 shadow-sm border border-border/60">
                       <Label className="flex justify-between items-center text-[13px] font-semibold">
                           Cliente Solicitante <span className="p-1 bg-yellow-500/10 text-yellow-600 rounded text-[10px]">Restrito a Agentes</span>
                       </Label>
                       <TicketCompanyPicker
                         value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
-                        options={systemCompanyOptions}
+                        options={internalCompanyOptions}
                         onChange={(value) => {
                           const [companyId, email] = value.split("::");
                           const option = customerOptions.find((item) => item.companyId === companyId && (email ? item.email === email : true));
@@ -390,7 +390,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                     </FormItem>
                   )}
 
-                  {!isSystemUser && clientCompanies.length > 1 && (
+                  {!hasInternalTicketAccess && clientCompanies.length > 1 && (
                     <FormItem>
                       <Label>Qual das suas empresas matriz/filial?</Label>
                       <TicketCompanyPicker
@@ -469,7 +469,7 @@ export function TicketDialog({ isSystemUser = false }: TicketDialogProps) {
                           if (suggestedCategory) {
                             setSelectedCategory(suggestedCategory);
                           }
-                      }} disabled={!isSystemUser}>
+                      }} disabled={!hasInternalTicketAccess}>
                         <FormControl>
                           <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60 disabled:opacity-70 disabled:bg-muted">
                             <SelectValue placeholder="Selecione..." />

@@ -36,7 +36,6 @@ const USERS_PAGE_SIZE = 50;
 
 export interface UserTabProps {
   data: UserWithRelations[];
-  isAdmin: boolean;
   canManage: boolean;
   canViewInternal?: boolean;
 }
@@ -126,11 +125,10 @@ interface UserActionsProps {
   user: UserWithRelations;
   isLoading: boolean;
   canManage: boolean;
-  isAdmin: boolean;
   onToggleStatus: () => void;
 }
 
-function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: UserActionsProps) {
+function UserActions({ user, isLoading, canManage, onToggleStatus }: UserActionsProps) {
   if (!canManage) return null;
 
   if (isLoading) {
@@ -199,7 +197,7 @@ function UserActions({ user, isLoading, canManage, isAdmin, onToggleStatus }: Us
   );
 }
 
-export function UserTab({ data, isAdmin, canManage, canViewInternal = true }: UserTabProps) {
+export function UserTab({ data, canManage, canViewInternal = true }: UserTabProps) {
   const router = useRouter();
   const [users, setUsers] = useState<UserWithRelations[]>(data);
   const [searchTerm, setSearchTerm] = useState("");
@@ -401,7 +399,6 @@ export function UserTab({ data, isAdmin, canManage, canViewInternal = true }: Us
                       user={user}
                       isLoading={loadingId === user.id}
                       canManage={canManage}
-                      isAdmin={isAdmin}
                       onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
                     />
                   </div>
@@ -514,7 +511,6 @@ export function UserTab({ data, isAdmin, canManage, canViewInternal = true }: Us
                         user={user}
                         isLoading={loadingId === user.id}
                         canManage={canManage}
-                        isAdmin={isAdmin}
                         onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
                       />
                     </TableCell>

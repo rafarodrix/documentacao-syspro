@@ -70,7 +70,7 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
 export interface CreateUserPageFormProps {
   companies: CompanyOption[];
   context: "CLIENT" | "SYSTEM" | "UNIFIED";
-  isAdmin: boolean;
+  canAssignAdminRole: boolean;
   backHref: string;
   mode?: "create" | "edit";
   userId?: string;
@@ -90,7 +90,7 @@ type EmailAvailabilityState =
 export function CreateUserPageForm({
   companies,
   context,
-  isAdmin,
+  canAssignAdminRole,
   backHref,
   mode = "create",
   userId,
@@ -100,10 +100,10 @@ export function CreateUserPageForm({
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
   const fallbackAllowedRoles = useMemo(() => {
-    if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as UserRoleValue[];
+    if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(canAssignAdminRole ? [ROLE.ADMIN] : [])] as UserRoleValue[];
     if (context === "CLIENT") return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN] as UserRoleValue[];
-    return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN, ROLE.SUPORTE, ROLE.DEVELOPER, ...(isAdmin ? [ROLE.ADMIN] : [])] as UserRoleValue[];
-  }, [context, isAdmin]);
+    return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN, ROLE.SUPORTE, ROLE.DEVELOPER, ...(canAssignAdminRole ? [ROLE.ADMIN] : [])] as UserRoleValue[];
+  }, [context, canAssignAdminRole]);
   const availableRoles = allowedRoles?.length ? allowedRoles : fallbackAllowedRoles;
   const defaultRole = availableRoles[0] ?? ROLE.CLIENTE_USER;
   const allowedCompanyIds = useMemo(() => companies.map((company) => company.id), [companies]);

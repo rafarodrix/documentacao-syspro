@@ -53,7 +53,7 @@ type CompanyOption = {
 };
 
 interface CreateTicketPageFormProps {
-  isSystemUser: boolean;
+  hasInternalTicketAccess: boolean;
   initialContext?: {
     source?: string;
     chatwootConversationId?: string;
@@ -80,7 +80,7 @@ function normalizeTicketTeam(value: string): TicketTeam {
   return value === "DESENVOLVIMENTO" ? "DESENVOLVIMENTO" : "SUPORTE";
 }
 
-export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTicketPageFormProps) {
+export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }: CreateTicketPageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +109,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
   const ticketSettings = useTicketModuleSettings();
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
   const [selectedModule, setSelectedModule] = useState(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
-  const [selectedTeam, setSelectedTeam] = useState<TicketTeam>(isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
+  const [selectedTeam, setSelectedTeam] = useState<TicketTeam>(hasInternalTicketAccess ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE");
   const [databaseUrl, setDatabaseUrl] = useState("");
   const [developmentVideoUrl, setDevelopmentVideoUrl] = useState("");
 
@@ -132,7 +132,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
     [selectedTeam, ticketSettings.categories],
   );
 
-  const systemCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
+  const internalCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
     const opts: TicketCompanyPickerOption[] = [];
     const usedIds = new Set<string>();
 
@@ -171,7 +171,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
   }));
 
   const requiresAssociatedCompany = source === "chatwoot";
-  const companyRequirementMet = isSystemUser
+  const companyRequirementMet = hasInternalTicketAccess
     ? requiresAssociatedCompany
       ? Boolean(selectedCompanyId)
       : Boolean(selectedCompanyId || customerEmail.trim())
@@ -185,7 +185,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
     !isPending;
 
   useEffect(() => {
-    const nextTeam: TicketTeam = isSystemUser ? ticketSettings.defaultTeam : "SUPORTE";
+    const nextTeam: TicketTeam = hasInternalTicketAccess ? ticketSettings.defaultTeam : "SUPORTE";
     const nextCategory =
       getSuggestedCategoryForTeam(ticketSettings, nextTeam) ||
       ticketSettings.categories[0]?.value ||
@@ -195,10 +195,10 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
     setSelectedCategory(nextCategory);
     setSelectedModule((current) => current || ticketSettings.modules[0]?.value || "");
     form.setValue("priority", ticketSettings.defaultPriority, { shouldValidate: false });
-  }, [form, isSystemUser, ticketSettings]);
+  }, [form, hasInternalTicketAccess, ticketSettings]);
 
   useEffect(() => {
-    if (isSystemUser) return;
+    if (hasInternalTicketAccess) return;
 
     getUserLinkedCompaniesAction()
       .then((res) => {
@@ -210,10 +210,10 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
         }
       })
       .catch(() => undefined);
-  }, [isSystemUser]);
+  }, [hasInternalTicketAccess]);
 
   useEffect(() => {
-    if (!isSystemUser) return;
+    if (!hasInternalTicketAccess) return;
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -252,7 +252,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
       clearTimeout(timer);
       controller.abort();
     };
-  }, [searchQuery, isSystemUser]);
+  }, [searchQuery, hasInternalTicketAccess]);
 
   useEffect(() => {
     form.setValue("description", descriptionText, { shouldValidate: descriptionText.length > 0 });
@@ -300,13 +300,13 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
     setSelectedCategory(categoryValue);
     const category = ticketSettings.categories.find((item) => item.value === categoryValue);
     if (category?.defaultTeam) {
-      setSelectedTeam(isSystemUser ? category.defaultTeam : "SUPORTE");
+      setSelectedTeam(hasInternalTicketAccess ? category.defaultTeam : "SUPORTE");
     }
   };
 
   const handleFormSubmit = (data: TicketFormOutput) => {
     if (!companyRequirementMet) {
-      toast.error(isSystemUser ? "Selecione a empresa ou contato do cliente." : "Selecione a empresa do chamado.");
+      toast.error(hasInternalTicketAccess ? "Selecione a empresa ou contato do cliente." : "Selecione a empresa do chamado.");
       return;
     }
 
@@ -323,7 +323,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
         formData.append("priority", data.priority);
         formData.append("type", data.type);
 
-        if (isSystemUser) {
+        if (hasInternalTicketAccess) {
           if (customerEmail.trim()) formData.append("customerEmail", customerEmail.trim().toLowerCase());
           if (selectedCompanyId) formData.append("companyId", selectedCompanyId);
         } else if (selectedCompanyId) {
@@ -442,12 +442,12 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                   />
                 </div>
 
-                {isSystemUser && (
+                {hasInternalTicketAccess && (
                   <div className="space-y-2">
                     <Label>Empresa / contato</Label>
                     <TicketCompanyPicker
                       value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
-                      options={systemCompanyOptions}
+                      options={internalCompanyOptions}
                       onChange={(value) => {
                         const [companyId, email] = value.split("::");
                         let option = customerOptions.find((item) => item.companyId === companyId && (email ? item.email === email : true));
@@ -494,7 +494,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                   </div>
                 )}
 
-                {!isSystemUser && clientCompanies.length > 1 && (
+                {!hasInternalTicketAccess && clientCompanies.length > 1 && (
                   <div className="space-y-2">
                     <Label>Empresa</Label>
                     <TicketCompanyPicker
@@ -508,7 +508,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                   </div>
                 )}
 
-                {!isSystemUser && clientCompanies.length === 1 && (
+                {!hasInternalTicketAccess && clientCompanies.length === 1 && (
                   <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
                     <span className="inline-flex items-center gap-2 font-medium text-foreground">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -545,7 +545,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                   />
                 </div>
 
-                {isSystemUser && (
+                {hasInternalTicketAccess && (
                   <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -596,7 +596,7 @@ export function CreateTicketPageForm({ isSystemUser, initialContext }: CreateTic
                   <p className="mt-1 text-xs text-muted-foreground">Define fila, categoria e roteamento inicial do chamado.</p>
                 </div>
 
-                {isSystemUser ? (
+                {hasInternalTicketAccess ? (
                   <div className="space-y-2">
                     <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Equipe atual</Label>
                     <Select value={selectedTeam} onValueChange={handleTeamChange}>

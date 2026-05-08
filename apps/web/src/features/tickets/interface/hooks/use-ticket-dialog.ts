@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
 
 type UseTicketDialogOptions = {
-    isSystemUser?: boolean;
+    hasInternalTicketAccess?: boolean;
 };
 
 type CustomerEmailOption = {
@@ -44,7 +44,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const [selectedCategory, setSelectedCategory] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.categories[0]?.value ?? "incident");
     const [selectedModule, setSelectedModule] = useState<string>(DEFAULT_TICKET_MODULE_SETTINGS.modules[0]?.value ?? "");
     const [selectedTeam, setSelectedTeam] = useState<string>(
-        options.isSystemUser ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
+        options.hasInternalTicketAccess ? DEFAULT_TICKET_MODULE_SETTINGS.defaultTeam : "SUPORTE",
     );
     const [descriptionMarkdown, setDescriptionMarkdown] = useState("");
     const [databaseUrl, setDatabaseUrl] = useState("");
@@ -58,7 +58,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         console.info(diagPrefix, {
             event,
             at: new Date().toISOString(),
-            isSystemUser: options.isSystemUser ?? false,
+            hasInternalTicketAccess: options.hasInternalTicketAccess ?? false,
             ...payload,
         });
     };
@@ -70,7 +70,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         console.error(diagPrefix, {
             event,
             at: new Date().toISOString(),
-            isSystemUser: options.isSystemUser ?? false,
+            hasInternalTicketAccess: options.hasInternalTicketAccess ?? false,
             ...payload,
             error: normalized,
         });
@@ -113,7 +113,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
 
     useEffect(() => {
         try {
-            const nextTeam = options.isSystemUser ? ticketSettings.defaultTeam : "SUPORTE";
+            const nextTeam = options.hasInternalTicketAccess ? ticketSettings.defaultTeam : "SUPORTE";
             setSelectedTeam(nextTeam);
             setSelectedCategory(
                 getSuggestedCategoryForTeam(ticketSettings, nextTeam) ||
@@ -125,10 +125,10 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
             logError("ticket_settings.apply_failed", error);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ticketSettings, options.isSystemUser]);
+    }, [ticketSettings, options.hasInternalTicketAccess]);
 
     useEffect(() => {
-        if (!options.isSystemUser) {
+        if (!options.hasInternalTicketAccess) {
             getUserLinkedCompaniesAction().then((res) => {
                 if (res.success && res.data) {
                     setClientCompanies(res.data);
@@ -141,10 +141,10 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [options.isSystemUser]);
+    }, [options.hasInternalTicketAccess]);
 
     useEffect(() => {
-        if (!options.isSystemUser) return;
+        if (!options.hasInternalTicketAccess) return;
 
         const controller = new AbortController();
         const timer = setTimeout(async () => {
@@ -184,11 +184,11 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
             controller.abort();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery, options.isSystemUser]);
+    }, [searchQuery, options.hasInternalTicketAccess]);
 
     const onSubmit = (data: TicketFormOutput) => {
         logInfo("submit.invoked", { filesCount: files.length, hasCustomerEmail: Boolean(customerEmail.trim()), hasCompanyId: Boolean(selectedCompanyId) });
-        if (options.isSystemUser && !customerEmail.trim() && !selectedCompanyId) {
+        if (options.hasInternalTicketAccess && !customerEmail.trim() && !selectedCompanyId) {
             toast.error("Selecione a empresa ou contato do cliente para abrir o chamado.");
             return;
         }
@@ -201,7 +201,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
                 formData.append("description", descriptionMarkdown || data.description);
                 formData.append("priority", data.priority);
                 formData.append("type", data.type);
-                if (options.isSystemUser) {
+                if (options.hasInternalTicketAccess) {
                     if (customerEmail.trim()) {
                         formData.append("customerEmail", customerEmail.trim().toLowerCase());
                     }

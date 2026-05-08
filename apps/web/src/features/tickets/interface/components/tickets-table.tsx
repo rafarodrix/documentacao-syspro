@@ -13,19 +13,19 @@ import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-
 
 interface TicketsTableProps {
   tickets: TicketListItem[];
-  isAdmin: boolean;
+  canManageTickets: boolean;
   statusGroup: TicketStatusGroup;
   sortBy: TicketSortBy;
   sortOrder: TicketSortOrder;
   onSortChange: (sortBy: TicketSortBy, sortOrder: TicketSortOrder) => void;
 }
 
-export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder, onSortChange }: TicketsTableProps) {
+export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, sortOrder, onSortChange }: TicketsTableProps) {
   const router = useRouter();
   const ticketSettings = useTicketModuleSettings();
   const isClosedView = statusGroup === "closed";
   const isOpenView = statusGroup === "open";
-  const emptyStateColSpan = isAdmin
+  const emptyStateColSpan = canManageTickets
     ? isClosedView || isOpenView ? 8 : 9
     : isClosedView || isOpenView ? 7 : 8;
 
@@ -53,7 +53,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder,
                 </div>
                 {!isClosedView && !isOpenView && <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />}
               </div>
-              {isAdmin && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
+              {canManageTickets && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
               <div className="flex items-center gap-2">
                 <TeamBadge team={ticket.team} />
                 {ticket.category ? (
@@ -84,7 +84,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder,
               <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 <SortButton label="Assunto" active={sortBy === "subject"} direction={sortOrder} onClick={() => toggleSort("subject", sortBy, sortOrder, onSortChange)} />
               </TableHead>
-              {isAdmin && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></TableHead>}
+              {canManageTickets && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></TableHead>}
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
               {!isClosedView && !isOpenView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
@@ -119,7 +119,7 @@ export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder,
                     </div>
                   </TableCell>
 
-                  {isAdmin && (
+                  {canManageTickets && (
                     <TableCell>
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/60 transition-colors group-hover/row:text-primary">

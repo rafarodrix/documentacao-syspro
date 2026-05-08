@@ -14,7 +14,7 @@ import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 
 interface TicketsContainerProps {
   tickets: TicketListItem[];
-  isAdmin: boolean;
+  canManageTickets: boolean;
   pagination: TicketsPagination;
   staleWarning?: string;
   queue: QueueKey;
@@ -34,7 +34,7 @@ interface TicketsContainerProps {
 
 export function TicketsContainer({
   tickets,
-  isAdmin,
+  canManageTickets,
   pagination,
   staleWarning,
   queue,
@@ -83,9 +83,9 @@ export function TicketsContainer({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{isAdmin ? "Central de Atendimento" : "Meus Chamados"}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{canManageTickets ? "Central de Atendimento" : "Meus Chamados"}</h1>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            {isAdmin ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
+            {canManageTickets ? "Gerencie a fila de suporte e solicitacoes." : "Acompanhe o status das suas solicitacoes."}
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -110,7 +110,7 @@ export function TicketsContainer({
             setStatusFilter={setStatusFilter}
             closedWindow={closedWindow}
             setClosedWindow={setClosedWindowFilter}
-            isAdmin={isAdmin}
+            canManageTickets={canManageTickets}
             counts={statusCounts}
             team={team}
             setTeamFilter={setTeamFilter}
@@ -129,7 +129,7 @@ export function TicketsContainer({
 
       <TicketsTable
         tickets={tickets}
-        isAdmin={isAdmin}
+        canManageTickets={canManageTickets}
         statusGroup={statusGroup}
         sortBy={sortBy}
         sortOrder={sortOrder}
