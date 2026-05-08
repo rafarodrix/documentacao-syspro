@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { trpc } from "@/lib/api/trpc-client";
 import {
   AlertCircle,
   Building2,
@@ -238,32 +239,14 @@ export function CreateUserPageForm({
     const timer = setTimeout(async () => {
       try {
         setEmailAvailability({ status: "checking" });
-        const params = new URLSearchParams({ email: normalizedWatchedEmail });
-        const response = await fetch(`/api/users/check-email?${params.toString()}`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        const payload = await response.json().catch(() => null);
+        const result = await trpc.users.checkEmail.query({ email: normalizedWatchedEmail });
         if (cancelled) return;
 
-        if (!response.ok) {
-          setEmailAvailability({ status: "idle" });
-          return;
+        if (result.available) {
+          setEmailAvailability({ status: "available", message: result.message });
+        } else {
+          setEmailAvailability({ status: "unavailable", message: result.message });
         }
-
-        if (payload?.available) {
-          setEmailAvailability({
-            status: "available",
-            message: payload?.message || "E-mail disponivel para cadastro.",
-          });
-          return;
-        }
-
-        setEmailAvailability({
-          status: "unavailable",
-          message: payload?.message || "Este e-mail nao esta disponivel.",
-        });
       } catch {
         if (!cancelled) {
           setEmailAvailability({ status: "idle" });
@@ -320,32 +303,22 @@ export function CreateUserPageForm({
 
     if (mode === "edit" && !payload.password) payload.password = undefined;
 
-    const url = mode === "edit" && userId ? `/api/users/${userId}` : "/api/users";
-    const method = mode === "edit" && userId ? "PUT" : "POST";
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        toast.error(
-          errData?.error ||
-          errData?.message ||
-          (mode === "edit" ? "Erro ao atualizar usuario." : "Erro ao cadastrar usuario.")
-        );
-        return;
+      if (mode === "edit" && userId) {
+        await trpc.users.update.mutate({ id: userId, data: payload });
+      } else {
+        await trpc.users.create.mutate(payload);
       }
 
       toast.success(mode === "edit" ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso.");
       router.push(backHref);
       router.refresh();
-    } catch {
-      toast.error("Erro na comunicacao com o servidor.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : (mode === "edit" ? "Erro ao atualizar usuario." : "Erro ao cadastrar usuario."),
+      );
     }
   };
 

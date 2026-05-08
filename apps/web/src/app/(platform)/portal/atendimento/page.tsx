@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AlertCircle, ArrowLeft, MessagesSquare } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
-import { resolveServerOrigin } from "@/lib/server-origin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { trpc } from "@/lib/api/trpc-client";
 
 export default async function AtendimentoPage() {
   await requireSession();
@@ -16,9 +15,6 @@ export default async function AtendimentoPage() {
     redirect("/portal");
   }
 
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie");
-  const appOrigin = resolveServerOrigin(requestHeaders);
   let chatwootUrl: string | undefined;
   let responseMode: "sso" | "fallback" | undefined;
   let responseReason: string | undefined;
@@ -26,28 +22,14 @@ export default async function AtendimentoPage() {
     "Nao foi possivel concluir o acesso unificado ao atendimento. Verifique a integracao do Chatwoot no portal.";
 
   try {
-    const response = await fetch(`${appOrigin}/api/users/me/chatwoot/sso`, {
-      method: "GET",
-      headers: {
-        ...(cookie ? { cookie } : {}),
-        accept: "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (response.ok) {
-      const payload = (await response.json()) as { url?: string; mode?: "sso" | "fallback"; reason?: string; message?: string };
-      if (payload?.url) {
-        chatwootUrl = payload.url;
-        responseMode = payload.mode;
-        responseReason = payload.reason;
-      }
-      if (payload?.message) {
-        failureMessage = payload.message;
-      }
-    } else {
-      const payload = await response.json().catch(() => null) as { message?: string; error?: string } | null;
-      failureMessage = payload?.message ?? payload?.error ?? failureMessage;
+    const payload = await trpc.users.getChatwootSsoLink.query();
+    if (payload?.url) {
+      chatwootUrl = payload.url;
+      responseMode = payload.mode as "sso" | "fallback";
+      responseReason = payload.reason as string | undefined;
+    }
+    if (payload?.message) {
+      failureMessage = payload.message as string;
     }
   } catch (error) {
     failureMessage = error instanceof Error

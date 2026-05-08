@@ -2,14 +2,37 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
 
 const getProtectedSessionMock = vi.fn();
-const callWebApiMock = vi.fn();
+const trpcRemoveMutate = vi.fn();
+const trpcCreateMutate = vi.fn();
+const trpcUpdateMutate = vi.fn();
 
 vi.mock("@/lib/auth-helpers", () => ({
   getProtectedSession: getProtectedSessionMock,
 }));
 
-vi.mock("@/lib/web-api", () => ({
-  callWebApi: callWebApiMock,
+vi.mock("@/lib/api/trpc-client", () => ({
+  trpc: {
+    users: {
+      remove: { mutate: trpcRemoveMutate },
+      create: { mutate: trpcCreateMutate },
+      update: { mutate: trpcUpdateMutate },
+    },
+  },
+}));
+
+vi.mock("@dosc-syspro/shared/action-rate-limit", () => ({
+  consumeActionRateLimit: vi.fn().mockReturnValue({ allowed: true, retryAfterSeconds: 0 }),
+}));
+
+vi.mock("@/lib/security/request-context", () => ({
+  getRequestIp: vi.fn().mockResolvedValue("127.0.0.1"),
+}));
+
+vi.mock("@dosc-syspro/shared/action-error-handler", () => ({
+  handleActionError: vi.fn((error: unknown) => ({
+    success: false,
+    message: error instanceof Error ? error.message : "Erro desconhecido.",
+  })),
 }));
 
 vi.mock("@/features/settings/infrastructure/gateways/settings.gateway", () => ({
@@ -44,7 +67,7 @@ describe("authorization integration: user actions hardening", () => {
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(false);
-    expect(callWebApiMock).not.toHaveBeenCalled();
+    expect(trpcRemoveMutate).not.toHaveBeenCalled();
   });
 
   it("permite deleteUserAction para role ADMIN", async () => {
@@ -54,16 +77,13 @@ describe("authorization integration: user actions hardening", () => {
       email: "admin@syspro.com",
     });
 
-    callWebApiMock.mockResolvedValue(new Response(null, { status: 200 }));
+    trpcRemoveMutate.mockResolvedValue(undefined);
 
     const { deleteUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await deleteUserAction("target-user");
 
     expect(result.success).toBe(true);
-    expect(callWebApiMock).toHaveBeenCalledWith(
-      expect.stringContaining("/users/target-user"),
-      expect.objectContaining({ method: "DELETE" }),
-    );
+    expect(trpcRemoveMutate).toHaveBeenCalledWith({ id: "target-user" });
   });
 
   it("cria usuario via createUserAction com permissao de ADMIN", async () => {
@@ -73,9 +93,7 @@ describe("authorization integration: user actions hardening", () => {
       email: "admin@syspro.com",
     });
 
-    callWebApiMock.mockResolvedValue(
-      new Response(JSON.stringify({ id: "new-user-1" }), { status: 200 }),
-    );
+    trpcCreateMutate.mockResolvedValue({ id: "new-user-1" });
 
     const { createUserAction } = await import("@/features/user-access/application/user-access-write.actions");
     const result = await createUserAction({
@@ -87,10 +105,7 @@ describe("authorization integration: user actions hardening", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(callWebApiMock).toHaveBeenCalledWith(
-      expect.stringContaining("/users"),
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(trpcCreateMutate).toHaveBeenCalled();
   });
 
   it("bloqueia createUserAction para CLIENTE_USER sem permissao users:create", async () => {
@@ -110,6 +125,6 @@ describe("authorization integration: user actions hardening", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(callWebApiMock).not.toHaveBeenCalled();
+    expect(trpcCreateMutate).not.toHaveBeenCalled();
   });
 });
