@@ -48,6 +48,15 @@ export class UsersService {
     private readonly contactsService: ContactsService,
   ) {}
 
+  async getAdminView(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
+
+    return {
+      isGlobalView,
+    };
+  }
+
   async findAll(filters?: { search?: string; role?: string }, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
 

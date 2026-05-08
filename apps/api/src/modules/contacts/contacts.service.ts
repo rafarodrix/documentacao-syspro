@@ -70,6 +70,15 @@ export class ContactsService {
     private readonly authorizationService: AuthorizationService,
   ) {}
 
+  async getAdminView(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertCanViewContacts(rawHeaders);
+    const scope = await this.resolveContactCompanyScope(requester);
+
+    return {
+      isGlobalView: scope.isGlobal,
+    };
+  }
+
   async getContacts(input: ContactListQuery, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.assertCanViewContacts(rawHeaders);
     const scope = await this.resolveContactCompanyScope(requester);

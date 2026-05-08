@@ -33,6 +33,11 @@ export class ContactsRouter {
           this.contactsService.getContactStats(ctx.headers),
         ),
 
+      getAdminView: this.trpc.publicProcedure
+        .query(({ ctx }) =>
+          this.contactsService.getAdminView(ctx.headers),
+        ),
+
       getOne: this.trpc.publicProcedure
         .input(z.object({ id: z.string() }))
         .query(({ input, ctx }) =>

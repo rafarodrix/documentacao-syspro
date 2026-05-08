@@ -114,6 +114,8 @@ export function CreateUserPageForm({
 
   const [contactSearch, setContactSearch] = useState("");
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
+  const [contactPage, setContactPage] = useState(1);
+  const [hasMoreContacts, setHasMoreContacts] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [emailAvailability, setEmailAvailability] = useState<EmailAvailabilityState>({ status: "idle" });
 
@@ -150,6 +152,10 @@ export function CreateUserPageForm({
   const normalizedWatchedEmail = String(watchedEmail ?? "").trim().toLowerCase();
 
   useEffect(() => {
+    setContactPage(1);
+  }, [contactSearch, selectedRoleIsClient, allowedCompanyIds]);
+
+  useEffect(() => {
     const query = contactSearch.trim();
     const currentContactId = form.getValues("contactId");
 
@@ -158,31 +164,43 @@ export function CreateUserPageForm({
         setLoadingContacts(true);
 
         const result = await trpc.contacts.list.query({
-          page: "1",
-          pageSize: "200",
+          page: String(contactPage),
+          pageSize: "100",
           q: query || undefined,
         });
         const normalized = result.items as ContactOption[];
         const filtered = selectedRoleIsClient
           ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
           : normalized;
+        const selected = currentContactId ? normalized.find((contact) => contact.id === currentContactId) : undefined;
 
-        if (currentContactId && normalized.some((contact) => contact.id === currentContactId) && !filtered.some((contact) => contact.id === currentContactId)) {
-          const selected = normalized.find((contact) => contact.id === currentContactId);
-          setContactOptions(selected ? [selected, ...filtered] : filtered);
-          return;
-        }
+        setHasMoreContacts(Boolean(result.pagination?.hasNextPage));
 
-        setContactOptions(filtered);
+        setContactOptions((prev) => {
+          const base = contactPage === 1 ? [] : prev;
+          const next = [...base];
+          const pushUnique = (contact: ContactOption | undefined | null) => {
+            if (!contact || next.some((item) => item.id === contact.id)) return;
+            next.push(contact);
+          };
+
+          if (currentContactId && selected && !filtered.some((contact) => contact.id === currentContactId)) {
+            pushUnique(selected);
+          }
+
+          filtered.forEach((contact) => pushUnique(contact));
+          return next;
+        });
       } catch {
-        setContactOptions([]);
+        setHasMoreContacts(false);
+        setContactOptions((prev) => (contactPage === 1 ? [] : prev));
       } finally {
         setLoadingContacts(false);
       }
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [allowedCompanyIds, contactSearch, selectedRoleIsClient, form]);
+  }, [allowedCompanyIds, contactPage, contactSearch, selectedRoleIsClient, form]);
 
   useEffect(() => {
     const currentContactId = form.getValues("contactId");
@@ -546,6 +564,8 @@ export function CreateUserPageForm({
                               onSearchChange={setContactSearch}
                               onChange={field.onChange}
                               placeholder="Selecione um contato"
+                              hasMore={hasMoreContacts}
+                              onLoadMore={() => setContactPage((current) => current + 1)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -592,6 +612,8 @@ function ContactPicker({
   onSearchChange,
   onChange,
   placeholder,
+  hasMore,
+  onLoadMore,
 }: {
   value: string;
   options: ContactOption[];
@@ -600,6 +622,8 @@ function ContactPicker({
   onSearchChange: (value: string) => void;
   onChange: (value: string) => void;
   placeholder: string;
+  hasMore: boolean;
+  onLoadMore: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((contact) => contact.id === value) ?? null;
@@ -711,6 +735,22 @@ function ContactPicker({
           {!options.length && !loading ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               Nenhum contato encontrado para o termo informado.
+            </div>
+          ) : null}
+
+          {options.length > 0 && hasMore ? (
+            <div className="border-t px-2 pb-2 pt-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={onLoadMore}
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Carregar mais contatos
+              </Button>
             </div>
           ) : null}
         </div>

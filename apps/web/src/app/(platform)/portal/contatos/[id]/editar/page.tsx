@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getCompanyOptionsAction } from "@/features/company/application/company-read.queries";
+import { getCompanyOptionsQuery } from "@/features/company/application/company-read.queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { CreateContactPageForm } from "@/components/platform/app/contatos/create-contact-page-form";
 import { trpc } from "@/lib/api/trpc-client";
@@ -46,7 +46,7 @@ export default async function EditarContatoPage({ params }: PageProps) {
   const { id } = await params;
   const [contact, result] = await Promise.all([
     getContactById(id),
-    getCompanyOptionsAction(),
+    getCompanyOptionsQuery(),
   ]);
 
   if (!contact) notFound();

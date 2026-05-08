@@ -38,6 +38,11 @@ export class UsersRouter {
           return this.usersService.checkEmailAvailability(input.email, ctx.headers);
         }),
 
+      getAdminView: this.trpc.publicProcedure
+        .query(({ ctx }) => {
+          return this.usersService.getAdminView(ctx.headers);
+        }),
+
       getOne: this.trpc.publicProcedure
         .input(z.object({ id: z.string() }))
         .query(({ input, ctx }) => {

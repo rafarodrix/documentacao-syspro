@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { getCompanyOptionsAction } from "@/features/company/application/company-read.queries";
+import { getCompanyOptionsQuery } from "@/features/company/application/company-read.queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -21,7 +21,7 @@ export default async function CadastrosEmpresaNovoPage({ searchParams }: Cadastr
         ? returnToParam[0] ?? "/portal/cadastros/empresa"
         : "/portal/cadastros/empresa";
 
-  const companies = await getCompanyOptionsAction();
+  const companies = await getCompanyOptionsQuery();
 
   return <CreateCompanyPageForm backHref={backHref} companies={companies} />;
 }

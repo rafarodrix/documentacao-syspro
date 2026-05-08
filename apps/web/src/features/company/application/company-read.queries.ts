@@ -23,7 +23,7 @@ export async function getCompaniesQuery(filters?: {
   }
 }
 
-export async function getCompanyOptionsAction(): Promise<CompanyOption[]> {
+export async function getCompanyOptionsQuery(): Promise<CompanyOption[]> {
   try {
     return (await trpc.companies.getOptions.query()) as CompanyOption[];
   } catch {

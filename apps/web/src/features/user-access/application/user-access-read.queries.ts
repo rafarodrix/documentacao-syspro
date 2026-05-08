@@ -3,7 +3,6 @@ import type {
   UserAccessAdminViewData,
   UserAccessCompanyOption,
   UserAccessEditViewData,
-  UserAccessListItem,
 } from "@dosc-syspro/contracts/user";
 import { trpc } from "@/lib/api/trpc-client";
 
@@ -14,19 +13,16 @@ export async function getUsersAdminViewData(): Promise<
   | ActionError
 > {
   try {
-    const [users, companies] = await Promise.all([
+    const [users, companies, adminView] = await Promise.all([
       trpc.users.list.query({}),
       trpc.companies.getOptions.query(),
+      trpc.users.getAdminView.query(),
     ]);
-
-    const isGlobalView = (users as UserAccessListItem[]).some((user) =>
-      user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE",
-    );
 
     return {
       companies: companies as UserAccessCompanyOption[],
-      users: users as UserAccessListItem[],
-      isGlobalView,
+      users,
+      isGlobalView: Boolean(adminView?.isGlobalView),
     };
   } catch {
     return { error: "Erro ao buscar usuarios." };
