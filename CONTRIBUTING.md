@@ -161,24 +161,31 @@ Nao use `style={{ padding: '13px' }}` ou margens magicas em px.
 ### Local
 
 ```bash
-npm run lint:ds        # ESLint + Stylelint configurados
-npm run lint:ds:fix    # auto-fix onde possivel
+npm run lint:ds        # audit.sh (grep) + ESLint (trilink-tokens plugin)
+npm run lint:ds:fix    # apenas audit.sh (ESLint auto-fix nao suportado para estas regras)
 ```
 
-### CI (`.github/workflows/lint.yml`)
+> **Stylelint**: o `stylelint.config.mjs` esta pronto na raiz. Para ativar:
+> `npm install -D stylelint stylelint-config-standard`
+> Depois adicione `&& npx stylelint "**/*.css"` ao script `lint:ds`.
+
+### CI (`.github/workflows/ci.yml`)
 
 ```yaml
-- run: npm install
-- run: npm run lint:ds
-- run: npm run lint:ds
+- name: Lint design system
+  run: npm run lint:ds
 ```
 
 ### Como suprimir uma regra (raro)
 
-Adicione um comentario na linha:
+Adicione `// ds-allow: <motivo>` na linha anterior ao elemento (nunca `{/* */}` dentro de JSX):
 
 ```tsx
-<div className="bg-emerald-500/10 text-emerald-600">  {/* ds-allow: surface accent */}
+// ds-allow: surface accent
+<div className="bg-emerald-500/10 text-emerald-600">
+
+// ds-allow: surface accent
+<span className="text-violet-500">SYSTEM</span>
 ```
 
 Comentarios `ds-allow:` sao auditados em PR review.

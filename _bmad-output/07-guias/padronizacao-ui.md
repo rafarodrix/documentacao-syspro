@@ -176,21 +176,22 @@ O `@dosc-syspro/ui` é um **shadcn/ui port mantido internamente** no monorepo. O
 
 **Manter a abordagem atual**, com duas melhorias:
 
-1. **Integrar a shadcn CLI** para adicionar novos componentes sem copiar manualmente:
+1. **Usar shadcn CLI a partir de `packages/ui/`** para adicionar novos componentes:
    ```bash
-   # Na raiz do monorepo, após configurar components.json em packages/ui/
-   npx shadcn@latest add calendar --path packages/ui/src
+   # A partir da raiz do monorepo
+   cd packages/ui && npx shadcn@latest add <componente>
+   # O components.json em packages/ui/ já aponta aliases para src/
    ```
 
-2. **`components.json`** em `packages/ui/` para rastrear quais componentes foram portados e com quais customizações:
+2. **`packages/ui/components.json`** já existe e configura aliases para `src/`:
    ```json
    {
-     "style": "default",
-     "rsc": true,
-     "tailwind": { "config": "../../apps/web/tailwind.config.ts" },
-     "aliases": { "components": "@dosc-syspro/ui", "utils": "@dosc-syspro/ui/utils" }
+     "style": "new-york",
+     "tailwind": { "config": "", "css": "../../apps/web/src/app/globals.css" },
+     "aliases": { "ui": "src", "utils": "src/utils" }
    }
    ```
+   O `apps/web/components.json` é **legado** — usado apenas como fallback para ferramentas externas. Novos componentes devem ir para `packages/ui`.
 
 ---
 

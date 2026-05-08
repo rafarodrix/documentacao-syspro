@@ -108,7 +108,9 @@ tokens.css
 
 ### Paleta semântica (light / dark)
 
-Os tokens de cor são declarados em `:root` (light) e `.dark { }`, usando `oklch()` para máxima consistência de contraste. **Nunca use hex diretamente** — adicione um token semântico em `tokens.css`.
+Os tokens de cor são declarados em `:root` (light) e `.dark { }` dentro de `tokens.css`, usando `oklch()` para máxima consistência de contraste. **Nunca use hex diretamente** — adicione um token semântico em `tokens.css`.
+
+> **Tipografia**: `tokens.css` declara `--font-sans: "Inter", system-ui, ...` mas **não carrega** a fonte — quem faz isso é `next/font/google` em `apps/web/src/app/layout.tsx`. A variável do token é suficiente para componentes referenciarem a fonte; o carregamento fica no consumidor.
 
 ---
 
