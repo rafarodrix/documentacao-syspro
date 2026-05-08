@@ -3,9 +3,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { CompaniesService } from './companies.service';
 import { CompaniesRouter } from './companies.router';
 import { ContactsModule } from '../contacts/contacts.module';
+import { TrpcCoreModule } from '../trpc/trpc-core.module';
 
 @Module({
-  imports: [PrismaModule, ContactsModule],
+  imports: [PrismaModule, ContactsModule, TrpcCoreModule],
   providers: [CompaniesService, CompaniesRouter],
   exports: [CompaniesService, CompaniesRouter],
 })

@@ -6,9 +6,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ContactsModule } from '../contacts/contacts.module';
+import { TrpcCoreModule } from '../trpc/trpc-core.module';
 
 @Module({
-  imports: [PrismaModule, ChatwootModule, SettingsModule, ContactsModule],
+  imports: [PrismaModule, ChatwootModule, SettingsModule, ContactsModule, TrpcCoreModule],
   providers: [UsersService, UsersRouter, UserContactAccessService],
   exports: [UsersService, UsersRouter],
 })
