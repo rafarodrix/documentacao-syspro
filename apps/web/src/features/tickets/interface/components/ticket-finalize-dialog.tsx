@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Flag, Video } from "lucide-react";
 import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@dosc-syspro/ui";
 import {
   Dialog,
   DialogContent,
@@ -21,10 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketFinalizeDialogProps {

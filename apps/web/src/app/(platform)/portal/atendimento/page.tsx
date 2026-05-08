@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertCircle, ArrowLeft, MessagesSquare } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { trpc } from "@/lib/api/trpc-client";
 

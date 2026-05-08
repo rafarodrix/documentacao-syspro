@@ -10,8 +10,8 @@ import {
     CheckCircle2,
     XCircle
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     Accordion,
@@ -26,7 +26,7 @@ import {
     TableHead,
     TableHeader,
     TableRow
-} from "@/components/ui/table";
+} from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 interface TaxRulesViewerProps {

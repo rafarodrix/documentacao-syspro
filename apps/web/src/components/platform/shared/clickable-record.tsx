@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
-import { TableRow } from "@/components/ui/table";
+import { TableRow } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 type ClickableRecordProps = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 
 interface ChamadosErrorProps {
   error: Error & { digest?: string };

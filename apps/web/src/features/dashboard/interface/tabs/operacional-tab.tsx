@@ -1,5 +1,5 @@
 import { FileText, Headset, KeyRound } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
 import { TrustReleaseCard } from "../components/trust-release-card";

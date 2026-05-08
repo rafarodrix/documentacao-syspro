@@ -3,10 +3,10 @@
 import { useFormContext } from "react-hook-form";
 import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import { Phone } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@dosc-syspro/ui";
 import { formatPhone } from "@/lib/formatters";
 
 export function CompanyContactTab() {

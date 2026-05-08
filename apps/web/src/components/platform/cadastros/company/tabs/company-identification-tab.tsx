@@ -3,12 +3,12 @@
 import { useFormContext } from "react-hook-form";
 import { COMPANY_SEGMENT_VALUES, type CreateCompanyInput } from "@dosc-syspro/contracts/company";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
 import { ClipboardList, Loader2, Search, Sparkles, Building2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@dosc-syspro/ui";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
 import { formatCNPJ } from "@/lib/formatters";
 import { cn } from "@/lib/utils";

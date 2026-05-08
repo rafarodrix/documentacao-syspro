@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { includesNormalizedSearch } from "@dosc-syspro/shared";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UNLINKED_COMPANY_VALUE } from "../host-details.constants";
 import { requestRemoteQuery } from "@/features/remote/interface/remote-api";

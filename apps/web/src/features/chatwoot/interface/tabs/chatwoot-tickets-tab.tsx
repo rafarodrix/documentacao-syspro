@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { ArrowUpRight, Clock3, Loader2, MessageSquare, Ticket, Waypoints } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { getSuggestedCategoryForTeam } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";

@@ -24,13 +24,13 @@ import {
   SettingsTabsRailTrigger,
 } from "@/app/(platform)/portal/configuracoes/settings-shell";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Tabs, TabsContent } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { invalidateTicketModuleSettingsCache } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 

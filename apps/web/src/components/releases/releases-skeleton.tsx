@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardFooter } from "@dosc-syspro/ui";
+import { Separator } from "@dosc-syspro/ui";
 
 // ----------------------------------------------------------------------
 // 1. Esqueleto do Card de Mês (Usado na ReleasesIndexSkeleton)

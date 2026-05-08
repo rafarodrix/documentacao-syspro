@@ -6,8 +6,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+} from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
 import { FileText, Database, ArrowRight } from "lucide-react";
 
 export async function TaxClassificationList() {

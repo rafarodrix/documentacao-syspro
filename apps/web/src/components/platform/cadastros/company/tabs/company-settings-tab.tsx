@@ -9,12 +9,12 @@ import {
 } from "@dosc-syspro/contracts/company";
 import type { CompanyRemoteConnectionInput } from "@/features/company/application/company-view.types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
+import { Badge } from "@dosc-syspro/ui";
 import { Server, Network, Plus, Trash2, Info } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 const REMOTE_CONNECTION_LABEL: Record<CompanyRemoteConnectionInput["type"], string> = {

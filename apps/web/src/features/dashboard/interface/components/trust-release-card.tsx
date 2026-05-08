@@ -1,5 +1,5 @@
 import { ExternalLink, ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 
 const TRUST_RELEASE_URL = "https://n3.cloud.trilink.com.br/form/ce8a6237-d645-45dc-b32d-15d193088cc5";
 

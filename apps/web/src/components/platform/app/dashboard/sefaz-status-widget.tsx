@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";

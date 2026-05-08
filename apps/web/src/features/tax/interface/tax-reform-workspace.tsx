@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { BookOpen, CalendarDays, Files, Search } from "lucide-react";
 import { TaxAnexosContainer, TaxNcmLookup, TaxViewerContainer } from "@/features/tax/interface";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 
 export function TaxReformWorkspace() {
   return (

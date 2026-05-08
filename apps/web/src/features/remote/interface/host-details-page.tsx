@@ -26,12 +26,12 @@ import {
   Archive,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@dosc-syspro/ui";
+import { Button, buttonVariants } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";

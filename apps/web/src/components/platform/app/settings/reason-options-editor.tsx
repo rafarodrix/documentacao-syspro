@@ -1,7 +1,7 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
 import { Switch } from "@/components/ui/switch";
 
 type ReasonOption = {

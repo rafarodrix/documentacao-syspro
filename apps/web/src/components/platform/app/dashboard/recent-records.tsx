@@ -1,7 +1,7 @@
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui"
+import { Badge } from "@dosc-syspro/ui"
+import { Button } from "@dosc-syspro/ui"
 import { ArrowUpRight, Plus, UserRound, Users } from "lucide-react"
 
 export interface RecentRecordItem {

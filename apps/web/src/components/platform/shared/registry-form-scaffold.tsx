@@ -3,8 +3,8 @@
 import type { ElementType, ReactNode } from "react";
 import { CheckCircle2, AlertCircle, ChevronRight, Loader2, Save } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
 import { ShineBorder } from "@/components/magicui/shine-border";
 import { cn } from "@/lib/utils";
 

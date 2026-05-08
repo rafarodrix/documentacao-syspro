@@ -1,8 +1,8 @@
 "use client";
 
 import { SEFAZ_UFS } from "@dosc-syspro/contracts";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 type SefazStatusItem = {

@@ -2,7 +2,7 @@
 
 import { Info, FileCode, Database, AlertTriangle, X, LucideIcon } from "lucide-react";
 import { FIELD_METADATA } from "@dosc-syspro/contracts";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 interface TechnicalPanelProps {

@@ -16,15 +16,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
 import { fetchAgentDeviceListClient } from "@/features/agents/application/agent-client.queries";
 import { patchAgentDevice } from "@/features/agents/application/agent-write.actions";
 import { LinkedDeviceCard } from "./linked-device-card";

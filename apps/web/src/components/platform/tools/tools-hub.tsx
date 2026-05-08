@@ -15,9 +15,9 @@ import {
   Building2,
 } from "lucide-react";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { MagicCard } from "@/components/magicui/magic-card";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@dosc-syspro/ui";
 
 type Category = "calculadoras" | "simuladores" | "utilitarios";
 

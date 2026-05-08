@@ -14,7 +14,7 @@ import {
   SettingsTabsRailTrigger,
 } from "./settings-shell";
 
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@dosc-syspro/ui";
 import {
   Settings,
   Sliders,

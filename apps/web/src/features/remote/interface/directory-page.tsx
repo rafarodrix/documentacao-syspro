@@ -21,17 +21,17 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
+import { Label } from "@dosc-syspro/ui";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@dosc-syspro/ui";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";

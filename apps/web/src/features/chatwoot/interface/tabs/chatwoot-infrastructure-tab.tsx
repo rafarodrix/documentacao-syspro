@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Clock3, Loader2, Monitor, Waypoints } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import {
   ContextBadge,

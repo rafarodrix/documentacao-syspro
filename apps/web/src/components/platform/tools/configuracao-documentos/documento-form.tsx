@@ -25,19 +25,19 @@ import {
     FormMessage,
     FormDescription,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input } from "@dosc-syspro/ui";
 import {
     Select,
     SelectTrigger,
     SelectContent,
     SelectItem,
     SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+} from "@dosc-syspro/ui";
+import { Button } from "@dosc-syspro/ui";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@dosc-syspro/ui";
 
 interface DocumentoFormProps {
     initialValues?: DocumentoFormValues | null;

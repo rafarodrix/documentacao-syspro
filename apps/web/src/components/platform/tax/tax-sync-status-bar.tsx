@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import { AlertTriangle, Play, Trash2 } from "lucide-react";
 
 type SyncMode = "classTrib" | "anexos" | "credPresumido" | "ncm";

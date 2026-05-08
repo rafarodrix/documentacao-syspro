@@ -5,8 +5,8 @@ import { PlusCircle } from "lucide-react";
 
 import { TicketsFilters } from "@/features/tickets/interface/components/tickets-filters";
 import { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@dosc-syspro/ui";
+import { Alert, AlertDescription, AlertTitle } from "@dosc-syspro/ui";
 import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";

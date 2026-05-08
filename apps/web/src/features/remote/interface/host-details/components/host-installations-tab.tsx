@@ -1,11 +1,11 @@
 import { HardDriveDownload, Loader2, Plus, Save } from "lucide-react";
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Input } from "@dosc-syspro/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Textarea } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { SearchableCompanyPicker } from "./searchable-company-picker";

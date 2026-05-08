@@ -1,7 +1,7 @@
 import type { MouseEvent } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@dosc-syspro/ui";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import type { TicketListItem, TicketPriorityLevel } from "./ticket-view.types";
 
 const STATUS_STYLES: Record<string, string> = {

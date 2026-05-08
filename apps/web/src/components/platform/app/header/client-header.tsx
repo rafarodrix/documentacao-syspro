@@ -1,7 +1,7 @@
 "use client"
 
 import { ModeToggle } from "@/components/mode-toggle"
-import { Button } from "@/components/ui/button"
+import { Button } from "@dosc-syspro/ui"
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { Breadcrumbs } from "./breadcrumbs"
 import { CommandPaletteTrigger } from "./command-palette-trigger"

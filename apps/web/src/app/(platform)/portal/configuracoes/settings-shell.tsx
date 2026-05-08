@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import type { LucideIcon } from "lucide-react";
-import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
 export function SettingsPageIntro({
