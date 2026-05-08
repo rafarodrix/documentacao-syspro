@@ -27,8 +27,14 @@ apps/web/
   src/app/
   src/features/
   src/components/
+    patterns/       ← camada de padrões de UI (EmptyState, PageHeader, MetricCard, SearchToolbar, FilterTabs, SectionCard)
+    platform/       ← componentes de feature do portal autenticado
+    site/           ← componentes da área pública
+    docs/           ← componentes da área de documentação MDX
   src/lib/
 ```
+
+Ver [`src/components/patterns/README.md`](src/components/patterns/README.md) para API completa dos pattern components.
 
 ## Regras do app
 
