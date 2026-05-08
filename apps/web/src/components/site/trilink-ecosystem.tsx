@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button, Card, CardContent, Badge } from "@dosc-syspro/ui";
 import {
   ArrowRight,
   Terminal,
@@ -63,10 +61,10 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
 
             <CardContent className="relative z-10 flex flex-col h-full justify-between p-8">
               <div>
-                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-sm">
+                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-sm"> {/* ds-allow: surface accent */}
                   <LayoutGrid className="h-6 w-6" />
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-foreground group-hover:text-blue-600 transition-colors">
+                <h3 className="text-2xl font-bold mb-3 text-foreground group-hover:text-blue-600 transition-colors"> {/* ds-allow: surface accent */}
                   Documentação Viva
                 </h3>
                 <p className="text-muted-foreground max-w-md text-base">
@@ -75,7 +73,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               </div>
 
               <div className="mt-8">
-                <Link href="/portal/docs" className="inline-flex items-center text-sm font-semibold text-foreground hover:text-blue-500 transition-colors group/link">
+                <Link href="/portal/docs" className="inline-flex items-center text-sm font-semibold text-foreground hover:text-blue-500 transition-colors group/link"> {/* ds-allow: surface accent */}
                   Acessar Biblioteca <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/link:translate-x-1" />
                 </Link>
               </div>
@@ -97,6 +95,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
                 </p>
 
                 <ul className="space-y-4 text-sm text-muted-foreground/90 mb-8">
+                  {/* ds-allow: status */}
                   <li className="flex items-center gap-3">
                     <span className="flex h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                     Atendimento Prioritário
@@ -128,34 +127,34 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
           </Card>
 
           {/* 3. Card: Ferramentas (Pequeno - Meio Esquerda) */}
-          <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-orange-500/30">
+          <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-orange-500/30"> {/* ds-allow: surface accent */}
             <div className="absolute inset-0 bg-linear-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full">
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20">
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20"> {/* ds-allow: surface accent */}
                 <Terminal className="h-5 w-5" />
               </div>
               <h3 className="text-lg font-bold mb-2 group-hover:text-orange-600 transition-colors">Syspro Tools</h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
                 Validadores XML, scripts SQL e utilitários de automação para facilitar o dia a dia.
               </p>
-              <Link href="/portal/tools" className="flex items-center text-xs font-medium text-orange-500 gap-1 group-hover:translate-x-1 transition-transform">
+              <Link href="/portal/tools" className="flex items-center text-xs font-medium text-orange-500 gap-1 group-hover:translate-x-1 transition-transform"> {/* ds-allow: surface accent */}
                 Acessar Tools <ArrowRight className="h-3 w-3" />
               </Link>
             </CardContent>
           </Card>
 
           {/* 4. Card: Duvidas frequentes */}
-          <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-pink-500/30">
+          <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-pink-500/30"> {/* ds-allow: surface accent */}
             <div className="absolute inset-0 bg-linear-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full">
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 border border-pink-500/20">
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 border border-pink-500/20"> {/* ds-allow: surface accent */}
                 <HelpCircle className="h-5 w-5" />
               </div>
               <h3 className="text-lg font-bold mb-2 group-hover:text-pink-600 transition-colors">FAQ & Dúvidas</h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
                 Respostas rápidas para as perguntas mais comuns sobre configuração e uso do ERP.
               </p>
-              <Link href="/portal/docs/duvidas" className="flex items-center text-xs font-medium text-pink-500 gap-1 group-hover:translate-x-1 transition-transform">
+              <Link href="/portal/docs/duvidas" className="flex items-center text-xs font-medium text-pink-500 gap-1 group-hover:translate-x-1 transition-transform"> {/* ds-allow: surface accent */}
                 Ver Respostas <ArrowRight className="h-3 w-3" />
               </Link>
             </CardContent>
@@ -172,19 +171,19 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
           />
 
           {/* 6. Card: Status do Sistema (Pequeno - Baixo Direita) */}
-          <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-emerald-500/30">
+          <Card className="group relative overflow-hidden border-border/50 bg-background/60 backdrop-blur-sm hover:shadow-lg transition-all duration-300 hover:border-emerald-500/30"> {/* ds-allow: status */}
             <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="relative z-10 p-6 flex flex-col h-full justify-center items-center text-center">
               <div className="mb-4 relative">
-                <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full animate-pulse" />
-                <div className="relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full animate-pulse" /> {/* ds-allow: status */}
+                <div className="relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"> {/* ds-allow: status */}
                   <Activity className="h-7 w-7" />
                 </div>
               </div>
 
               <h3 className="text-lg font-bold mb-2">Status do Sistema</h3>
 
-              <div className="mb-4 flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
+              <div className="mb-4 flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600"> {/* ds-allow: status */}
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>

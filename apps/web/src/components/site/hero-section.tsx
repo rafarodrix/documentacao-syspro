@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
 import { ArrowRight, BookOpen, Library, History, LifeBuoy, FileText, Database, Code2, Settings, Sparkles, ChevronRight } from "lucide-react";
 
 interface HeroSectionProps {

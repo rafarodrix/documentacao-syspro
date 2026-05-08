@@ -17,8 +17,9 @@ import { SYSTEM_ROLES, hasAllowedRole } from "@dosc-syspro/core";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getProtectedSession } from "@/lib/auth-helpers";
+import { Button } from "@dosc-syspro/ui";
+// ds-roadmap: Avatar, DropdownMenu, Sheet pendentes em @dosc-syspro/ui
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,

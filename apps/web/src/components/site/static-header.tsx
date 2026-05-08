@@ -12,7 +12,8 @@ import {
   Menu,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Button } from "@/components/ui/button";
+import { Button } from "@dosc-syspro/ui";
+// ds-roadmap: DropdownMenu, Sheet pendentes em @dosc-syspro/ui
 import {
   DropdownMenu,
   DropdownMenuContent,
