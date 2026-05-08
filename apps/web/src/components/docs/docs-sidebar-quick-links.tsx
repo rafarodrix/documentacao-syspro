@@ -9,7 +9,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+} from "@dosc-syspro/ui";
 import { DOCS_STORAGE_KEYS, readStorage, writeStorage } from '@/lib/docs-storage';
 
 type QuickLink = { href: string; label: string; icon: typeof BookOpenText };

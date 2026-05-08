@@ -106,3 +106,5 @@ export {
 export { Toggle, toggleVariants } from "./toggle";
 export { ToggleGroup, ToggleGroupItem } from "./toggle-group";
 export { Calendar, CalendarDayButton } from "./calendar";
+export { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./collapsible";
+export { Toaster } from "./sonner";

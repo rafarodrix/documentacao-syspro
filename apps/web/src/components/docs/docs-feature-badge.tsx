@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+import { Badge } from "@dosc-syspro/ui";
 
 export type FeatureStatus = 'new' | 'deprecated' | 'beta' | 'experimental';
 type FeatureBadgeTone = 'default' | 'soft';

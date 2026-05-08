@@ -54,10 +54,10 @@ grep -RIlE $EXCLUDE \
   | xargs -I{} sh -c 'grep -L "@dosc-syspro/ui" "{}" || true' \
   > "$OUT/05-local-ui-components.txt" || true
 
-# 6) Imports diretos de "@/components/ui/*" — OK por enquanto, mas mapeie
+# 6) Imports de components/ui/* (alias @/ ou caminho relativo) — BLOQUEANTE
 grep -RInE $EXCLUDE \
   --include='*.{ts,tsx,js,jsx}' \
-  "from ['\"]@/components/ui/" "$ROOT" \
+  "from ['\"](@/|[.]{1,2}/[./]*)components/ui/" "$ROOT" \
   > "$OUT/06-shadcn-passthrough-imports.txt" || true
 
 # 7) Spacing magico (margem/padding em px hardcoded)
@@ -81,3 +81,13 @@ for f in "$OUT"/*.txt; do
 done
 echo ""
 echo "Detalhes em: $OUT/"
+
+# Regra dura: imports passthrough sao proibidos — todos devem vir de @dosc-syspro/ui
+PASSTHROUGH=$(wc -l < "$OUT/06-shadcn-passthrough-imports.txt" | tr -d ' ')
+if [ "$PASSTHROUGH" -gt 0 ]; then
+  echo ""
+  echo "ERRO: $PASSTHROUGH import(s) de @/components/ui/* ainda existem."
+  echo "Migre para @dosc-syspro/ui antes de fazer merge."
+  cat "$OUT/06-shadcn-passthrough-imports.txt"
+  exit 1
+fi
