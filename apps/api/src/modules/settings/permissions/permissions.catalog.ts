@@ -7,6 +7,7 @@ import {
 
 const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
 const DASHBOARD_VIEW_DEVELOPMENT_SCOPE = "dashboard:view_development_scope" as SettingsPermissionKey;
+const DASHBOARD_VIEW_SUPPORT_CONVERSATIONS = "dashboard:view_support_conversations" as SettingsPermissionKey;
 const TICKETS_ROUTE_DEVELOPMENT = "tickets:route_development" as SettingsPermissionKey;
 const TICKETS_OWN_SUPPORT_QUEUE = "tickets:own_support_queue" as SettingsPermissionKey;
 const TICKETS_OWN_DEVELOPMENT_QUEUE = "tickets:own_development_queue" as SettingsPermissionKey;
@@ -28,6 +29,7 @@ export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPer
     "profile:edit_company",
     "dashboard:view",
     "dashboard:stats_full",
+    DASHBOARD_VIEW_SUPPORT_CONVERSATIONS,
     DASHBOARD_VIEW_AVAILABILITY,
     "dashboard:view_daily_password",
     "dashboard:release_trust",

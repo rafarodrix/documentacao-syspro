@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Role } from '@prisma/client';
 import type {
@@ -214,9 +214,37 @@ function parseDateInput(value?: string, endOfDay = false) {
   return Number.isNaN(base.getTime()) ? null : base;
 }
 
+function parseChatwootDate(value: unknown) {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const parsed = new Date(value > 10_000_000_000 ? value : value * 1000);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return null;
+  if (/^\d+$/.test(normalized)) {
+    const numeric = Number(normalized);
+    const parsed = new Date(numeric > 10_000_000_000 ? numeric : numeric * 1000);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function extractChatwootConversationLabels(conversation: any): string[] {
   const labels = Array.isArray(conversation?.labels) ? conversation.labels : [];
   return labels.map((item: unknown) => String(item ?? '').trim().toLowerCase()).filter(Boolean);
+}
+
+function extractChatwootConversationCustomAttributes(conversation: any): Record<string, unknown> {
+  const value =
+    conversation?.custom_attributes ??
+    conversation?.meta?.custom_attributes ??
+    conversation?.additional_attributes ??
+    conversation?.meta?.additional_attributes;
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
 }
 
 function extractChatwootAssignee(conversation: any) {
@@ -224,6 +252,45 @@ function extractChatwootAssignee(conversation: any) {
   const id = String(assignee?.id ?? '').trim();
   const name = String(assignee?.name ?? assignee?.available_name ?? assignee?.email ?? '').trim();
   return id ? { id, name: name || id } : null;
+}
+
+function extractChatwootChannel(conversation: any) {
+  const channelRaw = String(
+    conversation?.meta?.channel ??
+    conversation?.channel ??
+    conversation?.inbox?.channel_type ??
+    '',
+  ).trim().toLowerCase();
+
+  if (channelRaw.includes('email')) return 'EMAIL' as const;
+  if (channelRaw.includes('portal') || channelRaw.includes('api')) return 'PORTAL' as const;
+  if (channelRaw.includes('phone') || channelRaw.includes('call')) return 'PHONE' as const;
+  return 'WHATSAPP' as const;
+}
+
+function extractChatwootContactSummary(conversation: any) {
+  const name = String(
+    conversation?.meta?.sender?.name ??
+    conversation?.contact?.name ??
+    conversation?.last_non_activity_message?.sender?.name ??
+    '',
+  ).trim();
+  const phone = String(
+    conversation?.meta?.sender?.phone_number ??
+    conversation?.contact?.phone_number ??
+    conversation?.last_non_activity_message?.sender?.phone_number ??
+    '',
+  ).trim();
+  const identifier = String(
+    conversation?.meta?.sender?.identifier ??
+    conversation?.contact?.identifier ??
+    conversation?.last_non_activity_message?.sender?.identifier ??
+    conversation?.contact_inbox?.source_id ??
+    '',
+  ).trim();
+  const key = identifier || phone || name;
+  const label = name || phone || identifier || 'Contato nao identificado';
+  return key ? { key, name: label } : null;
 }
 
 function extractChatwootContactText(conversation: any) {
@@ -237,6 +304,24 @@ function extractChatwootContactText(conversation: any) {
     conversation?.contact?.phone_number,
   ];
   return candidates.map((item) => String(item ?? '').trim()).filter(Boolean).join(' ').toLowerCase();
+}
+
+function resolveChatwootClosureOrigin(conversation: any) {
+  const customAttributes = extractChatwootConversationCustomAttributes(conversation);
+  const closureOrigin = String(customAttributes.closure_origin ?? '').trim().toLowerCase();
+  if (closureOrigin) return closureOrigin;
+
+  const labels = extractChatwootConversationLabels(conversation);
+  if (labels.includes('cancelado_cliente')) return 'cancelled_by_customer';
+  if (labels.includes('cancelado_agente')) return 'cancelled_by_agent';
+  if (labels.includes('spam')) return 'spam';
+  return null;
+}
+
+function shouldSkipChatwootCsat(conversation: any) {
+  const customAttributes = extractChatwootConversationCustomAttributes(conversation);
+  const skipCsatRaw = String(customAttributes.skip_csat ?? '').trim().toLowerCase();
+  return skipCsatRaw === 'true' || skipCsatRaw === '1' || Boolean(resolveChatwootClosureOrigin(conversation));
 }
 
 function buildCrmSummary(leads: any[]): DashboardCrmSummary {
@@ -1144,7 +1229,13 @@ export class DashboardService {
     rawHeaders?: IncomingHttpHeaders,
     filters?: { from?: string; to?: string; assigneeId?: string; contact?: string },
   ) {
-    await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
+    const canViewAtendimentos =
+      await this.authorizationService.userHasPermission(requester, 'dashboard:view_support_conversations') ||
+      await this.authorizationService.userHasPermission(requester, 'dashboard:stats_full');
+    if (!canViewAtendimentos) {
+      throw new ForbiddenException('Sem permissao para visualizar atendimentos.');
+    }
 
     const periodStart = parseDateInput(filters?.from) ?? startOfDay();
     const periodEnd = parseDateInput(filters?.to, true) ?? new Date();
@@ -1167,6 +1258,8 @@ export class DashboardService {
           cancelledByAgentCount: 0,
           spamCount: 0,
           unlinkedCount: 0,
+          csatSkippedCount: 0,
+          csatEligibleResolvedCount: 0,
           avgFirstResponseMinutes: null,
           avgResolutionHours: null,
           activity: [],
@@ -1174,6 +1267,7 @@ export class DashboardService {
           channelCounts: [],
           assigneeLoads: [],
           assigneeOptions: [],
+          topContacts: [],
           warning: 'Nenhum contexto ativo do Chatwoot foi encontrado para o dashboard.',
         },
       };
@@ -1221,6 +1315,7 @@ export class DashboardService {
     const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
     const channelCountsMap = new Map<string, number>(channelOrder.map((channel) => [channel, 0]));
     const assigneeLoadMap = new Map<string, { userId: string | null; name: string; openCount: number; waitingCount: number }>();
+    const topContactsMap = new Map<string, { key: string; name: string; count: number; channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE' }>();
 
     let cancelledByCustomerCount = 0;
     let cancelledByAgentCount = 0;
@@ -1228,32 +1323,39 @@ export class DashboardService {
     let resolvedCount = 0;
     let openCount = 0;
     let unassignedCount = 0;
+    let csatSkippedCount = 0;
+    let csatEligibleResolvedCount = 0;
 
     for (const conversation of filtered) {
-      const labels = extractChatwootConversationLabels(conversation);
-      const isCancelledByCustomer = labels.includes('cancelado_cliente');
-      const isCancelledByAgent = labels.includes('cancelado_agente');
-      const isSpam = labels.includes('spam');
+      const closureOrigin = resolveChatwootClosureOrigin(conversation);
+      const isCancelledByCustomer = closureOrigin === 'cancelled_by_customer';
+      const isCancelledByAgent = closureOrigin === 'cancelled_by_agent';
+      const isSpam = closureOrigin === 'spam';
+      const skipCsat = shouldSkipChatwootCsat(conversation);
       if (isCancelledByCustomer) cancelledByCustomerCount += 1;
       if (isCancelledByAgent) cancelledByAgentCount += 1;
       if (isSpam) spamCount += 1;
+      if (skipCsat) csatSkippedCount += 1;
 
       const rawStatus = String(conversation?.status ?? '').trim().toLowerCase();
       const status =
         !extractChatwootAssignee(conversation) && rawStatus === 'open'
           ? 'Sem responsavel'
-          : rawStatus === 'resolved' && (isCancelledByCustomer || isCancelledByAgent)
+          : rawStatus === 'resolved' && (isCancelledByCustomer || isCancelledByAgent || isSpam)
             ? 'Arquivado'
             : statusLabelMap[rawStatus] ?? 'Em andamento';
       statusCountsMap.set(status, (statusCountsMap.get(status) || 0) + 1);
 
-      const channelRaw = String(conversation?.meta?.channel ?? conversation?.channel ?? '').trim().toLowerCase();
-      const mappedChannel =
-        channelRaw.includes('email') ? 'EMAIL' :
-        channelRaw.includes('portal') ? 'PORTAL' :
-        channelRaw.includes('phone') ? 'PHONE' :
-        'WHATSAPP';
+      const mappedChannel = extractChatwootChannel(conversation);
       channelCountsMap.set(mappedChannel, (channelCountsMap.get(mappedChannel) || 0) + 1);
+
+      const contact = extractChatwootContactSummary(conversation);
+      if (contact) {
+        const current = topContactsMap.get(contact.key) || { ...contact, count: 0, channel: mappedChannel };
+        current.count += 1;
+        current.channel = mappedChannel;
+        topContactsMap.set(contact.key, current);
+      }
 
       const assignee = extractChatwootAssignee(conversation);
       if (!assignee) {
@@ -1265,17 +1367,43 @@ export class DashboardService {
         assigneeLoadMap.set(assignee.id, current);
       }
 
-      if (rawStatus === 'resolved') resolvedCount += 1;
-      else openCount += 1;
+      if (rawStatus === 'resolved') {
+        resolvedCount += 1;
+        if (!skipCsat) {
+          csatEligibleResolvedCount += 1;
+        }
+      } else {
+        openCount += 1;
+      }
     }
 
     const avgFirstResponseMinutes = averageDurationInMinutes(
       filtered.map((conversation) => {
-        const created = new Date(Number(conversation?.created_at ?? 0) * 1000);
-        const firstReply = conversation?.first_reply_created_at ? new Date(Number(conversation.first_reply_created_at) * 1000) : null;
+        const created = parseChatwootDate(conversation?.created_at);
+        const firstReply = parseChatwootDate(conversation?.first_reply_created_at);
         return { startedAt: created, endedAt: firstReply };
-      }),
+      }).filter((item): item is { startedAt: Date; endedAt: Date | null } => item.startedAt instanceof Date),
     );
+
+    const avgResolutionHours = (() => {
+      const valid = filtered
+        .map((conversation) => {
+          const created = parseChatwootDate(conversation?.created_at);
+          const resolvedAt =
+            parseChatwootDate(conversation?.meta?.resolved_at) ??
+            parseChatwootDate(conversation?.resolved_at) ??
+            parseChatwootDate(conversation?.updated_at);
+          const rawStatus = String(conversation?.status ?? '').trim().toLowerCase();
+          if (rawStatus !== 'resolved' || !(created instanceof Date) || !(resolvedAt instanceof Date) || resolvedAt < created) {
+            return null;
+          }
+          return (resolvedAt.getTime() - created.getTime()) / 3_600_000;
+        })
+        .filter((value): value is number => value !== null);
+
+      if (!valid.length) return null;
+      return Math.round((valid.reduce((sum, item) => sum + item, 0) / valid.length) * 10) / 10;
+    })();
 
     return {
       success: true as const,
@@ -1293,10 +1421,14 @@ export class DashboardService {
         cancelledByAgentCount,
         spamCount,
         unlinkedCount: 0,
+        csatSkippedCount,
+        csatEligibleResolvedCount,
         avgFirstResponseMinutes,
-        avgResolutionHours: null,
+        avgResolutionHours,
         activity: toSeries(
-          filtered.map((conversation) => new Date(Number(conversation?.created_at ?? 0) * 1000)),
+          filtered
+            .map((conversation) => parseChatwootDate(conversation?.created_at))
+            .filter((value): value is Date => value instanceof Date),
         ),
         statusCounts: statusOrder.map((status) => ({ status, count: statusCountsMap.get(status) || 0 })),
         channelCounts: channelOrder.map((channel) => ({ channel, count: channelCountsMap.get(channel) || 0 })),
@@ -1304,6 +1436,9 @@ export class DashboardService {
         assigneeOptions: Array.from(assigneeOptionsMap.entries())
           .map(([id, name]) => ({ id, name }))
           .sort((left, right) => left.name.localeCompare(right.name)),
+        topContacts: Array.from(topContactsMap.values())
+          .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+          .slice(0, 6),
         warning: contexts.length > 1 ? 'Dashboard consolidado a partir de multiplos contextos ativos do Chatwoot.' : undefined,
       },
     };

@@ -193,6 +193,13 @@ export const dashboardAtendimentoAssigneeOptionSchema = z.object({
   name: z.string().min(1),
 });
 
+export const dashboardConversationTopContactSchema = z.object({
+  key: z.string().min(1),
+  name: z.string().min(1),
+  count: z.number().int().nonnegative(),
+  channel: z.enum(["WHATSAPP", "EMAIL", "PORTAL", "PHONE"]),
+});
+
 export const adminAtendimentosDataSchema = z.object({
   periodStart: z.string().min(1),
   periodEnd: z.string().min(1),
@@ -207,6 +214,8 @@ export const adminAtendimentosDataSchema = z.object({
   cancelledByAgentCount: z.number().int().nonnegative(),
   spamCount: z.number().int().nonnegative(),
   unlinkedCount: z.number().int().nonnegative(),
+  csatSkippedCount: z.number().int().nonnegative(),
+  csatEligibleResolvedCount: z.number().int().nonnegative(),
   avgFirstResponseMinutes: z.number().nonnegative().nullable(),
   avgResolutionHours: z.number().nonnegative().nullable(),
   activity: z.array(dashboardActivityPointSchema).default([]),
@@ -214,6 +223,7 @@ export const adminAtendimentosDataSchema = z.object({
   channelCounts: z.array(dashboardConversationChannelSummarySchema).default([]),
   assigneeLoads: z.array(dashboardConversationAssigneeLoadSchema).default([]),
   assigneeOptions: z.array(dashboardAtendimentoAssigneeOptionSchema).default([]),
+  topContacts: z.array(dashboardConversationTopContactSchema).default([]),
   warning: z.string().optional(),
 });
 
@@ -359,6 +369,7 @@ export type DashboardCrmStageSummary = z.infer<typeof dashboardCrmStageSummarySc
 export type DashboardCrmSummary = z.infer<typeof dashboardCrmSummarySchema>;
 export type DashboardContractsSummary = z.infer<typeof dashboardContractsSummarySchema>;
 export type DashboardCadastrosSummary = z.infer<typeof dashboardCadastrosSummarySchema>;
+export type DashboardConversationTopContact = z.infer<typeof dashboardConversationTopContactSchema>;
 export type AdminDashboardView = z.infer<typeof adminDashboardViewSchema>;
 export type ClientDashboardView = z.infer<typeof clientDashboardViewSchema>;
 export type DashboardView = z.infer<typeof dashboardViewSchema>;

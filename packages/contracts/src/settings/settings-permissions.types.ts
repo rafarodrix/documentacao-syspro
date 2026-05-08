@@ -17,6 +17,7 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "dashboard:view", label: "Visualizar dashboard", module: "dashboard", description: "Acessa a visao principal do portal." },
   { key: "dashboard:view_development_scope", label: "Visualizar escopo de desenvolvimento", module: "dashboard", description: "Aplica escopo padrao do painel operacional para a fila de desenvolvimento." },
   { key: "dashboard:stats_full", label: "Visualizar estatisticas completas", module: "dashboard", description: "Libera indicadores operacionais completos." },
+  { key: "dashboard:view_support_conversations", label: "Visualizar subaba de atendimentos", module: "dashboard", description: "Libera a leitura analitica de atendimentos do Chatwoot no dashboard de suporte." },
   { key: "dashboard:view_availability", label: "Visualizar aba de disponibilidade", module: "dashboard", description: "Libera a aba de disponibilidade no painel operacional." },
   { key: "dashboard:view_daily_password", label: "Visualizar senha diaria", module: "dashboard", description: "Exibe a senha do dia calculada automaticamente no portal." },
   { key: "dashboard:release_trust", label: "Liberar acesso em confianca", module: "dashboard", description: "Permite emitir liberacao de 5 dias em confianca para clientes no mes de vencimento." },
