@@ -4,6 +4,7 @@ import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
   companyStatusUpdateSchema,
+  type CompanyAdminView,
   type CompanyStatusUpdateInput,
   type CompanyListQuery,
   createCompanySchema,
@@ -341,7 +342,7 @@ export class CompaniesService {
     };
   }
 
-  async getAdminView(rawHeaders?: IncomingHttpHeaders) {
+  async getAdminView(rawHeaders?: IncomingHttpHeaders): Promise<CompanyAdminView> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getCompanyViewScope(requester);
     return {

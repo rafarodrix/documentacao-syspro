@@ -17,6 +17,7 @@ export type CompanyActionFailure<T = void> = {
 
 export type CompanyActionResponse<T = void> = CompanyActionSuccess<T> | CompanyActionFailure<T>;
 export type {
+  CompanyAdminView,
   CompanyAddressView,
   CompanyEditViewData,
   CompanyListItem,

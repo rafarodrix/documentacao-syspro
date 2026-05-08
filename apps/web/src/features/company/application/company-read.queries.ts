@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/api/trpc-client";
 import type {
+  CompanyAdminView,
   CompanyEditViewData,
   CompanyListResponse,
   CompanyOption,
@@ -39,7 +40,7 @@ export async function getCadastrosCompaniesAdminViewData(filters?: {
 }): Promise<{ isGlobalView: boolean; list: CompanyListResponse } | { error: string }> {
   try {
     const [adminView, list] = await Promise.all([
-      trpc.companies.getAdminView.query(),
+      trpc.companies.getAdminView.query() as Promise<CompanyAdminView>,
       getCompaniesQuery(filters),
     ]);
     

@@ -23,6 +23,7 @@ import {
   type UpdateCurrentUserProfileOutput,
   type UpdateUserInput,
   type UserAccessListItem,
+  type UserAdminView,
   type UserEmailAvailabilityResult,
 } from '@dosc-syspro/contracts/user';
 import { buildCompanySearchText } from '../shared/search/search-index';
@@ -48,7 +49,7 @@ export class UsersService {
     private readonly contactsService: ContactsService,
   ) {}
 
-  async getAdminView(rawHeaders?: IncomingHttpHeaders) {
+  async getAdminView(rawHeaders?: IncomingHttpHeaders): Promise<UserAdminView> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminViewScopeSchema } from "../shared/admin-view.types";
 import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
 
 const contactOptionCompanySchema = z.object({
@@ -65,6 +66,8 @@ export const contactStatsSchema = z.object({
   withPhone: z.number().int().nonnegative(),
 });
 
+export const contactAdminViewSchema = adminViewScopeSchema;
+
 export const createContactSchema = z.object({
   name: z.string().min(1, "Informe o nome do contato").trim(),
   email: z
@@ -95,6 +98,7 @@ export const updateContactSchema = z.object({
 export type CreateContactInput = z.input<typeof createContactSchema>;
 export type CreateContactOutput = z.output<typeof createContactSchema>;
 export type UpdateContactInput = z.input<typeof updateContactSchema>;
+export type ContactAdminView = z.output<typeof contactAdminViewSchema>;
 export type ContactListItem = z.output<typeof contactListItemSchema>;
 export type ContactListQuery = z.infer<typeof contactListQuerySchema>;
 export type ContactListResponse = z.output<typeof contactListResponseSchema>;

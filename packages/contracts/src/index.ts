@@ -28,6 +28,8 @@ export type {
 
 export { addressSchema } from "./shared/address.types";
 export type { AddressInput } from "./shared/address.types";
+export { adminViewScopeSchema } from "./shared/admin-view.types";
+export type { AdminViewScope } from "./shared/admin-view.types";
 export { buildPaginationMeta, paginationMetaSchema, paginationQuerySchema } from "./shared/pagination.types";
 export type { PaginationMeta, PaginationQuery } from "./shared/pagination.types";
 

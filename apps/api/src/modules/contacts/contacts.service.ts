@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
-import type { ContactListQuery } from '@dosc-syspro/contracts/contact';
+import type { ContactAdminView, ContactListQuery } from '@dosc-syspro/contracts/contact';
 import { CompanyContactSource, CompanyContactStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -70,7 +70,7 @@ export class ContactsService {
     private readonly authorizationService: AuthorizationService,
   ) {}
 
-  async getAdminView(rawHeaders?: IncomingHttpHeaders) {
+  async getAdminView(rawHeaders?: IncomingHttpHeaders): Promise<ContactAdminView> {
     const requester = await this.assertCanViewContacts(rawHeaders);
     const scope = await this.resolveContactCompanyScope(requester);
 

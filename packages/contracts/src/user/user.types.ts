@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminViewScopeSchema } from "../shared/admin-view.types";
 
 export const USER_ROLE_VALUES = [
   "ADMIN",
@@ -185,6 +186,8 @@ export const userAccessAdminViewDataSchema = z.object({
   isGlobalView: z.boolean(),
 });
 
+export const userAdminViewSchema = adminViewScopeSchema;
+
 export type CreateUserInput = z.input<typeof createUserSchema>;
 export type CreateUserOutput = z.output<typeof createUserSchema>;
 export type UpdateUserInput = z.input<typeof updateUserSchema>;
@@ -202,3 +205,4 @@ export type UserAccessListItem = z.output<typeof userAccessListItemSchema>;
 export type UserAccessEditInitialData = z.output<typeof userAccessEditInitialDataSchema>;
 export type UserAccessEditViewData = z.output<typeof userAccessEditViewDataSchema>;
 export type UserAccessAdminViewData = z.output<typeof userAccessAdminViewDataSchema>;
+export type UserAdminView = z.output<typeof userAdminViewSchema>;

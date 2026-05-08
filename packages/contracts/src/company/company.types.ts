@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { addressSchema } from "../shared/address.types";
+import { adminViewScopeSchema } from "../shared/admin-view.types";
 import { paginationMetaSchema, paginationQuerySchema } from "../shared/pagination.types";
 import { ENTITY_INACTIVATION_REASON_VALUES } from "@dosc-syspro/core";
 
@@ -316,6 +317,8 @@ export const companyListResponseSchema = z.object({
   pagination: paginationMetaSchema,
 });
 
+export const companyAdminViewSchema = adminViewScopeSchema;
+
 export const companyStatusUpdateSchema = z.object({
   status: z.enum(COMPANY_STATUS_VALUES),
   reason: z.enum(COMPANY_INACTIVATION_REASON_VALUES).nullable().optional(),
@@ -338,4 +341,5 @@ export const companyStatusUpdateSchema = z.object({
   }
 });
 
+export type CompanyAdminView = z.output<typeof companyAdminViewSchema>;
 export type CompanyStatusUpdateInput = z.infer<typeof companyStatusUpdateSchema>;

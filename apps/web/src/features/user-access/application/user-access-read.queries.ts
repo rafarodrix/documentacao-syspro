@@ -3,6 +3,7 @@ import type {
   UserAccessAdminViewData,
   UserAccessCompanyOption,
   UserAccessEditViewData,
+  UserAdminView,
 } from "@dosc-syspro/contracts/user";
 import { trpc } from "@/lib/api/trpc-client";
 
@@ -16,7 +17,7 @@ export async function getUsersAdminViewData(): Promise<
     const [users, companies, adminView] = await Promise.all([
       trpc.users.list.query({}),
       trpc.companies.getOptions.query(),
-      trpc.users.getAdminView.query(),
+      trpc.users.getAdminView.query() as Promise<UserAdminView>,
     ]);
 
     return {
