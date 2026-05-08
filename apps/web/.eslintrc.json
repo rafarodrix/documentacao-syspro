@@ -7,6 +7,13 @@
   },
   "overrides": [
     {
+      "files": ["src/components/patterns/**/*.{ts,tsx}"],
+      "rules": {
+        "trilink-tokens/no-hex-colors": "error",
+        "trilink-tokens/no-raw-tailwind-palette": "error"
+      }
+    },
+    {
       "files": ["src/features/remote/**/*.{ts,tsx}"],
       "rules": {
         "trilink-tokens/no-hex-colors": "off",
