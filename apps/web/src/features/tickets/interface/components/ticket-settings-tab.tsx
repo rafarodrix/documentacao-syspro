@@ -24,8 +24,7 @@ import {
   SettingsTabsRailTrigger,
 } from "@/app/(platform)/portal/configuracoes/settings-shell";
 
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, Textarea } from "@dosc-syspro/ui";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, Textarea, Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@dosc-syspro/ui";
 import { buildModuleHierarchyValue, getModuleHierarchyDepth, normalizeModuleHierarchyLabel, sortTicketModuleOptions } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { invalidateTicketModuleSettingsCache } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 

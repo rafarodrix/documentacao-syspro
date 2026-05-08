@@ -1,3 +1,4 @@
+/* eslint-disable trilink-tokens/no-hex-colors */
 "use client";
 
 import dynamic from "next/dynamic";

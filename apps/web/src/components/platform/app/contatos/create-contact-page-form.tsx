@@ -23,8 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge, Button, Input, Popover, PopoverContent, PopoverTrigger, Textarea } from "@dosc-syspro/ui";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge, Button, Input, Popover, PopoverContent, PopoverTrigger, Textarea, Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@dosc-syspro/ui";
 import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { cn } from "@/lib/utils";
 

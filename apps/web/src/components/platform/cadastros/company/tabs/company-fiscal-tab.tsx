@@ -7,8 +7,7 @@ import {
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
 import type { CompanyOption } from "@/features/company/application/company-view.types";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from "@dosc-syspro/ui";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from "@dosc-syspro/ui";
 import { Building2, FileText, Users2, ListTree } from "lucide-react";
 
 interface CompanyFiscalTabProps {

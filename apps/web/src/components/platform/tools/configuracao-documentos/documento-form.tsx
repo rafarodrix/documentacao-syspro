@@ -16,16 +16,7 @@ import { Printer, Save, PanelRightOpen, PanelRightClose, Info, Truck, Users, Box
 import { TechnicalPanel } from "./technical-panel";
 import { PrintableConfig } from "./printable-config";
 
-import {
-    Form,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormControl,
-    FormMessage,
-    FormDescription,
-} from "@/components/ui/form";
-import { Input, Select, SelectTrigger, SelectContent, SelectItem, SelectValue, Button, Checkbox, Tabs, TabsContent, TabsList, TabsTrigger, ScrollArea, Separator } from "@dosc-syspro/ui";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription, Input, Select, SelectTrigger, SelectContent, SelectItem, SelectValue, Button, Checkbox, Tabs, TabsContent, TabsList, TabsTrigger, ScrollArea, Separator } from "@dosc-syspro/ui";
 
 interface DocumentoFormProps {
     initialValues?: DocumentoFormValues | null;

@@ -7,8 +7,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@dosc-syspro/ui";
-import { Calendar } from "@/components/ui/calendar";
+import { Button, Popover, PopoverContent, PopoverTrigger, Calendar } from "@dosc-syspro/ui";
 
 export function CalendarDateRangePicker({
     className,

@@ -2,8 +2,7 @@
 
 import { useFormContext } from "react-hook-form";
 import { COMPANY_SEGMENT_VALUES, type CreateCompanyInput } from "@dosc-syspro/contracts/company";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button, Badge, Card, CardContent } from "@dosc-syspro/ui";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button, Badge, Card, CardContent } from "@dosc-syspro/ui";
 import { ClipboardList, Loader2, Search, Sparkles, Building2 } from "lucide-react";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
 import { formatCNPJ } from "@/lib/formatters";
