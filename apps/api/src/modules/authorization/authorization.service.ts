@@ -284,14 +284,9 @@ export class AuthorizationService {
       profiles: profiles.map((profile) => ({
         key: profile.key as SettingsProfileKey,
         label: profile.name,
-        permissions: Array.from(
-          new Set<SettingsPermissionKey>([
-            ...profile.permissions
-              .map((item) => item.permission.key as SettingsPermissionKey)
-              .filter((key) => visiblePermissionKeys.has(key)),
-            ...(profile.isSystem ? getDefaultSystemProfilePermissions(profile.key) : []),
-          ]),
-        ).filter((key) => visiblePermissionKeys.has(key)),
+        permissions: profile.permissions
+          .map((item) => item.permission.key as SettingsPermissionKey)
+          .filter((key) => visiblePermissionKeys.has(key)),
       })),
     };
   }
@@ -392,14 +387,9 @@ export class AuthorizationService {
           description: profile.description ?? undefined,
           isSystem: profile.isSystem,
           isActive: profile.isActive,
-          permissions: Array.from(
-            new Set<SettingsPermissionKey>([
-              ...profile.permissions
-                .map((item) => item.permission.key)
-                .filter(isVisiblePermissionKey),
-              ...(profile.isSystem ? getDefaultSystemProfilePermissions(profile.key) : []),
-            ]),
-          ),
+          permissions: profile.permissions
+            .map((item) => item.permission.key)
+            .filter(isVisiblePermissionKey),
         })),
       users: users.map((user) => ({
         id: user.id,
@@ -657,8 +647,6 @@ export class AuthorizationService {
             isActive: true,
           },
         });
-
-        await syncSystemProfilePermissions(existingProfile.id, profile.permissions);
       }
     });
   }
@@ -678,12 +666,12 @@ export class AuthorizationService {
       },
     });
 
-    return Array.from(
-      new Set<SettingsPermissionKey>([
-        ...filterVisiblePermissionKeys(profile?.permissions.map((item) => item.permission.key) ?? []),
-        ...(profile?.isSystem ? getDefaultSystemProfilePermissions(profileKey) : []),
-      ]),
-    );
+    const persistedPermissions = filterVisiblePermissionKeys(profile?.permissions.map((item) => item.permission.key) ?? []);
+    if (persistedPermissions.length > 0) {
+      return persistedPermissions;
+    }
+
+    return getDefaultSystemProfilePermissions(profileKey);
   }
 
   private toHeaders(rawHeaders?: IncomingHttpHeaders): Headers {
