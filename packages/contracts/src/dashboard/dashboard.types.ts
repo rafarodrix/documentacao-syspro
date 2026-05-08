@@ -200,6 +200,19 @@ export const dashboardConversationTopContactSchema = z.object({
   channel: z.enum(["WHATSAPP", "EMAIL", "PORTAL", "PHONE"]),
 });
 
+export const dashboardCsatScoreDistributionSchema = z.object({
+  score: z.number().int().min(1).max(5),
+  count: z.number().int().nonnegative(),
+});
+
+export const dashboardCsatAgentPerformanceSchema = z.object({
+  agentId: z.string().nullable(),
+  agentName: z.string().min(1),
+  averageScore: z.number().min(0).max(5),
+  responseCount: z.number().int().nonnegative(),
+  lowScoreCount: z.number().int().nonnegative(),
+});
+
 export const adminAtendimentosDataSchema = z.object({
   periodStart: z.string().min(1),
   periodEnd: z.string().min(1),
@@ -216,6 +229,9 @@ export const adminAtendimentosDataSchema = z.object({
   unlinkedCount: z.number().int().nonnegative(),
   csatSkippedCount: z.number().int().nonnegative(),
   csatEligibleResolvedCount: z.number().int().nonnegative(),
+  csatResponseCount: z.number().int().nonnegative(),
+  csatLowScoreCount: z.number().int().nonnegative(),
+  csatAverageScore: z.number().min(0).max(5).nullable(),
   avgFirstResponseMinutes: z.number().nonnegative().nullable(),
   avgResolutionHours: z.number().nonnegative().nullable(),
   activity: z.array(dashboardActivityPointSchema).default([]),
@@ -224,6 +240,8 @@ export const adminAtendimentosDataSchema = z.object({
   assigneeLoads: z.array(dashboardConversationAssigneeLoadSchema).default([]),
   assigneeOptions: z.array(dashboardAtendimentoAssigneeOptionSchema).default([]),
   topContacts: z.array(dashboardConversationTopContactSchema).default([]),
+  csatScoreDistribution: z.array(dashboardCsatScoreDistributionSchema).default([]),
+  csatAgentPerformance: z.array(dashboardCsatAgentPerformanceSchema).default([]),
   warning: z.string().optional(),
 });
 
@@ -370,6 +388,8 @@ export type DashboardCrmSummary = z.infer<typeof dashboardCrmSummarySchema>;
 export type DashboardContractsSummary = z.infer<typeof dashboardContractsSummarySchema>;
 export type DashboardCadastrosSummary = z.infer<typeof dashboardCadastrosSummarySchema>;
 export type DashboardConversationTopContact = z.infer<typeof dashboardConversationTopContactSchema>;
+export type DashboardCsatScoreDistribution = z.infer<typeof dashboardCsatScoreDistributionSchema>;
+export type DashboardCsatAgentPerformance = z.infer<typeof dashboardCsatAgentPerformanceSchema>;
 export type AdminDashboardView = z.infer<typeof adminDashboardViewSchema>;
 export type ClientDashboardView = z.infer<typeof clientDashboardViewSchema>;
 export type DashboardView = z.infer<typeof dashboardViewSchema>;

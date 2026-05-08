@@ -1260,6 +1260,9 @@ export class DashboardService {
           unlinkedCount: 0,
           csatSkippedCount: 0,
           csatEligibleResolvedCount: 0,
+          csatResponseCount: 0,
+          csatLowScoreCount: 0,
+          csatAverageScore: null,
           avgFirstResponseMinutes: null,
           avgResolutionHours: null,
           activity: [],
@@ -1268,6 +1271,8 @@ export class DashboardService {
           assigneeLoads: [],
           assigneeOptions: [],
           topContacts: [],
+          csatScoreDistribution: [],
+          csatAgentPerformance: [],
           warning: 'Nenhum contexto ativo do Chatwoot foi encontrado para o dashboard.',
         },
       };
@@ -1275,6 +1280,7 @@ export class DashboardService {
 
     const items: any[] = [];
     const assigneeOptionsMap = new Map<string, string>();
+    const activeConnectionKeys = contexts.map((context) => context.connectionKey);
 
     for (const context of contexts) {
       const agents = await this.chatwootClient.listAgents(context.chatwoot).catch(() => []);
@@ -1405,6 +1411,58 @@ export class DashboardService {
       return Math.round((valid.reduce((sum, item) => sum + item, 0) / valid.length) * 10) / 10;
     })();
 
+    const csatRatings = await this.prisma.chatwootCsatRating.findMany({
+      where: {
+        connectionKey: { in: activeConnectionKeys },
+        respondedAt: { gte: periodStart, lte: periodEnd },
+        ...(assigneeId ? { agentId: assigneeId } : {}),
+        ...(contactQuery
+          ? {
+              contact: {
+                contains: contactQuery,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
+      },
+      select: {
+        agentId: true,
+        agentName: true,
+        score: true,
+        status: true,
+      },
+    }).catch(() => []);
+
+    const csatResponseCount = csatRatings.length;
+    const csatLowScoreCount = csatRatings.filter((rating) => Number(rating.score) <= 2 || String(rating.status).toUpperCase() === 'LOW_SCORE').length;
+    const csatAverageScore =
+      csatRatings.length > 0
+        ? Math.round((csatRatings.reduce((sum, rating) => sum + Number(rating.score ?? 0), 0) / csatRatings.length) * 100) / 100
+        : null;
+    const csatDistributionMap = new Map<number, number>([1, 2, 3, 4, 5].map((score) => [score, 0]));
+    const csatAgentMap = new Map<string, { agentId: string | null; agentName: string; totalScore: number; responseCount: number; lowScoreCount: number }>();
+
+    for (const rating of csatRatings) {
+      const score = Math.max(1, Math.min(5, Number(rating.score ?? 0) || 0));
+      if (score >= 1 && score <= 5) {
+        csatDistributionMap.set(score, (csatDistributionMap.get(score) || 0) + 1);
+      }
+
+      const key = String(rating.agentId ?? '').trim() || `__agent__${String(rating.agentName ?? '').trim() || 'Sem atendente'}`;
+      const agentName = String(rating.agentName ?? '').trim() || 'Sem atendente';
+      const current = csatAgentMap.get(key) || {
+        agentId: rating.agentId ?? null,
+        agentName,
+        totalScore: 0,
+        responseCount: 0,
+        lowScoreCount: 0,
+      };
+      current.totalScore += score;
+      current.responseCount += 1;
+      if (score <= 2 || String(rating.status).toUpperCase() === 'LOW_SCORE') current.lowScoreCount += 1;
+      csatAgentMap.set(key, current);
+    }
+
     return {
       success: true as const,
       data: {
@@ -1423,6 +1481,9 @@ export class DashboardService {
         unlinkedCount: 0,
         csatSkippedCount,
         csatEligibleResolvedCount,
+        csatResponseCount,
+        csatLowScoreCount,
+        csatAverageScore,
         avgFirstResponseMinutes,
         avgResolutionHours,
         activity: toSeries(
@@ -1438,6 +1499,17 @@ export class DashboardService {
           .sort((left, right) => left.name.localeCompare(right.name)),
         topContacts: Array.from(topContactsMap.values())
           .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+          .slice(0, 6),
+        csatScoreDistribution: [1, 2, 3, 4, 5].map((score) => ({ score, count: csatDistributionMap.get(score) || 0 })),
+        csatAgentPerformance: Array.from(csatAgentMap.values())
+          .map((item) => ({
+            agentId: item.agentId,
+            agentName: item.agentName,
+            averageScore: Math.round((item.totalScore / Math.max(item.responseCount, 1)) * 100) / 100,
+            responseCount: item.responseCount,
+            lowScoreCount: item.lowScoreCount,
+          }))
+          .sort((left, right) => right.responseCount - left.responseCount || right.averageScore - left.averageScore)
           .slice(0, 6),
         warning: contexts.length > 1 ? 'Dashboard consolidado a partir de multiplos contextos ativos do Chatwoot.' : undefined,
       },

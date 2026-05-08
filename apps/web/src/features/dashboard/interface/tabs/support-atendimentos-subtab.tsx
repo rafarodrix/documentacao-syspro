@@ -44,6 +44,11 @@ function formatPercent(value: number, base: number) {
   return `${Math.round((value / base) * 100)}%`;
 }
 
+function formatScore(value: number | null) {
+  if (value === null) return "Sem base";
+  return value.toLocaleString("pt-BR", { minimumFractionDigits: value % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 });
+}
+
 type AtendimentosData = Awaited<ReturnType<typeof getAtendimentosData>>;
 
 export function SupportAtendimentosSubtab() {
@@ -82,6 +87,7 @@ export function SupportAtendimentosSubtab() {
 
   const statusBase = useMemo(() => Math.max(data?.totalCount ?? 0, 1), [data?.totalCount]);
   const channelBase = useMemo(() => Math.max(data?.totalCount ?? 0, 1), [data?.totalCount]);
+  const csatBase = useMemo(() => Math.max(data?.csatResponseCount ?? 0, 1), [data?.csatResponseCount]);
 
   const applyPreset = (preset: "today" | "7d" | "30d") => {
     const next = buildRangePreset(preset);
@@ -259,6 +265,55 @@ export function SupportAtendimentosSubtab() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Card className="border-border/60 bg-card/70 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">CSAT</CardTitle>
+            <CardDescription>Satisfacao real capturada no periodo filtrado.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border/60 bg-background/60 p-4">
+              <div className="mb-2 text-sm text-muted-foreground">Nota media</div>
+              <div className="text-2xl font-semibold tracking-tight">{formatScore(data?.csatAverageScore ?? null)}</div>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/60 p-4">
+              <div className="mb-2 text-sm text-muted-foreground">Respondido</div>
+              <div className="text-2xl font-semibold tracking-tight">{data?.csatResponseCount ?? 0}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)} dos elegiveis
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/60 p-4">
+              <div className="mb-2 text-sm text-muted-foreground">Notas baixas</div>
+              <div className="text-2xl font-semibold tracking-tight">{data?.csatLowScoreCount ?? 0}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatPercent(data?.csatLowScoreCount ?? 0, data?.csatResponseCount ?? 0)} das respostas
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/70 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Distribuicao de notas</CardTitle>
+            <CardDescription>Volume de respostas por faixa de satisfacao.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(data?.csatScoreDistribution ?? []).map((item) => (
+              <div key={item.score} className="space-y-1">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Nota {item.score}</span>
+                  <span className="font-medium tabular-nums">{item.count}</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted">
+                  <div className="h-2 rounded-full bg-primary/70" style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card className="border-border/60 bg-card/70 shadow-sm">
           <CardHeader className="pb-2">
@@ -304,6 +359,30 @@ export function SupportAtendimentosSubtab() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-border/60 bg-card/70 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">CSAT por atendente</CardTitle>
+          <CardDescription>Quem recebeu mais respostas e onde estao as notas baixas.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(data?.csatAgentPerformance ?? []).length ? (
+            (data?.csatAgentPerformance ?? []).map((item) => (
+              <div key={`${item.agentId ?? "none"}-${item.agentName}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{item.agentName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.responseCount} respostas • {item.lowScoreCount} notas baixas
+                  </p>
+                </div>
+                <Badge variant="outline" className="tabular-nums">{formatScore(item.averageScore)}</Badge>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Sem respostas de CSAT no recorte.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
