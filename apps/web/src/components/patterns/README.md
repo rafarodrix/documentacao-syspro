@@ -240,7 +240,7 @@ import Link from "next/link";
 | `className` | `string` | — | Classes extras no `<Card>` |
 | `contentClassName` | `string` | — | Classes extras no `<CardContent>` |
 
-### Quando NÃO usar SectionCard
+### Quando não usar SectionCard
 
 Use `Card` primitivo diretamente quando:
 
