@@ -3,7 +3,7 @@
  *
  * Destino: packages/ui/src/tokens.css
  * Re-exportado por: packages/ui/src/index.ts -> import "./tokens.css";
- * Consumido por:    apps/web/src/app/globals.css -> @import "@dosc-syspro/ui/tokens.css";
+ * Consumido por:    apps/web/src/app/globals.css -> @import "../../../../packages/ui/src/tokens.css";
  *
  * Esta e a UNICA fonte de cores, type, radii, espacamento e elevacao.
  * Nao adicione hex novos em globals.css ou em componentes — adicione aqui.
