@@ -230,6 +230,80 @@ function getDashboardTicketTeam(role: Role): 'SUPORTE' | 'DESENVOLVIMENTO' | und
   return undefined;
 }
 
+type DashboardSefazCurrentRecord = {
+  uf: string;
+  service: 'NFE' | 'NFCE';
+  status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
+  latency: number;
+  checkedAt: Date;
+  changedAt: Date;
+};
+
+type DashboardSefazHistoryRecord = {
+  uf: string;
+  service: 'NFE' | 'NFCE';
+  status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
+  latency: number;
+};
+
+function buildSefazHistoryMap(historyRecords: DashboardSefazHistoryRecord[]) {
+  const historyMap = new Map<string, Array<{ status: string; latency: number }>>();
+
+  for (const record of historyRecords) {
+    const key = `${record.uf}:${record.service}`;
+    if (!historyMap.has(key)) historyMap.set(key, []);
+    historyMap.get(key)!.push({ status: record.status, latency: record.latency });
+  }
+
+  return historyMap;
+}
+
+function computeSefazMetrics(records: Array<{ status: string; latency: number }>) {
+  if (!records.length) {
+    return {
+      uptimePct: undefined,
+      incidentCount: undefined,
+      latencyHistory: [] as number[],
+    };
+  }
+
+  const total = records.length;
+  const onlineCount = records.filter((record) => record.status === 'ONLINE').length;
+  const uptimePct = Math.round((onlineCount / total) * 1000) / 10;
+  let incidents = 0;
+  let prevOnline = true;
+
+  for (const record of records) {
+    const isOnline = record.status === 'ONLINE';
+    if (prevOnline && !isOnline) incidents++;
+    prevOnline = isOnline;
+  }
+
+  return {
+    uptimePct,
+    incidentCount: incidents,
+    latencyHistory: records.slice(-12).map((record) => record.latency),
+  };
+}
+
+function mapDashboardSefazStatus(
+  record: DashboardSefazCurrentRecord,
+  historyMap: Map<string, Array<{ status: string; latency: number }>>,
+) {
+  const key = `${record.uf}:${record.service}`;
+  const metrics = computeSefazMetrics(historyMap.get(key) ?? []);
+
+  return {
+    uf: record.uf,
+    service: record.service,
+    status: record.status,
+    latency: record.latency,
+    checkedAt: record.checkedAt.toISOString(),
+    changedAt: record.changedAt.toISOString(),
+    ...metrics,
+  };
+}
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -370,6 +444,7 @@ export class DashboardService {
       const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
       const { start } = getLast7DaysRange();
       const now = new Date();
+      const sefazHistorySince = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const [
         canViewCompaniesModule,
         canViewContactsDirect,
@@ -418,6 +493,7 @@ export class DashboardService {
         recentContacts,
         recentUsers,
         sefazRecords,
+        sefazHistoryRecords,
         companyActivity,
         crmLeads,
         activeContracts,
@@ -533,6 +609,11 @@ export class DashboardService {
         this.prisma.sefazStatusCurrent.findMany({
           where: { uf: { in: dashboardUFs } },
           orderBy: { checkedAt: 'desc' },
+        }).catch(() => []),
+        this.prisma.sefazStatus.findMany({
+          where: { checkedAt: { gte: sefazHistorySince } },
+          orderBy: { checkedAt: 'asc' },
+          select: { uf: true, service: true, status: true, latency: true },
         }).catch(() => []),
         canViewCompaniesModule
           ? this.prisma.company.findMany({
@@ -664,22 +745,11 @@ export class DashboardService {
       const inactContacts = recentInactivatedContacts.map(mapContact);
       const inactUsers = recentInactivatedUsers.map(mapUser);
 
-      const sefazStatuses = sefazRecords.map((record) => ({
-        uf: record.uf,
-        service: record.service,
-        status: record.status,
-        latency: record.latency,
-        checkedAt: record.checkedAt.toISOString(),
-        changedAt: record.changedAt.toISOString(),
-      }));
-      const sefazNationalStatuses = nationalSefazRecords.map((record) => ({
-        uf: record.uf,
-        service: record.service,
-        status: record.status,
-        latency: record.latency,
-        checkedAt: record.checkedAt.toISOString(),
-        changedAt: record.changedAt.toISOString(),
-      }));
+      const sefazHistoryMap = buildSefazHistoryMap(sefazHistoryRecords);
+      const sefazStatuses = sefazRecords.map((record) => mapDashboardSefazStatus(record, sefazHistoryMap));
+      const sefazNationalStatuses = nationalSefazRecords.map((record) =>
+        mapDashboardSefazStatus(record, sefazHistoryMap),
+      );
 
       return {
         success: true,
@@ -795,7 +865,8 @@ export class DashboardService {
     const dashboardUFs = states.size > 0 ? Array.from(states) : ['MG'];
     const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
 
-    const [sefazRecords, nationalSefazRecords] = await Promise.all([
+    const sefazHistorySince = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [sefazRecords, nationalSefazRecords, sefazHistoryRecords] = await Promise.all([
       this.prisma.sefazStatusCurrent.findMany({
         where: { uf: { in: dashboardUFs } },
         orderBy: { checkedAt: 'desc' },
@@ -803,24 +874,18 @@ export class DashboardService {
       this.prisma.sefazStatusCurrent.findMany({
         orderBy: { checkedAt: 'desc' },
       }).catch(() => []),
+      this.prisma.sefazStatus.findMany({
+        where: { checkedAt: { gte: sefazHistorySince } },
+        orderBy: { checkedAt: 'asc' },
+        select: { uf: true, service: true, status: true, latency: true },
+      }).catch(() => []),
     ]);
 
-    const sefazStatuses = sefazRecords.map((record) => ({
-      uf: record.uf,
-      service: record.service,
-      status: record.status,
-      latency: record.latency,
-      checkedAt: record.checkedAt.toISOString(),
-      changedAt: record.changedAt.toISOString(),
-    }));
-    const sefazNationalStatuses = nationalSefazRecords.map((record) => ({
-      uf: record.uf,
-      service: record.service,
-      status: record.status,
-      latency: record.latency,
-      checkedAt: record.checkedAt.toISOString(),
-      changedAt: record.changedAt.toISOString(),
-    }));
+    const sefazHistoryMap = buildSefazHistoryMap(sefazHistoryRecords);
+    const sefazStatuses = sefazRecords.map((record) => mapDashboardSefazStatus(record, sefazHistoryMap));
+    const sefazNationalStatuses = nationalSefazRecords.map((record) =>
+      mapDashboardSefazStatus(record, sefazHistoryMap),
+    );
 
     return {
       success: true,
