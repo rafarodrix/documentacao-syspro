@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, Badge, Button, Input, Label, Textarea, Switch, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { EmptyState } from "@/components/patterns";
 import {
     Building2,
     CalendarClock,
@@ -479,15 +480,12 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             {items.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="h-64 text-center">
-                                        <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground animate-in fade-in zoom-in-95 duration-500">
-                                            <div className="p-4 rounded-full bg-muted/30">
-                                                <FileText className="h-8 w-8 opacity-40" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="font-medium text-foreground">Nenhum contrato encontrado</p>
-                                                <p className="text-xs">Cadastre um novo contrato para comecar a gestao.</p>
-                                            </div>
-                                        </div>
+                                        <EmptyState
+                                            icon={FileText}
+                                            title="Nenhum contrato encontrado"
+                                            description="Cadastre um novo contrato para comecar a gestao."
+                                            compact
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ) : (

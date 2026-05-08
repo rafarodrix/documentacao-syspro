@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
+import { EmptyState } from "@/components/patterns";
 import { formatDateSafe } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Card } from "@dosc-syspro/ui";
 import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
@@ -33,10 +34,12 @@ export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder,
     <Card className="overflow-hidden border-border/60 bg-card shadow-sm animate-in fade-in duration-700">
       <div className="md:hidden divide-y divide-border/60">
         {tickets.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <p className="text-sm font-medium text-foreground">Nenhum chamado encontrado</p>
-            <p className="text-xs mt-1">Tente ajustar os filtros ou busque por outro termo.</p>
-          </div>
+          <EmptyState
+            icon={SearchX}
+            title="Nenhum chamado encontrado"
+            description="Tente ajustar os filtros ou busque por outro termo."
+            compact
+          />
         ) : (
           tickets.map((ticket) => (
             <div 
@@ -96,7 +99,16 @@ export function TicketsTable({ tickets, isAdmin, statusGroup, sortBy, sortOrder,
           </TableHeader>
           <TableBody>
             {tickets.length === 0 ? (
-              <EmptyState colSpan={emptyStateColSpan} />
+              <TableRow>
+                <TableCell colSpan={emptyStateColSpan} className="h-64 text-center">
+                  <EmptyState
+                    icon={SearchX}
+                    title="Nenhum chamado encontrado"
+                    description="Tente ajustar os filtros ou busque por outro termo."
+                    compact
+                  />
+                </TableCell>
+              </TableRow>
             ) : (
               tickets.map((ticket, index) => (
                 <TableRow
@@ -242,20 +254,3 @@ function TeamBadge({ team }: { team?: TicketListItem["team"] }) {
   );
 }
 
-function EmptyState({ colSpan }: { colSpan: number }) {
-  return (
-    <TableRow>
-      <TableCell colSpan={colSpan} className="h-64 text-center">
-        <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
-          <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
-            <SearchX className="h-6 w-6 text-muted-foreground/50" />
-          </div>
-          <div>
-            <p className="text-base font-medium text-foreground">Nenhum chamado encontrado</p>
-            <p className="text-sm mt-1 opacity-70">Tente ajustar os filtros ou busque por outro termo.</p>
-          </div>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}

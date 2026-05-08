@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button } from "@dosc-syspro/ui";
-import { Building2, ArrowUpRight, Plus, MapPin } from "lucide-react"
+import { Building2, ArrowUpRight, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CompanyStatus } from "@prisma/client"
+import { EmptyState } from "@/components/patterns";
 
 export interface RecentCompanyItem {
   id: string
@@ -77,21 +78,13 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
 
       <CardContent className="px-5 pb-5 flex-1">
         {companies.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-60 text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center border border-border">
-              <Building2 className="h-7 w-7 text-muted-foreground/40" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Nenhuma empresa cadastrada</p>
-              <p className="text-xs text-muted-foreground">Cadastros aparecerao aqui assim que criados.</p>
-            </div>
-            <Button variant="outline" size="sm" className="gap-2 border-dashed h-8" asChild>
-              <Link href="/portal/cadastros">
-                <Plus className="h-3.5 w-3.5" />
-                Cadastrar empresa
-              </Link>
-            </Button>
-          </div>
+          <EmptyState
+            icon={Building2}
+            title="Nenhuma empresa cadastrada"
+            description="Cadastros aparecerao aqui assim que criados."
+            className="h-full min-h-60"
+            action={{ label: "Cadastrar empresa", href: "/portal/cadastros" }}
+          />
         ) : (
           <div className="space-y-1">
             {companies.map((company) => {

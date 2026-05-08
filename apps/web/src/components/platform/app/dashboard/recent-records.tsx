@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Button } from "@dosc-syspro/ui";
-import { ArrowUpRight, Plus, UserRound, Users } from "lucide-react"
+import { ArrowUpRight, UserRound, Users } from "lucide-react"
+import { EmptyState } from "@/components/patterns";
 
 export interface RecentRecordItem {
   id: string
@@ -83,23 +84,13 @@ export function RecentRecords({
 
       <CardContent className="px-5 pb-5 flex-1">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full min-h-60 text-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center border border-border">
-              <Icon className="h-7 w-7 text-muted-foreground/40" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">{emptyTitle}</p>
-              <p className="text-xs text-muted-foreground">{emptyDescription}</p>
-            </div>
-            {createHref && createLabel ? (
-              <Button variant="outline" size="sm" className="gap-2 border-dashed h-8" asChild>
-                <Link href={createHref}>
-                  <Plus className="h-3.5 w-3.5" />
-                  {createLabel}
-                </Link>
-              </Button>
-            ) : null}
-          </div>
+          <EmptyState
+            icon={Icon}
+            title={emptyTitle}
+            description={emptyDescription}
+            className="h-full min-h-60"
+            action={createHref && createLabel ? { label: createLabel, href: createHref } : undefined}
+          />
         ) : (
           <div className="space-y-1">
             {items.map((item) => (
