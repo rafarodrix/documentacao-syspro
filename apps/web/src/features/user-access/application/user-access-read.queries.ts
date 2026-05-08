@@ -42,7 +42,7 @@ export async function getUserEditViewData(userId: string): Promise<UserAccessEdi
     context: hasInternalRole ? "SYSTEM" : "CLIENT",
     userId: user.id,
     companies: companies as UserAccessCompanyOption[],
-    isAdmin: hasInternalRole,
+    canAssignAdminRole: hasInternalRole,
     initialData: {
       name: user.name ?? "",
       email: user.email,

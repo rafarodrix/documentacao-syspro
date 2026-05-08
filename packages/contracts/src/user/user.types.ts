@@ -175,7 +175,7 @@ export const userAccessEditInitialDataSchema = z.object({
 export const userAccessEditViewDataSchema = z.object({
   userId: z.string(),
   companies: z.array(userAccessCompanyOptionSchema),
-  isAdmin: z.boolean(),
+  canAssignAdminRole: z.boolean(),
   initialData: userAccessEditInitialDataSchema,
   context: z.enum(["CLIENT", "SYSTEM"]),
 });
