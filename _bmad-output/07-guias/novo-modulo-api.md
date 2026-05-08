@@ -1,155 +1,188 @@
 # Guia: Como criar um novo módulo na API (NestJS)
 
-> Passo a passo para adicionar um novo domínio ao `apps/api`. Atualizado em: 2026-05-05
+> Passo a passo para adicionar um novo domínio ao `apps/api`. Atualizado em: 2026-05-08
 
 ---
 
-## Estrutura mínima de um módulo
+## Padrão ouro: módulo tRPC (sem controller REST)
+
+O padrão adotado para módulos que expõem dados ao frontend é **tRPC puro** — sem `Controller` REST. Os módulos `companies` e `users` são a referência.
 
 ```
 src/modules/<nome>/
-├── <nome>.module.ts      ← declara providers, controllers, imports, exports
-├── <nome>.service.ts     ← lógica de negócio
-├── <nome>.controller.ts  ← endpoints REST
-└── <nome>.router.ts      ← procedures tRPC (opcional)
+├── <nome>.module.ts      ← declara providers, imports com forwardRef(TrpcModule), exports
+├── <nome>.service.ts     ← lógica de negócio + autorização via AuthorizationService
+└── <nome>.router.ts      ← procedures tRPC (injetável NestJS)
 ```
 
 ---
 
-## Passo 1 — Criar os arquivos
-
-```typescript
-// exemplo.module.ts
-import { Module } from '@nestjs/common'
-import { ExemploService } from './exemplo.service'
-import { ExemploController } from './exemplo.controller'
-
-@Module({
-  providers: [ExemploService],
-  controllers: [ExemploController],
-  exports: [ExemploService],
-})
-export class ExemploModule {}
-```
+## Passo 1 — Criar o service
 
 ```typescript
 // exemplo.service.ts
-import { Injectable } from '@nestjs/common'
+import { Injectable, ForbiddenException } from '@nestjs/common'
+import type { IncomingHttpHeaders } from 'node:http'
 import { PrismaService } from '../../prisma/prisma.service'
+import { AuthorizationService } from '../authorization/authorization.service'
 
 @Injectable()
 export class ExemploService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authorizationService: AuthorizationService,
+  ) {}
 
-  async findAll() {
+  async findAll(rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.authorizationService.getRequester(rawHeaders)
+    // lógica de negócio + controle de acesso
     return this.prisma.exemplo.findMany()
   }
 }
 ```
 
+---
+
+## Passo 2 — Criar o router tRPC
+
 ```typescript
-// exemplo.controller.ts
-import { Controller, Get } from '@nestjs/common'
+// exemplo.router.ts
+import { Injectable } from '@nestjs/common'
+import { z } from 'zod'
+import { TrpcService } from '../trpc/trpc.service'
 import { ExemploService } from './exemplo.service'
+import { createExemploSchema } from '@dosc-syspro/contracts/exemplo'
 
-@Controller('exemplo')
-export class ExemploController {
-  constructor(private readonly exemploService: ExemploService) {}
+@Injectable()
+export class ExemploRouter {
+  public router!: ReturnType<typeof this.createRouter>
 
-  @Get()
-  findAll() {
-    return this.exemploService.findAll()
+  constructor(
+    private readonly trpc: TrpcService,
+    private readonly exemploService: ExemploService,
+  ) {
+    this.router = this.createRouter()
+  }
+
+  private createRouter() {
+    return this.trpc.router({
+      list: this.trpc.publicProcedure
+        .query(({ ctx }) =>
+          this.exemploService.findAll(ctx.headers),
+        ),
+
+      create: this.trpc.publicProcedure
+        .input(createExemploSchema)
+        .mutation(({ input, ctx }) =>
+          this.exemploService.create(input, ctx.headers),
+        ),
+    })
   }
 }
 ```
 
 ---
 
-## Passo 2 — Registrar no AppModule
+## Passo 3 — Configurar o módulo NestJS
 
 ```typescript
-// src/app.module.ts
-import { ExemploModule } from './modules/exemplo/exemplo.module'
+// exemplo.module.ts
+import { Module, forwardRef } from '@nestjs/common'
+import { PrismaModule } from '../../prisma/prisma.module'
+import { TrpcModule } from '../trpc/trpc.module'
+import { ExemploService } from './exemplo.service'
+import { ExemploRouter } from './exemplo.router'
+
+@Module({
+  imports: [PrismaModule, forwardRef(() => TrpcModule)],
+  providers: [ExemploService, ExemploRouter],
+  exports: [ExemploService, ExemploRouter],
+})
+export class ExemploModule {}
+```
+
+---
+
+## Passo 4 — Registrar no TrpcModule e TrpcRouter
+
+```typescript
+// trpc.module.ts — adicionar import
+import { ExemploModule } from '../exemplo/exemplo.module'
 
 @Module({
   imports: [
-    // ... outros módulos
-    ExemploModule,
+    forwardRef(() => CompaniesModule),
+    forwardRef(() => UsersModule),
+    forwardRef(() => ExemploModule),  // ← adicionar
   ],
+  // ...
 })
-export class AppModule {}
-```
-
----
-
-## Passo 3 — Adicionar ao roteador tRPC (opcional)
-
-```typescript
-// exemplo.router.ts
-import { z } from 'zod'
-
-export const exemploRouter = router({
-  list: publicProcedure
-    .query(async ({ ctx }) => {
-      return ctx.exemploService.findAll()
-    }),
-  create: protectedProcedure
-    .input(z.object({ name: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      return ctx.exemploService.create(input)
-    }),
-})
+export class TrpcModule { ... }
 ```
 
 ```typescript
-// src/modules/trpc/trpc.router.ts — adicionar:
-export const appRouter = router({
-  // ... outros routers
-  exemplo: exemploRouter,
-})
-```
+// trpc.router.ts — adicionar ao router
+constructor(
+  private readonly trpc: TrpcService,
+  private readonly companiesRouter: CompaniesRouter,
+  private readonly usersRouter: UsersRouter,
+  private readonly exemploRouter: ExemploRouter,  // ← adicionar
+) {
+  this.appRouter = this.createRouter()
+}
 
----
-
-## Passo 4 — Validação com Zod
-
-```typescript
-// No controller, usar pipes Zod para validar body
-import { ZodValidationPipe } from '...'
-import { CreateExemploSchema } from '@dosc-syspro/contracts/exemplo'
-
-@Post()
-@UsePipes(new ZodValidationPipe(CreateExemploSchema))
-create(@Body() dto: CreateExemploDto) {
-  return this.exemploService.create(dto)
+private createRouter() {
+  return this.trpc.router({
+    companies: this.companiesRouter.router,
+    users:     this.usersRouter.router,
+    exemplo:   this.exemploRouter.router,  // ← adicionar
+  })
 }
 ```
 
 ---
 
-## Passo 5 — Adicionar schema ao contracts (se necessário)
+## Passo 5 — Adicionar schemas ao contracts
 
 ```typescript
-// packages/contracts/src/exemplo.ts
+// packages/contracts/src/exemplo/exemplo.types.ts
 import { z } from 'zod'
 
-export const CreateExemploSchema = z.object({
+export const createExemploSchema = z.object({
   name: z.string().min(1),
 })
 
-export type CreateExemploInput = z.infer<typeof CreateExemploSchema>
+export type CreateExemploInput = z.input<typeof createExemploSchema>
 ```
 
-Registrar no `package.json` de contracts como subpath export se necessário.
+```typescript
+// packages/contracts/src/exemplo/index.ts
+export * from './exemplo.types'
+```
+
+Registrar subpath export no `package.json` do package contracts.
+
+---
+
+## Passo 6 — Consumir no frontend
+
+```typescript
+// apps/web (server component ou server action)
+import { trpc } from "@/lib/api/trpc-client"
+
+const items = await trpc.exemplo.list.query()
+await trpc.exemplo.create.mutate({ name: "Novo item" })
+```
 
 ---
 
 ## Checklist
 
-- [ ] Módulo criado com `@Module()`
-- [ ] Service injetado via constructor (não property)
-- [ ] Controller com prefixo de rota kebab-case
-- [ ] Registrado no `AppModule`
-- [ ] Schema Zod em `@dosc-syspro/contracts` se necessário
-- [ ] Procedure tRPC adicionada ao router se exposto ao frontend
-- [ ] Testes em `apps/api/tests/`
+- [ ] `<nome>.service.ts` com `rawHeaders?: IncomingHttpHeaders` em todos os métodos públicos
+- [ ] Autorização via `AuthorizationService.getRequester(rawHeaders)` no início de cada método
+- [ ] `<nome>.router.ts` injectable com `publicProcedure` e `ctx.headers` repassado ao service
+- [ ] `<nome>.module.ts` com `forwardRef(() => TrpcModule)` nos imports e router exportado
+- [ ] `TrpcModule` importando o novo módulo com `forwardRef`
+- [ ] `TrpcRouter` injetando e montando o sub-router
+- [ ] Schemas Zod em `@dosc-syspro/contracts/<nome>`
+- [ ] Testes de autorização em `apps/web/tests/` ou `apps/api/tests/`

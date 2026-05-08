@@ -17,9 +17,6 @@ import { UserContactAccessService } from './user-contact-access.service';
 import { ContactsService } from '../contacts/contacts.service';
 import {
   currentUserProfileSchema,
-  createUserSchema,
-  updateCurrentUserProfileSchema,
-  updateUserSchema,
   userAccessListItemSchema,
   type CreateUserInput,
   type CurrentUserProfile,
@@ -195,12 +192,7 @@ export class UsersService {
       throw new ForbiddenException('Acesso negado.');
     }
 
-    const parsed = createUserSchema.safeParse(input);
-    if (!parsed.success) {
-      throw new BadRequestException(parsed.error.flatten().fieldErrors);
-    }
-
-    const data = parsed.data;
+    const data = input;
 
     const normalizedEmail = this.normalizeEmail(data.email);
     if (!normalizedEmail) {
@@ -325,12 +317,7 @@ export class UsersService {
 
     if (!canEditUsers || (!isGlobalUserManager && !isClientManager)) throw new ForbiddenException('Acesso negado.');
 
-    const parsed = updateUserSchema.safeParse(input);
-    if (!parsed.success) {
-      throw new BadRequestException(parsed.error.flatten().fieldErrors);
-    }
-
-    const data = parsed.data;
+    const data = input;
 
     const user = await (this.prisma.user as any).findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Usuario nao encontrado');
@@ -713,11 +700,6 @@ export class UsersService {
 
   async updateCurrentProfile(input: UpdateCurrentUserProfileInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const parsed = updateCurrentUserProfileSchema.safeParse(input);
-
-    if (!parsed.success) {
-      throw new BadRequestException(parsed.error.flatten().fieldErrors);
-    }
 
     const [user, canEditPersonal, canEditCompany] = await Promise.all([
       this.prisma.user.findUnique({
@@ -787,7 +769,7 @@ export class UsersService {
     }
 
     const companies = this.collectProfileCompanies(user);
-    const data = parsed.data;
+    const data = input;
     let shouldSyncPortalUser = false;
 
     if (data.name !== undefined) {
@@ -1067,10 +1049,9 @@ export class UsersService {
     return agents.some((item: any) => String(item?.id ?? '').trim() === platformUserId);
   }
 
-  private userInclude(companyScope?: string[]) {
+  private userInclude() {
     return {
       memberships: {
-        ...(companyScope ? { where: { companyId: { in: companyScope } } } : {}),
         include: { company: true },
       },
       contact: {

@@ -57,10 +57,13 @@ Todas as chamadas passam por `POST /trpc/[procedure]`.
 
 **Exemplo de procedure:**
 ```typescript
-// servidor (api)
-companies.list   // query
-companies.create // mutation
-tickets.search   // query
+// servidor (api) — sub-routers registrados
+companies.list               // query
+companies.create             // mutation
+users.list                   // query
+users.update                 // mutation
+users.getCurrentProfile      // query
+users.getChatwootSsoLink     // query
 ```
 
 Os types são automaticamente inferidos — sem geração de código manual.
@@ -69,18 +72,23 @@ Os types são automaticamente inferidos — sem geração de código manual.
 
 ## Web → API: REST Proxy (Next.js API Routes)
 
-Para rotas que ainda não migratam para tRPC, o `apps/web` expõe API Routes em `/app/api/` que fazem proxy para o NestJS.
+Para domínios que ainda não migraram para tRPC, o `apps/web` expõe API Routes em `/app/api/` que fazem proxy para o NestJS.
 
 O arquivo `src/app/api/_shared/backend-proxy.ts` centraliza a lógica de proxy:
 - Repassa headers de autenticação
-- Encaminha para `NEXT_PUBLIC_API_URL`
+- Encaminha para `NEXT_PUBLIC_API_URL` (ou `APP_BACKEND_API_URL`)
 - Preserva método HTTP, body e query params
 
 Rotas relevantes no proxy:
 - `/api/remote/**` → administração de hosts remotos
-- `/api/companies/**` → CRUD de empresas
 - `/api/tickets/**` → tickets e chamados
+- `/api/contacts/**` → contatos
+- `/api/platform/**` → configurações e integrações
 - `/api/remote-admin/**` → procedimentos remotos privilegiados
+
+> **Domínios já migrados para tRPC (sem proxy REST):**
+> - `companies` → `trpc.companies.*`
+> - `users` → `trpc.users.*`
 
 ---
 

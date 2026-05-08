@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, User } from "lucide-react";
+import { trpc } from "@/lib/api/trpc-client";
 
 interface UserProfileSettingsProps {
   profile: CurrentUserProfile;
@@ -138,17 +139,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
     setIsSavingPersonal(true);
     try {
-      const response = await fetch("/api/users/me/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: personalName.trim() }),
-      });
-      const payload = (await response.json().catch(() => null)) as { success?: boolean; error?: string; message?: string } | null;
-
-      if (!response.ok || payload?.success === false) {
-        throw new Error(payload?.error || payload?.message || "Nao foi possivel atualizar os dados pessoais.");
-      }
-
+      await trpc.users.updateCurrentProfile.mutate({ name: personalName.trim() });
       toast.success("Dados pessoais atualizados.");
       router.refresh();
     } catch (error) {
@@ -176,41 +167,31 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
     setIsSavingCompany(true);
     try {
-      const response = await fetch("/api/users/me/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyId: selectedCompany.id,
-          company: {
-            razaoSocial: companyForm.razaoSocial.trim(),
-            nomeFantasia: companyForm.nomeFantasia.trim(),
-            emailContato: companyForm.emailContato.trim(),
-            emailFinanceiro: companyForm.emailFinanceiro.trim(),
-            telefone: companyForm.telefone.trim(),
-            whatsapp: companyForm.whatsapp.trim(),
-            website: companyForm.website.trim(),
-            address: {
-              description: companyForm.address.description.trim() || "Sede",
-              cep: companyForm.address.cep.trim(),
-              logradouro: companyForm.address.logradouro.trim(),
-              numero: companyForm.address.numero.trim(),
-              complemento: companyForm.address.complemento.trim(),
-              bairro: companyForm.address.bairro.trim(),
-              cidade: companyForm.address.cidade.trim(),
-              estado: companyForm.address.estado.trim().toUpperCase(),
-              pais: companyForm.address.pais.trim() || "BR",
-              codigoIbgeCidade: companyForm.address.codigoIbgeCidade.trim(),
-              codigoIbgeEstado: companyForm.address.codigoIbgeEstado.trim(),
-            },
+      await trpc.users.updateCurrentProfile.mutate({
+        companyId: selectedCompany.id,
+        company: {
+          razaoSocial: companyForm.razaoSocial.trim(),
+          nomeFantasia: companyForm.nomeFantasia.trim(),
+          emailContato: companyForm.emailContato.trim(),
+          emailFinanceiro: companyForm.emailFinanceiro.trim(),
+          telefone: companyForm.telefone.trim(),
+          whatsapp: companyForm.whatsapp.trim(),
+          website: companyForm.website.trim(),
+          address: {
+            description: companyForm.address.description.trim() || "Sede",
+            cep: companyForm.address.cep.trim(),
+            logradouro: companyForm.address.logradouro.trim(),
+            numero: companyForm.address.numero.trim(),
+            complemento: companyForm.address.complemento.trim(),
+            bairro: companyForm.address.bairro.trim(),
+            cidade: companyForm.address.cidade.trim(),
+            estado: companyForm.address.estado.trim().toUpperCase(),
+            pais: companyForm.address.pais.trim() || "BR",
+            codigoIbgeCidade: companyForm.address.codigoIbgeCidade.trim(),
+            codigoIbgeEstado: companyForm.address.codigoIbgeEstado.trim(),
           },
-        }),
+        },
       });
-      const payload = (await response.json().catch(() => null)) as { success?: boolean; error?: string; message?: string } | null;
-
-      if (!response.ok || payload?.success === false) {
-        throw new Error(payload?.error || payload?.message || "Nao foi possivel atualizar a empresa.");
-      }
-
       toast.success("Dados da empresa atualizados.");
       router.refresh();
     } catch (error) {

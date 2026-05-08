@@ -5,40 +5,27 @@ import type {
   UserAccessEditViewData,
   UserAccessListItem,
 } from "@dosc-syspro/contracts/user";
-import { callWebApi } from "@/lib/web-api";
 import { trpc } from "@/lib/api/trpc-client";
 
-
 type ActionError = { error: string };
-
-async function apiRequest(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
-}
 
 export async function getUsersAdminViewData(): Promise<
   | UserAccessAdminViewData
   | ActionError
 > {
   try {
-    const [usersResponse, companiesResponse] = await Promise.all([
-      apiRequest("/users"),
+    const [users, companies] = await Promise.all([
+      trpc.users.list.query({}),
       trpc.companies.getOptions.query(),
     ]);
 
-    if (!usersResponse.ok) {
-      return { error: "Erro ao buscar usuarios." };
-    }
-
-    const usersPayload = (await usersResponse.json()) as UserAccessListItem[];
-    const companiesPayload = companiesResponse as UserAccessCompanyOption[];
-
-    const isGlobalView = usersPayload.some((user) =>
+    const isGlobalView = users.some((user) =>
       user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE",
     );
 
     return {
-      companies: companiesPayload,
-      users: usersPayload,
+      companies: companies as UserAccessCompanyOption[],
+      users: users as UserAccessListItem[],
       isGlobalView,
     };
   } catch {
@@ -47,21 +34,17 @@ export async function getUsersAdminViewData(): Promise<
 }
 
 export async function getUserEditViewData(userId: string): Promise<UserAccessEditViewData> {
-  const [userResponse, companiesResponse] = await Promise.all([
-    apiRequest(`/users/${encodeURIComponent(userId)}`),
+  const [user, companies] = await Promise.all([
+    trpc.users.getOne.query({ id: userId }).catch(() => notFound()),
     trpc.companies.getOptions.query(),
   ]);
 
-  if (!userResponse.ok) notFound();
-
-  const user = (await userResponse.json()) as UserAccessListItem;
-  const companies = companiesResponse as UserAccessCompanyOption[];
   const isSystemUser = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
 
   return {
     context: isSystemUser ? "SYSTEM" : "CLIENT",
     userId: user.id,
-    companies,
+    companies: companies as UserAccessCompanyOption[],
     isAdmin: isSystemUser,
     initialData: {
       name: user.name ?? "",

@@ -12,10 +12,9 @@ Gerencia empresas do portal (clientes Trilink).
 
 | Arquivo                  | Responsabilidade                                       |
 |--------------------------|-------------------------------------------------------|
-| `companies.controller.ts`| REST CRUD + busca por CNPJ                            |
-| `companies.router.ts`    | Procedimentos tRPC de empresas                        |
+| `companies.router.ts`    | Procedures tRPC de empresas                           |
 | `companies.service.ts`   | Lógica: criação, atualização, status, segmentação     |
-| `companies.module.ts`    | Módulo NestJS                                         |
+| `companies.module.ts`    | Módulo NestJS com `forwardRef(TrpcModule)`            |
 
 **Funcionalidades:**
 - CRUD completo de empresas com dados fiscais (CNPJ, razão social, IE)
@@ -48,19 +47,35 @@ Gerencia contatos vinculados a empresas.
 
 **Path:** `src/modules/users/`
 
-Gerencia usuários do portal.
+Gerencia usuários do portal. **Totalmente migrado para tRPC** — sem controller REST.
 
-| Arquivo                        | Responsabilidade                          |
-|--------------------------------|------------------------------------------|
-| `users.service.ts`             | CRUD, convites, perfis                   |
-| `users.controller.ts`          | REST endpoints                           |
-| `user-contact-access.service.ts` | Restrição de acesso por contato       |
+| Arquivo                          | Responsabilidade                                  |
+|----------------------------------|--------------------------------------------------|
+| `users.router.ts`                | Procedures tRPC (lista, busca, CRUD, perfil, SSO) |
+| `users.service.ts`               | Lógica de negócio: CRUD, perfis, Chatwoot sync    |
+| `user-contact-access.service.ts` | Sincronização de memberships a partir do contato  |
+| `users.module.ts`                | Módulo NestJS com `forwardRef(TrpcModule)`        |
+
+**Procedures tRPC expostas (`trpc.users.*`):**
+
+| Procedure              | Tipo     | Descrição                                        |
+|------------------------|----------|--------------------------------------------------|
+| `list`                 | query    | Lista usuários com filtros `search` e `role`     |
+| `getOne`               | query    | Busca usuário por ID                             |
+| `checkEmail`           | query    | Verifica disponibilidade de e-mail               |
+| `getCurrentProfile`    | query    | Retorna perfil + empresas do usuário logado      |
+| `getChatwootSsoLink`   | query    | Gera link SSO para acesso unificado ao Chatwoot  |
+| `create`               | mutation | Cria usuário e sincroniza com auth provider      |
+| `update`               | mutation | Atualiza dados ou status do usuário              |
+| `updateCurrentProfile` | mutation | Atualiza perfil e dados de empresa do usuário    |
+| `remove`               | mutation | Soft-delete (isActive=false, deletedAt)          |
 
 **Funcionalidades:**
-- CRUD de usuários com verificação de email
-- Controle de status: active, banned, verified
-- Perfis de acesso (AccessProfile)
-- SSO com Chatwoot via token
+- CRUD completo com validação de e-mail e controle de role
+- Sincronização automática de memberships via contato vinculado
+- Perfil do usuário com dados de empresa editáveis
+- SSO com Chatwoot com provisionamento automático de agente
+- Controle de acesso por escopo: admin global vs. gestor de unidade
 
 ---
 

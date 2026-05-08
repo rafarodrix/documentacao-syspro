@@ -1,6 +1,6 @@
 "use server";
 
-import { createUserSchema, updateUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
+import { createUserSchema, updateUserSchema, type CreateUserInput } from "@dosc-syspro/contracts/user";
 import { getProtectedSession } from "@/lib/auth-helpers";
 import { z } from "zod";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
@@ -8,8 +8,8 @@ import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type { UserAccessActionResponse, UserAccessValidationErrors } from "@/features/user-access/domain/user-access.types";
 import { handleActionError } from "@dosc-syspro/shared/action-error-handler";
-import { callWebApi } from "@/lib/web-api";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { trpc } from "@/lib/api/trpc-client";
 
 interface GetUsersParams {
   search?: string;
@@ -17,10 +17,6 @@ interface GetUsersParams {
 }
 
 const CREATE_USER_RATE_LIMIT = { max: 8, windowMs: 60_000 };
-
-type ApiErrorResponse = {
-  message?: string | string[];
-};
 
 function toValidationErrors(
   fieldErrors:
@@ -30,17 +26,7 @@ function toValidationErrors(
   return fieldErrors as UserAccessValidationErrors;
 }
 
-function toApiErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") return fallback;
-  const body = payload as ApiErrorResponse;
-  if (Array.isArray(body.message) && body.message.length > 0) return body.message.join(", ");
-  if (typeof body.message === "string" && body.message.trim()) return body.message;
-  return fallback;
-}
-
-async function callApi(path: string, init?: RequestInit) {
-  return callWebApi(`/api${path}`, init);
-}
+type UserUpsertInput = CreateUserInput;
 
 export async function getUsersAction(filters?: GetUsersParams) {
   const session = await getProtectedSession();
@@ -49,25 +35,15 @@ export async function getUsersAction(filters?: GetUsersParams) {
   }
 
   try {
-    const params = new URLSearchParams();
-    if (filters?.search) params.set("search", filters.search);
-    if (filters?.role) params.set("role", filters.role);
-
-    const suffix = params.toString() ? `?${params.toString()}` : "";
-    const response = await callApi(`/users${suffix}`);
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Erro ao carregar usuarios.") };
-    }
-
-    const data = await response.json();
+    const data = await trpc.users.list.query({
+      search: filters?.search,
+      role: filters?.role,
+    });
     return { success: true, data };
   } catch {
     return { success: false, message: "Erro ao carregar usuarios." };
   }
 }
-
-type UserUpsertInput = CreateUserInput;
 
 export async function createUserAction(data: UserUpsertInput): Promise<UserAccessActionResponse> {
   const session = await getProtectedSession();
@@ -102,25 +78,7 @@ export async function createUserAction(data: UserUpsertInput): Promise<UserAcces
   }
 
   try {
-    const response = await callApi("/users", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        email: validation.data.email,
-        password: validation.data.password || data.password,
-        name: validation.data.name,
-        role: validation.data.role as UserRoleValue,
-        contactId: validation.data.contactId || null,
-      }),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha na criacao da conta.") };
-    }
-
+    await trpc.users.create.mutate(validation.data);
     revalidateCadastrosViews();
     return { success: true, message: "Usuario criado com sucesso!" };
   } catch (error) {
@@ -146,19 +104,7 @@ export async function updateUserAction(id: string, data: Partial<UserUpsertInput
   }
 
   try {
-    const response = await callApi(`/users/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(updateValidation.data),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar usuario.") };
-    }
-
+    await trpc.users.update.mutate({ id, data: updateValidation.data });
     revalidateCadastrosViews();
     return { success: true, message: "Usuario atualizado com sucesso." };
   } catch (error) {
@@ -175,15 +121,7 @@ export async function deleteUserAction(id: string): Promise<UserAccessActionResp
   }
 
   try {
-    const response = await callApi(`/users/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha ao remover usuario.") };
-    }
-
+    await trpc.users.remove.mutate({ id });
     revalidateCadastrosViews();
     return { success: true, message: "Removido com sucesso." };
   } catch (error) {
@@ -200,19 +138,7 @@ export async function toggleUserStatusAction(id: string, active: boolean): Promi
   }
 
   try {
-    const response = await callApi(`/users/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ isActive: active }),
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      return { success: false, message: toApiErrorMessage(payload, "Falha ao atualizar status do usuario.") };
-    }
-
+    await trpc.users.update.mutate({ id, data: { isActive: active } });
     revalidateCadastrosViews();
     return { success: true, message: `Usuario ${active ? "ativado" : "desativado"} com sucesso.` };
   } catch (error) {
