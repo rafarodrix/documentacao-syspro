@@ -20,6 +20,8 @@ export function ChatwootTicketsTab() {
   const {
     resolved,
     effectiveContactName,
+    linkedCompanies,
+    contextCompanyId,
     latestTickets,
     isLoadingTickets,
     ticketError,
@@ -42,6 +44,11 @@ export function ChatwootTicketsTab() {
     handleEmbeddedTicketSubmit,
   } = useChatwootDashboard();
 
+  const hasMultipleLinkedCompanies = linkedCompanies.length > 1;
+  const needsContextSelection = hasMultipleLinkedCompanies && !contextCompanyId;
+  const hasLinkedCompanies = linkedCompanies.length > 0;
+  const canUseTickets = canCreateTicket && !needsContextSelection;
+
   return (
     <Card className="border-border/60 shadow-sm">
       <CardHeader className="pb-3">
@@ -51,7 +58,11 @@ export function ChatwootTicketsTab() {
               <Ticket className="h-4 w-4 text-primary" />
               Tickets da empresa
             </CardTitle>
-            <CardDescription>Chamados abertos da empresa em contexto, com abertura rapida sem sair do Chatwoot.</CardDescription>
+            <CardDescription>
+              {needsContextSelection
+                ? "Selecione a empresa em contexto na Visao geral para listar e abrir tickets no escopo correto."
+                : "Chamados abertos da empresa em contexto, com abertura rapida sem sair do Chatwoot."}
+            </CardDescription>
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
@@ -64,7 +75,7 @@ export function ChatwootTicketsTab() {
                 setActiveTab("tickets");
                 setEmbeddedTicketFeedback(null);
               }}
-              disabled={!canCreateTicket}
+              disabled={!canUseTickets}
             >
               <Ticket className="h-3.5 w-3.5" />
               {showEmbeddedTicketForm ? "Fechar" : "Novo ticket"}
@@ -84,7 +95,9 @@ export function ChatwootTicketsTab() {
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">{resolved.companyName || "Sem vinculo"}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+              {resolved.companyName || (needsContextSelection ? "Selecionar empresa" : "Sem vinculo")}
+            </p>
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
@@ -92,9 +105,22 @@ export function ChatwootTicketsTab() {
           </div>
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Volume</p>
-            <p className="mt-1 text-sm font-semibold text-foreground">{latestTickets.length} ticket{latestTickets.length !== 1 ? "s" : ""} aberto{latestTickets.length !== 1 ? "s" : ""}</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {canUseTickets
+                ? `${latestTickets.length} ticket${latestTickets.length !== 1 ? "s" : ""} aberto${latestTickets.length !== 1 ? "s" : ""}`
+                : "Contexto pendente"}
+            </p>
           </div>
         </div>
+
+        {needsContextSelection ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
+            <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto na Visao geral para continuar.</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => setActiveTab("overview")}>
+              Ir para Visao geral
+            </Button>
+          </div>
+        ) : null}
 
         {/* Embedded ticket creation form */}
         {showEmbeddedTicketForm ? (
@@ -323,12 +349,23 @@ export function ChatwootTicketsTab() {
         {/* Ticket list states */}
         {isLoadingTickets ? <InlineLoading label="Carregando tickets..." /> : null}
         {ticketError ? <InlineWarning message={ticketError} /> : null}
-        {!isLoadingTickets && !ticketError && latestTickets.length === 0 ? (
-          <EmptyState label="Nenhum ticket aberto encontrado para esta empresa." />
+        {!isLoadingTickets && !ticketError && !canUseTickets ? (
+          <EmptyState
+            label={
+              needsContextSelection
+                ? "Selecione a empresa em contexto na Visao geral para listar os tickets corretos."
+                : hasLinkedCompanies
+                  ? "Defina a empresa em contexto para liberar os tickets desta conversa."
+                  : "Nenhuma empresa vinculada encontrada para este contato."
+            }
+          />
+        ) : null}
+        {!isLoadingTickets && !ticketError && canUseTickets && latestTickets.length === 0 ? (
+          <EmptyState label="Nenhum ticket aberto encontrado para a empresa em contexto." />
         ) : null}
 
         {/* Remaining tickets (priority excluded) */}
-        {!isLoadingTickets && !ticketError && latestTickets.length > 0 ? (
+        {!isLoadingTickets && !ticketError && canUseTickets && latestTickets.length > 0 ? (
           <div className="space-y-1.5">
             {latestTickets.filter((ticket) => ticket.id !== priorityTicket?.id).map((ticket) => (
               <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
