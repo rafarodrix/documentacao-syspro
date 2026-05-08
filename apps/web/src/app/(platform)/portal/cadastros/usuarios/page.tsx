@@ -7,9 +7,6 @@ import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/ca
 
 export default async function CadastrosUsuariosPage() {
   await requireSession();
-  const result = await getUsersAdminViewData();
-
-  if ("error" in result) return <div>Erro: {result.error}</div>;
   if (
     !(await currentUserHasAnyPermission(["users:view", "users:view_all", "users:view_team"], {
       acceptCompanyScope: true,
@@ -17,6 +14,9 @@ export default async function CadastrosUsuariosPage() {
   ) {
     return <CadastrosAccessDenied />;
   }
+
+  const result = await getUsersAdminViewData();
+  if ("error" in result) return <div>Erro: {result.error}</div>;
 
   const canManage = await currentUserHasAnyPermission(["users:create", "users:edit", "users:status"], {
     acceptCompanyScope: true,
@@ -40,4 +40,3 @@ export default async function CadastrosUsuariosPage() {
     </div>
   );
 }
-

@@ -54,16 +54,29 @@ export class UsersService {
     const where: any = { deletedAt: null };
     const isGlobalView = await this.authorizationService.userHasPermission(requester, 'users:view_all');
     const canViewInternal = await this.authorizationService.userHasPermission(requester, 'users:view_internal');
+    const canViewScoped = await this.authorizationService.userHasPermission(requester, 'users:view', {
+      acceptCompanyScope: true,
+    });
     const canViewTeam = await this.authorizationService.userHasPermission(requester, 'users:view_team', {
       acceptCompanyScope: true,
     });
 
     if (!isGlobalView) {
-      if (requester.role !== Role.CLIENTE_ADMIN || !canViewTeam) {
+      if (!canViewTeam && !canViewScoped) {
         throw new ForbiddenException('Acesso negado.');
       }
 
-      const companyIds = await this.authorizationService.getManagedCompanyIds(requester.userId);
+      const companyIds =
+        requester.role === Role.CLIENTE_ADMIN
+          ? await this.authorizationService.getManagedCompanyIds(requester.userId)
+          : (
+              await this.authorizationService.resolveCompanyAccessScope(
+                requester,
+                canViewTeam ? 'users:view_team' : 'users:view',
+                'users:view_all',
+              )
+            ).companyIds;
+
       if (!companyIds.length) return [];
 
       where.role = { in: CLIENT_ROLES };

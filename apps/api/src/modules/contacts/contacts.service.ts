@@ -1088,9 +1088,26 @@ export class ContactsService {
   }
 
   private async resolveContactCompanyScope(requester: { userId: string; role: Role; email: string }) {
-    return this.authorizationService.resolveCompanyAccessScope(
+    const primaryScope = await this.authorizationService.resolveCompanyAccessScope(
       requester,
       'contacts:view_team',
+      'contacts:view_all',
+    );
+
+    if (primaryScope.isGlobal || primaryScope.companyIds.length > 0) {
+      return primaryScope;
+    }
+
+    const canViewScoped = await this.authorizationService.userHasPermission(requester, 'contacts:view', {
+      acceptCompanyScope: true,
+    });
+    if (!canViewScoped) {
+      return primaryScope;
+    }
+
+    return this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'contacts:view',
       'contacts:view_all',
     );
   }

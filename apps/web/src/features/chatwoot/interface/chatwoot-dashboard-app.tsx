@@ -593,7 +593,11 @@ export function ChatwootDashboardApp() {
       try {
         setIsLoadingPortalContact(true);
         setContactLookupError(null);
-        const result = await trpc.contacts.list.query({ q, limit: "10" });
+        const result = await trpc.contacts.list.query({
+          q,
+          page: "1",
+          pageSize: "10",
+        });
         const entries = result.items as ContactLookupEntry[];
         const matched =
           entries.find((entry) => {
