@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, BarChart3, Bug, Calendar, Rocket, Sparkles } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from "@dosc-syspro/ui";
 import { cn } from '@/lib/utils';
 import type { ReleaseMonthSummary } from '@/features/releases/domain/release-grouping';
 

@@ -1,1 +1,0 @@
-export { Label } from "@dosc-syspro/ui";

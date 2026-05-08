@@ -20,7 +20,8 @@ Arquivo canonico: **`packages/ui/src/tokens.css`**.
 E re-exportado por `packages/ui/src/index.ts` e importado por `apps/web/src/app/globals.css`:
 
 ```css
-@import "@dosc-syspro/ui/tokens.css";
+/* apps/web/src/app/globals.css */
+@import "../../../../packages/ui/src/tokens.css";
 ```
 
 ### Como usar tokens em CSS
