@@ -9,34 +9,20 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createDecipheriv, createHash, createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { ProcessOutgoingMessageUseCase } from '../messaging/application/process-outgoing-message.usecase';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { IntegrationContextService, type ResolvedIntegrationContext } from '../../settings/integration-context.service';
-import { ChatwootClient, type ChatwootConnectionConfig } from './chatwoot.client';
+import { ChatwootClient } from './chatwoot.client';
 import { EvolutionClient } from '../evolution/evolution.client';
-import {
-  DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
-  chatwootBehaviorSettingsSchema,
-  type ChatwootBehaviorSettings,
-} from '@dosc-syspro/contracts/chatwoot';
+import { ChatwootPayloadParser } from './chatwoot-payload.parser';
+import { ChatwootSettingsService } from './chatwoot-settings.service';
+import { ChatwootBehaviorService } from './chatwoot-behavior.service';
+import { ChatwootCsatService } from './chatwoot-csat.service';
 
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {
   private readonly logger = new Logger(ChatwootWebhookController.name);
-  private static readonly CANCELLATION_LABEL_TO_CLOSURE_ORIGIN: Record<string, string> = {
-    cancelado_cliente: 'cancelled_by_customer',
-    cancelado_agente: 'cancelled_by_agent',
-    spam: 'spam',
-  };
-  private static readonly CHATWOOT_BEHAVIOR_SETTINGS_KEY = 'chatwoot_behavior_settings';
-  private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
-  private static readonly CSAT_RATING_MIN = 1;
-  private static readonly CSAT_RATING_MAX = 5;
-  private static readonly SYSTEM_MESSAGE_FLAG = 'syspro_system_message';
-  private static readonly SKIP_AUTO_PENDING_ONCE_FLAG = 'tris_skip_auto_pending_once';
-  private static readonly LAST_AUTO_REOPENED_AT_FLAG = 'tris_last_auto_reopened_at';
-  private static readonly CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG = 'tris_csat_force_resolved_on_next_open';
 
   constructor(
     private readonly processOutgoingMessage: ProcessOutgoingMessageUseCase,
@@ -44,6 +30,9 @@ export class ChatwootWebhookController {
     private readonly integrationContext: IntegrationContextService,
     private readonly chatwootClient: ChatwootClient,
     private readonly evolutionClient: EvolutionClient,
+    private readonly settingsService: ChatwootSettingsService,
+    private readonly behaviorService: ChatwootBehaviorService,
+    private readonly csatService: ChatwootCsatService,
   ) {}
 
   @Post()
@@ -55,212 +44,58 @@ export class ChatwootWebhookController {
     @Body() payload: any,
   ) {
     const resolvedContext = await this.integrationContext.resolveForChatwootWebhook(payload);
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const conversationMessage = this.findConversationMessage(
-      payload,
-      payload?.id?.toString?.() ?? message?.id?.toString?.()
-    );
+    const messageContext = ChatwootPayloadParser.resolveMessageContext(payload);
+
     if (payload?.event === 'message_created') {
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
         stage: 'webhook_received',
         event: payload?.event,
-        messageId: payload?.id?.toString?.() ?? message?.id?.toString?.(),
-        messageType: payload?.message_type ?? message?.message_type,
-        conversationId:
-          payload?.conversation?.id?.toString?.() ??
-          payload?.conversation_id?.toString?.() ??
-          message?.conversation_id?.toString?.(),
-        inboxId:
-          payload?.inbox?.id?.toString?.() ??
-          payload?.inbox_id?.toString?.() ??
-          payload?.conversation?.inbox_id?.toString?.() ??
-          message?.inbox_id?.toString?.(),
-        accountId:
-          payload?.account?.id?.toString?.() ??
-          payload?.account_id?.toString?.() ??
-          payload?.conversation?.account_id?.toString?.() ??
-          message?.account_id?.toString?.(),
+        messageId: messageContext.messageId ?? null,
+        messageType: messageContext.messageType,
+        conversationId: ChatwootPayloadParser.extractConversationId(payload) ?? null,
         resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
       }));
     }
 
-    const expectedSecret = resolvedContext?.chatwoot.webhookSecret;
-    if (expectedSecret) {
-      if (!signatureHeader || !timestampHeader) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'signature_missing',
-          event: payload?.event ?? null,
-          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-          hasSignature: Boolean(signatureHeader),
-          hasTimestamp: Boolean(timestampHeader),
-        }));
-        throw new UnauthorizedException('Missing Chatwoot webhook signature headers');
-      }
+    await this.verifySignature(resolvedContext, signatureHeader, timestampHeader, req, payload, messageContext.messageId);
 
-      const rawBodyBuffer = req?.rawBody as Buffer | undefined;
-      if (!rawBodyBuffer) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'signature_raw_body_missing',
-          event: payload?.event ?? null,
-          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-        }));
-        throw new UnauthorizedException('Missing raw body for Chatwoot signature validation');
-      }
-
-      if (!this.isTimestampFresh(timestampHeader, resolvedContext?.chatwoot.webhookMaxSkewSeconds ?? 300)) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'timestamp_invalid',
-          event: payload?.event ?? null,
-          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-          timestamp: timestampHeader,
-          maxSkewSeconds: resolvedContext?.chatwoot.webhookMaxSkewSeconds ?? 300,
-        }));
-        throw new UnauthorizedException('Stale Chatwoot webhook timestamp');
-      }
-
-      const expectedSignature = this.computeSignature(expectedSecret, timestampHeader, rawBodyBuffer.toString('utf8'));
-      if (!this.safeCompare(expectedSignature, signatureHeader)) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'signature_mismatch',
-          event: payload?.event ?? null,
-          messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-          signaturePrefix: String(signatureHeader).slice(0, 12),
-          expectedPrefix: String(expectedSignature).slice(0, 12),
-        }));
-        throw new UnauthorizedException('Invalid Chatwoot webhook signature');
-      }
-
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'signature_validated',
-        event: payload?.event ?? null,
-        messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-      }));
-    }
-
-    const behaviorSettings = await this.readStoredChatwootBehaviorSettings();
+    const settings = await this.settingsService.readBehaviorSettings();
 
     switch (payload?.event) {
       case 'message_created':
-        try {
-          this.logger.log(JSON.stringify({
-            flow: 'chatwoot_to_evolution',
-            stage: 'handoff_start',
-            event: payload?.event,
-            messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-            messageType: payload?.message_type ?? message?.message_type ?? null,
-            conversationId:
-              payload?.conversation?.id?.toString?.() ??
-              payload?.conversation_id?.toString?.() ??
-              message?.conversation_id?.toString?.() ??
-              null,
-            hasContent: Boolean(
-              String(
-                payload?.content ??
-                message?.content ??
-                payload?.content_attributes?.message ??
-                message?.content_attributes?.message ??
-                ''
-              ).trim()
-            ),
-            hasAttachments: Boolean(
-              (Array.isArray(payload?.attachments) && payload.attachments.length > 0) ||
-              (Array.isArray(message?.attachments) && message.attachments.length > 0) ||
-              (Array.isArray(conversationMessage?.attachments) && conversationMessage.attachments.length > 0)
-            ),
-          }));
-          const csatHandled = await this.handleCsatReplyIfApplicable(payload, behaviorSettings, resolvedContext);
-          if (csatHandled) {
-            this.logger.log(JSON.stringify({
-              flow: 'chatwoot_to_portal',
-              stage: 'csat_reply_consumed',
-              event: payload?.event,
-              messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-            }));
-            break;
-          }
-          if (!this.isSystemManagedOutgoingMessage(payload)) {
-            await this.applyMessageBehaviorRules(payload, behaviorSettings, resolvedContext);
-          }
-          await this.processOutgoingMessage.execute(payload, {
-            connection: resolvedContext ?? undefined,
-            prependAgentNameOnOutbound: behaviorSettings.prependAgentNameOnOutbound,
-          });
-          this.logger.log(JSON.stringify({
-            flow: 'chatwoot_to_evolution',
-            stage: 'handoff_complete',
-            event: payload?.event,
-            messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-            messageType: payload?.message_type ?? message?.message_type ?? null,
-          }));
-        } catch (error: any) {
-          const knownProviderCode =
-            typeof error?.code === 'string' ? error.code : null;
-          const isKnownOutboundError =
-            knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED';
-          const payloadLog = JSON.stringify({
-            flow: 'chatwoot_to_evolution',
-            stage: 'processing_failed',
-            event: payload?.event,
-            messageId: payload?.id?.toString?.() ?? message?.id?.toString?.() ?? null,
-            error: error?.message ?? 'unknown_error',
-            errorName: error?.name ?? 'Error',
-            providerCode: knownProviderCode,
-            stack: this.serializeErrorStack(error),
-          });
-          if (isKnownOutboundError) {
-            this.logger.warn(payloadLog);
-            return {
-              ok: true,
-              acknowledged: true,
-              warning: error?.message ?? 'unknown_error',
-            };
-          }
+        return this.handleMessageCreated(payload, messageContext, resolvedContext, settings);
 
-          this.logger.error(payloadLog);
-          return {
-            ok: false,
-            acknowledged: true,
-            error: error?.message ?? 'unknown_error',
-          };
-        }
-        break;
       case 'contact_updated':
         await this.handleContactUpdated(payload, resolvedContext?.connectionKey);
         break;
+
       case 'contact_created':
-        if (payload?.phone_number && payload?.name) {
-          const phone = payload.phone_number.replace(/\D/g, '');
-          const exists = await this.prisma.companyContact.findFirst({ where: { whatsapp: phone } });
-          if (!exists) {
-            await this.prisma.companyContact.create({
-              data: { name: payload.name, whatsapp: phone }
-            });
-            this.logger.log(`Contato ${phone} sincronizado (criado manualmente no Chatwoot)`);
-          }
-        }
+        await this.handleContactCreated(payload);
         break;
+
       case 'conversation_status_changed':
-        await this.handleConversationStatusChanged(payload, resolvedContext, behaviorSettings);
+        await this.handleConversationStatusChanged(payload, resolvedContext, settings);
         break;
-      case 'conversation_updated':
-        this.logger.debug('Evento conversation_updated recebido; nenhuma acao remota no WhatsApp configurada.');
-        break;
-      case 'message_updated':
-        if (this.shouldPropagateMessageDeletion(payload, conversationMessage)) {
+
+      case 'message_updated': {
+        const conversationMessage = ChatwootPayloadParser.findConversationMessage(payload, messageContext.messageId);
+        if (ChatwootPayloadParser.shouldPropagateMessageDeletion(payload, conversationMessage)) {
           await this.handleMessageDeleted(payload, resolvedContext);
-          break;
+        } else {
+          this.logger.debug('Evento message_updated recebido sem indicio de exclusao remota.');
         }
-        this.logger.debug('Evento message_updated recebido sem indicio de exclusao remota.');
         break;
+      }
+
       case 'message_deleted':
         await this.handleMessageDeleted(payload, resolvedContext);
         break;
+
+      case 'conversation_updated':
+        this.logger.debug('Evento conversation_updated recebido; nenhuma acao remota no WhatsApp configurada.');
+        break;
+
       default:
         this.logger.debug(`Evento Chatwoot nao processado/ignorado: ${payload?.event}`);
     }
@@ -268,1238 +103,107 @@ export class ChatwootWebhookController {
     return { ok: true };
   }
 
-  private async applyMessageBehaviorRules(
+  // ──────────────────────────────────────────────────────
+  // Event handlers
+  // ──────────────────────────────────────────────────────
+
+  private async handleMessageCreated(
     payload: any,
-    settings: ChatwootBehaviorSettings,
+    messageContext: ReturnType<typeof ChatwootPayloadParser.resolveMessageContext>,
     resolvedContext: ResolvedIntegrationContext | null,
+    settings: Awaited<ReturnType<ChatwootSettingsService['readBehaviorSettings']>>,
   ) {
-    if (!resolvedContext?.chatwoot.url || !resolvedContext.chatwoot.apiToken || !resolvedContext.chatwoot.accountId) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'behavior_rules_skipped_missing_context',
-        event: payload?.event ?? null,
-      }));
-      return;
-    }
-
-    const context = this.resolveMessageContext(payload);
-
-    if (
-      settings.autoAssignOnFirstAgentReply &&
-      !context.isPrivate &&
-      (context.messageType === 'outgoing' || context.messageType === 'template')
-    ) {
-      await this.autoAssignConversationToReplyingAgent(payload, resolvedContext, settings);
-    } else if (settings.autoAssignOnFirstAgentReply) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_auto_assign_skipped',
-        messageType: context.messageType,
-        isPrivate: context.isPrivate,
-        messageId: context.messageId ?? null,
-      }));
-    }
-
-    if (
-      settings.markConversationPendingOnAgentReply &&
-      !context.isPrivate &&
-      (context.messageType === 'outgoing' || context.messageType === 'template')
-    ) {
-      await this.markConversationPendingAfterAgentReply(payload, resolvedContext, settings);
-    } else if (settings.markConversationPendingOnAgentReply) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skipped',
-        messageType: context.messageType,
-        isPrivate: context.isPrivate,
-        messageId: context.messageId ?? null,
-      }));
-    }
-
-    if (
-      settings.reopenConversationOnCustomerReply &&
-      context.messageType === 'incoming'
-    ) {
-      await this.reopenConversationForCustomerReply(payload, resolvedContext, settings);
-    }
-  }
-
-  private shouldPropagateMessageDeletion(payload: any, conversationMessage: any | null): boolean {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-
-    const explicitFlags = [
-      payload?.deleted,
-      payload?.is_deleted,
-      payload?.content_attributes?.deleted,
-      message?.deleted,
-      message?.is_deleted,
-      message?.content_attributes?.deleted,
-      conversationMessage?.deleted,
-      conversationMessage?.is_deleted,
-      conversationMessage?.content_attributes?.deleted,
-      payload?.deleted_at,
-      message?.deleted_at,
-      conversationMessage?.deleted_at,
-    ];
-
-    if (explicitFlags.some(Boolean)) {
-      return true;
-    }
-
-    const contentCandidates = [
-      payload?.content,
-      message?.content,
-      conversationMessage?.content,
-    ]
-      .map((value) => String(value ?? '').trim().toLowerCase())
-      .filter(Boolean);
-
-    return contentCandidates.some((content) =>
-      content.includes('this message was deleted') ||
-      content.includes('message deleted') ||
-      content.includes('mensagem apagada') ||
-      content.includes('mensagem exclu') ||
-      content.includes('mensagem foi apagada')
-    );
-  }
-
-  private async handleMessageDeleted(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext | null,
-  ): Promise<void> {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const chatwootMessageId =
-      payload?.id?.toString?.() ??
-      message?.id?.toString?.() ??
-      null;
-
-    if (!chatwootMessageId) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'delete_message_skipped_missing_message_id',
-        event: payload?.event ?? null,
-      }));
-      return;
-    }
-
-    const messageLink = resolvedContext?.connectionKey
-      ? await this.prisma.messageLink.findUnique({
-          where: {
-            connectionKey_chatwootMessageId: {
-              connectionKey: resolvedContext.connectionKey,
-              chatwootMessageId,
-            },
-          },
-        })
-      : await this.prisma.messageLink.findFirst({
-          where: { chatwootMessageId },
-        });
-
-    if (!messageLink?.evolutionMessageId) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'delete_message_skipped_link_not_found',
-        event: payload?.event ?? null,
-        chatwootMessageId,
-        resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
-      }));
-      return;
-    }
-
-    const conversationLink = await this.prisma.conversationLink.findFirst({
-      where: {
-        connectionKey: messageLink.connectionKey,
-        chatwootConversationId: messageLink.chatwootConversationId,
-      },
-    });
-
-    if (!conversationLink?.whatsappNumber) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'delete_message_skipped_remote_jid_not_found',
-        event: payload?.event ?? null,
-        chatwootMessageId,
-        evolutionMessageId: messageLink.evolutionMessageId,
-        connectionKey: messageLink.connectionKey,
-        chatwootConversationId: messageLink.chatwootConversationId,
-      }));
-      return;
-    }
-
-    const integrationContext =
-      resolvedContext?.connectionKey === messageLink.connectionKey
-        ? resolvedContext
-        : await this.integrationContext.resolveByConnectionKey(messageLink.connectionKey);
-
-    if (!integrationContext) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'delete_message_skipped_connection_not_resolved',
-        event: payload?.event ?? null,
-        chatwootMessageId,
-        evolutionMessageId: messageLink.evolutionMessageId,
-        connectionKey: messageLink.connectionKey,
-      }));
-      return;
-    }
-
-    await this.evolutionClient.deleteMessageForEveryone(integrationContext.evolution, {
-      messageId: messageLink.evolutionMessageId,
-      remoteJid: conversationLink.whatsappNumber,
-      fromMe: true,
-    });
-
-    await this.prisma.messageLink.deleteMany({
-      where: {
-        connectionKey: messageLink.connectionKey,
-        chatwootMessageId,
-      },
-    });
-
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'delete_message_propagated',
-      event: payload?.event ?? null,
-      chatwootMessageId,
-      evolutionMessageId: messageLink.evolutionMessageId,
-      connectionKey: messageLink.connectionKey,
-      remoteJid: conversationLink.whatsappNumber,
-    }));
-  }
-
-  private async markConversationPendingAfterAgentReply(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ) {
-    const conversationId = this.extractConversationId(payload);
-    if (!conversationId) {
-      return;
-    }
-
-    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
-    if (this.readBoolean(customAttributes[ChatwootWebhookController.SKIP_AUTO_PENDING_ONCE_FLAG])) {
-      await this.clearSkipAutoPendingMarker(conversationId, customAttributes, resolvedContext, settings);
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skipped_after_auto_reopen',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-      return;
-    }
-
-    let status = this.normalizeConversationStatus(
-      payload?.conversation?.status ??
-      payload?.status ??
-      payload?.meta?.status
-    );
-    if (!status) {
-      try {
-        const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-        status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'conversation_pending_status_lookup_failed',
-          conversationId,
-          error: error?.message ?? 'unknown_error',
-        }));
-        return;
-      }
-    }
-
-    if (status === 'pending' || status === 'resolved' || status === 'archived' || status === 'snoozed') {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skipped_by_status',
-        conversationId,
-        status,
-      }));
-      return;
-    }
-
     try {
-      await this.chatwootClient.toggleConversationStatus(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        'pending',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
       this.logger.log(JSON.stringify({
         flow: 'chatwoot_to_evolution',
-        stage: 'conversation_marked_pending_after_agent_reply',
-        conversationId,
-        previousStatus: status ?? null,
-        connectionKey: resolvedContext.connectionKey,
+        stage: 'handoff_start',
+        event: payload?.event,
+        messageId: messageContext.messageId ?? null,
+        messageType: messageContext.messageType,
+        hasContent: Boolean(String(payload?.content ?? '').trim()),
+        hasAttachments: Boolean(Array.isArray(payload?.attachments) && payload.attachments.length > 0),
       }));
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_failed',
-        conversationId,
-        previousStatus: status ?? null,
-        error: error?.message ?? 'unknown_error',
-      }));
-    }
-  }
 
-  private async autoAssignConversationToReplyingAgent(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ) {
-    const conversationId = this.extractConversationId(payload);
-    const assigneeId = this.extractSenderAgentId(payload);
-    if (!conversationId || !assigneeId) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_auto_assign_missing_fields',
-        conversationId: conversationId ?? null,
-        assigneeId: assigneeId ?? null,
-        messageId: this.resolveMessageContext(payload).messageId ?? null,
-      }));
-      return;
-    }
-    if (!/^\d+$/.test(assigneeId)) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_auto_assign_invalid_assignee',
-        conversationId,
-        assigneeId,
-      }));
-      return;
-    }
+      const csatHandled = resolvedContext
+        ? await this.csatService.handleCsatReplyIfApplicable(payload, settings, resolvedContext)
+        : false;
 
-    const currentAssigneeId = await this.resolveCurrentConversationAssigneeId(payload, resolvedContext, conversationId);
-    if (currentAssigneeId) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_auto_assign_skipped_already_assigned',
-        conversationId,
-        currentAssigneeId,
-      }));
-      return;
-    }
-
-    try {
-      await this.chatwootClient.assignConversation(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        { assigneeId },
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_auto_assigned',
-        conversationId,
-        assigneeId,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_auto_assign_failed',
-        conversationId,
-        assigneeId,
-        error: error?.message ?? 'unknown_error',
-      }));
-    }
-  }
-
-  private async reopenConversationForCustomerReply(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ) {
-    const conversationId = this.extractConversationId(payload);
-    if (!conversationId) {
-      return;
-    }
-
-    let status = this.normalizeConversationStatus(
-      payload?.conversation?.status ??
-      payload?.status ??
-      payload?.meta?.status
-    );
-    if (!status) {
-      try {
-        const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-        status = this.normalizeConversationStatus(conversation?.status ?? conversation?.payload?.status);
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
-          flow: 'chatwoot_to_evolution',
-          stage: 'conversation_status_lookup_failed',
-          conversationId,
-          error: error?.message ?? 'unknown_error',
-        }));
-        return;
-      }
-    }
-
-    if (status === 'open') {
-      return;
-    }
-
-    if (status === 'resolved' || status === 'archived') {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_reopen_skipped_for_resolved_reply',
-        conversationId,
-        previousStatus: status,
-        resolvedCustomerReplyAction: 'new_conversation',
-        connectionKey: resolvedContext.connectionKey,
-      }));
-      return;
-    }
-
-    if (status === 'snoozed' && !settings.reopenSnoozedConversationOnCustomerReply) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_reopen_skipped_for_snoozed_reply',
-        conversationId,
-        previousStatus: status,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-      return;
-    }
-
-    if (status === 'pending' && !settings.reopenPendingConversationOnCustomerReply) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_reopen_skipped_for_pending_reply',
-        conversationId,
-        previousStatus: status,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-      return;
-    }
-
-    try {
-      const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
-      await this.chatwootClient.toggleConversationStatus(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        'open',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-      await this.chatwootClient.updateConversationCustomAttributes(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        {
-          ...customAttributes,
-          [ChatwootWebhookController.SKIP_AUTO_PENDING_ONCE_FLAG]: true,
-          [ChatwootWebhookController.LAST_AUTO_REOPENED_AT_FLAG]: new Date().toISOString(),
-        },
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_reopened_on_customer_reply',
-        conversationId,
-        previousStatus: status ?? null,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_reopen_failed',
-        conversationId,
-        previousStatus: status ?? null,
-        error: error?.message ?? 'unknown_error',
-      }));
-    }
-  }
-
-  private async clearSkipAutoPendingMarker(
-    conversationId: string,
-    customAttributes: Record<string, unknown>,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ) {
-    try {
-      await this.chatwootClient.updateConversationCustomAttributes(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        {
-          ...customAttributes,
-          [ChatwootWebhookController.SKIP_AUTO_PENDING_ONCE_FLAG]: false,
-        },
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_mark_pending_skip_flag_clear_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        error: error?.message ?? 'unknown_error',
-      }));
-    }
-  }
-
-  private async handleCsatReplyIfApplicable(
-    payload: any,
-    settings: ChatwootBehaviorSettings,
-    resolvedContext: ResolvedIntegrationContext | null,
-  ): Promise<boolean> {
-    if (!settings.csatEnabled || !resolvedContext) {
-      return false;
-    }
-
-    const context = this.resolveMessageContext(payload);
-    if (context.isPrivate || context.messageType !== 'incoming') {
-      return false;
-    }
-
-    const conversationId = this.extractConversationId(payload);
-    if (!conversationId) {
-      return false;
-    }
-
-    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
-    if (!this.readBoolean(customAttributes.csat_pending)) {
-      return false;
-    }
-
-    const score = this.parseCsatScore(
-      payload?.content ??
-      context.message?.content ??
-      payload?.content_attributes?.message ??
-      context.message?.content_attributes?.message,
-    );
-    if (score === null) {
-      return this.handleInvalidCsatReply(conversationId, customAttributes, resolvedContext, settings);
-    }
-
-    const contact = this.extractContactPhone(payload) ?? this.toOptionalString(customAttributes.csat_contact) ?? null;
-    const agentId = this.toOptionalString(customAttributes.csat_agent_id) ?? null;
-    const agentName = this.toOptionalString(customAttributes.csat_agent_name) ?? null;
-    const isLowScore = score <= settings.csatLowScoreThreshold;
-    const respondedAt = new Date().toISOString();
-
-    await this.prisma.chatwootCsatRating.upsert({
-      where: { chatwootConversationId: conversationId },
-      update: {
-        score,
-        contact,
-        agentId,
-        agentName,
-        status: isLowScore ? 'LOW_SCORE' : 'RECORDED',
-        respondedAt: new Date(respondedAt),
-        requestedAt: this.parseOptionalDate(customAttributes.csat_requested_at),
-      },
-      create: {
-        chatwootConversationId: conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        contact,
-        agentId,
-        agentName,
-        score,
-        status: isLowScore ? 'LOW_SCORE' : 'RECORDED',
-        requestedAt: this.parseOptionalDate(customAttributes.csat_requested_at),
-        respondedAt: new Date(respondedAt),
-      },
-    });
-
-    await this.chatwootClient.updateConversationCustomAttributes(
-      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-      conversationId,
-      {
-        ...customAttributes,
-        csat_pending: false,
-        csat_status: isLowScore ? 'low_score' : 'recorded',
-        csat_score: score,
-        csat_responded_at: respondedAt,
-        csat_invalid_reply_count: 0,
-        [ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG]: !isLowScore || !settings.csatReopenOnLowScore,
-      },
-      { useSystemBot: settings.systemMessagesUseBotIdentity },
-    );
-
-    if (settings.sendCsatThankYouMessage && settings.csatThankYouMessage.trim()) {
-      await this.chatwootClient.createOutgoingMessage(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        settings.csatThankYouMessage.trim(),
-        {
-          useSystemBot: settings.systemMessagesUseBotIdentity,
-          contentAttributes: this.buildSystemMessageAttributes(),
-        },
-      );
-    }
-
-    if (isLowScore && settings.csatReopenOnLowScore) {
-      await this.chatwootClient.toggleConversationStatus(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        'open',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-    } else {
-      await this.chatwootClient.toggleConversationStatus(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        'resolved',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-    }
-
-    if (!isLowScore || !settings.csatReopenOnLowScore) {
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_conversation_resolved_after_reply',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-    }
-
-    if (!isLowScore || !settings.csatReopenOnLowScore) {
-      // Mantem o vinculo apenas quando a conversa precisa seguir aberta por nota baixa.
-      if (settings.releaseConversationLinkOnResolved) {
-        await this.prisma.conversationLink.deleteMany({
-          where: {
-            chatwootConversationId: conversationId,
-            connectionKey: resolvedContext.connectionKey,
-          },
-        });
-      }
-    } else {
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_conversation_kept_open_for_low_score',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-    }
-
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_portal',
-      stage: 'csat_recorded',
-      conversationId,
-      score,
-      lowScore: isLowScore,
-      connectionKey: resolvedContext.connectionKey,
-    }));
-
-    return true;
-  }
-
-  private async triggerCsatSurveyForResolvedConversation(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-    conversationId: string,
-    status: string,
-  ) {
-    const customAttributes = await this.resolveLatestConversationCustomAttributes(
-      payload,
-      resolvedContext,
-      conversationId,
-    );
-    if (this.shouldSkipCsat(customAttributes)) {
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_skipped_by_closure_origin',
-        conversationId,
-        status,
-        connectionKey: resolvedContext.connectionKey,
-        closureOrigin: this.toOptionalString(customAttributes.closure_origin) ?? null,
-        skipCsat: this.readBoolean(customAttributes.skip_csat),
-      }));
-      return;
-    }
-
-    if (
-      this.readBoolean(customAttributes.csat_pending) ||
-      this.hasCompletedCsatState(customAttributes) ||
-      this.readBoolean(customAttributes[ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG])
-    ) {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_skipped_existing_state',
-        conversationId,
-        status,
-        connectionKey: resolvedContext.connectionKey,
-      }));
-      return;
-    }
-
-    const requestedAt = new Date().toISOString();
-    const timeoutAt = new Date(Date.now() + settings.csatPendingTimeoutHours * 60 * 60 * 1000).toISOString();
-    const agent = this.extractAgentIdentity(payload);
-    const contact = this.extractContactPhone(payload);
-
-    await this.chatwootClient.createOutgoingMessage(
-      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-      conversationId,
-      settings.csatRequestMessage.trim(),
-      {
-        useSystemBot: settings.systemMessagesUseBotIdentity,
-          contentAttributes: this.buildSystemMessageAttributes(),
-      },
-    );
-    await this.chatwootClient.updateConversationCustomAttributes(
-      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-      conversationId,
-      {
-        ...customAttributes,
-        csat_pending: true,
-        csat_status: 'pending',
-        csat_requested_at: requestedAt,
-        csat_timeout_at: timeoutAt,
-        csat_invalid_reply_count: 0,
-        csat_agent_id: agent.id,
-        csat_agent_name: agent.name,
-        csat_contact: contact,
-      },
-      { useSystemBot: settings.systemMessagesUseBotIdentity },
-    );
-
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_portal',
-      stage: 'csat_requested',
-      conversationId,
-      status,
-      connectionKey: resolvedContext.connectionKey,
-      agentId: agent.id ?? null,
-      agentName: agent.name ?? null,
-    }));
-  }
-
-  private async resolveConversationCustomAttributes(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    conversationId: string,
-  ): Promise<Record<string, unknown>> {
-    const inlineAttributes = this.readConversationCustomAttributesFromPayload(payload);
-    if (Object.keys(inlineAttributes).length > 0) {
-      return inlineAttributes;
-    }
-
-    try {
-      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-      const fromConversation = this.readConversationCustomAttributesFromPayload(conversation);
-      return fromConversation;
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_custom_attributes_lookup_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        error: error?.message ?? 'unknown_error',
-      }));
-      return {};
-    }
-  }
-
-  private async resolveLatestConversationCustomAttributes(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    conversationId: string,
-  ): Promise<Record<string, unknown>> {
-    const inlineAttributes = this.readConversationCustomAttributesFromPayload(payload);
-
-    try {
-      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-      const latestAttributes = this.readConversationCustomAttributesFromPayload(conversation);
-      return {
-        ...inlineAttributes,
-        ...latestAttributes,
-      };
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_latest_custom_attributes_lookup_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        error: error?.message ?? 'unknown_error',
-      }));
-      return inlineAttributes;
-    }
-  }
-
-  private readConversationCustomAttributesFromPayload(payload: any): Record<string, unknown> {
-    const value =
-      payload?.conversation?.custom_attributes ??
-      payload?.custom_attributes ??
-      payload?.meta?.custom_attributes ??
-      payload?.payload?.custom_attributes;
-
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? { ...(value as Record<string, unknown>) }
-      : {};
-  }
-
-  private shouldSkipCsat(customAttributes: Record<string, unknown>): boolean {
-    if (this.readBoolean(customAttributes.skip_csat)) {
-      return true;
-    }
-
-    const closureOrigin = String(customAttributes.closure_origin ?? '').trim().toLowerCase();
-    return closureOrigin === 'inactivity_timeout';
-  }
-
-  private hasCompletedCsatState(customAttributes: Record<string, unknown>): boolean {
-    if (customAttributes.csat_responded_at || customAttributes.csat_abandoned_at) {
-      return true;
-    }
-
-    const csatStatus = String(customAttributes.csat_status ?? '').trim().toLowerCase();
-    return (
-      csatStatus === 'recorded' ||
-      csatStatus === 'low_score' ||
-      csatStatus === 'skipped_no_score'
-    );
-  }
-
-  private parseCsatScore(value: unknown): number | null {
-    const normalized = String(value ?? '').trim();
-    if (!/^[1-5]$/.test(normalized)) {
-      return null;
-    }
-
-    const score = Number(normalized);
-    if (score < ChatwootWebhookController.CSAT_RATING_MIN || score > ChatwootWebhookController.CSAT_RATING_MAX) {
-      return null;
-    }
-
-    return score;
-  }
-
-  private async handleInvalidCsatReply(
-    conversationId: string,
-    customAttributes: Record<string, unknown>,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ): Promise<boolean> {
-    const invalidReplyCount = this.parseOptionalInt(customAttributes.csat_invalid_reply_count) ?? 0;
-    const nextInvalidReplyCount = invalidReplyCount + 1;
-    const maxAttempts = settings.csatInvalidReplyMaxAttempts;
-    const exhaustedAttempts = nextInvalidReplyCount >= maxAttempts;
-    const now = new Date().toISOString();
-
-    await this.chatwootClient.updateConversationCustomAttributes(
-      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-      conversationId,
-      {
-        ...customAttributes,
-        csat_pending: exhaustedAttempts ? false : true,
-        csat_status: exhaustedAttempts ? 'skipped_no_score' : 'pending_retry',
-        csat_invalid_reply_count: nextInvalidReplyCount,
-        csat_last_invalid_reply_at: now,
-        [ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG]: true,
-        ...(exhaustedAttempts ? { csat_abandoned_at: now } : {}),
-      },
-      { useSystemBot: settings.systemMessagesUseBotIdentity },
-    );
-
-    const reminderMessage = exhaustedAttempts
-      ? settings.csatInvalidReplyFinalMessage.trim()
-      : `${settings.csatInvalidReplyRetryMessage.trim()}\n\nTentativa ${nextInvalidReplyCount}/${maxAttempts}.`;
-
-    await this.chatwootClient.createOutgoingMessage(
-      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-      conversationId,
-      reminderMessage,
-      {
-        useSystemBot: settings.systemMessagesUseBotIdentity,
-        contentAttributes: this.buildSystemMessageAttributes(),
-      },
-    );
-
-    await this.chatwootClient.toggleConversationStatus(
-      this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-      conversationId,
-      'resolved',
-      { useSystemBot: settings.systemMessagesUseBotIdentity },
-    );
-
-    if (exhaustedAttempts) {
-      await this.prisma.conversationLink.deleteMany({
-        where: {
-          chatwootConversationId: conversationId,
-          connectionKey: resolvedContext.connectionKey,
-        },
-      });
-    }
-
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_portal',
-      stage: exhaustedAttempts ? 'csat_invalid_reply_exhausted' : 'csat_invalid_reply_reminded',
-      conversationId,
-      invalidReplyCount: nextInvalidReplyCount,
-      maxAttempts,
-      connectionKey: resolvedContext.connectionKey,
-    }));
-
-    return true;
-  }
-
-  private extractAgentIdentity(payload: any): { id?: string; name?: string } {
-    const { message, conversationMessage } = this.resolveMessageContext(payload);
-    const sender =
-      payload?.sender ??
-      message?.sender ??
-      conversationMessage?.sender ??
-      payload?.conversation?.meta?.assignee;
-
-    return {
-      id: this.toOptionalString(
-        sender?.id ??
-        payload?.conversation?.meta?.assignee?.id,
-      ),
-      name: this.toOptionalString(
-        sender?.name ??
-        sender?.available_name ??
-        payload?.conversation?.meta?.assignee?.name ??
-        payload?.conversation?.meta?.assignee?.available_name,
-      ),
-    };
-  }
-
-  private parseOptionalDate(value: unknown): Date | null {
-    const normalized = this.toOptionalString(value);
-    if (!normalized) return null;
-    const parsed = new Date(normalized);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-
-  private parseOptionalInt(value: unknown): number | null {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return Math.trunc(value);
-    }
-
-    const normalized = this.toOptionalString(value);
-    if (!normalized || !/^-?\d+$/.test(normalized)) {
-      return null;
-    }
-
-    return Number.parseInt(normalized, 10);
-  }
-
-  private async resolveCurrentConversationAssigneeId(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    conversationId: string,
-  ): Promise<string | null> {
-    const fromPayload = this.extractAssigneeId(payload?.conversation ?? payload);
-    if (fromPayload) {
-      return fromPayload;
-    }
-
-    try {
-      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-      return this.extractAssigneeId(conversation);
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_evolution',
-        stage: 'conversation_assignee_lookup_failed',
-        conversationId,
-        error: error?.message ?? 'unknown_error',
-      }));
-      return 'lookup_failed';
-    }
-  }
-
-  private serializeErrorStack(error: unknown): string | null {
-    const stack = error instanceof Error ? error.stack : null;
-    if (!stack) return null;
-    return stack.split('\n').slice(0, 8).join('\n');
-  }
-
-  private computeSignature(secret: string, timestamp: string, rawBody: string): string {
-    const signedPayload = `${timestamp}.${rawBody}`;
-    const digest = createHmac('sha256', secret).update(signedPayload).digest('hex');
-    return `sha256=${digest}`;
-  }
-
-  private safeCompare(a: string, b: string): boolean {
-    const aBuffer = Buffer.from(a);
-    const bBuffer = Buffer.from(b);
-    if (aBuffer.length !== bBuffer.length) {
-      return false;
-    }
-    return timingSafeEqual(aBuffer, bBuffer);
-  }
-
-  private isTimestampFresh(timestamp: string, maxSkewSeconds: number): boolean {
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const value = Number(timestamp);
-    if (!Number.isFinite(value)) {
-      this.logger.warn(`Chatwoot timestamp invalido: ${timestamp}`);
-      return false;
-    }
-
-    return Math.abs(nowSeconds - value) <= maxSkewSeconds;
-  }
-
-  private async handleConversationStatusChanged(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext | null,
-    settings: ChatwootBehaviorSettings = DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
-  ) {
-    const conversationId = this.toOptionalString(
-      payload?.conversation?.id ??
-      payload?.conversation_id ??
-      payload?.id
-    );
-    const status = this.normalizeConversationStatus(
-      payload?.status ??
-      payload?.conversation?.status ??
-      payload?.meta?.status
-    );
-
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'conversation_status_received',
-      conversationId: conversationId ?? null,
-      status: status ?? null,
-      connectionKey: resolvedContext?.connectionKey ?? null,
-    }));
-
-    if (!conversationId) {
-      return;
-    }
-
-    if (status === 'open' && resolvedContext) {
-      const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
-      if (this.readBoolean(customAttributes[ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG])) {
-        await this.forceResolveConversationAfterCsatReply(conversationId, customAttributes, resolvedContext, settings);
-        return;
-      }
-
-      await this.clearCsatSkipMarkersOnConversationOpen(payload, resolvedContext, settings, conversationId);
-      return;
-    }
-
-    if (status !== 'resolved' && status !== 'archived') {
-      return;
-    }
-
-    let skippedByCancellationLabel = false;
-    if (resolvedContext) {
-      skippedByCancellationLabel = await this.applyCancellationLabelClosurePolicy(
-        payload,
-        resolvedContext,
-        settings,
-        conversationId,
-        status,
-      );
-    }
-
-    if (status === 'archived' && settings.csatTriggerStatus === 'resolved_only') {
-      this.logger.debug(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_skipped_for_archived_status',
-        conversationId,
-        status,
-        connectionKey: resolvedContext?.connectionKey ?? null,
-      }));
-      return;
-    }
-
-    if (!skippedByCancellationLabel && settings.csatEnabled && resolvedContext) {
-      await this.triggerCsatSurveyForResolvedConversation(payload, resolvedContext, settings, conversationId, status);
-    }
-
-    const shouldKeepLinkForCsat =
-      !skippedByCancellationLabel &&
-      settings.csatEnabled &&
-      Boolean(resolvedContext);
-    if (!settings.releaseConversationLinkOnResolved || shouldKeepLinkForCsat) {
-      return;
-    }
-
-    const deleted = await this.prisma.conversationLink.deleteMany({
-      where: {
-        chatwootConversationId: conversationId,
-        ...(resolvedContext?.connectionKey ? { connectionKey: resolvedContext.connectionKey } : {}),
-      },
-    });
-
-    this.logger.warn(JSON.stringify({
-      flow: 'chatwoot_to_evolution',
-      stage: 'conversation_link_released',
-      conversationId,
-      status,
-      connectionKey: resolvedContext?.connectionKey ?? null,
-      deletedLinks: deleted.count,
-    }));
-  }
-
-  private async clearCsatSkipMarkersOnConversationOpen(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-    conversationId: string,
-  ) {
-    const customAttributes = await this.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
-    const hasSkipCsat = this.readBoolean(customAttributes.skip_csat);
-    const closureOrigin = this.toOptionalString(customAttributes.closure_origin) ?? null;
-
-    if (!hasSkipCsat && !closureOrigin) {
-      return;
-    }
-
-    try {
-      await this.chatwootClient.updateConversationCustomAttributes(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        {
-          ...customAttributes,
-          skip_csat: false,
-          closure_origin: null,
-        },
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-
-      this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_skip_markers_cleared_on_open',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        previousClosureOrigin: closureOrigin,
-        previousSkipCsat: hasSkipCsat,
-      }));
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_skip_markers_clear_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        previousClosureOrigin: closureOrigin,
-        previousSkipCsat: hasSkipCsat,
-        error: error?.message ?? 'unknown_error',
-      }));
-    }
-  }
-
-  private async applyCancellationLabelClosurePolicy(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-    conversationId: string,
-    status: string,
-  ): Promise<boolean> {
-    const labels = await this.resolveConversationLabels(payload, resolvedContext, conversationId);
-    const closureOrigin = this.resolveCancellationClosureOriginFromLabels(labels);
-    if (!closureOrigin) {
-      return false;
-    }
-
-    const customAttributes = await this.resolveLatestConversationCustomAttributes(
-      payload,
-      resolvedContext,
-      conversationId,
-    );
-
-    const nextAttributes = {
-      ...customAttributes,
-      skip_csat: true,
-      closure_origin: closureOrigin,
-    };
-
-    if (
-      !this.readBoolean(customAttributes.skip_csat) ||
-      this.toOptionalString(customAttributes.closure_origin) !== closureOrigin
-    ) {
-      try {
-        await this.chatwootClient.updateConversationCustomAttributes(
-          this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-          conversationId,
-          nextAttributes,
-          { useSystemBot: settings.systemMessagesUseBotIdentity },
-        );
-      } catch (error: any) {
-        this.logger.warn(JSON.stringify({
+      if (csatHandled) {
+        this.logger.log(JSON.stringify({
           flow: 'chatwoot_to_portal',
-          stage: 'cancellation_label_policy_custom_attributes_failed',
-          conversationId,
-          status,
-          connectionKey: resolvedContext.connectionKey,
-          closureOrigin,
-          labels,
-          error: error?.message ?? 'unknown_error',
+          stage: 'csat_reply_consumed',
+          event: payload?.event,
+          messageId: messageContext.messageId ?? null,
         }));
+        return { ok: true };
       }
-    }
 
-    this.logger.log(JSON.stringify({
-      flow: 'chatwoot_to_portal',
-      stage: 'csat_skipped_by_cancellation_label',
-      conversationId,
-      status,
-      connectionKey: resolvedContext.connectionKey,
-      closureOrigin,
-      labels,
-    }));
+      if (!ChatwootPayloadParser.isSystemManagedOutgoingMessage(payload) && resolvedContext) {
+        await this.behaviorService.applyMessageBehaviorRules(payload, settings, resolvedContext);
+      }
 
-    return true;
-  }
-
-  private async forceResolveConversationAfterCsatReply(
-    conversationId: string,
-    customAttributes: Record<string, unknown>,
-    resolvedContext: ResolvedIntegrationContext,
-    settings: ChatwootBehaviorSettings,
-  ) {
-    try {
-      await this.chatwootClient.toggleConversationStatus(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        'resolved',
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
-      await this.chatwootClient.updateConversationCustomAttributes(
-        this.withSystemMessageConfig(resolvedContext.chatwoot, settings),
-        conversationId,
-        {
-          ...customAttributes,
-          [ChatwootWebhookController.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG]: false,
-        },
-        { useSystemBot: settings.systemMessagesUseBotIdentity },
-      );
+      await this.processOutgoingMessage.execute(payload, {
+        connection: resolvedContext ?? undefined,
+        prependAgentNameOnOutbound: settings.prependAgentNameOnOutbound,
+      });
 
       this.logger.log(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_open_event_reverted_to_resolved',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
+        flow: 'chatwoot_to_evolution',
+        stage: 'handoff_complete',
+        event: payload?.event,
+        messageId: messageContext.messageId ?? null,
+        messageType: messageContext.messageType,
       }));
     } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'csat_open_event_revert_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
+      const knownProviderCode = typeof error?.code === 'string' ? error.code : null;
+      const isKnownOutboundError = knownProviderCode === 'WHATSAPP_NUMBER_NOT_REGISTERED';
+      const payloadLog = JSON.stringify({
+        flow: 'chatwoot_to_evolution',
+        stage: 'processing_failed',
+        event: payload?.event,
+        messageId: messageContext.messageId ?? null,
         error: error?.message ?? 'unknown_error',
-      }));
+        errorName: error?.name ?? 'Error',
+        providerCode: knownProviderCode,
+        stack: ChatwootPayloadParser.serializeErrorStack(error),
+      });
+
+      if (isKnownOutboundError) {
+        this.logger.warn(payloadLog);
+        return { ok: true, acknowledged: true, warning: error?.message ?? 'unknown_error' };
+      }
+
+      this.logger.error(payloadLog);
+      return { ok: false, acknowledged: true, error: error?.message ?? 'unknown_error' };
+    }
+
+    return { ok: true };
+  }
+
+  private async handleContactCreated(payload: any): Promise<void> {
+    if (!payload?.phone_number || !payload?.name) return;
+    const phone = payload.phone_number.replace(/\D/g, '');
+    const exists = await this.prisma.companyContact.findFirst({ where: { whatsapp: phone } });
+    if (!exists) {
+      await this.prisma.companyContact.create({ data: { name: payload.name, whatsapp: phone } });
+      this.logger.log(`Contato ${phone} sincronizado (criado manualmente no Chatwoot)`);
     }
   }
 
-  private async handleContactUpdated(payload: any, connectionKey?: string | null) {
-    const contactId = this.toOptionalString(payload?.id ?? payload?.contact?.id);
-    const phone = this.extractContactPhone(payload);
-    const sourceIds = this.extractContactSourceIds(payload);
-    const contactName = this.toOptionalString(
+  private async handleContactUpdated(payload: any, connectionKey?: string | null): Promise<void> {
+    const contactId = ChatwootPayloadParser.toOptionalString(payload?.id ?? payload?.contact?.id);
+    const phone = ChatwootPayloadParser.extractContactPhone(payload);
+    const sourceIds = ChatwootPayloadParser.extractContactSourceIds(payload);
+    const contactName = ChatwootPayloadParser.toOptionalString(
       payload?.custom_attributes?.syspro_contact_name ??
       payload?.contact?.custom_attributes?.syspro_contact_name ??
       payload?.name ??
-      payload?.contact?.name
+      payload?.contact?.name,
     );
 
-    if (!contactName) {
-      return;
-    }
+    if (!contactName) return;
 
-    const link = await this.findConversationLinkForContactUpdate({
-      chatwootContactId: contactId,
-      whatsappNumber: phone,
-      sourceIds,
-      connectionKey,
-    });
-
+    const link = await this.findConversationLinkForContactUpdate({ chatwootContactId: contactId, whatsappNumber: phone, sourceIds, connectionKey });
     if (!link) {
       this.logger.warn(JSON.stringify({
         flow: 'chatwoot_to_portal',
@@ -1512,10 +216,7 @@ export class ChatwootWebhookController {
       return;
     }
 
-    const existingContact = await this.prisma.companyContact.findFirst({
-      where: { whatsapp: link.whatsappNumber },
-    });
-
+    const existingContact = await this.prisma.companyContact.findFirst({ where: { whatsapp: link.whatsappNumber } });
     if (!existingContact) {
       this.logger.warn(JSON.stringify({
         flow: 'chatwoot_to_portal',
@@ -1527,25 +228,224 @@ export class ChatwootWebhookController {
       return;
     }
 
-    if (existingContact.name === contactName) {
-      return;
-    }
+    if (existingContact.name === contactName) return;
 
-    await this.prisma.companyContact.update({
-      where: { id: existingContact.id },
-      data: { name: contactName },
-    });
-
+    await this.prisma.companyContact.update({ where: { id: existingContact.id }, data: { name: contactName } });
     this.logger.log(JSON.stringify({
       flow: 'chatwoot_to_portal',
       stage: 'contact_updated',
       whatsappNumber: link.whatsappNumber,
       chatwootContactId: contactId ?? null,
-      storedChatwootContactId: link.chatwootContactId,
       contactName,
       connectionKey: link.connectionKey,
     }));
   }
+
+  private async handleConversationStatusChanged(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext | null,
+    settings: Awaited<ReturnType<ChatwootSettingsService['readBehaviorSettings']>>,
+  ): Promise<void> {
+    const conversationId = ChatwootPayloadParser.toOptionalString(
+      payload?.conversation?.id ?? payload?.conversation_id ?? payload?.id,
+    );
+    const status = ChatwootPayloadParser.normalizeConversationStatus(
+      payload?.status ?? payload?.conversation?.status ?? payload?.meta?.status,
+    );
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution',
+      stage: 'conversation_status_received',
+      conversationId: conversationId ?? null,
+      status: status ?? null,
+      connectionKey: resolvedContext?.connectionKey ?? null,
+    }));
+
+    if (!conversationId) return;
+
+    if (status === 'open' && resolvedContext) {
+      const customAttributes = await this.behaviorService.resolveConversationCustomAttributes(payload, resolvedContext, conversationId);
+      if (ChatwootPayloadParser.readBoolean(customAttributes[ChatwootCsatService.CSAT_FORCE_RESOLVED_ON_NEXT_OPEN_FLAG])) {
+        await this.csatService.forceResolveConversationAfterCsatReply(conversationId, customAttributes, resolvedContext, settings);
+        return;
+      }
+      await this.csatService.clearCsatSkipMarkersOnConversationOpen(payload, resolvedContext, settings, conversationId);
+      return;
+    }
+
+    if (status !== 'resolved' && status !== 'archived') return;
+
+    let skippedByCancellationLabel = false;
+    if (resolvedContext) {
+      skippedByCancellationLabel = await this.csatService.applyCancellationLabelClosurePolicy(
+        payload, resolvedContext, settings, conversationId, status,
+      );
+    }
+
+    if (status === 'archived' && settings.csatTriggerStatus === 'resolved_only') {
+      this.logger.debug(JSON.stringify({
+        flow: 'chatwoot_to_portal', stage: 'csat_skipped_for_archived_status',
+        conversationId, status, connectionKey: resolvedContext?.connectionKey ?? null,
+      }));
+      return;
+    }
+
+    if (!skippedByCancellationLabel && settings.csatEnabled && resolvedContext) {
+      await this.csatService.triggerCsatSurveyForResolvedConversation(payload, resolvedContext, settings, conversationId, status);
+    }
+
+    const shouldKeepLinkForCsat = !skippedByCancellationLabel && settings.csatEnabled && Boolean(resolvedContext);
+    if (!settings.releaseConversationLinkOnResolved || shouldKeepLinkForCsat) return;
+
+    const deleted = await this.prisma.conversationLink.deleteMany({
+      where: {
+        chatwootConversationId: conversationId,
+        ...(resolvedContext?.connectionKey ? { connectionKey: resolvedContext.connectionKey } : {}),
+      },
+    });
+    this.logger.warn(JSON.stringify({
+      flow: 'chatwoot_to_evolution', stage: 'conversation_link_released',
+      conversationId, status, connectionKey: resolvedContext?.connectionKey ?? null,
+      deletedLinks: deleted.count,
+    }));
+  }
+
+  private async handleMessageDeleted(
+    payload: any,
+    resolvedContext: ResolvedIntegrationContext | null,
+  ): Promise<void> {
+    const chatwootMessageId = ChatwootPayloadParser.toOptionalString(
+      payload?.id ?? payload?.message?.id,
+    );
+    if (!chatwootMessageId) {
+      this.logger.warn(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_missing_message_id', event: payload?.event ?? null }));
+      return;
+    }
+
+    const messageLink = resolvedContext?.connectionKey
+      ? await this.prisma.messageLink.findUnique({
+          where: { connectionKey_chatwootMessageId: { connectionKey: resolvedContext.connectionKey, chatwootMessageId } },
+        })
+      : await this.prisma.messageLink.findFirst({ where: { chatwootMessageId } });
+
+    if (!messageLink?.evolutionMessageId) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_link_not_found',
+        chatwootMessageId, resolvedConnectionKey: resolvedContext?.connectionKey ?? null,
+      }));
+      return;
+    }
+
+    const conversationLink = await this.prisma.conversationLink.findFirst({
+      where: { connectionKey: messageLink.connectionKey, chatwootConversationId: messageLink.chatwootConversationId },
+    });
+    if (!conversationLink?.whatsappNumber) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_remote_jid_not_found',
+        chatwootMessageId, evolutionMessageId: messageLink.evolutionMessageId,
+        connectionKey: messageLink.connectionKey,
+      }));
+      return;
+    }
+
+    const integrationContext =
+      resolvedContext?.connectionKey === messageLink.connectionKey
+        ? resolvedContext
+        : await this.integrationContext.resolveByConnectionKey(messageLink.connectionKey);
+
+    if (!integrationContext) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_connection_not_resolved',
+        chatwootMessageId, connectionKey: messageLink.connectionKey,
+      }));
+      return;
+    }
+
+    await this.evolutionClient.deleteMessageForEveryone(integrationContext.evolution, {
+      messageId: messageLink.evolutionMessageId,
+      remoteJid: conversationLink.whatsappNumber,
+      fromMe: true,
+    });
+
+    await this.prisma.messageLink.deleteMany({
+      where: { connectionKey: messageLink.connectionKey, chatwootMessageId },
+    });
+
+    this.logger.log(JSON.stringify({
+      flow: 'chatwoot_to_evolution', stage: 'delete_message_propagated',
+      chatwootMessageId, evolutionMessageId: messageLink.evolutionMessageId,
+      connectionKey: messageLink.connectionKey, remoteJid: conversationLink.whatsappNumber,
+    }));
+  }
+
+  // ──────────────────────────────────────────────────────
+  // Signature validation
+  // ──────────────────────────────────────────────────────
+
+  private async verifySignature(
+    resolvedContext: ResolvedIntegrationContext | null,
+    signatureHeader: string,
+    timestampHeader: string,
+    req: any,
+    payload: any,
+    messageId?: string,
+  ): Promise<void> {
+    const expectedSecret = resolvedContext?.chatwoot.webhookSecret;
+    if (!expectedSecret) return;
+
+    if (!signatureHeader || !timestampHeader) {
+      this.logger.warn(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'signature_missing', event: payload?.event ?? null, messageId: messageId ?? null }));
+      throw new UnauthorizedException('Missing Chatwoot webhook signature headers');
+    }
+
+    const rawBodyBuffer = req?.rawBody as Buffer | undefined;
+    if (!rawBodyBuffer) {
+      this.logger.warn(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'signature_raw_body_missing', event: payload?.event ?? null }));
+      throw new UnauthorizedException('Missing raw body for Chatwoot signature validation');
+    }
+
+    const maxSkewSeconds = resolvedContext?.chatwoot.webhookMaxSkewSeconds ?? 300;
+    if (!this.isTimestampFresh(timestampHeader, maxSkewSeconds)) {
+      this.logger.warn(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'timestamp_invalid', timestamp: timestampHeader, maxSkewSeconds }));
+      throw new UnauthorizedException('Stale Chatwoot webhook timestamp');
+    }
+
+    const expectedSignature = this.computeSignature(expectedSecret, timestampHeader, rawBodyBuffer.toString('utf8'));
+    if (!this.safeCompare(expectedSignature, signatureHeader)) {
+      this.logger.warn(JSON.stringify({
+        flow: 'chatwoot_to_evolution', stage: 'signature_mismatch',
+        signaturePrefix: String(signatureHeader).slice(0, 12),
+        expectedPrefix: String(expectedSignature).slice(0, 12),
+      }));
+      throw new UnauthorizedException('Invalid Chatwoot webhook signature');
+    }
+
+    this.logger.log(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'signature_validated', event: payload?.event ?? null }));
+  }
+
+  private computeSignature(secret: string, timestamp: string, rawBody: string): string {
+    const signedPayload = `${timestamp}.${rawBody}`;
+    const digest = createHmac('sha256', secret).update(signedPayload).digest('hex');
+    return `sha256=${digest}`;
+  }
+
+  private safeCompare(a: string, b: string): boolean {
+    const aBuffer = Buffer.from(a);
+    const bBuffer = Buffer.from(b);
+    if (aBuffer.length !== bBuffer.length) return false;
+    return timingSafeEqual(aBuffer, bBuffer);
+  }
+
+  private isTimestampFresh(timestamp: string, maxSkewSeconds: number): boolean {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const value = Number(timestamp);
+    if (!Number.isFinite(value)) { this.logger.warn(`Chatwoot timestamp invalido: ${timestamp}`); return false; }
+    return Math.abs(nowSeconds - value) <= maxSkewSeconds;
+  }
+
+  // ──────────────────────────────────────────────────────
+  // DB helpers
+  // ──────────────────────────────────────────────────────
 
   private async findConversationLinkForContactUpdate(input: {
     chatwootContactId?: string;
@@ -1554,348 +454,14 @@ export class ChatwootWebhookController {
     connectionKey?: string | null;
   }) {
     const or: any[] = [];
-
-    if (input.chatwootContactId) {
-      or.push({ chatwootContactId: input.chatwootContactId });
-    }
-
-    for (const sourceId of input.sourceIds) {
-      or.push({ chatwootContactId: sourceId });
-    }
-
-    if (input.whatsappNumber) {
-      or.push({ whatsappNumber: input.whatsappNumber });
-    }
-
+    if (input.chatwootContactId) or.push({ chatwootContactId: input.chatwootContactId });
+    for (const sourceId of input.sourceIds) or.push({ chatwootContactId: sourceId });
+    if (input.whatsappNumber) or.push({ whatsappNumber: input.whatsappNumber });
     if (!or.length) return null;
 
     return this.prisma.conversationLink.findFirst({
-      where: {
-        ...(input.connectionKey ? { connectionKey: input.connectionKey } : {}),
-        OR: or,
-      },
+      where: { ...(input.connectionKey ? { connectionKey: input.connectionKey } : {}), OR: or },
       orderBy: { updatedAt: 'desc' },
     });
-  }
-
-  private extractContactPhone(payload: any): string | undefined {
-    const value = this.toOptionalString(
-      payload?.phone_number ??
-      payload?.phoneNumber ??
-      payload?.contact?.phone_number ??
-      payload?.contact?.phoneNumber ??
-      payload?.additional_attributes?.phone_number ??
-      payload?.contact?.additional_attributes?.phone_number
-    );
-    const digits = String(value ?? '').replace(/\D/g, '');
-    return digits || undefined;
-  }
-
-  private extractContactSourceIds(payload: any): string[] {
-    const sourceIds = [
-      payload?.source_id,
-      payload?.sourceId,
-      payload?.contact?.source_id,
-      payload?.contact?.sourceId,
-      ...(Array.isArray(payload?.contact_inboxes)
-        ? payload.contact_inboxes.map((item: any) => item?.source_id ?? item?.sourceId)
-        : []),
-      ...(Array.isArray(payload?.contact?.contact_inboxes)
-        ? payload.contact.contact_inboxes.map((item: any) => item?.source_id ?? item?.sourceId)
-        : []),
-    ]
-      .map((value) => this.toOptionalString(value))
-      .filter((value): value is string => Boolean(value));
-
-    return Array.from(new Set(sourceIds));
-  }
-
-  private normalizeConversationStatus(value: unknown): string | null {
-    const normalized = String(value ?? '').trim().toLowerCase();
-    if (!normalized) return null;
-
-    if (normalized === 'resolved' || normalized === 'archived') return normalized;
-    if (normalized === 'open' || normalized === 'pending' || normalized === 'snoozed') return normalized;
-    return normalized;
-  }
-
-  private async resolveConversationLabels(
-    payload: any,
-    resolvedContext: ResolvedIntegrationContext,
-    conversationId: string,
-  ): Promise<string[]> {
-    const fromPayload = this.extractConversationLabels(payload);
-    if (fromPayload.length > 0) {
-      return fromPayload;
-    }
-
-    try {
-      const conversation = await this.chatwootClient.getConversationDetails(resolvedContext.chatwoot, conversationId);
-      return this.extractConversationLabels(conversation);
-    } catch (error: any) {
-      this.logger.warn(JSON.stringify({
-        flow: 'chatwoot_to_portal',
-        stage: 'conversation_labels_lookup_failed',
-        conversationId,
-        connectionKey: resolvedContext.connectionKey,
-        error: error?.message ?? 'unknown_error',
-      }));
-      return [];
-    }
-  }
-
-  private extractConversationLabels(payload: any): string[] {
-    const candidates = [
-      payload?.labels,
-      payload?.conversation?.labels,
-      payload?.meta?.labels,
-      payload?.payload?.labels,
-    ];
-
-    for (const candidate of candidates) {
-      if (!Array.isArray(candidate)) {
-        continue;
-      }
-
-      const labels = candidate
-        .map((value: any) =>
-          this.toOptionalString(
-            typeof value === 'string'
-              ? value
-              : value?.title ?? value?.name ?? value?.label,
-          ),
-        )
-        .filter((value): value is string => Boolean(value))
-        .map((value) => value.trim().toLowerCase());
-
-      if (labels.length > 0) {
-        return Array.from(new Set(labels));
-      }
-    }
-
-    return [];
-  }
-
-  private resolveCancellationClosureOriginFromLabels(labels: string[]): string | null {
-    for (const label of labels) {
-      const normalized = label.trim().toLowerCase();
-      const closureOrigin =
-        ChatwootWebhookController.CANCELLATION_LABEL_TO_CLOSURE_ORIGIN[normalized];
-      if (closureOrigin) {
-        return closureOrigin;
-      }
-    }
-
-    return null;
-  }
-
-  private isSystemManagedOutgoingMessage(payload: any): boolean {
-    const { message, conversationMessage } = this.resolveMessageContext(payload);
-    return this.readBoolean(
-      payload?.content_attributes?.[ChatwootWebhookController.SYSTEM_MESSAGE_FLAG] ??
-      message?.content_attributes?.[ChatwootWebhookController.SYSTEM_MESSAGE_FLAG] ??
-      conversationMessage?.content_attributes?.[ChatwootWebhookController.SYSTEM_MESSAGE_FLAG]
-    );
-  }
-
-  private buildSystemMessageAttributes(): Record<string, unknown> {
-    return {
-      [ChatwootWebhookController.SYSTEM_MESSAGE_FLAG]: true,
-    };
-  }
-
-  private withSystemMessageConfig(
-    config: ResolvedIntegrationContext['chatwoot'],
-    settings: ChatwootBehaviorSettings,
-  ): ChatwootConnectionConfig {
-    return {
-      ...config,
-      systemBotApiToken: settings.systemMessageApiToken.trim() || undefined,
-    };
-  }
-
-  private normalizeMessageType(value: unknown): 'incoming' | 'outgoing' | 'template' | 'unknown' {
-    const normalized = String(value ?? '').trim().toLowerCase();
-    if (normalized === 'incoming' || normalized === 'outgoing' || normalized === 'template') {
-      return normalized;
-    }
-
-    if (normalized === '0') return 'incoming';
-    if (normalized === '1') return 'outgoing';
-    if (normalized === '2') return 'template';
-    return 'unknown';
-  }
-
-  private extractConversationId(payload: any): string | undefined {
-    const { message, conversationMessage } = this.resolveMessageContext(payload);
-    return this.toOptionalString(
-      payload?.conversation?.id ??
-      payload?.conversation_id ??
-      message?.conversation_id ??
-      message?.conversation?.id ??
-      conversationMessage?.conversation_id ??
-      conversationMessage?.conversation?.id
-    );
-  }
-
-  private extractSenderAgentId(payload: any): string | undefined {
-    const { message, conversationMessage } = this.resolveMessageContext(payload);
-    const sender =
-      payload?.sender ??
-      message?.sender ??
-      conversationMessage?.sender ??
-      payload?.user ??
-      message?.user ??
-      conversationMessage?.user;
-    const senderType = String(
-      sender?.type ??
-      sender?.sender_type ??
-      payload?.sender_type ??
-      message?.sender_type ??
-      conversationMessage?.sender_type ??
-      ''
-    ).trim().toLowerCase();
-
-    if (senderType && !['user', 'agent'].includes(senderType)) {
-      return undefined;
-    }
-
-    return this.toOptionalString(
-      sender?.id ??
-      payload?.sender_id ??
-      message?.sender_id ??
-      conversationMessage?.sender_id ??
-      payload?.user_id ??
-      message?.user_id ??
-      conversationMessage?.user_id
-    );
-  }
-
-  private extractAssigneeId(value: any): string | null {
-    return this.toOptionalString(
-      value?.assignee_id ??
-      value?.current_assignee_id ??
-      value?.assignee?.id ??
-      value?.current_assignee?.id ??
-      value?.meta?.assignee?.id ??
-      value?.meta?.assignee_id ??
-      value?.payload?.assignee_id ??
-      value?.payload?.assignee?.id
-    ) ?? null;
-  }
-
-  private resolveMessageContext(payload: any): {
-    message: any | null;
-    conversationMessage: any | null;
-    messageId?: string;
-    messageType: 'incoming' | 'outgoing' | 'template' | 'unknown';
-    isPrivate: boolean;
-  } {
-    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const messageId = this.toOptionalString(payload?.id ?? message?.id);
-    const conversationMessage = this.findConversationMessage(payload, messageId);
-    const messageType = this.normalizeMessageType(
-      payload?.message_type ??
-      message?.message_type ??
-      conversationMessage?.message_type
-    );
-    const isPrivate = this.readBoolean(
-      payload?.private ??
-      message?.private ??
-      conversationMessage?.private
-    );
-
-    return {
-      message,
-      conversationMessage,
-      messageId,
-      messageType,
-      isPrivate,
-    };
-  }
-
-  private readBoolean(value: unknown): boolean {
-    if (typeof value === 'boolean') return value;
-    const normalized = String(value ?? '').trim().toLowerCase();
-    return normalized === 'true' || normalized === '1';
-  }
-
-  private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {
-    const [setting, systemBotTokenSetting] = await Promise.all([
-      this.prisma.systemSetting.findUnique({
-        where: { key: ChatwootWebhookController.CHATWOOT_BEHAVIOR_SETTINGS_KEY },
-        select: { value: true },
-      }),
-      this.prisma.systemSetting.findUnique({
-        where: { key: ChatwootWebhookController.CHATWOOT_SYSTEM_BOT_TOKEN_KEY },
-        select: { value: true },
-      }),
-    ]);
-
-    const fallback = {
-      ...DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
-      systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
-    };
-
-    if (!setting?.value) {
-      return fallback;
-    }
-
-    try {
-      const parsed = JSON.parse(setting.value);
-      const validation = chatwootBehaviorSettingsSchema.safeParse({
-        ...parsed,
-        resolvedCustomerReplyAction: 'new_conversation',
-        systemMessageApiToken: systemBotTokenSetting?.value ? this.decryptOptional(systemBotTokenSetting.value) ?? '' : '',
-      });
-      return validation.success ? validation.data : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  private resolveEncryptionKey(): Buffer {
-    const raw = process.env.INTEGRATION_CONFIG_ENCRYPTION_KEY || process.env.BETTER_AUTH_SECRET;
-    if (!raw || !raw.trim()) {
-      throw new Error('INTEGRATION_CONFIG_ENCRYPTION_KEY (ou BETTER_AUTH_SECRET) obrigatoria para criptografia');
-    }
-    return createHash('sha256').update(raw).digest();
-  }
-
-  private decrypt(payload: string): string {
-    const [ivB64, tagB64, dataB64] = String(payload || '').split(':');
-    if (!ivB64 || !tagB64 || !dataB64) throw new Error('Payload criptografado invalido');
-    const key = this.resolveEncryptionKey();
-    const iv = Buffer.from(ivB64, 'base64');
-    const tag = Buffer.from(tagB64, 'base64');
-    const encrypted = Buffer.from(dataB64, 'base64');
-    const decipher = createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
-    const plain = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return plain.toString('utf8');
-  }
-
-  private decryptOptional(payload?: string | null): string | null {
-    if (!payload) return null;
-    return this.decrypt(payload);
-  }
-
-  private toOptionalString(value: unknown): string | undefined {
-    const normalized = String(value ?? '').trim();
-    return normalized || undefined;
-  }
-
-  private findConversationMessage(payload: any, messageId?: string): any | null {
-    const messages = Array.isArray(payload?.conversation?.messages)
-      ? payload.conversation.messages
-      : [];
-    if (messages.length === 0) return null;
-
-    if (messageId) {
-      const matchingMessage = messages.find((item: any) => String(item?.id ?? '') === messageId);
-      if (matchingMessage) return matchingMessage;
-    }
-
-    return messages[0] ?? null;
   }
 }
