@@ -18,7 +18,6 @@ export const createUserSchema = z.object({
   password: z.string().min(6, "A senha deve ter no minimo 6 caracteres").optional().or(z.literal("")),
   role: userRoleSchema,
   contactId: z.string().optional().or(z.literal("")),
-  companyId: z.string().optional().or(z.literal("")),
 });
 
 export const updateUserSchema = z.object({

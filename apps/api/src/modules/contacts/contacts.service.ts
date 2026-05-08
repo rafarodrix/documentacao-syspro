@@ -1,6 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
-import type { ContactAdminView, ContactListQuery } from '@dosc-syspro/contracts/contact';
+import type {
+  ContactAdminView,
+  ContactListQuery,
+  CreateContactInput,
+  UpdateContactInput,
+} from '@dosc-syspro/contracts/contact';
 import { CompanyContactSource, CompanyContactStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -10,30 +15,6 @@ import { IntegrationContextService } from '../settings/integration-context.servi
 import { AuthorizationService } from '../authorization/authorization.service';
 import { buildContactSearchWhere } from '../shared/search/domain-search';
 import { buildContactSearchText } from '../shared/search/search-index';
-
-type CreateContactInput = {
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  cpf?: string | null;
-  jobTitle?: string | null;
-  whatsapp?: string | null;
-  notes?: string | null;
-  companyId?: string | null;
-  companyIds?: string[] | null;
-};
-
-type UpdateContactInput = {
-  name?: string;
-  email?: string | null;
-  phone?: string | null;
-  cpf?: string | null;
-  jobTitle?: string | null;
-  whatsapp?: string | null;
-  notes?: string | null;
-  companyId?: string | null;
-  companyIds?: string[] | null;
-};
 
 const CONTACTS_TRANSACTION_TIMEOUT_MS = 15000;
 

@@ -36,6 +36,7 @@ import { Badge, Button, Card, CardContent, CardHeader, CardTitle, AlertDialog, A
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
+import { trpc } from "@/lib/api/trpc-client";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./ticket-view.types";
 
@@ -83,16 +84,10 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
         async function loadSettings() {
             try {
-                const usersResponse = await fetch("/api/users", { cache: "no-store" });
-                const usersPayload = (await usersResponse.json()) as InternalUserOption[] | { data?: InternalUserOption[] };
+                const usersPayload = await trpc.users.list.query({});
 
                 if (active) {
-                    const users = Array.isArray(usersPayload)
-                        ? usersPayload
-                        : Array.isArray(usersPayload?.data)
-                            ? usersPayload.data
-                            : [];
-                    setInternalUsers(users.filter((user) => user.isActive !== false));
+                    setInternalUsers((usersPayload as InternalUserOption[]).filter((user) => user.isActive !== false));
                 }
             } catch {
                 if (active) {

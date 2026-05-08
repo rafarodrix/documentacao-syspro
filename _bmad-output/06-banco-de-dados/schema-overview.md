@@ -11,22 +11,24 @@
 
 ```
 Company
- ├── CompanyContact[]       (contatos da empresa)
+ ├── CompanyContactCompanyLink[] (vínculos de contatos com ordem/prioridade)
  ├── Membership[]           (usuários vinculados)
+ ├── UserContactLink[]      (espelho do contato principal do usuário por empresa)
  ├── Contract[]             (contratos de serviço)
  ├── RemoteHost[]           (hosts remotos)
  ├── Conversation[]         (conversas/atendimentos)
  ├── CrmLead[]              (leads CRM)
- └── DocumentoConfig[]      (configurações de docs)
+ └── AgentDevice[]          (dispositivos/agentes vinculados)
 ```
 
 **Company — campos principais:**
 - `cnpj`, `razaoSocial`, `nomeFantasia`, `inscricaoEstadual`
-- `status`: ACTIVE | INACTIVE | SUSPENDED
+- `status`: ACTIVE | INACTIVE | SUSPENDED | PENDING_DOCS
 - `segment`: tipo de negócio (enum)
-- `taxRegime`: Simples Nacional | Lucro Presumido | Lucro Real
-- `matrizId`: referência à empresa matriz (hierarquia)
+- `regimeTributario`: Simples Nacional | Lucro Presumido | Lucro Real | MEI
+- `parentCompanyId`: referência à empresa matriz (hierarquia)
 - `installationDirectory`: caminho do Syspro Server
+- `remoteConnections`: conexões remotas normalizadas em JSON
 
 ---
 
@@ -35,19 +37,32 @@ Company
 ```
 User
  ├── Membership[]           (vínculos com empresas)
- └── CompanyContact?        (contato associado)
+ ├── CompanyContact?        (contato associado)
+ └── UserContactLink[]      (contato efetivo por empresa)
 
 Membership
  ├── User
  ├── Company
  └── role: Role             (ADMIN|SUPORTE|CLIENTE_ADMIN|CLIENTE_USER|DEVELOPER)
 
+CompanyContact
+ ├── CompanyContactCompanyLink[] (M:N com empresas)
+ ├── User[]                      (usuários ligados ao contato)
+ └── UserContactLink[]           (espelho por empresa)
+
 AccessProfile
- └── Permission[]           (permissões granulares)
+ ├── AccessProfilePermission[]
+ └── UserAccessProfile[]
 
 Permission
- └── AccessProfile[]        (M:N)
+ └── AccessProfilePermission[]
 ```
+
+**Fluxo real de escopo entre módulos:**
+1. `User.contactId` aponta para um `CompanyContact`
+2. `CompanyContact.companyLinks` define as empresas válidas para esse contato
+3. `UserContactAccessService` replica isso em `Membership` e `UserContactLink`
+4. `AuthorizationService` resolve permissões globais e por empresa a partir desses vínculos
 
 ---
 
@@ -83,7 +98,7 @@ RemoteAddressBookCredential
 
 **RemoteAgentCommand — campos principais:**
 - `type`: REAPPLY_ALIAS | REAPPLY_CONFIG | UPGRADE_CLIENT | ROTATE_TOKEN_REQUIRED
-- `status`: PENDING | ACKNOWLEDGED
+- `status`: PENDING | DELIVERED | ACKNOWLEDGED | CANCELLED | FAILED
 - `result`: resultado após ACK do agente
 
 ---
@@ -109,7 +124,7 @@ ChatwootCsatRating
 
 **Conversation — campos principais:**
 - `channel`: WHATSAPP | EMAIL | PORTAL | PHONE
-- `status`: OPEN | IN_PROGRESS | WAITING_CLIENT | RESOLVED | CLOSED
+- `status`: NEW | UNASSIGNED | TRIAGE | IN_PROGRESS | WAITING_CUSTOMER | WAITING_INTERNAL | TESTING | RESOLVED | ARCHIVED
 - `externalId`: ID no Chatwoot (sincronização)
 
 ---
@@ -170,20 +185,22 @@ SystemSetting               (configurações key-value globais)
 
 ```prisma
 enum Role               { ADMIN SUPORTE CLIENTE_ADMIN CLIENTE_USER DEVELOPER }
-enum CompanyStatus      { ACTIVE INACTIVE SUSPENDED }
+enum CompanyStatus      { ACTIVE INACTIVE SUSPENDED PENDING_DOCS }
 enum RemoteHostStatus   { ACTIVE INACTIVE MAINTENANCE }
-enum RemoteSessionStatus { REQUESTED STARTED ENDED }
+enum RemoteSessionStatus { REQUESTED STARTED ENDED FAILED CANCELLED }
 enum ConversationChannel { WHATSAPP EMAIL PORTAL PHONE }
-enum ConversationStatus  { OPEN IN_PROGRESS WAITING_CLIENT RESOLVED CLOSED }
-enum CrmLeadStage       { LEAD MQL SQL PROPOSAL WON LOST }
-enum CrmActivityType    { NOTE CALL MEETING EMAIL WHATSAPP }
-enum SefazServiceType   { NFE NFCE MDFE }
-enum SefazServiceStatus { ONLINE UNSTABLE OFFLINE }
+enum ConversationStatus  { NEW UNASSIGNED TRIAGE IN_PROGRESS WAITING_CUSTOMER WAITING_INTERNAL TESTING RESOLVED ARCHIVED }
+enum CrmLeadStage       { LEAD MQL SQL PROPOSAL NEGOTIATION WON LOST }
+enum CrmActivityType    { NOTE CALL MEETING EMAIL WHATSAPP SYSTEM_EVENT }
+enum SefazServiceType   { NFE NFCE }
+enum SefazStatusType    { ONLINE UNSTABLE OFFLINE }
 enum CompanyContactSource { MANUAL WHATSAPP IMPORT }
-enum ContractStatus     { ACTIVE INACTIVE SUSPENDED }
+enum CompanyContactStatus { PENDING_LINK LINKED ARCHIVED }
+enum ContractStatus     { ACTIVE CANCELLED SUSPENDED }
 enum RemoteAgentCommandType {
   REAPPLY_ALIAS REAPPLY_CONFIG UPGRADE_CLIENT ROTATE_TOKEN_REQUIRED
 }
+enum RemoteAgentCommandStatus { PENDING DELIVERED ACKNOWLEDGED CANCELLED FAILED }
 enum RemoteAddressBookCredentialScope { GLOBAL COMPANY }
 ```
 
@@ -191,7 +208,7 @@ enum RemoteAddressBookCredentialScope { GLOBAL COMPANY }
 
 ## Convenções do schema
 
-- Todos os IDs são `String` UUIDs gerados com `@default(uuid())`
+- Todos os IDs são `String` gerados com `@default(cuid())`
 - `createdAt` e `updatedAt` em todos os modelos
 - `deletedAt` (soft delete) em modelos onde histórico é necessário
 - Índices em campos de busca frequente: `cnpj`, `rustdeskId`, `agentToken`, `externalId`

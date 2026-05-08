@@ -20,11 +20,12 @@ Gerencia empresas do portal (clientes Trilink).
 - CRUD completo de empresas com dados fiscais (CNPJ, razão social, IE)
 - Segmentação de empresas (tipo de negócio)
 - Hierarquia matriz/filial
-- Status da empresa: ACTIVE, INACTIVE, SUSPENDED
+- Status da empresa: ACTIVE, INACTIVE, SUSPENDED, PENDING_DOCS
 - Busca por CNPJ com consulta a API externa
 - Integração com contratos de serviço
 - Configuração de parâmetros SEFAZ por empresa
 - Controle de acesso com escopo (usuário CLIENTE vê apenas sua empresa)
+- Inativação em cascata sobre contratos, contatos e vínculos derivados
 
 ---
 
@@ -56,19 +57,23 @@ Gerencia contatos vinculados a empresas. **Totalmente migrado para tRPC** — se
 
 **Funcionalidades:**
 - Contatos com CPF, email, telefone, cargo
+- Relação M:N com empresas via `CompanyContactCompanyLink`
 - `source`: MANUAL | WHATSAPP | IMPORT
+- `status`: PENDING_LINK | LINKED | ARCHIVED
 - Sincronização de contatos com Evolution (WhatsApp)
 - Controle de acesso por empresa via `AuthorizationService`
 - Stats de contatos por empresa
+- Sincronização de apresentação do contato no Chatwoot após mutações
 
 **Componentes web que consomem `trpc.contacts.*`:**
-- `src/components/platform/app/contatos/contacts-tab.tsx` — listagem, stats, unlink, delete, sync
-- `src/components/platform/app/contatos/create-contact-page-form.tsx` — formulário create/edit
+- `src/features/contact/interface/*` — boundary de UI do módulo de contatos
+- `src/components/platform/app/contatos/contacts-tab.tsx` — implementação atual da listagem
+- `src/components/platform/app/contatos/create-contact-page-form.tsx` — implementação atual do formulário
 - `src/app/(platform)/portal/contatos/[id]/editar/page.tsx` — server page (getOne)
 - `src/features/user-access/interface/create-user-page-form.tsx` — busca de contatos para vincular usuário
 - `src/features/chatwoot/interface/chatwoot-dashboard-app.tsx` — lookup e criação de contatos pelo Chatwoot
 
-> `src/components/platform/cadastros/company/tabs/company-contact-tab.tsx` recebe dados via props — não faz chamadas tRPC diretamente.
+> O vínculo real entre usuário e empresa passa por `contactId -> companyLinks`, e não por seleção direta de empresa no cadastro de usuário.
 
 ---
 
@@ -101,10 +106,11 @@ Gerencia usuários do portal. **Totalmente migrado para tRPC** — sem controlle
 
 **Funcionalidades:**
 - CRUD completo com validação de e-mail e controle de role
-- Sincronização automática de memberships via contato vinculado
+- Sincronização automática de `Membership` e `UserContactLink` via contato vinculado
 - Perfil do usuário com dados de empresa editáveis
 - SSO com Chatwoot com provisionamento automático de agente
 - Controle de acesso por escopo: admin global vs. gestor de unidade
+- Usuário cliente sempre deriva escopo de empresa a partir do contato associado
 
 ---
 

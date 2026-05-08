@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
-import { ContactsTab } from "@/components/platform/app/contatos/contacts-tab";
+import { ContactsTab } from "@/features/contact/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 import { CadastrosPageHeader } from "@/components/platform/cadastros/shared/cadastros-page-header";
 import { trpc } from "@/lib/api/trpc-client";
