@@ -5,7 +5,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { Role } from '@prisma/client';
-import type { RoleSegment } from './use-docs-dashboard';
+import type { AudienceSegment } from './use-docs-dashboard';
 
 export type QuickLinkTone = 'docs' | 'faq' | 'training' | 'support' | 'technical';
 
@@ -116,10 +116,10 @@ export const TONE_STYLES: Record<QuickLinkTone, {
   },
 };
 
-export const ROLE_LABELS: Record<RoleSegment, string> = {
-  admin: 'Populares para admins',
-  developer: 'Populares para developers',
-  suporte: 'Populares no suporte',
-  cliente_admin: 'Populares para cliente admin',
-  cliente_user: 'Populares para clientes',
+export const AUDIENCE_LABELS: Record<AudienceSegment, string> = {
+  internal_admin: 'Populares para administracao interna',
+  internal_development: 'Populares para desenvolvimento',
+  internal_support: 'Populares para suporte',
+  client_manager: 'Populares para gestores clientes',
+  client_user: 'Populares para clientes',
 };

@@ -29,12 +29,17 @@ export type ContinueReadingItem = {
   visitedAt: number;
 };
 
-export type RoleSegment = 'admin' | 'developer' | 'suporte' | 'cliente_admin' | 'cliente_user';
+export type AudienceSegment =
+  | 'internal_admin'
+  | 'internal_development'
+  | 'internal_support'
+  | 'client_manager'
+  | 'client_user';
 
 type InsightsApiResponse = {
-  roleSegment?: RoleSegment;
+  audienceSegment?: AudienceSegment;
   globalPopular?: PopularItem[];
-  rolePopular?: PopularItem[];
+  audiencePopular?: PopularItem[];
   lastRead?: { href: string; title: string; visitedAt: number };
 };
 
@@ -46,8 +51,8 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
   const [recentItems, setRecentItems] = useState<RecentDocItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
   const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
-  const [rolePopular, setRolePopular] = useState<PopularItem[]>([]);
-  const [roleSegment, setRoleSegment] = useState<RoleSegment>('cliente_user');
+  const [audiencePopular, setAudiencePopular] = useState<PopularItem[]>([]);
+  const [audienceSegment, setAudienceSegment] = useState<AudienceSegment>('client_user');
   const [lastReadApi, setLastReadApi] = useState<ContinueReadingItem | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
 
@@ -71,9 +76,9 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
 
         const data = await res.json() as InsightsApiResponse;
 
-        if (data.roleSegment) setRoleSegment(data.roleSegment);
+        if (data.audienceSegment) setAudienceSegment(data.audienceSegment);
         if (Array.isArray(data.globalPopular)) setGlobalPopular(data.globalPopular);
-        if (Array.isArray(data.rolePopular)) setRolePopular(data.rolePopular);
+        if (Array.isArray(data.audiencePopular)) setAudiencePopular(data.audiencePopular);
         if (data.lastRead?.href && typeof data.lastRead.visitedAt === 'number') {
           setLastReadApi(data.lastRead);
         }
@@ -134,11 +139,11 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
   }, [lastReadApi, pageByHref, recentItems]);
 
   return {
-    status: { roleSegment, loadingInsights },
-    derived: { latestUpdates, mostAccessed, recent, continueReading, globalPopular, rolePopular },
+    status: { audienceSegment, loadingInsights },
+    derived: { latestUpdates, mostAccessed, recent, continueReading, globalPopular, audiencePopular },
     metrics: {
       totalPages: pages.length,
-      insightCount: rolePopular.length + globalPopular.length + mostAccessed.length + (canViewTechnical ? 1 : 0),
+      insightCount: audiencePopular.length + globalPopular.length + mostAccessed.length + (canViewTechnical ? 1 : 0),
     },
   };
 }

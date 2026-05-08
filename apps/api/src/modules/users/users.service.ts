@@ -474,7 +474,7 @@ export class UsersService {
       throw new BadRequestException('SSO do Chatwoot nao configurado. Defina CHATWOOT_URL, CHATWOOT_ACCOUNT_ID e CHATWOOT_PLATFORM_API_TOKEN.');
     }
 
-    const chatwootRole = this.mapRoleToChatwoot(user.role);
+    const chatwootRole = await this.resolveChatwootRole(user.id);
     const fallbackUrl = this.buildChatwootFallbackUrl(context.chatwoot.url, context.chatwoot.accountId);
 
     let agents: any[];
@@ -971,13 +971,18 @@ export class UsersService {
       return;
     }
 
-    const shouldProvision = this.authorizationService.isSystemRole(user.role) && user.isActive && !user.deletedAt;
+    const shouldProvision =
+      user.isActive &&
+      !user.deletedAt &&
+      (await this.authorizationService.userIdHasPermission(user.id, 'atendimento:view', {
+        acceptCompanyScope: true,
+      }));
     if (!shouldProvision) {
       await this.removePortalUserFromChatwoot(user.email, dedupedContexts);
       return;
     }
 
-    const chatwootRole = this.mapRoleToChatwoot(user.role);
+    const chatwootRole = await this.resolveChatwootRole(user.id);
     const customAttributes = {
       portal_user_id: user.id,
       portal_role: user.role,
@@ -1267,11 +1272,13 @@ export class UsersService {
     };
   }
 
-  private mapRoleToChatwoot(role: Role): 'agent' | 'administrator' {
-    if (role === Role.ADMIN || role === Role.DEVELOPER) {
-      return 'administrator';
-    }
-    return 'agent';
+  private async resolveChatwootRole(userId: string): Promise<'agent' | 'administrator'> {
+    const canManageInternal = await this.authorizationService.userIdHasPermission(
+      userId,
+      'users:manage_internal',
+    );
+
+    return canManageInternal ? 'administrator' : 'agent';
   }
 
   private normalizeContactId(value?: string | null): string | null {

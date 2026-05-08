@@ -1,11 +1,18 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuthService } from '../auth/auth.service';
 import type { IncomingHttpHeaders } from 'node:http';
+import { AuthorizationService } from '../authorization/authorization.service';
 
 const POPULAR_GLOBAL_KEY = 'docs:popular:global';
-const POPULAR_ROLE_KEY_PREFIX = 'docs:popular:role:';
+const POPULAR_AUDIENCE_KEY_PREFIX = 'docs:popular:audience:';
+
+type AudienceSegment =
+  | 'internal_admin'
+  | 'internal_development'
+  | 'internal_support'
+  | 'client_manager'
+  | 'client_user';
 
 type GlobalDocStats = Record<
   string,
@@ -30,14 +37,6 @@ function parseGlobalStats(value: string | null): GlobalDocStats {
 function toObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
-}
-
-function getRoleSegment(role: Role): 'admin' | 'developer' | 'suporte' | 'cliente_admin' | 'cliente_user' {
-  if (role === 'ADMIN') return 'admin';
-  if (role === 'DEVELOPER') return 'developer';
-  if (role === 'SUPORTE') return 'suporte';
-  if (role === 'CLIENTE_ADMIN') return 'cliente_admin';
-  return 'cliente_user';
 }
 
 function toPopularList(stats: GlobalDocStats, limit = 8) {
@@ -83,27 +82,27 @@ function getDocsPreferences(value: unknown): {
 export class DocsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authService: AuthService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async getViews(rawHeaders?: IncomingHttpHeaders) {
-    const session = await this.getSession(rawHeaders);
-    const roleSegment = getRoleSegment(session.role);
-    const roleKey = `${POPULAR_ROLE_KEY_PREFIX}${roleSegment}`;
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const audienceSegment = await this.resolveAudienceSegment(requester);
+    const audienceKey = `${POPULAR_AUDIENCE_KEY_PREFIX}${audienceSegment}`;
 
-    const [globalSetting, roleSetting, user] = await Promise.all([
+    const [globalSetting, audienceSetting, user] = await Promise.all([
       this.prisma.systemSetting.findUnique({ where: { key: POPULAR_GLOBAL_KEY }, select: { value: true } }),
-      this.prisma.systemSetting.findUnique({ where: { key: roleKey }, select: { value: true } }),
-      this.prisma.user.findUnique({ where: { id: session.userId }, select: { preferences: true } }),
+      this.prisma.systemSetting.findUnique({ where: { key: audienceKey }, select: { value: true } }),
+      this.prisma.user.findUnique({ where: { id: requester.userId }, select: { preferences: true } }),
     ]);
 
     const { lastRead } = getDocsPreferences(user?.preferences);
 
     return {
       ok: true,
-      roleSegment,
+      audienceSegment,
       globalPopular: toPopularList(parseGlobalStats(globalSetting?.value ?? null)),
-      rolePopular: toPopularList(parseGlobalStats(roleSetting?.value ?? null)),
+      audiencePopular: toPopularList(parseGlobalStats(audienceSetting?.value ?? null)),
       lastRead: lastRead ?? null,
     };
   }
@@ -112,7 +111,7 @@ export class DocsService {
     body: { href?: string; title?: string; visitedAt?: number },
     rawHeaders?: IncomingHttpHeaders,
   ) {
-    const session = await this.getSession(rawHeaders);
+    const requester = await this.authorizationService.getRequester(rawHeaders);
     const href = typeof body?.href === 'string' ? body.href : '';
     const title = typeof body?.title === 'string' ? body.title : '';
     const visitedAt = typeof body?.visitedAt === 'number' ? body.visitedAt : Date.now();
@@ -122,13 +121,13 @@ export class DocsService {
     }
 
     const safeTitle = title.slice(0, 160);
-    const roleSegment = getRoleSegment(session.role);
-    const roleKey = `${POPULAR_ROLE_KEY_PREFIX}${roleSegment}`;
+    const audienceSegment = await this.resolveAudienceSegment(requester);
+    const audienceKey = `${POPULAR_AUDIENCE_KEY_PREFIX}${audienceSegment}`;
 
-    const [globalSetting, roleSetting, user] = await Promise.all([
+    const [globalSetting, audienceSetting, user] = await Promise.all([
       this.prisma.systemSetting.findUnique({ where: { key: POPULAR_GLOBAL_KEY }, select: { value: true } }),
-      this.prisma.systemSetting.findUnique({ where: { key: roleKey }, select: { value: true } }),
-      this.prisma.user.findUnique({ where: { id: session.userId }, select: { preferences: true } }),
+      this.prisma.systemSetting.findUnique({ where: { key: audienceKey }, select: { value: true } }),
+      this.prisma.user.findUnique({ where: { id: requester.userId }, select: { preferences: true } }),
     ]);
 
     const globalCurrent = parseGlobalStats(globalSetting?.value ?? null);
@@ -142,13 +141,13 @@ export class DocsService {
       },
     };
 
-    const roleCurrent = parseGlobalStats(roleSetting?.value ?? null);
-    const rolePrevious = roleCurrent[href];
-    const roleNext: GlobalDocStats = {
-      ...roleCurrent,
+    const audienceCurrent = parseGlobalStats(audienceSetting?.value ?? null);
+    const audiencePrevious = audienceCurrent[href];
+    const audienceNext: GlobalDocStats = {
+      ...audienceCurrent,
       [href]: {
-        title: safeTitle || rolePrevious?.title || href,
-        count: (rolePrevious?.count ?? 0) + 1,
+        title: safeTitle || audiencePrevious?.title || href,
+        count: (audiencePrevious?.count ?? 0) + 1,
         lastViewed: visitedAt,
       },
     };
@@ -181,19 +180,19 @@ export class DocsService {
         },
       }),
       this.prisma.systemSetting.upsert({
-        where: { key: roleKey },
+        where: { key: audienceKey },
         update: {
-          value: JSON.stringify(roleNext),
-          description: `Contador de visualizacoes da documentacao por perfil (${roleSegment})`,
+          value: JSON.stringify(audienceNext),
+          description: `Contador de visualizacoes da documentacao por audiencia (${audienceSegment})`,
         },
         create: {
-          key: roleKey,
-          value: JSON.stringify(roleNext),
-          description: `Contador de visualizacoes da documentacao por perfil (${roleSegment})`,
+          key: audienceKey,
+          value: JSON.stringify(audienceNext),
+          description: `Contador de visualizacoes da documentacao por audiencia (${audienceSegment})`,
         },
       }),
       this.prisma.user.update({
-        where: { id: session.userId },
+        where: { id: requester.userId },
         data: {
           preferences: nextPreferences as Prisma.InputJsonValue,
         },
@@ -203,28 +202,41 @@ export class DocsService {
     return { ok: true };
   }
 
-  private async getSession(rawHeaders?: IncomingHttpHeaders) {
-    const headers = new Headers();
-    if (rawHeaders) {
-      for (const [key, value] of Object.entries(rawHeaders)) {
-        if (!value) continue;
-        headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-      }
+  private async resolveAudienceSegment(requester: { userId: string; role: Role; email: string }): Promise<AudienceSegment> {
+    const [
+      canManageInternal,
+      canOwnDevelopmentQueue,
+      canViewDevelopmentScope,
+      canOwnSupportQueue,
+      canAccessAtendimento,
+      canManageClientTeam,
+      canCreateUsers,
+    ] = await Promise.all([
+      this.authorizationService.userHasPermission(requester, 'users:manage_internal'),
+      this.authorizationService.userHasPermission(requester, 'tickets:own_development_queue'),
+      this.authorizationService.userHasPermission(requester, 'dashboard:view_development_scope'),
+      this.authorizationService.userHasPermission(requester, 'tickets:own_support_queue'),
+      this.authorizationService.userHasPermission(requester, 'atendimento:view', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'users:create', { acceptCompanyScope: true }),
+    ]);
+
+    if (canManageInternal) {
+      return 'internal_admin';
     }
 
-    const session = await this.authService.auth.api.getSession({ headers });
-    const email = session?.user?.email;
-    if (!email) throw new UnauthorizedException('Nao autenticado.');
-
-    const requester = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, role: true, isActive: true, deletedAt: true },
-    });
-
-    if (!requester || requester.deletedAt || !requester.isActive) {
-      throw new UnauthorizedException('Sessao invalida.');
+    if (canOwnDevelopmentQueue || canViewDevelopmentScope) {
+      return 'internal_development';
     }
 
-    return { userId: requester.id, role: requester.role };
+    if (canOwnSupportQueue || canAccessAtendimento) {
+      return 'internal_support';
+    }
+
+    if (canManageClientTeam || canCreateUsers) {
+      return 'client_manager';
+    }
+
+    return 'client_user';
   }
 }
