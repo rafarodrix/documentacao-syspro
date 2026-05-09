@@ -6,6 +6,7 @@ import { AdminDashboard } from "@/features/dashboard/interface/admin-dashboard";
 import { ClientDashboard } from "@/features/dashboard/interface/client-dashboard";
 
 const DASHBOARD_VIEW_AVAILABILITY = "dashboard:view_availability" as SettingsPermissionKey;
+const DASHBOARD_VIEW_INTERNAL = "dashboard:view_internal" as SettingsPermissionKey;
 
 export default async function DashboardPage() {
   await requireSession();
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
       { acceptCompanyScope: true },
     ),
     currentUserHasPermission(DASHBOARD_VIEW_AVAILABILITY, { acceptCompanyScope: true }),
-    currentUserHasPermission("users:view_internal"),
+    currentUserHasPermission(DASHBOARD_VIEW_INTERNAL),
   ]);
 
   if (hasInternalDashboard) {

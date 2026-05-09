@@ -15,6 +15,7 @@ export const SETTINGS_HIDDEN_PERMISSION_KEYS = [
 
 export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "dashboard:view", label: "Visualizar dashboard", module: "dashboard", description: "Acessa a visao principal do portal." },
+  { key: "dashboard:view_internal", label: "Visualizar painel interno", module: "dashboard", description: "Libera a visao interna do dashboard operacional, com indicadores e blocos da equipe interna." },
   { key: "dashboard:view_development_scope", label: "Visualizar escopo de desenvolvimento", module: "dashboard", description: "Aplica escopo padrao do painel operacional para a fila de desenvolvimento." },
   { key: "dashboard:stats_full", label: "Visualizar estatisticas completas", module: "dashboard", description: "Libera indicadores operacionais completos." },
   { key: "dashboard:view_support_conversations", label: "Visualizar subaba de atendimentos", module: "dashboard", description: "Libera a leitura analitica de atendimentos do Chatwoot no dashboard de suporte." },
@@ -42,7 +43,7 @@ export const SETTINGS_PERMISSION_DEFINITIONS = [
   { key: "users:edit", label: "Editar usuario", module: "users", description: "Permite atualizar dados de usuarios." },
   { key: "users:reset_password", label: "Resetar senha de usuario", module: "users", description: "Permite acionar redefinicao de senha." },
   { key: "users:status", label: "Ativar ou desativar acesso", module: "users", description: "Permite bloquear ou reativar acesso." },
-  { key: "users:view_internal", label: "Visualizar equipe interna", module: "users", description: "Permite visualizar administradores e desenvolvedores." },
+  { key: "users:view_internal", label: "Visualizar usuarios internos", module: "users", description: "Permite listar e consultar usuarios internos, como administradores, suporte e desenvolvedores." },
   { key: "users:manage_internal", label: "Gerenciar equipe interna", module: "users", description: "Permite criar e editar perfis de sistema." },
   { key: "profile:edit_personal", label: "Alterar dados pessoais do proprio perfil", module: "profile", description: "Permite editar nome e informacoes pessoais do proprio perfil." },
   { key: "profile:edit_company", label: "Alterar dados da empresa no proprio perfil", module: "profile", description: "Permite editar os dados da empresa vinculada ao proprio acesso." },

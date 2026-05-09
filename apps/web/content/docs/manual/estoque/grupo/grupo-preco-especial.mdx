@@ -116,17 +116,6 @@ CLIENTE ESPECIAL
 DESCONTO À VISTA
 PREÇO ESPECIAL +35%
 CONVENIADO
-````
-
-Evite nomes genéricos:
-
-```txt
-TESTE
-PADRÃO
-GRUPO 1
-PROMO
-DIVERSOS
-OUTROS
 ```
 
 <Callout type="info" title="Boa prática">
@@ -147,40 +136,23 @@ O campo **Incidência** define em quais condições de pagamento o grupo poderá
 
 <Tabs items={['Ambos', 'À Vista', 'A Prazo']}> <Tab value="Ambos">
 
-Use **Ambos** quando a regra comercial deve valer independentemente da condição de pagamento.
+- Use **Ambos** quando a regra comercial deve valer independentemente da condição de pagamento.
+- Nesse cenário, a regra poderá ser considerada tanto em vendas à vista quanto em vendas a prazo.
 
-| Grupo            | Incidência |
-| ---------------- | ---------- |
-| DESCONTO 10%     | Ambos      |
-| CLIENTE ESPECIAL | Ambos      |
+</Tab>
 
-Nesse cenário, a regra poderá ser considerada tanto em vendas à vista quanto em vendas a prazo.
+<Tab value="À Vista">
 
-  </Tab>
+- Use **À Vista** quando o benefício comercial deve ser aplicado apenas em vendas pagas à vista.
+- Esse tipo de configuração é comum quando a empresa deseja incentivar pagamento imediato.
 
-  <Tab value="À Vista">
+</Tab>
 
-Use **À Vista** quando o benefício comercial deve ser aplicado apenas em vendas pagas à vista.
-
-| Grupo            | Incidência |
-| ---------------- | ---------- |
-| DESCONTO À VISTA | À Vista    |
-
-Esse tipo de configuração é comum quando a empresa deseja incentivar pagamento imediato.
-
-  </Tab>
-
-  <Tab value="A Prazo">
+<Tab value="A Prazo">
 
 Use **A Prazo** quando a regra comercial deve ser aplicada apenas em vendas parceladas, faturadas ou com prazo.
-
-| Grupo                  | Incidência |
-| ---------------------- | ---------- |
-| PREÇO ESPECIAL A PRAZO | A Prazo    |
-
 Esse tipo de configuração pode ser usado quando a empresa possui políticas comerciais específicas para vendas a prazo.
-
-  </Tab>
+</Tab>
 </Tabs>
 
 <Callout type="warning" title="Validação importante">
@@ -200,32 +172,18 @@ O campo **Permitir Desconto de Fechamento** define se o operador poderá aplicar
 
 <Tabs items={['Quando usar Sim', 'Quando usar Não']}> <Tab value="Quando usar Sim">
 
-Marque **Sim** quando a empresa permitir negociação adicional no fechamento da venda.
+- Marque **Sim** quando a empresa permitir negociação adicional no fechamento da venda.
+- Esse cenário pode ser usado quando o vendedor ainda possui margem para negociação final.
 
-| Grupo            | Permitir Desconto de Fechamento |
-| ---------------- | ------------------------------- |
-| CLIENTE ESPECIAL | Sim                             |
+</Tab>
 
-Esse cenário pode ser usado quando o vendedor ainda possui margem para negociação final.
+ <Tab value="Quando usar Não">
 
-  </Tab>
+- Marque **Não** quando a condição do grupo já representa o limite comercial permitido.
+- Nesse cenário, o sistema evita que o cliente receba desconto adicional além da condição especial já configurada.
 
-  <Tab value="Quando usar Não">
-
-Marque **Não** quando a condição do grupo já representa o limite comercial permitido.
-
-| Grupo        | Permitir Desconto de Fechamento |
-| ------------ | ------------------------------- |
-| DESCONTO 10% | Não                             |
-
-Nesse cenário, o sistema evita que o cliente receba desconto adicional além da condição especial já configurada.
-
-  </Tab>
+</Tab>
 </Tabs>
-
-<Callout type="warning" title="Controle de margem">
-  Para grupos com desconto elevado ou preço agressivo, recomenda-se avaliar se o desconto de fechamento deve permanecer bloqueado.
-</Callout>
 
 ---
 
@@ -395,56 +353,8 @@ Checklist técnico:
 
 ---
 
-# Boas práticas
 
-## 1. Use nomes comerciais claros
-
-Utilize descrições que indiquem o objetivo do grupo.
-
-```txt
-DESCONTO 10%
-ATACADO
-REVENDA
-CLIENTE ESPECIAL
-DESCONTO À VISTA
-PREÇO ESPECIAL +35%
-```
-
----
-
-## 2. Evite grupos duplicados
-
-Antes de cadastrar um novo grupo, verifique se já existe outro com a mesma finalidade.
-
-| Evitar                    | Motivo                          |
-| ------------------------- | ------------------------------- |
-| DESCONTO 10% e DESC 10    | Duplicidade de regra            |
-| ATACADO e CLIENTE ATACADO | Pode gerar dúvida na vinculação |
-| REVENDA e REVENDEDORES    | Dificulta manutenção            |
-
----
-
-## 3. Defina a incidência conforme a política comercial
-
-| Política comercial                                    | Incidência recomendada |
-| ----------------------------------------------------- | ---------------------- |
-| Regra válida para qualquer venda                      | Ambos                  |
-| Regra válida somente para pagamento imediato          | À Vista                |
-| Regra válida somente para venda parcelada ou faturada | A Prazo                |
-
----
-
-## 4. Controle o desconto de fechamento
-
-Se o grupo já possui uma condição especial agressiva, avalie configurar **Permitir Desconto de Fechamento** como **Não**.
-
-<Callout type="warning" title="Atenção à margem">
-  Permitir desconto adicional em grupos com desconto elevado pode reduzir a margem da venda.
-</Callout>
-
----
-
-## 5. Teste antes de liberar
+# Teste antes de liberar
 
 Antes de liberar o grupo para uso definitivo, faça uma venda de teste.
 
@@ -470,10 +380,9 @@ Valide:
 
   Indicado para:
 
-  - clientes especiais;
-  - clientes com desconto fixo;
-  - grupos comerciais com regra definida;
-  - clientes que não devem receber desconto adicional.
+  - Grupo com desconto comercial
+  - Será para qualquer condição de pagamento
+  - Não permite desconto adicional no fechamento.
 
   </Tab>
 
@@ -521,15 +430,13 @@ Valide:
   |---|---|
   | Descrição | PREÇO ESPECIAL +35% |
   | Incidência | Ambos |
-  | Permitir Desconto de Fechamento | Não |
+  | Permitir Desconto de Fechamento | Sim |
 
   Indicado para:
 
-  - grupos com acréscimo comercial;
-  - regras especiais de preço;
-  - condições diferenciadas por participante;
-  - cenários onde não deve haver desconto adicional.
-
+  - Grupo com acréscimo comercial
+  - Será para qualquer condição de pagamento
+  - Permite negociação adicional no fechamento, conforme política da empresa.
 
   </Tab>
 </Tabs>

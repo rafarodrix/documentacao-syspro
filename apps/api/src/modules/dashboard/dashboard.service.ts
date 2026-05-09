@@ -21,6 +21,7 @@ import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { TicketsService } from '../tickets/tickets.service';
 
 const DASHBOARD_TICKETS_TIMEOUT_MS = 4000;
+const DASHBOARD_VIEW_INTERNAL = 'dashboard:view_internal' as const;
 
 function timeoutError(label: string, timeoutMs: number) {
   return new Error(`${label} excedeu ${timeoutMs}ms.`);
@@ -595,7 +596,7 @@ export class DashboardService {
   async getDashboard(rawHeaders?: IncomingHttpHeaders): Promise<DashboardResponse> {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
     const dailyPassword = await this.resolveDailyPassword(rawHeaders);
-    const hasInternalDashboard = await this.authorizationService.userHasPermission(requester, 'users:view_internal');
+    const hasInternalDashboard = await this.authorizationService.userHasPermission(requester, DASHBOARD_VIEW_INTERNAL);
 
     if (hasInternalDashboard) {
       const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
