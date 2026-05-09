@@ -184,34 +184,29 @@ Isso permite que o sistema reconheça qual política comercial deve ser consider
 
 ---
 
-### Relação com Departamento e Produto
+### Relação com Departamento
 
-O Grupo de Preço Especial pode ser utilizado em conjunto com regras de preço configuradas em outros cadastros, como **Departamento** e **Produto**.
+O **Grupo de Preço Especial** pode ser utilizado nas regras de preço do **Departamento**.
 
-No cadastro de **Departamento**, por exemplo, a aba **Preços** permite vincular grupos de preço especial a regras de desconto, acréscimo e promoção.
+No cadastro de **Departamento**, a aba **Preços** permite vincular um grupo de preço especial e definir regras comerciais como **desconto** ou **acréscimo**. Essa configuração é útil quando a empresa deseja aplicar uma condição comercial para todos os produtos vinculados a determinado departamento.
 
-<Callout type="success" title="Integração das regras">
-  O Grupo de Preço Especial funciona como uma classificação comercial. As regras de desconto ou acréscimo podem ser aplicadas conforme essa classificação.
+<Callout type="success" title="Regra por departamento">
+  Quando a regra é configurada no departamento, ela pode ser aplicada aos itens vinculados a esse departamento, conforme o grupo de preço especial do participante ou a seleção realizada na venda.
 </Callout>
 
 ---
 
-## Teste antes de liberar
+### Relação com Produto
 
-Antes de liberar o grupo para uso definitivo, faça uma venda de teste.
+O **Grupo de Preço Especial** também pode ser utilizado diretamente no cadastro de **Produto**.
 
-Valide:
+No cadastro de **Produto**, a aba **Preço Especial** permite vincular um grupo de preço especial e definir uma regra específica para o item, podendo ser por **percentual** ou por **valor**.
 
-- se o grupo de preço especial foi cadastrado corretamente;
-- se o grupo foi vinculado ao participante correto;
-- se o grupo foi vinculado ao departamento ou produto definido na regra comercial;
-- se a venda foi realizada utilizando o participante configurado;
-- se a regra comercial foi aplicada conforme a configuração;
-- se a incidência está compatível com a condição de pagamento;
-- se o desconto de fechamento está permitido ou bloqueado conforme a configuração.
+Essa configuração é indicada quando um produto precisa ter uma condição comercial própria, diferente da regra geral configurada no departamento.
 
-<Callout type="info" title="Teste recomendado">
-  Para validar completamente a regra, simule pelo menos uma venda com o participante configurado e confira o preço aplicado antes de liberar o cadastro para uso definitivo.
+
+<Callout type="warning" title="Prioridade da regra">
+  Quando existir regra de preço especial no **Produto** e também no **Departamento**, a regra específica do **Produto** prevalece sobre a regra geral do departamento.
 </Callout>
 
 ---
