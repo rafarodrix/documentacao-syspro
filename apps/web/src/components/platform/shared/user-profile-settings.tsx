@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage, Badge, Button, Card, CardContent, 
 import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, SlidersHorizontal, User } from "lucide-react";
 import { trpc } from "@/lib/api/trpc-client";
 import { EmptyState, PageHeader, SectionCard } from "@/components/patterns";
+import { markTicketsTeamFilterReset } from "@/features/tickets/interface/lib/ticket-filter-preferences";
 
 interface UserProfileSettingsProps {
   profile: CurrentUserProfile;
@@ -233,6 +234,9 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
     setIsSavingPreferences(true);
     try {
+      if (defaultTicketTeamFilter !== profile.preferences.tickets.defaultTeamFilter) {
+        markTicketsTeamFilterReset();
+      }
       await persistProfileUpdate({
         preferences: {
           profile: {

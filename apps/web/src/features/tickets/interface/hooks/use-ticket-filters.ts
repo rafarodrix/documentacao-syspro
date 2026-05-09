@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { QueueKey, TicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "../components/ticket-view.types";
+import { consumeTicketsTeamFilterReset } from "../lib/ticket-filter-preferences";
 
 export function useTicketFilters(initialSearch: string) {
   const router = useRouter();
@@ -17,6 +18,27 @@ export function useTicketFilters(initialSearch: string) {
   useEffect(() => {
     setSearchTerm(initialSearch);
   }, [initialSearch]);
+
+  useEffect(() => {
+    if (!consumeTicketsTeamFilterReset()) return;
+
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    const hasTeamOverride = params.has("team");
+    const hasCategoryOverride = params.has("category");
+
+    if (!hasTeamOverride && !hasCategoryOverride) {
+      return;
+    }
+
+    params.delete("team");
+    params.delete("category");
+    params.set("page", "1");
+
+    const nextQuery = params.toString();
+    startTransition(() => {
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+    });
+  }, [pathname, router, searchParams]);
 
   // Debounced search sync to URL
   useEffect(() => {

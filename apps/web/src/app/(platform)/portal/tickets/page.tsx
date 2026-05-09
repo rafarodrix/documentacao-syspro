@@ -47,7 +47,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
     trpc.users.getCurrentProfile.query().catch(() => null),
   ]);
   const derivedDefaultTeam: TicketTeamFilter = canManageTickets
-    ? (currentProfileResult?.preferences?.tickets?.defaultTeamFilter ?? "all")
+    ? (currentProfileResult?.data?.preferences?.tickets?.defaultTeamFilter ?? "all")
     : "all";
   const resolvedTeamParam = teamParam ?? derivedDefaultTeam;
   const team: TicketTeamFilter = TEAM_FILTER_OPTIONS.includes(resolvedTeamParam as TicketTeamFilter)
