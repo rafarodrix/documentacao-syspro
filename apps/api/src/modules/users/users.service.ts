@@ -724,13 +724,22 @@ export class UsersService {
     }
 
     const companies = this.collectProfileCompanies(user);
-    const selectedCompanyId = companies[0]?.id ?? null;
+    const preferences = this.normalizeCurrentUserPreferences(user.preferences);
+    const selectedCompanyId = companies.some((company) => company.id === preferences.profile.selectedCompanyId)
+      ? preferences.profile.selectedCompanyId
+      : companies[0]?.id ?? null;
     const payload = currentUserProfileSchema.parse({
       name: user.name || 'Usuario',
       email: user.email,
       image: user.image ?? null,
       role: user.role,
-      preferences: this.normalizeCurrentUserPreferences(user.preferences),
+      preferences: {
+        ...preferences,
+        profile: {
+          ...preferences.profile,
+          selectedCompanyId,
+        },
+      },
       permissions: {
         canEditPersonal,
         canEditCompany,
@@ -820,6 +829,7 @@ export class UsersService {
     const data = input;
     let shouldSyncPortalUser = false;
     let shouldUpdatePreferences = false;
+    let nextPreferences = this.normalizeCurrentUserPreferences(user.preferences);
 
     if (data.name !== undefined) {
       if (!canEditPersonal) {
@@ -841,10 +851,12 @@ export class UsersService {
         throw new ForbiddenException('Sem permissao para alterar as preferencias do perfil.');
       }
 
+      nextPreferences = this.mergeCurrentUserPreferences(nextPreferences, data.preferences);
+
       await this.prisma.user.update({
         where: { id: requester.userId },
         data: {
-          preferences: data.preferences as any,
+          preferences: nextPreferences as any,
         },
       });
 
@@ -916,6 +928,31 @@ export class UsersService {
       });
 
       shouldSyncPortalUser = true;
+    }
+
+    if (data.companyId && !data.company && String(data.companyId).trim()) {
+      if (!canEditPersonal) {
+        throw new ForbiddenException('Sem permissao para alterar a empresa selecionada do perfil.');
+      }
+
+      const targetCompanyId = String(data.companyId).trim();
+      const targetCompany = companies.find((company) => company.id === targetCompanyId);
+      if (!targetCompany) {
+        throw new BadRequestException('Empresa do perfil nao encontrada para este usuario.');
+      }
+
+      nextPreferences = this.mergeCurrentUserPreferences(nextPreferences, {
+        profile: { selectedCompanyId: targetCompanyId },
+      });
+
+      await this.prisma.user.update({
+        where: { id: requester.userId },
+        data: {
+          preferences: nextPreferences as any,
+        },
+      });
+
+      shouldUpdatePreferences = true;
     }
 
     if (shouldSyncPortalUser) {
@@ -1251,6 +1288,24 @@ export class UsersService {
     const parsed = currentUserPreferencesSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
     return currentUserPreferencesSchema.parse({});
+  }
+
+  private mergeCurrentUserPreferences(
+    current: CurrentUserPreferences,
+    patch: Partial<CurrentUserPreferences>,
+  ): CurrentUserPreferences {
+    return currentUserPreferencesSchema.parse({
+      ...current,
+      ...patch,
+      profile: {
+        ...current.profile,
+        ...(patch.profile ?? {}),
+      },
+      tickets: {
+        ...current.tickets,
+        ...(patch.tickets ?? {}),
+      },
+    });
   }
 
   private async canEditOwnPersonalProfile(requester: Requester) {

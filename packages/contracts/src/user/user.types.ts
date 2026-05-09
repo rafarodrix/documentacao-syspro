@@ -68,6 +68,11 @@ export const userProfileCompanySchema = z.object({
 export const userTicketDefaultTeamFilterSchema = z.enum(["all", "SUPORTE", "DESENVOLVIMENTO"]);
 
 export const currentUserPreferencesSchema = z.object({
+  profile: z.object({
+    selectedCompanyId: z.string().trim().min(1).nullable().default(null),
+  }).default({
+    selectedCompanyId: null,
+  }),
   tickets: z.object({
     defaultTeamFilter: userTicketDefaultTeamFilterSchema.default("all"),
   }).default({

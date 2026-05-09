@@ -73,6 +73,10 @@ function initials(name: string) {
   );
 }
 
+function getInitialSelectedCompanyId(profile: CurrentUserProfile) {
+  return profile.selectedCompanyId ?? profile.companies[0]?.id ?? "";
+}
+
 export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +87,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [personalName, setPersonalName] = useState(profile.name);
   const [defaultTicketTeamFilter, setDefaultTicketTeamFilter] = useState(profile.preferences.tickets.defaultTeamFilter);
-  const [selectedCompanyId, setSelectedCompanyId] = useState(profile.selectedCompanyId ?? profile.companies[0]?.id ?? "");
+  const [selectedCompanyId, setSelectedCompanyId] = useState(getInitialSelectedCompanyId(profile));
   const [companyForm, setCompanyForm] = useState<CompanyFormState>(
     buildCompanyFormState(profile.companies.find((company) => company.id === profile.selectedCompanyId) ?? profile.companies[0] ?? null),
   );
@@ -96,6 +100,17 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
   useEffect(() => {
     setCompanyForm(buildCompanyFormState(selectedCompany));
   }, [selectedCompany]);
+
+  const updateCompanyForm = <K extends keyof CompanyFormState>(key: K, value: CompanyFormState[K]) => {
+    setCompanyForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateCompanyAddress = <K extends keyof CompanyFormState["address"]>(key: K, value: CompanyFormState["address"][K]) => {
+    setCompanyForm((current) => ({
+      ...current,
+      address: { ...current.address, [key]: value },
+    }));
+  };
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -121,6 +136,15 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
     }
   };
 
+  const persistProfileUpdate = async (
+    payload: Parameters<typeof trpc.users.updateCurrentProfile.mutate>[0],
+    successMessage: string,
+  ) => {
+    await trpc.users.updateCurrentProfile.mutate(payload);
+    toast.success(successMessage);
+    router.refresh();
+  };
+
   const handleSavePersonal = async () => {
     if (!profile.permissions.canEditPersonal) {
       toast.error("Seu perfil nao permite alterar os dados pessoais.");
@@ -134,9 +158,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
     setIsSavingPersonal(true);
     try {
-      await trpc.users.updateCurrentProfile.mutate({ name: personalName.trim() });
-      toast.success("Dados pessoais atualizados.");
-      router.refresh();
+      await persistProfileUpdate({ name: personalName.trim() }, "Dados pessoais atualizados.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar os dados pessoais.");
     } finally {
@@ -162,8 +184,16 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
     setIsSavingCompany(true);
     try {
-      await trpc.users.updateCurrentProfile.mutate({
+      await persistProfileUpdate({
         companyId: selectedCompany.id,
+        preferences: {
+          profile: {
+            selectedCompanyId: selectedCompany.id,
+          },
+          tickets: {
+            defaultTeamFilter: defaultTicketTeamFilter,
+          },
+        },
         company: {
           razaoSocial: companyForm.razaoSocial.trim(),
           nomeFantasia: companyForm.nomeFantasia.trim(),
@@ -186,9 +216,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
             codigoIbgeEstado: companyForm.address.codigoIbgeEstado.trim(),
           },
         },
-      });
-      toast.success("Dados da empresa atualizados.");
-      router.refresh();
+      }, "Dados da empresa atualizados.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar a empresa.");
     } finally {
@@ -204,15 +232,16 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
     setIsSavingPreferences(true);
     try {
-      await trpc.users.updateCurrentProfile.mutate({
+      await persistProfileUpdate({
         preferences: {
+          profile: {
+            selectedCompanyId: selectedCompanyId || null,
+          },
           tickets: {
             defaultTeamFilter: defaultTicketTeamFilter,
           },
         },
-      });
-      toast.success("Preferencias atualizadas.");
-      router.refresh();
+      }, "Preferencias atualizadas.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar as preferencias.");
     } finally {
@@ -411,7 +440,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                         <Input
                           id="company-legal-name"
                           value={companyForm.razaoSocial}
-                          onChange={(event) => setCompanyForm((current) => ({ ...current, razaoSocial: event.target.value }))}
+                          onChange={(event) => updateCompanyForm("razaoSocial", event.target.value)}
                           disabled={!profile.permissions.canEditCompany || isSavingCompany}
                         />
                       </div>
@@ -420,7 +449,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                         <Input
                           id="company-trade-name"
                           value={companyForm.nomeFantasia}
-                          onChange={(event) => setCompanyForm((current) => ({ ...current, nomeFantasia: event.target.value }))}
+                          onChange={(event) => updateCompanyForm("nomeFantasia", event.target.value)}
                           disabled={!profile.permissions.canEditCompany || isSavingCompany}
                         />
                       </div>
@@ -432,7 +461,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                             id="company-site"
                             className="pl-9"
                             value={companyForm.website}
-                            onChange={(event) => setCompanyForm((current) => ({ ...current, website: event.target.value }))}
+                            onChange={(event) => updateCompanyForm("website", event.target.value)}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -442,7 +471,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                         <Input
                           id="company-email"
                           value={companyForm.emailContato}
-                          onChange={(event) => setCompanyForm((current) => ({ ...current, emailContato: event.target.value }))}
+                          onChange={(event) => updateCompanyForm("emailContato", event.target.value)}
                           disabled={!profile.permissions.canEditCompany || isSavingCompany}
                         />
                       </div>
@@ -451,7 +480,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                         <Input
                           id="company-finance-email"
                           value={companyForm.emailFinanceiro}
-                          onChange={(event) => setCompanyForm((current) => ({ ...current, emailFinanceiro: event.target.value }))}
+                          onChange={(event) => updateCompanyForm("emailFinanceiro", event.target.value)}
                           disabled={!profile.permissions.canEditCompany || isSavingCompany}
                         />
                       </div>
@@ -463,9 +492,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                             id="company-phone"
                             className="pl-9"
                             value={companyForm.telefone}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({ ...current, telefone: formatPhone(event.target.value) }))
-                            }
+                            onChange={(event) => updateCompanyForm("telefone", formatPhone(event.target.value))}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -475,9 +502,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                         <Input
                           id="company-whatsapp"
                           value={companyForm.whatsapp}
-                          onChange={(event) =>
-                            setCompanyForm((current) => ({ ...current, whatsapp: formatPhone(event.target.value) }))
-                          }
+                          onChange={(event) => updateCompanyForm("whatsapp", formatPhone(event.target.value))}
                           disabled={!profile.permissions.canEditCompany || isSavingCompany}
                         />
                       </div>
@@ -494,12 +519,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                           <Input
                             id="company-cep"
                             value={companyForm.address.cep}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, cep: formatCEP(event.target.value) },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("cep", formatCEP(event.target.value))}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -508,12 +528,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                           <Input
                             id="company-street"
                             value={companyForm.address.logradouro}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, logradouro: event.target.value },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("logradouro", event.target.value)}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -522,12 +537,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                           <Input
                             id="company-number"
                             value={companyForm.address.numero}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, numero: event.target.value },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("numero", event.target.value)}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -536,12 +546,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                           <Input
                             id="company-complement"
                             value={companyForm.address.complemento}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, complemento: event.target.value },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("complemento", event.target.value)}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -550,12 +555,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                           <Input
                             id="company-district"
                             value={companyForm.address.bairro}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, bairro: event.target.value },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("bairro", event.target.value)}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -564,12 +564,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                           <Input
                             id="company-city"
                             value={companyForm.address.cidade}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, cidade: event.target.value },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("cidade", event.target.value)}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
@@ -579,12 +574,7 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                             id="company-state"
                             maxLength={2}
                             value={companyForm.address.estado}
-                            onChange={(event) =>
-                              setCompanyForm((current) => ({
-                                ...current,
-                                address: { ...current.address, estado: event.target.value.toUpperCase() },
-                              }))
-                            }
+                            onChange={(event) => updateCompanyAddress("estado", event.target.value.toUpperCase())}
                             disabled={!profile.permissions.canEditCompany || isSavingCompany}
                           />
                         </div>
