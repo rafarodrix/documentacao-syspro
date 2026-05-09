@@ -23,7 +23,6 @@ export const docs = defineDocs({
       featureStatus: z.enum(['new', 'deprecated', 'beta', 'experimental']).optional(),
       sinceVersion: z.string().optional(),
       tags: z.array(z.string().min(1)).min(1),
-      audience: z.array(z.string().min(1)).min(1).optional(),
     }),
   },
 });

@@ -547,7 +547,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
         <DialogFooter className="p-6 border-t border-border/40 bg-muted/10 shrink-0">
           <div className="flex flex-col sm:flex-row w-full items-center justify-between gap-4">
             <Button variant="link" className="text-xs text-muted-foreground h-auto p-0 hidden sm:flex gap-1" asChild>
-              <a href="/portal/docs/manual" target="_blank">
+              <a href="/portal/docs/cliente/manual" target="_blank">
                 <HelpCircle className="h-3 w-3" /> Precisa de ajuda?
               </a>
             </Button>

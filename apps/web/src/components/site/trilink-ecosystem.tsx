@@ -73,7 +73,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               </div>
 
               <div className="mt-8">
-                <Link href="/portal/docs" className="inline-flex items-center text-sm font-semibold text-foreground hover:text-blue-500 transition-colors group/link"> {/* ds-allow: surface accent */}
+                <Link href="/portal/docs/cliente" className="inline-flex items-center text-sm font-semibold text-foreground hover:text-blue-500 transition-colors group/link"> {/* ds-allow: surface accent */}
                   Acessar Biblioteca <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/link:translate-x-1" />
                 </Link>
               </div>
@@ -154,7 +154,7 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
               <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-1">
                 Respostas rápidas para as perguntas mais comuns sobre configuração e uso do ERP.
               </p>
-              <Link href="/portal/docs/duvidas" className="flex items-center text-xs font-medium text-pink-500 gap-1 group-hover:translate-x-1 transition-transform"> {/* ds-allow: surface accent */}
+              <Link href="/portal/docs/cliente/duvidas" className="flex items-center text-xs font-medium text-pink-500 gap-1 group-hover:translate-x-1 transition-transform"> {/* ds-allow: surface accent */}
                 Ver Respostas <ArrowRight className="h-3 w-3" />
               </Link>
             </CardContent>
@@ -202,4 +202,3 @@ export function TrilinkEcosystem({ summaries, releaseLink }: TrilinkEcosystemPro
     </section>
   );
 }
-

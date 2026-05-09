@@ -47,31 +47,31 @@ export async function SiteHeader() {
   const dashboardUrl = "/portal";
   const docsNavItems = [
     {
-      href: "/docs",
+      href: "/portal/docs/cliente",
       title: "Central de Ajuda",
       description: "Entrada principal com guias e acessos rapidos.",
       icon: BookOpen,
     },
     {
-      href: "/docs/manual",
+      href: "/portal/docs/cliente/manual",
       title: "Manual de Uso",
       description: "Fluxos operacionais e rotinas do sistema.",
       icon: BookOpen,
     },
     {
-      href: "/docs/duvidas",
+      href: "/portal/docs/cliente/duvidas",
       title: "Duvidas Frequentes",
       description: "Respostas diretas para problemas comuns.",
       icon: HelpCircle,
     },
     {
-      href: "/docs/treinamento",
+      href: "/portal/docs/cliente/treinamento",
       title: "Treinamentos",
       description: "Trilhas de capacitacao por modulo.",
       icon: GraduationCap,
     },
     {
-      href: "/docs/suporte",
+      href: "/portal/docs/cliente/suporte",
       title: "Suporte",
       description: "Canais e orientacoes de atendimento.",
       icon: LifeBuoy,
@@ -79,7 +79,7 @@ export async function SiteHeader() {
     ...(canViewTechnical
       ? [
           {
-            href: "/docs/manuais-tecnicos",
+            href: "/portal/docs/admin",
             title: "Manuais Tecnicos",
             description: "Arquitetura, padroes e operacao tecnica.",
             icon: LayoutDashboard,
@@ -260,12 +260,12 @@ export async function SiteHeader() {
 
                   <div className="my-2 h-px bg-border/50" />
                   <MobileNavLink href="/portal/docs">Central</MobileNavLink>
-                  <MobileNavLink href="/portal/docs/manual">Manual de uso</MobileNavLink>
-                  <MobileNavLink href="/portal/docs/duvidas">Duvidas frequentes</MobileNavLink>
-                  <MobileNavLink href="/portal/docs/treinamento">Treinamentos</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/cliente/manual">Manual de uso</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/cliente/duvidas">Duvidas frequentes</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/cliente/treinamento">Treinamentos</MobileNavLink>
                   <MobileNavLink href="/portal/docs/cliente/suporte">Suporte</MobileNavLink>
                   {canViewTechnical ? (
-                    <MobileNavLink href="/portal/docs/manuais-tecnicos">Manuais tecnicos</MobileNavLink>
+                    <MobileNavLink href="/portal/docs/admin">Manuais tecnicos</MobileNavLink>
                   ) : null}
                   <MobileNavLink href="/portal/releases">Releases</MobileNavLink>
                   <MobileNavLink href="https://trilink.com.br" external>
