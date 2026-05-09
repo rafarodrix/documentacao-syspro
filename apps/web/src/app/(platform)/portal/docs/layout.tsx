@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react';
 import { RootProvider } from 'fumadocs-ui/provider';
-import { source } from '@/lib/source';
+import { createDocsSourceForRole } from '@/lib/source';
 import { requireSession } from "@/lib/auth-helpers";
-import { filterDocTree } from '@/lib/docs-tree-utils';
 import { DocsLayoutClient } from '@/components/docs/docs-layout-client';
 import { PortalShellModeController } from '@/components/platform/app/layout/portal-shell-mode-context';
-import { canRoleAccessDocsUrl } from '@/lib/docs-scope';
 
 export default async function PortalDocsLayout({ children }: { children: ReactNode }) {
   const session = await requireSession();
-  const docsTree = filterDocTree(source.pageTree, (url) => canRoleAccessDocsUrl(session.role, url));
+  const docsTree = createDocsSourceForRole(session.role).pageTree;
 
   return (
     <RootProvider>

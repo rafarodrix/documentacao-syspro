@@ -1,0 +1,9 @@
+{
+  "root": false,
+  "title": "Admin",
+  "description": "Documentacao administrativa e tecnica restrita a administradores.",
+  "pages": [
+    "index",
+    "infraestrutura"
+  ]
+}

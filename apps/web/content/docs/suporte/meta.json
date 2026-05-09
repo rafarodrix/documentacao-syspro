@@ -1,0 +1,11 @@
+{
+  "root": false,
+  "title": "Suporte",
+  "description": "Guias operacionais, scripts e procedimentos internos de suporte.",
+  "pages": [
+    "index",
+    "banco-dados",
+    "parametrizacoes",
+    "scripts"
+  ]
+}

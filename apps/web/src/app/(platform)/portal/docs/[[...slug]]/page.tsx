@@ -1,4 +1,4 @@
-import { source } from '@/lib/source';
+import { createDocsSourceForRole, source } from '@/lib/source';
 import {
   DocsPage,
   DocsBody,
@@ -66,8 +66,22 @@ export default async function PortalDocsPage(props: {
     redirect(getDefaultDocsRouteForRole(session.role));
   }
 
-  const page = source.getPage(resolvedSlug);
-  if (!page) notFound();
+  const docsSource = createDocsSourceForRole(session.role);
+  const page = docsSource.getPage(resolvedSlug);
+  if (!page) {
+    const scopeRoot = resolvedSlug.length === 1 ? resolvedSlug[0] : null;
+    if (scopeRoot === "cliente" || scopeRoot === "suporte" || scopeRoot === "admin") {
+      const firstPageInScope = docsSource
+        .getPages()
+        .find((item) => item.url.startsWith(`${DOCS_BASE_PATH}/${scopeRoot}/`) && item.url !== `${DOCS_BASE_PATH}/${scopeRoot}`);
+
+      if (firstPageInScope) {
+        redirect(firstPageInScope.url);
+      }
+    }
+
+    notFound();
+  }
 
   const MDXContent = page.data.body;
   const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;
@@ -85,7 +99,7 @@ export default async function PortalDocsPage(props: {
   const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
 
-  const navigationPool = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
+  const navigationPool = docsSource.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
   const navigationVisibility = await Promise.all(
     navigationPool.map((item) =>
       canUserAccessDocUrl({
@@ -129,7 +143,7 @@ export default async function PortalDocsPage(props: {
           <MDXContent
             components={{
               ...defaultMdxComponents,
-              a: createRelativeLink(source, page),
+              a: createRelativeLink(docsSource, page),
               Tip,
               Note,
               Warning,
