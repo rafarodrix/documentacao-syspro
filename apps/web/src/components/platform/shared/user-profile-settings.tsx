@@ -8,6 +8,7 @@ import { formatCEP, formatCNPJ, formatPhone } from "@/lib/formatters";
 import { Avatar, AvatarFallback, AvatarImage, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, SlidersHorizontal, User } from "lucide-react";
 import { trpc } from "@/lib/api/trpc-client";
+import { EmptyState, PageHeader, SectionCard } from "@/components/patterns";
 
 interface UserProfileSettingsProps {
   profile: CurrentUserProfile;
@@ -251,10 +252,10 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Minha Conta</h1>
-        <p className="text-muted-foreground">Atualize seus dados pessoais e os dados da empresa vinculada ao seu acesso.</p>
-      </div>
+      <PageHeader
+        title="Minha Conta"
+        description="Atualize seus dados pessoais, preferencias e a empresa vinculada ao seu acesso."
+      />
 
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <Card className="border-border/50">
@@ -274,14 +275,15 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                     <Loader2 className="h-6 w-6 animate-spin text-white" />
                   </div>
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={handleAvatarClick}
-                    className="absolute bottom-0 right-0 rounded-full border border-background bg-primary p-2 text-primary-foreground shadow-sm"
+                    size="icon"
+                    className="absolute bottom-0 right-0 h-9 w-9 rounded-full border border-background bg-primary text-primary-foreground shadow-sm"
                     title="Alterar foto"
                   >
                     <Camera className="h-4 w-4" />
-                  </button>
+                  </Button>
                 )}
                 <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
               </div>
@@ -324,12 +326,24 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
           </TabsList>
 
           <TabsContent value="personal">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Dados pessoais</CardTitle>
-                <CardDescription>Essas informacoes identificam seu acesso dentro do portal.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <SectionCard
+              title="Dados pessoais"
+              description="Essas informacoes identificam seu acesso dentro do portal."
+              contentClassName="space-y-6"
+              footer={
+                <div className="flex w-full items-center justify-between gap-4 text-sm">
+                  <p className="text-muted-foreground">
+                    {profile.permissions.canEditPersonal
+                      ? "Seu perfil permite alterar os dados pessoais."
+                      : "Seu perfil esta somente leitura para dados pessoais."}
+                  </p>
+                  <Button onClick={handleSavePersonal} disabled={isSavingPersonal || !profile.permissions.canEditPersonal}>
+                    {isSavingPersonal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar dados pessoais
+                  </Button>
+                </div>
+              }
+            >
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="profile-name">Nome completo</Label>
@@ -348,29 +362,28 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
-                  <p className="text-muted-foreground">
-                    {profile.permissions.canEditPersonal
-                      ? "Seu perfil permite alterar os dados pessoais."
-                      : "Seu perfil esta somente leitura para dados pessoais."}
-                  </p>
-                  <Button onClick={handleSavePersonal} disabled={isSavingPersonal || !profile.permissions.canEditPersonal}>
-                    {isSavingPersonal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Salvar dados pessoais
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            </SectionCard>
           </TabsContent>
 
           <TabsContent value="preferences">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Preferencias</CardTitle>
-                <CardDescription>Defina a visao inicial do modulo de tickets sem bloquear a troca manual dos filtros.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <SectionCard
+              title="Preferencias"
+              description="Defina a visao inicial do modulo de tickets sem bloquear a troca manual dos filtros."
+              contentClassName="space-y-6"
+              footer={
+                <div className="flex w-full items-center justify-between gap-4 text-sm">
+                  <p className="text-muted-foreground">
+                    {profile.permissions.canEditPersonal
+                      ? "Suas preferencias pessoais podem ser ajustadas a qualquer momento."
+                      : "Seu perfil esta somente leitura para preferencias pessoais."}
+                  </p>
+                  <Button onClick={handleSavePreferences} disabled={isSavingPreferences || !profile.permissions.canEditPersonal}>
+                    {isSavingPreferences ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar preferencias
+                  </Button>
+                </div>
+              }
+            >
                 <div className="space-y-2">
                   <Label htmlFor="ticket-default-team-filter">Visao inicial dos tickets</Label>
                   <Select value={defaultTicketTeamFilter} onValueChange={(value) => setDefaultTicketTeamFilter(value as typeof defaultTicketTeamFilter)}>
@@ -387,29 +400,28 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                     Essa preferencia define apenas o filtro inicial ao abrir o modulo de tickets. Voce ainda pode trocar a equipe manualmente.
                   </p>
                 </div>
-
-                <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
-                  <p className="text-muted-foreground">
-                    {profile.permissions.canEditPersonal
-                      ? "Suas preferencias pessoais podem ser ajustadas a qualquer momento."
-                      : "Seu perfil esta somente leitura para preferencias pessoais."}
-                  </p>
-                  <Button onClick={handleSavePreferences} disabled={isSavingPreferences || !profile.permissions.canEditPersonal}>
-                    {isSavingPreferences ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Salvar preferencias
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            </SectionCard>
           </TabsContent>
 
           <TabsContent value="company">
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Empresa</CardTitle>
-                <CardDescription>Edite os dados da empresa vinculada ao seu acesso. O CNPJ permanece bloqueado.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <SectionCard
+              title="Empresa"
+              description="Edite os dados da empresa vinculada ao seu acesso. O CNPJ permanece bloqueado."
+              contentClassName="space-y-6"
+              footer={selectedCompany ? (
+                <div className="flex w-full items-center justify-between gap-4 text-sm">
+                  <p className="text-muted-foreground">
+                    {profile.permissions.canEditCompany
+                      ? "Seu perfil permite alterar os dados desta empresa, com excecao do CNPJ."
+                      : "Seu perfil esta somente leitura para os dados da empresa."}
+                  </p>
+                  <Button onClick={handleSaveCompany} disabled={isSavingCompany || !profile.permissions.canEditCompany}>
+                    {isSavingCompany ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar empresa
+                  </Button>
+                </div>
+              ) : undefined}
+            >
                 {profile.companies.length > 1 ? (
                   <div className="space-y-2">
                     <Label htmlFor="profile-company">Empresa vinculada</Label>
@@ -581,25 +593,17 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
-                      <p className="text-muted-foreground">
-                        {profile.permissions.canEditCompany
-                          ? "Seu perfil permite alterar os dados desta empresa, com excecao do CNPJ."
-                          : "Seu perfil esta somente leitura para os dados da empresa."}
-                      </p>
-                      <Button onClick={handleSaveCompany} disabled={isSavingCompany || !profile.permissions.canEditCompany}>
-                        {isSavingCompany ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Salvar empresa
-                      </Button>
-                    </div>
                   </>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-border/70 p-6 text-sm text-muted-foreground">
-                    Nenhuma empresa vinculada foi encontrada para este usuario.
-                  </div>
+                  <EmptyState
+                    icon={Building2}
+                    title="Nenhuma empresa vinculada"
+                    description="Nenhuma empresa vinculada foi encontrada para este usuario."
+                    compact
+                    dashed
+                  />
                 )}
-              </CardContent>
-            </Card>
+            </SectionCard>
           </TabsContent>
         </Tabs>
       </div>
