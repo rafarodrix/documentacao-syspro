@@ -1,13 +1,16 @@
 ---
-title:  Promoção
-description: Tudo o que você precisa saber sobre o módulo de Promoção do Syspro ERP.
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Promoção
+description: Configure promoções por período, horário, dias da semana e produtos, aplicando descontos ou valores promocionais no Syspro ERP.
+lastUpdated: 2026-05-08
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - estoque
   - promocao
+  - produtos
+  - precos
+  - descontos
 audience:
   - cliente_admin
   - cliente_user
@@ -15,9 +18,772 @@ audience:
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
-  Gerencie departamentos de estoque, organizando produtos por áreas ou setores da empresa.
+# Cadastro de Promoção
 
-<Callout type="info" title="Dica">
-  Certifique-se de ter permissões adequadas para acessar todas as funcionalidades do módulo. Contate o administrador, se necessário.
+## Introdução
+
+O módulo de **Promoção** permite cadastrar campanhas promocionais para produtos no Syspro ERP, definindo regras de validade, horário, dias da semana, empresa e itens participantes.
+
+Com essa configuração, a empresa pode criar promoções com desconto percentual ou valor promocional específico, controlando quando a promoção deve ser aplicada e quais produtos farão parte da campanha.
+
+Esse recurso é útil para ações comerciais como:
+
+- promoções por período;
+- ofertas de fim de semana;
+- campanhas por horário;
+- queima de estoque;
+- promoções por quantidade;
+- ofertas sazonais;
+- campanhas específicas por empresa;
+- redução temporária de preço de venda.
+
+<Callout type="info" title="Objetivo do módulo">
+  O cadastro de Promoção permite controlar preços promocionais de forma programada, evitando alterações manuais recorrentes no cadastro do produto.
 </Callout>
+
+---
+
+## Onde acessar
+
+Para acessar o cadastro de promoções:
+
+<Steps>
+  <Step>
+    Acesse o menu superior **Estoque**.
+  </Step>
+
+  <Step>
+    Clique na opção **Promoção**.
+  </Step>
+
+  <Step>
+    O sistema exibirá a tela de consulta das promoções cadastradas.
+  </Step>
+</Steps>
+
+Na tela de consulta, é possível visualizar as promoções ativas e realizar ações como:
+
+- incluir;
+- editar;
+- excluir;
+- clonar;
+- filtrar;
+- consultar;
+- pesquisar por descrição;
+- pesquisar por empresa.
+
+---
+
+## Quando utilizar o cadastro de Promoção
+
+O cadastro de Promoção deve ser utilizado quando a empresa deseja aplicar uma condição especial de preço para um ou mais produtos durante determinado período.
+
+Exemplos comuns:
+
+| Situação | Como a Promoção ajuda |
+|---|---|
+| Produto com preço reduzido por alguns dias | Define data inicial e data final da promoção |
+| Oferta válida apenas em determinados horários | Define hora inicial e hora final |
+| Promoção somente no fim de semana | Marca sábado e domingo |
+| Produto com desconto percentual | Configura o campo **Promoção (%)** |
+| Produto com preço promocional fixo | Configura o campo **Promoção (R$)** |
+| Promoção por quantidade | Define quantidade inicial e quantidade final |
+| Campanha específica para uma empresa | Vincula a promoção à empresa correspondente |
+
+<Callout type="success" title="Exemplo prático">
+  Uma promoção pode ser configurada para valer de segunda a domingo, entre 09:00 e 18:00, aplicando 15% de desconto para um produto específico quando a quantidade vendida estiver dentro da faixa definida.
+</Callout>
+
+---
+
+## Dicionário de Campos
+
+A tela de Promoção é dividida em duas partes principais:
+
+- cabeçalho da promoção;
+- grade de produtos promocionais.
+
+<Cards>
+  <Card title="Dados Principais">
+    * **Descrição:** Nome da promoção. Exemplo: PROMOÇÃO DE FIM DE SEMANA, QUEIMA DE ESTOQUE, OFERTA ESPECIAL.
+    * **Empresa:** Empresa onde a promoção será aplicada.
+    * **Data Inicial:** Data de início da validade da promoção.
+    * **Data Final:** Data final da validade da promoção.
+  </Card>
+
+  <Card title="Controle de Horário">
+    * **Hora Inicial:** Horário em que a promoção começa a valer.
+    * **Hora Final:** Horário em que a promoção deixa de valer.
+    * Esses campos permitem criar promoções válidas somente em determinado intervalo do dia.
+  </Card>
+
+  <Card title="Dias da Semana">
+    * **Segunda:** Aplica a promoção nas segundas-feiras.
+    * **Terça:** Aplica a promoção nas terças-feiras.
+    * **Quarta:** Aplica a promoção nas quartas-feiras.
+    * **Quinta:** Aplica a promoção nas quintas-feiras.
+    * **Sexta:** Aplica a promoção nas sextas-feiras.
+    * **Sábado:** Aplica a promoção aos sábados.
+    * **Domingo:** Aplica a promoção aos domingos.
+  </Card>
+
+  <Card title="Produtos da Promoção">
+    * **Cód. Auxiliar:** Código auxiliar do produto.
+    * **Descrição:** Descrição do produto participante da promoção.
+    * **Preço Custo:** Preço de custo do produto.
+    * **Preço Venda:** Preço normal de venda do produto.
+    * **Promoção (%):** Percentual de desconto promocional.
+    * **Promoção (R$):** Valor final promocional do produto.
+    * **Qtde Inicial:** Quantidade inicial para aplicação da regra.
+    * **Qtde Final:** Quantidade final para aplicação da regra.
+  </Card>
+</Cards>
+
+<Callout type="warning" title="Atenção">
+  Antes de salvar a promoção, confira cuidadosamente o período, os horários, os dias da semana e os produtos incluídos. Uma configuração incorreta pode fazer a promoção ser aplicada fora do período desejado.
+</Callout>
+
+---
+
+# Estrutura da tela
+
+## Tela de consulta
+
+Na tela principal do módulo, o sistema apresenta a lista de promoções cadastradas.
+
+As principais colunas exibidas são:
+
+| Campo | Descrição |
+|---|---|
+| Descrição | Nome da promoção |
+| Data Início | Data inicial da promoção |
+| Data Final | Data final da promoção |
+| Hora Início | Horário inicial da promoção |
+| Hora Final | Horário final da promoção |
+| Segunda a Domingo | Indica os dias da semana em que a promoção está ativa |
+
+Quando um dia da semana está marcado, o sistema indica visualmente que a promoção pode ser aplicada naquele dia.
+
+---
+
+## Tela de edição ou inclusão
+
+Ao incluir ou editar uma promoção, o sistema apresenta os campos principais no cabeçalho e a aba **Produto** no painel inferior.
+
+No cabeçalho são configuradas as regras gerais da promoção.
+
+Na aba **Produto** são informados os produtos que farão parte da campanha promocional.
+
+---
+
+# Regras principais da promoção
+
+## Período de validade
+
+A promoção possui uma **Data Inicial** e uma **Data Final**.
+
+Essas datas definem o intervalo em que a promoção poderá ser aplicada.
+
+Exemplo:
+
+| Campo | Valor |
+|---|---|
+| Data Inicial | 16/03/2026 |
+| Data Final | 07/05/2026 |
+
+Nesse exemplo, a promoção estará disponível dentro desse período, desde que os demais critérios também sejam atendidos.
+
+<Callout type="info" title="Regra de validade">
+  A promoção somente será considerada válida quando a data da venda estiver dentro do período configurado.
+</Callout>
+
+---
+
+## Controle por horário
+
+A promoção também pode possuir hora inicial e hora final.
+
+Exemplo:
+
+| Campo | Valor |
+|---|---|
+| Hora Inicial | 09:06 |
+| Hora Final | 09:06 |
+
+Esse controle permite criar campanhas específicas por horário, como:
+
+- promoção de manhã;
+- promoção de almoço;
+- oferta relâmpago;
+- promoção de fim de expediente;
+- campanha com horário limitado.
+
+<Callout type="warning" title="Atenção ao horário">
+  Se a promoção não deve ter restrição de horário, revise a configuração conforme o padrão utilizado pela empresa para promoções válidas durante todo o dia.
+</Callout>
+
+---
+
+## Controle por dias da semana
+
+A promoção permite selecionar em quais dias da semana ela será válida.
+
+As opções disponíveis são:
+
+| Dia | Finalidade |
+|---|---|
+| Segunda | Aplica a promoção na segunda-feira |
+| Terça | Aplica a promoção na terça-feira |
+| Quarta | Aplica a promoção na quarta-feira |
+| Quinta | Aplica a promoção na quinta-feira |
+| Sexta | Aplica a promoção na sexta-feira |
+| Sábado | Aplica a promoção no sábado |
+| Domingo | Aplica a promoção no domingo |
+
+Exemplo de uso:
+
+| Campanha | Dias marcados |
+|---|---|
+| Promoção de fim de semana | Sábado e Domingo |
+| Promoção semanal | Segunda a Sexta |
+| Promoção todos os dias | Segunda a Domingo |
+| Oferta de quarta-feira | Apenas Quarta |
+
+<Callout type="info" title="Dias da semana">
+  Para que a promoção seja aplicada, o dia da venda precisa estar marcado na configuração da promoção.
+</Callout>
+
+---
+
+# Aba Produto
+
+A aba **Produto** é onde são adicionados os itens participantes da promoção.
+
+Cada produto pode possuir uma regra promocional própria, com percentual de desconto, preço promocional e faixa de quantidade.
+
+## Campos da aba Produto
+
+| Campo | Descrição |
+|---|---|
+| Cód. Auxiliar | Código auxiliar utilizado para identificação do produto |
+| Descrição | Nome do produto participante da promoção |
+| Preço Custo | Preço de custo do produto |
+| Preço Venda | Preço normal de venda |
+| Promoção (%) | Percentual de desconto aplicado |
+| Promoção (R$) | Valor final promocional |
+| Qtde Inicial | Quantidade mínima para aplicar a promoção |
+| Qtde Final | Quantidade máxima para aplicar a promoção |
+
+---
+
+## Promoção por percentual
+
+A promoção por percentual utiliza o campo **Promoção (%)**.
+
+Exemplo:
+
+| Preço Venda | Promoção (%) | Preço Promocional |
+|---|---|---|
+| R$ 100,00 | 7% | R$ 93,00 |
+| R$ 100,00 | 15% | R$ 85,00 |
+
+Nesse caso, o sistema reduz o preço de venda conforme o percentual configurado.
+
+```txt
+Preço Promocional = Preço Venda - Percentual de Promoção
+````
+
+Exemplo:
+
+```txt
+Preço Venda: R$ 100,00
+Promoção: 15%
+
+Preço Promocional: R$ 85,00
+```
+
+<Callout type="success" title="Exemplo">
+  Se o produto custa R$ 100,00 e a promoção for de 15%, o valor promocional será R$ 85,00.
+</Callout>
+
+---
+
+## Promoção por valor
+
+A promoção por valor utiliza o campo **Promoção (R$)**.
+
+Nesse caso, o sistema considera um valor promocional definido diretamente.
+
+Exemplo:
+
+| Preço Venda | Promoção (R$) |
+| ----------- | ------------- |
+| R$ 100,00   | R$ 93,00      |
+| R$ 100,00   | R$ 85,00      |
+
+Esse modelo é indicado quando a empresa deseja definir exatamente o preço final promocional do produto.
+
+<Callout type="info" title="Preço promocional fixo">
+  Use o campo **Promoção (R$)** quando a empresa desejar informar diretamente o valor final da promoção, sem depender apenas do cálculo percentual.
+</Callout>
+
+---
+
+## Promoção por quantidade
+
+Os campos **Qtde Inicial** e **Qtde Final** permitem definir uma faixa de quantidade para aplicação da promoção.
+
+Exemplo:
+
+| Produto        | Promoção | Qtde Inicial | Qtde Final |
+| -------------- | -------- | ------------ | ---------- |
+| Produto Padrão | 7%       | 1            | 3          |
+| Produto Padrão | 15%      | 4            | 5          |
+
+Nesse exemplo:
+
+* se o cliente comprar de 1 a 3 unidades, recebe 7% de desconto;
+* se o cliente comprar de 4 a 5 unidades, recebe 15% de desconto.
+
+<Callout type="success" title="Promoção por faixa">
+  A configuração por quantidade permite criar promoções progressivas, aplicando descontos diferentes conforme a quantidade vendida.
+</Callout>
+
+---
+
+# Cenários práticos
+
+## Cenário 1: promoção simples por período
+
+A empresa deseja cadastrar uma promoção válida durante um mês.
+
+| Campo          | Valor             |
+| -------------- | ----------------- |
+| Descrição      | PROMOÇÃO MENSAL   |
+| Data Inicial   | 01/05/2026        |
+| Data Final     | 31/05/2026        |
+| Dias da semana | Segunda a Domingo |
+| Produto        | Produto Padrão    |
+| Promoção (%)   | 10%               |
+
+Nesse cenário, o produto terá 10% de desconto durante o período configurado.
+
+---
+
+## Cenário 2: promoção de fim de semana
+
+A empresa deseja aplicar uma promoção somente aos sábados e domingos.
+
+| Campo         | Valor                  |
+| ------------- | ---------------------- |
+| Descrição     | PROMOÇÃO FIM DE SEMANA |
+| Dias marcados | Sábado e Domingo       |
+| Produto       | Produto Padrão         |
+| Promoção (%)  | 15%                    |
+
+Nesse caso, mesmo que a data esteja dentro do período da promoção, ela só será aplicada no sábado ou domingo.
+
+---
+
+## Cenário 3: promoção relâmpago por horário
+
+A empresa deseja criar uma promoção válida apenas entre 14:00 e 16:00.
+
+| Campo         | Valor            |
+| ------------- | ---------------- |
+| Descrição     | OFERTA RELÂMPAGO |
+| Hora Inicial  | 14:00            |
+| Hora Final    | 16:00            |
+| Dias marcados | Segunda a Sexta  |
+| Promoção (%)  | 8%               |
+
+Essa configuração é útil para campanhas com tempo limitado.
+
+---
+
+## Cenário 4: promoção progressiva por quantidade
+
+A empresa deseja aplicar descontos maiores conforme a quantidade comprada.
+
+| Quantidade     | Desconto |
+| -------------- | -------- |
+| 1 a 3 unidades | 7%       |
+| 4 a 5 unidades | 15%      |
+
+Na aba Produto, podem ser cadastradas faixas diferentes para o mesmo produto.
+
+<Callout type="info" title="Promoção progressiva">
+  A promoção por quantidade é útil para incentivar compras maiores, aplicando descontos conforme a faixa de quantidade vendida.
+</Callout>
+
+---
+
+# Passo a Passo
+
+Siga os passos abaixo para cadastrar uma nova promoção.
+
+<Steps>
+  <Step>
+    Acesse o menu superior **Estoque**.
+  </Step>
+
+  <Step>
+    Clique na opção **Promoção**.
+  </Step>
+
+  <Step>
+    Na tela de consulta, clique em **Incluir**.
+  </Step>
+
+  <Step>
+    Informe a **Descrição** da promoção.
+  </Step>
+
+  <Step>
+    Selecione a **Empresa** onde a promoção será aplicada.
+  </Step>
+
+  <Step>
+    Informe a **Data Inicial** e a **Data Final** da promoção.
+  </Step>
+
+  <Step>
+    Informe a **Hora Inicial** e a **Hora Final**, caso a promoção tenha controle por horário.
+  </Step>
+
+  <Step>
+    Marque os dias da semana em que a promoção será válida.
+  </Step>
+
+  <Step>
+    Na aba **Produto**, clique em **Incluir** para adicionar os produtos participantes.
+  </Step>
+
+  <Step>
+    Selecione o produto e informe a regra promocional, como percentual, valor promocional ou faixa de quantidade.
+  </Step>
+
+  <Step>
+    Revise os produtos cadastrados na promoção.
+  </Step>
+
+  <Step>
+    Clique em **Salvar**.
+  </Step>
+</Steps>
+
+<Callout type="info" title="Recomendação">
+  Após salvar a promoção, realize uma venda de teste para confirmar se o desconto ou valor promocional está sendo aplicado corretamente.
+</Callout>
+
+---
+
+# Boas práticas
+
+## 1. Use descrições claras
+
+Cadastre promoções com nomes objetivos.
+
+Exemplos recomendados:
+
+```txt
+PROMOÇÃO FIM DE SEMANA
+OFERTA RELÂMPAGO
+QUEIMA DE ESTOQUE
+PROMOÇÃO DIA DAS MÃES
+PROMOÇÃO HORTIFRUTI
+PROMOÇÃO PEÇAS 10%
+```
+
+Evite nomes genéricos, como:
+
+```txt
+TESTE
+PROMO
+DESCONTO
+PROMOÇÃO 1
+PADRÃO
+```
+
+---
+
+## 2. Confira o período de validade
+
+Antes de salvar, revise:
+
+* data inicial;
+* data final;
+* hora inicial;
+* hora final;
+* dias da semana marcados.
+
+<Callout type="warning" title="Atenção">
+  Uma promoção com data, horário ou dia da semana incorreto pode não ser aplicada ou pode ser aplicada fora do período desejado.
+</Callout>
+
+---
+
+## 3. Valide a margem antes de aplicar desconto
+
+Antes de cadastrar uma promoção, compare o preço promocional com o preço de custo.
+
+Exemplo:
+
+| Preço Custo | Preço Venda | Promoção  | Avaliação       |
+| ----------- | ----------- | --------- | --------------- |
+| R$ 150,00   | R$ 200,00   | R$ 180,00 | Margem positiva |
+| R$ 150,00   | R$ 160,00   | R$ 140,00 | Abaixo do custo |
+
+<Callout type="warning" title="Controle de margem">
+  Evite cadastrar promoções que deixem o preço final abaixo do custo, salvo quando a empresa decidir fazer uma ação específica de queima de estoque.
+</Callout>
+
+---
+
+## 4. Cuidado com produtos repetidos
+
+Ao cadastrar várias faixas para o mesmo produto, revise se as quantidades não estão sobrepostas.
+
+Exemplo correto:
+
+| Faixa   | Qtde Inicial | Qtde Final |
+| ------- | ------------ | ---------- |
+| Faixa 1 | 1            | 3          |
+| Faixa 2 | 4            | 5          |
+| Faixa 3 | 6            | 10         |
+
+Exemplo que deve ser evitado:
+
+| Faixa   | Qtde Inicial | Qtde Final |
+| ------- | ------------ | ---------- |
+| Faixa 1 | 1            | 5          |
+| Faixa 2 | 3            | 10         |
+
+Nesse segundo exemplo, as faixas se cruzam, podendo gerar dúvida sobre qual promoção deve ser aplicada.
+
+---
+
+## 5. Teste a promoção antes de liberar
+
+Antes de divulgar a promoção para os vendedores ou clientes, faça uma venda de teste verificando:
+
+* produto correto;
+* empresa correta;
+* data atual dentro do período;
+* horário atual dentro da faixa;
+* dia da semana marcado;
+* quantidade dentro da faixa;
+* valor final aplicado corretamente.
+
+---
+
+# Impactos no sistema
+
+O cadastro de Promoção pode impactar diretamente as seguintes áreas:
+
+| Área                | Impacto                                               |
+| ------------------- | ----------------------------------------------------- |
+| Vendas              | Aplica preço promocional ou desconto no item          |
+| Estoque             | Ajuda na movimentação de produtos com baixa saída     |
+| Comercial           | Permite campanhas por período, dia e horário          |
+| Margem              | Pode reduzir lucratividade se configurada sem análise |
+| Relatórios          | Permite análise de produtos vendidos em promoção      |
+| Atendimento         | Facilita aplicação automática de ofertas cadastradas  |
+| Cadastro de Produto | Utiliza preço de venda e identificação do produto     |
+
+---
+
+# Validações recomendadas
+
+Antes de considerar a promoção pronta para uso, valide:
+
+* a descrição está clara;
+* a empresa está correta;
+* a data inicial está correta;
+* a data final está correta;
+* o horário está correto;
+* os dias da semana foram marcados;
+* os produtos foram incluídos;
+* o preço de custo foi conferido;
+* o preço de venda foi conferido;
+* o percentual de promoção está correto;
+* o valor promocional está correto;
+* a quantidade inicial e final estão coerentes;
+* não existem faixas de quantidade sobrepostas.
+
+---
+
+# Checklist antes de salvar
+
+Antes de clicar em **Salvar**, confira:
+
+* a promoção possui descrição clara;
+* a empresa foi informada;
+* o período de validade está correto;
+* os dias da semana foram marcados;
+* a hora inicial e final estão corretas;
+* os produtos participantes foram incluídos;
+* o desconto percentual não está acima do permitido pela política da empresa;
+* o valor promocional não está abaixo do custo, salvo quando autorizado;
+* as faixas de quantidade não se cruzam;
+* a promoção foi testada em uma venda.
+
+<Callout type="success" title="Validação recomendada">
+  Sempre realize uma venda de teste após cadastrar a promoção. Isso garante que a regra configurada esteja sendo aplicada conforme o esperado.
+</Callout>
+
+---
+
+# Exemplos de configuração
+
+## Promoção com desconto percentual
+
+| Campo          | Valor sugerido     |
+| -------------- | ------------------ |
+| Descrição      | PROMOÇÃO PEÇAS 10% |
+| Empresa        | EMPRESA            |
+| Data Inicial   | 01/05/2026         |
+| Data Final     | 31/05/2026         |
+| Dias da semana | Segunda a Domingo  |
+| Produto        | Produto desejado   |
+| Promoção (%)   | 10%                |
+| Qtde Inicial   | 1                  |
+| Qtde Final     | 999                |
+
+### Indicado para
+
+* campanhas gerais;
+* redução temporária de preço;
+* promoções mensais;
+* promoções por departamento ou grupo de produtos.
+
+---
+
+## Promoção com valor fixo
+
+| Campo         | Valor sugerido        |
+| ------------- | --------------------- |
+| Descrição     | OFERTA PRODUTO PADRÃO |
+| Empresa       | EMPRESA               |
+| Produto       | Produto desejado      |
+| Preço Venda   | R$ 100,00             |
+| Promoção (R$) | R$ 85,00              |
+
+### Indicado para
+
+* ofertas com preço final definido;
+* campanhas publicitárias;
+* encartes;
+* promoções divulgadas com valor fechado.
+
+---
+
+## Promoção por quantidade
+
+| Campo     | Valor sugerido           |
+| --------- | ------------------------ |
+| Descrição | PROMOÇÃO LEVE MAIS       |
+| Empresa   | EMPRESA                  |
+| Produto   | Produto desejado         |
+| Faixa 1   | 1 até 3 unidades com 7%  |
+| Faixa 2   | 4 até 5 unidades com 15% |
+
+### Indicado para
+
+* incentivo de compra em maior quantidade;
+* atacado;
+* campanhas progressivas;
+* giro de estoque.
+
+---
+
+## Promoção de fim de semana
+
+| Campo         | Valor sugerido         |
+| ------------- | ---------------------- |
+| Descrição     | PROMOÇÃO FIM DE SEMANA |
+| Empresa       | EMPRESA                |
+| Dias marcados | Sábado e Domingo       |
+| Promoção (%)  | Conforme campanha      |
+
+### Indicado para
+
+* varejo;
+* supermercados;
+* lojas com movimento maior no fim de semana;
+* campanhas pontuais.
+
+---
+
+# Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="A promoção pode ter data inicial e data final?">
+    Sim. A promoção possui campos de **Data Inicial** e **Data Final**, permitindo controlar exatamente o período em que ela será válida.
+  </Accordion>
+
+  <Accordion title="Consigo limitar a promoção por horário?">
+    Sim. Os campos **Hora Inicial** e **Hora Final** permitem definir um intervalo de horário para aplicação da promoção.
+  </Accordion>
+
+  <Accordion title="A promoção pode valer somente em alguns dias da semana?">
+    Sim. É possível marcar os dias da semana em que a promoção será válida, como apenas sábado e domingo ou somente dias úteis.
+  </Accordion>
+
+  <Accordion title="Posso cadastrar mais de um produto na mesma promoção?">
+    Sim. A aba **Produto** permite incluir vários produtos dentro da mesma promoção.
+  </Accordion>
+
+  <Accordion title="Posso cadastrar faixas diferentes para o mesmo produto?">
+    Sim. É possível cadastrar o mesmo produto com faixas de quantidade diferentes, desde que as faixas não se sobreponham.
+  </Accordion>
+
+  <Accordion title="Qual a diferença entre Promoção (%) e Promoção (R$)?">
+    O campo **Promoção (%)** aplica um percentual de desconto sobre o preço de venda. O campo **Promoção (R$)** define diretamente o valor final promocional.
+  </Accordion>
+
+  <Accordion title="O sistema considera o preço de custo?">
+    A tela exibe o **Preço Custo** para conferência. Ele deve ser usado como referência para evitar promoções abaixo da margem desejada.
+  </Accordion>
+
+  <Accordion title="O que acontece se o dia da semana não estiver marcado?">
+    A promoção não deverá ser aplicada naquele dia, mesmo que a data esteja dentro do período de validade.
+  </Accordion>
+
+  <Accordion title="O que acontece se a quantidade vendida estiver fora da faixa configurada?">
+    A promoção não deverá ser aplicada para aquela faixa. Verifique os campos **Qtde Inicial** e **Qtde Final** do produto.
+  </Accordion>
+
+  <Accordion title="Posso clonar uma promoção já cadastrada?">
+    Sim. A opção **Clonar** pode ser utilizada para criar uma nova promoção com base em outra já existente, facilitando campanhas semelhantes.
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+O módulo de **Promoção** permite criar campanhas promocionais controladas por empresa, período, horário, dias da semana, produtos e faixas de quantidade.
+
+Com ele, a empresa consegue:
+
+* criar promoções por período;
+* aplicar descontos percentuais;
+* definir preços promocionais fixos;
+* controlar promoções por horário;
+* selecionar dias específicos da semana;
+* configurar promoções progressivas por quantidade;
+* evitar alterações manuais no preço do produto;
+* melhorar o controle das campanhas comerciais;
+* validar preço de venda em relação ao custo.
+
+<Callout type="success" title="Boas práticas">
+  Cadastre promoções com descrições claras, períodos bem definidos e produtos revisados. Antes de liberar a campanha, realize uma venda de teste para confirmar a aplicação correta da regra.
+</Callout>
+
+<SuporteSection />
+```

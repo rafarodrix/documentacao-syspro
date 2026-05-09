@@ -1,13 +1,17 @@
 ---
-title:  Departamento
-description: Tudo o que você precisa saber sobre o módulo de Departamento do Syspro ERP.
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Departamento
+description: Configure departamentos de estoque para aplicar regras comerciais, fiscais, operacionais e de integração por tipo de produto ou setor.
+lastUpdated: 2026-05-08
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - estoque
   - departamento
+  - precos
+  - comissoes
+  - balanca
+  - documentos
 audience:
   - cliente_admin
   - cliente_user
@@ -15,9 +19,817 @@ audience:
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
-Gerencie departamentos de estoque, organizando produtos por áreas ou setores da empresa.
+# Cadastro de Departamento
 
-<Callout type="info" title="Dica">
-  Certifique-se de ter permissões adequadas para acessar todas as funcionalidades do módulo. Contate o administrador, se necessário.
+## Introdução
+
+O cadastro de **Departamento** é utilizado para organizar produtos, mercadorias, serviços e demais itens de estoque em grupos operacionais dentro do Syspro ERP.
+
+Mais do que uma simples classificação, o departamento permite aplicar regras específicas para cada tipo de item, como regras de preço, desconto, acréscimo, comissão, integração com balança e amarração de documentos fiscais.
+
+Essa configuração é especialmente importante para empresas que trabalham com diferentes naturezas de venda, por exemplo:
+
+- peças;
+- serviços;
+- óleo;
+- hortifruti;
+- produtos pesáveis;
+- produtos para industrialização;
+- produtos de uso e consumo;
+- ativo imobilizado.
+
+Com o departamento configurado corretamente, o sistema consegue tratar cada item conforme sua regra comercial, fiscal e operacional, mesmo quando produtos diferentes são lançados na mesma venda ou na mesma nota fiscal.
+
+<Callout type="info" title="Objetivo do módulo">
+  O módulo de Departamento permite que o Syspro ERP aplique regras diferentes por tipo de item, garantindo maior controle comercial, fiscal, operacional e gerencial.
 </Callout>
+
+---
+
+## Onde acessar
+
+Para acessar o cadastro de departamentos:
+
+<Steps>
+  <Step>
+    Acesse o menu superior **Estoque**.
+  </Step>
+
+  <Step>
+    Clique na opção **Departamento**.
+  </Step>
+
+  <Step>
+    O sistema exibirá a tela de consulta dos departamentos cadastrados.
+  </Step>
+</Steps>
+
+Na tela de consulta, é possível realizar ações como:
+
+- incluir;
+- editar;
+- excluir;
+- clonar;
+- filtrar;
+- consultar;
+- pesquisar por descrição.
+
+---
+
+## Quando utilizar o cadastro de Departamento
+
+O cadastro de Departamento deve ser utilizado sempre que a empresa precisar separar regras por tipo de produto, setor ou operação.
+
+Exemplos comuns:
+
+| Situação | Como o Departamento ajuda |
+|---|---|
+| Venda de produtos e serviços na mesma nota | Permite classificar cada item conforme sua natureza |
+| Produtos com preço especial por grupo de cliente | Permite configurar regras na aba **Preços** |
+| Comissão diferente por tipo de produto | Permite configurar regras na aba **Comissões** |
+| Produto enviado para balança | Permite configurar balança e setor na aba **Balança** |
+| Serviço exige documento fiscal diferente | Permite amarrar documento específico na aba **Documentos** |
+| Produto de óleo usa documento próprio | Permite definir documento fiscal por departamento |
+| Hortifruti precisa de leitura de peso | Permite ativar leitura de balança |
+
+<Callout type="success" title="Exemplo prático">
+  Uma mesma venda pode conter uma peça, um serviço e um óleo. Cada item pode pertencer a um departamento diferente e, por isso, receber regras fiscais, comerciais e operacionais específicas.
+</Callout>
+
+---
+
+## Dicionário de Campos
+
+A tela de Departamento é dividida em um cabeçalho com os dados principais e um painel inferior com abas de configurações específicas.
+
+<Cards>
+  <Card title="Dados Principais">
+    * **Tipo:** Define o nível hierárquico do cadastro. Pode ser Departamento, Grupo, Sub-Grupo, Família ou Sub-Família.
+    * **Pertence:** Permite vincular o cadastro atual a uma classificação superior.
+    * **Descrição:** Nome do departamento ou classificação. Exemplo: PEÇAS, SERVIÇOS, HORTIFRUTI.
+  </Card>
+
+  <Card title="Regras de Preço e Desconto">
+    * **Desconto Máximo (%):** Define o maior desconto permitido para itens vinculados ao departamento.
+    * **Desconto Padrão (%):** Define um desconto padrão aplicado automaticamente, conforme regra da empresa.
+    * **Acréscimo Máximo (%):** Define o maior acréscimo permitido para itens do departamento.
+    * **Modificar Valor de Venda?:** Define se o operador poderá alterar o valor unitário do item na venda.
+    * **Modificar Valor Total?:** Define se o operador poderá alterar o valor total do item na venda.
+    * **Custo Fixo:** Define um percentual ou valor de custo fixo relacionado ao departamento.
+  </Card>
+
+  <Card title="Regras Operacionais">
+    * **Intervalo Retorno:** Campo utilizado conforme regra operacional definida pela empresa.
+    * **Impressora (Lista de produção):** Define uma impressora específica para emissão de lista de produção vinculada ao departamento.
+    * **Venda de Produto com quantidade zerada?:** Define se o sistema permitirá venda de item com quantidade zerada.
+    * **Ler Peso Balança:** Define se os itens do departamento poderão utilizar leitura de peso por balança.
+  </Card>
+
+  <Card title="Abas de Configuração">
+    * **Preços:** Configuração de preços especiais, descontos, acréscimos e regras promocionais por grupo de preço.
+    * **Comissões:** Configuração de comissão por empresa, colaborador, documento e faixa de desconto.
+    * **Balança:** Configuração de balanças e setores vinculados ao departamento.
+    * **Documentos:** Amarração de documentos fiscais conforme a natureza do item.
+  </Card>
+</Cards>
+
+<Callout type="warning" title="Atenção">
+  O campo **Tipo** define a posição do cadastro dentro da hierarquia de estoque. Antes de salvar, confirme se o registro deve ser um Departamento principal ou uma subdivisão como Grupo, Sub-Grupo, Família ou Sub-Família.
+</Callout>
+
+---
+
+## Tipos disponíveis
+
+No campo **Tipo**, o sistema permite selecionar o nível de classificação do cadastro.
+
+| Tipo | Finalidade |
+|---|---|
+| Departamento | Classificação principal do estoque |
+| Grupo | Subdivisão vinculada a um departamento |
+| Sub-Grupo | Subdivisão vinculada a um grupo |
+| Família | Agrupamento comercial, fiscal ou operacional |
+| Sub-Família | Nível mais detalhado da estrutura |
+
+### Exemplo de hierarquia
+
+```txt
+DEPARTAMENTO: PEÇAS
+  GRUPO: MOTOR
+    SUB-GRUPO: FILTROS
+      FAMÍLIA: FILTRO DE ÓLEO
+        SUB-FAMÍLIA: FILTRO LINHA LEVE
+````
+
+<Callout type="info" title="Boa prática">
+  Utilize a hierarquia apenas quando ela fizer sentido para a operação da empresa. Estruturas muito detalhadas sem necessidade podem dificultar a manutenção do cadastro.
+</Callout>
+
+---
+
+## Exemplos de departamentos
+
+Abaixo estão exemplos comuns de departamentos utilizados no Syspro ERP:
+
+| Departamento                      | Finalidade                              |
+| --------------------------------- | --------------------------------------- |
+| ACESSÓRIOS                        | Produtos complementares ou acessórios   |
+| HORTIFRUTI                        | Produtos pesáveis ou perecíveis         |
+| KIT                               | Produtos vendidos em conjunto           |
+| PRODUTOS                          | Mercadorias para venda                  |
+| SERVIÇOS                          | Serviços prestados                      |
+| ATIVO IMOBILIZADO                 | Produtos patrimoniais da empresa        |
+| MERCADORIAS PARA INDUSTRIALIZAÇÃO | Itens utilizados em processo industrial |
+| USO E CONSUMO                     | Produtos consumidos internamente        |
+
+---
+
+# Abas do cadastro
+
+O cadastro de Departamento possui abas laterais para configurar regras específicas.
+
+As principais abas são:
+
+<Cards>
+  <Card title="Preços">
+    Configure regras de preços especiais por grupo de preço, desconto, acréscimo e aplicação em promoção.
+  </Card>
+
+  <Card title="Comissões">
+    Configure comissão por colaborador, documento fiscal e faixa de desconto aplicada na venda.
+  </Card>
+
+  <Card title="Balança">
+    Configure quais balanças e setores receberão dados dos produtos vinculados ao departamento.
+  </Card>
+
+  <Card title="Documentos">
+    Configure os documentos fiscais que devem ser utilizados conforme o departamento do item.
+  </Card>
+</Cards>
+
+---
+
+## Aba Preços
+
+A aba **Preços** permite configurar regras de preços especiais vinculadas ao departamento.
+
+Essa configuração é utilizada quando a empresa precisa trabalhar com preços diferenciados para determinados grupos de participantes.
+
+Exemplos:
+
+* clientes atacadistas;
+* clientes varejistas;
+* clientes com tabela especial;
+* grupos comerciais específicos;
+* participantes com condição diferenciada;
+* clientes em campanhas promocionais.
+
+### Campos da aba Preços
+
+| Campo                                 | Descrição                                                               |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| Grupo Preço                           | Grupo de preço que será vinculado à regra                               |
+| Aplicar regra se produto em promoção? | Define se a regra será aplicada quando o produto já estiver em promoção |
+| Desconto                              | Percentual de desconto aplicado                                         |
+| Acréscimo                             | Percentual de acréscimo aplicado                                        |
+
+### Como funciona
+
+Quando um participante está vinculado a um grupo de preço, o sistema pode aplicar automaticamente a regra configurada para aquele departamento.
+
+Exemplo:
+
+| Grupo de preço   | Departamento | Regra           |
+| ---------------- | ------------ | --------------- |
+| ATACADO          | PEÇAS        | 10% de desconto |
+| CLIENTE ESPECIAL | SERVIÇOS     | 5% de desconto  |
+| REVENDA          | PRODUTOS     | 8% de desconto  |
+| CONSUMIDOR FINAL | PRODUTOS     | Sem desconto    |
+
+<Callout type="info" title="Preços especiais">
+  Os preços especiais podem ser amarrados aos participantes, permitindo que clientes de grupos diferentes tenham preços diferentes para itens do mesmo departamento.
+</Callout>
+
+### Aplicar regra se produto em promoção?
+
+Esse campo define se a regra de preço será aplicada quando o produto já estiver em promoção.
+
+| Opção | Comportamento                                              |
+| ----- | ---------------------------------------------------------- |
+| Sim   | Aplica a regra mesmo se o produto estiver em promoção      |
+| Não   | Não aplica a regra quando o produto já estiver em promoção |
+
+<Callout type="warning" title="Atenção">
+  Use essa configuração com cuidado para evitar acúmulo indevido de desconto sobre produtos que já estão em promoção.
+</Callout>
+
+---
+
+## Aba Comissões
+
+A aba **Comissões** permite configurar regras de comissão para colaboradores vinculados ao departamento.
+
+Essa configuração é útil quando a empresa precisa pagar comissão de forma diferente conforme:
+
+* empresa;
+* colaborador;
+* documento;
+* departamento do item;
+* percentual de desconto aplicado;
+* regra comercial da venda.
+
+### Campos da aba Comissões
+
+| Campo         | Descrição                                            |
+| ------------- | ---------------------------------------------------- |
+| Empresa       | Empresa onde a regra será aplicada                   |
+| Colaborador   | Colaborador que receberá a comissão                  |
+| Documento     | Documento fiscal ou operacional vinculado à comissão |
+| Comissão      | Percentual de comissão                               |
+| Desc. Inicial | Percentual inicial da faixa de desconto              |
+| Desc. Final   | Percentual final da faixa de desconto                |
+
+### Exemplo de regra de comissão
+
+| Departamento | Desconto aplicado | Comissão |
+| ------------ | ----------------- | -------- |
+| PEÇAS        | 0% até 5%         | 3%       |
+| PEÇAS        | 5,01% até 10%     | 2%       |
+| PEÇAS        | Acima de 10%      | 0%       |
+| SERVIÇOS     | 0% até 5%         | 5%       |
+| SERVIÇOS     | 5,01% até 15%     | 3%       |
+
+Essa regra permite que a comissão acompanhe a margem da venda.
+
+<Callout type="warning" title="Controle de margem">
+  A comissão pode variar conforme o desconto aplicado. Isso evita pagamento de comissão integral em vendas com desconto elevado ou margem reduzida.
+</Callout>
+
+### Quando utilizar
+
+Use a aba **Comissões** quando:
+
+* vendedores recebem percentuais diferentes por tipo de produto;
+* serviços possuem comissão diferente de mercadorias;
+* descontos reduzem a comissão;
+* determinados documentos não geram comissão;
+* a empresa deseja controlar comissão por departamento.
+
+---
+
+## Aba Balança
+
+A aba **Balança** permite configurar balanças vinculadas ao departamento.
+
+Essa configuração é utilizada quando a empresa trabalha com produtos pesáveis ou setores que enviam dados para balanças.
+
+Exemplos:
+
+* hortifruti;
+* açougue;
+* padaria;
+* frios;
+* produção;
+* produtos vendidos por peso;
+* setores com pesagem separada.
+
+### Campos da aba Balança
+
+| Campo      | Descrição                              |
+| ---------- | -------------------------------------- |
+| Empresa    | Empresa responsável pela configuração  |
+| Balança    | Balança que receberá os dados          |
+| Cód. Setor | Código do setor enviado para a balança |
+
+### Exemplo de configuração
+
+| Departamento | Balança    | Cód. Setor |
+| ------------ | ---------- | ---------- |
+| HORTIFRUTI   | BALANÇA 01 | 01         |
+| AÇOUGUE      | BALANÇA 02 | 02         |
+| PADARIA      | BALANÇA 03 | 03         |
+| FRIOS        | BALANÇA 04 | 04         |
+
+<Callout type="info" title="Integração com balança">
+  A aba Balança permite separar o envio de dados por departamento, evitando que produtos de setores diferentes sejam enviados para balanças ou setores incorretos.
+</Callout>
+
+### Quando utilizar
+
+Configure essa aba quando:
+
+* o produto for vendido por peso;
+* o setor possuir balança própria;
+* os produtos precisam ser enviados para equipamentos separados;
+* a empresa trabalha com etiquetas de balança;
+* existe separação de setores no equipamento.
+
+---
+
+## Aba Documentos
+
+A aba **Documentos** permite vincular documentos fiscais ao departamento.
+
+Essa configuração é uma das mais importantes do cadastro, pois permite que o sistema classifique corretamente os itens conforme sua natureza fiscal.
+
+Exemplo:
+
+* departamento de serviços usa documento de serviço;
+* departamento de peças usa documento de mercadoria;
+* departamento de óleo usa documento específico;
+* departamento de uso e consumo usa documento próprio;
+* departamento de industrialização usa documento adequado para a operação.
+
+### Campos da aba Documentos
+
+| Campo           | Descrição                          |
+| --------------- | ---------------------------------- |
+| Empresa         | Empresa onde a regra será aplicada |
+| Grupo Documento | Grupo do documento fiscal          |
+| Documento       | Documento fiscal vinculado         |
+| Modelo          | Modelo utilizado para a operação   |
+
+### Exemplo de amarração
+
+| Departamento     | Documento sugerido               |
+| ---------------- | -------------------------------- |
+| SERVIÇOS         | Documento de serviço             |
+| PEÇAS            | Documento de venda de mercadoria |
+| ÓLEO             | Documento específico para óleo   |
+| USO E CONSUMO    | Documento de consumo interno     |
+| INDUSTRIALIZAÇÃO | Documento de industrialização    |
+
+<Callout type="success" title="Classificação correta dos itens">
+  A amarração de documentos por departamento permite que produtos e serviços sejam classificados corretamente, mesmo quando lançados na mesma nota fiscal.
+</Callout>
+
+---
+
+# Cenários práticos
+
+## Cenário 1: venda com peças e serviços
+
+Uma empresa realiza uma venda contendo:
+
+| Item              | Departamento | Documento esperado           |
+| ----------------- | ------------ | ---------------------------- |
+| Filtro de óleo    | PEÇAS        | Documento de mercadoria      |
+| Troca de óleo     | SERVIÇOS     | Documento de serviço         |
+| Óleo lubrificante | ÓLEO         | Documento específico de óleo |
+
+Nesse caso, cada item pode seguir uma regra diferente, mesmo estando na mesma venda.
+
+O departamento ajuda o sistema a identificar a natureza de cada item e aplicar o tratamento correto.
+
+---
+
+## Cenário 2: cliente com preço especial
+
+Um cliente pertence ao grupo de preço **ATACADO**.
+
+Na aba **Preços**, foi configurado:
+
+| Grupo Preço | Departamento | Desconto |
+| ----------- | ------------ | -------- |
+| ATACADO     | PRODUTOS     | 10%      |
+
+Quando esse cliente comprar produtos vinculados ao departamento **PRODUTOS**, o sistema poderá aplicar automaticamente o desconto configurado.
+
+---
+
+## Cenário 3: comissão reduzida por desconto
+
+Um vendedor recebe comissão conforme o desconto aplicado:
+
+| Desconto na venda | Comissão |
+| ----------------- | -------- |
+| 0% até 5%         | 3%       |
+| 5,01% até 10%     | 2%       |
+| Acima de 10%      | 0%       |
+
+Se o vendedor conceder um desconto alto, o sistema pode reduzir ou zerar a comissão, conforme a regra cadastrada.
+
+---
+
+## Cenário 4: produtos enviados para balança
+
+Uma empresa possui departamentos separados para produtos pesáveis:
+
+| Departamento | Setor |
+| ------------ | ----- |
+| HORTIFRUTI   | 01    |
+| AÇOUGUE      | 02    |
+| PADARIA      | 03    |
+
+Cada departamento pode ser enviado para uma balança ou setor específico.
+
+Isso evita que um produto de hortifruti seja enviado como item de açougue, por exemplo.
+
+---
+
+# Passo a Passo
+
+Siga os passos abaixo para cadastrar e configurar um novo departamento.
+
+<Steps>
+  <Step>
+    Acesse o menu superior **Estoque**.
+  </Step>
+
+  <Step>
+    Clique na opção **Departamento**.
+  </Step>
+
+  <Step>
+    Na tela de consulta, clique em **Incluir**.
+  </Step>
+
+  <Step>
+    No campo **Tipo**, selecione se o cadastro será Departamento, Grupo, Sub-Grupo, Família ou Sub-Família.
+  </Step>
+
+  <Step>
+    Caso o cadastro pertença a uma classificação superior, informe o campo **Pertence**.
+  </Step>
+
+  <Step>
+    Preencha a **Descrição** do departamento.
+  </Step>
+
+  <Step>
+    Configure os campos de desconto, acréscimo, alteração de valor, venda com quantidade zerada e leitura de balança conforme a política da empresa.
+  </Step>
+
+  <Step>
+    Acesse a aba **Preços**, caso seja necessário configurar preços especiais por grupo de participantes.
+  </Step>
+
+  <Step>
+    Acesse a aba **Comissões**, caso seja necessário configurar comissão por colaborador, documento ou faixa de desconto.
+  </Step>
+
+  <Step>
+    Acesse a aba **Balança**, caso os produtos do departamento sejam enviados para uma balança.
+  </Step>
+
+  <Step>
+    Acesse a aba **Documentos**, caso o departamento precise de documento fiscal específico.
+  </Step>
+
+  <Step>
+    Revise todas as informações cadastradas.
+  </Step>
+
+  <Step>
+    Clique em **Salvar**.
+  </Step>
+</Steps>
+
+<Callout type="info" title="Recomendação">
+  Após salvar o departamento, realize uma venda de teste para validar se preço, comissão, balança e documento fiscal estão sendo aplicados corretamente.
+</Callout>
+
+---
+
+# Boas práticas
+
+## 1. Padronize a nomenclatura
+
+Utilize nomes claros e objetivos para os departamentos.
+
+Exemplos recomendados:
+
+```txt
+PEÇAS
+SERVIÇOS
+ÓLEO
+HORTIFRUTI
+AÇOUGUE
+PADARIA
+USO E CONSUMO
+ATIVO IMOBILIZADO
+```
+
+Evite nomes genéricos, como:
+
+```txt
+DIVERSOS
+OUTROS
+GERAL
+TESTE
+PADRÃO
+```
+
+---
+
+## 2. Separe departamentos por natureza fiscal
+
+Sempre que produtos e serviços possuírem tratamento fiscal diferente, crie departamentos separados.
+
+Exemplo:
+
+| Correto                    | Evitar                              |
+| -------------------------- | ----------------------------------- |
+| PEÇAS e SERVIÇOS separados | Tudo dentro de PRODUTOS             |
+| ÓLEO separado              | ÓLEO junto com PEÇAS sem regra      |
+| USO E CONSUMO separado     | Misturado com mercadoria de revenda |
+
+---
+
+## 3. Configure documentos com atenção
+
+A aba **Documentos** deve ser revisada com cuidado, principalmente quando a empresa trabalha com:
+
+* produtos;
+* serviços;
+* óleo;
+* industrialização;
+* uso e consumo;
+* ativo imobilizado.
+
+<Callout type="warning" title="Atenção fiscal">
+  A configuração incorreta de documentos pode fazer com que itens sejam classificados com documento fiscal inadequado.
+</Callout>
+
+---
+
+## 4. Use preços especiais somente quando houver regra clara
+
+Evite criar muitos grupos de preço sem necessidade.
+
+Antes de configurar uma regra de preço, valide:
+
+* qual grupo de cliente será beneficiado;
+* qual departamento será afetado;
+* se a regra aplica em produto em promoção;
+* se haverá desconto ou acréscimo;
+* se a regra está alinhada à política comercial.
+
+---
+
+## 5. Revise comissão antes de liberar
+
+Antes de usar a regra em produção, revise se a comissão está coerente com:
+
+* margem da venda;
+* desconto concedido;
+* colaborador;
+* documento;
+* departamento.
+
+---
+
+## 6. Valide balanças por setor
+
+Produtos pesáveis devem estar vinculados ao departamento correto e à balança correta.
+
+Isso evita divergência no envio de carga para balanças.
+
+---
+
+# Impactos no sistema
+
+O cadastro de Departamento pode impactar diversas áreas do Syspro ERP.
+
+| Área                | Impacto                                                       |
+| ------------------- | ------------------------------------------------------------- |
+| Estoque             | Organização dos produtos por tipo, setor ou classificação     |
+| Vendas              | Descontos, acréscimos, alteração de valor e regras comerciais |
+| Fiscal              | Documento fiscal aplicado ao item                             |
+| Comissão            | Cálculo de comissão por colaborador, documento e desconto     |
+| Balança             | Envio de produtos para equipamento ou setor correto           |
+| Produção            | Impressora e lista de produção                                |
+| Relatórios          | Agrupamentos e análises por departamento                      |
+| Cadastro de Produto | Classificação principal dos itens                             |
+
+---
+
+# Exemplos de configuração
+
+## Departamento de Serviços
+
+| Campo                                  | Valor sugerido               |
+| -------------------------------------- | ---------------------------- |
+| Tipo                                   | Departamento                 |
+| Descrição                              | SERVIÇOS                     |
+| Ler Peso Balança                       | Não                          |
+| Venda de Produto com quantidade zerada | Conforme política da empresa |
+| Documento                              | Documento de serviço         |
+| Comissão                               | Conforme regra comercial     |
+
+### Indicado para
+
+* mão de obra;
+* instalação;
+* suporte;
+* consultoria;
+* manutenção;
+* prestação de serviço.
+
+---
+
+## Departamento de Peças
+
+| Campo            | Valor sugerido          |
+| ---------------- | ----------------------- |
+| Tipo             | Departamento            |
+| Descrição        | PEÇAS                   |
+| Ler Peso Balança | Não                     |
+| Documento        | Documento de mercadoria |
+| Preços especiais | Opcional                |
+| Comissão         | Opcional                |
+
+### Indicado para
+
+* peças de reposição;
+* acessórios;
+* mercadorias revendidas;
+* itens de manutenção.
+
+---
+
+## Departamento de Óleo
+
+| Campo            | Valor sugerido                 |
+| ---------------- | ------------------------------ |
+| Tipo             | Departamento                   |
+| Descrição        | ÓLEO                           |
+| Ler Peso Balança | Não                            |
+| Documento        | Documento específico para óleo |
+| Comissão         | Conforme política da empresa   |
+
+### Indicado para
+
+* óleo lubrificante;
+* fluídos;
+* produtos com regra fiscal específica.
+
+---
+
+## Departamento de Hortifruti
+
+| Campo            | Valor sugerido                   |
+| ---------------- | -------------------------------- |
+| Tipo             | Departamento                     |
+| Descrição        | HORTIFRUTI                       |
+| Ler Peso Balança | Sim                              |
+| Balança          | Configurar balança do setor      |
+| Cód. Setor       | Código do setor na balança       |
+| Documento        | Documento de venda de mercadoria |
+
+### Indicado para
+
+* frutas;
+* legumes;
+* verduras;
+* produtos pesáveis;
+* produtos vendidos por etiqueta de balança.
+
+---
+
+## Departamento de Uso e Consumo
+
+| Campo            | Valor sugerido               |
+| ---------------- | ---------------------------- |
+| Tipo             | Departamento                 |
+| Descrição        | USO E CONSUMO                |
+| Ler Peso Balança | Não                          |
+| Documento        | Documento de consumo interno |
+| Comissão         | Normalmente não aplicada     |
+
+### Indicado para
+
+* materiais de escritório;
+* materiais de limpeza;
+* consumo interno;
+* itens não destinados à revenda.
+
+---
+
+# Checklist antes de salvar
+
+Antes de salvar ou liberar o departamento para uso, valide:
+
+* o **Tipo** está correto;
+* a **Descrição** está padronizada;
+* o campo **Pertence** foi informado quando necessário;
+* os percentuais de desconto e acréscimo estão corretos;
+* a opção de alterar valor está conforme a política da empresa;
+* a leitura de balança está configurada apenas quando necessário;
+* os preços especiais foram configurados corretamente;
+* as comissões foram revisadas;
+* as balanças foram vinculadas ao setor correto;
+* os documentos fiscais foram amarrados corretamente.
+
+<Callout type="success" title="Validação recomendada">
+  Após cadastrar o departamento, realize testes com produtos vinculados a ele para confirmar se as regras estão sendo aplicadas corretamente nas vendas, documentos fiscais, comissões e integrações.
+</Callout>
+
+---
+
+# Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="Posso usar o mesmo documento fiscal para todos os departamentos?">
+    Sim, desde que a operação fiscal seja a mesma para todos os itens. Porém, quando a empresa trabalha com produtos, serviços, óleo lubrificanteou itens com naturezas fiscais diferentes, é recomendado configurar documentos específicos na aba **Documentos**.
+  </Accordion>
+
+  <Accordion title="O departamento interfere no preço do produto na venda?">
+    Pode interferir. Quando a aba **Preços** está configurada, o sistema pode aplicar desconto, acréscimo ou regra especial conforme o grupo de preço do participante.
+  </Accordion>
+
+  <Accordion title="O departamento interfere na comissão do vendedor?">
+    Sim. A aba **Comissões** permite configurar comissão por colaborador, documento e faixa de desconto. Dessa forma, a comissão pode mudar conforme o departamento do item e o desconto aplicado.
+  </Accordion>
+
+  <Accordion title="Posso ter produtos e serviços na mesma nota?">
+    Sim. Quando os departamentos e documentos estão configurados corretamente, o sistema consegue classificar cada item conforme sua natureza fiscal e operacional.
+  </Accordion>
+
+  <Accordion title="Quando devo configurar a aba Balança?">
+    A aba **Balança** deve ser configurada quando os produtos do departamento forem vendidos por peso ou enviados para uma balança específica.
+  </Accordion>
+
+  <Accordion title="Qual a diferença entre Departamento, Grupo e Sub-Grupo?">
+    O **Departamento** é a classificação principal. O **Grupo** é uma subdivisão do departamento. O **Sub-Grupo** é uma subdivisão do grupo. Essa hierarquia permite organizar melhor o estoque.
+  </Accordion>
+
+  <Accordion title="O que acontece se eu não configurar documentos por departamento?">
+    O sistema pode utilizar uma configuração padrão, dependendo da operação. Porém, em empresas que trabalham com itens de naturezas diferentes, isso pode causar classificação fiscal incorreta.
+  </Accordion>
+
+  <Accordion title="Posso clonar um departamento já cadastrado?">
+    Sim. A opção **Clonar** pode ser utilizada para criar um novo cadastro com base em outro existente, facilitando a configuração de departamentos semelhantes.
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+O cadastro de **Departamento** é uma configuração estratégica do Syspro ERP.
+
+Ele permite organizar o estoque e aplicar regras específicas para cada tipo de item, impactando diretamente vendas, preços, comissões, documentos fiscais, balanças e relatórios.
+
+Com uma boa estrutura de departamentos, a empresa consegue:
+
+* separar produtos por setor;
+* aplicar preços especiais;
+* controlar descontos e acréscimos;
+* configurar comissões;
+* enviar produtos para balanças corretas;
+* vincular documentos fiscais por tipo de item;
+* classificar corretamente produtos e serviços na mesma venda;
+* reduzir erros comerciais, fiscais e operacionais.
+
+<Callout type="success" title="Boas práticas">
+  Configure os departamentos com atenção antes de iniciar as vendas. Uma estrutura bem definida melhora o controle fiscal, comercial, operacional e gerencial da empresa.
+</Callout>
+
+<SuporteSection />
+```
