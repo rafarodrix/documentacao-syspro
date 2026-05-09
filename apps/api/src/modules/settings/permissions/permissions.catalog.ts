@@ -12,6 +12,8 @@ const DASHBOARD_VIEW_SUPPORT_CONVERSATIONS = "dashboard:view_support_conversatio
 const TICKETS_ROUTE_DEVELOPMENT = "tickets:route_development" as SettingsPermissionKey;
 const TICKETS_OWN_SUPPORT_QUEUE = "tickets:own_support_queue" as SettingsPermissionKey;
 const TICKETS_OWN_DEVELOPMENT_QUEUE = "tickets:own_development_queue" as SettingsPermissionKey;
+const USERS_ASSIGN_SUPPORT_PROFILE = "users:assign_support_profile" as SettingsPermissionKey;
+const USERS_ASSIGN_DEVELOPER_PROFILE = "users:assign_developer_profile" as SettingsPermissionKey;
 const ALL_PERMISSION_KEYS = SETTINGS_PERMISSION_DEFINITIONS.map((permission) => permission.key) as SettingsPermissionKey[];
 
 const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
@@ -24,7 +26,12 @@ const PROFILE_LABELS: Record<SettingsProfileKey, string> = {
 
 export const DEFAULT_PROFILE_PERMISSIONS: Record<SettingsProfileKey, SettingsPermissionKey[]> = {
   ADMIN: ALL_PERMISSION_KEYS.filter((permission) => permission !== DASHBOARD_VIEW_DEVELOPMENT_SCOPE),
-  DEVELOPER: ALL_PERMISSION_KEYS.filter((permission) => permission !== TICKETS_OWN_SUPPORT_QUEUE),
+  DEVELOPER: ALL_PERMISSION_KEYS.filter(
+    (permission) =>
+      permission !== TICKETS_OWN_SUPPORT_QUEUE &&
+      permission !== USERS_ASSIGN_SUPPORT_PROFILE &&
+      permission !== USERS_ASSIGN_DEVELOPER_PROFILE,
+  ),
   SUPORTE: [
     "profile:edit_personal",
     "profile:edit_company",

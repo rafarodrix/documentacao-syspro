@@ -24,6 +24,7 @@ export async function getUsersAdminViewData(): Promise<
       companies: companies as UserAccessCompanyOption[],
       users,
       isGlobalView: Boolean(adminView?.isGlobalView),
+      assignableProfiles: adminView?.assignableProfiles ?? [],
     };
   } catch {
     return { error: "Erro ao buscar usuarios." };
@@ -31,22 +32,20 @@ export async function getUsersAdminViewData(): Promise<
 }
 
 export async function getUserEditViewData(userId: string): Promise<UserAccessEditViewData> {
-  const [user, companies] = await Promise.all([
+  const [user, companies, adminView] = await Promise.all([
     trpc.users.getOne.query({ id: userId }).catch(() => notFound()),
     trpc.companies.getOptions.query(),
+    trpc.users.getAdminView.query() as Promise<UserAdminView>,
   ]);
 
-  const hasInternalRole = user.role === "ADMIN" || user.role === "DEVELOPER" || user.role === "SUPORTE";
-
   return {
-    context: hasInternalRole ? "SYSTEM" : "CLIENT",
     userId: user.id,
     companies: companies as UserAccessCompanyOption[],
-    canAssignAdminRole: hasInternalRole,
+    assignableProfiles: adminView.assignableProfiles,
     initialData: {
       name: user.name ?? "",
       email: user.email,
-      role: user.role,
+      profileKey: user.role,
       contactId: user.contact?.id ?? "",
       password: "",
     },

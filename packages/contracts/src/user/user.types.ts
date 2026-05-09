@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { adminViewScopeSchema } from "../shared/admin-view.types";
+import { settingsProfileKeySchema } from "../settings/settings-permissions.types";
 
 export const USER_ROLE_VALUES = [
   "ADMIN",
@@ -16,14 +17,14 @@ export const createUserSchema = z.object({
   name: z.string().min(3, "O nome deve ter no minimo 3 caracteres").trim(),
   email: z.email("Insira um e-mail valido").toLowerCase().trim(),
   password: z.string().min(6, "A senha deve ter no minimo 6 caracteres").optional().or(z.literal("")),
-  role: userRoleSchema,
+  profileKey: settingsProfileKeySchema,
   contactId: z.string().optional().or(z.literal("")),
 });
 
 export const updateUserSchema = z.object({
   name: z.string().min(3, "O nome deve ter no minimo 3 caracteres").trim().optional(),
   email: z.email("Insira um e-mail valido").toLowerCase().trim().optional(),
-  role: userRoleSchema.optional(),
+  profileKey: settingsProfileKeySchema.optional(),
   contactId: z.string().trim().nullable().optional(),
   isActive: z.boolean().optional(),
 });
@@ -183,26 +184,33 @@ export const userAccessListItemSchema = z.object({
 export const userAccessEditInitialDataSchema = z.object({
   name: z.string(),
   email: z.string(),
-  role: userRoleSchema,
+  profileKey: settingsProfileKeySchema,
   contactId: z.string().optional(),
   password: z.string(),
+});
+
+export const userAssignableProfileSchema = z.object({
+  key: settingsProfileKeySchema,
+  label: z.string().min(1),
 });
 
 export const userAccessEditViewDataSchema = z.object({
   userId: z.string(),
   companies: z.array(userAccessCompanyOptionSchema),
-  canAssignAdminRole: z.boolean(),
+  assignableProfiles: z.array(userAssignableProfileSchema),
   initialData: userAccessEditInitialDataSchema,
-  context: z.enum(["CLIENT", "SYSTEM"]),
 });
 
 export const userAccessAdminViewDataSchema = z.object({
   companies: z.array(userAccessCompanyOptionSchema),
   users: z.array(userAccessListItemSchema),
   isGlobalView: z.boolean(),
+  assignableProfiles: z.array(userAssignableProfileSchema),
 });
 
-export const userAdminViewSchema = adminViewScopeSchema;
+export const userAdminViewSchema = adminViewScopeSchema.extend({
+  assignableProfiles: z.array(userAssignableProfileSchema),
+});
 
 export type CreateUserInput = z.input<typeof createUserSchema>;
 export type CreateUserOutput = z.output<typeof createUserSchema>;
@@ -221,6 +229,7 @@ export type UserAccessMembershipSummary = z.output<typeof userAccessMembershipSu
 export type UserAccessContactSummary = z.output<typeof userAccessContactSummarySchema>;
 export type UserAccessListItem = z.output<typeof userAccessListItemSchema>;
 export type UserAccessEditInitialData = z.output<typeof userAccessEditInitialDataSchema>;
+export type UserAssignableProfile = z.output<typeof userAssignableProfileSchema>;
 export type UserAccessEditViewData = z.output<typeof userAccessEditViewDataSchema>;
 export type UserAccessAdminViewData = z.output<typeof userAccessAdminViewDataSchema>;
 export type UserAdminView = z.output<typeof userAdminViewSchema>;

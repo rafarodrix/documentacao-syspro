@@ -5,7 +5,7 @@ import type { ElementType } from "react";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createUserSchema, type CreateUserInput, type UserRoleValue } from "@dosc-syspro/contracts/user";
+import { createUserSchema, type CreateUserInput, type UserAssignableProfile } from "@dosc-syspro/contracts/user";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import { type ContactOption } from "@dosc-syspro/contracts/contact";
 import { AnimatePresence, motion } from "framer-motion";
@@ -40,14 +40,6 @@ const ROLE = {
   CLIENTE_USER: "CLIENTE_USER",
 } as const;
 
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Admin",
-  DEVELOPER: "Dev",
-  SUPORTE: "Suporte",
-  CLIENTE_ADMIN: "Gestor",
-  CLIENTE_USER: "Usuario",
-};
-
 type SectionId = "geral" | "vinculo";
 
 const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
@@ -56,7 +48,7 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
     title: "Geral",
     description: "Perfil e credenciais",
     icon: ShieldCheck as ElementType,
-    fields: ["name", "email", "password", "role"],
+    fields: ["name", "email", "password", "profileKey"],
   },
   {
     id: "vinculo",
@@ -69,13 +61,11 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
 
 export interface CreateUserPageFormProps {
   companies: CompanyOption[];
-  context: "CLIENT" | "SYSTEM" | "UNIFIED";
-  canAssignAdminRole: boolean;
   backHref: string;
   mode?: "create" | "edit";
   userId?: string;
   initialData?: Partial<CreateUserInput>;
-  allowedRoles?: UserRoleValue[];
+  assignableProfiles: UserAssignableProfile[];
 }
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -89,23 +79,15 @@ type EmailAvailabilityState =
 
 export function CreateUserPageForm({
   companies,
-  context,
-  canAssignAdminRole,
   backHref,
   mode = "create",
   userId,
   initialData,
-  allowedRoles,
+  assignableProfiles,
 }: CreateUserPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
-  const fallbackAllowedRoles = useMemo(() => {
-    if (context === "SYSTEM") return [ROLE.SUPORTE, ROLE.DEVELOPER, ...(canAssignAdminRole ? [ROLE.ADMIN] : [])] as UserRoleValue[];
-    if (context === "CLIENT") return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN] as UserRoleValue[];
-    return [ROLE.CLIENTE_USER, ROLE.CLIENTE_ADMIN, ROLE.SUPORTE, ROLE.DEVELOPER, ...(canAssignAdminRole ? [ROLE.ADMIN] : [])] as UserRoleValue[];
-  }, [context, canAssignAdminRole]);
-  const availableRoles = allowedRoles?.length ? allowedRoles : fallbackAllowedRoles;
-  const defaultRole = availableRoles[0] ?? ROLE.CLIENTE_USER;
+  const defaultProfileKey = assignableProfiles[0]?.key ?? ROLE.CLIENTE_USER;
   const allowedCompanyIds = useMemo(() => companies.map((company) => company.id), [companies]);
 
   const [contactSearch, setContactSearch] = useState("");
@@ -121,7 +103,7 @@ export function CreateUserPageForm({
       name: initialData?.name ?? "",
       email: initialData?.email ?? "",
       password: "",
-      role: initialData?.role ?? defaultRole,
+      profileKey: initialData?.profileKey ?? defaultProfileKey,
       contactId: initialData?.contactId ?? "",
     },
     mode: "onChange",
@@ -132,9 +114,9 @@ export function CreateUserPageForm({
     control: form.control,
     name: "contactId",
   });
-  const selectedRole = useWatch({
+  const selectedProfileKey = useWatch({
     control: form.control,
-    name: "role",
+    name: "profileKey",
   });
   const watchedName = useWatch({
     control: form.control,
@@ -144,7 +126,7 @@ export function CreateUserPageForm({
     control: form.control,
     name: "email",
   });
-  const selectedRoleIsClient = selectedRole === ROLE.CLIENTE_ADMIN || selectedRole === ROLE.CLIENTE_USER;
+  const selectedRoleIsClient = selectedProfileKey === ROLE.CLIENTE_ADMIN || selectedProfileKey === ROLE.CLIENTE_USER;
   const normalizedWatchedEmail = String(watchedEmail ?? "").trim().toLowerCase();
 
   useEffect(() => {
@@ -273,7 +255,7 @@ export function CreateUserPageForm({
   const canSubmitForm = Boolean(
     String(watchedName ?? "").trim().length >= 3 &&
     String(watchedEmail ?? "").trim().length > 0 &&
-    selectedRole &&
+    selectedProfileKey &&
     selectedContactId &&
     !clientContactInvalid &&
     (mode === "edit" || emailAvailability.status !== "unavailable"),
@@ -354,13 +336,10 @@ export function CreateUserPageForm({
       ? "Editar usuario"
       : "Novo usuario";
 
-  const roleItems: Array<{ value: UserRoleValue; label: string }> = [
-    { value: ROLE.CLIENTE_USER, label: "Usuario" },
-    { value: ROLE.CLIENTE_ADMIN, label: "Gestor da Unidade" },
-    { value: ROLE.SUPORTE, label: "Suporte" },
-    { value: ROLE.DEVELOPER, label: "Desenvolvedor" },
-    { value: ROLE.ADMIN, label: "Admin" },
-  ].filter((item) => availableRoles.includes(item.value));
+  const profileItems = assignableProfiles.map((profile) => ({
+    value: profile.key,
+    label: profile.label,
+  }));
 
   return (
     <Form {...form}>
@@ -457,18 +436,18 @@ export function CreateUserPageForm({
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="role"
+                      name="profileKey"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nivel de acesso</FormLabel>
+                          <FormLabel>Perfil de acesso</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger className="h-10">
-                                <SelectValue placeholder="Selecione o nivel de acesso" />
+                                <SelectValue placeholder="Selecione o perfil de acesso" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {roleItems.map((item) => (
+                              {profileItems.map((item) => (
                                 <SelectItem key={item.value} value={item.value}>
                                   {item.label}
                                 </SelectItem>
