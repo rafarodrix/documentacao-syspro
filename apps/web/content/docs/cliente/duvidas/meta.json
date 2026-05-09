@@ -4,22 +4,13 @@
   "description": "Respostas rápidas para dúvidas comuns e erros recorrentes no uso do Syspro ERP.",
   "pages": [
     "index",
-    "---Erros---",
-    "rejeicoes/nfe-nfce",
-    "rejeicoes/cte",
-    "rejeicoes/mdfe",
-    "---Dúvidas---",
+    "---SEFAZ---",
+    "sefaz/rejeicoes/nfe-nfce",
+    "sefaz/rejeicoes/cte",
+    "sefaz/rejeicoes/mdfe",
     "---syspro---",
- "---Produto---",
-    "syspro/produto/produto-setor",
-    "---Movimento---",
-    "syspro/movimento/ajuste-estoque",
-    "---financeiro---",
-    "syspro/financeiro/titulos/geracao-boletos",
-    "syspro/financeiro/titulos/conciliacao-boletos",
     "tributario",
-    "---Terceiros---",
-    "integracoes",
-    "hardware"
+    "---Integrações---",
+    "consulta-api"
   ]
 }

@@ -3,9 +3,13 @@
   "title": "Treinamentos",
   "description": "Trilhas de treinamento para capacitação prática no uso do Syspro ERP.",
   "pages": [
-    "---Fiscal---",
+    "---Comercial---",
     "fiscal/geracao-sintegra",
-    "---Produção---",
-    "producao/ordem-producao"
+    "---Estoque---",
+    "producao/ordem-producao",
+    "---Gestão---",
+    "---Financeiro---",
+    "---Fiscal---",
+    "fiscal/geracao-sintegra"
   ]
 }
