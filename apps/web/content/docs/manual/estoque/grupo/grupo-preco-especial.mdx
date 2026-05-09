@@ -27,9 +27,7 @@ import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { TypeTable } from 'fumadocs-ui/components/type-table';
 import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
 
-# Grupo de Preço Especial
-
-## Introdução
+# Introdução
 
 O cadastro de **Grupo de Preço Especial** permite classificar clientes por política comercial, facilitando a aplicação de regras diferenciadas de preço, desconto ou acréscimo no Syspro ERP.
 
@@ -50,33 +48,6 @@ Com o Grupo de Preço Especial, a empresa consegue:
 <Callout type="info" title="Objetivo do módulo">
   Padronizar condições comerciais por cliente ou grupo de clientes, garantindo mais controle sobre preços, descontos, acréscimos e negociações no momento da venda.
 </Callout>
-
-<InlineTOC items={toc}>Nesta página</InlineTOC>
-
----
-
-## Dicionário de campos
-
-<TypeTable
-  type={{
-    descricao: {
-      description: 'Identifica o grupo de preço especial no sistema. Deve indicar a regra comercial ou o público-alvo do grupo.',
-      type: 'Texto',
-      required: true,
-    },
-    incidencia: {
-      description: 'Define se a regra poderá ser considerada em vendas à vista, a prazo ou em ambos os casos.',
-      type: 'Ambos | À Vista | A Prazo',
-      required: true,
-      default: 'Ambos',
-    },
-    permitirDescontoFechamento: {
-      description: 'Define se o operador poderá aplicar desconto adicional no fechamento da venda.',
-      type: 'Sim | Não',
-      required: true,
-    },
-  }}
-/>
 
 ---
 

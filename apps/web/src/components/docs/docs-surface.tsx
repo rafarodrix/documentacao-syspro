@@ -13,12 +13,11 @@ export function DocsSurface({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-xl border border-border/60 bg-background/50 shadow-md backdrop-blur-xl',
-        hoverable && 'transition-all hover:border-primary/20 hover:shadow-lg',
+        'group overflow-hidden rounded-xl border border-border/50 bg-card/40',
+        hoverable && 'transition-colors hover:border-border hover:bg-card/55',
         className,
       )}
     >
-      <div className="pointer-events-none absolute left-0 top-0 h-px w-full bg-linear-to-r from-transparent via-primary/50 to-transparent opacity-70" />
       {children}
     </div>
   );

@@ -1,5 +1,4 @@
 import { source } from '@/lib/source';
-import Link from 'next/link';
 import {
   DocsPage,
   DocsBody,
@@ -26,7 +25,6 @@ import SuporteSection from '@/components/docs/suporte-section';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 import {
   estimateReadingTimeMinutes,
-  formatSlugLabel,
   formatDateLong,
 } from '@/lib/docs-utils';
 import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
@@ -113,24 +111,6 @@ export default async function PortalDocsPage(props: {
   const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
 
-  const breadcrumbItems = slug.reduce<Array<{ href: string; label: string }>>(
-    (acc, segment) => {
-      const parentPath = acc.length <= 2 ? '' : acc[acc.length - 1].href.replace(/^\/portal\/docs/, '');
-      const nextPath = `${parentPath}/${segment}`.replace(/^\/+/, '');
-      const targetSlug = nextPath.split('/').filter(Boolean);
-      const targetPage = source.getPage(targetSlug);
-      acc.push({
-        href: `${DOCS_BASE_PATH}/${nextPath}`,
-        label: targetPage ? String(targetPage.data.title) : formatSlugLabel(segment),
-      });
-      return acc;
-    },
-    [
-      { href: '/portal', label: 'Portal' },
-      { href: DOCS_BASE_PATH, label: 'Documentacao' },
-    ],
-  );
-
   const navigationPool = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
   const navigationVisibility = await Promise.all(
     navigationPool.map((item) =>
@@ -158,21 +138,8 @@ export default async function PortalDocsPage(props: {
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsReadingProgress />
-      <DocsSurface className="border-border/45 bg-background/35 p-3.5 md:p-5">
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground/90">
-          {breadcrumbItems.map((item, index) => (
-            <div key={item.href} className="inline-flex items-center gap-1.5">
-              {index > 0 ? <span className="text-muted-foreground/45">/</span> : null}
-              <Link
-                href={item.href}
-                className="rounded-sm px-1 py-0.5 transition-colors hover:bg-accent/35 hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            </div>
-          ))}
-        </div>
-        <div className="mt-2.5">
+      <DocsSurface className="p-3.5 md:p-5">
+        <div>
           <DocsTitle>{page.data.title}</DocsTitle>
         </div>
         <div className="mt-2.5">
@@ -181,13 +148,11 @@ export default async function PortalDocsPage(props: {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
           <DocsReadingTime minutes={readingTimeMinutes} />
+          <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
         </div>
       </DocsSurface>
-      <div className="mt-3">
-        <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
-      </div>
       <DocsBody className="space-y-8">
-        <DocsSurface className="p-5 md:p-7 docs-content-surface">
+        <DocsSurface className="bg-background/30 p-5 md:p-7 docs-content-surface">
           <MDXContent
             components={{
               ...defaultMdxComponents,
@@ -211,7 +176,7 @@ export default async function PortalDocsPage(props: {
           feedback={{ slug: docSlug, title: String(page.data.title) }}
         />
         {lastUpdateDate ? (
-          <DocsSurface className="border-border/35 bg-background/25 px-3 py-2 md:px-3.5 md:py-2.5">
+          <DocsSurface className="bg-background/20 px-3 py-2 md:px-3.5 md:py-2.5">
             <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
           </DocsSurface>
         ) : null}
