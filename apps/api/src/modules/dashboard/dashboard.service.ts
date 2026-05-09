@@ -1234,9 +1234,10 @@ export class DashboardService {
     filters?: { from?: string; to?: string; assigneeId?: string; contact?: string; refresh?: boolean },
   ) {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
-    const canViewAtendimentos =
-      await this.authorizationService.userHasPermission(requester, 'dashboard:view_support_conversations') ||
-      await this.authorizationService.userHasPermission(requester, 'dashboard:stats_full');
+    const canViewAtendimentos = await this.authorizationService.userHasPermission(
+      requester,
+      'dashboard:view_support_conversations',
+    );
     if (!canViewAtendimentos) {
       throw new ForbiddenException('Sem permissao para visualizar atendimentos.');
     }

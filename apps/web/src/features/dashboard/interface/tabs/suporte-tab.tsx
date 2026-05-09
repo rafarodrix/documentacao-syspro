@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 import { Headset, Ticket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { TabListSkeleton } from "../components/tab-skeleton";
 import { SupportTicketsSubtab } from "./support-tickets-subtab";
 import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
 
 export async function SuporteTab() {
-  const canViewAtendimentos = await currentUserHasAnyPermission(
-    ["dashboard:view_support_conversations", "dashboard:stats_full"],
+  const canViewAtendimentos = await currentUserHasPermission(
+    "dashboard:view_support_conversations",
     { acceptCompanyScope: true },
   );
 
