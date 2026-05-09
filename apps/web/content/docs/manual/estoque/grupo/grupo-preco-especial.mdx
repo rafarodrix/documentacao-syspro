@@ -27,13 +27,15 @@ import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { TypeTable } from 'fumadocs-ui/components/type-table';
 import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
 
+# Grupo de Preço Especial
+
 ## Introdução
 
-O cadastro de **Grupo de Preço Especial** permite classificar clientes por condição comercial, facilitando a aplicação de regras diferenciadas de preço, desconto ou acréscimo no Syspro ERP.
+O cadastro de **Grupo de Preço Especial** permite classificar clientes por política comercial, facilitando a aplicação de regras diferenciadas de preço, desconto ou acréscimo no Syspro ERP.
 
-Na prática, o grupo funciona como uma **classificação comercial do participante**. Após o cadastro, ele pode ser vinculado ao cliente e utilizado em regras de preço configuradas no **Departamento**, no **Produto** ou selcionado de forma avulsa no balcão de vendas.
+Na prática, o grupo funciona como uma **classificação comercial do participante**. Após o cadastro, ele pode ser vinculado ao cliente, utilizado em regras de preço configuradas no **Departamento** ou no **Produto**, ou selecionado de forma avulsa no **Balcão de Vendas**, quando a operação permitir.
 
-Esse recurso é indicado quando a empresa precisa padronizar políticas comerciais para grupos específicos de clientes, como atacado, revenda, clientes especiais, condições à vista ou condições a prazo.
+Esse recurso é indicado quando a empresa precisa padronizar condições comerciais para grupos específicos de clientes, como atacado, revenda, clientes especiais, conveniados, regras à vista ou regras a prazo.
 
 Com o Grupo de Preço Especial, a empresa consegue:
 
@@ -42,29 +44,53 @@ Com o Grupo de Preço Especial, a empresa consegue:
 - permitir ou bloquear desconto adicional no fechamento da venda;
 - reduzir ajustes manuais durante o atendimento;
 - melhorar o controle de margem;
-- integrar regras comerciais entre participantes, departamentos e produtos.
+- integrar regras comerciais entre participantes, departamentos e produtos;
+- aplicar uma condição especial de forma avulsa no balcão, quando necessário.
 
 <Callout type="info" title="Objetivo do módulo">
-  Padronizar condições comerciais por participante, garantindo mais controle sobre preços, descontos, acréscimos e negociações no momento da venda.
+  Padronizar condições comerciais por cliente ou grupo de clientes, garantindo mais controle sobre preços, descontos, acréscimos e negociações no momento da venda.
 </Callout>
+
+<InlineTOC items={toc}>Nesta página</InlineTOC>
 
 ---
 
-# Como cadastrar
+## Dicionário de campos
 
-Antes de iniciar o cadastro, defina qual será a finalidade comercial do grupo, sua incidência e se o operador poderá aplicar desconto adicional no fechamento da venda.
+<TypeTable
+  type={{
+    descricao: {
+      description: 'Identifica o grupo de preço especial no sistema. Deve indicar a regra comercial ou o público-alvo do grupo.',
+      type: 'Texto',
+      required: true,
+    },
+    incidencia: {
+      description: 'Define se a regra poderá ser considerada em vendas à vista, a prazo ou em ambos os casos.',
+      type: 'Ambos | À Vista | A Prazo',
+      required: true,
+      default: 'Ambos',
+    },
+    permitirDescontoFechamento: {
+      description: 'Define se o operador poderá aplicar desconto adicional no fechamento da venda.',
+      type: 'Sim | Não',
+      required: true,
+    },
+  }}
+/>
+
+---
+
+## Como cadastrar
+
+Antes de iniciar, defina a finalidade comercial do grupo. Verifique se ele será usado para desconto, acréscimo, condição à vista, condição a prazo, cliente especial, atacado, revenda ou outra política comercial da empresa.
+
+<Callout type="warning" title="Antes de cadastrar">
+  Revise a política comercial antes de criar o grupo. A configuração de incidência e desconto no fechamento pode impactar diretamente o preço aplicado na venda e a margem da empresa.
+</Callout>
 
 <Steps>
   <Step>
-    Acesse o menu superior **Estoque**.
-  </Step>
-
-  <Step>
-    Clique em **Grupo**.
-  </Step>
-
-  <Step>
-    Selecione **Preço Especial**.
+    Acesse o menu **Estoque > Grupo > Preço Especial**.
   </Step>
 
   <Step>
@@ -73,18 +99,22 @@ Antes de iniciar o cadastro, defina qual será a finalidade comercial do grupo, 
 
   <Step>
     Informe a **Descrição** do grupo de preço especial.
+
+    Use um nome claro, como **DESCONTO 10%**, **ATACADO**, **REVENDA**, **CLIENTE ESPECIAL** ou **DESCONTO À VISTA**.
   </Step>
 
   <Step>
-    No campo **Incidência**, selecione **Ambos**, **À Vista** ou **A Prazo**.
+    No campo **Incidência**, selecione quando a regra poderá ser considerada: **Ambos**, **À Vista** ou **A Prazo**.
+
+    Quando a empresa não utiliza cálculo separado de à vista e a prazo no **Balcão de Vendas** ou no **Orçamento**, utilize **Ambos**.
   </Step>
 
   <Step>
-    No campo **Permitir Desconto de Fechamento**, selecione **Sim** ou **Não**.
+    No campo **Permitir Desconto de Fechamento**, selecione **Sim** ou **Não**, conforme a política comercial da empresa.
   </Step>
 
   <Step>
-    Revise as informações cadastradas.
+    Revise as informações cadastradas, principalmente a **Descrição**, a **Incidência** e a permissão de **Desconto de Fechamento**.
   </Step>
 
   <Step>
@@ -93,7 +123,7 @@ Antes de iniciar o cadastro, defina qual será a finalidade comercial do grupo, 
 </Steps>
 
 <Callout type="info" title="Recomendação">
-  Após criar o grupo, vincule-o a um participante e realize uma venda de teste para validar o comportamento da regra.
+  Após criar o grupo, vincule-o a um participante e realize uma venda de teste. Valide se a regra foi aplicada corretamente conforme o cliente, a condição de pagamento e a permissão de desconto no fechamento.
 </Callout>
 
 ---
@@ -102,99 +132,123 @@ Antes de iniciar o cadastro, defina qual será a finalidade comercial do grupo, 
 
 ### Descrição
 
-O campo **Descrição** identifica o grupo de preço especial.
+O campo **Descrição** identifica o grupo de preço especial no sistema.
 
-Use nomes claros, objetivos e comerciais, indicando a regra ou o público-alvo do grupo.
+Use uma descrição clara, objetiva e padronizada, indicando a **regra comercial** ou o **público-alvo** do grupo. Esse nome será utilizado para conferência em vendas, manutenção cadastral e suporte.
 
-Exemplos recomendados:
+<Cards>
+  <Card title="Por regra comercial">
+    Exemplos:
 
-```txt
-DESCONTO 10%
-ATACADO
-REVENDA
-CLIENTE ESPECIAL
-DESCONTO À VISTA
-PREÇO ESPECIAL +35%
-CONVENIADO
-```
+    ```txt
+    DESCONTO 10%
+    DESCONTO À VISTA
+    PREÇO ESPECIAL +35%
+    TABELA ESPECIAL
+    ```
+  </Card>
+
+  <Card title="Por perfil de cliente">
+    Exemplos:
+
+    ```txt
+    ATACADO
+    REVENDA
+    CLIENTE ESPECIAL
+    CONVENIADO
+    PARCEIRO
+    ```
+  </Card>
+</Cards>
+
+<Callout type="warning" title="Evite descrições genéricas">
+  Evite nomes como **TESTE**, **PADRÃO**, **GRUPO 1**, **PROMO**, **DIVERSOS** ou **OUTROS**. Esses nomes dificultam a identificação da regra e podem gerar confusão na manutenção do cadastro.
+</Callout>
 
 <Callout type="info" title="Boa prática">
-  A descrição deve indicar a regra comercial ou o público-alvo do grupo. Isso facilita a conferência em vendas, suporte e manutenção cadastral.
+  Antes de criar um novo grupo, verifique se já existe outro com a mesma finalidade. Isso evita cadastros duplicados e mantém a política comercial mais organizada.
 </Callout>
 
 ---
 
 ### Incidência
 
-O campo **Incidência** define em quais condições de pagamento o grupo poderá ser considerado.
+O campo **Incidência** define em quais condições de pagamento o grupo de preço especial poderá ser considerado.
 
-| Opção   | Comportamento                              |
-| ------- | ------------------------------------------ |
-| Ambos   | Aplica a regra em vendas à vista e a prazo |
-| À Vista | Aplica a regra somente em vendas à vista   |
-| A Prazo | Aplica a regra somente em vendas a prazo   |
+Essa configuração é utilizada para diferenciar regras comerciais entre vendas **à vista**, **a prazo** ou em **ambos** os casos.
 
-<Tabs items={['Ambos', 'À Vista', 'A Prazo']}> <Tab value="Ambos">
+| Opção | Comportamento |
+|---|---|
+| Ambos | Aplica a regra tanto em vendas à vista quanto em vendas a prazo |
+| À Vista | Aplica a regra somente quando a venda for identificada como à vista |
+| A Prazo | Aplica a regra somente quando a venda for identificada como a prazo |
 
-- Use **Ambos** quando a regra comercial deve valer independentemente da condição de pagamento.
-- Nesse cenário, a regra poderá ser considerada tanto em vendas à vista quanto em vendas a prazo.
+<Callout type="warning" title="Atenção">
+  As opções **À Vista** e **A Prazo** somente terão efeito quando a empresa utiliza o recurso de cálculo à vista/a prazo no **Balcão de Vendas** ou no **Orçamento**. Caso contrário, utilize a opção **Ambos**.
+</Callout>
 
-</Tab>
+<Cards>
+  <Card title="Ambos">
+    Use **Ambos** quando a regra comercial deve valer independentemente da condição de pagamento.
 
-<Tab value="À Vista">
+    Essa é a opção recomendada quando a empresa não utiliza separação automática entre venda à vista e venda a prazo.
+  </Card>
 
-- Use **À Vista** quando o benefício comercial deve ser aplicado apenas em vendas pagas à vista.
-- Esse tipo de configuração é comum quando a empresa deseja incentivar pagamento imediato.
+  <Card title="À Vista">
+    Use **À Vista** quando o benefício comercial deve ser aplicado apenas em vendas identificadas como pagamento à vista.
 
-</Tab>
+    Essa opção é indicada para empresas que trabalham com preço ou desconto diferenciado para pagamento imediato.
+  </Card>
 
-<Tab value="A Prazo">
+  <Card title="A Prazo">
+    Use **A Prazo** quando a regra comercial deve ser aplicada apenas em vendas identificadas como parceladas, faturadas ou com prazo.
 
-Use **A Prazo** quando a regra comercial deve ser aplicada apenas em vendas parceladas, faturadas ou com prazo.
-Esse tipo de configuração pode ser usado quando a empresa possui políticas comerciais específicas para vendas a prazo.
-</Tab>
-</Tabs>
+    Essa opção é indicada para empresas que possuem política comercial específica para vendas a prazo.
+  </Card>
+</Cards>
 
-<Callout type="warning" title="Validação importante">
-  Antes de definir a incidência, valide como a empresa diferencia vendas à vista e a prazo no processo de venda.
+<Callout type="info" title="Recomendação">
+  Na dúvida, configure a incidência como **Ambos**. Assim, a regra comercial será considerada independentemente da forma como a venda for calculada.
 </Callout>
 
 ---
 
 ### Permitir Desconto de Fechamento
 
-O campo **Permitir Desconto de Fechamento** define se o operador poderá aplicar desconto adicional no fechamento da venda.
+O campo **Permitir Desconto de Fechamento** define se o operador poderá aplicar um desconto adicional no fechamento da venda, além da condição comercial já definida para o grupo de preço especial.
 
-| Opção | Comportamento                                |
-| ----- | -------------------------------------------- |
-| Sim   | Permite desconto adicional no fechamento     |
-| Não   | Não permite desconto adicional no fechamento |
+| Opção | Comportamento |
+|---|---|
+| Sim | Permite aplicar desconto adicional no fechamento da venda |
+| Não | Bloqueia desconto adicional no fechamento da venda |
 
-<Tabs items={['Quando usar Sim', 'Quando usar Não']}> <Tab value="Quando usar Sim">
+<Cards>
+  <Card title="Quando usar Sim">
+    Use quando a empresa permite negociação adicional no fechamento da venda.
 
-- Marque **Sim** quando a empresa permitir negociação adicional no fechamento da venda.
-- Esse cenário pode ser usado quando o vendedor ainda possui margem para negociação final.
+    Essa opção é indicada quando o vendedor ainda possui margem para conceder desconto extra, conforme a política comercial da empresa.
+  </Card>
 
-</Tab>
+  <Card title="Quando usar Não">
+    Use quando a condição do grupo já representa o limite comercial permitido.
 
- <Tab value="Quando usar Não">
+    Essa opção ajuda a evitar que o cliente receba desconto adicional além da regra especial já configurada.
+  </Card>
+</Cards>
 
-- Marque **Não** quando a condição do grupo já representa o limite comercial permitido.
-- Nesse cenário, o sistema evita que o cliente receba desconto adicional além da condição especial já configurada.
-
-</Tab>
-</Tabs>
+<Callout type="warning" title="Controle de margem">
+  Para grupos com desconto elevado, preço especial agressivo ou regra comercial fechada, recomenda-se avaliar se o desconto de fechamento deve permanecer bloqueado.
+</Callout>
 
 ---
 
-# Relações com outros cadastros
+## Relações com outros cadastros
 
-## Relação com Participantes
+### Relação com Participantes
 
 O Grupo de Preço Especial normalmente é vinculado ao cadastro de **Participantes**.
 
 Isso permite que o sistema reconheça qual política comercial deve ser considerada para determinado cliente.
-
 
 <Callout type="info" title="Amarração com participante">
   Para que a regra funcione corretamente, o participante precisa estar vinculado ao grupo de preço especial adequado.
@@ -202,11 +256,11 @@ Isso permite que o sistema reconheça qual política comercial deve ser consider
 
 ---
 
-## Relação com Departamento e Produto
+### Relação com Departamento e Produto
 
-O Grupo de Preço Especial pode ser utilizado em conjunto com regras de preço configuradas em outros cadastros, como o cadastro de **Departamento**.
+O Grupo de Preço Especial pode ser utilizado em conjunto com regras de preço configuradas em outros cadastros, como **Departamento** e **Produto**.
 
-No módulo de Departamento, a aba **Preços** permite vincular grupos de preço especial a regras de desconto, acréscimo e promoção.
+No cadastro de **Departamento**, por exemplo, a aba **Preços** permite vincular grupos de preço especial a regras de desconto, acréscimo e promoção.
 
 <Callout type="success" title="Integração das regras">
   O Grupo de Preço Especial funciona como uma classificação comercial. As regras de desconto ou acréscimo podem ser aplicadas conforme essa classificação.
@@ -214,101 +268,111 @@ No módulo de Departamento, a aba **Preços** permite vincular grupos de preço 
 
 ---
 
-# Teste antes de liberar
+## Teste antes de liberar
 
 Antes de liberar o grupo para uso definitivo, faça uma venda de teste.
 
 Valide:
-* Após o cadastro do grupo de preço especial, vincule-o a um participante.
-* Vincule-o ao departamento ou produto definido na regra comercial;
-* Faça uma venda utilizando o participante configurado;
-* Confira se a regra comercial é aplicada conforme a configuração;
-* Verifique se o desconto de fechamento está permitido ou bloqueado conforme a configuração;
+
+- se o grupo de preço especial foi cadastrado corretamente;
+- se o grupo foi vinculado ao participante correto;
+- se o grupo foi vinculado ao departamento ou produto definido na regra comercial;
+- se a venda foi realizada utilizando o participante configurado;
+- se a regra comercial foi aplicada conforme a configuração;
+- se a incidência está compatível com a condição de pagamento;
+- se o desconto de fechamento está permitido ou bloqueado conforme a configuração.
+
+<Callout type="info" title="Teste recomendado">
+  Para validar completamente a regra, simule pelo menos uma venda com o participante configurado e confira o preço aplicado antes de liberar o cadastro para uso definitivo.
+</Callout>
 
 ---
 
-# Exemplos de configuração
+## Exemplos de configuração
 
-<Tabs items={['Desconto padrão', 'Pagamento à vista', 'Venda a prazo', 'Acréscimo']}> <Tab value="Desconto padrão">
-## Grupo com desconto padrão
+<Tabs items={['Desconto padrão', 'Pagamento à vista', 'Venda a prazo', 'Acréscimo']}>
+  <Tab value="Desconto padrão">
 
-  | Campo | Valor sugerido |
-  |---|---|
-  | Descrição | DESCONTO 10% |
-  | Incidência | Ambos |
-  | Permitir Desconto de Fechamento | Não |
+### Grupo com desconto padrão
 
-  Indicado para:
+| Campo | Valor sugerido |
+|---|---|
+| Descrição | DESCONTO 10% |
+| Incidência | Ambos |
+| Permitir Desconto de Fechamento | Não |
 
-  - Grupo com desconto comercial
-  - Será para qualquer condição de pagamento
-  - Não permite desconto adicional no fechamento.
+Indicado para:
 
-  </Tab>
+- grupos com desconto comercial;
+- regras válidas para qualquer condição de pagamento;
+- situações em que não deve haver desconto adicional no fechamento.
+
+</Tab>
 
   <Tab value="Pagamento à vista">
-    ## Grupo para pagamento à vista
 
-  | Campo | Valor sugerido |
-  |---|---|
-  | Descrição | DESCONTO À VISTA |
-  | Incidência | À Vista |
-  | Permitir Desconto de Fechamento | Sim |
+### Grupo para pagamento à vista
 
-  Indicado para:
+| Campo | Valor sugerido |
+|---|---|
+| Descrição | DESCONTO À VISTA |
+| Incidência | À Vista |
+| Permitir Desconto de Fechamento | Sim |
 
-  - incentivo de pagamento imediato;
-  - campanhas comerciais;
-  - clientes com negociação à vista;
-  - descontos condicionados à forma de pagamento.
+Indicado para:
 
+- incentivo de pagamento imediato;
+- campanhas comerciais;
+- clientes com negociação à vista;
+- descontos condicionados à forma de pagamento.
 
-  </Tab>
+</Tab>
 
   <Tab value="Venda a prazo">
-    ## Grupo para venda a prazo
 
-  | Campo | Valor sugerido |
-  |---|---|
-  | Descrição | PREÇO ESPECIAL A PRAZO |
-  | Incidência | A Prazo |
-  | Permitir Desconto de Fechamento | Não |
+### Grupo para venda a prazo
 
-  Indicado para:
+| Campo | Valor sugerido |
+|---|---|
+| Descrição | PREÇO ESPECIAL A PRAZO |
+| Incidência | A Prazo |
+| Permitir Desconto de Fechamento | Não |
 
-  - clientes faturados;
-  - clientes com prazo negociado;
-  - condições comerciais específicas para pagamento parcelado;
-  - controle de margem em venda a prazo.
+Indicado para:
 
-  </Tab>
+- clientes faturados;
+- clientes com prazo negociado;
+- condições comerciais específicas para pagamento parcelado;
+- controle de margem em venda a prazo.
+
+</Tab>
 
   <Tab value="Acréscimo">
-    ## Grupo com acréscimo
 
-  | Campo | Valor sugerido |
-  |---|---|
-  | Descrição | PREÇO ESPECIAL +35% |
-  | Incidência | Ambos |
-  | Permitir Desconto de Fechamento | Sim |
+### Grupo com acréscimo
 
-  Indicado para:
+| Campo | Valor sugerido |
+|---|---|
+| Descrição | PREÇO ESPECIAL +35% |
+| Incidência | Ambos |
+| Permitir Desconto de Fechamento | Sim |
 
-  - Grupo com acréscimo comercial
-  - Será para qualquer condição de pagamento
-  - Permite negociação adicional no fechamento, conforme política da empresa.
+Indicado para:
 
-  </Tab>
+- grupos com acréscimo comercial;
+- regras válidas para qualquer condição de pagamento;
+- cenários em que a empresa permite negociação adicional no fechamento, conforme política comercial.
+
+</Tab>
 </Tabs>
 
 <Callout type="success" title="Boas práticas">
   Cadastre grupos com nomes claros, revise a incidência e avalie cuidadosamente a permissão de desconto no fechamento. Depois de vincular o grupo ao participante, realize uma venda de teste para validar a regra.
 </Callout>
 
-
 ---
 
-# Perguntas frequentes
+## Perguntas frequentes
 
 <Accordions type="single">
   <Accordion title="Para que serve o Grupo de Preço Especial?" id="para-que-serve">
@@ -320,7 +384,9 @@ Valide:
   </Accordion>
 
   <Accordion title="Qual a diferença entre Ambos, À Vista e A Prazo?" id="diferenca-incidencia">
-    **Ambos** permite aplicar a regra em qualquer condição de pagamento. **À Vista** aplica somente em vendas à vista. **A Prazo** aplica somente em vendas parceladas, faturadas ou com prazo (Essa definição em avista e a prazo é definida na forma de pagamento).
+    **Ambos** permite considerar a regra em qualquer condição de pagamento. **À Vista** considera a regra somente quando a venda for identificada como à vista. **A Prazo** considera a regra somente quando a venda for identificada como a prazo.
+
+    As opções **À Vista** e **A Prazo** dependem do uso do recurso de cálculo à vista/a prazo no **Balcão de Vendas** ou no **Orçamento**. Caso a empresa não utilize essa separação, recomenda-se configurar a incidência como **Ambos**.
   </Accordion>
 
   <Accordion title="Quando devo marcar Permitir Desconto de Fechamento como Não?" id="quando-bloquear-desconto-fechamento">
@@ -335,8 +401,23 @@ Valide:
     Sim. Um mesmo grupo pode ser vinculado a vários participantes que compartilham a mesma política comercial.
   </Accordion>
 
+  <Accordion title="Posso selecionar o grupo de forma avulsa no balcão?" id="grupo-avulso-balcao">
+    Sim, quando a operação permitir. Nesse caso, o grupo pode ser selecionado diretamente no **Balcão de Vendas** para aplicar uma condição comercial específica.
+  </Accordion>
+
   <Accordion title="Posso clonar um grupo já cadastrado?" id="clonar-grupo">
     Sim. A opção **Clonar** pode ser utilizada para criar um novo grupo com base em outro existente, facilitando cadastros semelhantes.
   </Accordion>
 </Accordions>
 
+---
+
+## Resumo
+
+O **Grupo de Preço Especial** é uma configuração comercial utilizada para classificar clientes e aplicar condições diferenciadas de preço, desconto ou acréscimo.
+
+Com uma configuração bem definida, a empresa consegue padronizar regras comerciais, reduzir ajustes manuais, controlar melhor a margem e aplicar condições específicas por participante, departamento, produto ou operação no balcão.
+
+<Callout type="success" title="Resumo">
+  Use grupos de preço especial para organizar políticas comerciais. Configure a incidência com atenção, controle o desconto no fechamento e sempre valide a regra em uma venda de teste antes de liberar o uso.
+</Callout>
