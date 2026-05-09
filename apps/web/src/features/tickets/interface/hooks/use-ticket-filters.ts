@@ -130,11 +130,7 @@ export function useTicketFilters(initialSearch: string) {
   const setTeamFilter = useCallback(
     (nextTeam: TicketTeamFilter) => {
       updateParams((params) => {
-        if (nextTeam === "all") {
-          params.delete("team");
-        } else {
-          params.set("team", nextTeam);
-        }
+        params.set("team", nextTeam);
         params.delete("category");
         params.set("page", "1");
       });
