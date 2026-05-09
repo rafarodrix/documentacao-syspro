@@ -1,84 +1,839 @@
+Segue o manual de **Cadastro de Usuário** refeito no mesmo padrão enterprise MDX.
+
+````mdx id="m33rwq"
 ---
 title: Cadastro de Usuário
-description: Um guia completo sobre os campos e funcionalidades da tela de cadastro de Usuário no Syspro ERP.
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+description: Manual técnico e operacional para cadastro e configuração de usuários no Syspro ERP, incluindo credenciais, perfil de acesso, empresas, contas bancárias e grupos de conta caixa.
+lastUpdated: 2026-05-09
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - cadastro
   - usuario
+  - acesso
+  - permissao
+  - seguranca
+  - syspro
 ---
 
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+import SuporteSection from '@/components/docs/SuporteSection';
+
+# Cadastro de Usuário
 
 ## Introdução
 
-A tela de **Cadastro de Usuário** é o centro de controle para a gestão de acessos ao Syspro ERP. É aqui que você define quem pode entrar no sistema, quais informações pode visualizar e que ações pode executar.
+O cadastro de **Usuário** é utilizado para controlar quem pode acessar o **Syspro ERP**, quais empresas pode operar, quais contas pode movimentar e quais permissões estarão disponíveis no sistema.
 
-Uma configuração cuidadosa nesta tela é fundamental para garantir a segurança dos dados da sua empresa e a eficiência operacional da sua equipe, atribuindo as permissões corretas para cada função.
+Essa tela é uma das principais configurações de segurança do ERP. Por meio dela, a empresa vincula o login de acesso a um participante, define senha, perfil de acesso, empresas permitidas, contas bancárias e grupos de conta caixa.
+
+Uma configuração correta evita acessos indevidos, melhora a rastreabilidade das ações e garante que cada colaborador utilize apenas os recursos necessários para sua função.
+
+<Callout type="info" title="Objetivo do módulo">
+  Configurar os usuários autorizados a acessar o Syspro ERP, controlando credenciais, permissões, empresas, contas e restrições operacionais.
+</Callout>
+
+<InlineTOC items={toc}>Nesta página</InlineTOC>
 
 ---
 
-## Passo a Passo: Cadastrando um Novo Usuário
+## Visão geral
+
+<Cards>
+  <Card title="Onde acessar">
+    Acesse **Cadastro > Usuário > Usuário**.
+  </Card>
+
+  <Card title="Quando utilizar">
+    Utilize esta tela para criar usuários, alterar senha, vincular perfil de acesso, liberar empresas e restringir contas bancárias ou contas caixa.
+  </Card>
+
+  <Card title="Impacto no sistema">
+    O cadastro define o acesso do usuário ao ERP, impactando segurança, auditoria, permissões, empresas disponíveis e movimentações financeiras.
+  </Card>
+
+  <Card title="Perfil recomendado">
+    Indicado para administradores do sistema, responsáveis pela implantação e equipe de suporte.
+  </Card>
+</Cards>
+
+---
+
+## Quando utilizar
+
+Utilize o cadastro de **Usuário** sempre que for necessário conceder, alterar, revisar ou bloquear o acesso de uma pessoa ao Syspro ERP.
+
+| Situação | Como o módulo ajuda |
+|---|---|
+| Criar novo acesso | Permite cadastrar login, senha e vínculo com participante. |
+| Definir permissões | Permite vincular o usuário a um perfil de acesso. |
+| Liberar empresas ou filiais | Define quais empresas o usuário poderá acessar. |
+| Restringir contas bancárias | Controla quais contas o usuário poderá movimentar. |
+| Restringir contas caixa | Permite limitar o usuário a grupos específicos de caixa. |
+| Alterar senha | Permite ao administrador redefinir a senha do usuário. |
+| Bloquear usuário desligado | Permite inativar o usuário e preservar histórico. |
+| Revisar segurança | Facilita auditoria de acessos e permissões. |
+
+<Callout type="success" title="Exemplo prático">
+  Ao contratar um novo vendedor, cadastre o participante colaborador, crie o usuário, vincule o perfil **Vendedores**, selecione as empresas permitidas e teste o acesso antes de liberar para uso.
+</Callout>
+
+---
+
+## Dicionário de campos
+
+<TypeTable
+  type={{
+    participante: {
+      description: 'Participante vinculado ao usuário. Normalmente representa o colaborador ou pessoa responsável pelo login.',
+      type: 'Seleção',
+      required: true,
+    },
+    nome: {
+      description: 'Nome de acesso utilizado como login do usuário no sistema.',
+      type: 'Texto',
+      required: true,
+    },
+    senha: {
+      description: 'Senha utilizada para autenticação do usuário no Syspro ERP.',
+      type: 'Senha',
+      required: true,
+    },
+    perfilAcesso: {
+      description: 'Perfil que define quais módulos, telas e ações o usuário poderá acessar.',
+      type: 'Seleção',
+      required: true,
+    },
+    empresa: {
+      description: 'Empresas ou filiais liberadas para acesso do usuário.',
+      type: 'Seleção múltipla',
+      required: false,
+    },
+    contasBancarias: {
+      description: 'Contas bancárias que o usuário poderá movimentar, conforme configuração.',
+      type: 'Seleção múltipla',
+      required: false,
+    },
+    grupoContaCaixa: {
+      description: 'Grupo de contas caixa permitido para o usuário, utilizado para restringir operações de caixa.',
+      type: 'Seleção',
+      required: false,
+    },
+    ativo: {
+      description: 'Define se o usuário está ativo e pode acessar o sistema.',
+      type: 'Sim | Não',
+      required: false,
+      default: 'Sim',
+    },
+    dataCadastro: {
+      description: 'Data de criação do cadastro do usuário, quando controlada pelo sistema.',
+      type: 'Data',
+      required: false,
+    },
+    ultimoAcesso: {
+      description: 'Data ou registro do último acesso do usuário, quando disponível.',
+      type: 'Data/Hora',
+      required: false,
+    },
+  }}
+/>
+
+<Callout type="warning" title="Atenção ao cadastro de usuário">
+  O usuário deve estar vinculado ao participante correto e ao perfil de acesso adequado. Permissões incorretas podem liberar módulos sensíveis ou impedir o trabalho do colaborador.
+</Callout>
+
+---
+
+## Estrutura da tela
+
+<Tabs items={['Credenciais', 'Perfil', 'Empresa', 'Contas Bancárias', 'Grupo Conta Caixa']}>
+  <Tab value="Credenciais">
+    A área de **Credenciais** reúne os dados principais de acesso.
+
+    Campos comuns:
+
+    - participante;
+    - nome/login;
+    - senha;
+    - situação do usuário, quando aplicável.
+
+    O vínculo com participante é importante para identificação, auditoria e rastreabilidade das ações realizadas no sistema.
+  </Tab>
+
+  <Tab value="Perfil">
+    A aba **Perfil** define o **Perfil de Acesso** vinculado ao usuário.
+
+    Esse perfil controla:
+
+    - quais módulos o usuário pode acessar;
+    - quais telas aparecem no menu;
+    - quais ações podem ser executadas;
+    - quais permissões sensíveis estão liberadas.
+
+    Esta é uma das configurações mais importantes do cadastro.
+  </Tab>
+
+  <Tab value="Empresa">
+    A aba **Empresa** define quais empresas ou filiais o usuário poderá acessar.
+
+    Quando a empresa trabalha com múltiplas filiais, esse vínculo evita que o usuário acesse dados de empresas fora da sua responsabilidade.
+  </Tab>
+
+  <Tab value="Contas Bancárias">
+    A aba **Contas Bancárias** define quais contas o usuário poderá movimentar.
+
+    Conforme regra informada no cadastro, caso nenhuma conta seja selecionada, o usuário poderá ter acesso a todas as contas.
+
+    Revise essa configuração com atenção.
+  </Tab>
+
+  <Tab value="Grupo Conta Caixa">
+    A aba **Grupo Conta Caixa** permite restringir o usuário a um grupo específico de contas caixa.
+
+    Essa configuração é indicada para operadores de caixa, setores distintos ou empresas que separam movimentações por área operacional.
+  </Tab>
+</Tabs>
+
+---
+
+# Campos principais
+
+## Participante
+
+O campo **Participante** vincula o usuário a uma pessoa cadastrada no sistema.
+
+Normalmente, esse participante representa o colaborador que utilizará o login.
+
+<Callout type="info" title="Rastreabilidade">
+  Vincular o usuário ao participante correto melhora a identificação de ações realizadas no sistema e facilita auditorias internas.
+</Callout>
+
+---
+
+## Nome
+
+O campo **Nome** define o login de acesso do usuário.
+
+Recomendações de padrão:
+
+```txt
+nome.sobrenome
+primeironome.sobrenome
+setor.nome
+````
+
+Exemplos:
+
+```txt
+joao.silva
+maria.financeiro
+paulo.vendas
+```
+
+<Callout type="success" title="Boa prática">
+  Use um padrão de login consistente para facilitar suporte, manutenção e identificação dos usuários.
+</Callout>
+
+---
+
+## Senha
+
+O campo **Senha** define a credencial de acesso do usuário.
+
+A senha deve ser informada com cuidado e, quando possível, seguir critérios mínimos de segurança definidos pela empresa.
+
+<Callout type="warning" title="Segurança de senha">
+  Evite senhas simples, compartilhadas ou reutilizadas. Cada usuário deve possuir uma senha individual.
+</Callout>
+
+---
+
+## Perfil de Acesso
+
+O campo **Perfil de Acesso** define as permissões do usuário.
+
+Ele controla quais módulos, telas e ações estarão disponíveis.
+
+Exemplos de perfis:
+
+* Vendedores;
+* Financeiro;
+* Compras;
+* Estoque;
+* Gerência;
+* Administrador;
+* Suporte.
+
+<Callout type="warning" title="Permissão crítica">
+  O perfil de acesso deve ser escolhido conforme a função do colaborador. Um perfil incorreto pode liberar acessos indevidos ou impedir atividades necessárias.
+</Callout>
+
+---
+
+## Empresa
+
+A aba **Empresa** define quais empresas ou filiais o usuário poderá acessar.
+
+Use essa configuração quando o ambiente possuir mais de uma empresa cadastrada.
+
+<Callout type="info" title="Ambiente multiempresa">
+  Em empresas com matriz e filiais, revise cuidadosamente quais unidades o usuário poderá operar.
+</Callout>
+
+---
+
+## Contas Bancárias
+
+A aba **Contas Bancárias** define quais contas o usuário poderá movimentar.
+
+Conforme o comportamento informado, se nenhuma conta for selecionada, o usuário poderá ter acesso a **todas** as contas.
+
+<Callout type="warning" title="Atenção às contas bancárias">
+  Se a empresa deseja restringir movimentações financeiras, selecione explicitamente as contas permitidas para o usuário.
+</Callout>
+
+---
+
+## Grupo Conta Caixa
+
+A aba **Grupo Conta Caixa** restringe o usuário a um grupo específico de contas caixa.
+
+Esse controle é útil para:
+
+* operadores de caixa;
+* setores diferentes;
+* filiais;
+* pontos de venda;
+* separação de responsabilidades financeiras.
+
+---
+
+# Relações com outros cadastros
+
+O cadastro de **Usuário** se relaciona diretamente com outros cadastros de segurança e operação.
+
+| Cadastro ou módulo relacionado | Impacto                                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| Participante                   | O usuário deve estar vinculado a uma pessoa cadastrada no sistema.                      |
+| Perfil de Acesso               | Define módulos, telas e ações disponíveis ao usuário.                                   |
+| Empresa                        | Define empresas ou filiais que o usuário poderá acessar.                                |
+| Contas Bancárias               | Controla quais contas o usuário poderá movimentar.                                      |
+| Grupo Conta Caixa              | Restringe operações de caixa por grupo.                                                 |
+| Vendas                         | Perfil e empresa podem limitar acesso a vendas, descontos, cancelamentos e reaberturas. |
+| Financeiro                     | Conta bancária e permissões controlam baixas, títulos, boletos e movimentações.         |
+| Fiscal                         | Perfil pode controlar emissão, cancelamento e acesso a documentos fiscais.              |
+| Auditoria                      | O usuário identifica quem executou ações no sistema, quando houver rastreabilidade.     |
+
+<Callout type="info" title="Cadastro de segurança">
+  O cadastro de Usuário deve ser tratado como uma configuração de segurança, não apenas como uma tela de cadastro comum.
+</Callout>
+
+---
+
+# Cenários práticos
+
+<Tabs items={['Novo vendedor', 'Usuário financeiro', 'Operador de caixa', 'Usuário desligado']}> <Tab value="Novo vendedor">
+Use este cenário para cadastrar um colaborador da equipe comercial.
+
+```
+Configure:
+
+- participante do colaborador;
+- login padronizado;
+- senha inicial;
+- perfil de acesso **Vendedores**;
+- empresas liberadas;
+- grupo de caixa, quando aplicável.
+
+**Resultado esperado:** o vendedor acessa apenas as rotinas comerciais permitidas.
+```
+
+  </Tab>
+
+  <Tab value="Usuário financeiro">
+    Use este cenário para usuários que trabalham com títulos, cobranças ou movimentações bancárias.
+
+```
+Configure:
+
+- participante do colaborador;
+- perfil financeiro;
+- empresas permitidas;
+- contas bancárias autorizadas;
+- permissões financeiras controladas pelo perfil.
+
+**Resultado esperado:** o usuário movimenta apenas as contas e rotinas financeiras permitidas.
+```
+
+  </Tab>
+
+  <Tab value="Operador de caixa">
+    Use este cenário para usuários que operam caixa ou PDV.
+
+```
+Configure:
+
+- participante do operador;
+- perfil de caixa ou vendas;
+- empresa correspondente;
+- grupo conta caixa;
+- restrições de contas bancárias, se aplicável.
+
+**Resultado esperado:** o operador acessa apenas o caixa ou grupo permitido.
+```
+
+  </Tab>
+
+  <Tab value="Usuário desligado">
+    Use este cenário quando um colaborador não deve mais acessar o sistema.
+
+```
+Ação recomendada:
+
+- localizar o cadastro do usuário;
+- inativar o usuário;
+- revisar acessos vinculados;
+- preservar histórico do usuário.
+
+**Resultado esperado:** o usuário deixa de acessar o sistema, mas seu histórico permanece preservado.
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+# Como cadastrar
 
 <Steps>
   <Step>
-    ### 1. Acesse a Tela
-    No menu principal, navegue até: `Cadastro > Usuário > Usuário`.
+    Acesse **Cadastro > Usuário > Usuário**.
   </Step>
-  <Step>
-    ### 2. Defina as Credenciais
-    Clique no botão **Incluir** e preencha os campos de acesso principais:
 
-    - **Participante:** Vincule o login a um cadastro de pessoa (colaborador) no sistema. Esse vínculo é essencial para registros de auditoria.
-    - **Nome:** Define o 'login' de acesso do usuário. Recomenda-se usar um padrão, como 'nome.sobrenome', para facilitar a identificação.
-    - **Senha:** A credencial de acesso. O sistema pode exigir critérios de segurança para a senha, definidos pelo administrador.
+  <Step>
+    Clique em **Incluir** para criar um novo usuário.
+  </Step>
+
+  <Step>
+    No campo **Participante**, selecione o colaborador ou pessoa vinculada ao login.
+
+```
+Caso o participante ainda não exista, cadastre-o antes no cadastro de Participantes.
+```
 
   </Step>
-  <Step>
-    ### 3. Configure os Acessos
-    Utilize as abas verticais para granular as permissões do usuário:
 
-    <Tabs items={['Perfil', 'Empresa', 'Contas Bancárias', 'Grupo Conta Caixa']}>
-      <Tab value="Perfil">
-        Selecione o **Perfil de Acesso** que define as permissões de tela para este usuário. Este é o vínculo mais importante para a segurança. Ex: `VENDEDORES`.
-      </Tab>
-      <Tab value="Empresa">
-        Vincule o usuário à empresa ou às filiais que ele poderá acessar. Se nenhuma for selecionada, ele não terá acesso a nenhuma.
-      </Tab>
-      <Tab value="Contas Bancárias">
-        Defina as contas bancárias que o usuário poderá movimentar. Se nenhuma for selecionada, ele terá acesso a **todas** as contas.
-      </Tab>
-      <Tab value="Grupo Conta Caixa">
-        Restrinja o acesso do usuário a um grupo específico de contas caixa, ideal para operadores de caixa de diferentes setores.
-      </Tab>
-    </Tabs>
-  </Step>
   <Step>
-    ### 4. Salve o Cadastro
-    Após preencher todas as informações, clique em **Salvar**. O usuário estará pronto para acessar o sistema.
+    Preencha o campo **Nome** com o login do usuário.
+
+```
+Exemplo: **joao.silva**.
+```
+
+  </Step>
+
+  <Step>
+    Informe a **Senha** inicial do usuário.
+  </Step>
+
+  <Step>
+    Acesse a aba **Perfil** e selecione o **Perfil de Acesso** adequado para a função do usuário.
+  </Step>
+
+  <Step>
+    Acesse a aba **Empresa** e selecione as empresas ou filiais que o usuário poderá acessar.
+
+```
+Se a empresa usa múltiplas filiais, revise este vínculo com atenção.
+```
+
+  </Step>
+
+  <Step>
+    Acesse a aba **Contas Bancárias** e selecione as contas que o usuário poderá movimentar, quando aplicável.
+  </Step>
+
+  <Step>
+    Acesse a aba **Grupo Conta Caixa** e defina o grupo permitido, quando o usuário operar caixa.
+  </Step>
+
+  <Step>
+    Revise todas as permissões, empresas e restrições financeiras.
+  </Step>
+
+  <Step>
+    Clique em **Salvar**.
+  </Step>
+
+  <Step>
+    Realize um teste de login com o usuário ou valide com o colaborador se os menus e rotinas necessários estão disponíveis.
   </Step>
 </Steps>
 
 ---
 
-## Perguntas Frequentes
+# Validação por perfil
 
-<Accordions>
-  <Accordion title="O que fazer se um usuário esquecer a senha?">
-    O administrador do sistema pode acessar o cadastro do usuário, ir até o campo "Senha" e definir uma nova senha para que o usuário possa acessar o sistema.
+<Tabs items={['Usuário', 'Administrador', 'Suporte']}> <Tab value="Usuário">
+O usuário deve conferir:
+
+```
+- se consegue acessar o sistema;
+- se a senha funciona;
+- se os menus necessários aparecem;
+- se consegue acessar a empresa correta;
+- se consegue executar as rotinas da sua função;
+- se alguma mensagem de acesso negado aparece.
+
+Caso falte acesso, deve solicitar validação ao gestor ou administrador.
+```
+
+  </Tab>
+
+  <Tab value="Administrador">
+    O administrador deve validar:
+
+```
+- participante correto;
+- login padronizado;
+- perfil de acesso adequado;
+- empresas corretas;
+- contas bancárias permitidas;
+- grupo conta caixa correto;
+- usuário ativo ou inativo;
+- acessos compatíveis com a função;
+- ausência de permissões excessivas.
+
+Recomenda-se revisar usuários periodicamente, principalmente após desligamentos ou mudança de função.
+```
+
+  </Tab>
+
+  <Tab value="Suporte">
+    O suporte deve verificar:
+
+```
+- se o usuário está ativo;
+- se a senha foi informada corretamente;
+- se o participante está vinculado;
+- qual perfil de acesso está selecionado;
+- quais empresas estão liberadas;
+- se há restrição de contas bancárias;
+- se há grupo conta caixa configurado;
+- se o problema ocorre apenas com um usuário ou com todos do mesmo perfil.
+
+Para análise, solicite nome do usuário, perfil vinculado, empresa acessada e print da mensagem apresentada.
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+# Boas práticas
+
+* Cadastre o participante antes de criar o usuário.
+* Use login individual para cada colaborador.
+* Evite usuários genéricos compartilhados.
+* Padronize o campo nome/login.
+* Vincule sempre um perfil de acesso coerente com a função.
+* Revise empresas liberadas para o usuário.
+* Restrinja contas bancárias quando o usuário não deve acessar todas.
+* Configure grupo conta caixa para operadores de caixa.
+* Inative usuários desligados.
+* Evite excluir usuários com histórico.
+* Revise acessos periodicamente.
+* Não compartilhe senhas entre colaboradores.
+
+<Callout type="success" title="Boa prática de segurança">
+  Cada colaborador deve possuir seu próprio usuário. Isso melhora a rastreabilidade e evita dúvidas sobre quem executou determinada ação.
+</Callout>
+
+---
+
+# Impactos no sistema
+
+| Área         | Impacto                                                                                |
+| ------------ | -------------------------------------------------------------------------------------- |
+| Segurança    | Define quem pode acessar o ERP e quais recursos estarão disponíveis.                   |
+| Auditoria    | Permite rastrear ações por usuário, quando o sistema registra essas informações.       |
+| Vendas       | Perfil e empresa podem controlar acesso a vendas, descontos, cancelamentos e caixas.   |
+| Financeiro   | Contas bancárias e permissões definem movimentações permitidas.                        |
+| Fiscal       | Perfil pode liberar ou restringir emissão, cancelamento e acesso a documentos fiscais. |
+| Multiempresa | Aba Empresa controla quais empresas ou filiais o usuário poderá operar.                |
+| Caixa        | Grupo Conta Caixa restringe movimentações por setor, operador ou ponto de venda.       |
+| Suporte      | Facilita diagnóstico de acesso negado, menus ausentes e permissões incorretas.         |
+
+<Callout type="warning" title="Risco de acesso indevido">
+  Usuários com perfil incorreto ou contas bancárias liberadas indevidamente podem acessar informações sensíveis ou executar operações fora da sua função.
+</Callout>
+
+---
+
+# Checklist antes de salvar
+
+Antes de salvar o cadastro de Usuário, confira:
+
+* participante correto selecionado;
+* login preenchido e padronizado;
+* senha informada;
+* perfil de acesso correto;
+* empresas liberadas revisadas;
+* contas bancárias selecionadas, quando houver restrição;
+* regra de contas bancárias compreendida;
+* grupo conta caixa configurado, quando aplicável;
+* usuário ativo apenas quando deve acessar o sistema;
+* permissões compatíveis com a função;
+* teste de acesso realizado;
+* usuário não está duplicado;
+* usuário não é compartilhado entre colaboradores.
+
+---
+
+# Exemplos de configuração
+
+<Tabs items={['Vendedor', 'Financeiro', 'Caixa', 'Administrador']}> <Tab value="Vendedor">
+Exemplo:
+
+````
+```txt
+Participante: João da Silva
+Nome: joao.silva
+Perfil de Acesso: Vendedores
+Empresa: Loja Matriz
+Contas Bancárias: não liberar, quando não necessário
+Grupo Conta Caixa: Caixa Vendas, quando aplicável
+```
+
+**Resultado esperado:** o vendedor acessa as rotinas comerciais permitidas.
+````
+
+  </Tab>
+
+  <Tab value="Financeiro">
+    Exemplo:
+
+````
+```txt
+Participante: Maria Financeiro
+Nome: maria.financeiro
+Perfil de Acesso: Financeiro
+Empresa: Matriz e Filial 01
+Contas Bancárias: Banco Principal, Banco Cobrança
+Grupo Conta Caixa: não aplicável
+```
+
+**Resultado esperado:** o usuário acessa rotinas financeiras e movimenta apenas as contas autorizadas.
+````
+
+  </Tab>
+
+  <Tab value="Caixa">
+    Exemplo:
+
+````
+```txt
+Participante: Paulo Caixa
+Nome: paulo.caixa
+Perfil de Acesso: Operador de Caixa
+Empresa: Loja 01
+Contas Bancárias: conforme política da empresa
+Grupo Conta Caixa: Caixa Loja 01
+```
+
+**Resultado esperado:** o operador utiliza apenas o grupo de caixa autorizado.
+````
+
+  </Tab>
+
+  <Tab value="Administrador">
+    Exemplo:
+
+````
+```txt
+Participante: Administrador Interno
+Nome: admin.sistema
+Perfil de Acesso: Administrador
+Empresa: Todas as empresas necessárias
+Contas Bancárias: conforme autorização da diretoria
+Grupo Conta Caixa: conforme necessidade
+```
+
+**Resultado esperado:** o administrador possui acesso amplo, respeitando os controles financeiros definidos pela empresa.
+````
+
+  </Tab>
+</Tabs>
+
+---
+
+# Problemas comuns
+
+<Accordions type="single">
+  <Accordion title="O usuário não consegue entrar no sistema" id="usuario-nao-entra">
+    Verifique se o nome/login e a senha foram digitados corretamente.
+
+```
+Também confirme se o usuário está ativo e se o cadastro foi salvo.
+```
+
   </Accordion>
-  <Accordion title="Por que um usuário não consegue ver um menu ou relatório?">
-    Isso quase sempre está relacionado às permissões. Verifique o **Perfil de Acesso** vinculado ao usuário e garanta que ele tenha a permissão necessária para acessar a funcionalidade desejada.
+
+  <Accordion title="O usuário esqueceu a senha" id="usuario-esqueceu-senha">
+    O administrador pode acessar o cadastro do usuário e definir uma nova senha no campo **Senha**.
+
+```
+Após a alteração, oriente o usuário a acessar novamente o sistema.
+```
+
   </Accordion>
-  <Accordion title="Um usuário pode ter acesso a mais de uma empresa?">
-    Sim. Na aba **Empresa**, você pode selecionar todas as empresas e filiais às quais o usuário deve ter acesso.
+
+  <Accordion title="O usuário não vê um menu ou relatório" id="usuario-nao-ve-menu">
+    Verifique o **Perfil de Acesso** vinculado ao usuário.
+
+```
+O perfil precisa conter o módulo e a ação necessária para acessar a funcionalidade.
+```
+
   </Accordion>
-  <Accordion title="Como bloquear o acesso de um usuário que foi desligado?">
-    A melhor prática é acessar o cadastro do usuário e fazer a **inativação**.
+
+  <Accordion title="O usuário não consegue acessar uma empresa" id="usuario-nao-acessa-empresa">
+    Confira a aba **Empresa** no cadastro do usuário.
+
+```
+Se a empresa ou filial não estiver liberada, o usuário pode não conseguir acessá-la.
+```
+
+  </Accordion>
+
+  <Accordion title="O usuário não consegue movimentar uma conta bancária" id="usuario-nao-movimenta-conta">
+    Verifique a aba **Contas Bancárias**.
+
+```
+Confirme se a conta desejada está liberada para o usuário ou se a política da empresa permite acesso geral quando nenhuma conta está selecionada.
+```
+
+  </Accordion>
+
+  <Accordion title="O usuário está acessando contas que não deveria" id="usuario-acessa-contas-indevidas">
+    Revise a aba **Contas Bancárias**.
+
+```
+Se nenhuma conta for selecionada e o sistema considerar isso como acesso a todas, selecione explicitamente apenas as contas permitidas.
+```
+
+  </Accordion>
+
+  <Accordion title="O usuário não consegue operar o caixa correto" id="usuario-nao-opera-caixa">
+    Verifique a aba **Grupo Conta Caixa**.
+
+```
+O usuário deve estar vinculado ao grupo correspondente à sua operação.
+```
+
+  </Accordion>
+
+  <Accordion title="O colaborador foi desligado" id="colaborador-desligado">
+    Acesse o cadastro do usuário e realize a **inativação**.
+
+```
+Evite excluir o usuário para preservar histórico e rastreabilidade.
+```
+
   </Accordion>
 </Accordions>
+
+---
+
+# Perguntas frequentes
+
+<Accordions type="single">
+  <Accordion title="Para que serve o cadastro de Usuário?" id="para-que-serve-usuario">
+    Serve para criar e configurar os acessos ao Syspro ERP, definindo login, senha, perfil, empresas, contas bancárias e grupo conta caixa.
+  </Accordion>
+
+  <Accordion title="Onde acesso o cadastro de Usuário?" id="onde-acessar-usuario">
+    Acesse **Cadastro > Usuário > Usuário**.
+  </Accordion>
+
+  <Accordion title="Preciso vincular um participante ao usuário?" id="precisa-vincular-participante">
+    Sim, é recomendado vincular o usuário ao participante correspondente.
+
+```
+Esse vínculo ajuda na identificação, organização e rastreabilidade das ações.
+```
+
+  </Accordion>
+
+  <Accordion title="Qual é a diferença entre usuário e perfil de acesso?" id="usuario-vs-perfil">
+    **Usuário** é o login individual de acesso ao sistema.
+
+```
+**Perfil de Acesso** é o conjunto de permissões aplicado ao usuário.
+```
+
+  </Accordion>
+
+  <Accordion title="Um usuário pode ter acesso a mais de uma empresa?" id="usuario-varias-empresas">
+    Sim. Na aba **Empresa**, selecione todas as empresas ou filiais que o usuário poderá acessar.
+  </Accordion>
+
+  <Accordion title="O que acontece se nenhuma empresa for selecionada?" id="nenhuma-empresa-selecionada">
+    Conforme a regra informada, se nenhuma empresa for selecionada, o usuário pode não ter acesso a nenhuma empresa.
+
+```
+Por isso, revise essa aba antes de liberar o usuário.
+```
+
+  </Accordion>
+
+  <Accordion title="O que acontece se nenhuma conta bancária for selecionada?" id="nenhuma-conta-bancaria">
+    Conforme a regra informada, se nenhuma conta bancária for selecionada, o usuário poderá ter acesso a todas as contas.
+
+```
+Caso a empresa deseje restringir acesso, selecione explicitamente as contas permitidas.
+```
+
+  </Accordion>
+
+  <Accordion title="O que fazer se o usuário esquecer a senha?" id="esqueceu-senha-faq">
+    O administrador pode acessar o cadastro do usuário, alterar o campo **Senha** e salvar uma nova senha.
+  </Accordion>
+
+  <Accordion title="Como bloquear o acesso de um usuário desligado?" id="bloquear-usuario-desligado">
+    A melhor prática é inativar o usuário.
+
+```
+Assim, o acesso é bloqueado e o histórico permanece preservado.
+```
+
+  </Accordion>
+
+  <Accordion title="O que devo conferir antes de chamar o suporte?" id="antes-de-chamar-suporte-usuario">
+    Confira se o usuário está ativo, se a senha foi redefinida corretamente, se o perfil está vinculado, se a empresa foi liberada e se as contas bancárias ou grupo conta caixa estão configurados.
+
+```
+Se possível, envie print da mensagem de erro e informe o login do usuário.
+```
+
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+O cadastro de **Usuário** é responsável por controlar o acesso ao Syspro ERP.
+
+Ele define credenciais, vínculo com participante, perfil de acesso, empresas permitidas, contas bancárias e grupo conta caixa. Por isso, deve ser configurado com atenção e revisado sempre que houver contratação, mudança de função ou desligamento de colaboradores.
+
+<Callout type="success" title="Resumo">
+  Crie usuários individuais, vincule o participante correto, selecione o perfil adequado, revise empresas e contas permitidas e inative usuários que não devem mais acessar o sistema.
+</Callout>

@@ -1,109 +1,867 @@
+Segue o manual de **Perfil de Acesso** refeito no mesmo padrão enterprise MDX.
+
+````mdx
 ---
-title: Perfil de Acesso
-description: Entenda como configurar perfis de acesso para facilitar o controle de permissões no Syspro ERP.
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Cadastro de Perfil de Acesso
+description: Manual técnico e operacional para configuração de perfis de acesso no Syspro ERP, com foco em permissões, módulos, ações e controle de usuários.
+lastUpdated: 2026-05-09
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - cadastro
+  - usuario
   - perfil-acesso
+  - permissao
+  - seguranca
+  - syspro
 ---
 
-import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+import SuporteSection from '@/components/docs/SuporteSection';
+
+# Cadastro de Perfil de Acesso
 
 ## Introdução
 
-O **Perfil de Acesso** é uma ferramenta essencial para agrupar permissões e restrições, simplificando a gestão de acessos para múltiplos usuários com funções semelhantes no Syspro ERP.
+O cadastro de **Perfil de Acesso** é utilizado para agrupar permissões e restrições de usuários no **Syspro ERP**.
 
-Em vez de configurar cada usuário individualmente, você pode criar um perfil único (por exemplo, "Vendedores") e atribuí-lo a todos os colaboradores dessa função, garantindo padronização e agilidade.
+Em vez de configurar as permissões individualmente para cada usuário, a empresa pode criar perfis por função, setor ou responsabilidade, como **Vendedores**, **Financeiro**, **Compras**, **Gerência** ou **Suporte**.
+
+Após criado, o perfil pode ser vinculado a um ou mais usuários, garantindo padronização, segurança e facilidade na gestão de acessos.
+
+<Callout type="info" title="Objetivo do módulo">
+  Centralizar permissões de acesso por perfil, facilitando o controle de módulos, telas e ações disponíveis para cada grupo de usuários.
+</Callout>
+
+<InlineTOC items={toc}>Nesta página</InlineTOC>
 
 ---
 
-## Passo a Passo: Criando um Perfil de Acesso
+## Visão geral
+
+<Cards>
+  <Card title="Onde acessar">
+    Acesse **Cadastro > Usuário > Perfil de Acesso**.
+  </Card>
+
+  <Card title="Quando utilizar">
+    Utilize esta tela para criar, revisar ou alterar conjuntos de permissões aplicados a usuários com funções semelhantes.
+  </Card>
+
+  <Card title="Impacto no sistema">
+    O perfil define quais módulos o usuário pode acessar e quais ações poderá executar dentro do Syspro ERP.
+  </Card>
+
+  <Card title="Perfil recomendado">
+    Indicado para administradores do sistema, responsáveis pela implantação e equipe de suporte.
+  </Card>
+</Cards>
+
+---
+
+## Quando utilizar
+
+Utilize o cadastro de **Perfil de Acesso** quando for necessário controlar permissões de forma padronizada.
+
+| Situação | Como o módulo ajuda |
+|---|---|
+| Criar acesso para vendedores | Permite liberar apenas módulos e ações relacionados à rotina comercial. |
+| Criar acesso para financeiro | Restringe o usuário às rotinas financeiras necessárias. |
+| Controlar acesso por setor | Facilita a separação de permissões entre compras, vendas, estoque, fiscal e financeiro. |
+| Evitar permissões indevidas | Reduz o risco de alterações, exclusões ou acessos não autorizados. |
+| Implantar novos usuários | Permite vincular rapidamente um perfil já validado ao novo usuário. |
+| Auditar permissões | Facilita a revisão de acessos por grupo de usuários. |
+
+<Callout type="success" title="Exemplo prático">
+  Em uma equipe comercial, é possível criar o perfil **Vendedores** e liberar apenas as telas de venda, consulta de participantes e ações comerciais necessárias, evitando acesso indevido a módulos financeiros ou administrativos.
+</Callout>
+
+---
+
+## Dicionário de campos
+
+<TypeTable
+  type={{
+    descricao: {
+      description: 'Nome do perfil de acesso. Deve identificar claramente o setor, função ou grupo de usuários que utilizará o perfil.',
+      type: 'Texto',
+      required: true,
+    },
+    modulos: {
+      description: 'Lista de módulos, menus ou telas que podem ser liberados para o perfil.',
+      type: 'Seleção múltipla',
+      required: true,
+    },
+    acoes: {
+      description: 'Lista de ações permitidas dentro dos módulos liberados, como incluir, alterar, excluir ou executar rotinas específicas.',
+      type: 'Seleção múltipla',
+      required: false,
+    },
+    incluir: {
+      description: 'Permissão para criar novos registros nas telas liberadas.',
+      type: 'Sim | Não',
+      required: false,
+    },
+    alterar: {
+      description: 'Permissão para editar registros existentes nas telas liberadas.',
+      type: 'Sim | Não',
+      required: false,
+    },
+    excluir: {
+      description: 'Permissão para remover registros, quando a tela permitir exclusão.',
+      type: 'Sim | Não',
+      required: false,
+      default: 'Não',
+    },
+    consultar: {
+      description: 'Permissão para acessar e visualizar registros nas telas liberadas.',
+      type: 'Sim | Não',
+      required: false,
+    },
+    permissoesEspecificas: {
+      description: 'Permissões adicionais relacionadas a regras sensíveis, como alterar limite de crédito, alterar preço especial ou alterar cadastro específico.',
+      type: 'Seleção múltipla',
+      required: false,
+    },
+    usuariosVinculados: {
+      description: 'Usuários que utilizam o perfil de acesso. O vínculo normalmente é realizado no cadastro de Usuário.',
+      type: 'Relacionamento',
+      required: false,
+    },
+  }}
+/>
+
+<Callout type="warning" title="Atenção ao conceder permissões">
+  Permissões de alteração, exclusão, crédito, preço especial e configurações administrativas devem ser liberadas apenas para usuários autorizados.
+</Callout>
+
+---
+
+## Estrutura da tela
+
+<Tabs items={['Cadastro', 'Módulos', 'Ações', 'Vínculo com Usuário']}>
+  <Tab value="Cadastro">
+    A área de **Cadastro** é utilizada para informar a descrição do perfil.
+
+    Exemplos de descrição:
+
+    - Vendedores;
+    - Financeiro;
+    - Compras;
+    - Estoque;
+    - Gerência;
+    - Suporte;
+    - Administrador.
+
+    A descrição deve ser clara para facilitar manutenção e auditoria.
+  </Tab>
+
+  <Tab value="Módulos">
+    A área de **Módulos** permite selecionar quais telas, menus ou grupos de funcionalidades o perfil poderá acessar.
+
+    Exemplos:
+
+    - Compra;
+    - Cotação;
+    - Digitação de Preço;
+    - Pedido de Compra;
+    - Cadastro.Empresa;
+    - Cadastro.Participante.Participante;
+    - Cadastro.Postal.Cidade.
+
+    Marque apenas os módulos necessários para a rotina do perfil.
+  </Tab>
+
+  <Tab value="Ações">
+    A área de **Ações** define o que o usuário poderá executar dentro dos módulos liberados.
+
+    Exemplos:
+
+    - Incluir;
+    - Alterar;
+    - Excluir;
+    - Alterar limite de crédito;
+    - Alterar preço especial;
+    - Alterar cadastro ao consumidor.
+
+    Essas permissões devem ser revisadas com atenção.
+  </Tab>
+
+  <Tab value="Vínculo com Usuário">
+    Após criar o perfil, ele deve ser vinculado no cadastro de usuário.
+
+    O caminho normalmente é:
+
+    **Cadastro > Usuário > Usuário**
+
+    Ao incluir ou editar um usuário, selecione o campo **Perfil de Acesso** e salve o cadastro.
+  </Tab>
+</Tabs>
+
+---
+
+# Campos principais
+
+## Descrição
+
+O campo **Descrição** identifica o perfil de acesso.
+
+Utilize nomes objetivos e relacionados à função do usuário.
+
+Exemplos recomendados:
+
+- `Vendedores`;
+- `Financeiro`;
+- `Compras`;
+- `Estoque`;
+- `Gerência`;
+- `Suporte`;
+- `Administrador`.
+
+Evite descrições genéricas como:
+
+- `Teste`;
+- `Usuário`;
+- `Perfil 1`;
+- `Geral`.
+
+<Callout type="success" title="Boa prática">
+  Use nomes que representem claramente o setor ou função. Isso facilita auditoria, suporte e manutenção futura.
+</Callout>
+
+---
+
+## Módulos
+
+A seção **Módulos** define quais áreas do sistema estarão disponíveis para o perfil.
+
+Exemplo de liberação:
+
+```txt
+Compra
+[x] Cotação
+[x] Digitação de Preço
+[ ] Pedido de Compra
+
+Comum
+[x] Cadastro.Empresa
+[x] Cadastro.Participante.Participante
+[ ] Cadastro.Postal.Cidade
+````
+
+<Callout type="info" title="Permissão por necessidade">
+  Libere apenas os módulos necessários para a função do usuário. Essa prática reduz riscos operacionais e melhora a segurança do sistema.
+</Callout>
+
+---
+
+## Ações
+
+A seção **Ações** define o que o usuário pode fazer dentro dos módulos liberados.
+
+Exemplo:
+
+```txt
+[x] Alterar Cadastro AO CONSUMIDOR
+[x] Alterar Limite de Crédito
+[x] Alterar Preço Especial
+[ ] Excluir
+[x] Incluir
+```
+
+As ações podem variar conforme o módulo selecionado e a configuração da empresa.
+
+<Callout type="warning" title="Permissão de exclusão">
+  Seja criterioso ao liberar a ação **Excluir**. Uma exclusão indevida pode causar perda de dados ou exigir intervenção técnica para análise e recuperação.
+</Callout>
+
+---
+
+## Perfil vinculado ao usuário
+
+O perfil criado passa a ter efeito quando é vinculado ao cadastro de um usuário.
+
+Caminho:
+
+**Cadastro > Usuário > Usuário**
+
+Ao editar ou incluir um usuário, selecione o perfil no campo **Perfil de Acesso**.
+
+<Callout type="info" title="Herança de permissões">
+  O usuário herda as permissões configuradas no perfil. Sempre revise o perfil antes de vinculá-lo a múltiplos usuários.
+</Callout>
+
+---
+
+# Relações com outros cadastros
+
+O cadastro de **Perfil de Acesso** se relaciona principalmente com usuários e rotinas do sistema.
+
+| Cadastro ou módulo relacionado | Impacto                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Usuário                        | O perfil define quais permissões o usuário receberá.                                            |
+| Módulos do sistema             | Controla quais telas e menus estarão disponíveis.                                               |
+| Vendas                         | Pode liberar ou restringir ações como desconto, alteração de preço, cancelamento ou reabertura. |
+| Financeiro                     | Pode controlar acesso a títulos, recebimentos, pagamentos e alterações sensíveis.               |
+| Compras                        | Pode liberar cotação, pedido, entrada ou alteração de preços.                                   |
+| Estoque                        | Pode restringir movimentações, ajustes e consultas.                                             |
+| Fiscal                         | Pode limitar acesso a emissão, cancelamento ou configurações fiscais.                           |
+| Cadastros                      | Pode controlar inclusão, alteração e exclusão de registros estruturais.                         |
+| Suporte                        | Auxilia no diagnóstico de problemas relacionados a acesso negado ou módulos não visíveis.       |
+
+<Callout type="info" title="Segurança operacional">
+  O perfil de acesso é uma camada importante de segurança. Ele ajuda a evitar que usuários executem ações fora da sua responsabilidade.
+</Callout>
+
+---
+
+# Cenários práticos
+
+<Tabs items={['Perfil de Vendas', 'Perfil Financeiro', 'Perfil Administrativo', 'Perfil Restrito']}> <Tab value="Perfil de Vendas">
+Use este cenário para usuários que atuam no atendimento comercial.
+
+```
+Permissões comuns:
+
+- acessar venda;
+- consultar participante;
+- incluir orçamento;
+- consultar produto;
+- aplicar desconto dentro da política da empresa;
+- visualizar histórico comercial, quando aplicável.
+
+Permissões que exigem cuidado:
+
+- alterar limite de crédito;
+- alterar preço especial;
+- excluir registros;
+- reabrir vendas.
+
+**Resultado esperado:** o vendedor acessa apenas as rotinas necessárias para atendimento e venda.
+```
+
+  </Tab>
+
+  <Tab value="Perfil Financeiro">
+    Use este cenário para usuários responsáveis por contas a pagar, contas a receber e cobrança.
+
+```
+Permissões comuns:
+
+- consultar títulos;
+- baixar recebimentos;
+- emitir boletos ou carnês;
+- consultar participantes;
+- acessar relatórios financeiros.
+
+Permissões que exigem cuidado:
+
+- alterar vencimento;
+- conceder desconto;
+- cancelar baixa;
+- excluir títulos.
+
+**Resultado esperado:** o financeiro opera suas rotinas sem acesso indevido a áreas administrativas ou fiscais.
+```
+
+  </Tab>
+
+  <Tab value="Perfil Administrativo">
+    Use este cenário para gestores ou usuários com responsabilidade maior sobre configurações.
+
+```
+Permissões comuns:
+
+- acessar cadastros principais;
+- revisar configurações;
+- alterar dados administrativos;
+- consultar relatórios gerenciais;
+- configurar parâmetros, quando aplicável.
+
+**Resultado esperado:** o administrador possui acesso ampliado, mas ainda controlado conforme política interna.
+```
+
+  </Tab>
+
+  <Tab value="Perfil Restrito">
+    Use este cenário para usuários temporários, auxiliares ou operadores com acesso limitado.
+
+```
+Permissões comuns:
+
+- consultar informações específicas;
+- executar apenas rotinas essenciais;
+- sem acesso a exclusão;
+- sem acesso a configurações críticas;
+- sem acesso a dados financeiros sensíveis, quando aplicável.
+
+**Resultado esperado:** o usuário realiza apenas as atividades autorizadas.
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+# Como cadastrar
 
 <Steps>
   <Step>
-    ### 1. Acesse a Tela de Perfis
-    No menu principal do Syspro, navegue até:
-    `Cadastro > Usuário > Perfil de Acesso`.
+    Acesse **Cadastro > Usuário > Perfil de Acesso**.
   </Step>
+
   <Step>
-    ### 2. Crie um Novo Perfil
-    Na tela de gerenciamento, clique no botão **Incluir** para abrir o formulário de um novo perfil.
+    Clique em **Incluir** para criar um novo perfil.
   </Step>
+
   <Step>
-    ### 3. Descreva o Perfil
-    No campo **Descrição**, defina um nome que identifique claramente a função do perfil, como `Vendedores` ou `Financeiro`.
+    No campo **Descrição**, informe um nome claro para o perfil.
+
+```
+Exemplo: **Vendedores**, **Financeiro**, **Compras** ou **Estoque**.
+```
+
   </Step>
+
   <Step>
-    ### 4. Defina as Permissões
-    A tela de permissões é dividida em duas áreas principais: **Módulos** (à esquerda), onde você concede acesso a partes do sistema, e **Ações** (à direita), onde você define o que o usuário pode fazer nesses módulos.
+    Na área de **Módulos**, selecione as telas e menus que o perfil poderá acessar.
 
-    <div className="my-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Coluna da Esquerda: Módulos */}
-      <div className="p-4 border rounded-lg">
-        <h4 className="font-semibold mb-2 text-green-600">Módulos</h4>
-        <p className="text-sm text-muted-foreground mb-4">Selecione os módulos que o perfil pode acessar.</p>
-        
-        **Compra**
-        - [x] Cotação
-        - [x] Digitação de Preço
-        - [ ] Pedido de Compra
+```
+Marque apenas os módulos necessários para a rotina do grupo de usuários.
+```
 
-        **Comum**
-        - [x] Cadastro.Empresa
-        - [x] Cadastro.Participante.Participante
-        - [ ] Cadastro.Postal.Cidade
-      </div>
-      
-      {/* Coluna da Direita: Ações */}
-      <div className="p-4 border rounded-lg">
-        <h4 className="font-semibold mb-2 text-green-600">Ações</h4>
-        <p className="text-sm text-muted-foreground mb-4">Selecione as ações permitidas.</p>
-
-        - [x] Alterar Cadastro AO CONSUMIDOR
-        - [x] Alterar Limite de Crédito
-        - [x] Alterar Preço Especial
-        - [ ] Excluir
-        - [x] Incluir
-      </div>
-    </div>
-
-    <Callout type="warning" title="Atenção ao Conceder Permissões">
-    Seja criterioso ao liberar a ação de **Excluir**. Uma vez que um registro é removido, a recuperação pode ser complexa ou impossível.
-    </Callout>
   </Step>
+
   <Step>
-    ### 5. Salve o Perfil
-    Após revisar todas as configurações, clique em **Salvar**. O perfil estará pronto para ser vinculado aos usuários.
+    Na área de **Ações**, selecione as permissões permitidas para o perfil.
+
+```
+Exemplos:
+
+- incluir;
+- alterar;
+- excluir;
+- alterar limite de crédito;
+- alterar preço especial;
+- alterar cadastro ao consumidor.
+```
+
+  </Step>
+
+  <Step>
+    Revise permissões sensíveis, principalmente ações de exclusão, alteração financeira, alteração comercial e acesso a configurações.
+  </Step>
+
+  <Step>
+    Clique em **Salvar**.
+  </Step>
+
+  <Step>
+    Acesse **Cadastro > Usuário > Usuário**.
+  </Step>
+
+  <Step>
+    Inclua um novo usuário ou edite um usuário existente.
+  </Step>
+
+  <Step>
+    No campo **Perfil de Acesso**, selecione o perfil criado.
+  </Step>
+
+  <Step>
+    Clique em **Salvar**.
+  </Step>
+
+  <Step>
+    Realize um teste com o usuário para validar se os módulos e ações foram liberados corretamente.
   </Step>
 </Steps>
 
 ---
 
-## Atribuindo o Perfil a um Usuário
+# Validação por perfil
 
-Com o perfil criado, o próximo passo é vinculá-lo a um usuário.
+<Tabs items={['Usuário', 'Administrador', 'Suporte']}> <Tab value="Usuário">
+O usuário deve conferir:
 
-1.  Acesse o menu: `Cadastro > Usuário > Usuário`.
-2.  Ao **incluir um novo usuário** ou **editar um existente**, localize o campo **"Perfil de Acesso"**.
-3.  Selecione na lista o perfil que você criou.
-4.  Clique em **Salvar**.
+```
+- se consegue acessar os módulos necessários;
+- se consegue executar as ações da sua rotina;
+- se algum menu esperado não aparece;
+- se alguma mensagem de acesso negado é exibida.
 
-O usuário herdará automaticamente todas as permissões do perfil.
+Caso falte acesso, o usuário deve acionar o gestor ou administrador do sistema.
+```
+
+  </Tab>
+
+  <Tab value="Administrador">
+    O administrador deve validar:
+
+```
+- se o perfil possui descrição clara;
+- se os módulos liberados fazem sentido para a função;
+- se ações sensíveis estão restritas;
+- se a permissão de exclusão foi evitada quando não necessária;
+- se o perfil foi vinculado aos usuários corretos;
+- se não existem usuários com permissões excessivas.
+
+Recomenda-se revisar perfis periodicamente.
+```
+
+  </Tab>
+
+  <Tab value="Suporte">
+    O suporte deve verificar:
+
+```
+- qual usuário está apresentando o problema;
+- qual perfil está vinculado ao usuário;
+- se o módulo está marcado no perfil;
+- se a ação desejada está liberada;
+- se o problema ocorre com um usuário ou com todos do mesmo perfil;
+- se houve alteração recente no perfil.
+
+Em caso de acesso negado, solicite print da tela, nome do usuário, perfil vinculado e ação executada.
+```
+
+  </Tab>
+</Tabs>
 
 ---
 
-## Dúvidas Frequentes
+# Boas práticas
 
-<Accordions>
-  <Accordion title="O que fazer se um módulo não aparecer para mim?">
-    Entre em contato com o **administrador do sistema** ou com seu gestor. Eles poderão verificar as permissões do seu perfil de acesso.
+* Crie perfis por função ou setor.
+* Use descrições claras e padronizadas.
+* Evite criar perfis genéricos demais.
+* Não libere permissões administrativas para usuários operacionais.
+* Evite liberar a ação **Excluir** sem necessidade.
+* Revise permissões de crédito, desconto e preço especial.
+* Teste o perfil antes de vincular a muitos usuários.
+* Mantenha usuários com funções semelhantes no mesmo perfil.
+* Revise perfis quando houver mudança de função do colaborador.
+* Documente perfis críticos e suas permissões principais.
+* Remova acessos que não são mais necessários.
+
+<Callout type="success" title="Boa prática de segurança">
+  Trabalhe com o princípio do menor privilégio: cada usuário deve ter apenas as permissões necessárias para executar sua função.
+</Callout>
+
+---
+
+# Impactos no sistema
+
+| Área       | Impacto                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| Segurança  | Reduz acesso indevido a telas, dados e ações sensíveis.                                     |
+| Operação   | Garante que cada usuário tenha acesso às rotinas necessárias.                               |
+| Vendas     | Pode restringir desconto, preço especial, reabertura, cancelamento e alterações comerciais. |
+| Financeiro | Pode controlar acesso a títulos, baixas, descontos, juros e cancelamentos.                  |
+| Compras    | Pode liberar ou bloquear cotação, pedido, alteração de preço e entrada.                     |
+| Fiscal     | Pode restringir emissão, cancelamento e configurações fiscais.                              |
+| Cadastros  | Pode limitar inclusão, alteração e exclusão de dados estruturais.                           |
+| Suporte    | Facilita diagnóstico de problemas de acesso ou permissões insuficientes.                    |
+| Auditoria  | Ajuda a organizar responsabilidades por função, setor ou usuário.                           |
+
+<Callout type="warning" title="Impacto de permissões indevidas">
+  Um perfil com permissões excessivas pode permitir alterações críticas, exclusões ou acessos incompatíveis com a função do usuário.
+</Callout>
+
+---
+
+# Checklist antes de salvar
+
+Antes de salvar o perfil de acesso, confira:
+
+* descrição clara do perfil;
+* setor ou função corretamente representado;
+* módulos necessários selecionados;
+* módulos desnecessários desmarcados;
+* ações de inclusão revisadas;
+* ações de alteração revisadas;
+* ação de exclusão liberada apenas quando realmente necessária;
+* permissões financeiras revisadas;
+* permissões comerciais revisadas;
+* permissões fiscais revisadas;
+* permissões administrativas restritas;
+* perfil testado com usuário controlado;
+* usuários corretos vinculados ao perfil.
+
+---
+
+# Exemplos de configuração
+
+<Tabs items={['Vendedores', 'Financeiro', 'Compras', 'Administrador']}> <Tab value="Vendedores">
+Exemplo de perfil para equipe de vendas:
+
+````
+```txt
+Descrição: Vendedores
+
+Módulos:
+[x] Venda
+[x] Orçamento
+[x] Cadastro.Participante.Participante
+[x] Consulta de Produto
+
+Ações:
+[x] Incluir
+[x] Alterar
+[ ] Excluir
+[ ] Alterar Limite de Crédito
+[ ] Alterar Preço Especial
+```
+
+**Resultado esperado:** o vendedor consegue operar vendas e consultar cadastros, sem acesso a permissões sensíveis.
+````
+
+  </Tab>
+
+  <Tab value="Financeiro">
+    Exemplo de perfil para equipe financeira:
+
+````
+```txt
+Descrição: Financeiro
+
+Módulos:
+[x] Contas a Receber
+[x] Contas a Pagar
+[x] Títulos
+[x] Participantes
+[x] Relatórios Financeiros
+
+Ações:
+[x] Incluir
+[x] Alterar
+[ ] Excluir
+[x] Baixar Título
+[x] Emitir Boleto
+```
+
+**Resultado esperado:** o financeiro opera títulos e cobranças com controle sobre ações críticas.
+````
+
+  </Tab>
+
+  <Tab value="Compras">
+    Exemplo de perfil para setor de compras:
+
+````
+```txt
+Descrição: Compras
+
+Módulos:
+[x] Cotação
+[x] Digitação de Preço
+[x] Pedido de Compra
+[x] Fornecedores
+
+Ações:
+[x] Incluir
+[x] Alterar
+[ ] Excluir
+```
+
+**Resultado esperado:** o usuário consegue executar rotinas de compra sem acessar áreas não relacionadas.
+````
+
+  </Tab>
+
+  <Tab value="Administrador">
+    Exemplo de perfil administrativo:
+
+````
+```txt
+Descrição: Administrador
+
+Módulos:
+[x] Cadastros
+[x] Vendas
+[x] Financeiro
+[x] Fiscal
+[x] Estoque
+[x] Relatórios
+
+Ações:
+[x] Incluir
+[x] Alterar
+[x] Consultar
+[ ] Excluir
+```
+
+**Resultado esperado:** o administrador possui acesso amplo, mantendo restrição em exclusão quando a empresa optar por maior segurança.
+````
+
+  </Tab>
+</Tabs>
+
+---
+
+# Problemas comuns
+
+<Accordions type="single">
+  <Accordion title="O módulo não aparece para o usuário" id="modulo-nao-aparece">
+    Verifique se o módulo está marcado no perfil de acesso vinculado ao usuário.
+
+```
+Também confirme se o usuário está com o perfil correto e se o cadastro foi salvo após a alteração.
+```
+
   </Accordion>
-  <Accordion title="Como posso solicitar acesso a uma nova funcionalidade?">
-    Converse com seu gestor para que ele possa avaliar a necessidade e encaminhar a solicitação ao administrador do sistema.
+
+  <Accordion title="O usuário acessa a tela, mas não consegue incluir" id="nao-consegue-incluir">
+    Verifique se a ação **Incluir** está liberada no perfil.
+
+```
+O acesso ao módulo permite abrir a tela, mas a ação precisa estar liberada separadamente quando o sistema utiliza permissões por ação.
+```
+
+  </Accordion>
+
+  <Accordion title="O usuário não consegue alterar um cadastro" id="nao-consegue-alterar">
+    Confira se a ação **Alterar** está marcada no perfil.
+
+```
+Também verifique se existe alguma regra específica para o módulo ou cadastro em questão.
+```
+
+  </Accordion>
+
+  <Accordion title="O usuário não consegue excluir registros" id="nao-consegue-excluir">
+    Verifique se a ação **Excluir** está liberada.
+
+```
+Caso não esteja, confirme com o administrador se essa permissão deve realmente ser concedida.
+```
+
+  </Accordion>
+
+  <Accordion title="O usuário está com acesso maior do que deveria" id="acesso-maior-que-deveria">
+    Revise o perfil vinculado ao usuário.
+
+```
+Verifique se ele foi associado ao perfil correto e se o perfil possui módulos ou ações liberadas indevidamente.
+```
+
+  </Accordion>
+
+  <Accordion title="Alterei o perfil, mas o usuário continua sem acesso" id="alteracao-nao-aplicada">
+    Confirme se o perfil foi salvo corretamente.
+
+```
+Quando aplicável, peça para o usuário sair e entrar novamente no sistema para recarregar as permissões.
+```
+
+  </Accordion>
+
+  <Accordion title="Não sei qual permissão liberar" id="qual-permissao-liberar">
+    Identifique a rotina que o usuário precisa executar, o módulo acessado e a ação desejada.
+
+```
+Em caso de dúvida, libere inicialmente apenas o necessário e teste com o usuário.
+```
+
   </Accordion>
 </Accordions>
+
+---
+
+# Perguntas frequentes
+
+<Accordions type="single">
+  <Accordion title="Para que serve o Perfil de Acesso?" id="para-que-serve-perfil-acesso">
+    Serve para agrupar permissões de acesso e facilitar o controle de módulos e ações disponíveis para usuários do Syspro ERP.
+  </Accordion>
+
+  <Accordion title="Onde acesso o cadastro de Perfil de Acesso?" id="onde-acessar-perfil-acesso">
+    Acesse **Cadastro > Usuário > Perfil de Acesso**.
+  </Accordion>
+
+  <Accordion title="Preciso configurar permissões em cada usuário?" id="precisa-configurar-cada-usuario">
+    Não necessariamente.
+
+```
+A melhor prática é criar um perfil de acesso e vinculá-lo aos usuários com funções semelhantes.
+```
+
+  </Accordion>
+
+  <Accordion title="Um perfil pode ser usado por vários usuários?" id="perfil-varios-usuarios">
+    Sim. Um único perfil pode ser vinculado a vários usuários.
+  </Accordion>
+
+  <Accordion title="O que acontece quando altero um perfil?" id="alterar-perfil-impacto">
+    Os usuários vinculados ao perfil podem ser impactados pela alteração.
+
+```
+Por isso, revise com cuidado antes de alterar perfis usados por muitos usuários.
+```
+
+  </Accordion>
+
+  <Accordion title="O que fazer se um módulo não aparecer para mim?" id="modulo-nao-aparece-faq">
+    Entre em contato com o administrador do sistema ou com seu gestor.
+
+```
+Eles poderão verificar se o módulo está liberado no seu perfil de acesso.
+```
+
+  </Accordion>
+
+  <Accordion title="Como solicitar acesso a uma nova funcionalidade?" id="solicitar-novo-acesso">
+    Solicite ao seu gestor a avaliação da necessidade.
+
+```
+Após aprovação, o administrador pode revisar o perfil de acesso ou criar um perfil específico.
+```
+
+  </Accordion>
+
+  <Accordion title="Devo liberar a permissão Excluir?" id="devo-liberar-excluir">
+    Apenas quando realmente necessário.
+
+```
+A exclusão pode causar perda de dados ou inconsistências, dependendo da rotina. Em muitos casos, é mais seguro permitir inativação ou cancelamento controlado.
+```
+
+  </Accordion>
+
+  <Accordion title="Qual a diferença entre módulo e ação?" id="modulo-vs-acao">
+    **Módulo** define qual tela ou área o usuário pode acessar.
+
+```
+**Ação** define o que ele pode fazer dentro dessa tela, como incluir, alterar ou excluir.
+```
+
+  </Accordion>
+
+  <Accordion title="O que devo conferir antes de chamar o suporte?" id="antes-de-chamar-suporte-perfil">
+    Confira o usuário afetado, o perfil vinculado, o módulo que não aparece, a ação que não funciona e se houve alteração recente nas permissões.
+
+```
+Se possível, envie print da tela e informe o caminho do menu acessado.
+```
+
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+O cadastro de **Perfil de Acesso** permite organizar permissões por função, setor ou responsabilidade dentro do Syspro ERP.
+
+Com ele, a empresa reduz retrabalho, melhora a segurança e facilita a manutenção de usuários, evitando permissões excessivas ou acessos indevidos.
+
+<Callout type="success" title="Resumo">
+  Crie perfis claros, libere apenas os módulos necessários, restrinja ações sensíveis e teste as permissões antes de aplicar o perfil a vários usuários.
+</Callout>

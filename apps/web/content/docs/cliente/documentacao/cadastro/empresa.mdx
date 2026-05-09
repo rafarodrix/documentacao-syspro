@@ -1,196 +1,928 @@
----
-title: Empresa
-description: Este manual oferece uma visão abrangente dos campos e funcionalidades da tela de cadastro de empresa, facilitando a navegação e o uso do sistema.
+Segue o manual refeito no padrão enterprise MDX, usando as informações do cadastro de **Empresa** que você enviou. Usei como base os campos, abas e guias do conteúdo original, incluindo Empresa Participante, Emissão NF-e, SPED Fiscal, PIS/COFINS, Títulos, Vendas, OS, Autorização XML, Precificação e demais parâmetros. 
 
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+````mdx
+---
+title: Cadastro de Empresa
+description: Manual técnico e operacional do cadastro de Empresa no Syspro ERP, incluindo dados cadastrais, emissão fiscal, vendas, títulos, precificação e parâmetros gerais.
+lastUpdated: 2026-05-09
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - cadastro
   - empresa
+  - fiscal
+  - vendas
+  - financeiro
+  - syspro
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { Card, Cards } from 'fumadocs-ui/components/card';
-import { CustomCard } from '@/components/custom-card';
-import { Building, Package, Search, FileText, BarChart2, ShoppingCart, CreditCard, Truck, Folder, User, Wrench, AlertTriangle, Banknote, Percent, LayoutDashboard, Edit, Smartphone, List, Tag, Scale, Calendar, MessagesSquare, Phone, Mail } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+import SuporteSection from '@/components/docs/SuporteSection';
 
-O cadastro de empresas é essencial para o funcionamento do sistema, pois todas as operações dependem das informações registradas. Este manual visa apresentar as configurações básicas e necessárias para o funcionamento do sistema.
+# Cadastro de Empresa
 
-> **Recomendação:**
-> Preencha todas as informações, incluindo aquelas que não são obrigatórias, pois algumas funcionalidades do sistema dependem de dados adicionais para operar corretamente.
+## Introdução
 
-A seguir, apresentamos um guia detalhado para o cadastro de empresas, garantindo que todas as informações relevantes sejam incluídas, proporcionando um desempenho otimizado do sistema.
+O cadastro de **Empresa** é uma das configurações centrais do **Syspro ERP**. Ele reúne dados cadastrais, fiscais, financeiros, comerciais e operacionais utilizados em diferentes rotinas do sistema.
 
-### **Caminho**
+As informações cadastradas nesta tela podem impactar emissão de documentos fiscais, configuração de vendas, títulos financeiros, precificação, integração com meios de pagamento, autorização de XML, ordens de serviço e parâmetros gerais da operação.
 
-Acesse o caminho abaixo para adicionar um novo cadastro de empresa:
+<Callout type="info" title="Objetivo do módulo">
+  Configurar os dados e parâmetros da empresa que serão utilizados como base para as operações fiscais, comerciais, financeiras e administrativas no Syspro ERP.
+</Callout>
 
-`Cadastros > Empresa`
-
-### **Cadastro da Empresa**
-
-Nesta seção, é possível configurar os dados cadastrais da empresa no **Syspro ERP**.
-
-* **Código**: Código único da empresa.
-* **Empresa Participante**: Cadastro da empresa. `Deve estar previamente cadastrado no módulo de participantes.`
-* **Fantasia**, **CNPJ**, **Inscrição Estadual**, **Cód. Suframa**, **Inscrição Municipal**: carregados automaticamente do participante.
-* **Regime (CRT)**: Selecione entre **Simples Nacional**, **Simples c/ Excesso Sublimite**, **Regime Normal**.
-* **Empresa Matriz**: Informe se é matriz (mesmo cadastro) ou filial (informe a matriz).
-* **Participante Responsável** e **Contador**: Devem estar cadastrados no módulo de participantes.
-* **Logotipo**: Imagem da empresa para exibição em documentos.
+<InlineTOC items={toc}>Nesta página</InlineTOC>
 
 ---
 
-### **Aba Emissão NFe**
+## Visão geral
 
-#### Inicialização de Números por Série
+<Cards>
+  <Card title="Onde acessar">
+    Acesse **Cadastros > Empresa**.
+  </Card>
 
-Exemplo de configuração: `{55=[1=1213]}{65=[1=3633]}`
+  <Card title="Quando utilizar">
+    Utilize esta tela para cadastrar uma nova empresa, configurar filial, revisar dados fiscais, parametrizar emissão de NF-e/NFC-e e definir regras operacionais.
+  </Card>
 
-#### Guia Certificado
+  <Card title="Impacto no sistema">
+    Este cadastro impacta emissão fiscal, vendas, financeiro, títulos, precificação, OS, relatórios e integrações.
+  </Card>
 
-* Tipos: **Arquivo PFX** ou **Repositório Windows**
-* Campos: Número de Série, Senha
-
-#### Guia Email
-
-* **SMTP**, **Porta**, **Usuário**, **Senha**, **TLS**, **Confirmação de envio**
-
-#### Guia WebService
-
-* **Ambiente**, **Transmissão**, **CSC**, **Timeout**, **Proxy**, **Nota de Serviço**
-
-#### Guia DANFE
-
-* **Orientação**, **Código Impresso**, **Informações adicionais**, **Casas Decimais**
-
-#### Guia WinCrypt
-
-* **Caminho diretório RSA**: `C:\Users\NomeDoUsuario\AppData\Roaming\Microsoft\Crypto\RSA`
+  <Card title="Perfil recomendado">
+    Indicado para administradores, implantação, suporte técnico e usuários responsáveis pela configuração da empresa.
+  </Card>
+</Cards>
 
 ---
 
-### **Aba Sped Fiscal**
+## Quando utilizar
 
-* **Perfil**, **Apuração**, **Leiaute**, **Atividade**, **Classificação IPI**
+Utilize o cadastro de **Empresa** quando for necessário configurar ou revisar os dados principais da empresa dentro do Syspro ERP.
 
----
+| Situação | Como o módulo ajuda |
+|---|---|
+| Cadastrar uma nova empresa | Define os dados cadastrais, fiscais e operacionais usados pelo sistema. |
+| Configurar matriz ou filial | Permite indicar se a empresa é matriz ou se está vinculada a outra empresa. |
+| Parametrizar emissão de NF-e/NFC-e | Centraliza certificado, webservice, DANFE, séries e ambiente fiscal. |
+| Configurar regras comerciais | Define parâmetros de vendas, crédito, promoções, entrega e bloqueios. |
+| Configurar financeiro | Define parâmetros de títulos, juros, multa, descontos e modelos de impressão. |
+| Definir precificação | Configura margem, custo base e sugestão de preço de venda. |
+| Preparar implantação | Organiza os dados essenciais antes do início da operação. |
 
-### **Aba PIS/COFINS**
-
-#### Guia Geral
-
-* **Forma Tributação**, **Natureza Jurídica**, **Cód. Incidência**, **Tipo Contribuição**, **Leiaute**, **DCTF PIS/COFINS**, **Atividade Preponderante**, **Método de Crédito**, **Critério Escrituração**, **Código Contribuição**
-
-#### Guia Controles
-
-* **Registro 0500/0600**, **Bloco P**, **Incidência Previdenciária**, **CNAE Principal**
-
----
-
-### **Aba Títulos**
-
-* **% Desc. Juros**, **Multa**, **Desconto Máximo**, **Modelos Impressão (Extrato, Recibo, Duplicata)**, **Carência para Juros/Vencimento**
+<Callout type="success" title="Exemplo prático">
+  Antes de emitir a primeira nota fiscal, a empresa deve estar cadastrada com participante vinculado, regime CRT definido, certificado configurado, ambiente fiscal selecionado e numeração de séries revisada.
+</Callout>
 
 ---
 
-### **Aba Vendas**
+## Dicionário de campos
 
-#### Guia Vendas
+<TypeTable
+  type={{
+    codigo: {
+      description: 'Código único da empresa dentro do Syspro ERP.',
+      type: 'Número | Texto',
+      required: true,
+    },
+    empresaParticipante: {
+      description: 'Participante vinculado à empresa. Deve estar previamente cadastrado no módulo de Participantes.',
+      type: 'Seleção',
+      required: true,
+    },
+    fantasia: {
+      description: 'Nome fantasia carregado automaticamente a partir do participante vinculado.',
+      type: 'Texto',
+      required: false,
+    },
+    cnpj: {
+      description: 'CNPJ da empresa, carregado automaticamente a partir do participante.',
+      type: 'Texto',
+      required: true,
+    },
+    inscricaoEstadual: {
+      description: 'Inscrição Estadual da empresa, carregada automaticamente do participante quando informada.',
+      type: 'Texto',
+      required: false,
+    },
+    codigoSuframa: {
+      description: 'Código SUFRAMA da empresa, quando aplicável.',
+      type: 'Texto',
+      required: false,
+    },
+    inscricaoMunicipal: {
+      description: 'Inscrição Municipal da empresa, quando aplicável.',
+      type: 'Texto',
+      required: false,
+    },
+    regimeCRT: {
+      description: 'Regime tributário da empresa. Pode ser Simples Nacional, Simples com Excesso de Sublimite ou Regime Normal.',
+      type: 'Seleção',
+      required: true,
+    },
+    empresaMatriz: {
+      description: 'Define se a empresa é matriz ou filial. Para filial, deve ser informada a empresa matriz.',
+      type: 'Seleção',
+      required: false,
+    },
+    participanteResponsavel: {
+      description: 'Participante responsável pela empresa. Deve estar cadastrado previamente em Participantes.',
+      type: 'Seleção',
+      required: false,
+    },
+    contador: {
+      description: 'Contador vinculado à empresa. Deve estar cadastrado previamente em Participantes.',
+      type: 'Seleção',
+      required: false,
+    },
+    logotipo: {
+      description: 'Imagem da empresa utilizada em documentos, relatórios ou impressões, conforme configuração.',
+      type: 'Imagem',
+      required: false,
+    },
+    inicializacaoNumerosSerie: {
+      description: 'Configuração de numeração por modelo e série para emissão fiscal.',
+      type: 'Texto estruturado',
+      required: false,
+    },
+    certificadoTipo: {
+      description: 'Tipo de certificado utilizado para emissão fiscal, como Arquivo PFX ou Repositório Windows.',
+      type: 'Seleção',
+      required: false,
+    },
+    certificadoSenha: {
+      description: 'Senha do certificado digital, quando utilizado Arquivo PFX.',
+      type: 'Senha',
+      required: false,
+    },
+    smtp: {
+      description: 'Servidor SMTP usado para envio de e-mails pelo sistema.',
+      type: 'Texto',
+      required: false,
+    },
+    ambienteWebservice: {
+      description: 'Ambiente de comunicação fiscal, conforme configuração da empresa.',
+      type: 'Seleção',
+      required: false,
+    },
+    csc: {
+      description: 'Código de Segurança do Contribuinte usado em NFC-e, quando aplicável.',
+      type: 'Texto',
+      required: false,
+    },
+    timeout: {
+      description: 'Tempo limite de comunicação com serviços externos, como webservices fiscais.',
+      type: 'Número',
+      required: false,
+    },
+    clientePadrao: {
+      description: 'Cliente utilizado como padrão em rotinas comerciais, quando configurado.',
+      type: 'Seleção',
+      required: false,
+    },
+    bloqueioProdutoNegativo: {
+      description: 'Define se o sistema deve bloquear venda de produto com saldo negativo.',
+      type: 'Sim | Não',
+      required: false,
+    },
+    caixaCego: {
+      description: 'Define se o operador visualiza ou não determinados valores durante rotinas de caixa.',
+      type: 'Sim | Não',
+      required: false,
+    },
+    tipoPrecificacao: {
+      description: 'Metodologia usada para formação de preço, como Margem Líquida ou Margem Bruta.',
+      type: 'Seleção',
+      required: false,
+    },
+    custoPrecificacao: {
+      description: 'Custo utilizado como base para cálculo de preço, como Reposição ou Aquisição.',
+      type: 'Seleção',
+      required: false,
+    },
+    cpfCnpjObrigatorio: {
+      description: 'Define se CPF/CNPJ será obrigatório em rotinas específicas, conforme configuração da empresa.',
+      type: 'Sim | Não',
+      required: false,
+    },
+  }}
+/>
 
-* **Cliente Padrão**, **Conferência Automática**, **Duplicata**, **Crédito**, **Promoção**, **Bloqueio Produto Negativo**, **Autorização Reabertura**, **Caixa Cego**, **Sangria**, **Status Entregue**, **Taxa Entrega**, **Dias Status**, **Orçamento**, **Ajuste Entrega**, **Bloqueio Cliente**, **Dias Comissão**
-
-#### Guia Shipay
-
-* **Ambiente**, **Access Key**, **Secret Key**, **Client ID**
-
-#### Guia Stone - Connect
-
-* **ID Conta**, **Chave Secreta**, **Webhook**
-
-#### Guia Mensagens DAV
-
-* **Mensagem Devolução**, **Mensagem Garantia**
+<Callout type="warning" title="Atenção ao cadastro da empresa">
+  Alterações neste cadastro podem impactar processos fiscais, financeiros e comerciais. Revise os dados antes de salvar, principalmente quando a empresa já estiver em operação.
+</Callout>
 
 ---
 
-### **Aba Parâmetros da OS**
+## Estrutura da tela
 
-* **Modelos (OS, Receita A4, Receita Timbrado)**, **Mensagens**, **Desconto Máximo**
-* **Controles**: **Quadro Comercial**, **Veículo**, **Placa/KM**, **Vendedor**, **Atendente**
-* **Política de Entrega**, **Garantia**
+<Tabs items={['Cadastro', 'Emissão NF-e', 'Fiscal', 'Financeiro', 'Vendas', 'Outros']}>
+  <Tab value="Cadastro">
+    A área de **Cadastro** reúne os dados principais da empresa, como código, participante vinculado, CNPJ, inscrições, regime CRT, matriz ou filial, responsável, contador e logotipo.
 
----
+    O campo **Empresa Participante** deve estar previamente cadastrado no módulo de Participantes.
+  </Tab>
 
-### **Aba Autorização XML**
+  <Tab value="Emissão NF-e">
+    A aba **Emissão NF-e** centraliza configurações fiscais para emissão de documentos, incluindo numeração por série, certificado digital, envio de e-mail, webservice, DANFE e WinCrypt.
 
-* Selecione o participante autorizado. O sistema gerará automaticamente a tag `autXML` ao emitir a nota.
+    Essas informações devem ser revisadas antes da emissão de NF-e ou NFC-e.
+  </Tab>
 
----
+  <Tab value="Fiscal">
+    A área fiscal inclui configurações de **SPED Fiscal**, **PIS/COFINS** e autorização de XML.
 
-### **Aba Outros**
+    Esses parâmetros devem ser preenchidos conforme o regime da empresa e orientação contábil.
+  </Tab>
 
-#### Guia Precificação
+  <Tab value="Financeiro">
+    A aba **Títulos** permite configurar juros, multa, desconto máximo, modelos de impressão e carências.
 
-Esta guia permite configurar como será feita a precificação de produtos no sistema. A escolha correta desses parâmetros afeta diretamente os preços de venda e as análises de margem de lucro.
+    Esses parâmetros influenciam rotinas de contas a receber, impressão de títulos e controle financeiro.
+  </Tab>
 
-- **Tipo Precificação**: Escolha a metodologia utilizada para formação de preço:
-  - **Margem Líquida**
-  - **Margem Bruta**
+  <Tab value="Vendas">
+    A aba **Vendas** concentra regras comerciais como cliente padrão, crédito, promoção, bloqueios, entrega, orçamento, sangria, caixa cego e integrações com Shipay e Stone.
+  </Tab>
 
-- **Custo Precificação**: Define qual custo será utilizado como base para a precificação:
-  - **Reposição**
-  - **Aquisição**
-
-- **Data Precificação**: Selecione se a data será atualizada automaticamente ao calcular preços:
-  - **Sim**
-  - **Não**
-
-- **Código Custo**: Informe um código de custo específico, se necessário.
-
-- **Venda Sugestão**: Define se o sistema deve sugerir preços de venda:
-  - **Sim**
-  - **Não**
-
-##### Sugestão Cadastro Produto
-
-- **Lucro Bruto Projetado (%)**: Percentual de margem bruta estimada sobre o custo.
-- **Lucro Líquido (%)**: Percentual líquido final projetado após impostos e despesas.
-
-##### Verificação de Lote
-
-- **Verifica Lote XML**: Se ativado, o sistema analisará os XMLs de entrada em busca de informações de lote. Caso detectado, marcará automaticamente o produto como controlado por lote.
-  - **Sim**
-  - **Não**
+  <Tab value="Outros">
+    A aba **Outros** reúne parâmetros complementares, como precificação, contabilização, despesas fixas, Curva ABCD, dígitos de código, Nuvem Fiscal e Romaneio.
+  </Tab>
+</Tabs>
 
 ---
 
-#### Guia Contabilização
+# Campos principais
 
-* **Tipo de contabilização**
+## Empresa Participante
 
-#### Guia Despesas Fixas
+O campo **Empresa Participante** vincula a empresa a um cadastro existente no módulo de **Participantes**.
 
-* **INSS, CSLL, IR, ICMS**, **Alíquota**, **Crédito ICMS**
+Esse vínculo é essencial porque informações como fantasia, CNPJ, Inscrição Estadual, Código SUFRAMA e Inscrição Municipal são carregadas a partir do participante.
 
-#### Guia Curva ABCD
+<Callout type="warning" title="Pré-requisito obrigatório">
+  Antes de cadastrar a empresa, cadastre o participante correspondente com os dados fiscais e cadastrais corretos.
+</Callout>
 
-* **Curva Produto e Cliente**: Percentuais A, B, C, D
+---
 
-#### Guia Dígitos Código
+## Regime CRT
 
-* **Número de Referência**, **EAN Consulta**
+O campo **Regime (CRT)** define o regime tributário da empresa.
 
-#### Guia Outros
+Opções disponíveis:
 
-* **Salário Mínimo**, **Alterar Títulos**, **Data Base**, **CPF/CNPJ obrigatório**
+- **Simples Nacional**;
+- **Simples c/ Excesso Sublimite**;
+- **Regime Normal**.
 
-#### Guia Nuvem Fiscal
+<Callout type="info" title="Impacto fiscal">
+  O regime CRT influencia a emissão fiscal e deve ser definido conforme orientação contábil da empresa.
+</Callout>
 
-* **Client ID**, **Client Secret**
+---
 
-#### Guia Romaneio
+## Empresa Matriz
 
-* **Modelo Impressão Entrada**
-* **Modelo Impressão Saída**
+O campo **Empresa Matriz** identifica se a empresa cadastrada é uma matriz ou filial.
+
+Quando a empresa for filial, informe a matriz correspondente. Quando for matriz, utilize o próprio cadastro, conforme configuração da empresa.
+
+---
+
+## Participante Responsável e Contador
+
+Os campos **Participante Responsável** e **Contador** devem apontar para participantes previamente cadastrados.
+
+Essas informações podem ser utilizadas em rotinas fiscais, relatórios, documentos e integrações, conforme configuração do sistema.
+
+---
+
+## Logotipo
+
+O campo **Logotipo** permite vincular a imagem da empresa para exibição em documentos, impressões ou relatórios.
+
+<Callout type="success" title="Boa prática visual">
+  Utilize imagem em boa qualidade e formato adequado para evitar distorções em documentos impressos.
+</Callout>
+
+---
+
+## Inicialização de números por série
+
+A inicialização de números por série define a sequência de emissão por modelo fiscal e série.
+
+Exemplo:
+
+```txt
+{55=[01=1213]}{65=[01=3633]}
+````
+
+Neste exemplo:
+
+* modelo **55** pode representar NF-e;
+* modelo **65** pode representar NFC-e;
+* série **01** possui sua respectiva numeração inicial.
+
+<Callout type="warning" title="Risco fiscal">
+  Revise a numeração antes de iniciar a emissão. Uma sequência incorreta pode causar rejeições, duplicidades ou necessidade de ajustes fiscais.
+</Callout>
+
+---
+
+## Certificado digital
+
+A guia **Certificado** permite configurar o certificado usado para emissão fiscal.
+
+Tipos disponíveis:
+
+* **Arquivo PFX**;
+* **Repositório Windows**.
+
+Campos comuns:
+
+* número de série;
+* senha;
+* arquivo do certificado, quando aplicável.
+
+---
+
+## WebService
+
+A guia **WebService** define parâmetros de comunicação com serviços fiscais.
+
+Campos comuns:
+
+* ambiente;
+* transmissão;
+* CSC;
+* timeout;
+* proxy;
+* nota de serviço.
+
+<Callout type="info" title="Ambiente de emissão">
+  Em implantação ou testes, valide se o ambiente configurado corresponde ao ambiente desejado. Em produção, revise com atenção antes de emitir documentos fiscais reais.
+</Callout>
+
+---
+
+## DANFE
+
+A guia **DANFE** define parâmetros de impressão e exibição do documento auxiliar.
+
+Campos comuns:
+
+* orientação;
+* código impresso;
+* informações adicionais;
+* casas decimais.
+
+---
+
+## WinCrypt
+
+A guia **WinCrypt** permite informar o diretório RSA utilizado pelo Windows em determinadas configurações de certificado.
+
+Exemplo:
+
+```txt
+C:\Users\NomeDoUsuario\AppData\Roaming\Microsoft\Crypto\RSA
+```
+
+---
+
+# Relações com outros cadastros
+
+O cadastro de **Empresa** possui relação direta com vários cadastros e módulos do Syspro ERP.
+
+| Cadastro relacionado | Impacto                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| Participantes        | A empresa depende do participante para carregar CNPJ, fantasia, inscrições e responsáveis. |
+| Contador             | Pode ser usado em obrigações fiscais, relatórios e informações contábeis.                  |
+| Cliente padrão       | Pode ser utilizado em vendas, NFC-e ou operações simplificadas.                            |
+| Produtos             | Parâmetros de precificação, lote e custos podem impactar cadastros e vendas de produtos.   |
+| Títulos              | Configura juros, multa, descontos, carência e modelos financeiros.                         |
+| Vendas               | Define bloqueios, promoções, crédito, entrega, orçamento e operação de caixa.              |
+| Fiscal               | Configura NF-e, NFC-e, SPED, PIS/COFINS, certificado e autorização XML.                    |
+| Ordem de Serviço     | Define modelos, mensagens, controles e política de entrega/garantia.                       |
+| Integrações          | Pode armazenar credenciais para Shipay, Stone Connect e Nuvem Fiscal.                      |
+
+<Callout type="info" title="Cadastro estrutural">
+  O cadastro de Empresa é estrutural. Erros nesta tela podem se refletir em várias rotinas do sistema.
+</Callout>
+
+---
+
+# Cenários práticos
+
+<Tabs items={['Implantação inicial', 'Emissão fiscal', 'Operação de vendas', 'Precificação']}> <Tab value="Implantação inicial">
+Use este cenário ao configurar a empresa pela primeira vez.
+
+```
+Configure:
+
+- empresa participante;
+- regime CRT;
+- matriz ou filial;
+- responsável;
+- contador;
+- logotipo;
+- parâmetros fiscais básicos.
+
+**Resultado esperado:** a empresa fica pronta para receber as parametrizações fiscais, comerciais e financeiras.
+```
+
+  </Tab>
+
+  <Tab value="Emissão fiscal">
+    Use este cenário antes de emitir NF-e ou NFC-e.
+
+```
+Configure:
+
+- numeração por série;
+- certificado digital;
+- ambiente do webservice;
+- CSC, quando aplicável;
+- timeout;
+- DANFE;
+- autorização XML.
+
+**Resultado esperado:** o sistema consegue transmitir documentos fiscais conforme configuração da empresa.
+```
+
+  </Tab>
+
+  <Tab value="Operação de vendas">
+    Use este cenário para configurar regras comerciais.
+
+```
+Configure:
+
+- cliente padrão;
+- conferência automática;
+- crédito;
+- promoção;
+- bloqueio de produto negativo;
+- autorização de reabertura;
+- caixa cego;
+- taxa de entrega;
+- status entregue;
+- orçamento.
+
+**Resultado esperado:** as vendas seguem os controles definidos pela empresa.
+```
+
+  </Tab>
+
+  <Tab value="Precificação">
+    Use este cenário quando a empresa deseja controlar formação de preços.
+
+```
+Configure:
+
+- tipo de precificação;
+- custo de precificação;
+- data de precificação;
+- código de custo;
+- venda sugestão;
+- lucro bruto projetado;
+- lucro líquido.
+
+**Resultado esperado:** o sistema passa a utilizar os critérios definidos para apoio à formação de preço.
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+# Como cadastrar
+
+<Steps>
+  <Step>
+    Acesse **Cadastros > Empresa**.
+  </Step>
+
+  <Step>
+    Clique em **Incluir**, **Novo** ou opção equivalente.
+  </Step>
+
+  <Step>
+    Informe o **Código** da empresa, conforme padrão utilizado pela empresa.
+  </Step>
+
+  <Step>
+    Selecione a **Empresa Participante**.
+
+```
+O participante deve estar previamente cadastrado com CNPJ, fantasia e demais dados fiscais.
+```
+
+  </Step>
+
+  <Step>
+    Confira os dados carregados automaticamente, como fantasia, CNPJ, Inscrição Estadual, Código SUFRAMA e Inscrição Municipal.
+  </Step>
+
+  <Step>
+    Selecione o **Regime (CRT)** correto.
+  </Step>
+
+  <Step>
+    Defina se a empresa é **Matriz** ou **Filial**.
+  </Step>
+
+  <Step>
+    Informe o **Participante Responsável** e o **Contador**, quando aplicável.
+  </Step>
+
+  <Step>
+    Adicione o **Logotipo**, quando a empresa utilizar imagem em documentos ou relatórios.
+  </Step>
+
+  <Step>
+    Acesse a aba **Emissão NF-e** e configure certificado, webservice, DANFE, e-mail e numeração por série.
+  </Step>
+
+  <Step>
+    Revise as abas fiscais, comerciais, financeiras e operacionais conforme necessidade da empresa.
+  </Step>
+
+  <Step>
+    Clique em **Salvar**.
+  </Step>
+
+  <Step>
+    Realize testes em rotinas controladas, como emissão fiscal, venda, título e relatório.
+  </Step>
+</Steps>
+
+---
+
+# Validação por perfil
+
+<Tabs items={['Usuário', 'Administrador', 'Suporte']}> <Tab value="Usuário">
+O usuário deve conferir:
+
+```
+- se a empresa correta está selecionada;
+- se os dados aparecem corretamente em documentos;
+- se a operação de venda ou emissão está funcionando;
+- se mensagens de erro aparecem ao emitir nota, vender ou gerar títulos.
+
+O usuário operacional não deve alterar parâmetros fiscais ou financeiros sem orientação.
+```
+
+  </Tab>
+
+  <Tab value="Administrador">
+    O administrador deve validar:
+
+```
+- dados do participante;
+- CNPJ e inscrições;
+- regime CRT;
+- matriz ou filial;
+- certificado digital;
+- numeração fiscal;
+- parâmetros de vendas;
+- parâmetros de títulos;
+- regras de precificação;
+- integrações configuradas.
+
+Alterações devem ser feitas preferencialmente fora de horários críticos.
+```
+
+  </Tab>
+
+  <Tab value="Suporte">
+    O suporte deve verificar:
+
+```
+- se o participante vinculado está correto;
+- se o certificado está válido e configurado;
+- se o ambiente fiscal está correto;
+- se a numeração por série está coerente;
+- se as credenciais de integração foram preenchidas corretamente;
+- se há divergência entre matriz e filial;
+- se o erro ocorre em uma empresa específica ou em todas.
+
+Em casos fiscais, solicitar prints da configuração, XML, retorno da SEFAZ e dados da empresa.
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+# Boas práticas
+
+* Cadastre o participante da empresa antes de criar o cadastro de Empresa.
+* Revise CNPJ, Inscrição Estadual e Regime CRT antes de emitir documentos fiscais.
+* Não altere numeração fiscal sem análise prévia.
+* Mantenha certificado digital atualizado.
+* Separe ambiente de teste e produção quando aplicável.
+* Use logotipo em formato adequado para documentos.
+* Revise parâmetros de títulos antes de iniciar o financeiro.
+* Configure bloqueios comerciais conforme política da empresa.
+* Documente credenciais e integrações de forma segura.
+* Evite alterar parâmetros críticos durante operação.
+* Realize testes após qualquer alteração fiscal, financeira ou comercial.
+
+<Callout type="success" title="Boa prática de implantação">
+  Antes da liberação para uso definitivo, realize uma venda de teste, uma emissão fiscal controlada e uma geração de título para validar os principais impactos do cadastro.
+</Callout>
+
+---
+
+# Impactos no sistema
+
+| Área             | Impacto                                                                                |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| Fiscal           | Configura certificado, webservice, séries, DANFE, SPED, PIS/COFINS e autorização XML.  |
+| Vendas           | Define cliente padrão, crédito, promoção, entrega, bloqueios e comportamento de caixa. |
+| Financeiro       | Define juros, multa, descontos, carências e modelos de impressão de títulos.           |
+| Estoque          | Pode impactar verificação de lote XML e precificação de produtos.                      |
+| Produtos         | Pode influenciar sugestão de preço, custo base e margens.                              |
+| Ordem de Serviço | Define modelos, mensagens, controles, política de entrega e garantia.                  |
+| Integrações      | Armazena parâmetros para Shipay, Stone Connect e Nuvem Fiscal.                         |
+| Relatórios       | Dados cadastrais e fiscais podem aparecer em impressões, análises e documentos.        |
+| Suporte          | Facilita diagnóstico de problemas fiscais, comerciais, financeiros e de integração.    |
+
+<Callout type="warning" title="Alterações sensíveis">
+  Parâmetros de certificado, webservice, numeração, CRT, títulos e vendas devem ser alterados com cautela, pois podem afetar diretamente a operação da empresa.
+</Callout>
+
+---
+
+# Checklist antes de salvar
+
+Antes de salvar o cadastro de Empresa, confira:
+
+* participante da empresa selecionado;
+* CNPJ carregado corretamente;
+* Inscrição Estadual revisada;
+* Regime CRT definido;
+* matriz ou filial configurada;
+* responsável informado, quando aplicável;
+* contador informado, quando aplicável;
+* logotipo selecionado, quando necessário;
+* certificado digital configurado;
+* ambiente fiscal revisado;
+* numeração por série validada;
+* parâmetros de e-mail preenchidos, se usados;
+* configurações de DANFE revisadas;
+* parâmetros de SPED e PIS/COFINS validados com a contabilidade;
+* regras de títulos revisadas;
+* parâmetros de vendas conferidos;
+* integrações comerciais configuradas, quando aplicável;
+* precificação revisada;
+* cadastro testado em rotina real.
+
+---
+
+# Exemplos de configuração
+
+<Tabs items={['Empresa matriz', 'Empresa filial', 'NF-e/NFC-e', 'Precificação']}> <Tab value="Empresa matriz">
+Exemplo de configuração inicial:
+
+````
+```txt
+Código: 1
+Empresa Participante: Trilink Software
+Regime CRT: Regime Normal
+Empresa Matriz: própria empresa
+Contador: participante contador cadastrado
+Status operacional: ativo
+```
+
+**Resultado esperado:** a empresa fica configurada como matriz para uso nas rotinas do sistema.
+````
+
+  </Tab>
+
+  <Tab value="Empresa filial">
+    Exemplo de configuração de filial:
+
+````
+```txt
+Código: 2
+Empresa Participante: Filial Uberaba
+Regime CRT: conforme contabilidade
+Empresa Matriz: empresa código 1
+```
+
+**Resultado esperado:** a filial fica vinculada à matriz, respeitando os parâmetros configurados conforme regra da empresa.
+````
+
+  </Tab>
+
+  <Tab value="NF-e/NFC-e">
+    Exemplo de inicialização de séries:
+
+````
+```txt
+{55=[1=1213]}{65=[1=3633]}
+```
+
+**Interpretação:**
+
+- modelo 55: numeração inicial da NF-e;
+- modelo 65: numeração inicial da NFC-e;
+- série 1: série configurada para emissão.
+
+**Resultado esperado:** o sistema utiliza a sequência informada para emissão fiscal.
+````
+
+  </Tab>
+
+  <Tab value="Precificação">
+    Exemplo de regra de precificação:
+
+````
+```txt
+Tipo Precificação: Margem Bruta
+Custo Precificação: Reposição
+Data Precificação: Sim
+Venda Sugestão: Sim
+Lucro Bruto Projetado (%): conforme política comercial
+Lucro Líquido (%): conforme análise da empresa
+```
+
+**Resultado esperado:** o sistema usa os parâmetros como referência para sugestão e análise de preço.
+````
+
+  </Tab>
+</Tabs>
+
+---
+
+# Problemas comuns
+
+<Accordions type="single">
+  <Accordion title="Os dados da empresa não foram carregados" id="dados-empresa-nao-carregados">
+    Verifique se o campo **Empresa Participante** foi preenchido corretamente.
+
+```
+Os dados como fantasia, CNPJ, Inscrição Estadual, Código SUFRAMA e Inscrição Municipal dependem do cadastro de Participantes.
+```
+
+  </Accordion>
+
+  <Accordion title="Não consigo emitir NF-e ou NFC-e" id="nao-consigo-emitir-nfe">
+    Verifique certificado digital, senha, ambiente do webservice, CSC, timeout, numeração por série e dados fiscais da empresa.
+
+```
+Também confirme se o participante vinculado possui CNPJ e inscrições corretas.
+```
+
+  </Accordion>
+
+  <Accordion title="A nota está sendo emitida em ambiente errado" id="ambiente-fiscal-incorreto">
+    Confira a configuração de **Ambiente** na guia **WebService**.
+
+```
+Em implantação, pode ser usado ambiente de teste. Em operação real, o ambiente deve estar configurado conforme necessidade da empresa.
+```
+
+  </Accordion>
+
+  <Accordion title="A numeração da nota está incorreta" id="numeracao-incorreta">
+    Revise a configuração de inicialização de números por série.
+
+```
+Antes de alterar, verifique a última nota emitida e avalie o impacto fiscal.
+```
+
+  </Accordion>
+
+  <Accordion title="O sistema não envia e-mail" id="email-nao-envia">
+    Confira SMTP, porta, usuário, senha, TLS e confirmação de envio.
+
+```
+Também valide se o provedor de e-mail permite envio por aplicativo externo.
+```
+
+  </Accordion>
+
+  <Accordion title="O certificado não é localizado" id="certificado-nao-localizado">
+    Verifique se o tipo de certificado está correto: **Arquivo PFX** ou **Repositório Windows**.
+
+```
+Para certificado no Windows, valide também a configuração relacionada ao WinCrypt, quando aplicável.
+```
+
+  </Accordion>
+
+  <Accordion title="A venda bloqueia produto negativo" id="bloqueio-produto-negativo">
+    Verifique o parâmetro **Bloqueio Produto Negativo** na aba **Vendas**.
+
+```
+Se estiver ativo, o sistema pode impedir operações com saldo insuficiente.
+```
+
+  </Accordion>
+
+  <Accordion title="A precificação não gerou o valor esperado" id="precificacao-valor-inesperado">
+    Revise tipo de precificação, custo utilizado, data de precificação, código de custo, venda sugestão e percentuais de lucro.
+
+```
+A formação de preço depende da combinação desses parâmetros.
+```
+
+  </Accordion>
+
+  <Accordion title="A tag autXML não foi gerada" id="autxml-nao-gerado">
+    Confira se o participante autorizado foi selecionado na aba **Autorização XML**.
+
+```
+Quando configurado corretamente, o sistema gera a tag `autXML` ao emitir a nota.
+```
+
+  </Accordion>
+</Accordions>
+
+---
+
+# Perguntas frequentes
+
+<Accordions type="single">
+  <Accordion title="Para que serve o cadastro de Empresa?" id="para-que-serve-cadastro-empresa">
+    Serve para configurar os dados cadastrais, fiscais, comerciais, financeiros e operacionais da empresa no Syspro ERP.
+  </Accordion>
+
+  <Accordion title="Onde acesso o cadastro de Empresa?" id="onde-acessar-cadastro-empresa">
+    Acesse **Cadastros > Empresa**.
+  </Accordion>
+
+  <Accordion title="Preciso cadastrar o participante antes da empresa?" id="precisa-participante-antes">
+    Sim. O campo **Empresa Participante** depende de um participante previamente cadastrado.
+  </Accordion>
+
+  <Accordion title="O cadastro de Empresa impacta emissão fiscal?" id="impacta-emissao-fiscal">
+    Sim. Ele configura certificado, webservice, numeração por série, DANFE, ambiente fiscal, SPED, PIS/COFINS e autorização XML.
+  </Accordion>
+
+  <Accordion title="Posso alterar o regime CRT depois de emitir notas?" id="alterar-crt-depois">
+    A alteração deve ser feita com cuidado e conforme orientação contábil.
+
+```
+O regime CRT impacta a emissão fiscal e pode afetar documentos gerados após a alteração.
+```
+
+  </Accordion>
+
+  <Accordion title="O que é a inicialização de números por série?" id="inicializacao-numeros-serie">
+    É a configuração que define a sequência inicial de emissão por modelo fiscal e série.
+
+```
+Exemplo: `{55=[1=1213]}{65=[1=3633]}`.
+```
+
+  </Accordion>
+
+  <Accordion title="O que configurar para envio de e-mail?" id="configurar-envio-email">
+    Configure SMTP, porta, usuário, senha, TLS e confirmação de envio, conforme o provedor de e-mail utilizado.
+  </Accordion>
+
+  <Accordion title="O cadastro de Empresa impacta vendas?" id="impacta-vendas">
+    Sim. A aba **Vendas** possui configurações como cliente padrão, crédito, promoção, bloqueio de produto negativo, caixa cego, sangria, entrega e orçamento.
+  </Accordion>
+
+  <Accordion title="O cadastro de Empresa impacta o financeiro?" id="impacta-financeiro">
+    Sim. A aba **Títulos** define juros, multa, desconto máximo, modelos de impressão e carências.
+  </Accordion>
+
+  <Accordion title="O que devo conferir antes de chamar o suporte?" id="antes-de-chamar-suporte">
+    Confira participante vinculado, CNPJ, regime CRT, certificado, ambiente fiscal, numeração por série, parâmetros de vendas e mensagem de erro apresentada.
+
+```
+Se possível, envie print da configuração e descrição do processo realizado.
+```
+
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+O cadastro de **Empresa** é um dos cadastros mais importantes do Syspro ERP. Ele define dados e parâmetros utilizados em rotinas fiscais, comerciais, financeiras, operacionais e de integração.
+
+Por ser um cadastro estrutural, deve ser preenchido com atenção e revisado sempre que houver alteração de regime, certificado, ambiente fiscal, regra de venda, título ou precificação.
+
+<Callout type="success" title="Resumo">
+  Configure a empresa com dados corretos, revise os impactos antes de alterar parâmetros críticos e realize testes após qualquer mudança relevante.
+</Callout>
+
+<SuporteSection modulo="Cadastro de Empresa" />
+```
