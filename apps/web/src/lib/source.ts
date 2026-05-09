@@ -2,7 +2,7 @@ import type { Role } from "@prisma/client";
 import { docs } from "../../.source";
 import { loader } from "fumadocs-core/source";
 import { filterDocTree } from "@/lib/docs-tree-utils";
-import { canRoleAccessDocsUrl } from "@/lib/docs-scope";
+import { canRoleAccessDocsUrl, getDocScopeFromUrl, type DocsScope } from "@/lib/docs-scope";
 
 const baseUrl = "/portal/docs";
 
@@ -15,12 +15,23 @@ type DocsSource = typeof source;
 
 const sourceCache = new Map<string, DocsSource>();
 
-export function createDocsSourceForRole(role: Role): DocsSource {
-  const cacheKey = String(role);
+export function createDocsSourceForRole(role: Role, scope?: DocsScope | null): DocsSource {
+  const normalizedScope = scope ?? null;
+  const cacheKey = normalizedScope ? `${String(role)}:${normalizedScope}` : String(role);
   const cached = sourceCache.get(cacheKey);
   if (cached) return cached;
 
-  const allow = (url: string) => canRoleAccessDocsUrl(role, url);
+  const allow = (url: string) => {
+    if (!canRoleAccessDocsUrl(role, url)) {
+      return false;
+    }
+
+    if (!normalizedScope) {
+      return true;
+    }
+
+    return getDocScopeFromUrl(url) === normalizedScope;
+  };
   const scopedSource: DocsSource = {
     ...source,
     pageTree: filterDocTree(source.pageTree, allow),

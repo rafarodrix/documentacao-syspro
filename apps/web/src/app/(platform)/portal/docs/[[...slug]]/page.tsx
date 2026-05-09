@@ -26,7 +26,7 @@ import {
   estimateReadingTimeMinutes,
   formatDateLong,
 } from '@/lib/docs-utils';
-import { DOCS_BASE_PATH, getDefaultDocsRouteForRole } from '@/lib/docs-scope';
+import { DOCS_BASE_PATH, getDefaultDocsRouteForRole, getDocScopeFromSlug } from '@/lib/docs-scope';
 
 function resolveDocsSlug(slug: string[]) {
   if (slug[0] === "manuais-tecnicos") {
@@ -66,7 +66,8 @@ export default async function PortalDocsPage(props: {
     redirect(getDefaultDocsRouteForRole(session.role));
   }
 
-  const docsSource = createDocsSourceForRole(session.role);
+  const scope = getDocScopeFromSlug(resolvedSlug);
+  const docsSource = createDocsSourceForRole(session.role, scope);
   const page = docsSource.getPage(resolvedSlug);
   if (!page) {
     const scopeRoot = resolvedSlug.length === 1 ? resolvedSlug[0] : null;

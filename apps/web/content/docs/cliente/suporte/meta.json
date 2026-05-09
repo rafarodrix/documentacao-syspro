@@ -1,5 +1,5 @@
 {
-  "root": true,
+  "root": false,
   "title": "Suporte",
   "description": "Guias de atendimento, parametrizações e procedimentos para suporte técnico do Syspro ERP.",
   "pages": [
@@ -10,10 +10,6 @@
     "parametrizacoes/migracao-nfse-nacional",
     "---Documentação e Guias---",
     "sobre-suporte",
-    "requisitos",
-"---Infraestrutura---",
-    "infraestrutura/index",
-    "infraestrutura/infraestrutura-software",
-    "infraestrutura/infraestrutura-vps"
+    "requisitos"
   ]
 }
