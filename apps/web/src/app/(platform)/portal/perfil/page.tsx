@@ -15,6 +15,11 @@ export default async function AdminProfilePage() {
       email: session.email,
       image: session.image ?? null,
       role: session.role,
+      preferences: {
+        tickets: {
+          defaultTeamFilter: "all",
+        },
+      },
       permissions: {
         canEditPersonal: true,
         canEditCompany: false,

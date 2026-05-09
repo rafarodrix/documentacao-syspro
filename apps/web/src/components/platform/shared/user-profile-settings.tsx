@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { CurrentUserProfile, UserProfileCompany } from "@dosc-syspro/contracts/user";
 import { formatCEP, formatCNPJ, formatPhone } from "@/lib/formatters";
 import { Avatar, AvatarFallback, AvatarImage, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, User } from "lucide-react";
+import { Building2, Camera, Globe2, Loader2, Mail, MapPin, Phone, Save, SlidersHorizontal, User } from "lucide-react";
 import { trpc } from "@/lib/api/trpc-client";
 
 interface UserProfileSettingsProps {
@@ -80,7 +80,9 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isSavingPersonal, setIsSavingPersonal] = useState(false);
   const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [personalName, setPersonalName] = useState(profile.name);
+  const [defaultTicketTeamFilter, setDefaultTicketTeamFilter] = useState(profile.preferences.tickets.defaultTeamFilter);
   const [selectedCompanyId, setSelectedCompanyId] = useState(profile.selectedCompanyId ?? profile.companies[0]?.id ?? "");
   const [companyForm, setCompanyForm] = useState<CompanyFormState>(
     buildCompanyFormState(profile.companies.find((company) => company.id === profile.selectedCompanyId) ?? profile.companies[0] ?? null),
@@ -194,6 +196,30 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
     }
   };
 
+  const handleSavePreferences = async () => {
+    if (!profile.permissions.canEditPersonal) {
+      toast.error("Seu perfil nao permite alterar as preferencias.");
+      return;
+    }
+
+    setIsSavingPreferences(true);
+    try {
+      await trpc.users.updateCurrentProfile.mutate({
+        preferences: {
+          tickets: {
+            defaultTeamFilter: defaultTicketTeamFilter,
+          },
+        },
+      });
+      toast.success("Preferencias atualizadas.");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar as preferencias.");
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-2">
@@ -253,10 +279,14 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
         </Card>
 
         <Tabs defaultValue="personal" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="personal" className="gap-2">
               <User className="h-4 w-4" />
               Dados pessoais
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              Preferencias
             </TabsTrigger>
             <TabsTrigger value="company" className="gap-2">
               <Building2 className="h-4 w-4" />
@@ -299,6 +329,45 @@ export function UserProfileSettings({ profile }: UserProfileSettingsProps) {
                   <Button onClick={handleSavePersonal} disabled={isSavingPersonal || !profile.permissions.canEditPersonal}>
                     {isSavingPersonal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Salvar dados pessoais
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="preferences">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Preferencias</CardTitle>
+                <CardDescription>Defina a visao inicial do modulo de tickets sem bloquear a troca manual dos filtros.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="ticket-default-team-filter">Visao inicial dos tickets</Label>
+                  <Select value={defaultTicketTeamFilter} onValueChange={(value) => setDefaultTicketTeamFilter(value as typeof defaultTicketTeamFilter)}>
+                    <SelectTrigger id="ticket-default-team-filter">
+                      <SelectValue placeholder="Selecione a visao padrao" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SUPORTE">Suporte</SelectItem>
+                      <SelectItem value="DESENVOLVIMENTO">Desenvolvimento</SelectItem>
+                      <SelectItem value="all">Ambos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Essa preferencia define apenas o filtro inicial ao abrir o modulo de tickets. Voce ainda pode trocar a equipe manualmente.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 p-4 text-sm">
+                  <p className="text-muted-foreground">
+                    {profile.permissions.canEditPersonal
+                      ? "Suas preferencias pessoais podem ser ajustadas a qualquer momento."
+                      : "Seu perfil esta somente leitura para preferencias pessoais."}
+                  </p>
+                  <Button onClick={handleSavePreferences} disabled={isSavingPreferences || !profile.permissions.canEditPersonal}>
+                    {isSavingPreferences ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Salvar preferencias
                   </Button>
                 </div>
               </CardContent>

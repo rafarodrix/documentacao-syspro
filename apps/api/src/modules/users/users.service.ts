@@ -16,10 +16,12 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { UserContactAccessService } from './user-contact-access.service';
 import { ContactsService } from '../contacts/contacts.service';
 import {
+  currentUserPreferencesSchema,
   currentUserProfileSchema,
   userAccessListItemSchema,
   type CreateUserInput,
   type CurrentUserProfile,
+  type CurrentUserPreferences,
   type UpdateCurrentUserProfileOutput,
   type UpdateUserInput,
   type UserAccessListItem,
@@ -634,6 +636,7 @@ export class UsersService {
           email: true,
           image: true,
           role: true,
+          preferences: true,
           memberships: {
             select: {
               companyId: true,
@@ -727,6 +730,7 @@ export class UsersService {
       email: user.email,
       image: user.image ?? null,
       role: user.role,
+      preferences: this.normalizeCurrentUserPreferences(user.preferences),
       permissions: {
         canEditPersonal,
         canEditCompany,
@@ -749,6 +753,7 @@ export class UsersService {
         where: { id: requester.userId },
         select: {
           id: true,
+          preferences: true,
           memberships: {
             select: {
               companyId: true,
@@ -814,6 +819,7 @@ export class UsersService {
     const companies = this.collectProfileCompanies(user);
     const data = input;
     let shouldSyncPortalUser = false;
+    let shouldUpdatePreferences = false;
 
     if (data.name !== undefined) {
       if (!canEditPersonal) {
@@ -828,6 +834,21 @@ export class UsersService {
       });
 
       shouldSyncPortalUser = true;
+    }
+
+    if (data.preferences !== undefined) {
+      if (!canEditPersonal) {
+        throw new ForbiddenException('Sem permissao para alterar as preferencias do perfil.');
+      }
+
+      await this.prisma.user.update({
+        where: { id: requester.userId },
+        data: {
+          preferences: data.preferences as any,
+        },
+      });
+
+      shouldUpdatePreferences = true;
     }
 
     if (data.company) {
@@ -903,7 +924,9 @@ export class UsersService {
 
     return {
       success: true,
-      message: 'Perfil atualizado com sucesso.',
+      message: shouldUpdatePreferences && !shouldSyncPortalUser
+        ? 'Preferencias atualizadas com sucesso.'
+        : 'Perfil atualizado com sucesso.',
     };
   }
 
@@ -1222,6 +1245,12 @@ export class UsersService {
     }
 
     return Array.from(companies.values()).sort((left, right) => Number(right.isPrimary) - Number(left.isPrimary));
+  }
+
+  private normalizeCurrentUserPreferences(raw: unknown): CurrentUserPreferences {
+    const parsed = currentUserPreferencesSchema.safeParse(raw);
+    if (parsed.success) return parsed.data;
+    return currentUserPreferencesSchema.parse({});
   }
 
   private async canEditOwnPersonalProfile(requester: Requester) {

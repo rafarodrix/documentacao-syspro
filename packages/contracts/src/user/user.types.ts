@@ -65,11 +65,22 @@ export const userProfileCompanySchema = z.object({
   address: userProfileCompanyAddressSchema.nullable(),
 });
 
+export const userTicketDefaultTeamFilterSchema = z.enum(["all", "SUPORTE", "DESENVOLVIMENTO"]);
+
+export const currentUserPreferencesSchema = z.object({
+  tickets: z.object({
+    defaultTeamFilter: userTicketDefaultTeamFilterSchema.default("all"),
+  }).default({
+    defaultTeamFilter: "all",
+  }),
+});
+
 export const currentUserProfileSchema = z.object({
   name: z.string().min(1),
   email: z.string().min(1),
   image: z.string().nullable(),
   role: userRoleSchema,
+  preferences: currentUserPreferencesSchema,
   permissions: z.object({
     canEditPersonal: z.boolean(),
     canEditCompany: z.boolean(),
@@ -81,6 +92,7 @@ export const currentUserProfileSchema = z.object({
 export const updateCurrentUserProfileSchema = z
   .object({
     name: z.string().min(3, "O nome deve ter no minimo 3 caracteres").trim().optional(),
+    preferences: currentUserPreferencesSchema.optional(),
     companyId: z.string().trim().min(1).nullable().optional(),
     company: z
       .object({
@@ -101,7 +113,7 @@ export const updateCurrentUserProfileSchema = z
       })
       .optional(),
   })
-  .refine((input) => Boolean(input.name !== undefined || input.company !== undefined), {
+  .refine((input) => Boolean(input.name !== undefined || input.company !== undefined || input.preferences !== undefined), {
     message: "Informe ao menos uma alteracao.",
   });
 
@@ -192,6 +204,8 @@ export type CreateUserOutput = z.output<typeof createUserSchema>;
 export type UpdateUserInput = z.input<typeof updateUserSchema>;
 export type UpdateUserOutput = z.output<typeof updateUserSchema>;
 export type UserProfileCompany = z.output<typeof userProfileCompanySchema>;
+export type CurrentUserPreferences = z.output<typeof currentUserPreferencesSchema>;
+export type UserTicketDefaultTeamFilter = z.output<typeof userTicketDefaultTeamFilterSchema>;
 export type CurrentUserProfile = z.output<typeof currentUserProfileSchema>;
 export type UpdateCurrentUserProfileInput = z.input<typeof updateCurrentUserProfileSchema>;
 export type UpdateCurrentUserProfileOutput = z.output<typeof updateCurrentUserProfileSchema>;

@@ -4,6 +4,7 @@ import { TicketsContainer } from "@/features/tickets/interface";
 import { type QueueKey, type TicketStatusGroup, TICKET_QUEUE_KEYS, isTicketStatusGroup } from "@dosc-syspro/core";
 import type { ClosedTicketsWindow, TicketSortBy, TicketSortOrder, TicketTeamFilter } from "@/features/tickets/domain/ticket-model";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { trpc } from "@/lib/api/trpc-client";
 const CLOSED_WINDOW_OPTIONS: ClosedTicketsWindow[] = ["30d", "60d", "90d", "180d", "365d", "all"];
 const TEAM_FILTER_OPTIONS: TicketTeamFilter[] = ["all", "SUPORTE", "DESENVOLVIMENTO"];
 const SORT_BY_OPTIONS: TicketSortBy[] = ["updatedAt", "subject", "customer"];
@@ -41,8 +42,13 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const closedWindow: ClosedTicketsWindow = CLOSED_WINDOW_OPTIONS.includes(closedWindowParam as ClosedTicketsWindow)
     ? (closedWindowParam as ClosedTicketsWindow)
     : "all";
-  const canManageTickets = await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true });
-  const derivedDefaultTeam: TicketTeamFilter = "all";
+  const [canManageTickets, currentProfileResult] = await Promise.all([
+    currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }),
+    trpc.users.getCurrentProfile.query().catch(() => null),
+  ]);
+  const derivedDefaultTeam: TicketTeamFilter = canManageTickets
+    ? (currentProfileResult?.preferences?.tickets?.defaultTeamFilter ?? "all")
+    : "all";
   const resolvedTeamParam = teamParam ?? derivedDefaultTeam;
   const team: TicketTeamFilter = TEAM_FILTER_OPTIONS.includes(resolvedTeamParam as TicketTeamFilter)
     ? (resolvedTeamParam as TicketTeamFilter)
