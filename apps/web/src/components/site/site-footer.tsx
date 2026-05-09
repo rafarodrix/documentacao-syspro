@@ -79,7 +79,7 @@ export function SiteFooter() {
             <ul className="space-y-3">
               <li><FooterLink href="/portal/docs/manual">Documentacao Oficial</FooterLink></li>
               <li><FooterLink href="/portal/docs/duvidas">Dúvidas Frequentes</FooterLink></li>
-              <li><FooterLink href="/portal/docs/suporte">Suporte</FooterLink></li>
+              <li><FooterLink href="/portal/docs/cliente/suporte">Suporte</FooterLink></li>
             </ul>
           </div>
 
@@ -166,4 +166,3 @@ function SocialButton({ href, icon: Icon, label, hoverColor }: { href: string; i
     </Link>
   );
 }
-

@@ -6,6 +6,7 @@ import { BookOpen, Building2, ContactRound, FileText, Monitor, Search, Settings,
 import { Input, Dialog, DialogContent, DialogHeader, DialogTitle } from "@dosc-syspro/ui";
 import type { NavigationAccess } from "@/components/platform/app/layout/app-sidebar";
 import { cn } from "@/lib/utils";
+import { DOCS_SCOPE_ROUTES } from "@/lib/docs-scope";
 
 type SearchItem = {
   label: string;
@@ -91,7 +92,7 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
       },
       {
         label: "Documentacao",
-        href: "/portal/docs",
+        href: DOCS_SCOPE_ROUTES.cliente,
         keywords: "documentacao ajuda base conhecimento docs",
         icon: BookOpen,
         enabled: navigationAccess?.docs !== false,

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import type { Role } from '@prisma/client';
 import type { AudienceSegment } from './use-docs-dashboard';
+import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
 export type QuickLinkTone = 'docs' | 'faq' | 'training' | 'support' | 'technical';
 
@@ -19,28 +20,28 @@ export type QuickLink = {
 
 export const BASE_QUICK_LINKS: QuickLink[] = [
   {
-    href: '/portal/docs/manual',
+    href: `${DOCS_SCOPE_ROUTES.cliente}/manual`,
     title: 'Documentacao',
     description: 'Guias e modulos para a operacao do dia a dia.',
     icon: BookOpen,
     tone: 'docs',
   },
   {
-    href: '/portal/docs/duvidas',
+    href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`,
     title: 'Duvidas frequentes',
     description: 'Respostas para incidentes e duvidas recorrentes.',
     icon: HelpCircle,
     tone: 'faq',
   },
   {
-    href: '/portal/docs/treinamento',
+    href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`,
     title: 'Treinamentos',
     description: 'Trilhas praticas para acelerar a capacitacao da equipe.',
     icon: Users,
     tone: 'training',
   },
   {
-    href: '/portal/docs/suporte',
+    href: `${DOCS_SCOPE_ROUTES.cliente}/suporte`,
     title: 'Suporte',
     description: 'Processos, atendimento e operacao assistida.',
     icon: Wrench,
@@ -49,38 +50,38 @@ export const BASE_QUICK_LINKS: QuickLink[] = [
 ];
 
 export const TECHNICAL_QUICK_LINK: QuickLink = {
-  href: '/portal/docs/manuais-tecnicos',
-  title: 'Manuais tecnicos',
-  description: 'Arquitetura, integracoes e padroes tecnicos.',
+  href: DOCS_SCOPE_ROUTES.admin,
+  title: 'Admin',
+  description: 'Infraestrutura, operacao interna e documentacao administrativa.',
   icon: Wrench,
   tone: 'technical',
 };
 
 export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string; description: string }>> = {
   ADMIN: [
-    { href: '/portal/docs/manuais-tecnicos', title: 'Arquitetura e backlog', description: 'Governanca tecnica e padroes da operacao.' },
-    { href: '/portal/docs/suporte', title: 'Operacao de suporte', description: 'Fluxos de atendimento, triagem e escalonamento.' },
-    { href: '/portal/docs/manual', title: 'Visao funcional do produto', description: 'Leitura funcional para entender modulos e rotinas.' },
+    { href: DOCS_SCOPE_ROUTES.admin, title: 'Infraestrutura e operacao', description: 'Governanca tecnica e padroes da operacao.' },
+    { href: DOCS_SCOPE_ROUTES.suporte, title: 'Operacao de suporte', description: 'Fluxos de atendimento, triagem e escalonamento.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/manual`, title: 'Visao funcional do produto', description: 'Leitura funcional para entender modulos e rotinas.' },
   ],
   DEVELOPER: [
-    { href: '/portal/docs/manuais-tecnicos', title: 'Manuais tecnicos', description: 'Infraestrutura, stack e decisoes de arquitetura.' },
-    { href: '/portal/docs/suporte', title: 'Processos de suporte', description: 'Troubleshooting, contexto operacional e playbooks.' },
-    { href: '/portal/docs/duvidas', title: 'Erros recorrentes', description: 'Referencias rapidas para correcoes mais comuns.' },
+    { href: DOCS_SCOPE_ROUTES.suporte, title: 'Processos de suporte', description: 'Troubleshooting, contexto operacional e playbooks.' },
+    { href: DOCS_SCOPE_ROUTES.admin, title: 'Infraestrutura e stack', description: 'Infraestrutura, stack e decisoes de arquitetura.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Erros recorrentes', description: 'Referencias rapidas para correcoes mais comuns.' },
   ],
   SUPORTE: [
-    { href: '/portal/docs/suporte', title: 'Procedimentos de suporte', description: 'Playbooks operacionais e padroes de atendimento.' },
-    { href: '/portal/docs/duvidas', title: 'Duvidas e erros comuns', description: 'Base de resolucao rapida para incidentes frequentes.' },
-    { href: '/portal/docs/treinamento', title: 'Treinamentos', description: 'Capacitacao continua para equipe de suporte.' },
+    { href: DOCS_SCOPE_ROUTES.suporte, title: 'Procedimentos de suporte', description: 'Playbooks operacionais e padroes de atendimento.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Duvidas e erros comuns', description: 'Base de resolucao rapida para incidentes frequentes.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`, title: 'Treinamentos', description: 'Capacitacao continua para equipe de suporte.' },
   ],
   CLIENTE_ADMIN: [
-    { href: '/portal/docs/manual', title: 'Operacao do sistema', description: 'Rotinas essenciais para administrar o ambiente.' },
-    { href: '/portal/docs/treinamento', title: 'Treinar equipe', description: 'Materiais de onboarding e padronizacao interna.' },
-    { href: '/portal/docs/duvidas', title: 'Resolver problemas comuns', description: 'Consultas rapidas para bloqueios operacionais.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/manual`, title: 'Operacao do sistema', description: 'Rotinas essenciais para administrar o ambiente.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`, title: 'Treinar equipe', description: 'Materiais de onboarding e padronizacao interna.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Resolver problemas comuns', description: 'Consultas rapidas para bloqueios operacionais.' },
   ],
   CLIENTE_USER: [
-    { href: '/portal/docs/manual', title: 'Primeiros passos', description: 'Fluxo inicial para comecar a operar com seguranca.' },
-    { href: '/portal/docs/duvidas', title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios do dia a dia.' },
-    { href: '/portal/docs/treinamento', title: 'Aprender mais rapido', description: 'Guias praticos por modulo e processo.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/manual`, title: 'Primeiros passos', description: 'Fluxo inicial para comecar a operar com seguranca.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios do dia a dia.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`, title: 'Aprender mais rapido', description: 'Guias praticos por modulo e processo.' },
   ],
 };
 

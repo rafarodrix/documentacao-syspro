@@ -263,7 +263,7 @@ export async function SiteHeader() {
                   <MobileNavLink href="/portal/docs/manual">Manual de uso</MobileNavLink>
                   <MobileNavLink href="/portal/docs/duvidas">Duvidas frequentes</MobileNavLink>
                   <MobileNavLink href="/portal/docs/treinamento">Treinamentos</MobileNavLink>
-                  <MobileNavLink href="/portal/docs/suporte">Suporte</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/cliente/suporte">Suporte</MobileNavLink>
                   {canViewTechnical ? (
                     <MobileNavLink href="/portal/docs/manuais-tecnicos">Manuais tecnicos</MobileNavLink>
                   ) : null}
@@ -322,4 +322,3 @@ function MobileNavLink({ href, children, external }: { href: string; children: R
     </Link>
   );
 }
-

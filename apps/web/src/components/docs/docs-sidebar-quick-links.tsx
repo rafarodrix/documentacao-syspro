@@ -10,23 +10,24 @@ import {
   CollapsibleTrigger,
 } from "@dosc-syspro/ui";
 import { DOCS_STORAGE_KEYS, readStorage, writeStorage } from '@/lib/docs-storage';
+import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
 type QuickLink = { href: string; label: string; icon: typeof BookOpenText };
 
 const BASE_LINKS: QuickLink[] = [
-  { href: '/portal/docs', label: 'Central da Doc', icon: BookOpenText },
-  { href: '/portal/docs/manual/cadastro', label: 'Cadastro', icon: BookOpenText },
-  { href: '/portal/docs/manual/financeiro', label: 'Financeiro', icon: ReceiptText },
-  { href: '/portal/docs/duvidas/rejeicoes/nfe-nfce', label: 'Rejeições NFe', icon: CircleHelp },
-  { href: '/portal/docs/suporte', label: 'Suporte', icon: LifeBuoy },
+  { href: DOCS_SCOPE_ROUTES.cliente, label: 'Central da Doc', icon: BookOpenText },
+  { href: `${DOCS_SCOPE_ROUTES.cliente}/manual/cadastro`, label: 'Cadastro', icon: BookOpenText },
+  { href: `${DOCS_SCOPE_ROUTES.cliente}/manual/financeiro`, label: 'Financeiro', icon: ReceiptText },
+  { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas/rejeicoes/nfe-nfce`, label: 'Rejeicoes NFe', icon: CircleHelp },
+  { href: `${DOCS_SCOPE_ROUTES.cliente}/suporte`, label: 'Suporte ao cliente', icon: LifeBuoy },
 ];
 
-const TECHNICAL_LINKS: QuickLink[] = [
-  { href: '/portal/docs/manuais-tecnicos', label: 'Manuais Técnicos', icon: BookOpenText },
+const ADMIN_LINKS: QuickLink[] = [
+  { href: DOCS_SCOPE_ROUTES.admin, label: 'Admin', icon: BookOpenText },
 ];
 
 export function DocsSidebarQuickLinks({ canViewTechnical }: { canViewTechnical: boolean }) {
-  const quickLinks = canViewTechnical ? [...BASE_LINKS, ...TECHNICAL_LINKS] : BASE_LINKS;
+  const quickLinks = canViewTechnical ? [...BASE_LINKS, ...ADMIN_LINKS] : BASE_LINKS;
   const [open, setOpen] = useState(true);
 
   useEffect(() => {

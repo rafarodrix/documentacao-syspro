@@ -5,6 +5,7 @@ import { ChevronRight, PanelLeft } from 'lucide-react';
 import { SidebarCollapseTrigger } from 'fumadocs-ui/components/layout/sidebar';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { cn } from '@/lib/utils';
+import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
 export function DocsSidebarInlineCollapse() {
   const { collapsed } = useSidebar();
@@ -21,7 +22,7 @@ export function DocsSidebarInlineCollapse() {
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/55" />
         <Link
-          href="/portal/docs"
+          href={DOCS_SCOPE_ROUTES.cliente}
           className="inline-flex items-center rounded-full border border-border/60 bg-background/65 px-2.5 py-1 no-underline transition-colors hover:border-border hover:bg-accent/50 hover:text-foreground"
         >
           Documentacao

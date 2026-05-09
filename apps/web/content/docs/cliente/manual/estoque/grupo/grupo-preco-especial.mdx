@@ -41,7 +41,6 @@ Com o Grupo de Preço Especial, a empresa consegue:
 - controlar se a regra será aplicada **à vista**, **a prazo** ou em **ambos** os casos;
 - permitir ou bloquear desconto adicional no fechamento da venda;
 - reduzir ajustes manuais durante o atendimento;
-- melhorar o controle de margem;
 - integrar regras comerciais entre participantes, departamentos e produtos;
 - aplicar uma condição especial de forma avulsa no balcão, quando necessário.
 
@@ -85,7 +84,7 @@ Antes de iniciar, defina a finalidade comercial do grupo. Verifique se ele será
   </Step>
 
   <Step>
-    Revise as informações cadastradas, principalmente a **Descrição**, a **Incidência** e a permissão de **Desconto de Fechamento**.
+    Revise as informações cadastradas, **Descrição**, **Incidência** e **Permitir Desconto de Fechamento**.
   </Step>
 
   <Step>
@@ -141,74 +140,36 @@ Use uma descrição clara, objetiva e padronizada, indicando a **regra comercial
 </Callout>
 
 ---
-
 ### Incidência
 
-O campo **Incidência** define em quais condições de pagamento o grupo de preço especial poderá ser considerado.
+O campo **Incidência** define se o grupo de preço especial será considerado em vendas **à vista**, **a prazo** ou em **ambos** os casos.
 
-Essa configuração é utilizada para diferenciar regras comerciais entre vendas **à vista**, **a prazo** ou em **ambos** os casos.
-
-| Opção | Comportamento |
+| Opção | Quando usar |
 |---|---|
-| Ambos | Aplica a regra tanto em vendas à vista quanto em vendas a prazo |
-| À Vista | Aplica a regra somente quando a venda for identificada como à vista |
-| A Prazo | Aplica a regra somente quando a venda for identificada como a prazo |
+| Ambos | Use quando a regra comercial deve valer para qualquer condição de pagamento |
+| À Vista | Use quando a regra deve valer somente para vendas identificadas como à vista |
+| A Prazo | Use quando a regra deve valer somente para vendas identificadas como a prazo |
 
 <Callout type="warning" title="Atenção">
-  As opções **À Vista** e **A Prazo** somente terão efeito quando a empresa utiliza o recurso de cálculo à vista/a prazo no **Balcão de Vendas** ou no **Orçamento**. Caso contrário, utilize a opção **Ambos**.
+  As opções **À Vista** e **A Prazo** somente terão efeito quando a empresa utiliza o recurso de cálculo à vista/a prazo no **Balcão de Vendas** ou no **Orçamento**. Caso contrário, utilize **Ambos**.
 </Callout>
-
-<Cards>
-  <Card title="Ambos">
-    Use **Ambos** quando a regra comercial deve valer independentemente da condição de pagamento.
-
-    Essa é a opção recomendada quando a empresa não utiliza separação automática entre venda à vista e venda a prazo.
-  </Card>
-
-  <Card title="À Vista">
-    Use **À Vista** quando o benefício comercial deve ser aplicado apenas em vendas identificadas como pagamento à vista.
-
-    Essa opção é indicada para empresas que trabalham com preço ou desconto diferenciado para pagamento imediato.
-  </Card>
-
-  <Card title="A Prazo">
-    Use **A Prazo** quando a regra comercial deve ser aplicada apenas em vendas identificadas como parceladas, faturadas ou com prazo.
-
-    Essa opção é indicada para empresas que possuem política comercial específica para vendas a prazo.
-  </Card>
-</Cards>
 
 <Callout type="info" title="Recomendação">
-  Na dúvida, configure a incidência como **Ambos**. Assim, a regra comercial será considerada independentemente da forma como a venda for calculada.
+  Na dúvida, configure a incidência como **Ambos** para garantir que a regra comercial seja considerada independentemente da forma de pagamento.
 </Callout>
-
 ---
 
 ### Permitir Desconto de Fechamento
 
-O campo **Permitir Desconto de Fechamento** define se o operador poderá aplicar um desconto adicional no fechamento da venda, além da condição comercial já definida para o grupo de preço especial.
+O campo **Permitir Desconto de Fechamento** define se o operador poderá conceder desconto adicional no fechamento da venda, além da regra comercial já vinculada ao grupo de preço especial.
 
-| Opção | Comportamento |
-|---|---|
-| Sim | Permite aplicar desconto adicional no fechamento da venda |
-| Não | Bloqueia desconto adicional no fechamento da venda |
-
-<Cards>
-  <Card title="Quando usar Sim">
-    Use quando a empresa permite negociação adicional no fechamento da venda.
-
-    Essa opção é indicada quando o vendedor ainda possui margem para conceder desconto extra, conforme a política comercial da empresa.
-  </Card>
-
-  <Card title="Quando usar Não">
-    Use quando a condição do grupo já representa o limite comercial permitido.
-
-    Essa opção ajuda a evitar que o cliente receba desconto adicional além da regra especial já configurada.
-  </Card>
-</Cards>
+| Opção | Quando usar | Comportamento |
+|---|---|---|
+| Sim | Quando a empresa permite negociação adicional no fechamento | O operador poderá aplicar desconto extra, conforme a política comercial da empresa |
+| Não | Quando a condição do grupo já representa o limite comercial permitido | O sistema bloqueia desconto adicional, evitando desconto acima da regra definida |
 
 <Callout type="warning" title="Controle de margem">
-  Para grupos com desconto elevado, preço especial agressivo ou regra comercial fechada, recomenda-se avaliar se o desconto de fechamento deve permanecer bloqueado.
+  Para grupos com desconto elevado, acréscimo específico, preço agressivo ou condição comercial fechada, avalie utilizar **Não** para evitar perda de margem no fechamento da venda.
 </Callout>
 
 ---
@@ -348,10 +309,6 @@ Indicado para:
 <Accordions type="single">
   <Accordion title="Para que serve o Grupo de Preço Especial?" id="para-que-serve">
     Ele serve para classificar participantes em grupos comerciais, permitindo aplicar regras diferenciadas de preço, desconto, acréscimo ou negociação.
-  </Accordion>
-
-  <Accordion title="Onde acesso esse cadastro?" id="onde-acessar">
-    Acesse **Estoque > Grupo > Preço Especial**.
   </Accordion>
 
   <Accordion title="Qual a diferença entre Ambos, À Vista e A Prazo?" id="diferenca-incidencia">

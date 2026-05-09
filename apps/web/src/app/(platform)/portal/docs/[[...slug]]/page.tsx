@@ -12,7 +12,6 @@ import { requireSession } from '@/lib/auth-helpers';
 import {
   canUserAccessDocUrl,
 } from '@/lib/docs-access';
-import { DocsHomePage } from '@/components/docs/home/docs-home-page';
 import { DocsPageViewTracker } from '@/components/docs/docs-page-view-tracker';
 import { DocsMetaChips } from '@/components/docs/docs-meta-chips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/docs-feature-badge';
@@ -27,11 +26,19 @@ import {
   estimateReadingTimeMinutes,
   formatDateLong,
 } from '@/lib/docs-utils';
-import { currentUserHasPermission } from '@/features/user-access/application/current-user-access';
-import { getReleases } from '@/features/releases/application/release-read.queries';
-import { groupReleasesByMonth } from '@/features/releases/domain/release-grouping';
+import { DOCS_BASE_PATH, getDefaultDocsRouteForRole } from '@/lib/docs-scope';
 
-const DOCS_BASE_PATH = "/portal/docs";
+function resolveDocsSlug(slug: string[]) {
+  if (slug[0] === "manuais-tecnicos") {
+    return ["admin"];
+  }
+
+  if (slug[0] === "manual" || slug[0] === "duvidas" || slug[0] === "treinamento") {
+    return ["cliente", ...slug];
+  }
+
+  return slug;
+}
 
 export default async function PortalDocsPage(props: {
   params: Promise<{ slug?: string[] }>;
@@ -39,61 +46,28 @@ export default async function PortalDocsPage(props: {
   const params = await props.params;
   const session = await requireSession();
   const slug = params.slug ?? [];
-  const canViewTechnicalDocs = await currentUserHasPermission("tools:all");
-  const canBypassSegmentAccess = await currentUserHasPermission("users:view_internal");
   const docUrl = `${DOCS_BASE_PATH}${slug.length ? `/${slug.join('/')}` : ''}`;
+
+  if (slug.length === 0) {
+    redirect(getDefaultDocsRouteForRole(session.role));
+  }
+
+  const resolvedSlug = resolveDocsSlug(slug);
+  if (resolvedSlug !== slug) {
+    redirect(`${DOCS_BASE_PATH}/${resolvedSlug.join("/")}`);
+  }
 
   const canAccessCurrentDoc = await canUserAccessDocUrl({
     url: docUrl,
     userId: session.userId,
-    canViewTechnical: canViewTechnicalDocs,
-    canBypassSegmentAccess,
+    role: session.role,
   });
   if (!canAccessCurrentDoc) {
-    redirect(DOCS_BASE_PATH);
+    redirect(getDefaultDocsRouteForRole(session.role));
   }
 
-  const page = source.getPage(params.slug);
+  const page = source.getPage(resolvedSlug);
   if (!page) notFound();
-
-  if (slug.length === 0) {
-    const allPages = source.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
-    const releaseSummaries = groupReleasesByMonth(await getReleases()).slice(0, 3);
-
-    const visibility = await Promise.all(
-      allPages.map((item) =>
-        canUserAccessDocUrl({
-          url: item.url,
-          userId: session.userId,
-          canViewTechnical: canViewTechnicalDocs,
-          canBypassSegmentAccess,
-        }),
-      ),
-    );
-
-    const visiblePages = allPages
-      .filter((_, i) => visibility[i])
-      .map((item) => ({
-        href: item.url,
-        title: String(item.data.title),
-        description: typeof item.data.description === 'string' ? item.data.description : undefined,
-        lastUpdated: typeof item.data.lastUpdated === 'string' ? item.data.lastUpdated : undefined,
-      }));
-
-    return (
-      <DocsPage toc={[]} full breadcrumb={{ full: true }}>
-        <DocsTitle>{page.data.title}</DocsTitle>
-        <DocsDescription>{page.data.description}</DocsDescription>
-        <DocsBody>
-          <DocsHomePage
-            pages={visiblePages}
-            canViewTechnical={canViewTechnicalDocs}
-            releaseSummaries={releaseSummaries}
-          />
-        </DocsBody>
-      </DocsPage>
-    );
-  }
 
   const MDXContent = page.data.body;
   const lastUpdated = typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined;
@@ -117,8 +91,7 @@ export default async function PortalDocsPage(props: {
       canUserAccessDocUrl({
         url: item.url,
         userId: session.userId,
-        canViewTechnical: canViewTechnicalDocs,
-        canBypassSegmentAccess,
+        role: session.role,
       }),
     ),
   );
@@ -196,7 +169,15 @@ export async function generateMetadata(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+  const slug = params.slug ?? [];
+  if (slug.length === 0) {
+    return {
+      title: "Documentacao",
+      description: "Central de documentacao do portal.",
+    };
+  }
+
+  const page = source.getPage(resolveDocsSlug(slug));
   if (!page) notFound();
 
   return {

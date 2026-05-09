@@ -1,11 +1,11 @@
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Avatar, AvatarFallback } from "@dosc-syspro/ui";
+import { Avatar, AvatarFallback, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui";
 
 function getInitials(name: string): string {
   return name
     .split(/[\s-_]+/)
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 export function DocsMetaChips({
@@ -46,7 +46,7 @@ export function DocsMetaChips({
               </span>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>Responsável por manter este conteúdo atualizado</p>
+              <p>Responsável por manter este conteúdo atualizado.</p>
             </TooltipContent>
           </Tooltip>
         ) : null}

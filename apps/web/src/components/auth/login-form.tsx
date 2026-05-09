@@ -193,7 +193,7 @@ export function LoginForm() {
           <p className="text-center text-sm text-muted-foreground">
             Fale com o{" "}
             <Link
-              href="/portal/docs/suporte"
+              href="/portal/docs/cliente/suporte"
               className="font-medium text-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
               suporte técnico
@@ -205,7 +205,6 @@ export function LoginForm() {
     </AuthLayoutWrapper>
   )
 }
-
 
 
 
