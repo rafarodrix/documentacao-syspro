@@ -39,7 +39,7 @@ import {
   BriefcaseBusiness,
   Target,
 } from "lucide-react"
-import { DOCS_SCOPE_ROUTES, canRoleAccessDocsScope, getSupportDocsRouteForRole } from "@/lib/docs-scope"
+import { DOCS_SCOPE_ROUTES, getSupportDocsRouteForRole } from "@/lib/docs-scope"
 
 export type UserRole = Role
 
@@ -101,8 +101,6 @@ const NAV_COMMERCIAL: NavItemType[] = [
 
 const NAV_DOCS: NavItemType[] = [
   { title: "Documentacao", href: DOCS_SCOPE_ROUTES.cliente, icon: BookOpen },
-  { title: "Suporte", href: DOCS_SCOPE_ROUTES.suporte, icon: HelpCircle },
-  { title: "Admin", href: DOCS_SCOPE_ROUTES.admin, icon: Settings },
   { title: "Ferramentas", href: "/portal/tools", icon: Wrench },
   { title: "Releases", href: "/portal/releases", icon: Rocket },
 ]
@@ -315,10 +313,13 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/comercial/leads": navigationAccess?.crm,
     "/portal/contratos": navigationAccess?.contracts,
   })
-  const docsItems = filterByAccess(NAV_DOCS, {
+  const docsItems = filterByAccess([
+    ...NAV_DOCS.slice(0, 1),
+    { title: "Suporte", href: getSupportDocsRouteForRole(user.role), icon: HelpCircle },
+    ...NAV_DOCS.slice(1),
+  ], {
     [DOCS_SCOPE_ROUTES.cliente]: navigationAccess?.docs,
-    [DOCS_SCOPE_ROUTES.suporte]: navigationAccess?.docs && canRoleAccessDocsScope(user.role, "suporte"),
-    [DOCS_SCOPE_ROUTES.admin]: navigationAccess?.docs && canRoleAccessDocsScope(user.role, "admin"),
+    [getSupportDocsRouteForRole(user.role)]: navigationAccess?.docs,
     "/portal/releases": navigationAccess?.releases,
     "/portal/tools": navigationAccess?.tools,
   })
