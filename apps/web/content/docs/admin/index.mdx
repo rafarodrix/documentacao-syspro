@@ -1,7 +1,7 @@
 ---
 title: Central Administrativa
-description: Base restrita com materiais de infraestrutura, operacao tecnica e referencia administrativa.
-lastUpdated: 2026-05-09
+description: Hub restrito para infraestrutura, operacao sensivel e referencias administrativas da plataforma.
+lastUpdated: 2026-05-11
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -12,9 +12,9 @@ tags:
 import { Cards, Card } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
 
-## Visao Geral
+## Escopo administrativo
 
-Esta area reune documentacao sensivel de operacao, infraestrutura e administracao da plataforma. O acesso e restrito a perfis administrativos.
+Esta area reune a documentacao mais sensivel do ambiente, com foco em infraestrutura, operacao restrita e referencias administrativas que nao devem circular fora do contexto interno.
 
 <Cards>
   <Card title="Infraestrutura" href="/portal/docs/admin/infraestrutura">
@@ -22,6 +22,23 @@ Esta area reune documentacao sensivel de operacao, infraestrutura e administraca
   </Card>
 </Cards>
 
+## Uso recomendado
+
+<Cards>
+  <Card title="Operacao de ambiente" href="/portal/docs/admin/infraestrutura">
+    Consulte aqui antes de qualquer acao em servicos, servidores, dominios ou camadas compartilhadas da plataforma.
+  </Card>
+  <Card title="Padroes internos" href="/portal/docs/admin/infraestrutura">
+    Centralize referencias tecnicas e operacionais sensiveis na arvore administrativa.
+  </Card>
+</Cards>
+
 <Callout type="warn" title="Acesso restrito">
   Nao replique credenciais, variaveis de ambiente ou detalhes operacionais fora desta area. Sempre prefira os canais internos apropriados.
 </Callout>
+
+## Regras desta area
+
+- Registre procedimentos sensiveis apenas aqui
+- Evite duplicar conteudo admin em suporte ou cliente
+- Use links para materiais internos em vez de copiar contexto operacional

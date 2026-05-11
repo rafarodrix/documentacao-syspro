@@ -1,7 +1,7 @@
 ---
 title: Central de Suporte
-description: Acesso rapido aos guias, scripts e procedimentos operacionais da equipe de suporte.
-lastUpdated: 2026-05-09
+description: Hub operacional com procedimentos, scripts e referencias tecnicas da equipe de suporte.
+lastUpdated: 2026-05-11
 owner: Equipe de Documentacao
 status: published
 tags:
@@ -12,22 +12,46 @@ tags:
 import { Cards, Card } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
 
-## Visao Geral
+## Operacao diaria
 
-Esta area concentra a documentacao operacional da equipe de suporte. Aqui ficam os procedimentos mais usados no atendimento, scripts recorrentes e guias tecnicos de apoio.
+Esta area concentra os materiais de atendimento interno. O objetivo aqui e reduzir tempo de diagnostico, padronizar execucao e centralizar procedimentos de suporte em um unico lugar.
 
 <Cards>
-  <Card title="Banco de Dados" href="/portal/docs/suporte/banco-dados/recuperacao-banco-firebird">
-    Procedimentos de manutencao e recuperacao para ambientes que exigem atuacao direta em banco.
+  <Card title="Banco de dados" href="/portal/docs/suporte/banco-dados">
+    Recuperacao, manutencao e procedimentos sensiveis em ambientes com atuacao direta em banco.
   </Card>
-  <Card title="Parametrizacoes" href="/portal/portal/docs/cliente/suporte/parametrizacoes/migracao-nfse-nacional">
-    Ajustes de sistema, migracoes e configuracoes guiadas para suporte tecnico.
+  <Card title="Parametrizacoes" href="/portal/docs/suporte/parametrizacoes">
+    Ajustes de sistema, migracoes e configuracoes conduzidas pela equipe de suporte.
   </Card>
-  <Card title="Scripts" href="/portal/docs/suporte/scripts/pedido-cancelar-lancamento">
-    Scripts e operacoes recorrentes para diagnostico e correcao assistida.
+  <Card title="Scripts" href="/portal/docs/suporte/scripts">
+    Scripts e operacoes recorrentes para diagnostico, correcao assistida e atendimento avancado.
+  </Card>
+  <Card title="Hardware" href="/portal/docs/suporte/hardware">
+    Apoios tecnicos ligados a dispositivos, requisitos fisicos e validacoes de ambiente.
+  </Card>
+</Cards>
+
+## Atalhos por tipo de chamado
+
+<Cards>
+  <Card title="Recuperacao Firebird" href="/portal/docs/suporte/banco-dados/recuperacao-banco-firebird">
+    Procedimento rapido para cenarios de restauracao e recuperacao em ambientes Firebird.
+  </Card>
+  <Card title="Migracao NFS-e Nacional" href="/portal/docs/suporte/parametrizacoes/migracao-nfse-nacional">
+    Guia operacional para parametrizacao e migracao de emissao fiscal.
+  </Card>
+  <Card title="Base de scripts" href="/portal/docs/suporte/scripts">
+    Entrada principal para consultas de scripts usados no atendimento interno.
   </Card>
 </Cards>
 
 <Callout title="Uso interno">
-  Esta secao foi organizada para operacao da equipe interna. Mantenha os procedimentos atualizados e evite duplicar instrucoes fora desta arvore.
+  Esta secao deve concentrar a execucao interna do suporte. Evite duplicar procedimento em chat, ticket ou anotacao solta quando ele puder existir aqui.
 </Callout>
+
+## Quando usar cada area
+
+- Banco de dados: incidentes com restore, estrutura, correcao ou manutencao sensivel
+- Parametrizacoes: ajustes funcionais, migracoes e ativacoes orientadas
+- Scripts: consultas e correcoes recorrentes com apoio tecnico
+- Hardware: validacoes de ambiente e apoio em dispositivos
