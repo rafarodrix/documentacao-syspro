@@ -1,0 +1,79 @@
+---
+title: "Sincronização de Produtos entre Empresas"
+description: "Copia vínculos de produtos comerciais da Empresa Origem para a Empresa Destino que ainda não existam no destino. Utiliza marcadores simbólicos para facilitar a substituição manual. Requer backup prévio."
+category: "Estoque"
+author: "Equipe de Documentacao"
+createdAt: "2026-05-11"
+firebirdVersion: "5.0"
+tags:
+
+* "migração"
+* "produtos"
+* "multi-empresa"
+* "sincronização"
+---
+
+
+-- Script: Sincronização de Produtos entre Empresas
+-- Objetivo: Vincular produtos de uma empresa de origem para uma empresa de destino
+-- Parâmetros: Substitua os marcadores 'ID_ORIGEM' e 'ID_DESTINO' pelos UUIDs reais.
+-- Recomendação: Realize backup integral e valide com o script de conferência antes de aplicar.
+
+```txt
+-- [INFORMAÇÃO]: Onde encontrar 'ID_ORIGEM' e 'ID_DESTINO', insira o UUID entre aspas simples.
+-- Exemplo: '{8B22A1FF-B411-46FA-A38D-3A1D50EC8409}'
+```
+
+```sql
+-- 1. SCRIPT DE CONFERÊNCIA
+-- Execute este SELECT para visualizar os produtos que serão migrados.
+SELECT 
+    P.CD_AUXILIAR, 
+    P.DESCRICAO,
+    PCE_ORIGEM.ID_PRODUTO_COMERCIAL
+FROM 
+    PRODUTO_COMERCIAL_EMPRESA PCE_ORIGEM
+JOIN PRODUTO_COMERCIAL PC ON PC.ID_PRODUTO_COMERCIAL = PCE_ORIGEM.ID_PRODUTO_COMERCIAL
+JOIN PRODUTO P           ON P.ID_PRODUTO = PC.ID_PRODUTOWHERE 
+    PCE_ORIGEM.ID_EMPRESA = 'ID_ORIGEM' 
+    AND NOT EXISTS (
+        SELECT 1 
+        FROM PRODUTO_COMERCIAL_EMPRESA PCE_DESTINO 
+        WHERE PCE_DESTINO.ID_PRODUTO_COMERCIAL = PCE_ORIGEM.ID_PRODUTO_COMERCIAL 
+          AND PCE_DESTINO.ID_EMPRESA = 'ID_DESTINO'
+    )
+ORDER BY P.DESCRICAO;
+```
+
+```sql
+-- 2. SCRIPT DE INSERÇÃO (FIREBIRD 5.0)
+-- Realiza a carga de dados gerando novos UUIDs para a empresa de destino.
+INSERT INTO PRODUTO_COMERCIAL_EMPRESA (
+    ID_PRODUTO_COMERCIAL_EMPRESA,
+    ID_PRODUTO_COMERCIAL,
+    ID_EMPRESA,
+    ATIVO,
+    DT_ALTERACAO,
+    HR_ALTERACAO
+)
+SELECT
+    '{' || UUID_TO_CHAR(GEN_UUID()) || '}', -- Gera novo ID único para o registro
+    PCE_ORIGEM.ID_PRODUTO_COMERCIAL,
+    'ID_DESTINO',                           -- Define a Empresa de Destino
+    1,                                       -- Define como Ativo (1)
+    CURRENT_DATE,
+    CURRENT_TIME
+FROM
+    PRODUTO_COMERCIAL_EMPRESA PCE_ORIGEM
+WHERE
+    PCE_ORIGEM.ID_EMPRESA = 'ID_ORIGEM'      -- Filtra pela Empresa de Origem
+    AND NOT EXISTS (
+        SELECT 1 
+        FROM PRODUTO_COMERCIAL_EMPRESA PCE_DESTINO 
+        WHERE PCE_DESTINO.ID_PRODUTO_COMERCIAL = PCE_ORIGEM.ID_PRODUTO_COMERCIAL 
+          AND PCE_DESTINO.ID_EMPRESA = 'ID_DESTINO'
+    );
+
+COMMIT;
+
+```
