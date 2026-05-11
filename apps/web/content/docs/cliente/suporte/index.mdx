@@ -13,16 +13,8 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
 import { CustomCard } from "@/components/custom-card";
 import {
-  FileCode,
-  Printer,
-  ShieldQuestion,
-  Calculator,
-  Target,
-  DollarSign,
   BookOpen,
-  Rocket,
   Server,
-  Network,
 } from "lucide-react";
 
 ## Bem-vindo à Central de Suporte do Syspro ERP!
@@ -33,14 +25,7 @@ import {
 Use estas ferramentas para validar dados, analisar arquivos e resolver problemas rapidamente.
 
 <Cards>
-  <CustomCard
-    title="Decodificador de Rejeições (NF-e)"
-    href="/portal/docs/cliente/duvidas/rejeicoes/nfe-nfce"
-    icon={<ShieldQuestion />}
-  >
-    Traduza códigos de rejeição da SEFAZ em explicações claras e checklists
-    práticos para resolver o problema na hora.
-  </CustomCard>
+
   <CustomCard
     title="Requisitos Mínimos"
     href="/portal/docs/cliente/suporte/requisitos"
@@ -49,22 +34,8 @@ Use estas ferramentas para validar dados, analisar arquivos e resolver problemas
     Verifique os requisitos de sistema e ambiente necessários para garantir a
     melhor performance do ERP.
   </CustomCard>
-  <CustomCard
-    title="Infraestrutura de Software"
-    href="/portal/docs/admin/infraestrutura/infraestrutura-software"
-    icon={<Network />}
-  >
-    Topologia dos serviços da plataforma: Vercel, Railway, VPS, Evolution Go,
-    mapeamento de domínios e variáveis críticas.
-  </CustomCard>
-</Cards>
-
-### Documentação e Guias
-
-Consulte nossos manuais e documentos de referência para obter respostas detalhadas sobre processos, requisitos e novidades do sistema.
-
-<Cards>
-  <CustomCard
+  
+  <CustomCard>
     title="Guia do Suporte"
     href="/portal/docs/cliente/suporte/sobre-suporte"
     icon={<BookOpen />}
@@ -72,23 +43,12 @@ Consulte nossos manuais e documentos de referência para obter respostas detalha
     Entenda nossos canais de atendimento, horários e como abrir um chamado de
     forma eficaz para uma resolução ágil.
   </CustomCard>
-  <CustomCard
-    title="Parametrizações"
-    href="/portal/docs/cliente/suporte/parametrizacoes/migracao-nfse-nacional"
-    icon={<Target />}
-  >
-    Acesse a seção de parametrizações para configurar o sistema de acordo com as
-    necessidades da sua empresa.
-  </CustomCard>
-  <CustomCard
-    title="Ambientes (Homologação e Produção)"
-    href="/portal/docs/cliente/suporte/parametrizacoes/homologcao-producao"
-    icon={<Rocket />}
-  >
-    Entenda a diferença entre os ambientes de teste e de produção e como
-    utilizá-los corretamente.
-  </CustomCard>
+
 </Cards>
+
+### Documentação e Guias
+
+Consulte nossos manuais e documentos de referência para obter respostas detalhadas sobre processos, requisitos e novidades do sistema.
 
 <Callout title="Precisa de uma ferramenta específica?">
   Se você tem uma necessidade que ainda não atendemos ou uma sugestão para uma
