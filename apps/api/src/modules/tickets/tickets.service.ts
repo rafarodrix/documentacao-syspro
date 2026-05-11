@@ -185,7 +185,7 @@ export class TicketsService {
       data.team,
       settings,
       normalizedCategory,
-      isSystemAdmin && ticketCapabilities.canRouteDevelopment,
+      ticketCapabilities.canRouteDevelopment,
       ticketCapabilities.canOwnDevelopmentQueue,
     );
     const normalizedCategoryType = this.resolveCategoryType(settings, normalizedCategory, normalizedTeam);
@@ -761,7 +761,7 @@ export class TicketsService {
             input.team,
             settings,
             undefined,
-            accessScope.isGlobal && ticketCapabilities.canRouteDevelopment,
+            ticketCapabilities.canRouteDevelopment,
             ticketCapabilities.canOwnDevelopmentQueue,
           )
         : undefined;
@@ -1366,7 +1366,7 @@ export class TicketsService {
           input.team,
           settings,
           input.category,
-          accessScope.isGlobal && ticketCapabilities.canRouteDevelopment,
+          ticketCapabilities.canRouteDevelopment,
           ticketCapabilities.canOwnDevelopmentQueue,
         )
       : undefined;
@@ -1547,9 +1547,9 @@ export class TicketsService {
 
   private async getTicketOperatorCapabilities(requester: { userId: string; role: Role; email: string }) {
     const [canRouteDevelopment, canOwnSupportQueue, canOwnDevelopmentQueue] = await Promise.all([
-      this.authorizationService.userHasPermission(requester, 'tickets:route_development'),
-      this.authorizationService.userHasPermission(requester, 'tickets:own_support_queue'),
-      this.authorizationService.userHasPermission(requester, 'tickets:own_development_queue'),
+      this.authorizationService.userHasPermission(requester, 'tickets:route_development', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'tickets:own_support_queue', { acceptCompanyScope: true }),
+      this.authorizationService.userHasPermission(requester, 'tickets:own_development_queue', { acceptCompanyScope: true }),
     ]);
 
     return {
