@@ -9,7 +9,6 @@ import {
   type PopularMap,
   type VisitedMap,
 } from '@/lib/docs-storage';
-
 const MAX_RECENT_ITEMS = 8;
 
 export function DocsPageViewTracker({ href, title }: { href: string; title: string }) {
@@ -44,7 +43,7 @@ export function DocsPageViewTracker({ href, title }: { href: string; title: stri
     writeStorage(DOCS_STORAGE_KEYS.visited, { ...visited, [href]: visitedAt });
 
     // -----------------------------------------------------------------------
-    // Reporta visita para a API (fire-and-forget com keepalive)
+    // Reporta visita para a API com keepalive para nao perder o evento em navegacoes rapidas.
     // -----------------------------------------------------------------------
     void fetch('/api/docs/views', {
       method: 'POST',

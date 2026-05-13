@@ -28,10 +28,12 @@ function normalizeDocsFeedback(body: unknown): DocsFeedbackInput {
   };
 }
 
+import { trpc } from "@/lib/api/trpc-client";
+
 export async function submitDocsFeedback(request: Request) {
   const body = await request.json();
   const feedback = normalizeDocsFeedback(body);
 
-  console.info("[docs.feedback]", feedback);
+  await trpc.docs.submitFeedback.mutate(feedback);
   return { ok: true as const };
 }

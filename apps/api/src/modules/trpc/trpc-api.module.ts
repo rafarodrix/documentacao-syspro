@@ -6,6 +6,7 @@ import { TrpcRouter } from './trpc.router';
 import { CompaniesModule } from '../companies/companies.module';
 import { UsersModule } from '../users/users.module';
 import { ContactsModule } from '../contacts/contacts.module';
+import { DocsModule } from '../docs/docs.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ContactsModule } from '../contacts/contacts.module';
     CompaniesModule,
     UsersModule,
     ContactsModule,
+    DocsModule,
   ],
   providers: [TrpcRouter],
   exports: [TrpcRouter],

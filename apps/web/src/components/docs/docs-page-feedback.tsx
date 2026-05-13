@@ -52,7 +52,7 @@ export function DocsPageFeedback({
     if (sending) return;
     setSending(true);
     try {
-      await fetch('/api/docs/feedback', {
+      const response = await fetch('/api/docs/feedback', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -63,6 +63,9 @@ export function DocsPageFeedback({
           votedAt: new Date().toISOString(),
         }),
       });
+      if (!response.ok) {
+        throw new Error('docs_feedback_request_failed');
+      }
       localStorage.setItem(storageKey, JSON.stringify({ vote: nextVote, reason: nextReason ?? null }));
       setVote(nextVote);
       setReason(nextReason ?? null);
