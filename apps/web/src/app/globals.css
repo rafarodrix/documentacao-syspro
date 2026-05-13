@@ -190,9 +190,9 @@
   }
 
   .portal-docs-shell #nd-subnav > div {
-    min-height: 2.75rem;
-    padding-inline: 0.45rem;
-  }
+      min-height: 2.75rem;
+      padding-inline: 0.45rem;
+    }
 
   .portal-docs-shell #nd-subnav a,
   .portal-docs-shell #nd-subnav button {
@@ -240,7 +240,23 @@
   }
 
   #nd-sidebar.docs-sidebar-shell > div:first-child {
-    padding-top: 0.5rem;
+      padding-top: 0.5rem;
+    }
+
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell > div:first-child > div:first-child {
+    position: relative;
+    min-height: 1.75rem;
+  }
+
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .docs-nav-title {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+  }
+
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .docs-nav-title img {
+    object-position: center;
   }
 
   #nd-sidebar.docs-sidebar-shell a,

@@ -2,7 +2,7 @@ import Image from 'next/image';
 
 export function NavTitle() {
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="docs-nav-title inline-flex items-center justify-center">
       <span className="relative h-7 w-24 dark:hidden">
         <Image
           src="/img/logo/logo-escura.png"
@@ -23,9 +23,7 @@ export function NavTitle() {
           sizes="96px"
         />
       </span>
-      <span className="hidden text-sm font-medium tracking-tight md:inline">
-        Trilink Software
-      </span>
+      <span className="sr-only">Trilink Software</span>
     </span>
   );
 }
