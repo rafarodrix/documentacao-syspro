@@ -53,6 +53,6 @@
     "dependencies":  {},
     "devDependencies":  {
                             "dotenv-cli":  "^11.0.0",
-                            "eslint-plugin-trilink-tokens": "*"
+                            "eslint-plugin-trilink-tokens": "file:tools/eslint-plugin-trilink-tokens"
                         }
 }

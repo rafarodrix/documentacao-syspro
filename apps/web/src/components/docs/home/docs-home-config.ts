@@ -5,7 +5,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { Role } from '@prisma/client';
-import type { AudienceSegment } from './use-docs-dashboard';
+import type { DocsAudienceSegment } from '@dosc-syspro/contracts/docs';
 import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
 export type QuickLinkTone = 'docs' | 'faq' | 'training' | 'support' | 'technical';
@@ -117,10 +117,8 @@ export const TONE_STYLES: Record<QuickLinkTone, {
   },
 };
 
-export const AUDIENCE_LABELS: Record<AudienceSegment, string> = {
-  internal_admin: 'Populares para administracao interna',
-  internal_development: 'Populares para desenvolvimento',
-  internal_support: 'Populares para suporte',
-  client_manager: 'Populares para gestores clientes',
-  client_user: 'Populares para clientes',
+export const AUDIENCE_LABELS: Record<DocsAudienceSegment, string> = {
+  admin: 'Populares para administracao interna',
+  suporte: 'Populares para suporte',
+  cliente: 'Populares para clientes',
 };
