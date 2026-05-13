@@ -19,7 +19,7 @@ const textExtensions = new Set([
 ]);
 
 const ignoredDirs = new Set([".git", ".next", "node_modules", "coverage", "dist", "build"]);
-const wholeContentPatterns = [/Ã./, /â€./, /âœ./, /�/];
+const wholeContentPatterns = [/Ã[\u0080-\u00BF]/, /â€./, /âœ./, /�/];
 const brokenQuestionPattern = /[A-Za-z\u00C0-\u017F]\?\?[A-Za-z\u00C0-\u017F]/;
 const violations = [];
 
