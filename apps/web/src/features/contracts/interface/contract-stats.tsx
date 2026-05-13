@@ -85,6 +85,7 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
 
     return (
         <div className="grid gap-4 md:grid-cols-3">
+            {/* ds-allow: surface accent */}
             <StatCard
                 title="Receita Liquida Mensal"
                 value={monthlyRevenue}
@@ -96,6 +97,7 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
                 description="Apos deducao de impostos e repasses."
             />
 
+            {/* ds-allow: surface accent */}
             <StatCard
                 title="Contratos Ativos"
                 value={activeContracts.length}
@@ -106,6 +108,7 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
                 description={`Total de ${totalContracts} contratos cadastrados.`}
             />
 
+            {/* ds-allow: surface accent */}
             <StatCard
                 title="Media do Percentual"
                 value={avgPercentage / 100}

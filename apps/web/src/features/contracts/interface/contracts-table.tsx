@@ -543,22 +543,20 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                             </TableCell>
 
                                             <TableCell>
-                                                <div className={cn(
-                                                    "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border transition-colors",
-                                                    isActive
-                                                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400"
-                                                        : "bg-muted text-muted-foreground border-border",
-                                                )}>
-                                                    <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-emerald-500 animate-pulse" : "bg-gray-400")} />
+                                                <Badge
+                                                    variant={isActive ? "success" : "muted"}
+                                                    className="gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                                >
+                                                    <span className={cn("h-1.5 w-1.5 rounded-full bg-current", isActive ? "animate-pulse" : "opacity-60")} />
                                                     {isActive ? "Ativo" : "Inativo"}
-                                                </div>
+                                                </Badge>
                                             </TableCell>
 
                                             <TableCell className="text-right">
                                                 <div className="flex flex-col items-end gap-0.5">
                                                     <span className={cn(
                                                         "font-bold font-mono text-sm tracking-tight tabular-nums",
-                                                        isActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+                                                        isActive ? "text-primary" : "text-muted-foreground",
                                                     )}>
                                                         {formatCurrency(net)}
                                                     </span>
@@ -596,15 +594,17 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
 
                                                         {canEdit ? (
                                                             isActive ? (
+                                                                // ds-allow: status
                                                                 <DropdownMenuItem
                                                                     disabled={isPending}
                                                                     onClick={() => setSuspendTarget(contract)}
-                                                                    className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2"
+                                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
                                                                 >
                                                                     <Trash2 className="h-3.5 w-3.5" />
                                                                     Suspender
                                                                 </DropdownMenuItem>
                                                             ) : (
+                                                                // ds-allow: status
                                                                 <DropdownMenuItem
                                                                     disabled={isPending}
                                                                     onClick={() => handleActivate(contract.id)}
@@ -617,10 +617,11 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                                         ) : null}
 
                                                         {canDelete ? (
+                                                            // ds-allow: status
                                                             <DropdownMenuItem
                                                                 disabled={isPending}
                                                                 onClick={() => setDeleteTarget(contract)}
-                                                                className="text-rose-700 focus:text-rose-700 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer gap-2"
+                                                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
                                                             >
                                                                 <Trash2 className="h-3.5 w-3.5" />
                                                                 Excluir

@@ -289,16 +289,16 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Impostos ({taxRate}%)</span>
-                                <span className="font-mono text-rose-500/90">- {formatCurrency(taxDeduction)}</span>
+                                <span className="font-mono text-destructive">- {formatCurrency(taxDeduction)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Repasse parceiro ({partnerRate}%)</span>
-                                <span className="font-mono text-rose-500/90">- {formatCurrency(partnerDeduction)}</span>
+                                <span className="font-mono text-destructive">- {formatCurrency(partnerDeduction)}</span>
                             </div>
                             <Separator className="my-1" />
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold text-foreground">Liquido estimado</span>
-                                <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(netValue)}</span>
+                                <span className="text-lg font-bold font-mono text-primary">{formatCurrency(netValue)}</span>
                             </div>
                         </div>
 

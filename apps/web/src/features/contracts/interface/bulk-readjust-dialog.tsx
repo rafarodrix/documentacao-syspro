@@ -48,7 +48,7 @@ export function BulkReadjustDialog() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="gap-2 border-amber-500/20 hover:bg-amber-500/10 hover:text-amber-600 hover:border-amber-500/40 text-muted-foreground transition-all"
+          className="gap-2 text-muted-foreground transition-all"
         >
           <RefreshCw className="h-4 w-4" />
           Reajuste em Massa
@@ -58,11 +58,15 @@ export function BulkReadjustDialog() {
       <DialogContent className="sm:max-w-[400px] p-0 gap-0 overflow-hidden border-none shadow-2xl">
 
         {/* Cabe?alho */}
+        {/* ds-allow: status */}
         <div className="bg-amber-500/10 border-b border-amber-500/20 p-6 text-center">
+          {/* ds-allow: status */}
           <div className="h-11 w-11 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3 ring-4 ring-amber-50 dark:ring-amber-900/10">
+            {/* ds-allow: status */}
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
           </div>
           <DialogTitle className="text-lg font-semibold">Reajuste Global</DialogTitle>
+          {/* ds-allow: status */}
           <DialogDescription className="mt-1.5 text-sm text-amber-900/70 dark:text-amber-200/70">
             Atualiza o <strong>Sal?rio Base</strong> de todos os contratos ativos.
           </DialogDescription>
@@ -72,13 +76,16 @@ export function BulkReadjustDialog() {
           {result ? (
             // --- Estado de Sucesso -----------------------------------------
             <div className="flex flex-col items-center gap-3 text-center py-2">
+              {/* ds-allow: status */}
               <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                {/* ds-allow: status */}
                 <CheckCircle2 className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
                 <p className="font-semibold text-foreground">Reajuste aplicado!</p>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   <span className="text-foreground font-medium">{result.affected}</span> contrato{result.affected !== 1 ? "s" : ""} atualizado{result.affected !== 1 ? "s" : ""} para{" "}
+                  {/* ds-allow: status */}
                   <span className="font-mono font-medium text-emerald-600">{formatCurrencyBRL(parsed)}</span>
                 </p>
               </div>
@@ -110,6 +117,7 @@ export function BulkReadjustDialog() {
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Aplicado apenas a contratos com status{" "}
+                {/* ds-allow: status */}
                 <span className="text-emerald-600 font-medium">Ativo</span>. Contratos suspensos ou cancelados n?o ser?o alterados.
               </p>
             </div>
@@ -129,6 +137,7 @@ export function BulkReadjustDialog() {
               <Button
                 onClick={handleReadjust}
                 disabled={isPending || !isValid}
+                // ds-allow: status
                 className={cn(
                   "flex-1 bg-amber-600 hover:bg-amber-700 text-white",
                   isPending && "opacity-80"
