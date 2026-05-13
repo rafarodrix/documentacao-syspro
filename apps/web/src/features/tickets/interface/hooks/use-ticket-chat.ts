@@ -6,6 +6,32 @@ import { replyTicketAction } from "@/features/tickets/application/ticket-actions
 import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
 import { useSession } from "@/lib/auth-client";
 
+const MAX_TICKET_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const TICKET_ATTACHMENT_ALLOWED_MIME_PREFIXES = ["image/", "audio/", "video/", "text/"];
+const TICKET_ATTACHMENT_ALLOWED_MIME_TYPES = new Set([
+    "application/pdf",
+    "application/json",
+    "application/xml",
+    "text/xml",
+    "text/csv",
+    "application/rtf",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
+
+function isAllowedTicketAttachmentMimeType(mimeType: string) {
+    const normalized = mimeType.trim().toLowerCase();
+    if (!normalized) return true;
+    if (TICKET_ATTACHMENT_ALLOWED_MIME_TYPES.has(normalized)) return true;
+    return TICKET_ATTACHMENT_ALLOWED_MIME_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
 export function useTicketChat(ticketId: string, articles: TicketArticleItem[], autoScrollEnabled = true) {
     const [message, setMessage] = useState("");
     const [files, setFiles] = useState<File[]>([]);
@@ -60,9 +86,16 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
     const appendFiles = (incomingFiles: File[]) => {
         if (!incomingFiles.length) return;
 
-        const valid = incomingFiles.filter((file) => file.size <= 5 * 1024 * 1024);
+        const valid = incomingFiles.filter((file) => {
+            if (file.size > MAX_TICKET_ATTACHMENT_BYTES) {
+                return false;
+            }
+
+            return isAllowedTicketAttachmentMimeType(file.type || "");
+        });
+
         if (valid.length < incomingFiles.length) {
-            toast.warning("Alguns arquivos foram ignorados por excederem 5MB.");
+            toast.warning("Alguns arquivos foram ignorados por tipo nao suportado ou por excederem 5MB.");
         }
 
         setFiles((prev) => {

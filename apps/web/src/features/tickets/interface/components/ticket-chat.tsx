@@ -6,7 +6,7 @@ import { DEFAULT_TICKET_MODULE_SETTINGS } from "@dosc-syspro/contracts/ticket";
 import { useTicketChat } from "@/features/tickets/interface";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Avatar, AvatarFallback, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, ScrollArea, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { AlertCircle, Bot, FileText, Headset, History, Loader2, MessageSquareText, Paperclip, Send, User, X } from "lucide-react";
+import { AlertCircle, Bot, Film, Headset, History, ImageIcon, Loader2, MessageSquareText, Mic, Paperclip, Send, User, X, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketMessagePagination } from "./ticket-view.types";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
@@ -169,15 +169,13 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                             </div>
 
                             {files.length > 0 && (
-                                <div className="flex flex-wrap gap-2 px-1">
+                                <div className="grid gap-2 px-1 sm:grid-cols-2 xl:grid-cols-3">
                                     {files.map((file, idx) => (
-                                        <div key={`${file.name}-${idx}`} className="flex max-w-full items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs">
-                                            <FileText className="h-3 w-3 shrink-0 text-primary" />
-                                            <span className="max-w-40 truncate font-medium">{file.name}</span>
-                                            <button onClick={() => removeFile(idx)} className="rounded-full p-0.5 transition-colors hover:bg-primary/20" type="button">
-                                                <X className="h-3 w-3" />
-                                            </button>
-                                        </div>
+                                        <ComposerAttachmentPreview
+                                            key={`${file.name}-${idx}`}
+                                            file={file}
+                                            onRemove={() => removeFile(idx)}
+                                        />
                                     ))}
                                 </div>
                             )}
@@ -201,7 +199,14 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                 </div>
 
                                 <div className="flex shrink-0 flex-col gap-2 self-start">
-                                    <input type="file" multiple hidden ref={fileInputRef} onChange={(event) => addFiles(event.target.files)} />
+                                    <input
+                                        type="file"
+                                        multiple
+                                        hidden
+                                        ref={fileInputRef}
+                                        accept="image/*,audio/*,video/*,text/*,application/pdf,application/json,application/xml,text/xml,text/csv,application/rtf,application/zip,application/x-zip-compressed,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                        onChange={(event) => addFiles(event.target.files)}
+                                    />
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button
@@ -253,6 +258,54 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                 </div>
             </CardContent>
         </Card>
+    );
+}
+
+function ComposerAttachmentPreview({
+    file,
+    onRemove,
+}: {
+    file: File;
+    onRemove: () => void;
+}) {
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const isImage = file.type.startsWith("image/");
+
+    useEffect(() => {
+        if (!isImage) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+
+        return () => {
+            URL.revokeObjectURL(objectUrl);
+        };
+    }, [file, isImage]);
+
+    return (
+        <div className="flex min-w-0 items-start gap-3 rounded-xl border border-primary/20 bg-primary/8 p-2.5">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background">
+                {isImage && previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={previewUrl} alt={file.name} className="h-full w-full object-cover" />
+                ) : (
+                    <AttachmentTypeIcon mimeType={file.type} className="h-5 w-5 text-primary" />
+                )}
+            </div>
+            <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-medium">{file.name}</div>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                    {formatTicketAttachmentSize(file.size)}
+                    {file.type ? ` - ${file.type}` : ""}
+                </div>
+            </div>
+            <button onClick={onRemove} className="rounded-full p-1 transition-colors hover:bg-primary/15" type="button" aria-label={`Remover ${file.name}`}>
+                <X className="h-3.5 w-3.5" />
+            </button>
+        </div>
     );
 }
 
@@ -456,6 +509,19 @@ function TicketAttachmentPreview({
             </a>
         </div>
     );
+}
+
+function AttachmentTypeIcon({ mimeType, className }: { mimeType: string; className?: string }) {
+    if (mimeType.startsWith("image/")) {
+        return <ImageIcon className={className} />;
+    }
+    if (mimeType.startsWith("audio/")) {
+        return <Mic className={className} />;
+    }
+    if (mimeType.startsWith("video/")) {
+        return <Film className={className} />;
+    }
+    return <FileText className={className} />;
 }
 
 function formatTicketAttachmentSize(bytes: number) {

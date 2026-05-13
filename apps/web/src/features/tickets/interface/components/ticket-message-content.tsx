@@ -6,6 +6,8 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { sanitizeTicketRenderedHtml } from "@/features/tickets/interface/lib/ticket-rich-html";
 
+const LEGACY_TICKET_HTML_PATTERN = /^\s*<(?:div|p|span|br|strong|em|b|i|u|blockquote|pre|code|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|a|img)(?:\s|>)/i;
+
 type TicketMessageContentProps = {
   body: string;
   className?: string;
@@ -148,5 +150,5 @@ const ticketMessageContentClassName =
   "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0 [&_img]:my-3";
 
 function looksLikeHtml(value: string) {
-  return /<[a-z][\s\S]*>/i.test(value);
+  return LEGACY_TICKET_HTML_PATTERN.test(value) && /<\/?[a-z][\s\S]*>/i.test(value);
 }
