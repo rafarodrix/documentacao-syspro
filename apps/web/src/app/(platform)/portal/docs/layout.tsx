@@ -17,7 +17,8 @@ export default async function PortalDocsLayout({
   const routeParams = await params;
   const slug = routeParams.slug ?? [];
   const scope = resolveSidebarScope(slug);
-  const docsTree = await createDocsTreeForUserScope(session.userId, session.role, scope);
+  const branch = resolveSidebarBranch(slug, scope);
+  const docsTree = await createDocsTreeForUserScope(session.userId, session.role, scope, branch);
   const canViewSupport = canRoleAccessDocsScope(session.role, 'suporte');
   const canViewAdmin = canRoleAccessDocsScope(session.role, 'admin');
   const searchLinks: Array<[string, string]> = [
@@ -61,4 +62,25 @@ function resolveSidebarScope(slug: string[]): DocsScope {
   }
 
   return 'cliente';
+}
+
+function resolveSidebarBranch(slug: string[], scope: DocsScope): string | null {
+  const normalized = normalizeLegacySlug(slug, scope);
+  return normalized[1] ?? null;
+}
+
+function normalizeLegacySlug(slug: string[], scope: DocsScope): string[] {
+  if (getDocScopeFromSlug(slug)) {
+    return slug;
+  }
+
+  if (scope === 'admin' && slug[0] === 'manuais-tecnicos') {
+    return ['admin'];
+  }
+
+  if (scope === 'cliente' && slug.length > 0) {
+    return ['cliente', ...slug];
+  }
+
+  return slug;
 }

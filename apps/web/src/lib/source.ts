@@ -78,6 +78,7 @@ export async function createDocsTreeForUserScope(
   userId: string,
   role: Role,
   scope?: DocsScope | null,
+  branch?: string | null,
 ): Promise<PageTreeRoot> {
   const docsSource = createDocsSourceForRole(role, scope ?? null);
   const pages = docsSource.getPages();
@@ -98,7 +99,10 @@ export async function createDocsTreeForUserScope(
   );
 
   const filteredTree = filterDocTree(docsSource.pageTree, (url) => allowedUrls.has(url));
-  return scope ? flattenDocsTreeScope(filteredTree, scope) : filteredTree;
+  if (!scope) return filteredTree;
+
+  const scopeTree = flattenDocsTreeScope(filteredTree, scope);
+  return branch ? flattenDocsTreeBranch(scopeTree, scope, branch) : scopeTree;
 }
 
 function flattenDocsTreeScope(tree: PageTreeRoot, scope: DocsScope): PageTreeRoot {
@@ -116,6 +120,25 @@ function flattenDocsTreeScope(tree: PageTreeRoot, scope: DocsScope): PageTreeRoo
   return {
     ...tree,
     name: scopeNode.name,
+    children,
+  };
+}
+
+function flattenDocsTreeBranch(tree: PageTreeRoot, scope: DocsScope, branch: string): PageTreeRoot {
+  const branchUrl = `${baseUrl}/${scope}/${branch}`;
+  const branchNode = findScopeNode(tree.children, branchUrl);
+
+  if (!branchNode || branchNode.type !== 'folder') {
+    return tree;
+  }
+
+  const children = branchNode.index
+    ? [branchNode.index, ...branchNode.children]
+    : branchNode.children;
+
+  return {
+    ...tree,
+    name: branchNode.name,
     children,
   };
 }
