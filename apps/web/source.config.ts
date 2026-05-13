@@ -1,4 +1,4 @@
-import { defineDocs, defineConfig, frontmatterSchema } from 'fumadocs-mdx/config';
+import { defineDocs, defineConfig, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
 import { z } from 'zod';
@@ -24,6 +24,9 @@ export const docs = defineDocs({
       sinceVersion: z.string().optional(),
       tags: z.array(z.string().min(1)).min(1),
     }),
+  },
+  meta: {
+    schema: metaSchema,
   },
 });
 

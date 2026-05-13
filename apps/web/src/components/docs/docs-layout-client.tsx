@@ -25,8 +25,8 @@ export function DocsLayoutClient({
     defaultOpenLevel: 1,
     collapsible: true,
     prefetch: false,
-    tabs: getProfileTabs(canViewSupport, canViewAdmin),
-    banner: <DocsSidebarBanner docsTree={docsTree} />,
+    tabs: false,
+    banner: <DocsSidebarBanner docsTree={docsTree} profileTabs={getProfileTabs(canViewSupport, canViewAdmin)} />,
     footer: <DocsSidebarFooter />,
   } as const;
 
