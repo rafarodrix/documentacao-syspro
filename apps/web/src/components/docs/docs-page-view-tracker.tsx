@@ -9,6 +9,7 @@ import {
   type PopularMap,
   type VisitedMap,
 } from '@/lib/docs-storage';
+import { trpc } from '@/lib/api/trpc-client';
 const MAX_RECENT_ITEMS = 8;
 
 export function DocsPageViewTracker({ href, title }: { href: string; title: string }) {
@@ -43,14 +44,9 @@ export function DocsPageViewTracker({ href, title }: { href: string; title: stri
     writeStorage(DOCS_STORAGE_KEYS.visited, { ...visited, [href]: visitedAt });
 
     // -----------------------------------------------------------------------
-    // Reporta visita para a API com keepalive para nao perder o evento em navegacoes rapidas.
+    // Reporta visita para a API via tRPC.
     // -----------------------------------------------------------------------
-    void fetch('/api/docs/views', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ href, title, visitedAt }),
-      keepalive: true,
-    }).catch(() => undefined);
+    void trpc.docs.registerView.mutate({ href, title, visitedAt }).catch(() => undefined);
   }, [href, title]);
 
   return null;

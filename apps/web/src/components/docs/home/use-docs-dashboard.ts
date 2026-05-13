@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DOCS_STORAGE_KEYS, readStorage } from '@/lib/docs-storage';
 import type { RecentDocItem, PopularMap } from '@/lib/docs-storage';
 import { parseDate } from '@/lib/docs-utils';
+import { trpc } from '@/lib/api/trpc-client';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -30,29 +31,16 @@ export type ContinueReadingItem = {
 };
 
 export type AudienceSegment =
-  | 'internal_admin'
-  | 'internal_development'
-  | 'internal_support'
-  | 'client_manager'
-  | 'client_user';
-
-type InsightsApiResponse = {
-  audienceSegment?: AudienceSegment;
-  globalPopular?: PopularItem[];
-  audiencePopular?: PopularItem[];
-  lastRead?: { href: string; title: string; visitedAt: number };
-};
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
+  | 'admin'
+  | 'suporte'
+  | 'cliente';
 
 export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boolean) {
   const [recentItems, setRecentItems] = useState<RecentDocItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
   const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
   const [audiencePopular, setAudiencePopular] = useState<PopularItem[]>([]);
-  const [audienceSegment, setAudienceSegment] = useState<AudienceSegment>('client_user');
+  const [audienceSegment, setAudienceSegment] = useState<AudienceSegment>('cliente');
   const [lastReadApi, setLastReadApi] = useState<ContinueReadingItem | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
 
@@ -62,19 +50,10 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
     setPopularItems(readStorage<PopularMap>(DOCS_STORAGE_KEYS.popular, {}));
   }, []);
 
-  // Fetch com AbortController para evitar setState em componente desmontado
   useEffect(() => {
-    const controller = new AbortController();
-
     const fetchInsights = async () => {
       try {
-        const res = await fetch('/api/docs/views', {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-
-        const data = await res.json() as InsightsApiResponse;
+        const data = await trpc.docs.getViews.query();
 
         if (data.audienceSegment) setAudienceSegment(data.audienceSegment);
         if (Array.isArray(data.globalPopular)) setGlobalPopular(data.globalPopular);
@@ -83,16 +62,13 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
           setLastReadApi(data.lastRead);
         }
       } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Failed to fetch docs insights:', error);
-        }
+        console.error('Failed to fetch docs insights:', error);
       } finally {
-        if (!controller.signal.aborted) setLoadingInsights(false);
+        setLoadingInsights(false);
       }
     };
 
     void fetchInsights();
-    return () => controller.abort();
   }, []);
 
   const pageByHref = useMemo(() => new Map(pages.map((p) => [p.href, p])), [pages]);

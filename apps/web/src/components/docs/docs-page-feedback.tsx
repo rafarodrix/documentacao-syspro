@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DocsSurface } from '@/components/docs/docs-surface';
 import { ToggleGroup, ToggleGroupItem } from "@dosc-syspro/ui";
+import { trpc } from '@/lib/api/trpc-client';
 
 type Vote = 'yes' | 'no';
 type FeedbackReason = 'desatualizado' | 'incompleto' | 'dificil' | 'nao-encontrei';
@@ -52,20 +53,13 @@ export function DocsPageFeedback({
     if (sending) return;
     setSending(true);
     try {
-      const response = await fetch('/api/docs/feedback', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          slug,
-          title,
-          helpful: nextVote === 'yes',
-          reason: nextReason ?? null,
-          votedAt: new Date().toISOString(),
-        }),
+      await trpc.docs.submitFeedback.mutate({
+        slug,
+        title,
+        helpful: nextVote === 'yes',
+        reason: nextReason ?? null,
+        votedAt: new Date().toISOString(),
       });
-      if (!response.ok) {
-        throw new Error('docs_feedback_request_failed');
-      }
       localStorage.setItem(storageKey, JSON.stringify({ vote: nextVote, reason: nextReason ?? null }));
       setVote(nextVote);
       setReason(nextReason ?? null);
