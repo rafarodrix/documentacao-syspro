@@ -94,6 +94,8 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
     setDatabaseUrl,
     developmentVideoUrl,
     setDevelopmentVideoUrl,
+    handleDescriptionPaste,
+    attachmentAccept,
   } = useTicketDialog(() => setOpen(false), { hasInternalTicketAccess });
 
   const internalCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
@@ -300,6 +302,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                           <TicketRichTextEditor
                             value={descriptionMarkdown}
                             onChange={setDescriptionMarkdown}
+                            onPaste={handleDescriptionPaste}
                             placeholder="Descreva o passo a passo, resultado esperado, mensagens de erro, impacto e evidencias relevantes."
                             className="bg-white dark:bg-muted/30"
                             minHeightClassName="min-h-[280px]"
@@ -315,7 +318,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                     inputRef={fileInputRef}
                     onChange={handleFileChange}
                     onRemove={removeFile}
-                    accept="image/*,application/pdf"
+                    accept={attachmentAccept}
                     compact
                   />
                   

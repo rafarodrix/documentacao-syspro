@@ -4,7 +4,15 @@ import { useEffect, useState, useRef, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ticketFormSchema, type TicketFormInput, type TicketFormOutput } from "@dosc-syspro/contracts/ticket";
+import {
+    TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE,
+    TICKET_ATTACHMENT_MAX_BYTES,
+    TICKET_REPLY_MAX_ATTACHMENTS,
+    isAllowedTicketAttachmentMimeType,
+    ticketFormSchema,
+    type TicketFormInput,
+    type TicketFormOutput,
+} from "@dosc-syspro/contracts/ticket";
 import { DEFAULT_TICKET_MODULE_SETTINGS } from "@dosc-syspro/contracts/ticket";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
 import {
@@ -94,15 +102,52 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
-            const totalSize = [...files, ...newFiles].reduce((acc, f) => acc + f.size, 0);
-            logInfo("files.change", { newFilesCount: newFiles.length, totalSize });
-
-            if (totalSize > 5 * 1024 * 1024) {
-                toast.error("O tamanho total dos arquivos nao pode exceder 5MB.");
-                return;
-            }
-            setFiles((prev) => [...prev, ...newFiles]);
+            logInfo("files.change", { newFilesCount: newFiles.length });
+            appendFiles(newFiles);
         }
+    };
+
+    const appendFiles = (newFiles: File[]) => {
+        if (!newFiles.length) return;
+
+        const valid = newFiles.filter((file) => file.size <= TICKET_ATTACHMENT_MAX_BYTES && isAllowedTicketAttachmentMimeType(file.type || ""));
+        if (valid.length < newFiles.length) {
+            toast.warning("Alguns arquivos foram ignorados por tipo nao suportado ou por excederem 5MB.");
+        }
+
+        setFiles((prev) => {
+            const remainingSlots = Math.max(0, TICKET_REPLY_MAX_ATTACHMENTS - prev.length);
+            if (remainingSlots === 0) {
+                toast.warning(`Limite de ${TICKET_REPLY_MAX_ATTACHMENTS} anexos por ticket.`);
+                return prev;
+            }
+
+            const nextFiles = valid.slice(0, remainingSlots);
+            if (nextFiles.length < valid.length) {
+                toast.warning(`Somente ${TICKET_REPLY_MAX_ATTACHMENTS} anexos podem ser enviados por ticket.`);
+            }
+
+            return [...prev, ...nextFiles];
+        });
+    };
+
+    const handleDescriptionPaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const pastedFiles = Array.from(event.clipboardData?.items ?? [])
+            .filter((item) => item.kind === "file")
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => Boolean(file));
+
+        if (!pastedFiles.length) {
+            return;
+        }
+
+        event.preventDefault();
+        appendFiles(pastedFiles);
+        toast.success(
+            pastedFiles.length === 1
+                ? "Imagem anexada a partir da area de transferencia."
+                : `${pastedFiles.length} arquivos anexados a partir da area de transferencia.`,
+        );
     };
 
     const removeFile = (index: number) => {
@@ -299,5 +344,7 @@ export function useTicketDialog(onSuccess: () => void, options: UseTicketDialogO
         setDatabaseUrl,
         developmentVideoUrl,
         setDevelopmentVideoUrl,
+        handleDescriptionPaste,
+        attachmentAccept: TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE,
     };
 }

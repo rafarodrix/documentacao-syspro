@@ -27,6 +27,10 @@ export const ticketModuleDirectionSchema = z.enum(TICKET_MODULE_DIRECTION_VALUES
 export const ticketModuleMessageTypeSchema = z.enum(TICKET_MODULE_MESSAGE_TYPE_VALUES);
 export const ticketModuleAttachmentStorageBackendSchema = z.enum(["DATABASE", "R2"]);
 export const TICKET_REPLY_MAX_ATTACHMENTS = 5;
+export const TICKET_CREATE_MULTIPART_FIELD_NAMES = {
+  attachments: "attachments",
+  metadata: "metadata",
+} as const;
 export const TICKET_REPLY_MULTIPART_FIELD_NAMES = {
   message: "message",
   visibility: "visibility",
@@ -103,6 +107,7 @@ export const ticketModuleReplyRequestSchema = z.object({
   visibility: z.enum(["PUBLIC", "INTERNAL"]).optional(),
 });
 
+export const ticketModuleCreateMultipartBodySchema = ticketModuleCreateRequestSchema;
 export const ticketModuleReplyMultipartBodySchema = ticketModuleReplyRequestSchema;
 
 export const ticketModuleMessageAttachmentSchema = z.object({

@@ -50,15 +50,6 @@ import { AutomationSettingsService } from '../automation/automation-settings.ser
 import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 type TicketAttachmentInsertRow = {
   messageId: string;
   type: TicketMessageType;
@@ -95,7 +86,11 @@ export class TicketsService {
     private readonly r2StorageService: R2StorageService,
   ) {}
 
-  async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
+  async create(
+    data: TicketModuleCreateRequest,
+    rawHeaders?: IncomingHttpHeaders,
+    attachments: TicketReplyAttachmentInput[] = [],
+  ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const ticketNumber = this.generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
@@ -254,79 +249,100 @@ export class TicketsService {
       developmentOwnerName: null,
     } as Prisma.InputJsonValue;
 
-    // Timeline messages builder
-    const messagesToCreate: Prisma.ConversationMessageCreateWithoutConversationInput[] = [
-      {
-        direction: TicketMessageDirection.INBOUND,
-        type: TicketMessageType.TEXT,
-        authorKind: TicketParticipantKind.USER,
-        authorUser: { connect: { id: requester.userId } },
-        body: data.description,
-        status: TicketMessageStatus.SENT,
-        sentAt: now,
-      }
-    ];
+    const normalizedAttachments = await Promise.all(
+      attachments.map((attachment) => this.normalizeReplyAttachment(attachment)),
+    );
 
-    if (databaseUrl) {
-      const safeDatabaseUrl = escapeHtml(databaseUrl);
-      messagesToCreate.push({
-        direction: TicketMessageDirection.INTERNAL,
-        type: TicketMessageType.TEXT,
-        authorKind: TicketParticipantKind.USER,
-        authorUser: { connect: { id: requester.userId } },
-        body: `<p><strong>Recurso tecnico: base de dados</strong></p><p><a href="${safeDatabaseUrl}" target="_blank" rel="noopener noreferrer">${safeDatabaseUrl}</a></p>`,
-        status: TicketMessageStatus.SENT,
-        sentAt: new Date(now.getTime() + 1000),
-      });
-    }
-
-    if (developmentVideoUrl) {
-      const safeDevelopmentVideoUrl = escapeHtml(developmentVideoUrl);
-      messagesToCreate.push({
-        direction: TicketMessageDirection.INTERNAL,
-        type: TicketMessageType.TEXT,
-        authorKind: TicketParticipantKind.USER,
-        authorUser: { connect: { id: requester.userId } },
-        body: `<p><strong>Recurso tecnico: video explicativo</strong></p><p><a href="${safeDevelopmentVideoUrl}" target="_blank" rel="noopener noreferrer">${safeDevelopmentVideoUrl}</a></p>`,
-        status: TicketMessageStatus.SENT,
-        sentAt: new Date(now.getTime() + 2000), // slightly after
-      });
-    }
-
-    const createdTicket = await this.prisma.conversation.create({
-      data: {
-        channel: data.channel ?? TicketChannel.PORTAL,
-        entryPoint: this.toConversationEntryPoint(data.entryPoint),
-        status: TicketStatus.NEW,
-        priority,
-        subject: data.title,
-        searchText: buildConversationSearchText({
+    const createdTicket = await this.prisma.$transaction(async (tx) => {
+      const conversation = await tx.conversation.create({
+        data: {
+          channel: data.channel ?? TicketChannel.PORTAL,
+          entryPoint: this.toConversationEntryPoint(data.entryPoint),
+          status: TicketStatus.NEW,
+          priority,
           subject: data.title,
+          searchText: buildConversationSearchText({
+            subject: data.title,
+            ticketNumber,
+            contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
+            contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
+            contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
+            externalThreadId: data.externalThreadId?.trim() || null,
+          }),
           ticketNumber,
-          contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
+          companyId: resolvedCompanyId,
+          companyContactId: resolvedContactId,
+          assignedUserId,
+          slaResponseDueAt,
+          slaResolutionDueAt,
+          externalThreadId: data.externalThreadId?.trim() || null,
           contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
           contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
-          externalThreadId: data.externalThreadId?.trim() || null,
-        }),
-        ticketNumber,
-        companyId: resolvedCompanyId,
-        companyContactId: resolvedContactId,
-        assignedUserId,
-        slaResponseDueAt,
-        slaResolutionDueAt,
-        externalThreadId: data.externalThreadId?.trim() || null,
-        contactPhoneSnapshot: data.contactPhoneSnapshot?.trim() || null,
-        contactWhatsappSnapshot: data.contactWhatsappSnapshot?.trim() || null,
-        contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
-        metadata,
-        messages: {
-          create: messagesToCreate,
+          contactNameSnapshot: data.contactNameSnapshot?.trim() || null,
+          metadata,
+          lastMessagePreview: data.description.slice(0, 500),
+          lastMessageAt: now,
         },
-      },
-      select: {
-        id: true,
-        ticketNumber: true,
-      },
+        select: {
+          id: true,
+          ticketNumber: true,
+        },
+      });
+
+      const initialMessage = await tx.conversationMessage.create({
+        data: {
+          conversationId: conversation.id,
+          direction: TicketMessageDirection.INBOUND,
+          type: this.resolveMessageType(data.description, normalizedAttachments),
+          authorKind: TicketParticipantKind.USER,
+          authorUserId: requester.userId,
+          body: data.description,
+          status: TicketMessageStatus.SENT,
+          sentAt: now,
+        },
+        select: { id: true },
+      });
+
+      if (normalizedAttachments.length > 0) {
+        const attachmentRows = await this.persistMessageAttachments(conversation.id, initialMessage.id, normalizedAttachments);
+        if (attachmentRows.length > 0) {
+          await tx.conversationMessageAttachment.createMany({
+            data: attachmentRows,
+          });
+        }
+      }
+
+      if (databaseUrl) {
+        await tx.conversationMessage.create({
+          data: {
+            conversationId: conversation.id,
+            direction: TicketMessageDirection.INTERNAL,
+            type: TicketMessageType.TEXT,
+            authorKind: TicketParticipantKind.USER,
+            authorUserId: requester.userId,
+            body: `**Recurso tecnico: base de dados**\n\n${databaseUrl}`,
+            status: TicketMessageStatus.SENT,
+            sentAt: new Date(now.getTime() + 1000),
+          },
+        });
+      }
+
+      if (developmentVideoUrl) {
+        await tx.conversationMessage.create({
+          data: {
+            conversationId: conversation.id,
+            direction: TicketMessageDirection.INTERNAL,
+            type: TicketMessageType.TEXT,
+            authorKind: TicketParticipantKind.USER,
+            authorUserId: requester.userId,
+            body: `**Recurso tecnico: video explicativo**\n\n${developmentVideoUrl}`,
+            status: TicketMessageStatus.SENT,
+            sentAt: new Date(now.getTime() + 2000),
+          },
+        });
+      }
+
+      return conversation;
     });
 
     this.runAutomationInBackground('ticket_created_group_notification', createdTicket.id, async () => {
@@ -743,7 +759,7 @@ export class TicketsService {
     });
 
     if (normalizedAttachments.length > 0) {
-      const attachmentRows = await this.persistReplyAttachments(createdMessage.id, id, normalizedAttachments);
+      const attachmentRows = await this.persistMessageAttachments(id, createdMessage.id, normalizedAttachments);
       if (attachmentRows.length > 0) {
         await this.prisma.conversationMessageAttachment.createMany({
           data: attachmentRows,
@@ -1578,9 +1594,9 @@ export class TicketsService {
     return `${attachments.length} anexos enviados`.slice(0, 500);
   }
 
-  private async persistReplyAttachments(
-    messageId: string,
+  private async persistMessageAttachments(
     ticketId: string,
+    messageId: string,
     attachments: Array<{
       filename: string;
       mimeType: string;

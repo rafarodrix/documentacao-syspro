@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -17,6 +17,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
+  TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE,
+  TICKET_ATTACHMENT_MAX_BYTES,
+  TICKET_REPLY_MAX_ATTACHMENTS,
+  isAllowedTicketAttachmentMimeType,
   ticketFormSchema,
   type TicketFormInput,
   type TicketFormOutput,
@@ -266,14 +270,25 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
 
   const appendFiles = (newFiles: File[]) => {
     if (!newFiles.length) return;
-    const totalSize = [...files, ...newFiles].reduce((acc, file) => acc + file.size, 0);
-
-    if (totalSize > 5 * 1024 * 1024) {
-      toast.error("O tamanho total dos arquivos nao pode exceder 5 MB.");
-      return;
+    const valid = newFiles.filter((file) => file.size <= TICKET_ATTACHMENT_MAX_BYTES && isAllowedTicketAttachmentMimeType(file.type || ""));
+    if (valid.length < newFiles.length) {
+      toast.warning("Alguns arquivos foram ignorados por tipo nao suportado ou por excederem 5MB.");
     }
 
-    setFiles((current) => [...current, ...newFiles]);
+    setFiles((current) => {
+      const remainingSlots = Math.max(0, TICKET_REPLY_MAX_ATTACHMENTS - current.length);
+      if (remainingSlots === 0) {
+        toast.warning(`Limite de ${TICKET_REPLY_MAX_ATTACHMENTS} anexos por ticket.`);
+        return current;
+      }
+
+      const nextFiles = valid.slice(0, remainingSlots);
+      if (nextFiles.length < valid.length) {
+        toast.warning(`Somente ${TICKET_REPLY_MAX_ATTACHMENTS} anexos podem ser enviados por ticket.`);
+      }
+
+      return [...current, ...nextFiles];
+    });
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -285,6 +300,25 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
 
   const removeFile = (index: number) => {
     setFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  };
+
+  const handleDescriptionPaste = (event: ReactClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedFiles = Array.from(event.clipboardData?.items ?? [])
+      .filter((item) => item.kind === "file")
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file));
+
+    if (!pastedFiles.length) {
+      return;
+    }
+
+    event.preventDefault();
+    appendFiles(pastedFiles);
+    toast.success(
+      pastedFiles.length === 1
+        ? "Imagem anexada a partir da area de transferencia."
+        : `${pastedFiles.length} arquivos anexados a partir da area de transferencia.`,
+    );
   };
 
   const handleTeamChange = (value: string) => {
@@ -524,6 +558,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
                   <TicketRichTextEditor
                     value={descriptionMarkdown}
                     onChange={setDescriptionMarkdown}
+                    onPaste={handleDescriptionPaste}
                     placeholder="Informe o passo a passo, resultado esperado, mensagens de erro, ambiente e usuarios afetados."
                     className="ticket-create-editor"
                     minHeightClassName="min-h-80"
@@ -541,7 +576,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
                     inputRef={fileInputRef}
                     onChange={handleFileChange}
                     onRemove={removeFile}
-                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.json,.log"
+                    accept={TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE}
                   />
                 </div>
 

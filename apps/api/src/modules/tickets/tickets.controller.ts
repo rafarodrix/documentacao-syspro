@@ -1,8 +1,9 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import {
+  TICKET_CREATE_MULTIPART_FIELD_NAMES,
   TICKET_REPLY_MAX_ATTACHMENTS,
   TICKET_REPLY_MULTIPART_FIELD_NAMES,
-  ticketModuleCreateRequestSchema,
+  ticketModuleCreateMultipartBodySchema,
   ticketModuleListQuerySchema,
   ticketModuleReplyMultipartBodySchema,
   ticketModuleTriageRequestSchema,
@@ -11,7 +12,6 @@ import {
 import type { Request, Response } from 'express';
 import type { ZodType } from 'zod';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { CreateTicketDto } from './create-ticket.dto';
 import { TicketsService } from './tickets.service';
 import { UpdateTicketDto } from './update-ticket.dto';
 
@@ -27,6 +27,9 @@ type NormalizedTicketReplyFile = {
   buffer: Buffer;
 };
 
+type UploadedTicketCreateFile = UploadedTicketReplyFile;
+type NormalizedTicketCreateFile = NormalizedTicketReplyFile;
+
 @Controller('tickets')
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
@@ -41,9 +44,37 @@ export class TicketsController {
   }
 
   @Post()
-  create(@Req() req: Request, @Body() createTicketDto: CreateTicketDto) {
-    const input = this.parseOrThrow(ticketModuleCreateRequestSchema, createTicketDto);
-    return this.ticketsService.create(input, req.headers);
+  @UseInterceptors(FilesInterceptor(TICKET_CREATE_MULTIPART_FIELD_NAMES.attachments, TICKET_REPLY_MAX_ATTACHMENTS))
+  create(
+    @Req() req: Request,
+    @Body() createTicketDto: Record<string, unknown>,
+    @UploadedFiles() files: UploadedTicketCreateFile[] = [],
+  ) {
+    const normalizedBody = { ...createTicketDto };
+    if (typeof normalizedBody.metadata === 'string' && normalizedBody.metadata.trim()) {
+      try {
+        normalizedBody.metadata = JSON.parse(normalizedBody.metadata);
+      } catch {
+        throw new BadRequestException('Campo metadata invalido para criacao do ticket.');
+      }
+    }
+
+    const input = this.parseOrThrow(ticketModuleCreateMultipartBodySchema, normalizedBody);
+    const normalizedFiles: NormalizedTicketCreateFile[] = Array.isArray(files)
+      ? files.flatMap((file) => {
+          if (!file?.buffer?.length) {
+            return [];
+          }
+
+          return [{
+            filename: file.originalname || 'arquivo',
+            mimeType: file.mimetype || 'application/octet-stream',
+            buffer: file.buffer,
+          }];
+        })
+      : [];
+
+    return this.ticketsService.create(input, req.headers, normalizedFiles);
   }
 
   @Get('linked-companies')

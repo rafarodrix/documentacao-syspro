@@ -1,8 +1,7 @@
 "use server";
 
-import { TICKET_REPLY_MULTIPART_FIELD_NAMES } from "@dosc-syspro/contracts/ticket";
+import { TICKET_CREATE_MULTIPART_FIELD_NAMES, TICKET_REPLY_MULTIPART_FIELD_NAMES } from "@dosc-syspro/contracts/ticket";
 import type {
-  TicketModuleCreateRequest,
   TicketModulePriority,
   TicketModuleStatus,
   TicketModuleTriageRequest,
@@ -12,7 +11,7 @@ import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
 import {
-  createTicketGateway,
+  createTicketMultipartGateway,
   fetchLinkedCompaniesGateway,
   fetchTicketDetailsPageGateway,
   fetchTicketsGateway,
@@ -193,41 +192,45 @@ export async function createTicketAction(_prevState: unknown, formData: FormData
 
     const userSelectedCompanyId = String(formData.get("userSelectedCompanyId") || "").trim() || undefined;
 
-    const payload: TicketModuleCreateRequest = {
-      title: subject,
-      description,
-      priority: parsePriorityFromForm(priorityRaw),
-      channel: source === "chatwoot" ? "WHATSAPP" : "PORTAL",
-      entryPoint: "INBOUND",
-      companyId: companyIdInput || undefined,
-      userSelectedCompanyId,
-      customerEmail: customerEmailInput || undefined,
-      category: categoryInput || undefined,
-      module: moduleInput || undefined,
-      team: teamInput || undefined,
-      databaseUrl: databaseUrlInput || undefined,
-      developmentVideoUrl: developmentVideoUrlInput || undefined,
-      ...(source === "chatwoot" && chatwootConversationId ? { externalThreadId: chatwootConversationId } : {}),
-      ...(customerPhoneInput ? { contactPhoneSnapshot: customerPhoneInput } : {}),
-      ...(customerWhatsappInput || customerPhoneInput
-        ? { contactWhatsappSnapshot: customerWhatsappInput || customerPhoneInput }
-        : {}),
-      ...(customerNameInput ? { contactNameSnapshot: customerNameInput } : {}),
-      ...(source === "chatwoot"
-        ? {
-            metadata: {
-              source: "chatwoot",
-              chatwootConversationId: chatwootConversationId || null,
-              chatwootContactId: chatwootContactId || null,
-              chatwootAccountId: chatwootAccountId || null,
-              chatwootConversationUrl: chatwootConversationUrl || null,
-              createdFromPortalAt: new Date().toISOString(),
-            },
-          }
-        : {}),
-    };
+    const payload = new FormData();
+    payload.append("title", subject);
+    payload.append("description", description);
+    payload.append("priority", parsePriorityFromForm(priorityRaw));
+    payload.append("channel", source === "chatwoot" ? "WHATSAPP" : "PORTAL");
+    payload.append("entryPoint", "INBOUND");
+    if (companyIdInput) payload.append("companyId", companyIdInput);
+    if (userSelectedCompanyId) payload.append("userSelectedCompanyId", userSelectedCompanyId);
+    if (customerEmailInput) payload.append("customerEmail", customerEmailInput);
+    if (categoryInput) payload.append("category", categoryInput);
+    if (moduleInput) payload.append("module", moduleInput);
+    if (teamInput) payload.append("team", teamInput);
+    if (databaseUrlInput) payload.append("databaseUrl", databaseUrlInput);
+    if (developmentVideoUrlInput) payload.append("developmentVideoUrl", developmentVideoUrlInput);
+    if (source === "chatwoot" && chatwootConversationId) payload.append("externalThreadId", chatwootConversationId);
+    if (customerPhoneInput) payload.append("contactPhoneSnapshot", customerPhoneInput);
+    if (customerWhatsappInput || customerPhoneInput) payload.append("contactWhatsappSnapshot", customerWhatsappInput || customerPhoneInput);
+    if (customerNameInput) payload.append("contactNameSnapshot", customerNameInput);
+    if (source === "chatwoot") {
+      payload.append(
+        TICKET_CREATE_MULTIPART_FIELD_NAMES.metadata,
+        JSON.stringify({
+          source: "chatwoot",
+          chatwootConversationId: chatwootConversationId || null,
+          chatwootContactId: chatwootContactId || null,
+          chatwootAccountId: chatwootAccountId || null,
+          chatwootConversationUrl: chatwootConversationUrl || null,
+          createdFromPortalAt: new Date().toISOString(),
+        }),
+      );
+    }
 
-    const result = await createTicketGateway(payload);
+    for (const attachment of formData.getAll("attachments")) {
+      if (typeof attachment !== "string") {
+        payload.append(TICKET_CREATE_MULTIPART_FIELD_NAMES.attachments, attachment);
+      }
+    }
+
+    const result = await createTicketMultipartGateway(payload);
 
     if (!result.success) {
       return { success: false, message: result.error || result.message || "Erro ao criar chamado." };

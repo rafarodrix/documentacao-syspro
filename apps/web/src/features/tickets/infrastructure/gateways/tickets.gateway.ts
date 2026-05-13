@@ -1,5 +1,4 @@
 import type {
-  TicketModuleCreateRequest,
   TicketModuleDetailsResponse,
   TicketModuleLinkedCompaniesResponse,
   TicketModuleListResponse,
@@ -36,12 +35,11 @@ export async function fetchTicketDetailsPageGateway(ticketId: string, params?: {
   return ticketModuleDetailsResponseSchema.parse(await callTicketsApi(`/${ticketId}${suffix}`));
 }
 
-export async function createTicketGateway(payload: TicketModuleCreateRequest): Promise<TicketModuleMutationResponse> {
+export async function createTicketMultipartGateway(payload: FormData): Promise<TicketModuleMutationResponse> {
   return ticketModuleMutationResponseSchema.parse(
     await callTicketsApi("", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: payload,
     }),
   );
 }
