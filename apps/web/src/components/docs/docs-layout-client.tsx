@@ -23,6 +23,7 @@ export function DocsLayoutClient({
     defaultOpenLevel: 1,
     collapsible: true,
     prefetch: false,
+    tabs: false,
     banner: <DocsSidebarBanner canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
     footer: <DocsSidebarFooter />,
     components: { Item: DocsSidebarItem },

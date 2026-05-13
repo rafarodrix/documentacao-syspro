@@ -71,7 +71,15 @@ export function createDocsSourceForRole(role: Role, scope?: DocsScope | null): D
 }
 
 export async function createDocsTreeForUser(userId: string, role: Role): Promise<PageTreeRoot> {
-  const docsSource = createDocsSourceForRole(role);
+  return createDocsTreeForUserScope(userId, role, null);
+}
+
+export async function createDocsTreeForUserScope(
+  userId: string,
+  role: Role,
+  scope?: DocsScope | null,
+): Promise<PageTreeRoot> {
+  const docsSource = createDocsSourceForRole(role, scope ?? null);
   const pages = docsSource.getPages();
   const visibility = await Promise.all(
     pages.map((page) =>
