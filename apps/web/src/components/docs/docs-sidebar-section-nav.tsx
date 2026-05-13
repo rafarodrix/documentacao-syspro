@@ -8,10 +8,11 @@ import { cn } from '@/lib/utils';
 
 export function DocsSidebarSectionNav({ tree }: { tree: PageTreeRoot }) {
   const pathname = usePathname();
+  const nodes = getScopedNodes(tree, pathname);
 
   return (
     <div className="docs-sidebar-section-nav mt-4 space-y-1">
-      {tree.children.map((node, index) => (
+      {nodes.map((node, index) => (
         <SidebarNode key={getNodeKey(node, index)} node={node} pathname={pathname} depth={0} />
       ))}
     </div>
@@ -93,4 +94,49 @@ function getNodeKey(node: PageTreeNode, index: number) {
   if (node.type === 'page') return node.url;
   if (node.type === 'folder') return node.index?.url ?? `${node.name}-${index}`;
   return `${node.type}-${index}`;
+}
+
+function getScopedNodes(tree: PageTreeRoot, pathname: string): PageTreeNode[] {
+  const scope = getScopeFromPathname(pathname);
+  if (!scope) return tree.children;
+
+  const scopeUrl = `/portal/docs/${scope}`;
+  const scopedNode = findNodeByUrl(tree.children, scopeUrl);
+
+  if (!scopedNode || scopedNode.type !== 'folder') {
+    return tree.children;
+  }
+
+  return scopedNode.index
+    ? [scopedNode.index, ...scopedNode.children]
+    : scopedNode.children;
+}
+
+function getScopeFromPathname(pathname: string): string | null {
+  const parts = pathname.split('/').filter(Boolean);
+  const docsIndex = parts.indexOf('docs');
+  const scope = docsIndex >= 0 ? parts[docsIndex + 1] : null;
+
+  return scope === 'cliente' || scope === 'suporte' || scope === 'admin'
+    ? scope
+    : null;
+}
+
+function findNodeByUrl(nodes: PageTreeNode[], targetUrl: string): PageTreeNode | null {
+  for (const node of nodes) {
+    if (node.type === 'page' && node.url === targetUrl) {
+      return node;
+    }
+
+    if (node.type === 'folder') {
+      if (node.index?.url === targetUrl) {
+        return node;
+      }
+
+      const nested = findNodeByUrl(node.children, targetUrl);
+      if (nested) return nested;
+    }
+  }
+
+  return null;
 }
