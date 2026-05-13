@@ -11,6 +11,6 @@
     "---syspro---",
     "tributario",
     "---Integrações---",
-    "consulta-api"
+    "integracoes/consulta-api"
   ]
 }
