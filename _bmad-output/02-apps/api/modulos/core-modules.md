@@ -163,24 +163,40 @@ Resolução de escopo e permissões.
 
 **Path:** `src/modules/tickets/`
 
-Sistema de chamados técnicos internos.
+Sistema de chamados técnicos internos. Usa o modelo `Conversation { channel: PORTAL }` do banco — ver nota sobre nomenclatura em `02-apps/tickets-architecture.md`.
 
-| Arquivo                        | Responsabilidade                          |
-|--------------------------------|------------------------------------------|
-| `tickets.service.ts`           | CRUD, workflow, busca full-text          |
-| `ticket-history.service.ts`    | Histórico de alterações                  |
-| `ticket-contract.mapper.ts`    | Mapeia modelo Prisma → contrato público  |
-| `create-ticket.dto.ts`         | DTO de criação com validação Zod         |
-| `update-ticket.dto.ts`         | DTO de atualização                       |
+| Arquivo                        | Responsabilidade                                           |
+|--------------------------------|------------------------------------------------------------|
+| `tickets.controller.ts`        | HTTP endpoints REST (GET, POST, PATCH, linked-companies)   |
+| `tickets.service.ts`           | Lógica core: criar, listar, atualizar, validar transições  |
+| `ticket-history.service.ts`    | Log de mudanças de campo (campo, valorAnterior, valorNovo) |
+| `ticket-contract.mapper.ts`    | Prisma `Conversation` → `TicketModuleRecord` (contracts)   |
+| `update-ticket.dto.ts`         | DTO de atualização (mínimo; schemas em `@dosc-syspro/contracts`) |
+
+**Endpoints expostos:**
+
+| Método | Path | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/tickets` | Lista com filtros: status, queue, team, search, paginação |
+| `POST` | `/api/tickets` | Cria ticket (multipart/form-data, suporta anexos) |
+| `GET` | `/api/tickets/:id` | Detalhe com mensagens, histórico e anexos |
+| `PATCH` | `/api/tickets/:id` | Atualiza status, prioridade, responsável, equipe |
+| `POST` | `/api/tickets/:id/reply` | Adiciona mensagem com anexos opcionais |
+| `GET` | `/api/tickets/linked-companies` | Empresas elegíveis para vínculo |
 
 **Funcionalidades:**
-- Criação de tickets com categoria, prioridade, empresa vinculada
-- Workflow de estados (ver `@dosc-syspro/core/tickets`)
-- Mensagens com suporte a Markdown
-- Histórico de alterações
-- Busca por texto
-- Integração com Chatwoot (mensagens sincronizadas)
-- Quick actions (fechar, reabrir, escalar)
+- Workflow de estados com validação de transições (`ticket-provider-state-matrix.ts`)
+- Cálculo e pausa de SLA por prioridade (campos `slaResponseDueAt`, `slaResolutionDueAt`)
+- Mensagens em Markdown com suporte a anexos (R2 ou banco)
+- Histórico de alterações por campo
+- Busca full-text por assunto e conteúdo
+- Integração bidirecional com Chatwoot
+- Automações WhatsApp por evento de status
+- Controle de acesso por role e escopo de empresa
+
+**Contratos (source of truth):** `@dosc-syspro/contracts/ticket/ticket-module-api.types.ts`
+
+**Documentação completa:** `02-apps/tickets-architecture.md`
 
 ---
 

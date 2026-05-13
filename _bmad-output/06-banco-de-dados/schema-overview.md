@@ -103,37 +103,59 @@ RemoteAddressBookCredential
 
 ---
 
-### Mensageria e Atendimento
+### Mensageria, Atendimento e Tickets
+
+> **Convenção importante:** O modelo `Conversation` é usado tanto para mensageria (WhatsApp, Email) quanto para tickets internos. A distinção é feita pelo campo `channel`:
+> - `channel: PORTAL` → **ticket interno** (chamado técnico)
+> - `channel: WHATSAPP | EMAIL | PHONE` → conversa de atendimento/mensageria
 
 ```
 Conversation
  ├── Company
- ├── CompanyContact         (cliente)
- ├── ConversationMessage[]  (mensagens)
- └── ConversationAssignment[] (atribuições)
+ ├── CompanyContact               (cliente que abriu o chamado)
+ ├── ConversationMessage[]        (mensagens e respostas)
+ ├── ConversationAssignment[]     (atribuições de responsável)
+ └── ChatwootCsatRating?          (pesquisa de satisfação pós-fechamento)
 
 ConversationMessage
  ├── Conversation
- └── type: TEXT|IMAGE|DOCUMENT|AUDIO|VIDEO
+ ├── type: TEXT | IMAGE | DOCUMENT | AUDIO | VIDEO
+ └── direction: INBOUND | OUTBOUND
 
-TicketCategory              (categorias de tickets, independente)
+TicketCategory                   (categorias configuráveis, independente)
 
 ChatwootCsatRating
  └── Conversation
 ```
 
 **Conversation — campos principais:**
-- `channel`: WHATSAPP | EMAIL | PORTAL | PHONE
-- `status`: NEW | UNASSIGNED | TRIAGE | IN_PROGRESS | WAITING_CUSTOMER | WAITING_INTERNAL | TESTING | RESOLVED | ARCHIVED
-- `externalId`: ID no Chatwoot (sincronização)
 
----
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `channel` | enum | `WHATSAPP \| EMAIL \| PORTAL \| PHONE` |
+| `status` | enum | Estado atual no workflow (ver abaixo) |
+| `priority` | string | `LOW \| NORMAL \| HIGH \| CRITICAL` |
+| `team` | string | Equipe responsável (`SUPORTE \| DESENVOLVIMENTO`) |
+| `assignedUserId` | string? | Usuário responsável pelo ticket |
+| `externalId` | string? | ID no Chatwoot (sincronização bidirecional) |
+| `slaResponseDueAt` | DateTime? | Prazo de primeira resposta |
+| `slaResolutionDueAt` | DateTime? | Prazo de resolução |
+| `slaResponseHitAt` | DateTime? | Quando a primeira resposta ocorreu |
+| `slaResolutionHitAt` | DateTime? | Quando o ticket foi resolvido |
+| `metadata` | JSON | Dados extras: `source`, `chatwootConversationId`, etc. |
+| `resolvedAt` | DateTime? | Timestamp de resolução |
 
-### Tickets
+**ConversationStatus — workflow de tickets:**
 
-Os tickets usam o modelo `Conversation` com `channel: PORTAL` para tickets internos.
+```
+NEW → UNASSIGNED → TRIAGE → IN_PROGRESS → TESTING → RESOLVED → ARCHIVED
+                                │                        │
+                     WAITING_CUSTOMER          WAITING_INTERNAL
+```
 
-Dados adicionais de ticket ficam em campos extras da `Conversation` ou em uma tabela separada dependendo da implementação atual.
+**Tickets com origem no Chatwoot** têm `metadata.source = 'chatwoot'` e `externalId` preenchido.
+
+**Arquitetura completa do módulo:** `02-apps/tickets-architecture.md`
 
 ---
 

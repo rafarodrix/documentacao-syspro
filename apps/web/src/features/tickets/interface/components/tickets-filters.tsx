@@ -66,6 +66,14 @@ export function TicketsFilters({
         Boolean(module.trim()) ||
         (statusFilter === "closed" && closedWindow !== "all");
 
+    const activeFilterCount = [
+        team !== "all",
+        queue !== "all",
+        Boolean(category.trim()) && category !== "all",
+        Boolean(module.trim()) && module !== "all",
+        statusFilter === "closed" && closedWindow !== "all",
+    ].filter(Boolean).length;
+
     return (
         <div className="flex w-full flex-col gap-3">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
@@ -99,16 +107,23 @@ export function TicketsFilters({
                     </div>
                     {canManageTickets && (
                         <div className="flex items-center gap-2 shrink-0">
+                            <div className="relative shrink-0">
                             <Button
                                 type="button"
                                 variant={showFilters ? "secondary" : "outline"}
                                 size="icon"
-                                className="h-10 w-10 shrink-0"
+                                className="h-10 w-10"
                                 onClick={() => setShowFilters((current) => !current)}
-                                title="Filtros avancados"
+                                aria-label={`Filtros avancados${activeFilterCount > 0 ? ` (${activeFilterCount} ativos)` : ""}`}
                             >
                                 <Filter className="h-4 w-4" />
                             </Button>
+                            {activeFilterCount > 0 && (
+                                <span className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                        </div>
                             {hasAdvancedFilters && (
                                 <Button
                                     type="button"

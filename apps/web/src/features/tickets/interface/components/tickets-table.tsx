@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
 import { EmptyState } from "@/components/patterns";
-import { formatDateSafe } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Card } from "@dosc-syspro/ui";
+import { formatRelativeDate, formatAbsoluteDate } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Card, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge } from "./ticket-badges";
@@ -64,7 +64,16 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                     {resolveCategoryLabel(ticketSettings.categories, ticket.category)}
                   </span>
                 ) : null}
-                <span className="text-[11px] text-muted-foreground ml-auto">{formatDateSafe(ticket.updatedAt)}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-[11px] text-muted-foreground ml-auto cursor-default">
+                      {formatRelativeDate(ticket.updatedAt)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="font-mono text-xs">
+                    {formatAbsoluteDate(ticket.updatedAt)}
+                  </TooltipContent>
+                </Tooltip>
               </div>
               {isClosedView && ticket.resolvedByName ? (
                 <p className="text-[11px] text-muted-foreground">Resolvido por {ticket.resolvedByName}</p>
@@ -167,8 +176,17 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                       </span>
                     </TableCell>
                   )}
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap font-mono">
-                    {formatDateSafe(isClosedView ? ticket.resolvedAt || ticket.updatedAt : ticket.updatedAt)}
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default">
+                          {formatRelativeDate(isClosedView ? ticket.resolvedAt || ticket.updatedAt : ticket.updatedAt)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="font-mono text-xs">
+                        {formatAbsoluteDate(isClosedView ? ticket.resolvedAt || ticket.updatedAt : ticket.updatedAt)}
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">

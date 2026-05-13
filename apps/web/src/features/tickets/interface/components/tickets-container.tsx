@@ -127,6 +127,18 @@ export function TicketsContainer({
         </div>
       </section>
 
+      {pagination.total !== null && tickets.length > 0 && (
+        <p className="text-xs text-muted-foreground px-0.5">
+          Exibindo{" "}
+          <span className="font-medium text-foreground">
+            {(pagination.page - 1) * pagination.pageSize + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)}
+          </span>{" "}
+          de{" "}
+          <span className="font-medium text-foreground">{pagination.total}</span>{" "}
+          {pagination.total === 1 ? "ticket" : "tickets"}
+        </p>
+      )}
+
       <TicketsTable
         tickets={tickets}
         canManageTickets={canManageTickets}
