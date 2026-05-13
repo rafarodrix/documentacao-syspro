@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { RootProvider } from 'fumadocs-ui/provider';
+import { RootProvider } from 'fumadocs-ui/provider/next';
 import { createDocsTreeForUserScope } from '@/lib/source';
 import { requireSession } from "@/lib/auth-helpers";
 import { DocsLayoutClient } from '@/components/docs/docs-layout-client';

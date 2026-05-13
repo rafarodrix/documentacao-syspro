@@ -28,7 +28,7 @@ export function DocsLayoutClient({
   return (
     <DocsLayout
       tree={docsTree}
-      nav={{ transparentMode: 'top' }}
+      nav={{ title: <span className="sr-only">Documentacao</span>, transparentMode: 'top' }}
       themeSwitch={{ enabled: false }}
       searchToggle={{ enabled: true }}
       sidebar={sharedSidebarProps}

@@ -181,6 +181,22 @@
     position: sticky;
     top: var(--portal-docs-top-offset, 0px);
     z-index: 18;
+    margin-bottom: 0.75rem;
+    border: 1px solid hsl(var(--border) / 0.52);
+    border-radius: 1rem;
+    background: hsl(var(--background) / 0.94);
+    box-shadow: 0 16px 36px -34px hsl(var(--foreground) / 0.72);
+    backdrop-filter: blur(14px);
+  }
+
+  .portal-docs-shell #nd-subnav > div {
+    min-height: 2.75rem;
+    padding-inline: 0.45rem;
+  }
+
+  .portal-docs-shell #nd-subnav a,
+  .portal-docs-shell #nd-subnav button {
+    border-radius: 0.8rem;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell {
