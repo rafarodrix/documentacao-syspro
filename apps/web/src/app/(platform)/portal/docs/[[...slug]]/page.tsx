@@ -68,14 +68,20 @@ export default async function PortalDocsPage(props: {
   const docsSource = createDocsSourceForRole(session.role);
   const page = docsSource.getPage(resolvedSlug);
   if (!page) {
-    const scopeRoot = resolvedSlug.length === 1 ? resolvedSlug[0] : null;
-    if (scopeRoot === "cliente" || scopeRoot === "suporte" || scopeRoot === "admin") {
-      const firstPageInScope = docsSource
-        .getPages()
-        .find((item) => item.url.startsWith(`${DOCS_BASE_PATH}/${scopeRoot}/`) && item.url !== `${DOCS_BASE_PATH}/${scopeRoot}`);
-
-      if (firstPageInScope) {
-        redirect(firstPageInScope.url);
+    const expectedPrefix = resolvedSlug.length > 0 
+      ? `${DOCS_BASE_PATH}/${resolvedSlug.join('/')}/`
+      : `${DOCS_BASE_PATH}/`;
+      
+    const candidatePages = docsSource.getPages().filter((item) => item.url.startsWith(expectedPrefix));
+    
+    for (const candidate of candidatePages) {
+      const canAccessCandidate = await canUserAccessDocUrl({
+        url: candidate.url,
+        userId: session.userId,
+        role: session.role,
+      });
+      if (canAccessCandidate) {
+        redirect(candidate.url);
       }
     }
 
