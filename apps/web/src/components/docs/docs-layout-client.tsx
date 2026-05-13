@@ -9,13 +9,9 @@ import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
 
 export function DocsLayoutClient({
   docsTree,
-  canViewSupport,
-  canViewAdmin,
   children,
 }: {
   docsTree: PageTreeRoot;
-  canViewSupport: boolean;
-  canViewAdmin: boolean;
   children: ReactNode;
 }) {
   const sharedSidebarProps = {
@@ -24,7 +20,7 @@ export function DocsLayoutClient({
     collapsible: true,
     prefetch: false,
     tabs: false,
-    banner: <DocsSidebarBanner canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
+    banner: <DocsSidebarBanner />,
     footer: <DocsSidebarFooter />,
     components: { Item: DocsSidebarItem },
   } as const;
@@ -32,7 +28,7 @@ export function DocsLayoutClient({
   return (
     <DocsLayout
       tree={docsTree}
-      nav={{ title: <span className="font-semibold text-sm">Central de Documentacao</span> }}
+      nav={{ transparentMode: 'top' }}
       themeSwitch={{ enabled: false }}
       searchToggle={{ enabled: true }}
       sidebar={sharedSidebarProps}

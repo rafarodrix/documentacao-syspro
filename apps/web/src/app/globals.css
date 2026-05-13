@@ -241,6 +241,7 @@
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner {
     z-index: 6;
+    margin-bottom: 0.35rem;
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner button:focus-visible {
@@ -292,7 +293,7 @@
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-footer {
-    padding-top: 0.4rem;
+    padding-top: 0.2rem;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] > * + *,
