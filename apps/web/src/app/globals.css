@@ -243,10 +243,6 @@
     padding-top: 0.5rem;
   }
 
-  #nd-sidebar.docs-sidebar-shell > div:first-child > button:first-of-type {
-    display: none;
-  }
-
   #nd-sidebar.docs-sidebar-shell a,
   #nd-sidebar-mobile.docs-sidebar-shell a {
     text-decoration: none;
@@ -258,7 +254,8 @@
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner {
     z-index: 6;
-    margin-bottom: 0.35rem;
+    margin-top: 0.35rem;
+    margin-bottom: 0.1rem;
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner button:focus-visible {

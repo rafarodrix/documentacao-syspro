@@ -3,8 +3,11 @@
 import type { ReactNode } from 'react';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
+import type { Option as SidebarTabOption } from 'fumadocs-ui/components/layout/root-toggle';
+import { BookOpenText, LifeBuoy, Shield } from 'lucide-react';
 import { DocsSidebarBanner } from '@/components/docs/docs-sidebar-banner';
 import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
+import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
 export function DocsLayoutClient({
   docsTree,
@@ -22,8 +25,8 @@ export function DocsLayoutClient({
     defaultOpenLevel: 1,
     collapsible: true,
     prefetch: false,
-    tabs: false,
-    banner: <DocsSidebarBanner docsTree={docsTree} canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
+    tabs: getProfileTabs(canViewSupport, canViewAdmin),
+    banner: <DocsSidebarBanner docsTree={docsTree} />,
     footer: <DocsSidebarFooter />,
   } as const;
 
@@ -38,4 +41,28 @@ export function DocsLayoutClient({
       {children}
     </DocsLayout>
   );
+}
+
+function getProfileTabs(canViewSupport: boolean, canViewAdmin: boolean): SidebarTabOption[] {
+  return [
+    {
+      url: DOCS_SCOPE_ROUTES.cliente,
+      title: 'Cliente',
+      icon: <BookOpenText className="size-full" />,
+    },
+    ...(canViewSupport
+      ? [{
+          url: DOCS_SCOPE_ROUTES.suporte,
+          title: 'Suporte',
+          icon: <LifeBuoy className="size-full" />,
+        } satisfies SidebarTabOption]
+      : []),
+    ...(canViewAdmin
+      ? [{
+          url: DOCS_SCOPE_ROUTES.admin,
+          title: 'Admin',
+          icon: <Shield className="size-full" />,
+        } satisfies SidebarTabOption]
+      : []),
+  ];
 }
