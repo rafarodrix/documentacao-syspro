@@ -18,16 +18,18 @@ export default async function PortalDocsLayout({
   const slug = routeParams.slug ?? [];
   const scope = resolveSidebarScope(slug);
   const docsTree = await createDocsTreeForUserScope(session.userId, session.role, scope);
+  const canViewSupport = canRoleAccessDocsScope(session.role, 'suporte');
+  const canViewAdmin = canRoleAccessDocsScope(session.role, 'admin');
   const searchLinks: Array<[string, string]> = [
     ['Portal', '/portal'],
     ['Documentacao do Cliente', '/portal/docs/cliente'],
   ];
 
-  if (canRoleAccessDocsScope(session.role, 'suporte')) {
+  if (canViewSupport) {
     searchLinks.push(['Documentacao de Suporte', '/portal/docs/suporte']);
   }
 
-  if (canRoleAccessDocsScope(session.role, 'admin')) {
+  if (canViewAdmin) {
     searchLinks.push(['Documentacao Admin', '/portal/docs/admin']);
   }
 
@@ -41,7 +43,7 @@ export default async function PortalDocsLayout({
     >
       <PortalShellModeController showSidebar={false} />
       <main className="portal-docs-shell min-h-0 [--fd-banner-height:0px] [--portal-docs-top-offset:3.5rem]">
-        <DocsLayoutClient docsTree={docsTree}>
+        <DocsLayoutClient docsTree={docsTree} canViewSupport={canViewSupport} canViewAdmin={canViewAdmin}>
           {children}
         </DocsLayoutClient>
       </main>

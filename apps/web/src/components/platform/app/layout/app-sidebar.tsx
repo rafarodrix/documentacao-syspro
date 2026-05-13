@@ -32,14 +32,13 @@ import {
   ChevronUp,
   Settings,
   FileText,
-  HelpCircle,
   Monitor,
   Smartphone,
   MessagesSquare,
   BriefcaseBusiness,
   Target,
 } from "lucide-react"
-import { DOCS_SCOPE_ROUTES, getSupportDocsRouteForRole } from "@/lib/docs-scope"
+import { DOCS_SCOPE_ROUTES } from "@/lib/docs-scope"
 
 export type UserRole = Role
 
@@ -262,32 +261,6 @@ function SidebarFooter({
             {navigationAccess?.settings ? "Configuracoes" : "Meu Perfil"}
           </DropdownMenuItem>
 
-          {user.role === "ADMIN" ? (
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 text-sm"
-              onClick={() => {
-                router.push(DOCS_SCOPE_ROUTES.admin)
-                onClose?.()
-              }}
-            >
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-              Documentacao
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              className="cursor-pointer gap-2 text-sm"
-              onClick={() => {
-                router.push(getSupportDocsRouteForRole(user.role))
-                onClose?.()
-              }}
-            >
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              Suporte
-            </DropdownMenuItem>
-          )}
-
-          <DropdownMenuSeparator />
-
           <DropdownMenuItem
             className="cursor-pointer gap-2 text-sm text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20" // ds-allow: status
             onClick={handleLogout}
@@ -326,13 +299,8 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
     "/portal/comercial/leads": navigationAccess?.crm,
     "/portal/contratos": navigationAccess?.contracts,
   })
-  const docsItems = filterByAccess([
-    ...NAV_DOCS.slice(0, 1),
-    { title: "Suporte", href: getSupportDocsRouteForRole(user.role), icon: HelpCircle },
-    ...NAV_DOCS.slice(1),
-  ], {
+  const docsItems = filterByAccess(NAV_DOCS, {
     [DOCS_SCOPE_ROUTES.cliente]: navigationAccess?.docs,
-    [getSupportDocsRouteForRole(user.role)]: navigationAccess?.docs,
     "/portal/releases": navigationAccess?.releases,
     "/portal/tools": navigationAccess?.tools,
   })
@@ -397,7 +365,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
         )}
 
         {docsItems.length > 0 && (
-          <NavGroup title="Documentacao" collapsed={isSidebarCollapsed}>
+          <NavGroup title="Recursos" collapsed={isSidebarCollapsed}>
             {docsItems.map((item) => (
               <NavItem key={item.href} item={item} isActive={isActive(item.href)} onClick={onClose} collapsed={isSidebarCollapsed} />
             ))}
