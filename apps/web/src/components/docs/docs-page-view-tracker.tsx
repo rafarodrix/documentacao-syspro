@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import type { DocsRegisterViewInput } from '@dosc-syspro/contracts/docs';
 import {
   DOCS_STORAGE_KEYS,
   readStorage,
@@ -15,6 +16,7 @@ const MAX_RECENT_ITEMS = 8;
 export function DocsPageViewTracker({ href, title }: { href: string; title: string }) {
   useEffect(() => {
     const visitedAt = Date.now();
+    const payload: DocsRegisterViewInput = { href, title, visitedAt };
 
     // -----------------------------------------------------------------------
     // Atualiza recent
@@ -44,9 +46,33 @@ export function DocsPageViewTracker({ href, title }: { href: string; title: stri
     writeStorage(DOCS_STORAGE_KEYS.visited, { ...visited, [href]: visitedAt });
 
     // -----------------------------------------------------------------------
-    // Reporta visita para a API via tRPC.
+    // Reporta visita para a API via tRPC e usa sendBeacon como fallback em saida rapida.
     // -----------------------------------------------------------------------
-    void trpc.docs.registerView.mutate({ href, title, visitedAt }).catch(() => undefined);
+    let settled = false;
+    const request = trpc.docs.registerView
+      .mutate(payload)
+      .catch(() => undefined)
+      .finally(() => {
+        settled = true;
+      });
+
+    const flushWithBeacon = () => {
+      if (settled || typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') {
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      navigator.sendBeacon('/api/trpc/docs.registerView', blob);
+      settled = true;
+    };
+
+    window.addEventListener('pagehide', flushWithBeacon);
+
+    void request;
+
+    return () => {
+      window.removeEventListener('pagehide', flushWithBeacon);
+    };
   }, [href, title]);
 
   return null;

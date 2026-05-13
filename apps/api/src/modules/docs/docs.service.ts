@@ -3,11 +3,15 @@ import type { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { IncomingHttpHeaders } from 'node:http';
 import { AuthorizationService } from '../authorization/authorization.service';
+import {
+  docsRegisterViewResultSchema,
+  docsViewsResponseSchema,
+  type DocsAudienceSegment,
+  type DocsRegisterViewInput,
+} from '@dosc-syspro/contracts/docs';
 
 const POPULAR_GLOBAL_KEY = 'docs:popular:global';
 const POPULAR_AUDIENCE_KEY_PREFIX = 'docs:popular:audience:';
-
-type AudienceSegment = 'admin' | 'suporte' | 'cliente';
 
 type GlobalDocStats = Record<
   string,
@@ -93,17 +97,17 @@ export class DocsService {
 
     const { lastRead } = getDocsPreferences(user?.preferences);
 
-    return {
+    return docsViewsResponseSchema.parse({
       ok: true,
       audienceSegment,
       globalPopular: toPopularList(parseGlobalStats(globalSetting?.value ?? null)),
       audiencePopular: toPopularList(parseGlobalStats(audienceSetting?.value ?? null)),
       lastRead: lastRead ?? null,
-    };
+    });
   }
 
   async registerView(
-    body: { href?: string; title?: string; visitedAt?: number },
+    body: DocsRegisterViewInput,
     rawHeaders?: IncomingHttpHeaders,
   ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
@@ -112,7 +116,7 @@ export class DocsService {
     const visitedAt = typeof body?.visitedAt === 'number' ? body.visitedAt : Date.now();
 
     if (!href.startsWith('/docs') || href.length > 300) {
-      return { ok: false, error: 'invalid_href' };
+      return docsRegisterViewResultSchema.parse({ ok: false, error: 'invalid_href' });
     }
 
     const safeTitle = title.slice(0, 160);
@@ -194,10 +198,10 @@ export class DocsService {
       }),
     ]);
 
-    return { ok: true };
+    return docsRegisterViewResultSchema.parse({ ok: true });
   }
 
-  private async resolveAudienceSegment(requester: { userId: string; role: Role; email: string }): Promise<AudienceSegment> {
+  private async resolveAudienceSegment(requester: { userId: string; role: Role; email: string }): Promise<DocsAudienceSegment> {
     if (requester.role === 'ADMIN') {
       return 'admin';
     }

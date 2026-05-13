@@ -5,6 +5,11 @@ import { DOCS_STORAGE_KEYS, readStorage } from '@/lib/docs-storage';
 import type { RecentDocItem, PopularMap } from '@/lib/docs-storage';
 import { parseDate } from '@/lib/docs-utils';
 import { trpc } from '@/lib/api/trpc-client';
+import type {
+  DocsAudienceSegment,
+  DocsLastRead,
+  DocsPopularItem,
+} from '@dosc-syspro/contracts/docs';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -30,17 +35,12 @@ export type ContinueReadingItem = {
   visitedAt: number;
 };
 
-export type AudienceSegment =
-  | 'admin'
-  | 'suporte'
-  | 'cliente';
-
 export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boolean) {
   const [recentItems, setRecentItems] = useState<RecentDocItem[]>([]);
   const [popularItems, setPopularItems] = useState<PopularMap>({});
-  const [globalPopular, setGlobalPopular] = useState<PopularItem[]>([]);
-  const [audiencePopular, setAudiencePopular] = useState<PopularItem[]>([]);
-  const [audienceSegment, setAudienceSegment] = useState<AudienceSegment>('cliente');
+  const [globalPopular, setGlobalPopular] = useState<DocsPopularItem[]>([]);
+  const [audiencePopular, setAudiencePopular] = useState<DocsPopularItem[]>([]);
+  const [audienceSegment, setAudienceSegment] = useState<DocsAudienceSegment>('cliente');
   const [lastReadApi, setLastReadApi] = useState<ContinueReadingItem | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(true);
 
@@ -58,7 +58,7 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
         if (data.audienceSegment) setAudienceSegment(data.audienceSegment);
         if (Array.isArray(data.globalPopular)) setGlobalPopular(data.globalPopular);
         if (Array.isArray(data.audiencePopular)) setAudiencePopular(data.audiencePopular);
-        if (data.lastRead?.href && typeof data.lastRead.visitedAt === 'number') {
+        if (isDocsLastRead(data.lastRead)) {
           setLastReadApi(data.lastRead);
         }
       } catch (error) {
@@ -122,4 +122,8 @@ export function useDocsDashboard(pages: DocsHomeEntry[], canViewTechnical: boole
       insightCount: audiencePopular.length + globalPopular.length + mostAccessed.length + (canViewTechnical ? 1 : 0),
     },
   };
+}
+
+function isDocsLastRead(value: DocsLastRead | null): value is DocsLastRead {
+  return Boolean(value?.href && typeof value.visitedAt === 'number');
 }

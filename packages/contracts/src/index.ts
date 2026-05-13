@@ -36,6 +36,7 @@ export type { PaginationMeta, PaginationQuery } from "./shared/pagination.types"
 // Context exports
 export * from "./company/index";
 export * from "./contact/index";
+export * from "./docs/index";
 export * from "./documento/index";
 export * from "./user/index";
 export * from "./ticket/index";
