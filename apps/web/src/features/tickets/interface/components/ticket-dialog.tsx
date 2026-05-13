@@ -16,7 +16,7 @@ import {
   HelpCircle,
   Info,
 } from "lucide-react";
-import { Button, Input, Label, ScrollArea, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@dosc-syspro/ui";
+import { Button, Input, Label, ScrollArea, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Form, FormControl, FormField, FormItem, FormLabel, FormMessage, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@dosc-syspro/ui";
 import { toast } from "sonner";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/ticket-attachment-field";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
@@ -31,6 +31,7 @@ interface TicketDialogProps {
 
 export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogProps) {
   const [open, setOpen] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -211,10 +212,18 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
       onOpenChange={(nextOpen) => {
         try {
           logInfo("dialog.open_change", { nextOpen });
-          setOpen(nextOpen);
-          if (!nextOpen && searchParams?.get("novo") === "1") {
-            clearNewTicketParams();
+          if (!nextOpen) {
+            const isDirty =
+              form.formState.isDirty ||
+              descriptionMarkdown.trim().length > 0 ||
+              files.length > 0;
+            if (isDirty) {
+              setPendingClose(true);
+              return;
+            }
+            if (searchParams?.get("novo") === "1") clearNewTicketParams();
           }
+          setOpen(nextOpen);
         } catch (error) {
           logError("dialog.open_change_failed", error, { nextOpen });
           toast.error("Falha ao abrir o formulario de chamado.");
@@ -292,25 +301,43 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                   <FormField
                     control={form.control}
                     name="description"
-                    render={() => (
-                      <FormItem className="flex-1 flex flex-col">
-                        <FormLabel className="flex justify-between w-full">
+                    render={() => {
+                      const charCount = descriptionMarkdown.trim().length;
+                      const MIN_CHARS = 20;
+                      return (
+                        <FormItem className="flex-1 flex flex-col">
+                          <FormLabel className="flex justify-between w-full">
                             Detalhamento Técnico
                             <span className="text-xs font-normal text-muted-foreground flex gap-1 items-center"><Info className="w-3 h-3"/> Passo a Passo</span>
-                        </FormLabel>
-                        <FormControl>
-                          <TicketRichTextEditor
-                            value={descriptionMarkdown}
-                            onChange={setDescriptionMarkdown}
-                            onPaste={handleDescriptionPaste}
-                            placeholder="Descreva o passo a passo, resultado esperado, mensagens de erro, impacto e evidencias relevantes."
-                            className="bg-white dark:bg-muted/30"
-                            minHeightClassName="min-h-[280px]"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                          </FormLabel>
+                          <FormControl>
+                            <TicketRichTextEditor
+                              value={descriptionMarkdown}
+                              onChange={setDescriptionMarkdown}
+                              onPaste={handleDescriptionPaste}
+                              placeholder="Descreva o passo a passo, resultado esperado, mensagens de erro, impacto e evidencias relevantes."
+                              className="bg-white dark:bg-muted/30"
+                              minHeightClassName="min-h-[280px]"
+                            />
+                          </FormControl>
+                          <div className="flex items-center justify-between mt-1">
+                            <FormMessage />
+                            <span className={cn(
+                              "ml-auto text-[11px] tabular-nums transition-colors",
+                              charCount === 0
+                                ? "text-muted-foreground/50"
+                                : charCount < MIN_CHARS
+                                  ? "text-destructive"
+                                  : "text-muted-foreground",
+                            )}>
+                              {charCount < MIN_CHARS && charCount > 0
+                                ? `${MIN_CHARS - charCount} caracteres restantes`
+                                : `${charCount} caracteres`}
+                            </span>
+                          </div>
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <TicketAttachmentField
@@ -574,5 +601,31 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={pendingClose} onOpenChange={setPendingClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Descartar rascunho?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Você tem informações preenchidas neste formulário. Fechar agora irá descartar tudo. Essa ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingClose(false)}>
+            Continuar editando
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              setPendingClose(false);
+              setOpen(false);
+              form.reset();
+              if (searchParams?.get("novo") === "1") clearNewTicketParams();
+            }}
+          >
+            Descartar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
