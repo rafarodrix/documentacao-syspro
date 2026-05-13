@@ -58,6 +58,27 @@ export class R2StorageService {
     return { key, url };
   }
 
+  async getObjectUrl(key: string): Promise<string> {
+    const config = readR2RuntimeConfig();
+    if (!this.isEnabled()) {
+      throw new Error('R2 nao configurado no runtime.');
+    }
+
+    if (config.publicBaseUrl) {
+      return `${config.publicBaseUrl}/${key}`;
+    }
+
+    const client = this.getClient();
+    return getSignedUrl(
+      client,
+      new GetObjectCommand({
+        Bucket: config.bucketName,
+        Key: key,
+      }),
+      { expiresIn: config.signedUrlTtlSeconds },
+    );
+  }
+
   private getClient(): S3Client {
     if (this.client) {
       return this.client;

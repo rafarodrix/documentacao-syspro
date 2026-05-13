@@ -3,6 +3,7 @@
 import type {
   TicketModuleCreateRequest,
   TicketModulePriority,
+  TicketModuleReplyAttachmentInput,
   TicketModuleStatus,
   TicketModuleTriageRequest,
 } from "@dosc-syspro/contracts/ticket";
@@ -270,9 +271,17 @@ export async function replyTicketAction(
   }
 
   try {
-    const outbound = buildTicketReplyMarkdown(body, attachments ?? []);
+    const normalizedAttachments: TicketModuleReplyAttachmentInput[] = (attachments ?? []).map((attachment) => ({
+      filename: attachment.filename,
+      mimeType: attachment["mime-type"],
+      base64: attachment.data,
+    }));
 
-    const result = await replyTicketGateway(ticketId, { message: outbound, visibility });
+    const result = await replyTicketGateway(ticketId, {
+      message: body || undefined,
+      visibility,
+      attachments: normalizedAttachments,
+    });
 
     if (!result.success) {
       return { success: false, error: result.error || result.message || "Erro ao enviar." };
@@ -284,50 +293,6 @@ export async function replyTicketAction(
     console.error("Erro ao responder chamado:", error);
     return { success: false, error: "Erro ao enviar." };
   }
-}
-
-function buildTicketReplyMarkdown(
-  body: string,
-  attachments: { filename: string; data: string; "mime-type": string }[],
-) {
-  const sections: string[] = [];
-
-  if (body) {
-    sections.push(body);
-  }
-
-  if (!attachments.length) {
-    return body;
-  }
-
-  const imageBlocks = attachments
-    .filter((file) => file["mime-type"].startsWith("image/") && file.data.trim())
-    .map((file) => {
-      const mimeType = file["mime-type"] || "image/png";
-      const filename = escapeMarkdown(file.filename || "imagem");
-      const base64 = String(file.data || "").replace(/\s+/g, "");
-      return `![${filename}](data:${mimeType};base64,${base64})`;
-    });
-
-  if (imageBlocks.length) {
-    sections.push(imageBlocks.join("\n\n"));
-  }
-
-  const otherAttachments = attachments.filter((file) => !file["mime-type"].startsWith("image/"));
-  if (otherAttachments.length) {
-    const items = otherAttachments
-      .map((file) => `- ${escapeMarkdown(file.filename || "anexo")}`)
-      .join("\n");
-    sections.push(["**Anexos enviados via portal**", items].join("\n"));
-  }
-
-  return sections.join("\n\n").trim();
-}
-
-function escapeMarkdown(value: string) {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/([\[\]\(\)`*_!#>~-])/g, "\\$1");
 }
 
 export async function ticketQuickAction(input: {

@@ -157,6 +157,18 @@ export interface TicketArticleItem {
     sender: string;
     isInternal: boolean;
     messageType?: string | null;
+    attachments?: TicketArticleAttachment[];
+}
+
+export interface TicketArticleAttachment {
+    id: string;
+    type: string;
+    filename: string;
+    url?: string | null;
+    mimeType: string;
+    fileSize: number;
+    checksum?: string | null;
+    storageBackend: "DATABASE" | "R2";
 }
 
 export interface TicketMessagePagination {

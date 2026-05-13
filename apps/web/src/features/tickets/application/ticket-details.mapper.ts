@@ -91,6 +91,16 @@ function mapTicketMessage(message: NonNullable<TicketModuleRecord["messages"]>[n
     sender: message.direction === "INBOUND" ? "Customer" : "Agent",
     isInternal: message.direction === "INTERNAL",
     messageType: message.type,
+    attachments: (message.attachments ?? []).map((attachment) => ({
+      id: attachment.id,
+      type: attachment.type,
+      filename: attachment.filename,
+      url: attachment.url ?? null,
+      mimeType: attachment.mimeType,
+      fileSize: attachment.fileSize,
+      checksum: attachment.checksum ?? null,
+      storageBackend: attachment.storageBackend,
+    })),
   };
 }
 

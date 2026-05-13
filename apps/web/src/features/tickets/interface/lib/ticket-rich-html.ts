@@ -88,7 +88,7 @@ export function sanitizeTicketRenderedHtml(
           continue;
         }
 
-        if ((attributeName === "href" || attributeName === "src") && !isSafeTicketHtmlUrl(attributeValue)) {
+        if ((attributeName === "href" || attributeName === "src") && !isSafeTicketHtmlUrl(tagName, attributeName, attributeValue)) {
           element.removeAttribute(attribute.name);
           continue;
         }
@@ -110,11 +110,13 @@ export function sanitizeTicketRenderedHtml(
   return document.body.innerHTML;
 }
 
-function isSafeTicketHtmlUrl(value: string) {
+function isSafeTicketHtmlUrl(tagName: string, attributeName: string, value: string) {
   if (!value) return false;
   const normalized = value.trim().toLowerCase();
   if (normalized.startsWith("javascript:")) return false;
   if (normalized.startsWith("vbscript:")) return false;
-  if (normalized.startsWith("data:text/html")) return false;
+  if (normalized.startsWith("data:")) {
+    return tagName === "img" && attributeName === "src" && normalized.startsWith("data:image/");
+  }
   return true;
 }

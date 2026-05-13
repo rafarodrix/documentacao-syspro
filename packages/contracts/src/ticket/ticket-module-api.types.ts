@@ -25,6 +25,7 @@ export const ticketModuleChannelSchema = z.enum(TICKET_MODULE_CHANNEL_VALUES);
 export const ticketModuleEntryPointSchema = z.enum(TICKET_MODULE_ENTRY_POINT_VALUES);
 export const ticketModuleDirectionSchema = z.enum(TICKET_MODULE_DIRECTION_VALUES);
 export const ticketModuleMessageTypeSchema = z.enum(TICKET_MODULE_MESSAGE_TYPE_VALUES);
+export const ticketModuleAttachmentStorageBackendSchema = z.enum(["DATABASE", "R2"]);
 
 const optionalTrimmedStringSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -91,9 +92,27 @@ export const ticketModuleUpdateRequestSchema = z.object({
   note: z.string().trim().optional(),
 });
 
+export const ticketModuleReplyAttachmentInputSchema = z.object({
+  filename: z.string().trim().min(1),
+  mimeType: z.string().trim().min(1),
+  base64: z.string().trim().min(1),
+});
+
 export const ticketModuleReplyRequestSchema = z.object({
   message: z.string().trim().optional(),
   visibility: z.enum(["PUBLIC", "INTERNAL"]).optional(),
+  attachments: z.array(ticketModuleReplyAttachmentInputSchema).max(5).optional(),
+});
+
+export const ticketModuleMessageAttachmentSchema = z.object({
+  id: z.string(),
+  type: ticketModuleMessageTypeSchema,
+  filename: z.string(),
+  url: z.string().nullable(),
+  mimeType: z.string(),
+  fileSize: z.number().int().nonnegative(),
+  checksum: z.string().nullable().optional(),
+  storageBackend: ticketModuleAttachmentStorageBackendSchema,
 });
 
 export const ticketModuleTriageRequestSchema = z.object({
@@ -142,6 +161,7 @@ export const ticketModuleMessageSchema = z.object({
   type: ticketModuleMessageTypeSchema,
   body: z.string().nullable(),
   createdAt: z.string(),
+  attachments: z.array(ticketModuleMessageAttachmentSchema).optional(),
   authorUser: ticketModuleUserSchema.nullable().optional(),
   authorContact: z.object({
     id: z.string(),
@@ -223,16 +243,19 @@ export type TicketModuleChannel = z.infer<typeof ticketModuleChannelSchema>;
 export type TicketModuleEntryPoint = z.infer<typeof ticketModuleEntryPointSchema>;
 export type TicketModuleDirection = z.infer<typeof ticketModuleDirectionSchema>;
 export type TicketModuleMessageType = z.infer<typeof ticketModuleMessageTypeSchema>;
+export type TicketModuleAttachmentStorageBackend = z.infer<typeof ticketModuleAttachmentStorageBackendSchema>;
 export type TicketModuleStatusCounts = z.infer<typeof ticketModuleStatusCountsSchema>;
 export type TicketModuleQueueCounts = z.infer<typeof ticketModuleQueueCountsSchema>;
 export type TicketModuleCreateRequest = z.infer<typeof ticketModuleCreateRequestSchema>;
 export type TicketModuleUpdateRequest = z.infer<typeof ticketModuleUpdateRequestSchema>;
 export type TicketModuleReplyRequest = z.infer<typeof ticketModuleReplyRequestSchema>;
+export type TicketModuleReplyAttachmentInput = z.infer<typeof ticketModuleReplyAttachmentInputSchema>;
 export type TicketModuleTriageRequest = z.infer<typeof ticketModuleTriageRequestSchema>;
 export type TicketModuleListQuery = z.infer<typeof ticketModuleListQuerySchema>;
 export type TicketModuleUser = z.infer<typeof ticketModuleUserSchema>;
 export type TicketModuleContact = z.infer<typeof ticketModuleContactSchema>;
 export type TicketModuleCompany = z.infer<typeof ticketModuleCompanySchema>;
+export type TicketModuleMessageAttachment = z.infer<typeof ticketModuleMessageAttachmentSchema>;
 export type TicketModuleMessage = z.infer<typeof ticketModuleMessageSchema>;
 export type TicketModuleRecord = z.infer<typeof ticketModuleRecordSchema>;
 export type TicketModuleMutationResponse = z.infer<typeof ticketModuleMutationResponseSchema>;

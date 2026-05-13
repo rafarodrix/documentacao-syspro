@@ -74,7 +74,20 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
         if (valid.length < list.length) {
             toast.warning("Alguns arquivos foram ignorados por excederem 5MB.");
         }
-        setFiles(prev => [...prev, ...valid]);
+        setFiles(prev => {
+            const remainingSlots = Math.max(0, 5 - prev.length);
+            if (remainingSlots === 0) {
+                toast.warning("Limite de 5 anexos por mensagem.");
+                return prev;
+            }
+
+            const nextFiles = valid.slice(0, remainingSlots);
+            if (nextFiles.length < valid.length) {
+                toast.warning("Somente 5 anexos podem ser enviados por mensagem.");
+            }
+
+            return [...prev, ...nextFiles];
+        });
     };
 
     const removeFile = (index: number) => {
@@ -103,4 +116,3 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
         isSystem
     };
 }
-

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, Res } from '@nestjs/common';
 import {
   ticketModuleCreateRequestSchema,
   ticketModuleListQuerySchema,
@@ -6,7 +6,7 @@ import {
   ticketModuleTriageRequestSchema,
   ticketModuleUpdateRequestSchema,
 } from '@dosc-syspro/contracts/ticket';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import type { ZodType } from 'zod';
 import { CreateTicketDto } from './create-ticket.dto';
 import { TicketsService } from './tickets.service';
@@ -84,9 +84,19 @@ export class TicketsController {
   }
 
   @Post(':id/reply')
-  reply(@Req() req: Request, @Param('id') id: string, @Body() body: { message?: string; visibility?: 'PUBLIC' | 'INTERNAL' }) {
+  reply(@Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
     const input = this.parseOrThrow(ticketModuleReplyRequestSchema, body);
-    return this.ticketsService.reply(id, input.message, input.visibility, req.headers);
+    return this.ticketsService.reply(id, input, req.headers);
+  }
+
+  @Get(':id/attachments/:attachmentId')
+  downloadAttachment(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    return this.ticketsService.downloadAttachment(id, attachmentId, req.headers, res);
   }
 
   @Patch(':id/status')

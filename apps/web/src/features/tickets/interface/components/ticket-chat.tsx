@@ -383,6 +383,16 @@ function Timeline({
                                         <TicketMessageContent
                                             body={article.body}
                                         />
+                                        {article.attachments && article.attachments.length > 0 && (
+                                            <div className="mt-3 space-y-3">
+                                                {article.attachments.map((attachment) => (
+                                                    <TicketAttachmentPreview
+                                                        key={attachment.id}
+                                                        attachment={attachment}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -402,6 +412,55 @@ function Timeline({
             </ScrollArea>
         </div>
     );
+}
+
+function TicketAttachmentPreview({
+    attachment,
+}: {
+    attachment: NonNullable<TicketArticleItem["attachments"]>[number];
+}) {
+    const isImage = attachment.mimeType.startsWith("image/");
+
+    return (
+        <div className="space-y-2">
+            {isImage && attachment.url ? (
+                <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={attachment.url}
+                        alt={attachment.filename}
+                        className="max-h-128 w-auto max-w-full rounded-xl border border-border/60 bg-background object-contain"
+                    />
+                </a>
+            ) : null}
+
+            <a
+                href={attachment.url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                    "flex items-center gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-xs text-foreground transition-colors hover:bg-background",
+                    !attachment.url && "pointer-events-none opacity-60",
+                )}
+            >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <FileText className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{attachment.filename}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                        {formatTicketAttachmentSize(attachment.fileSize)} - {attachment.storageBackend === "R2" ? "Storage" : "Banco"}
+                    </span>
+                </span>
+            </a>
+        </div>
+    );
+}
+
+function formatTicketAttachmentSize(bytes: number) {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (bytes >= 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${bytes} B`;
 }
 
 function stripHtml(value: string) {

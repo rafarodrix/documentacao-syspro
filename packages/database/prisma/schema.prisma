@@ -1057,11 +1057,41 @@ model ConversationMessage {
   readAt      DateTime?
   createdAt   DateTime  @default(now())
 
+  attachments ConversationMessageAttachment[]
+
   @@index([conversationId, createdAt])
   @@index([externalMessageId])
   @@index([authorUserId])
   @@index([authorContactId])
   @@map("conversation_message")
+}
+
+enum ConversationMessageAttachmentStorageBackend {
+  DATABASE
+  R2
+}
+
+model ConversationMessageAttachment {
+  id String @id @default(cuid())
+
+  messageId String
+  message   ConversationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  type           ConversationMessageType
+  filename       String
+  mediaMimeType  String
+  fileSize       Int
+  checksum       String?
+  storageBackend ConversationMessageAttachmentStorageBackend @default(DATABASE)
+  mediaUrl       String?
+  storageKey     String?
+  binaryData     Bytes?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([messageId, createdAt])
+  @@index([storageBackend])
+  @@map("conversation_message_attachment")
 }
 
 model ConversationAssignment {

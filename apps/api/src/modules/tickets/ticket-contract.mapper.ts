@@ -3,6 +3,7 @@ import type {
   TicketModuleContact,
   TicketModuleDetailsResponse,
   TicketModuleLinkedCompaniesResponse,
+  TicketModuleMessageAttachment,
   TicketModuleListResponse,
   TicketModuleMessage,
   TicketModuleMutationResponse,
@@ -48,10 +49,21 @@ type TicketRecordSource = {
   closedAt: Date | string | null;
   messages?: Array<{
     id: string;
+    conversationId: string;
     direction: string;
     type: string;
     body: string | null;
     createdAt: Date | string;
+    attachments?: Array<{
+      id: string;
+      type: string;
+      filename: string;
+      mediaMimeType: string;
+      fileSize: number;
+      checksum: string | null;
+      storageBackend: string;
+      mediaUrl: string | null;
+    }>;
     authorUser?: { id: string; name: string | null; email: string } | null;
     authorContact?: { id: string; name: string | null } | null;
   }>;
@@ -107,6 +119,22 @@ function readMetadataString(metadata: unknown, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function toAttachment(
+  conversationId: string,
+  attachment: NonNullable<NonNullable<TicketRecordSource['messages']>[number]['attachments']>[number],
+): TicketModuleMessageAttachment {
+  return {
+    id: attachment.id,
+    type: attachment.type as TicketModuleMessageAttachment['type'],
+    filename: attachment.filename,
+    url: `/api/tickets/${conversationId}/attachments/${attachment.id}`,
+    mimeType: attachment.mediaMimeType,
+    fileSize: attachment.fileSize,
+    checksum: attachment.checksum ?? null,
+    storageBackend: attachment.storageBackend as TicketModuleMessageAttachment['storageBackend'],
+  };
+}
+
 function toMessage(message: NonNullable<TicketRecordSource['messages']>[number]): TicketModuleMessage {
   return {
     id: message.id,
@@ -114,6 +142,7 @@ function toMessage(message: NonNullable<TicketRecordSource['messages']>[number])
     type: message.type as TicketModuleMessage['type'],
     body: message.body,
     createdAt: toIso(message.createdAt) ?? new Date(0).toISOString(),
+    attachments: message.attachments?.map((attachment) => toAttachment(message.conversationId, attachment)) ?? [],
     authorUser: toUser(message.authorUser),
     authorContact: message.authorContact
       ? { id: message.authorContact.id, name: message.authorContact.name }

@@ -4,6 +4,7 @@ import type {
   TicketModuleCreateRequest,
   TicketModuleEntryPoint,
   TicketModuleListQuery,
+  TicketModuleReplyRequest,
   TicketModuleTriageRequest,
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
@@ -23,6 +24,8 @@ import {
   Role,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
+import type { Response } from 'express';
+import { createHash } from 'node:crypto';
 import {
   normalizeReleaseType,
   readReleaseMetadataString,
@@ -44,6 +47,7 @@ import { buildConversationSearchText } from '../shared/search/search-index';
 import { TicketHistoryService } from './ticket-history.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
+import { R2StorageService } from '../integrations/storage/r2-storage.service';
 
 function escapeHtml(value: string) {
   return value
@@ -57,6 +61,8 @@ function escapeHtml(value: string) {
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
+  private static readonly MAX_REPLY_ATTACHMENTS = 5;
+  private static readonly MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -64,6 +70,7 @@ export class TicketsService {
     private readonly ticketHistoryService: TicketHistoryService,
     private readonly automationSettingsService: AutomationSettingsService,
     private readonly automationWhatsappService: AutomationWhatsappService,
+    private readonly r2StorageService: R2StorageService,
   ) {}
 
   async create(data: TicketModuleCreateRequest, rawHeaders?: IncomingHttpHeaders) {
@@ -643,6 +650,9 @@ export class TicketsService {
             skip,
             take: pageSize,
             include: {
+              attachments: {
+                orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              },
               authorUser: { select: { id: true, name: true, email: true } },
               authorContact: { select: { id: true, name: true } },
             },
@@ -670,12 +680,19 @@ export class TicketsService {
     );
   }
 
-  async reply(id: string, message: string | undefined, visibility: 'PUBLIC' | 'INTERNAL' = 'INTERNAL', rawHeaders?: IncomingHttpHeaders) {
+  async reply(id: string, input: TicketModuleReplyRequest, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
+    const message = input.message?.trim();
+    const visibility = input.visibility ?? 'INTERNAL';
+    const attachments = input.attachments ?? [];
 
-    if (!message?.trim()) {
-      throw new BadRequestException('Mensagem obrigatoria.');
+    if (!message && attachments.length === 0) {
+      throw new BadRequestException('Mensagem ou anexo obrigatorio.');
+    }
+
+    if (attachments.length > TicketsService.MAX_REPLY_ATTACHMENTS) {
+      throw new BadRequestException(`Limite de ${TicketsService.MAX_REPLY_ATTACHMENTS} anexos por mensagem.`);
     }
 
     const ticket = await this.prisma.conversation.findUnique({
@@ -685,26 +702,39 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(ticket.companyId, accessScope);
 
-    await this.prisma.conversationMessage.create({
+    const normalizedAttachments = await Promise.all(
+      attachments.map((attachment) => this.normalizeReplyAttachment(attachment)),
+    );
+
+    const createdMessage = await this.prisma.conversationMessage.create({
       data: {
         conversationId: id,
         direction: visibility === 'PUBLIC' ? TicketMessageDirection.OUTBOUND : TicketMessageDirection.INTERNAL,
-        type: TicketMessageType.TEXT,
+        type: this.resolveMessageType(message, normalizedAttachments),
         authorKind: TicketParticipantKind.USER,
         authorUserId: requester.userId,
-        body: message.trim(),
+        body: message || null,
         status: TicketMessageStatus.SENT,
         sentAt: new Date(),
       },
-      include: {
-        authorUser: { select: { id: true, name: true, email: true } },
-      },
+      select: { id: true },
     });
+
+    if (normalizedAttachments.length > 0) {
+      const attachmentRows = await this.persistReplyAttachments(createdMessage.id, id, normalizedAttachments);
+      if (attachmentRows.length > 0) {
+        await this.prisma.conversationMessageAttachment.createMany({
+          data: attachmentRows,
+        });
+      }
+    }
+
+    const preview = this.buildReplyPreview(message, normalizedAttachments);
 
     await this.prisma.conversation.update({
       where: { id },
       data: {
-        lastMessagePreview: message.trim().slice(0, 500),
+        lastMessagePreview: preview,
         lastMessageAt: new Date(),
         ...((await this.authorizationService.userHasPermission(requester, 'tickets:manage', { acceptCompanyScope: true })) && !ticket.slaResponseHitAt
           ? { slaResponseHitAt: new Date() }
@@ -1254,6 +1284,57 @@ export class TicketsService {
     return serializeMutationResponse('Ticket atualizado com sucesso.');
   }
 
+  async downloadAttachment(
+    ticketId: string,
+    attachmentId: string,
+    rawHeaders: IncomingHttpHeaders | undefined,
+    res: Response,
+  ) {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const accessScope = await this.getTicketAccessScope(requester);
+
+    const attachment = await this.prisma.conversationMessageAttachment.findUnique({
+      where: { id: attachmentId },
+      include: {
+        message: {
+          select: {
+            conversationId: true,
+            conversation: {
+              select: { companyId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!attachment || attachment.message.conversationId !== ticketId) {
+      throw new NotFoundException('Anexo nao encontrado.');
+    }
+
+    this.assertTicketAccess(attachment.message.conversation.companyId, accessScope);
+
+    if (attachment.storageBackend === 'R2') {
+      if (!attachment.storageKey) {
+        throw new NotFoundException('Anexo sem referencia valida no storage.');
+      }
+      const url = await this.r2StorageService.getObjectUrl(attachment.storageKey);
+      return res.redirect(url);
+    }
+
+    if (!attachment.binaryData) {
+      throw new NotFoundException('Anexo sem conteudo disponivel.');
+    }
+
+    const dispositionType = attachment.mediaMimeType.startsWith('image/') ? 'inline' : 'attachment';
+    res.setHeader('Content-Type', attachment.mediaMimeType);
+    res.setHeader('Content-Length', String(attachment.fileSize));
+    res.setHeader(
+      'Content-Disposition',
+      `${dispositionType}; filename="${this.toContentDispositionFilename(attachment.filename)}"`,
+    );
+    return res.send(Buffer.from(attachment.binaryData));
+  }
+
   // --- ERP Actions ---
   // Assign a ticket directly to the current user (Self-Assign)
   async assignToMe(id: string, rawHeaders?: IncomingHttpHeaders) {
@@ -1411,6 +1492,126 @@ export class TicketsService {
     const timestamp = Date.now().toString().slice(-8);
     const random = Math.floor(Math.random() * 900 + 100);
     return `TK-${timestamp}${random}`;
+  }
+
+  private async normalizeReplyAttachment(
+    attachment: NonNullable<TicketModuleReplyRequest['attachments']>[number],
+  ) {
+    const filename = attachment.filename.trim() || 'arquivo';
+    const mimeType = attachment.mimeType.trim().toLowerCase() || 'application/octet-stream';
+    const base64 = attachment.base64.replace(/\s+/g, '');
+
+    if (!base64) {
+      throw new BadRequestException(`Anexo ${filename} sem conteudo valido.`);
+    }
+
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(base64, 'base64');
+    } catch {
+      throw new BadRequestException(`Base64 invalido para o anexo ${filename}.`);
+    }
+
+    if (!buffer.length) {
+      throw new BadRequestException(`Anexo ${filename} sem conteudo valido.`);
+    }
+
+    if (buffer.length > TicketsService.MAX_ATTACHMENT_BYTES) {
+      throw new BadRequestException(`O anexo ${filename} excede o limite de 5 MB.`);
+    }
+
+    return {
+      filename,
+      mimeType,
+      buffer,
+      fileSize: buffer.length,
+      checksum: createHash('sha256').update(buffer).digest('hex'),
+      type: this.resolveAttachmentType(mimeType),
+    };
+  }
+
+  private resolveAttachmentType(mimeType: string): TicketMessageType {
+    if (mimeType.startsWith('image/')) return TicketMessageType.IMAGE;
+    if (mimeType.startsWith('audio/')) return TicketMessageType.AUDIO;
+    if (mimeType.startsWith('video/')) return TicketMessageType.VIDEO;
+    return TicketMessageType.DOCUMENT;
+  }
+
+  private resolveMessageType(
+    body: string | undefined,
+    attachments: Array<{ type: TicketMessageType }>,
+  ): TicketMessageType {
+    if (body) return TicketMessageType.TEXT;
+    if (attachments.length === 1) return attachments[0].type;
+    return TicketMessageType.TEXT;
+  }
+
+  private buildReplyPreview(
+    body: string | undefined,
+    attachments: Array<{ filename: string }>,
+  ) {
+    if (body) {
+      return body.slice(0, 500);
+    }
+
+    if (attachments.length === 1) {
+      return `Anexo: ${attachments[0].filename}`.slice(0, 500);
+    }
+
+    return `${attachments.length} anexos enviados`.slice(0, 500);
+  }
+
+  private async persistReplyAttachments(
+    messageId: string,
+    ticketId: string,
+    attachments: Array<{
+      filename: string;
+      mimeType: string;
+      buffer: Buffer;
+      fileSize: number;
+      checksum: string;
+      type: TicketMessageType;
+    }>,
+  ): Promise<Prisma.ConversationMessageAttachmentCreateManyInput[]> {
+    return Promise.all(
+      attachments.map(async (attachment) => {
+        if (this.r2StorageService.isEnabled()) {
+          const uploaded = await this.r2StorageService.uploadBuffer({
+            buffer: attachment.buffer,
+            filename: attachment.filename,
+            contentType: attachment.mimeType,
+            prefix: `tickets/${ticketId}`,
+          });
+
+          return {
+            messageId,
+            type: attachment.type,
+            filename: attachment.filename,
+            mediaMimeType: attachment.mimeType,
+            fileSize: attachment.fileSize,
+            checksum: attachment.checksum,
+            storageBackend: 'R2',
+            mediaUrl: uploaded.url,
+            storageKey: uploaded.key,
+          };
+        }
+
+        return {
+          messageId,
+          type: attachment.type,
+          filename: attachment.filename,
+          mediaMimeType: attachment.mimeType,
+          fileSize: attachment.fileSize,
+          checksum: attachment.checksum,
+          storageBackend: 'DATABASE',
+          binaryData: attachment.buffer,
+        };
+      }),
+    );
+  }
+
+  private toContentDispositionFilename(filename: string) {
+    return filename.replace(/["\\\r\n]+/g, '_');
   }
 
   private async getTicketModuleSettings(): Promise<TicketModuleSettings> {
