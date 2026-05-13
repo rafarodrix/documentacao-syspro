@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition, type ClipboardEvent as ReactClipboardEvent } from "react";
-import { TICKET_ATTACHMENT_MAX_BYTES, isAllowedTicketAttachmentMimeType } from "@dosc-syspro/contracts/ticket";
+import { TICKET_ATTACHMENT_MAX_BYTES, TICKET_REPLY_MAX_ATTACHMENTS, isAllowedTicketAttachmentMimeType } from "@dosc-syspro/contracts/ticket";
 import { toast } from "sonner";
 import { replyTicketAction } from "@/features/tickets/application/ticket-actions";
 import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
@@ -74,15 +74,15 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
         }
 
         setFiles((prev) => {
-            const remainingSlots = Math.max(0, 5 - prev.length);
+            const remainingSlots = Math.max(0, TICKET_REPLY_MAX_ATTACHMENTS - prev.length);
             if (remainingSlots === 0) {
-                toast.warning("Limite de 5 anexos por mensagem.");
+                toast.warning(`Limite de ${TICKET_REPLY_MAX_ATTACHMENTS} anexos por mensagem.`);
                 return prev;
             }
 
             const nextFiles = valid.slice(0, remainingSlots);
             if (nextFiles.length < valid.length) {
-                toast.warning("Somente 5 anexos podem ser enviados por mensagem.");
+                toast.warning(`Somente ${TICKET_REPLY_MAX_ATTACHMENTS} anexos podem ser enviados por mensagem.`);
             }
 
             return [...prev, ...nextFiles];

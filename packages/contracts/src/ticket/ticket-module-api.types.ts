@@ -26,6 +26,12 @@ export const ticketModuleEntryPointSchema = z.enum(TICKET_MODULE_ENTRY_POINT_VAL
 export const ticketModuleDirectionSchema = z.enum(TICKET_MODULE_DIRECTION_VALUES);
 export const ticketModuleMessageTypeSchema = z.enum(TICKET_MODULE_MESSAGE_TYPE_VALUES);
 export const ticketModuleAttachmentStorageBackendSchema = z.enum(["DATABASE", "R2"]);
+export const TICKET_REPLY_MAX_ATTACHMENTS = 5;
+export const TICKET_REPLY_MULTIPART_FIELD_NAMES = {
+  message: "message",
+  visibility: "visibility",
+  attachments: "attachments",
+} as const;
 
 const optionalTrimmedStringSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -96,6 +102,8 @@ export const ticketModuleReplyRequestSchema = z.object({
   message: z.string().trim().optional(),
   visibility: z.enum(["PUBLIC", "INTERNAL"]).optional(),
 });
+
+export const ticketModuleReplyMultipartBodySchema = ticketModuleReplyRequestSchema;
 
 export const ticketModuleMessageAttachmentSchema = z.object({
   id: z.string(),

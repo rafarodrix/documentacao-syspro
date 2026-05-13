@@ -1,5 +1,6 @@
 "use server";
 
+import { TICKET_REPLY_MULTIPART_FIELD_NAMES } from "@dosc-syspro/contracts/ticket";
 import type {
   TicketModuleCreateRequest,
   TicketModulePriority,
@@ -272,11 +273,11 @@ export async function replyTicketAction(
   try {
     const formData = new FormData();
     if (body) {
-      formData.append("message", body);
+      formData.append(TICKET_REPLY_MULTIPART_FIELD_NAMES.message, body);
     }
-    formData.append("visibility", visibility);
+    formData.append(TICKET_REPLY_MULTIPART_FIELD_NAMES.visibility, visibility);
     for (const attachment of attachments ?? []) {
-      formData.append("attachments", attachment);
+      formData.append(TICKET_REPLY_MULTIPART_FIELD_NAMES.attachments, attachment);
     }
 
     const result = await replyTicketGateway(ticketId, formData);
@@ -321,7 +322,10 @@ export async function ticketQuickAction(input: {
 
     if (input.action === "macro_followup") {
       const formData = new FormData();
-      formData.append("message", "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve.");
+      formData.append(
+        TICKET_REPLY_MULTIPART_FIELD_NAMES.message,
+        "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve.",
+      );
       const result = await replyTicketGateway(ticketId, formData);
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao aplicar macro." };

@@ -1,8 +1,10 @@
 import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import {
+  TICKET_REPLY_MAX_ATTACHMENTS,
+  TICKET_REPLY_MULTIPART_FIELD_NAMES,
   ticketModuleCreateRequestSchema,
   ticketModuleListQuerySchema,
-  ticketModuleReplyRequestSchema,
+  ticketModuleReplyMultipartBodySchema,
   ticketModuleTriageRequestSchema,
   ticketModuleUpdateRequestSchema,
 } from '@dosc-syspro/contracts/ticket';
@@ -97,14 +99,14 @@ export class TicketsController {
   }
 
   @Post(':id/reply')
-  @UseInterceptors(FilesInterceptor('attachments', 5))
+  @UseInterceptors(FilesInterceptor(TICKET_REPLY_MULTIPART_FIELD_NAMES.attachments, TICKET_REPLY_MAX_ATTACHMENTS))
   reply(
     @Req() req: Request,
     @Param('id') id: string,
     @Body() body: unknown,
     @UploadedFiles() files: UploadedTicketReplyFile[] = [],
   ) {
-    const parsedBody = this.parseOrThrow(ticketModuleReplyRequestSchema, body);
+    const parsedBody = this.parseOrThrow(ticketModuleReplyMultipartBodySchema, body);
     const normalizedFiles: NormalizedTicketReplyFile[] = Array.isArray(files)
       ? files.flatMap((file) => {
           if (!file?.buffer?.length) {
