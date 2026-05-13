@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
-import { DocsSidebarItem } from '@/components/docs/docs-sidebar-item';
 import { DocsSidebarBanner } from '@/components/docs/docs-sidebar-banner';
 import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
 
@@ -26,7 +25,6 @@ export function DocsLayoutClient({
     tabs: false,
     banner: <DocsSidebarBanner docsTree={docsTree} canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
     footer: <DocsSidebarFooter />,
-    components: { Item: DocsSidebarItem },
   } as const;
 
   return (

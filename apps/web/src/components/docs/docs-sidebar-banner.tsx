@@ -32,9 +32,9 @@ export function DocsSidebarBanner({
 
   return (
     <div className="docs-sidebar-banner hidden md:block">
-      <div className="flex items-center justify-between gap-3 pb-2">
+      <div className="flex items-center justify-between gap-3 pb-1.5">
         <div className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-border/45 bg-background/72 text-muted-foreground">
+          <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-lg border border-border/40 bg-background/64 text-muted-foreground">
             <ScopeIcon className="h-3.5 w-3.5" />
           </span>
           <span>{currentScope.label}</span>
@@ -53,7 +53,7 @@ export function DocsSidebarBanner({
         </SidebarCollapseTrigger>
       </div>
 
-      <div className="rounded-xl border border-border/45 bg-background/42 p-1">
+      <div className="rounded-xl border border-border/40 bg-background/34 p-1">
         <div className="flex flex-wrap gap-1">
           {scopeLinks.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);

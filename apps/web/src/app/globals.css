@@ -211,7 +211,6 @@
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
     border-radius: 1.2rem;
-    box-shadow: 0 24px 68px -46px hsl(var(--foreground) / 0.92);
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell > div:last-child {
@@ -254,10 +253,6 @@
   }
 
   #nd-sidebar.docs-sidebar-shell [data-active='true'] {
-    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.45);
-  }
-
-  #nd-sidebar.docs-sidebar-shell [data-active='true'] [data-active='true'] {
     box-shadow: none;
   }
 
@@ -281,32 +276,32 @@
   #nd-sidebar-mobile.docs-sidebar-shell [data-search-full] {
     border-radius: 1rem;
     border-color: hsl(var(--border) / 0.58);
-    background: hsl(var(--background) / 0.7);
+    background: hsl(var(--background) / 0.78);
   }
 
   #nd-sidebar.docs-sidebar-shell a[data-active],
   #nd-sidebar.docs-sidebar-shell button[data-state],
   #nd-sidebar-mobile.docs-sidebar-shell a[data-active],
   #nd-sidebar-mobile.docs-sidebar-shell button[data-state] {
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] {
-    margin-top: 0.12rem;
+    margin-top: 0.05rem;
   }
 
   #nd-sidebar.docs-sidebar-shell p.inline-flex.items-center.gap-2,
   #nd-sidebar-mobile.docs-sidebar-shell p.inline-flex.items-center.gap-2 {
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    padding-top: 0.14rem;
-    padding-bottom: 0.14rem;
-    font-size: 0.85rem;
+    margin-top: 0.85rem;
+    margin-bottom: 0.35rem;
+    padding-top: 0.08rem;
+    padding-bottom: 0.08rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: hsl(var(--muted-foreground) / 0.82);
+    letter-spacing: 0.01em;
+    text-transform: none;
+    color: hsl(var(--foreground) / 0.88);
   }
 
   #nd-sidebar.docs-sidebar-shell p.inline-flex.items-center.gap-2:first-of-type,
