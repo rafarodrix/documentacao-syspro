@@ -647,8 +647,9 @@ function ContactActionsMenu({
         {canDelete ? (
           <>
             <DropdownMenuSeparator />
+            {/* ds-allow: status */}
             <DropdownMenuItem
-              className="cursor-pointer gap-2.5 rounded-md text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/20"
+              className="cursor-pointer gap-2.5 rounded-md text-destructive focus:bg-destructive/10 focus:text-destructive"
               onClick={stopRecordClick}
               onSelect={(event) => {
                 event.stopPropagation();
@@ -668,7 +669,7 @@ function ContactActionsMenu({
 function LinkedBadge({ count }: { count: number }) {
   if (count > 0) {
     return (
-      <Badge variant="outline" className="rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+      <Badge variant="success" className="rounded-md px-2 py-1 text-[10px] font-semibold">
         <CheckCircle2 className="mr-1 h-3 w-3" />
         {count} {count === 1 ? "empresa" : "empresas"}
       </Badge>
@@ -676,7 +677,7 @@ function LinkedBadge({ count }: { count: number }) {
   }
 
   return (
-    <Badge variant="outline" className="rounded-md border-zinc-500/30 bg-zinc-500/10 px-2 py-1 text-[10px] font-semibold text-zinc-600 dark:text-zinc-300">
+    <Badge variant="muted" className="rounded-md px-2 py-1 text-[10px] font-semibold">
       Sem empresa
     </Badge>
   );

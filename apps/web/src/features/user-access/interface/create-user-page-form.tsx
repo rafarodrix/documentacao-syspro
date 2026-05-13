@@ -372,7 +372,7 @@ export function CreateUserPageForm({
                 </Badge>
               ) : null}
               {clientContactInvalid ? (
-                <Badge variant="outline" className="gap-1 border-amber-500/40 text-[11px] font-medium text-amber-700">
+                <Badge variant="warning" className="gap-1 text-[11px] font-medium">
                   <AlertCircle className="h-3 w-3" />
                   Contato sem empresa vinculada
                 </Badge>

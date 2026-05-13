@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@dosc-syspro/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator, Badge } from "@dosc-syspro/ui";
 import {
   MoreHorizontal,
   Shield,
@@ -56,35 +56,25 @@ function RoleBadge({ role }: { role: UserRoleValue }) {
   };
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full",
-        "text-[10px] font-bold border tracking-wider uppercase",
-        isPrivileged
-          ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20"
-          : "bg-muted text-muted-foreground border-border/40",
-      )}
+    <Badge
+      variant={isPrivileged ? "info" : "muted"}
+      className="gap-1 rounded-full text-[10px] tracking-wider uppercase px-2 py-0.5 border-transparent"
     >
       {isPrivileged && <Shield className="w-2.5 h-2.5" />}
       {labels[role] ?? role}
-    </span>
+    </Badge>
   );
 }
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full",
-        "text-[10px] font-bold border w-fit",
-        isActive
-          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-          : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20",
-      )}
+    <Badge
+      variant={isActive ? "success" : "muted"}
+      className="w-fit gap-1.5 rounded-full text-[10px] px-2.5 py-1"
     >
-      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isActive ? "bg-emerald-500 animate-pulse" : "bg-zinc-400")} />
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0 bg-current", isActive ? "animate-pulse" : "opacity-60")} />
       {isActive ? "Ativo" : "Inativo"}
-    </span>
+    </Badge>
   );
 }
 
@@ -171,27 +161,25 @@ function UserActions({ user, isLoading, canManage, onToggleStatus }: UserActions
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem
-          className={cn(
-            "gap-2.5 cursor-pointer rounded-md",
-            user.isActive
-              ? "text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/20"
-              : "text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/20",
-          )}
-          onClick={onToggleStatus}
-        >
-          {user.isActive ? (
-            <>
-              <UserX className="w-3.5 h-3.5" />
-              <span className="text-sm font-medium">Suspender acesso</span>
-            </>
-          ) : (
-            <>
-              <UserCheck className="w-3.5 h-3.5" />
-              <span className="text-sm font-medium">Ativar acesso</span>
-            </>
-          )}
-        </DropdownMenuItem>
+        {user.isActive ? (
+          // ds-allow: status
+          <DropdownMenuItem
+            className="gap-2.5 cursor-pointer rounded-md text-destructive focus:text-destructive focus:bg-destructive/10"
+            onClick={onToggleStatus}
+          >
+            <UserX className="w-3.5 h-3.5" />
+            <span className="text-sm font-medium">Suspender acesso</span>
+          </DropdownMenuItem>
+        ) : (
+          // ds-allow: status
+          <DropdownMenuItem
+            className="gap-2.5 cursor-pointer rounded-md text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/20"
+            onClick={onToggleStatus}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span className="text-sm font-medium">Ativar acesso</span>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
