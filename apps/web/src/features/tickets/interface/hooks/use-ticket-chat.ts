@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useTransition } from "react";
+import { useState, useRef, useEffect, useTransition, type ClipboardEvent as ReactClipboardEvent } from "react";
 import { toast } from "sonner";
 import { replyTicketAction } from "@/features/tickets/application/ticket-actions";
 import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
@@ -66,15 +66,15 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
         });
     };
 
-    const addFiles = (newFiles: FileList | null) => {
-        if (!newFiles) return;
-        const list = Array.from(newFiles);
-        // Limit to 5MB per file for safety
-        const valid = list.filter(f => f.size <= 5 * 1024 * 1024);
-        if (valid.length < list.length) {
+    const appendFiles = (incomingFiles: File[]) => {
+        if (!incomingFiles.length) return;
+
+        const valid = incomingFiles.filter((file) => file.size <= 5 * 1024 * 1024);
+        if (valid.length < incomingFiles.length) {
             toast.warning("Alguns arquivos foram ignorados por excederem 5MB.");
         }
-        setFiles(prev => {
+
+        setFiles((prev) => {
             const remainingSlots = Math.max(0, 5 - prev.length);
             if (remainingSlots === 0) {
                 toast.warning("Limite de 5 anexos por mensagem.");
@@ -88,6 +88,35 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
 
             return [...prev, ...nextFiles];
         });
+    };
+
+    const addFiles = (newFiles: FileList | null) => {
+        if (!newFiles) return;
+        appendFiles(Array.from(newFiles));
+    };
+
+    const handlePaste = (event: ReactClipboardEvent<HTMLTextAreaElement>) => {
+        const items = Array.from(event.clipboardData?.items ?? []);
+        if (!items.length) {
+            return;
+        }
+
+        const pastedFiles = items
+            .filter((item) => item.kind === "file")
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => Boolean(file));
+
+        if (!pastedFiles.length) {
+            return;
+        }
+
+        event.preventDefault();
+        appendFiles(pastedFiles);
+        toast.success(
+            pastedFiles.length === 1
+                ? "Imagem anexada a partir da area de transferencia."
+                : `${pastedFiles.length} arquivos anexados a partir da area de transferencia.`,
+        );
     };
 
     const removeFile = (index: number) => {
@@ -109,6 +138,7 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
         files,
         addFiles,
         removeFile,
+        handlePaste,
         isPending,
         scrollRef,
         handleSend,

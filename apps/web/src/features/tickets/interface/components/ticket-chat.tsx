@@ -31,7 +31,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
     const pendingScrollRestoreRef = useRef<{ viewport: HTMLElement; scrollHeight: number; scrollTop: number } | null>(null);
     const {
         message, setMessage, files, addFiles, removeFile,
-        isPending, scrollRef, handleSend, isMe, isSystem,
+        handlePaste, isPending, scrollRef, handleSend, isMe, isSystem,
     } = useTicketChat(ticketId, articles, autoScrollEnabled);
 
     const [messageMode, setMessageMode] = useState<"PUBLIC" | "INTERNAL">("PUBLIC");
@@ -187,6 +187,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                     <TicketRichTextEditor
                                         value={message}
                                         onChange={setMessage}
+                                        onPaste={handlePaste}
                                         placeholder={composerIsInternal ? "Registre uma nota visivel apenas para a equipe..." : "Digite sua resposta ao cliente..."}
                                         minHeightClassName="min-h-28"
                                         compact

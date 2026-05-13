@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ComponentProps, type MouseEvent } from "react";
+import { useRef, type ClipboardEvent as ReactClipboardEvent, type ComponentProps, type MouseEvent } from "react";
 import {
   Bold,
   Code2,
@@ -27,6 +27,7 @@ type TicketRichTextEditorTemplate = {
 type TicketRichTextEditorProps = {
   value: string;
   onChange: (value: string) => void;
+  onPaste?: (event: ReactClipboardEvent<HTMLTextAreaElement>) => void;
   placeholder: string;
   className?: string;
   minHeightClassName?: string;
@@ -80,6 +81,7 @@ const DEFAULT_TEMPLATES: TicketRichTextEditorTemplate[] = [
 export function TicketRichTextEditor({
   value,
   onChange,
+  onPaste,
   placeholder,
   className,
   minHeightClassName = "min-h-80",
@@ -393,6 +395,7 @@ export function TicketRichTextEditor({
         ref={textareaRef}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onPaste={onPaste}
         placeholder={placeholder}
         className={cn(
           "resize-y rounded-none border-0 px-4 py-3 font-mono text-sm leading-6 shadow-none focus-visible:ring-0",
