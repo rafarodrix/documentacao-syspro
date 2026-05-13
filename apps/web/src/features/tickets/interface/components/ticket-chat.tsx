@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { DEFAULT_TICKET_MODULE_SETTINGS } from "@dosc-syspro/contracts/ticket";
+import { DEFAULT_TICKET_MODULE_SETTINGS, TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE } from "@dosc-syspro/contracts/ticket";
 import { useTicketChat } from "@/features/tickets/interface";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { Avatar, AvatarFallback, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, ScrollArea, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
@@ -204,7 +204,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                         multiple
                                         hidden
                                         ref={fileInputRef}
-                                        accept="image/*,audio/*,video/*,text/*,application/pdf,application/json,application/xml,text/xml,text/csv,application/rtf,application/zip,application/x-zip-compressed,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                        accept={TICKET_ATTACHMENT_ACCEPT_ATTRIBUTE}
                                         onChange={(event) => addFiles(event.target.files)}
                                     />
                                     <DropdownMenu>

@@ -4,9 +4,6 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { sanitizeTicketRenderedHtml } from "@/features/tickets/interface/lib/ticket-rich-html";
-
-const LEGACY_TICKET_HTML_PATTERN = /^\s*<(?:div|p|span|br|strong|em|b|i|u|blockquote|pre|code|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|a|img)(?:\s|>)/i;
 
 type TicketMessageContentProps = {
   body: string;
@@ -17,17 +14,6 @@ export function TicketMessageContent({
   body,
   className,
 }: TicketMessageContentProps) {
-  if (looksLikeHtml(body)) {
-    return (
-      <div
-        className={cn(ticketMessageContentClassName, className)}
-        dangerouslySetInnerHTML={{
-          __html: sanitizeTicketRenderedHtml(body),
-        }}
-      />
-    );
-  }
-
   return (
     <div className={cn(ticketMessageContentClassName, className)}>
       <ReactMarkdown
@@ -148,7 +134,3 @@ const ticketMessageContentClassName =
   "[&_pre]:text-zinc-100 [&_pre_*]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-zinc-100 " +
   "[&_table]:my-3 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35 " +
   "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0 [&_img]:my-3";
-
-function looksLikeHtml(value: string) {
-  return LEGACY_TICKET_HTML_PATTERN.test(value) && /<\/?[a-z][\s\S]*>/i.test(value);
-}

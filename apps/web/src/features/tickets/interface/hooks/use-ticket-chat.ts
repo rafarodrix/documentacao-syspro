@@ -1,36 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition, type ClipboardEvent as ReactClipboardEvent } from "react";
+import { TICKET_ATTACHMENT_MAX_BYTES, isAllowedTicketAttachmentMimeType } from "@dosc-syspro/contracts/ticket";
 import { toast } from "sonner";
 import { replyTicketAction } from "@/features/tickets/application/ticket-actions";
 import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
 import { useSession } from "@/lib/auth-client";
-
-const MAX_TICKET_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-const TICKET_ATTACHMENT_ALLOWED_MIME_PREFIXES = ["image/", "audio/", "video/", "text/"];
-const TICKET_ATTACHMENT_ALLOWED_MIME_TYPES = new Set([
-    "application/pdf",
-    "application/json",
-    "application/xml",
-    "text/xml",
-    "text/csv",
-    "application/rtf",
-    "application/zip",
-    "application/x-zip-compressed",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-]);
-
-function isAllowedTicketAttachmentMimeType(mimeType: string) {
-    const normalized = mimeType.trim().toLowerCase();
-    if (!normalized) return true;
-    if (TICKET_ATTACHMENT_ALLOWED_MIME_TYPES.has(normalized)) return true;
-    return TICKET_ATTACHMENT_ALLOWED_MIME_PREFIXES.some((prefix) => normalized.startsWith(prefix));
-}
 
 export function useTicketChat(ticketId: string, articles: TicketArticleItem[], autoScrollEnabled = true) {
     const [message, setMessage] = useState("");
@@ -87,7 +62,7 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
         if (!incomingFiles.length) return;
 
         const valid = incomingFiles.filter((file) => {
-            if (file.size > MAX_TICKET_ATTACHMENT_BYTES) {
+            if (file.size > TICKET_ATTACHMENT_MAX_BYTES) {
                 return false;
             }
 

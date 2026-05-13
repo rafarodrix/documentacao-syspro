@@ -8,6 +8,7 @@ import type {
   TicketModuleTriageRequest,
   TicketModuleUpdateRequest,
 } from '@dosc-syspro/contracts/ticket';
+import { TICKET_ATTACHMENT_MAX_BYTES, isAllowedTicketAttachmentMimeType } from '@dosc-syspro/contracts/ticket';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import {
   ConversationAssignmentStatus as TicketAssignmentStatus,
@@ -106,24 +107,6 @@ type TicketReplyInput = Omit<TicketModuleReplyRequest, 'attachments'> & {
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
   private static readonly MAX_REPLY_ATTACHMENTS = 5;
-  private static readonly MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-  private static readonly ALLOWED_ATTACHMENT_MIME_PREFIXES = ['image/', 'audio/', 'video/', 'text/'] as const;
-  private static readonly ALLOWED_ATTACHMENT_MIME_TYPES = new Set([
-    'application/pdf',
-    'application/json',
-    'application/xml',
-    'text/xml',
-    'text/csv',
-    'application/rtf',
-    'application/zip',
-    'application/x-zip-compressed',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  ]);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -1557,11 +1540,11 @@ export class TicketsService {
       throw new BadRequestException(`Anexo ${filename} sem conteudo valido.`);
     }
 
-    if (buffer.length > TicketsService.MAX_ATTACHMENT_BYTES) {
+    if (buffer.length > TICKET_ATTACHMENT_MAX_BYTES) {
       throw new BadRequestException(`O anexo ${filename} excede o limite de 5 MB.`);
     }
 
-    if (!this.isAllowedAttachmentMimeType(mimeType)) {
+    if (!isAllowedTicketAttachmentMimeType(mimeType)) {
       throw new BadRequestException(`O anexo ${filename} possui um tipo nao suportado: ${mimeType}.`);
     }
 
@@ -1580,14 +1563,6 @@ export class TicketsService {
     if (mimeType.startsWith('audio/')) return TicketMessageType.AUDIO;
     if (mimeType.startsWith('video/')) return TicketMessageType.VIDEO;
     return TicketMessageType.DOCUMENT;
-  }
-
-  private isAllowedAttachmentMimeType(mimeType: string) {
-    if (TicketsService.ALLOWED_ATTACHMENT_MIME_TYPES.has(mimeType)) {
-      return true;
-    }
-
-    return TicketsService.ALLOWED_ATTACHMENT_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
   }
 
   private resolveMessageType(
