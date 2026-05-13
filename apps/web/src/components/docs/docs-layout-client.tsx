@@ -15,8 +15,9 @@ export function DocsLayoutClient({
 }) {
   const sharedSidebarProps = {
     className: 'docs-sidebar-shell portal-docs-sidebar',
-    defaultOpenLevel: 0,
-    collapsible: false,
+    defaultOpenLevel: 1,
+    collapsible: true,
+    prefetch: false,
     banner: <DocsSidebarInlineCollapse />,
     components: { Item: DocsSidebarItem },
   } as const;
@@ -24,7 +25,8 @@ export function DocsLayoutClient({
   return (
     <DocsLayout
       tree={docsTree}
-      nav={{ title: <span className="font-semibold text-sm">Central Trilink</span> }}
+      tabMode="top"
+      nav={{ title: <span className="font-semibold text-sm">Central de Documentacao</span> }}
       themeSwitch={{ enabled: false }}
       searchToggle={{ enabled: true }}
       sidebar={sharedSidebarProps}

@@ -1,4 +1,5 @@
-import { createDocsSourceForRole, source } from '@/lib/source';
+import { createDocsSourceForRole, createDocsTreeForUser, source } from '@/lib/source';
+import { findNeighbour } from 'fumadocs-core/page-tree';
 import {
   DocsPage,
   DocsBody,
@@ -9,9 +10,7 @@ import { PageLastUpdate } from 'fumadocs-ui/layouts/docs/page';
 import { notFound, redirect } from 'next/navigation';
 import defaultMdxComponents, { createRelativeLink } from 'fumadocs-ui/mdx';
 import { requireSession } from '@/lib/auth-helpers';
-import {
-  canUserAccessDocUrl,
-} from '@/lib/docs-access';
+import { canUserAccessDocUrl } from '@/lib/docs-access';
 import { DocsPageViewTracker } from '@/components/docs/docs-page-view-tracker';
 import { DocsMetaChips } from '@/components/docs/docs-meta-chips';
 import { DocsFeatureBadge, type FeatureStatus } from '@/components/docs/docs-feature-badge';
@@ -26,7 +25,7 @@ import {
   estimateReadingTimeMinutes,
   formatDateLong,
 } from '@/lib/docs-utils';
-import { DOCS_BASE_PATH, getDefaultDocsRouteForRole, getDocScopeFromSlug } from '@/lib/docs-scope';
+import { DOCS_BASE_PATH, getDefaultDocsRouteForRole } from '@/lib/docs-scope';
 
 function resolveDocsSlug(slug: string[]) {
   if (slug[0] === "manuais-tecnicos") {
@@ -66,8 +65,7 @@ export default async function PortalDocsPage(props: {
     redirect(getDefaultDocsRouteForRole(session.role));
   }
 
-  const scope = getDocScopeFromSlug(resolvedSlug);
-  const docsSource = createDocsSourceForRole(session.role, scope);
+  const docsSource = createDocsSourceForRole(session.role);
   const page = docsSource.getPage(resolvedSlug);
   if (!page) {
     const scopeRoot = resolvedSlug.length === 1 ? resolvedSlug[0] : null;
@@ -99,30 +97,14 @@ export default async function PortalDocsPage(props: {
   const structuredData = (page.data as { structuredData?: { contents?: Array<{ content?: string }> } }).structuredData;
   const bodyText = structuredData?.contents?.map((item) => item.content ?? '').join(' ') ?? page.data.description ?? '';
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
-
-  const navigationPool = docsSource.getPages().filter((item) => item.url !== DOCS_BASE_PATH);
-  const navigationVisibility = await Promise.all(
-    navigationPool.map((item) =>
-      canUserAccessDocUrl({
-        url: item.url,
-        userId: session.userId,
-        role: session.role,
-      }),
-    ),
-  );
-  const visibleNavigationPages = navigationPool.filter((_, i) => navigationVisibility[i]);
-  const currentIndex = visibleNavigationPages.findIndex((item) => item.url === docSlug);
-  const previousPage = currentIndex > 0 ? visibleNavigationPages[currentIndex - 1] : null;
-  const nextPage =
-    currentIndex >= 0 && currentIndex < visibleNavigationPages.length - 1
-      ? visibleNavigationPages[currentIndex + 1]
-      : null;
+  const docsTree = await createDocsTreeForUser(session.userId, session.role);
+  const neighbours = findNeighbour(docsTree, docSlug, { separateRoot: true });
 
   return (
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
-      breadcrumb={{ enabled: false }}
+      breadcrumb={{ enabled: true }}
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsReadingProgress />
@@ -155,7 +137,7 @@ export default async function PortalDocsPage(props: {
             }}
           />
         </DocsSurface>
-        <DocsKeyboardShortcuts previousHref={previousPage?.url} nextHref={nextPage?.url} />
+        <DocsKeyboardShortcuts previousHref={neighbours.previous?.url} nextHref={neighbours.next?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
         <SuporteSection

@@ -1,5 +1,5 @@
 {
-  "root": false,
+  "root": true,
   "title": "Admin",
   "description": "Documentacao administrativa e tecnica restrita a administradores.",
   "pages": [

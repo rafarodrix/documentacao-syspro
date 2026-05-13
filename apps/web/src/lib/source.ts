@@ -1,8 +1,10 @@
 import type { Role } from "@prisma/client";
+import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { docs } from "../../.source";
 import { loader } from "fumadocs-core/source";
 import { filterDocTree } from "@/lib/docs-tree-utils";
 import { canRoleAccessDocsUrl, getDocScopeFromUrl, type DocsScope } from "@/lib/docs-scope";
+import { canUserAccessDocUrl } from "@/lib/docs-access";
 
 const baseUrl = "/portal/docs";
 
@@ -66,4 +68,26 @@ export function createDocsSourceForRole(role: Role, scope?: DocsScope | null): D
 
   sourceCache.set(cacheKey, scopedSource);
   return scopedSource;
+}
+
+export async function createDocsTreeForUser(userId: string, role: Role): Promise<PageTreeRoot> {
+  const docsSource = createDocsSourceForRole(role);
+  const pages = docsSource.getPages();
+  const visibility = await Promise.all(
+    pages.map((page) =>
+      canUserAccessDocUrl({
+        url: page.url,
+        userId,
+        role,
+      }),
+    ),
+  );
+
+  const allowedUrls = new Set(
+    pages
+      .filter((_, index) => visibility[index])
+      .map((page) => page.url),
+  );
+
+  return filterDocTree(docsSource.pageTree, (url) => allowedUrls.has(url));
 }
