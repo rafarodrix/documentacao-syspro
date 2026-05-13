@@ -4,7 +4,6 @@ import type {
   TicketModuleLinkedCompaniesResponse,
   TicketModuleListResponse,
   TicketModuleMutationResponse,
-  TicketModuleReplyRequest,
   TicketModuleTriageRequest,
   TicketModuleUpdateRequest,
 } from "@dosc-syspro/contracts/ticket";
@@ -49,13 +48,12 @@ export async function createTicketGateway(payload: TicketModuleCreateRequest): P
 
 export async function replyTicketGateway(
   ticketId: string,
-  payload: TicketModuleReplyRequest,
+  payload: FormData,
 ): Promise<TicketModuleMutationResponse> {
   return ticketModuleMutationResponseSchema.parse(
     await callTicketsApi(`/${ticketId}/reply`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: payload,
     }),
   );
 }

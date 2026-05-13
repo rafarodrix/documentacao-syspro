@@ -92,6 +92,16 @@ type TicketAttachmentInsertRow = {
   binaryData?: Buffer | null;
 };
 
+type TicketReplyAttachmentInput = {
+  filename: string;
+  mimeType: string;
+  buffer: Buffer;
+};
+
+type TicketReplyInput = Omit<TicketModuleReplyRequest, 'attachments'> & {
+  attachments?: TicketReplyAttachmentInput[];
+};
+
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
@@ -717,7 +727,7 @@ export class TicketsService {
     );
   }
 
-  async reply(id: string, input: TicketModuleReplyRequest, rawHeaders?: IncomingHttpHeaders) {
+  async reply(id: string, input: TicketReplyInput, rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
     const message = input.message?.trim();
@@ -1518,22 +1528,13 @@ export class TicketsService {
   }
 
   private async normalizeReplyAttachment(
-    attachment: NonNullable<TicketModuleReplyRequest['attachments']>[number],
+    attachment: TicketReplyAttachmentInput,
   ) {
     const filename = attachment.filename.trim() || 'arquivo';
     const mimeType = attachment.mimeType.trim().toLowerCase() || 'application/octet-stream';
-    const base64 = attachment.base64.replace(/\s+/g, '');
-
-    if (!base64) {
-      throw new BadRequestException(`Anexo ${filename} sem conteudo valido.`);
-    }
-
-    let buffer: Buffer;
-    try {
-      buffer = Buffer.from(base64, 'base64');
-    } catch {
-      throw new BadRequestException(`Base64 invalido para o anexo ${filename}.`);
-    }
+    const buffer = Buffer.isBuffer(attachment.buffer)
+      ? attachment.buffer
+      : Buffer.from(attachment.buffer);
 
     if (!buffer.length) {
       throw new BadRequestException(`Anexo ${filename} sem conteudo valido.`);

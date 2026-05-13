@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { replyTicketAction } from "@/features/tickets/application/ticket-actions";
 import type { TicketArticleItem } from "@/features/tickets/domain/ticket-model";
 import { useSession } from "@/lib/auth-client";
-import { fileToBase64 } from "@/features/tickets/application/ticket-base64.helpers";
 
 export function useTicketChat(ticketId: string, articles: TicketArticleItem[], autoScrollEnabled = true) {
     const [message, setMessage] = useState("");
@@ -42,15 +41,7 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
 
         startTransition(async () => {
             try {
-                const attachments = await Promise.all(
-                    files.map(async (file) => ({
-                        filename: file.name,
-                        data: await fileToBase64(file),
-                        "mime-type": file.type || "application/octet-stream",
-                    }))
-                );
-
-                const result = await replyTicketAction(ticketId, trimmed, attachments, visibility);
+                const result = await replyTicketAction(ticketId, trimmed, files, visibility);
 
                 if (result.success) {
                     setMessage("");
@@ -60,8 +51,8 @@ export function useTicketChat(ticketId: string, articles: TicketArticleItem[], a
                     toast.error(result.error);
                 }
             } catch (error) {
-                console.error("Erro ao preparar anexos:", error);
-                toast.error("Falha ao processar arquivos.");
+                console.error("Erro ao enviar anexos:", error);
+                toast.error("Falha ao enviar arquivos.");
             }
         });
     };

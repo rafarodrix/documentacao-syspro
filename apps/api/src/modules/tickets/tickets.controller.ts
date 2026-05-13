@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import {
   ticketModuleCreateRequestSchema,
   ticketModuleListQuerySchema,
@@ -8,9 +8,22 @@ import {
 } from '@dosc-syspro/contracts/ticket';
 import type { Request, Response } from 'express';
 import type { ZodType } from 'zod';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreateTicketDto } from './create-ticket.dto';
 import { TicketsService } from './tickets.service';
 import { UpdateTicketDto } from './update-ticket.dto';
+
+type UploadedTicketReplyFile = {
+  originalname?: string;
+  mimetype?: string;
+  buffer?: Buffer;
+};
+
+type NormalizedTicketReplyFile = {
+  filename: string;
+  mimeType: string;
+  buffer: Buffer;
+};
 
 @Controller('tickets')
 export class TicketsController {
@@ -84,8 +97,33 @@ export class TicketsController {
   }
 
   @Post(':id/reply')
-  reply(@Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
-    const input = this.parseOrThrow(ticketModuleReplyRequestSchema, body);
+  @UseInterceptors(FilesInterceptor('attachments', 5))
+  reply(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @UploadedFiles() files: UploadedTicketReplyFile[] = [],
+  ) {
+    const parsedBody = this.parseOrThrow(ticketModuleReplyRequestSchema, body);
+    const normalizedFiles: NormalizedTicketReplyFile[] = Array.isArray(files)
+      ? files.flatMap((file) => {
+          if (!file?.buffer?.length) {
+            return [];
+          }
+
+          return [{
+            filename: file.originalname || 'arquivo',
+            mimeType: file.mimetype || 'application/octet-stream',
+            buffer: file.buffer,
+          }];
+        })
+      : [];
+
+    const input = {
+      ...parsedBody,
+      attachments: normalizedFiles,
+    };
+
     return this.ticketsService.reply(id, input, req.headers);
   }
 

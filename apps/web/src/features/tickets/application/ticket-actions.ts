@@ -3,7 +3,6 @@
 import type {
   TicketModuleCreateRequest,
   TicketModulePriority,
-  TicketModuleReplyAttachmentInput,
   TicketModuleStatus,
   TicketModuleTriageRequest,
 } from "@dosc-syspro/contracts/ticket";
@@ -257,7 +256,7 @@ export async function getTicketDetailsAction(ticketId: string, params?: { page?:
 export async function replyTicketAction(
   ticketId: string,
   message: string,
-  attachments?: { filename: string; data: string; "mime-type": string }[],
+  attachments?: File[],
   visibility: "PUBLIC" | "INTERNAL" = "PUBLIC",
 ): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
@@ -271,17 +270,16 @@ export async function replyTicketAction(
   }
 
   try {
-    const normalizedAttachments: TicketModuleReplyAttachmentInput[] = (attachments ?? []).map((attachment) => ({
-      filename: attachment.filename,
-      mimeType: attachment["mime-type"],
-      base64: attachment.data,
-    }));
+    const formData = new FormData();
+    if (body) {
+      formData.append("message", body);
+    }
+    formData.append("visibility", visibility);
+    for (const attachment of attachments ?? []) {
+      formData.append("attachments", attachment);
+    }
 
-    const result = await replyTicketGateway(ticketId, {
-      message: body || undefined,
-      visibility,
-      attachments: normalizedAttachments,
-    });
+    const result = await replyTicketGateway(ticketId, formData);
 
     if (!result.success) {
       return { success: false, error: result.error || result.message || "Erro ao enviar." };
@@ -322,9 +320,9 @@ export async function ticketQuickAction(input: {
     }
 
     if (input.action === "macro_followup") {
-      const result = await replyTicketGateway(ticketId, {
-        message: "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve.",
-      });
+      const formData = new FormData();
+      formData.append("message", "Atualizacao automatica: estamos analisando este chamado e retornaremos em breve.");
+      const result = await replyTicketGateway(ticketId, formData);
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao aplicar macro." };
       }

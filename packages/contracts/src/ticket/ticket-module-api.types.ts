@@ -92,16 +92,9 @@ export const ticketModuleUpdateRequestSchema = z.object({
   note: z.string().trim().optional(),
 });
 
-export const ticketModuleReplyAttachmentInputSchema = z.object({
-  filename: z.string().trim().min(1),
-  mimeType: z.string().trim().min(1),
-  base64: z.string().trim().min(1),
-});
-
 export const ticketModuleReplyRequestSchema = z.object({
   message: z.string().trim().optional(),
   visibility: z.enum(["PUBLIC", "INTERNAL"]).optional(),
-  attachments: z.array(ticketModuleReplyAttachmentInputSchema).max(5).optional(),
 });
 
 export const ticketModuleMessageAttachmentSchema = z.object({
@@ -249,7 +242,6 @@ export type TicketModuleQueueCounts = z.infer<typeof ticketModuleQueueCountsSche
 export type TicketModuleCreateRequest = z.infer<typeof ticketModuleCreateRequestSchema>;
 export type TicketModuleUpdateRequest = z.infer<typeof ticketModuleUpdateRequestSchema>;
 export type TicketModuleReplyRequest = z.infer<typeof ticketModuleReplyRequestSchema>;
-export type TicketModuleReplyAttachmentInput = z.infer<typeof ticketModuleReplyAttachmentInputSchema>;
 export type TicketModuleTriageRequest = z.infer<typeof ticketModuleTriageRequestSchema>;
 export type TicketModuleListQuery = z.infer<typeof ticketModuleListQuerySchema>;
 export type TicketModuleUser = z.infer<typeof ticketModuleUserSchema>;
