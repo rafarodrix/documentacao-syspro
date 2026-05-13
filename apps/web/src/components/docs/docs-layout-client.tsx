@@ -7,6 +7,7 @@ import type { Option as SidebarTabOption } from 'fumadocs-ui/components/layout/r
 import { BookOpenText, LifeBuoy, Shield } from 'lucide-react';
 import { DocsSidebarBanner } from '@/components/docs/docs-sidebar-banner';
 import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
+import { NavTitle } from '@/components/docs/nav-title';
 import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
 export function DocsLayoutClient({
@@ -33,7 +34,7 @@ export function DocsLayoutClient({
   return (
     <DocsLayout
       tree={docsTree}
-      nav={{ title: <span className="sr-only">Documentacao</span>, transparentMode: 'top' }}
+      nav={{ title: <NavTitle />, url: '/portal/docs/cliente', transparentMode: 'top' }}
       themeSwitch={{ enabled: false }}
       searchToggle={{ enabled: true }}
       sidebar={sharedSidebarProps}
