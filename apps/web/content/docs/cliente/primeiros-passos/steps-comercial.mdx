@@ -12,6 +12,8 @@ tags:
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import {
   Users,
   Package,
@@ -23,6 +25,8 @@ import {
   BarChart3,
   Receipt,
   CreditCard,
+  Building2,
+  User,
 } from 'lucide-react';
 import { YouTubeModal } from '@/components/docs/youtube-modal';
 
@@ -36,7 +40,13 @@ Este guia cobre o ciclo operacional completo de uma empresa comercial no Syspro 
 
 ## Visão Geral do Fluxo Operacional
 
-Antes de entrar no passo a passo, é importante entender como os módulos se conectam. O Syspro ERP foi projetado para que os dados fluam automaticamente entre as áreas — uma compra de mercadoria, por exemplo, atualiza estoque, custo de produto e contas a pagar em uma única operação. Quanto mais completo o preenchimento nas etapas iniciais, menor o retrabalho nas etapas seguintes.
+Antes de entrar no passo a passo, é importante entender como os módulos se conectam. O Syspro ERP foi projetado para que os dados fluam automaticamente entre as áreas.
+
+<Cards>
+  <Card title="1. Alicerce" icon={<Building2 />} description="Cadastros essenciais: Participantes, Produtos e Serviços." />
+  <Card title="2. Operação" icon={<ClipboardList />} description="Entradas de notas, Pedidos de Venda e Emissão Fiscal." />
+  <Card title="3. Gestão" icon={<BarChart3 />} description="Gestão Financeira, Fechamento de Caixa e Relatórios." />
+</Cards>
 
 ---
 
@@ -49,27 +59,37 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
 
     O cadastro de participantes é a fundação do sistema. Todo documento fiscal, pedido de venda e lançamento financeiro precisa estar vinculado a um participante — por isso, é o primeiro módulo a ser configurado e o que exige mais atenção na qualidade dos dados.
 
-    Neste módulo você registra qualquer pessoa física ou jurídica que se relaciona com a empresa: clientes, fornecedores, colaboradores e parceiros comerciais. Um mesmo participante pode exercer múltiplos papéis — um fornecedor que também é cliente, por exemplo, é cadastrado uma única vez com ambos os perfis ativos.
-
     <Callout type="warn" title="Dado crítico">
       CPF/CNPJ e endereço completo são obrigatórios para a emissão de NF-e e NFS-e. Um cadastro incompleto bloqueia o faturamento. Valide esses campos no momento do cadastro, não na hora da emissão.
     </Callout>
 
-    **Cadastro de Pessoa Física**
+    <Tabs items={["Pessoa Física", "Pessoa Jurídica"]}>
+      <Tab value="Pessoa Física" icon={<User />}>
+        O cadastro de Pessoa Física é voltado para consumidores finais e colaboradores.
+        
+        <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de participante — Pessoa Física" />
+      </Tab>
+      <Tab value="Pessoa Jurídica" icon={<Building2 />}>
+        O cadastro de Pessoa Jurídica é essencial para fornecedores e clientes corporativos, exigindo Inscrição Estadual na maioria dos casos.
 
-    <YouTubeModal videoId="Dg7VzTPY0uE" thumbnailTitle="Cadastro de participante — Pessoa Física" />
-
-    **Cadastro de Pessoa Jurídica**
-
-    <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de participante — Pessoa Jurídica" />
+        <YouTubeModal videoId="E54396oUlTo" thumbnailTitle="Cadastro de participante — Pessoa Jurídica" />
+      </Tab>
+    </Tabs>
   </Step>
 
   <Step>
     ### Cadastro de Produtos e Serviços
 
-    Com os participantes registrados, o próximo passo é estruturar o catálogo comercial — os itens que a empresa compra, vende e presta. O Syspro ERP distingue claramente dois tipos de itens: **produtos** (bens físicos com controle de estoque) e **serviços** (mão de obra e prestações sem movimentação de estoque).
+    Com os participantes registrados, o próximo passo é estruturar o catálogo comercial.
 
-    Essa separação não é apenas organizacional — ela tem implicação fiscal direta. Produtos são tributados por ICMS e exigem NCM; serviços são tributados por ISS e exigem código NBS. Misturar ou deixar em branco esses campos causará erros na emissão das notas fiscais.
+    <Accordions>
+      <Accordion title="Diferença entre Produtos e Serviços">
+        O Syspro ERP distingue claramente dois tipos de itens: **produtos** (bens físicos com controle de estoque) e **serviços** (mão de obra e prestações sem movimentação de estoque).
+      </Accordion>
+      <Accordion title="Implicações Fiscais">
+        Essa separação tem implicação fiscal direta. Produtos são tributados por ICMS e exigem NCM; serviços são tributados por ISS e exigem código NBS. Misturar ou deixar em branco esses campos causará erros na emissão das notas fiscais.
+      </Accordion>
+    </Accordions>
 
     <Callout type="info" title="Boa prática">
       Preencha sempre a unidade de medida correta (UN, PAR, LT, KG). Ela aparece no documento fiscal e define como o estoque é contado. Uma unidade errada pode distorcer o inventário e o cálculo de custos.
@@ -81,9 +101,7 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
   <Step>
     ### Entrada de Notas Fiscais de Compra
 
-    A entrada de notas fiscais é o processo pelo qual o estoque e o financeiro da empresa são alimentados automaticamente. Ao registrar uma nota de compra, o sistema executa três ações simultâneas: incrementa o saldo disponível em estoque, recalcula o custo médio dos produtos recebidos e cria os lançamentos de contas a pagar para o fornecedor — tudo em uma única operação.
-
-    A forma mais eficiente de realizar esse processo é pela **importação do arquivo XML** da nota fiscal. Além de eliminar digitação manual, o XML garante que NCM, descrição e quantidades venham diretamente da nota do fornecedor, reduzindo erros de cadastro e divergências de inventário.
+    A entrada de notas fiscais é o processo pelo qual o estoque e o financeiro da empresa são alimentados automaticamente.
 
     <Callout type="warn" title="Nunca ignore o XML">
       Digitar manualmente os itens da nota é uma prática que abre espaço para erros de NCM, quantidades erradas e custos desatualizados. Sempre solicite o XML ao fornecedor e utilize a importação automática.
@@ -95,12 +113,16 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
   <Step>
     ### Pedido de Venda
 
-    O módulo de Pedido de Venda é o ponto de atendimento comercial direto. Ele foi projetado para o ritmo do balcão — seleção rápida de itens por código, descrição ou código de barras, verificação de disponibilidade em tempo real e definição das condições comerciais antes de encaminhar para o faturamento.
+    O módulo de Pedido de Venda é o ponto de atendimento comercial direto. Ele foi projetado para o ritmo do balcão — seleção rápida de itens por código, descrição ou código de barras.
 
-    O pedido de venda não emite nota fiscal por si só — ele é o documento de origem que será convertido em NF-e ou NFC-e na etapa de faturamento. Esse fluxo em duas etapas permite que a equipe comercial gere o pedido sem acesso ao módulo fiscal, o que é uma boa prática de segregação de funções em empresas com equipes maiores.
+    <Accordions>
+      <Accordion title="Segregação de Funções">
+        O pedido de venda não emite nota fiscal por si só — ele é o documento de origem que será convertido em NF-e ou NFC-e na etapa de faturamento. Esse fluxo em duas etapas permite que a equipe comercial gere o pedido sem acesso ao módulo fiscal.
+      </Accordion>
+    </Accordions>
 
     <Callout type="info" title="Comissões e produtividade">
-      Mantenha o campo **Vendedor** sempre preenchido. Sem esse vínculo, os relatórios de produtividade e o cálculo de comissões ficam incompletos — e não é possível recuperar essa informação retroativamente após a finalização do pedido.
+      Mantenha o campo **Vendedor** sempre preenchido. Sem esse vínculo, os relatórios de produtividade e o cálculo de comissões ficam incompletos.
     </Callout>
 
     <YouTubeModal videoId="jPNM_8BbjKM" thumbnailTitle="Pedido de Venda — Atendimento Ágil no Balcão" />
@@ -109,12 +131,22 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
   <Step>
     ### Emissão de NF-e, NFC-e e NFS-e
 
-    A emissão fiscal é a etapa que converte a operação comercial em documento legal. O Syspro ERP suporta os três tipos de nota mais comuns no segmento comercial, e a escolha correta entre eles evita bitributação e facilita a vida do contador.
+    A emissão fiscal é a etapa que converte a operação comercial em documento legal. O Syspro ERP suporta os três tipos de nota mais comuns no segmento comercial.
 
-    A **NF-e** é usada para vendas de mercadorias, especialmente para pessoas jurídicas e operações a prazo. A **NFC-e** é a versão simplificada para o consumidor final no varejo, ideal para balcão com pagamento imediato. A **NFS-e** é emitida exclusivamente para prestação de serviços e é gerenciada pela prefeitura do município do emitente — cada cidade tem suas próprias regras de layout e autorização.
+    <Tabs items={["NF-e", "NFC-e", "NFS-e"]}>
+      <Tab value="NF-e">
+        A **NF-e** é usada para vendas de mercadorias, especialmente para pessoas jurídicas e operações a prazo.
+      </Tab>
+      <Tab value="NFC-e">
+        A **NFC-e** é a versão simplificada para o consumidor final no varejo, ideal para balcão com pagamento imediato.
+      </Tab>
+      <Tab value="NFS-e">
+        A **NFS-e** é emitida exclusivamente para prestação de serviços e é gerenciada pela prefeitura do município do emitente.
+      </Tab>
+    </Tabs>
 
     <Callout type="warn" title="Verifique antes de transmitir">
-      Uma nota rejeitada pela SEFAZ não pode ser simplesmente re-emitida com a mesma numeração. Confira o cadastro do cliente, o NCM dos produtos e o CFOP da operação antes de transmitir. Corrigir após a rejeição exige cancelamento e nova emissão com número diferente.
+      Uma nota rejeitada pela SEFAZ não pode ser simplesmente re-emitida com a mesma numeração. Confira o cadastro do cliente, o NCM dos produtos e o CFOP da operação antes de transmitir.
     </Callout>
 
     <YouTubeModal videoId="emtestes" thumbnailTitle="Emissão Fiscal — NF-e, NFC-e e NFS-e" />
@@ -123,12 +155,10 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
   <Step>
     ### Gestão Financeira
 
-    Com as vendas realizadas e as compras registradas, o módulo financeiro consolida toda a movimentação monetária da empresa. Aqui você acompanha contas a receber, contas a pagar, realiza conciliação bancária e mantém o fluxo de caixa atualizado em tempo real.
-
-    A disciplina neste módulo é o que diferencia uma gestão amadora de uma profissional. Baixar um recebimento no momento em que o pagamento é confirmado — e não no final do mês — é o que garante que o saldo do sistema reflita a realidade do banco, evitando cobranças indevidas a clientes e surpresas no fluxo de caixa.
+    Com as vendas realizadas e as compras registradas, o módulo financeiro consolida toda a movimentação monetária da empresa.
 
     <Callout type="info" title="Conciliação bancária">
-      Configure a integração com seu banco para que os extratos entrem automaticamente no sistema. A conciliação manual item a item é demorada e propensa a erros — a automação reduz esse trabalho para uma revisão rápida de exceções.
+      Configure a integração com seu banco para que os extratos entrem automaticamente no sistema. A conciliação manual item a item é demorada e propensa a erros.
     </Callout>
 
     <YouTubeModal videoId="emtestes" thumbnailTitle="Gestão Financeira — Contas a Pagar e Receber" />
@@ -137,12 +167,16 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
   <Step>
     ### Fechamento de Caixa
 
-    O fechamento de caixa é a conferência diária que garante a integridade dos dados financeiros. Seu objetivo é comparar o que o sistema registrou como recebido com o que fisicamente entrou no caixa — dinheiro, cartões, Pix e outros meios — e identificar qualquer divergência antes que ela se acumule.
+    O fechamento de caixa é a conferência diária que garante a integridade dos dados financeiros.
 
-    Empresas que negligenciam o fechamento diário descobrem as divergências apenas no fechamento mensal, quando rastrear a origem do problema já é muito mais difícil e demorado. O hábito de fechar o caixa ao final de cada expediente transforma a conciliação bancária mensal em uma revisão simples de exceções.
+    <Accordions>
+      <Accordion title="Por que fechar diariamente?">
+        Empresas que negligenciam o fechamento diário descobrem as divergências apenas no fechamento mensal, quando rastrear a origem do problema já é muito mais difícil e demorado.
+      </Accordion>
+    </Accordions>
 
     <Callout type="info" title="Suprimentos e sangrias">
-      Registre toda entrada de troco (suprimento) e toda retirada de valores durante o expediente (sangria) no momento em que ocorrem. Lançamentos retroativos distorcem o histórico e dificultam auditorias internas.
+      Registre toda entrada de troco (suprimento) e toda retirada de valores durante o expediente (sangria) no momento em que ocorrem.
     </Callout>
 
     <YouTubeModal videoId="emtestes" thumbnailTitle="Fechamento de Caixa" />
@@ -151,12 +185,10 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
   <Step>
     ### Relatórios e Indicadores
 
-    Os relatórios são a camada de inteligência do sistema. É aqui que os dados gerados nas etapas anteriores se transformam em respostas para perguntas de gestão: quais produtos mais vendem, quais clientes mais compram, qual a margem real de cada categoria, quais técnicos ou vendedores são mais produtivos.
-
-    O valor dos relatórios é diretamente proporcional à qualidade dos dados inseridos nas etapas anteriores. Um cadastro de produto sem NCM correto, um pedido sem vendedor vinculado ou uma nota fiscal lançada com CFOP errado — cada um desses descuidos reduz a precisão dos indicadores. A gestão começa no cadastro, não no relatório.
+    Os relatórios são a camada de inteligência do sistema. É aqui que os dados gerados nas etapas anteriores se transformam em respostas para perguntas de gestão.
 
     <Callout type="info" title="DRE e análise de rentabilidade">
-      O Demonstrativo de Resultado do Exercício (DRE) disponível nos relatórios exige que todas as entradas de custo e saídas de receita estejam corretamente classificadas por natureza financeira. Revise as configurações de plano de contas com seu contador na implantação para garantir um DRE confiável.
+      O Demonstrativo de Resultado do Exercício (DRE) disponível nos relatórios exige que todas as entradas de custo e saídas de receita estejam corretamente classificadas por natureza financeira.
     </Callout>
 
     <YouTubeModal videoId="emtestes" thumbnailTitle="Relatórios Gerenciais — Análise de Desempenho" />
