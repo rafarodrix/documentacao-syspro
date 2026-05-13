@@ -13,12 +13,24 @@ export default async function PortalDocsSlugLayout({
   params: Promise<{ slug?: string[] }>;
 }) {
   const session = await requireSession();
+  const resolvedParams = await params;
   const docsTree = await createDocsTreeForUser(session.userId, session.role);
   const canViewSupport = canRoleAccessDocsScope(session.role, 'suporte');
   const canViewAdmin = canRoleAccessDocsScope(session.role, 'admin');
 
+  const scope = getDocScopeFromSlug(resolvedParams.slug) || 'cliente';
+  const expectedUrl = `/portal/docs/${scope}`;
+
+  const activeFolder = docsTree.children.find(
+    (node) => node.type === 'folder' && node.index?.url === expectedUrl
+  );
+
+  const activeTree: PageTreeRoot = activeFolder && activeFolder.type === 'folder'
+    ? { name: activeFolder.name, children: activeFolder.children }
+    : docsTree;
+
   return (
-    <DocsLayoutClient docsTree={docsTree} canViewSupport={canViewSupport} canViewAdmin={canViewAdmin}>
+    <DocsLayoutClient docsTree={activeTree} canViewSupport={canViewSupport} canViewAdmin={canViewAdmin}>
       {children}
     </DocsLayoutClient>
   );
