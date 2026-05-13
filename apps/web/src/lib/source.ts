@@ -1,5 +1,5 @@
 import type { Role } from "@prisma/client";
-import type { Root as PageTreeRoot, Node as PageTreeNode } from 'fumadocs-core/page-tree';
+import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { docs } from "../../.source";
 import { loader } from "fumadocs-core/source";
 import { filterDocTree } from "@/lib/docs-tree-utils";
@@ -71,16 +71,7 @@ export function createDocsSourceForRole(role: Role, scope?: DocsScope | null): D
 }
 
 export async function createDocsTreeForUser(userId: string, role: Role): Promise<PageTreeRoot> {
-  return createDocsTreeForUserScope(userId, role, null);
-}
-
-export async function createDocsTreeForUserScope(
-  userId: string,
-  role: Role,
-  scope?: DocsScope | null,
-  branch?: string | null,
-): Promise<PageTreeRoot> {
-  const docsSource = createDocsSourceForRole(role, scope ?? null);
+  const docsSource = createDocsSourceForRole(role, null);
   const pages = docsSource.getPages();
   const visibility = await Promise.all(
     pages.map((page) =>
@@ -98,62 +89,5 @@ export async function createDocsTreeForUserScope(
       .map((page) => page.url),
   );
 
-  const filteredTree = filterDocTree(docsSource.pageTree, (url) => allowedUrls.has(url));
-  if (!scope) return filteredTree;
-
-  const scopeTree = flattenDocsTreeScope(filteredTree, scope);
-  return branch ? flattenDocsTreeBranch(scopeTree, scope, branch) : scopeTree;
-}
-
-function flattenDocsTreeScope(tree: PageTreeRoot, scope: DocsScope): PageTreeRoot {
-  const scopeUrl = `${baseUrl}/${scope}`;
-  const scopeNode = findScopeNode(tree.children, scopeUrl);
-
-  if (!scopeNode || scopeNode.type !== 'folder') {
-    return tree;
-  }
-
-  const children = scopeNode.index
-    ? [scopeNode.index, ...scopeNode.children]
-    : scopeNode.children;
-
-  return {
-    ...tree,
-    name: scopeNode.name,
-    children,
-  };
-}
-
-function flattenDocsTreeBranch(tree: PageTreeRoot, scope: DocsScope, branch: string): PageTreeRoot {
-  const branchUrl = `${baseUrl}/${scope}/${branch}`;
-  const branchNode = findScopeNode(tree.children, branchUrl);
-
-  if (!branchNode || branchNode.type !== 'folder') {
-    return tree;
-  }
-
-  const children = branchNode.index
-    ? [branchNode.index, ...branchNode.children]
-    : branchNode.children;
-
-  return {
-    ...tree,
-    name: branchNode.name,
-    children,
-  };
-}
-
-function findScopeNode(nodes: PageTreeNode[], scopeUrl: string): PageTreeNode | null {
-  for (const node of nodes) {
-    if (node.type === 'folder') {
-      if (node.index?.url === scopeUrl) {
-        return node;
-      }
-
-      const nested = findScopeNode(node.children, scopeUrl);
-      if (nested) return nested;
-    }
-  }
-
-  return null;
+  return filterDocTree(docsSource.pageTree, (url) => allowedUrls.has(url));
 }
