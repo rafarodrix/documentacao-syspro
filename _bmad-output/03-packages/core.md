@@ -41,28 +41,42 @@ packages/core/src/
 
 ## Tickets — workflow e estados
 
+> **Atenção:** Este package tem dois sistemas de status/prioridade que estão desalinhados com o contrato real de tickets. O **source of truth** para status e prioridade é `@dosc-syspro/contracts/ticket/ticket-module-api.types.ts`. Os tipos abaixo representam o sistema legado que está sendo mantido por compatibilidade mas não é importado pelo módulo de tickets em produção.
+
+### Sistema legado (não usar para novos desenvolvimentos)
+
 ```typescript
-// Estados possíveis de um ticket
+// ⚠️ LEGADO — usar @dosc-syspro/contracts em vez disto
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING_CLIENT' | 'RESOLVED' | 'CLOSED'
 type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+```
 
-// Matriz de transições: quem pode mover para qual estado
-const ticketStateMatrix: Record<TicketStatus, TicketStatus[]> = {
-  OPEN:           ['IN_PROGRESS', 'CLOSED'],
-  IN_PROGRESS:    ['WAITING_CLIENT', 'RESOLVED'],
-  WAITING_CLIENT: ['IN_PROGRESS', 'RESOLVED'],
-  RESOLVED:       ['OPEN', 'CLOSED'],
-  CLOSED:         ['OPEN'],
-}
+### Sistema real (contracts package)
 
-// Workflow por role
-const ticketsWorkflow: Record<Role, AllowedActions> = {
-  ADMIN:        { canCreate: true, canClose: true, canReopen: true, ... },
-  SUPORTE:      { canCreate: true, canClose: true, ... },
-  CLIENTE_ADMIN:{ canCreate: true, canClose: false, ... },
-  CLIENTE_USER: { canCreate: true, canClose: false, ... },
-  DEVELOPER:    { canCreate: true, canClose: true, ... },
-}
+```typescript
+// ✅ Source of truth em @dosc-syspro/contracts
+const TICKET_MODULE_STATUS_VALUES = [
+  'NEW', 'UNASSIGNED', 'TRIAGE', 'IN_PROGRESS',
+  'WAITING_CUSTOMER', 'WAITING_INTERNAL', 'TESTING', 'RESOLVED', 'ARCHIVED'
+] as const
+
+const TICKET_MODULE_PRIORITY_VALUES = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const
+```
+
+### O que é válido usar de @dosc-syspro/core/tickets
+
+```typescript
+// Filas de visualização (usado na UI)
+type QueueKey = 'all' | 'my_queue' | 'unassigned' | 'critical' | 'no_response'
+
+// Grupos de status para filtros da UI
+type TicketStatusGroup = 'open' | 'development' | 'testing' | 'closed'
+
+// Matriz de transições de estado (state machine)
+// packages/core/src/config/ticket-provider-state-matrix.ts
+
+// Cálculo de SLA por prioridade
+// packages/core/src/services/ticket-provider-sla.service.ts
 ```
 
 ---
@@ -70,14 +84,12 @@ const ticketsWorkflow: Record<Role, AllowedActions> = {
 ## SLA por prioridade
 
 ```typescript
-const computeTicketSla = (priority: TicketPriority, createdAt: Date) => {
-  const slaHours = {
-    LOW:      72,
-    MEDIUM:   24,
-    HIGH:      8,
-    CRITICAL:  2,
-  }
-  return new Date(createdAt.getTime() + slaHours[priority] * 3600_000)
+// ticket-provider-sla.service.ts
+const SLA_HOURS = {
+  LOW:      { response: 72, resolution: 120 },
+  NORMAL:   { response: 24, resolution: 48  },
+  HIGH:     { response:  8, resolution: 16  },
+  CRITICAL: { response:  2, resolution:  4  },
 }
 ```
 
