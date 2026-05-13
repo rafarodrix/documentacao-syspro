@@ -207,6 +207,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
   };
 
   return (
+    <>
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
@@ -627,5 +628,6 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    </>
   );
 }
