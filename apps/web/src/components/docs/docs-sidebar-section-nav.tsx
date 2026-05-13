@@ -10,7 +10,7 @@ export function DocsSidebarSectionNav({ tree }: { tree: PageTreeRoot }) {
   const pathname = usePathname();
 
   return (
-    <div className="docs-sidebar-section-nav mt-3 space-y-1.5">
+    <div className="docs-sidebar-section-nav mt-4 space-y-1">
       {tree.children.map((node, index) => (
         <SidebarNode key={getNodeKey(node, index)} node={node} pathname={pathname} depth={0} />
       ))}
@@ -34,9 +34,9 @@ function SidebarNode({
       <Link
         href={node.url}
         className={cn(
-          'flex items-center rounded-xl px-2.5 py-2 text-sm no-underline transition-colors',
-          'text-muted-foreground hover:bg-accent/35 hover:text-foreground',
-          isActive && 'bg-primary/8 font-medium text-foreground',
+          'flex items-center rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors',
+          'text-muted-foreground hover:bg-accent/30 hover:text-foreground',
+          isActive && 'bg-accent font-medium text-foreground',
           depth > 0 && 'ml-3 text-[13px]',
         )}
       >
@@ -52,27 +52,32 @@ function SidebarNode({
     const isActive = isDirectActive || isNestedActive;
 
     return (
-      <div className={cn(depth > 0 && 'ml-2')}>
+      <div className={cn('space-y-1', depth > 0 && 'ml-2')}>
         {folderHref ? (
           <Link
             href={folderHref}
             className={cn(
-              'flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm no-underline transition-colors',
-              'text-foreground/92 hover:bg-accent/35',
-              isActive && 'bg-primary/8 font-medium text-foreground',
+              depth === 0
+                ? 'flex items-center gap-2 px-0.5 py-2 text-sm font-semibold text-foreground no-underline'
+                : 'flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors text-foreground/92 hover:bg-accent/30',
+              isActive && depth > 0 && 'bg-accent font-medium text-foreground',
             )}
           >
             <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground/70', isActive && 'text-foreground/80')} />
             <span className="truncate">{node.name}</span>
           </Link>
         ) : (
-          <div className="flex items-center gap-2 px-2.5 py-2 text-sm font-medium text-foreground/92">
+          <div className={cn(
+            depth === 0
+              ? 'flex items-center gap-2 px-0.5 py-2 text-sm font-semibold text-foreground'
+              : 'flex items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-foreground/92',
+          )}>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
             <span className="truncate">{node.name}</span>
           </div>
         )}
 
-        <div className="mt-1 space-y-1">
+        <div className={cn('space-y-1', depth === 0 && 'pb-2')}>
           {node.children.map((child, index) => (
             <SidebarNode key={getNodeKey(child, index)} node={child} pathname={pathname} depth={depth + 1} />
           ))}

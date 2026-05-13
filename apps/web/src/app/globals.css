@@ -204,13 +204,13 @@
     --fd-nav-height: var(--portal-docs-top-offset);
     --fd-sidebar-margin: var(--portal-docs-sidebar-gap);
     left: auto;
-    border-radius: 1.9rem;
+    border-radius: 1.2rem;
     overflow: hidden;
     z-index: 24;
   }
 
   .portal-docs-shell #nd-sidebar.docs-sidebar-shell[data-collapsed='true'] {
-    border-radius: 1.9rem;
+    border-radius: 1.2rem;
     box-shadow: 0 24px 68px -46px hsl(var(--foreground) / 0.92);
   }
 
@@ -222,7 +222,7 @@
 
   .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell {
     margin: 0.75rem;
-    border-radius: 1.9rem;
+    border-radius: 1.2rem;
     overflow: hidden;
     z-index: 70;
   }
@@ -263,7 +263,7 @@
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner {
     z-index: 6;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.35rem;
   }
 
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner button:focus-visible {
@@ -274,7 +274,7 @@
   /* Densidade mais proxima do layout nativo do Fumadocs */
   #nd-sidebar.docs-sidebar-shell .overscroll-contain,
   #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain {
-    padding: 1rem;
+    padding: 0.9rem;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-search-full],
