@@ -58,6 +58,40 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#39;');
 }
 
+type TicketAttachmentRecord = {
+  id: string;
+  messageId: string;
+  type: string;
+  filename: string;
+  mediaMimeType: string;
+  fileSize: number;
+  checksum: string | null;
+  storageBackend: 'DATABASE' | 'R2';
+  mediaUrl: string | null;
+  storageKey: string | null;
+  binaryData: Buffer | Uint8Array | null;
+  metadata: unknown;
+  createdAt: Date;
+};
+
+type TicketAttachmentDownloadRecord = TicketAttachmentRecord & {
+  conversationId: string;
+  companyId: string | null;
+};
+
+type TicketAttachmentInsertRow = {
+  messageId: string;
+  type: TicketMessageType;
+  filename: string;
+  mediaMimeType: string;
+  fileSize: number;
+  checksum: string;
+  storageBackend: 'DATABASE' | 'R2';
+  mediaUrl?: string | null;
+  storageKey?: string | null;
+  binaryData?: Buffer | null;
+};
+
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
@@ -650,9 +684,6 @@ export class TicketsService {
             skip,
             take: pageSize,
             include: {
-              attachments: {
-                orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-              },
               authorUser: { select: { id: true, name: true, email: true } },
               authorContact: { select: { id: true, name: true } },
             },
@@ -667,7 +698,13 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(ticket.companyId, accessScope);
 
-    const orderedMessages = [...ticket.messages].reverse();
+    const attachmentsByMessageId = await this.loadAttachmentsByMessageIds(ticket.messages.map((message) => message.id));
+    const orderedMessages = [...ticket.messages]
+      .map((message) => ({
+        ...message,
+        attachments: attachmentsByMessageId.get(message.id) ?? [],
+      }))
+      .reverse();
 
     return serializeTicketDetailsResponse(
       {
@@ -723,9 +760,7 @@ export class TicketsService {
     if (normalizedAttachments.length > 0) {
       const attachmentRows = await this.persistReplyAttachments(createdMessage.id, id, normalizedAttachments);
       if (attachmentRows.length > 0) {
-        await this.prisma.conversationMessageAttachment.createMany({
-          data: attachmentRows,
-        });
+        await this.insertConversationMessageAttachments(attachmentRows);
       }
     }
 
@@ -1293,25 +1328,13 @@ export class TicketsService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
-    const attachment = await this.prisma.conversationMessageAttachment.findUnique({
-      where: { id: attachmentId },
-      include: {
-        message: {
-          select: {
-            conversationId: true,
-            conversation: {
-              select: { companyId: true },
-            },
-          },
-        },
-      },
-    });
+    const attachment = await this.loadAttachmentForDownload(attachmentId);
 
-    if (!attachment || attachment.message.conversationId !== ticketId) {
+    if (!attachment || attachment.conversationId !== ticketId) {
       throw new NotFoundException('Anexo nao encontrado.');
     }
 
-    this.assertTicketAccess(attachment.message.conversation.companyId, accessScope);
+    this.assertTicketAccess(attachment.companyId, accessScope);
 
     if (attachment.storageBackend === 'R2') {
       if (!attachment.storageKey) {
@@ -1572,7 +1595,7 @@ export class TicketsService {
       checksum: string;
       type: TicketMessageType;
     }>,
-  ): Promise<Prisma.ConversationMessageAttachmentCreateManyInput[]> {
+  ): Promise<TicketAttachmentInsertRow[]> {
     return Promise.all(
       attachments.map(async (attachment) => {
         if (await this.r2StorageService.isEnabled('tickets')) {
@@ -1613,6 +1636,109 @@ export class TicketsService {
         };
       }),
     );
+  }
+
+  private async insertConversationMessageAttachments(rows: TicketAttachmentInsertRow[]) {
+    if (rows.length === 0) {
+      return;
+    }
+
+    const values = rows.map((row) => Prisma.sql`(
+      ${row.messageId},
+      CAST(${row.type} AS "ConversationMessageType"),
+      ${row.filename},
+      ${row.mediaMimeType},
+      ${row.fileSize},
+      ${row.checksum},
+      CAST(${row.storageBackend} AS "ConversationMessageAttachmentStorageBackend"),
+      ${row.mediaUrl ?? null},
+      ${row.storageKey ?? null},
+      ${row.binaryData ?? null}
+    )`);
+
+    await this.prisma.$executeRaw(
+      Prisma.sql`
+        INSERT INTO "conversation_message_attachment" (
+          "messageId",
+          "type",
+          "filename",
+          "mediaMimeType",
+          "fileSize",
+          "checksum",
+          "storageBackend",
+          "mediaUrl",
+          "storageKey",
+          "binaryData"
+        )
+        VALUES ${Prisma.join(values)}
+      `,
+    );
+  }
+
+  private async loadAttachmentsByMessageIds(messageIds: string[]): Promise<Map<string, TicketAttachmentRecord[]>> {
+    if (messageIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.prisma.$queryRaw<TicketAttachmentRecord[]>(
+      Prisma.sql`
+        SELECT
+          a."id",
+          a."messageId",
+          a."type",
+          a."filename",
+          a."mediaMimeType",
+          a."fileSize",
+          a."checksum",
+          a."storageBackend",
+          a."mediaUrl",
+          a."storageKey",
+          a."binaryData",
+          a."metadata",
+          a."createdAt"
+        FROM "conversation_message_attachment" a
+        WHERE a."messageId" IN (${Prisma.join(messageIds)})
+        ORDER BY a."createdAt" ASC, a."id" ASC
+      `,
+    );
+
+    const grouped = new Map<string, TicketAttachmentRecord[]>();
+    for (const row of rows) {
+      const current = grouped.get(row.messageId) ?? [];
+      current.push(row);
+      grouped.set(row.messageId, current);
+    }
+    return grouped;
+  }
+
+  private async loadAttachmentForDownload(attachmentId: string): Promise<TicketAttachmentDownloadRecord | null> {
+    const rows = await this.prisma.$queryRaw<TicketAttachmentDownloadRecord[]>(
+      Prisma.sql`
+        SELECT
+          a."id",
+          a."messageId",
+          a."type",
+          a."filename",
+          a."mediaMimeType",
+          a."fileSize",
+          a."checksum",
+          a."storageBackend",
+          a."mediaUrl",
+          a."storageKey",
+          a."binaryData",
+          a."metadata",
+          a."createdAt",
+          m."conversationId",
+          c."companyId"
+        FROM "conversation_message_attachment" a
+        INNER JOIN "conversation_message" m ON m."id" = a."messageId"
+        INNER JOIN "conversation" c ON c."id" = m."conversationId"
+        WHERE a."id" = ${attachmentId}
+        LIMIT 1
+      `,
+    );
+
+    return rows[0] ?? null;
   }
 
   private toContentDispositionFilename(filename: string) {
