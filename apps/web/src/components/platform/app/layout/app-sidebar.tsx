@@ -262,16 +262,29 @@ function SidebarFooter({
             {navigationAccess?.settings ? "Configuracoes" : "Meu Perfil"}
           </DropdownMenuItem>
 
-          <DropdownMenuItem
-            className="cursor-pointer gap-2 text-sm"
-            onClick={() => {
-              router.push(getSupportDocsRouteForRole(user.role))
-              onClose?.()
-            }}
-          >
-            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-            Suporte
-          </DropdownMenuItem>
+          {user.role === "ADMIN" ? (
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-sm"
+              onClick={() => {
+                router.push(DOCS_SCOPE_ROUTES.admin)
+                onClose?.()
+              }}
+            >
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              Documentacao
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-sm"
+              onClick={() => {
+                router.push(getSupportDocsRouteForRole(user.role))
+                onClose?.()
+              }}
+            >
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              Suporte
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuSeparator />
 

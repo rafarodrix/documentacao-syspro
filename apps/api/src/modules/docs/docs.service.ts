@@ -7,12 +7,7 @@ import { AuthorizationService } from '../authorization/authorization.service';
 const POPULAR_GLOBAL_KEY = 'docs:popular:global';
 const POPULAR_AUDIENCE_KEY_PREFIX = 'docs:popular:audience:';
 
-type AudienceSegment =
-  | 'internal_admin'
-  | 'internal_development'
-  | 'internal_support'
-  | 'client_manager'
-  | 'client_user';
+type AudienceSegment = 'admin' | 'suporte' | 'cliente';
 
 type GlobalDocStats = Record<
   string,
@@ -203,40 +198,14 @@ export class DocsService {
   }
 
   private async resolveAudienceSegment(requester: { userId: string; role: Role; email: string }): Promise<AudienceSegment> {
-    const [
-      canManageInternal,
-      canOwnDevelopmentQueue,
-      canViewDevelopmentScope,
-      canOwnSupportQueue,
-      canAccessAtendimento,
-      canManageClientTeam,
-      canCreateUsers,
-    ] = await Promise.all([
-      this.authorizationService.userHasPermission(requester, 'users:manage_internal'),
-      this.authorizationService.userHasPermission(requester, 'tickets:own_development_queue'),
-      this.authorizationService.userHasPermission(requester, 'dashboard:view_development_scope'),
-      this.authorizationService.userHasPermission(requester, 'tickets:own_support_queue'),
-      this.authorizationService.userHasPermission(requester, 'atendimento:view', { acceptCompanyScope: true }),
-      this.authorizationService.userHasPermission(requester, 'users:view_team', { acceptCompanyScope: true }),
-      this.authorizationService.userHasPermission(requester, 'users:create', { acceptCompanyScope: true }),
-    ]);
-
-    if (canManageInternal) {
-      return 'internal_admin';
+    if (requester.role === 'ADMIN') {
+      return 'admin';
     }
 
-    if (canOwnDevelopmentQueue || canViewDevelopmentScope) {
-      return 'internal_development';
+    if (requester.role === 'DEVELOPER' || requester.role === 'SUPORTE') {
+      return 'suporte';
     }
 
-    if (canOwnSupportQueue || canAccessAtendimento) {
-      return 'internal_support';
-    }
-
-    if (canManageClientTeam || canCreateUsers) {
-      return 'client_manager';
-    }
-
-    return 'client_user';
+    return 'cliente';
   }
 }
