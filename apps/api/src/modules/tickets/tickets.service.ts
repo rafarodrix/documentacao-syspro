@@ -1317,7 +1317,7 @@ export class TicketsService {
       if (!attachment.storageKey) {
         throw new NotFoundException('Anexo sem referencia valida no storage.');
       }
-      const url = await this.r2StorageService.getObjectUrl(attachment.storageKey);
+      const url = await this.r2StorageService.getObjectUrl(attachment.storageKey, 'tickets');
       return res.redirect(url);
     }
 
@@ -1575,12 +1575,13 @@ export class TicketsService {
   ): Promise<Prisma.ConversationMessageAttachmentCreateManyInput[]> {
     return Promise.all(
       attachments.map(async (attachment) => {
-        if (this.r2StorageService.isEnabled()) {
+        if (await this.r2StorageService.isEnabled('tickets')) {
           const uploaded = await this.r2StorageService.uploadBuffer({
             buffer: attachment.buffer,
             filename: attachment.filename,
             contentType: attachment.mimeType,
-            prefix: `tickets/${ticketId}`,
+            scope: 'tickets',
+            prefix: ticketId,
           });
 
           return {
@@ -1594,6 +1595,10 @@ export class TicketsService {
             mediaUrl: uploaded.url,
             storageKey: uploaded.key,
           };
+        }
+
+        if (!(await this.r2StorageService.shouldFallbackToDatabase())) {
+          throw new BadRequestException('Storage de anexos indisponivel e o fallback em banco esta desabilitado.');
         }
 
         return {

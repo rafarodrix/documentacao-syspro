@@ -8,11 +8,12 @@ import { SettingsSefazMonitorService } from './sefaz-monitor.service';
 import { TicketsModule } from '../tickets/tickets.module';
 import { ChatwootModule } from '../integrations/chatwoot/chatwoot.module';
 import { AutomationModule } from '../automation/automation.module';
+import { R2StorageService } from '../integrations/storage/r2-storage.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => TicketsModule), forwardRef(() => ChatwootModule), forwardRef(() => AutomationModule)],
   controllers: [SettingsController],
-  providers: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService],
-  exports: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService],
+  providers: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService, R2StorageService],
+  exports: [IntegrationConnectionsService, IntegrationContextService, SettingsPermissionsService, SettingsSefazMonitorService, R2StorageService],
 })
 export class SettingsModule {}

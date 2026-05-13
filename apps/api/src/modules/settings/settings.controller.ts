@@ -20,7 +20,7 @@ import {
   type ChatwootBehaviorSettingsInput,
   type ChatwootIntegrationSettingsInput,
 } from '@dosc-syspro/contracts/chatwoot';
-import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig, readR2RuntimeConfig } from '@dosc-syspro/config';
+import { readChatwootRuntimeConfig, readEvolutionRuntimeConfig } from '@dosc-syspro/config';
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
   remoteModuleSettingsSchema,
@@ -31,7 +31,9 @@ import {
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
   DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
   interstateIcmsSettingsSchema,
+  storageR2SettingsSchema,
   type InterstateIcmsSettings,
+  type StorageR2SettingsInput,
   type SettingsContractsAdminView,
   SETTING_KEYS,
   settingsSchema,
@@ -71,6 +73,7 @@ import { IntegrationContextService } from './integration-context.service';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { serializeContractBlockReason, type ContractBlockReason } from '@dosc-syspro/core';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
+import { R2StorageService } from '../integrations/storage/r2-storage.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -83,6 +86,9 @@ export class SettingsController {
   private static readonly CHATWOOT_PLATFORM_API_TOKEN_KEY = 'chatwoot_platform_api_token';
   private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
   private static readonly CHATWOOT_WEBHOOK_SECRET_KEY = 'chatwoot_webhook_secret';
+  private static readonly STORAGE_CONFIG_KEY = R2StorageService.STORAGE_CONFIG_KEY;
+  private static readonly STORAGE_ACCESS_KEY_ID_KEY = R2StorageService.STORAGE_ACCESS_KEY_ID_KEY;
+  private static readonly STORAGE_SECRET_ACCESS_KEY_KEY = R2StorageService.STORAGE_SECRET_ACCESS_KEY_KEY;
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -107,6 +113,7 @@ export class SettingsController {
     private readonly sefazMonitorService: SettingsSefazMonitorService,
     private readonly ticketsService: TicketsService,
     private readonly automationSettingsService: AutomationSettingsService,
+    private readonly r2StorageService: R2StorageService,
   ) {}
 
   @Get('general')
@@ -794,25 +801,10 @@ export class SettingsController {
       this.readStoredChatwootIntegrationSettings(),
     ]);
 
-    const r2Runtime = readR2RuntimeConfig();
     const chatwootDiagnostics = defaultContext
       ? await this.chatwootClient.inspectInboxConfiguration(defaultContext.chatwoot)
       : null;
-
-    const r2Configured = Boolean(
-      r2Runtime.endpoint &&
-      r2Runtime.accessKeyId &&
-      r2Runtime.secretAccessKey &&
-      r2Runtime.bucketName,
-    );
-    const r2Issues: string[] = [];
-    if (!r2Runtime.endpoint) r2Issues.push('R2_ENDPOINT ausente no runtime.');
-    if (!r2Runtime.accessKeyId) r2Issues.push('R2_ACCESS_KEY_ID ausente no runtime.');
-    if (!r2Runtime.secretAccessKey) r2Issues.push('R2_SECRET_ACCESS_KEY ausente no runtime.');
-    if (!r2Runtime.bucketName) r2Issues.push('R2_BUCKET_NAME ausente no runtime.');
-    if (r2Configured && !r2Runtime.publicBaseUrl) {
-      r2Issues.push('R2_PUBLIC_BASE_URL ausente; anexos usarao URLs assinadas temporarias.');
-    }
+    const storageDiagnostics = await this.r2StorageService.getDiagnostics();
 
     return {
       success: true,
@@ -834,17 +826,63 @@ export class SettingsController {
         behavior: chatwootBehavior,
       },
       storage: {
-        provider: 'Cloudflare R2',
-        configured: r2Configured,
-        mode: r2Runtime.publicBaseUrl ? 'public_base_url' : 'signed_url',
-        endpointHost: this.safeUrlHost(r2Runtime.endpoint),
-        bucketName: r2Runtime.bucketName || null,
-        publicBaseUrl: r2Runtime.publicBaseUrl || null,
-        signedUrlTtlSeconds: r2Runtime.signedUrlTtlSeconds,
-        hasAccessKeyId: Boolean(r2Runtime.accessKeyId),
-        hasSecretAccessKey: Boolean(r2Runtime.secretAccessKey),
-        issues: r2Issues,
+        ...storageDiagnostics,
       },
+    };
+  }
+
+  @Get('storage/config')
+  async getStorageConfig(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    return {
+      success: true,
+      data: await this.r2StorageService.readStoredSettings(),
+    };
+  }
+
+  @Put('storage/config')
+  async setStorageConfig(@Req() req: Request, @Body() input: StorageR2SettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = storageR2SettingsSchema.parse(input);
+    const sanitized = {
+      ...parsed,
+      endpoint: parsed.endpoint.trim(),
+      accessKeyId: parsed.accessKeyId.trim(),
+      secretAccessKey: parsed.secretAccessKey.trim(),
+      defaultBucketName: parsed.defaultBucketName.trim(),
+      defaultPublicBaseUrl: parsed.defaultPublicBaseUrl.trim(),
+    };
+    const { accessKeyId, secretAccessKey, ...storedConfig } = sanitized;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { key: SettingsController.STORAGE_CONFIG_KEY },
+        update: { value: JSON.stringify(storedConfig) },
+        create: {
+          key: SettingsController.STORAGE_CONFIG_KEY,
+          value: JSON.stringify(storedConfig),
+          description: 'Configuracao principal do storage R2 por modulo',
+        },
+      });
+
+      await this.upsertEncryptedOptionalSetting(
+        tx,
+        SettingsController.STORAGE_ACCESS_KEY_ID_KEY,
+        accessKeyId,
+        'Access Key ID do Cloudflare R2',
+      );
+      await this.upsertEncryptedOptionalSetting(
+        tx,
+        SettingsController.STORAGE_SECRET_ACCESS_KEY_KEY,
+        secretAccessKey,
+        'Secret Access Key do Cloudflare R2',
+      );
+    });
+
+    return {
+      success: true,
+      data: sanitized,
+      message: 'Configuracao de storage salva com sucesso.',
     };
   }
 
@@ -1549,15 +1587,6 @@ export class SettingsController {
       if (levelDiff !== 0) return levelDiff;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }
-
-  private safeUrlHost(value: string | null | undefined) {
-    if (!value) return null;
-    try {
-      return new URL(value).host;
-    } catch {
-      return value;
-    }
   }
 
   private async connectEvolutionInstance(input: {

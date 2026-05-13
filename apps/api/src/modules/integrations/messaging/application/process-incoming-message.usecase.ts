@@ -395,7 +395,8 @@ export class ProcessIncomingMessageUseCase {
         buffer,
         filename: attachment.filename,
         contentType: attachment.mimetype,
-        prefix: 'evolution-media',
+        scope: 'evolution',
+        prefix: 'incoming',
       });
 
       this.logger.log(JSON.stringify({

@@ -62,6 +62,8 @@ export type IntegrationDiagnosticsResponse = {
   storage?: {
     provider: string;
     configured: boolean;
+    source?: "database" | "env" | "none";
+    fallbackToDatabase?: boolean;
     mode: "public_base_url" | "signed_url";
     endpointHost: string | null;
     bucketName: string | null;
@@ -69,6 +71,7 @@ export type IntegrationDiagnosticsResponse = {
     signedUrlTtlSeconds: number;
     hasAccessKeyId: boolean;
     hasSecretAccessKey: boolean;
+    modules?: Record<string, { bucketName: string | null; prefix: string }>;
     issues: string[];
   };
   error?: string;
