@@ -16,6 +16,7 @@ _bmad-output/
     padroes-arquiteturais.md  ← hexagonal, CQRS, RBAC, naming
 
   02-apps/
+    tickets-architecture.md   ← arquitetura completa do módulo de tickets
     api/
       visao-geral.md          ← NestJS, módulos, configuração
       modulos/
@@ -70,6 +71,7 @@ _bmad-output/
 | Como os apps se comunicam              | `01-monorepo/comunicacao-entre-apps.md`            |
 | O backend NestJS (API)                 | `02-apps/api/visao-geral.md`                       |
 | Módulos de negócio da API              | `02-apps/api/modulos/core-modules.md`              |
+| **Módulo de tickets (arquitetura)**    | **`02-apps/tickets-architecture.md`**              |
 | Automações WhatsApp (tickets/SEFAZ)    | `02-apps/api/modulos/automation.md`                |
 | Integração Chatwoot/Evolution          | `02-apps/api/modulos/integracoes.md`               |
 | O agente Windows (Go)                  | `02-apps/agent/visao-geral.md`                     |
