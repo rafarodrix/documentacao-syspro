@@ -24,7 +24,7 @@ export function DocsLayoutClient({
     collapsible: true,
     prefetch: false,
     tabs: false,
-    banner: <DocsSidebarBanner canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
+    banner: <DocsSidebarBanner docsTree={docsTree} canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
     footer: <DocsSidebarFooter />,
     components: { Item: DocsSidebarItem },
   } as const;

@@ -2,16 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { BookOpenText, LifeBuoy, PanelLeft, Shield } from 'lucide-react';
 import { SidebarCollapseTrigger } from 'fumadocs-ui/components/layout/sidebar';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import { cn } from '@/lib/utils';
 import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
+import { DocsSidebarSectionNav } from '@/components/docs/docs-sidebar-section-nav';
 
 export function DocsSidebarBanner({
+  docsTree,
   canViewSupport,
   canViewAdmin,
 }: {
+  docsTree: PageTreeRoot;
   canViewSupport: boolean;
   canViewAdmin: boolean;
 }) {
@@ -74,6 +78,8 @@ export function DocsSidebarBanner({
             );
           })}
         </div>
+
+        <DocsSidebarSectionNav tree={docsTree} />
       </div>
     </div>
   );

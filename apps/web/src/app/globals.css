@@ -244,6 +244,10 @@
     padding-top: 0.5rem;
   }
 
+  #nd-sidebar.docs-sidebar-shell > div:first-child > button:first-of-type {
+    display: none;
+  }
+
   #nd-sidebar.docs-sidebar-shell a,
   #nd-sidebar-mobile.docs-sidebar-shell a {
     text-decoration: none;
