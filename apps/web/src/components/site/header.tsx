@@ -53,7 +53,7 @@ export async function SiteHeader() {
       icon: BookOpen,
     },
     {
-      href: "/portal/docs/cliente/manual",
+      href: "/portal/docs/cliente/documentacao",
       title: "Manual de Uso",
       description: "Fluxos operacionais e rotinas do sistema.",
       icon: BookOpen,
@@ -65,7 +65,7 @@ export async function SiteHeader() {
       icon: HelpCircle,
     },
     {
-      href: "/portal/docs/cliente/treinamento",
+      href: "/portal/docs/cliente/treinamentos",
       title: "Treinamentos",
       description: "Trilhas de capacitacao por modulo.",
       icon: GraduationCap,
@@ -260,9 +260,9 @@ export async function SiteHeader() {
 
                   <div className="my-2 h-px bg-border/50" />
                   <MobileNavLink href="/portal/docs">Central</MobileNavLink>
-                  <MobileNavLink href="/portal/docs/cliente/manual">Manual de uso</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/cliente/documentacao">Manual de uso</MobileNavLink>
                   <MobileNavLink href="/portal/docs/cliente/duvidas">Duvidas frequentes</MobileNavLink>
-                  <MobileNavLink href="/portal/docs/cliente/treinamento">Treinamentos</MobileNavLink>
+                  <MobileNavLink href="/portal/docs/cliente/treinamentos">Treinamentos</MobileNavLink>
                   <MobileNavLink href="/portal/docs/cliente/suporte">Suporte</MobileNavLink>
                   {canViewTechnical ? (
                     <MobileNavLink href="/portal/docs/admin">Manuais tecnicos</MobileNavLink>

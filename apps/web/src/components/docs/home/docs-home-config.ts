@@ -20,7 +20,7 @@ export type QuickLink = {
 
 export const BASE_QUICK_LINKS: QuickLink[] = [
   {
-    href: `${DOCS_SCOPE_ROUTES.cliente}/manual`,
+    href: `${DOCS_SCOPE_ROUTES.cliente}/documentacao`,
     title: 'Documentacao',
     description: 'Guias e modulos para a operacao do dia a dia.',
     icon: BookOpen,
@@ -34,7 +34,7 @@ export const BASE_QUICK_LINKS: QuickLink[] = [
     tone: 'faq',
   },
   {
-    href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`,
+    href: `${DOCS_SCOPE_ROUTES.cliente}/treinamentos`,
     title: 'Treinamentos',
     description: 'Trilhas praticas para acelerar a capacitacao da equipe.',
     icon: Users,
@@ -61,7 +61,7 @@ export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string;
   ADMIN: [
     { href: DOCS_SCOPE_ROUTES.admin, title: 'Infraestrutura e operacao', description: 'Governanca tecnica e padroes da operacao.' },
     { href: DOCS_SCOPE_ROUTES.suporte, title: 'Operacao de suporte', description: 'Fluxos de atendimento, triagem e escalonamento.' },
-    { href: `${DOCS_SCOPE_ROUTES.cliente}/manual`, title: 'Visao funcional do produto', description: 'Leitura funcional para entender modulos e rotinas.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/documentacao`, title: 'Visao funcional do produto', description: 'Leitura funcional para entender modulos e rotinas.' },
   ],
   DEVELOPER: [
     { href: DOCS_SCOPE_ROUTES.suporte, title: 'Processos de suporte', description: 'Troubleshooting, contexto operacional e playbooks.' },
@@ -71,17 +71,17 @@ export const ROLE_START_TASKS: Record<Role, Array<{ href: string; title: string;
   SUPORTE: [
     { href: DOCS_SCOPE_ROUTES.suporte, title: 'Procedimentos de suporte', description: 'Playbooks operacionais e padroes de atendimento.' },
     { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Duvidas e erros comuns', description: 'Base de resolucao rapida para incidentes frequentes.' },
-    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`, title: 'Treinamentos', description: 'Capacitacao continua para equipe de suporte.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamentos`, title: 'Treinamentos', description: 'Capacitacao continua para equipe de suporte.' },
   ],
   CLIENTE_ADMIN: [
-    { href: `${DOCS_SCOPE_ROUTES.cliente}/manual`, title: 'Operacao do sistema', description: 'Rotinas essenciais para administrar o ambiente.' },
-    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`, title: 'Treinar equipe', description: 'Materiais de onboarding e padronizacao interna.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/documentacao`, title: 'Operacao do sistema', description: 'Rotinas essenciais para administrar o ambiente.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamentos`, title: 'Treinar equipe', description: 'Materiais de onboarding e padronizacao interna.' },
     { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Resolver problemas comuns', description: 'Consultas rapidas para bloqueios operacionais.' },
   ],
   CLIENTE_USER: [
-    { href: `${DOCS_SCOPE_ROUTES.cliente}/manual`, title: 'Primeiros passos', description: 'Fluxo inicial para comecar a operar com seguranca.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/documentacao`, title: 'Primeiros passos', description: 'Fluxo inicial para comecar a operar com seguranca.' },
     { href: `${DOCS_SCOPE_ROUTES.cliente}/duvidas`, title: 'Erros mais comuns', description: 'Como resolver os principais bloqueios do dia a dia.' },
-    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamento`, title: 'Aprender mais rapido', description: 'Guias praticos por modulo e processo.' },
+    { href: `${DOCS_SCOPE_ROUTES.cliente}/treinamentos`, title: 'Aprender mais rapido', description: 'Guias praticos por modulo e processo.' },
   ],
 };
 

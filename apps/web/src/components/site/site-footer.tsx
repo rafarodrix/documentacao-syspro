@@ -77,7 +77,7 @@ export function SiteFooter() {
           <div className="md:col-span-2 flex flex-col gap-4">
             <h4 className="font-semibold text-sm tracking-wide text-foreground uppercase opacity-80">Suporte</h4>
             <ul className="space-y-3">
-              <li><FooterLink href="/portal/docs/cliente/manual">Documentacao Oficial</FooterLink></li>
+              <li><FooterLink href="/portal/docs/cliente/documentacao">Documentacao Oficial</FooterLink></li>
               <li><FooterLink href="/portal/docs/cliente/duvidas">Dúvidas Frequentes</FooterLink></li>
               <li><FooterLink href="/portal/docs/cliente/suporte">Suporte</FooterLink></li>
             </ul>

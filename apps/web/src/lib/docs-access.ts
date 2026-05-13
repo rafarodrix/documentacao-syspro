@@ -4,8 +4,8 @@ import { canAccessByCompanySegment } from "@/features/company/application/compan
 import { getDocScopeFromSlug, canRoleAccessDocsScope } from "@/lib/docs-scope";
 
 const DOCS_SEGMENT_RULES: Record<string, CompanySegment[]> = {
-  "treinamento/steps-auto-center": [CompanySegment.AUTO_PECAS],
-  "treinamento/steps-comercial": [CompanySegment.COMERCIAL],
+  "primeiros-passos/steps-auto-center": [CompanySegment.AUTO_PECAS],
+  "primeiros-passos/steps-comercial": [CompanySegment.COMERCIAL],
 };
 
 const LEGACY_CLIENT_ROOTS = new Set(["manual", "duvidas", "treinamento"]);
