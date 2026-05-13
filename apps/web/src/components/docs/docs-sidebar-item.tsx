@@ -25,7 +25,7 @@ export function DocsSidebarItem({ item }: { item: Item }) {
       icon={item.icon}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'rounded-xl border border-transparent bg-transparent text-[0.95rem] leading-5 transition-all',
+        'group rounded-2xl border border-transparent bg-transparent px-1 text-[0.95rem] leading-5 transition-all',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
         'hover:border-border/50 hover:bg-accent/45 hover:shadow-[0_14px_30px_-28px_hsl(var(--foreground)/0.9)]',
         isVisited && !isActive && 'text-muted-foreground/80',
@@ -34,10 +34,10 @@ export function DocsSidebarItem({ item }: { item: Item }) {
     >
       <span className="flex items-center gap-2.5">
         {/* Indicador de novo: ponto visível para páginas nunca visitadas */}
-        {!isVisited && !isActive ? (
+        {!item.icon && !isVisited && !isActive ? (
           <span
             aria-hidden
-            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40"
+            className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary/40 transition-colors group-hover:bg-primary/70"
           />
         ) : null}
         <span>{item.name}</span>

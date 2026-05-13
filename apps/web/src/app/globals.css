@@ -169,7 +169,7 @@
   }
 
   .portal-docs-shell {
-    --portal-docs-sidebar-width: 17.75rem;
+    --portal-docs-sidebar-width: 18.5rem;
     --portal-docs-sidebar-gap: 0.85rem;
     --fd-sidebar-width: var(--portal-docs-sidebar-width);
     background:
@@ -223,7 +223,7 @@
   }
 
   #nd-sidebar.docs-sidebar-shell > div:first-child {
-    padding-top: 0.35rem;
+    padding-top: 0.5rem;
   }
 
   #nd-sidebar.docs-sidebar-shell a,
@@ -239,11 +239,11 @@
     box-shadow: none;
   }
 
-  #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor {
+  #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner {
     z-index: 6;
   }
 
-  #nd-sidebar.docs-sidebar-shell .docs-inline-collapse-anchor button:focus-visible {
+  #nd-sidebar.docs-sidebar-shell .docs-sidebar-banner button:focus-visible {
     outline: 2px solid hsl(var(--ring) / 0.35);
     outline-offset: 1px;
   }
@@ -251,7 +251,7 @@
   /* Densidade mais proxima do layout nativo do Fumadocs */
   #nd-sidebar.docs-sidebar-shell .overscroll-contain,
   #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain {
-    padding: 0.9rem;
+    padding: 1rem;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-search-full],
@@ -275,19 +275,24 @@
 
   #nd-sidebar.docs-sidebar-shell p.inline-flex.items-center.gap-2,
   #nd-sidebar-mobile.docs-sidebar-shell p.inline-flex.items-center.gap-2 {
-    margin-top: 0.95rem;
-    margin-bottom: 0.45rem;
-    padding-top: 0.12rem;
-    padding-bottom: 0.12rem;
-    font-size: 0.9rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    padding-top: 0.14rem;
+    padding-bottom: 0.14rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    color: hsl(var(--muted-foreground) / 0.95);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground) / 0.82);
   }
 
   #nd-sidebar.docs-sidebar-shell p.inline-flex.items-center.gap-2:first-of-type,
   #nd-sidebar-mobile.docs-sidebar-shell p.inline-flex.items-center.gap-2:first-of-type {
     margin-top: 0.35rem;
+  }
+
+  #nd-sidebar.docs-sidebar-shell .docs-sidebar-footer {
+    padding-top: 0.4rem;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] > * + *,

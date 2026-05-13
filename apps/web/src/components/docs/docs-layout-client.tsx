@@ -4,13 +4,18 @@ import type { ReactNode } from 'react';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import { DocsSidebarItem } from '@/components/docs/docs-sidebar-item';
-import { DocsSidebarInlineCollapse } from '@/components/docs/docs-sidebar-inline-collapse';
+import { DocsSidebarBanner } from '@/components/docs/docs-sidebar-banner';
+import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
 
 export function DocsLayoutClient({
   docsTree,
+  canViewSupport,
+  canViewAdmin,
   children,
 }: {
   docsTree: PageTreeRoot;
+  canViewSupport: boolean;
+  canViewAdmin: boolean;
   children: ReactNode;
 }) {
   const sharedSidebarProps = {
@@ -18,14 +23,14 @@ export function DocsLayoutClient({
     defaultOpenLevel: 1,
     collapsible: true,
     prefetch: false,
-    banner: <DocsSidebarInlineCollapse />,
+    banner: <DocsSidebarBanner canViewSupport={canViewSupport} canViewAdmin={canViewAdmin} />,
+    footer: <DocsSidebarFooter />,
     components: { Item: DocsSidebarItem },
   } as const;
 
   return (
     <DocsLayout
       tree={docsTree}
-      tabMode="top"
       nav={{ title: <span className="font-semibold text-sm">Central de Documentacao</span> }}
       themeSwitch={{ enabled: false }}
       searchToggle={{ enabled: true }}
