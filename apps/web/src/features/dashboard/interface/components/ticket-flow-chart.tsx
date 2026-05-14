@@ -129,11 +129,11 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
         </Badge>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <div className="rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 p-3">
+        <div className="min-h-[336px] rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 p-3">
           {hasData ? (
             <ReactApexChart
               type="area"
-              height={280}
+              height={320}
               series={[
                 { name: "Abertos", data: flow.opened.map((p) => p.value) },
                 { name: "Em execucao", data: flow.inProgress.map((p) => p.value) },
@@ -142,7 +142,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
               options={options}
             />
           ) : (
-            <div className="flex h-[280px] items-center justify-center">
+            <div className="flex h-[320px] items-center justify-center">
               <p className="text-sm text-muted-foreground">Sem movimentacao no periodo</p>
             </div>
           )}

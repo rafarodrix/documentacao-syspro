@@ -375,6 +375,46 @@ function buildCrmSummary(leads: any[]): DashboardCrmSummary {
   };
 }
 
+type DashboardContractRecord = {
+  totalValue?: number | string | { toNumber(): number } | null;
+  minimumWage?: number | string | { toNumber(): number } | null;
+  percentage?: number | string | { toNumber(): number } | null;
+  taxRate?: number | string | { toNumber(): number } | null;
+  programmerRate?: number | string | { toNumber(): number } | null;
+};
+
+function toDecimalNumber(value: DashboardContractRecord[keyof DashboardContractRecord]) {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return Number(value);
+  if (value && typeof value === 'object' && 'toNumber' in value && typeof value.toNumber === 'function') {
+    return value.toNumber();
+  }
+  return 0;
+}
+
+function calculateContractMonthlyValue(contract: DashboardContractRecord) {
+  const minimumWage = toDecimalNumber(contract.minimumWage);
+  const percentage = toDecimalNumber(contract.percentage);
+  const taxRate = toDecimalNumber(contract.taxRate);
+  const programmerRate = toDecimalNumber(contract.programmerRate);
+
+  if (minimumWage > 0 && percentage > 0) {
+    const gross = minimumWage * (percentage / 100);
+    const taxDeduction = gross * (taxRate / 100);
+    const partnerDeduction = gross * (programmerRate / 100);
+    return gross - taxDeduction - partnerDeduction;
+  }
+
+  return toDecimalNumber(contract.totalValue);
+}
+
+function summarizeActiveContracts(contracts: DashboardContractRecord[]) {
+  return {
+    activeContracts: contracts.length,
+    totalValue: contracts.reduce((sum, contract) => sum + calculateContractMonthlyValue(contract), 0),
+  };
+}
+
 type DashboardSefazCurrentRecord = {
   uf: string;
   service: 'NFE' | 'NFCE';
@@ -793,7 +833,7 @@ export class DashboardService {
         canViewCrm
           ? this.prisma.contract.findMany({
               where: { status: 'ACTIVE', ...contractsBaseWhere },
-              select: { totalValue: true },
+              select: { totalValue: true, minimumWage: true, percentage: true, taxRate: true, programmerRate: true },
             }).catch(() => [])
           : Promise.resolve([]),
         this.prisma.sefazStatusCurrent.findMany({
@@ -938,8 +978,7 @@ export class DashboardService {
           crm: canViewCrm ? buildCrmSummary(crmLeads) : undefined,
           contracts: canViewCrm
             ? {
-                activeContracts: activeContracts.length,
-                totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
+                ...summarizeActiveContracts(activeContracts),
               }
             : undefined,
           cadastros: {
@@ -1115,7 +1154,10 @@ export class DashboardService {
         .catch(() => []),
       canViewCrm
         ? this.prisma.contract
-            .findMany({ where: { status: 'ACTIVE', ...contractsBaseWhere }, select: { totalValue: true } })
+            .findMany({
+              where: { status: 'ACTIVE', ...contractsBaseWhere },
+              select: { totalValue: true, minimumWage: true, percentage: true, taxRate: true, programmerRate: true },
+            })
             .catch(() => [])
         : Promise.resolve([]),
     ]);
@@ -1180,8 +1222,7 @@ export class DashboardService {
         sefazRoutesCount: configuredSefazRoutes.filter((r) => r.active).length,
         contracts: canViewCrm
           ? {
-              activeContracts: activeContracts.length,
-              totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
+              ...summarizeActiveContracts(activeContracts),
             }
           : undefined,
         ticketFlow,
@@ -1708,7 +1749,10 @@ export class DashboardService {
 
     const [crmLeads, activeContracts] = await Promise.all([
       (this.prisma as any).crmLead.findMany({ select: { stage: true, estimatedValue: true, expectedCloseAt: true, nextStep: true } }).catch(() => []),
-      this.prisma.contract.findMany({ where: { status: 'ACTIVE', ...contractsBaseWhere }, select: { totalValue: true } }).catch(() => []),
+      this.prisma.contract.findMany({
+        where: { status: 'ACTIVE', ...contractsBaseWhere },
+        select: { totalValue: true, minimumWage: true, percentage: true, taxRate: true, programmerRate: true },
+      }).catch(() => []),
     ]);
 
     return {
@@ -1716,8 +1760,7 @@ export class DashboardService {
       data: {
         crm: buildCrmSummary(crmLeads),
         contracts: {
-          activeContracts: activeContracts.length,
-          totalValue: activeContracts.reduce((sum: number, c: any) => sum + Number(c.totalValue ?? 0), 0),
+          ...summarizeActiveContracts(activeContracts),
         },
       },
     };

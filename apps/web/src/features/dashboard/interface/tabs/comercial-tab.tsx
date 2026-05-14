@@ -12,6 +12,11 @@ export async function ComercialTab() {
   const { contracts, crm } = data;
 
   const stageDistribution = crm?.stageDistribution ?? [];
+  const winBase = (crm?.wonLeads ?? 0) + (crm?.lostLeads ?? 0);
+  const winRate = winBase > 0 ? ((crm?.wonLeads ?? 0) / winBase) * 100 : 0;
+  const averagePipelineTicket = (crm?.activeLeads ?? 0) > 0
+    ? (crm?.pipelineValue ?? 0) / (crm?.activeLeads ?? 1)
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -27,7 +32,7 @@ export async function ComercialTab() {
         <DashboardMetricCard
           title="MRR Estimado"
           value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}
-          helper="Receita recorrente mensal"
+          helper="Receita recorrente mensal liquida estimada"
           icon={DollarSign as any}
           tone="emerald"
         />
@@ -69,9 +74,16 @@ export async function ComercialTab() {
         <CrmStageChart distribution={stageDistribution} />
 
         <SectionCard title="Leitura executiva" className="border-border/50 bg-card/70" contentClassName="space-y-3 text-sm">
+          <ExecutiveLine
+            label="MRR estimado"
+            value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}
+            emphasis="text-emerald-500"
+          />
           <ExecutiveLine label="Leads ativos" value={`${crm?.activeLeads ?? 0}`} emphasis="text-foreground" />
           <ExecutiveLine label="Propostas abertas" value={`${crm?.proposalLeads ?? 0}`} />
           <ExecutiveLine label="Em negociacao" value={`${crm?.negotiationLeads ?? 0}`} />
+          <ExecutiveLine label="Ticket medio do pipeline" value={crm ? formatCurrency(averagePipelineTicket) : "Sem dados"} />
+          <ExecutiveLine label="Taxa de ganho" value={`${winRate.toFixed(1)}%`} />
           <ExecutiveLine label="Perdidos" value={`${crm?.lostLeads ?? 0}`} />
           <ExecutiveLine
             label="Atrasados"
