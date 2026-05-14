@@ -29,10 +29,9 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { SectionCard } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
-import { cn } from "@/lib/utils";
+import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
 
 function toDateInputValue(date: Date) {
@@ -91,44 +90,6 @@ function formatDateTime(value?: string) {
     minute: "2-digit",
     second: "2-digit",
   });
-}
-
-const toneClasses = {
-  blue: "bg-sky-500/10 text-sky-500",
-  amber: "bg-amber-500/10 text-amber-500",
-  emerald: "bg-emerald-500/10 text-emerald-500",
-  rose: "bg-rose-500/10 text-rose-500",
-} as const;
-
-function ClientMetricCard({
-  title,
-  value,
-  helper,
-  icon: Icon,
-  tone,
-}: {
-  title: string;
-  value: number | string;
-  helper: string;
-  icon: LucideIcon;
-  tone: keyof typeof toneClasses;
-}) {
-  return (
-    <Card className="h-full border-border/50 bg-card/70">
-      <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
-        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", toneClasses[tone])}>
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="text-3xl font-bold tracking-tight tabular-nums">{value}</div>
-        <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
-      </CardContent>
-    </Card>
-  );
 }
 
 async function getAtendimentosData(params?: {
@@ -354,10 +315,10 @@ export function SupportAtendimentosSubtab() {
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <ClientMetricCard title="Total" value={data?.totalCount ?? 0} helper="Atendimentos no periodo" icon={Inbox} tone="blue" />
-        <ClientMetricCard title="Em andamento" value={data?.openCount ?? 0} helper="Fila operacional ativa" icon={UserRound} tone="amber" />
-        <ClientMetricCard title="Aguardando" value={waitingCount} helper="Cliente ou retorno interno" icon={Users} tone="blue" />
-        <ClientMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} respostas`} icon={MessageSquareText} tone="emerald" />
+        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Atendimentos no periodo" icon={Inbox as any} tone="blue" />
+        <DashboardMetricCard title="Em andamento" value={data?.openCount ?? 0} helper="Fila operacional ativa" icon={UserRound as any} tone="amber" />
+        <DashboardMetricCard title="Aguardando" value={waitingCount} helper="Cliente ou retorno interno" icon={Users as any} tone="blue" />
+        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} respostas`} icon={MessageSquareText as any} tone="emerald" />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
