@@ -5,6 +5,7 @@ import { TicketFlowChart } from "../components/ticket-flow-chart";
 import { TrustReleaseCard } from "../components/trust-release-card";
 import { DocsInsightsPanel } from "../components/docs-insights-panel";
 import { getOperacionalData } from "../../application";
+import { TicketsSummary } from "@/features/tickets/interface";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
 import { source } from "@/lib/source";
@@ -14,7 +15,7 @@ export async function OperacionalTab() {
     getOperacionalData(),
     currentUserHasPermission("dashboard:release_trust" as SettingsPermissionKey),
   ]);
-  const { dailyPassword, ticketCounts, ticketFlow, contracts } = data;
+  const { dailyPassword, ticketCounts, ticketFlow, contracts, tickets, totalOpen } = data;
 
   const todayActivity = (ticketFlow.opened.at(-1)?.value ?? 0) + (ticketFlow.inProgress.at(-1)?.value ?? 0);
   const yesterdayActivity = (ticketFlow.opened.at(-2)?.value ?? 0) + (ticketFlow.inProgress.at(-2)?.value ?? 0);
@@ -74,7 +75,14 @@ export async function OperacionalTab() {
         {canReleaseInTrust ? <TrustReleaseCard /> : null}
       </div>
 
-      <TicketFlowChart flow={ticketFlow} />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="min-w-0">
+          <TicketFlowChart flow={ticketFlow} />
+        </div>
+        <div className="min-w-0">
+          <TicketsSummary tickets={tickets} totalOpen={totalOpen} />
+        </div>
+      </div>
 
       <DocsInsightsPanel latestUpdates={latestDocs} />
     </div>

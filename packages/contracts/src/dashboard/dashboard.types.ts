@@ -158,6 +158,8 @@ export const adminOperacionalDataSchema = z.object({
   sefazRoutesCount: z.number().int().nonnegative(),
   contracts: dashboardContractsSummarySchema.optional(),
   ticketFlow: dashboardTicketFlowSchema.default({ opened: [], inProgress: [], closed: [] }),
+  tickets: z.array(dashboardTicketSummarySchema).default([]),
+  totalOpen: z.number().int().nonnegative().default(0),
   ticketWarning: z.string().optional(),
 });
 

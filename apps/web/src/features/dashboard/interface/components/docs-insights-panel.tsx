@@ -47,10 +47,10 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
         <CardHeader className="space-y-1 pb-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <TrendingUp className="h-4 w-4" />
-            <CardTitle className="text-base font-semibold text-foreground">Mais acessados</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">Mais acessados da documentacao</CardTitle>
           </div>
           <CardDescription>
-            Conteudos mais buscados pela audiencia atual da documentacao.
+            Paginas e manuais mais consultados na base de documentacao.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
@@ -72,10 +72,10 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
         <CardHeader className="space-y-1 pb-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock3 className="h-4 w-4" />
-            <CardTitle className="text-base font-semibold text-foreground">Ultimas atualizacoes</CardTitle>
+            <CardTitle className="text-base font-semibold text-foreground">Ultimas atualizacoes da documentacao</CardTitle>
           </div>
           <CardDescription>
-            Manuais novos ou revisados recentemente na base de conhecimento.
+            Conteudos novos ou revisados recentemente na base de documentacao.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">

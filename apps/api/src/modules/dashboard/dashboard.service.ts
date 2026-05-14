@@ -1121,10 +1121,18 @@ export class DashboardService {
     ]);
 
     const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
+    const normalizedTickets = toTicketSummaryItems(records);
     const openRecords = toOpenTicketRecordItems(records);
     const scopedRecords = dashboardTicketTeam
       ? openRecords.filter((r) => r.team === dashboardTicketTeam)
       : openRecords;
+    const tickets = normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').slice(0, 5);
+    const totalOpen =
+      ticketsResponse?.success && ticketsResponse.statusCounts
+        ? ticketsResponse.statusCounts.open +
+          ticketsResponse.statusCounts.development +
+          ticketsResponse.statusCounts.testing
+        : normalizedTickets.filter((ticket) => ticket.status !== 'Resolvido').length;
 
     const hasSefazOffline = sefazRecords.some((r) => r.status === 'OFFLINE');
     const hasSefazUnstable = sefazRecords.some((r) => r.status === 'UNSTABLE');
@@ -1177,6 +1185,8 @@ export class DashboardService {
             }
           : undefined,
         ticketFlow,
+        tickets,
+        totalOpen,
         ticketWarning,
       },
     };
