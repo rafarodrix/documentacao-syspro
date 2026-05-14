@@ -24,8 +24,8 @@ import {
     UserRound,
     Zap,
 } from "lucide-react";
-import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
+import { type TicketModuleMutationResponse, type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
+import { updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
@@ -125,9 +125,14 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
         try {
             setIsArchiving(true);
-            const res = await archiveTicketAction(String(ticket.id));
+            const response = await fetch(`/api/tickets/${ticket.id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "ARCHIVED" }),
+            });
+            const res = await response.json() as TicketModuleMutationResponse;
 
-            if (res.success) {
+            if (response.ok && res.success) {
                 setArchiveDialogOpen(false);
                 toast.success(res.message || "Ticket arquivado com sucesso.");
                 router.push(backUrl);
