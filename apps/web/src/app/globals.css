@@ -213,12 +213,6 @@
     border-radius: 1.2rem;
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell > div:last-child {
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
   .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell {
     margin: 0.75rem;
     border-radius: 1.2rem;
@@ -325,6 +319,12 @@
   #nd-sidebar.docs-sidebar-shell .docs-sidebar-footer {
     margin-top: auto;
     padding-top: 0.35rem;
+  }
+
+  .portal-docs-shell #nd-sidebar.docs-sidebar-shell > .h-full,
+  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell > .h-full {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   #nd-sidebar.docs-sidebar-shell [data-radix-collapsible-content] > * + *,
