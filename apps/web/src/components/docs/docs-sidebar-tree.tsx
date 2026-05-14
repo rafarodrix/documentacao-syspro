@@ -12,7 +12,7 @@ import {
   SidebarItem,
 } from 'fumadocs-ui/components/layout/sidebar';
 import { BookOpen, CircleHelp, GraduationCap, LayoutDashboard, LifeBuoy, Rocket } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@radix-ui/react-collapsible';
+import { Collapsible, CollapsibleContent } from '@radix-ui/react-collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTreePath } from 'fumadocs-ui/contexts/tree';
@@ -154,20 +154,22 @@ function DocsTopLevelFolder({
     }
   }, [isRouteActive, itemLabel, openName]);
 
-  function handlePrimaryClick(e: MouseEvent<HTMLElement>) {
-    if (!href) {
+  function handleLinkClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (e.target instanceof Element && e.target.matches('[data-icon], [data-icon] *')) {
       e.preventDefault();
       setTopLevelOpenName(isOpen ? null : itemLabel);
       return;
     }
+
+    setTopLevelOpenName(isRouteActive ? (isOpen ? null : itemLabel) : itemLabel);
 
     if (isRouteActive) {
       e.preventDefault();
-      setTopLevelOpenName(isOpen ? null : itemLabel);
-      return;
     }
+  }
 
-    setTopLevelOpenName(itemLabel);
+  function handleButtonClick() {
+    setTopLevelOpenName(isOpen ? null : itemLabel);
   }
 
   const triggerClassName = 'docs-tree-trigger docs-tree-trigger-top flex min-w-0 items-center gap-2.5';
@@ -185,27 +187,27 @@ function DocsTopLevelFolder({
           <Link
             href={href}
             className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5 text-inherit no-underline"
-            onClick={handlePrimaryClick}
+            onClick={handleLinkClick}
           >
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
+            <span data-icon className="docs-tree-toggle ms-auto inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground">
+              <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
+            </span>
           </Link>
         ) : (
           <button
             type="button"
             className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5 text-left"
-            onClick={handlePrimaryClick}
+            onClick={handleButtonClick}
           >
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
+            <span className="docs-tree-toggle ms-auto inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground">
+              <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
+            </span>
           </button>
         )}
-        <CollapsibleTrigger
-          className="docs-tree-toggle ms-auto inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
-          aria-label={isOpen ? `Recolher ${itemLabel}` : `Expandir ${itemLabel}`}
-        >
-          <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
-        </CollapsibleTrigger>
       </div>
       <CollapsibleContent className="docs-tree-content docs-tree-content-top">
         {children}
