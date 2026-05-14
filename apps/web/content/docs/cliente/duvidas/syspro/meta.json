@@ -1,0 +1,10 @@
+{
+  "title": "Syspro",
+  "description": "Dúvidas recorrentes sobre rotinas e configurações do Syspro ERP.",
+  "pages": [
+    "configuracoes",
+    "movimento",
+    "financeiro",
+    "produto"
+  ]
+}

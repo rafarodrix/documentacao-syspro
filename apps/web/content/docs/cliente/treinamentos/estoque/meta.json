@@ -1,0 +1,8 @@
+{
+  "title": "Estoque",
+  "description": "Treinamentos operacionais focados em estoque, produção e precificação.",
+  "pages": [
+    "ordem-producao",
+    "precificacao-produto"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "title": "Boleto",
+  "description": "Orientações para geração, conciliação e cenários específicos de boletos.",
+  "pages": [
+    "033-santander",
+    "conciliacao-boletos",
+    "geracao-boletos"
+  ]
+}

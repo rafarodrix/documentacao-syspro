@@ -3,14 +3,9 @@
   "title": "Dúvidas Frequentes",
   "description": "Respostas rápidas para dúvidas comuns e erros recorrentes no uso do Syspro ERP.",
   "pages": [
-    "index",
-    "---SEFAZ---",
-    "sefaz/rejeicoes/nfe-nfce",
-    "sefaz/rejeicoes/cte",
-    "sefaz/rejeicoes/mdfe",
-    "---syspro---",
+    "sefaz",
+    "syspro",
     "tributario",
-    "---Integrações---",
-    "integracoes/consulta-api"
+    "integracoes"
   ]
 }

@@ -1,0 +1,9 @@
+{
+  "title": "Rejeições",
+  "description": "Soluções para rejeições frequentes de NF-e, NFC-e, CT-e e MDF-e.",
+  "pages": [
+    "nfe-nfce",
+    "cte",
+    "mdfe"
+  ]
+}
