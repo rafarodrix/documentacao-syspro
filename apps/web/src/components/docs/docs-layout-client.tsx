@@ -24,7 +24,7 @@ export function DocsLayoutClient({
   
   const sharedSidebarProps = {
     className: 'docs-sidebar-shell portal-docs-sidebar',
-    defaultOpenLevel: 1,
+    defaultOpenLevel: 0,
     collapsible: true,
     prefetch: false,
     tabs,
