@@ -7,7 +7,6 @@ import type { TicketSummaryItem } from "@/features/tickets/domain/ticket-model";
 
 interface TicketsSummaryProps {
   tickets: TicketSummaryItem[];
-  totalOpen: number;
 }
 
 const STATUS_CONFIG = {
@@ -32,7 +31,7 @@ function formatDate(iso: string): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
-export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
+export function TicketsSummary({ tickets }: TicketsSummaryProps) {
   const visibleCount = tickets.length;
 
   return (
@@ -41,17 +40,8 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold">Chamados recentes</CardTitle>
-            <CardDescription className="text-sm">
-              {totalOpen > 0 ? (
-                <>
-                  <span className="text-foreground font-medium">{totalOpen}</span> em aberto
-                </>
-              ) : (
-                "Nenhum chamado em aberto"
-              )}
-            </CardDescription>
             {visibleCount > 0 ? (
-              <p className="text-xs text-muted-foreground">Mostrando os {visibleCount} registros mais recentes.</p>
+              <CardDescription className="text-sm">Mostrando os {visibleCount} registros mais recentes.</CardDescription>
             ) : null}
           </div>
           <Link
@@ -68,7 +58,7 @@ export function TicketsSummary({ tickets, totalOpen }: TicketsSummaryProps) {
         {tickets.length === 0 ? (
           <EmptyState icon={Headset} title="Sem chamados abertos" description="Tudo resolvido por aqui" className="min-h-[320px]" />
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-h-[336px]">
             {tickets.map((ticket) => {
               const statusCfg = STATUS_CONFIG[ticket.status];
               const priorityCfg = PRIORITY_CONFIG[ticket.priority];

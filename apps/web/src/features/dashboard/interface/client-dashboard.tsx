@@ -154,7 +154,7 @@ export function ClientDashboard({
         </div>
       </div>
 
-      <TicketsSummary tickets={data.tickets} totalOpen={data.totalOpen} />
+      <TicketsSummary tickets={data.tickets} />
 
       <div className="flex justify-end">
         <Button asChild variant="ghost" className="gap-2 text-muted-foreground">

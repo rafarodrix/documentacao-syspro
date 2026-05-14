@@ -15,7 +15,7 @@ export async function OperacionalTab() {
     getOperacionalData(),
     currentUserHasPermission("dashboard:release_trust" as SettingsPermissionKey),
   ]);
-  const { dailyPassword, ticketCounts, ticketFlow, contracts, tickets, totalOpen } = data;
+  const { dailyPassword, ticketCounts, ticketFlow, contracts, tickets } = data;
 
   const todayActivity = (ticketFlow.opened.at(-1)?.value ?? 0) + (ticketFlow.inProgress.at(-1)?.value ?? 0);
   const yesterdayActivity = (ticketFlow.opened.at(-2)?.value ?? 0) + (ticketFlow.inProgress.at(-2)?.value ?? 0);
@@ -80,7 +80,7 @@ export async function OperacionalTab() {
           <TicketFlowChart flow={ticketFlow} />
         </div>
         <div className="min-w-0">
-          <TicketsSummary tickets={tickets} totalOpen={totalOpen} />
+          <TicketsSummary tickets={tickets} />
         </div>
       </div>
 
