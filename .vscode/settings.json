@@ -10,5 +10,6 @@
             "GOCACHE": "C:\\DEV\\documentacao-syspro\\apps\\agent\\.gocache",
             "GOWORK": "C:\\DEV\\documentacao-syspro\\go.work"
         }
-    }
+    },
+    "mdx-preview.preview.enableScripts": true
 }

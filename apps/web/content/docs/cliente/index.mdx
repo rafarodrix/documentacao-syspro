@@ -1,6 +1,6 @@
 ---
-title: Central de Ajuda Syspro ERP
-description: Hub principal com manuais, duvidas frequentes, suporte e trilhas de treinamento do Syspro ERP.
+title: Visao Geral
+description: Central de Ajuda Syspro ERP com entradas por objetivo, rotina e suporte operacional.
 lastUpdated: 2026-05-11
 owner: Equipe de Documentacao
 status: published
@@ -12,24 +12,31 @@ tags:
 import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
 
-## Comece por aqui
+## Navegue por objetivo
 
-Esta area concentra a documentacao de uso do Syspro ERP. Use os atalhos abaixo conforme o tipo de necessidade: aprender uma rotina, tirar uma duvida rapida, entender o processo completo ou acionar apoio operacional.
+Use esta central conforme o tipo de necessidade: aprender o fluxo, executar uma rotina, resolver uma duvida pontual ou acionar apoio operacional.
 
 <Cards>
-  <Card title="Primeiros passos" href="/portal/docs/cliente/primeiros-passos">
+  <Card title="Primeiros Passos" href="/portal/docs/cliente/primeiros-passos">
     Fluxos iniciais para ambientacao, acesso e navegacao pelas areas principais do sistema.
   </Card>
-  <Card title="Documentacao por modulo" href="/portal/docs/cliente/documentacao">
-    Guias operacionais organizados por cadastro, estoque, fiscal, financeiro, vendas e outros modulos.
+  <Card title="Documentacao" href="/portal/docs/cliente/documentacao">
+    Guias operacionais organizados por modulo, com rotinas completas e parametrizacoes do dia a dia.
   </Card>
-  <Card title="Duvidas frequentes" href="/portal/docs/cliente/duvidas">
+  <Card title="Duvidas" href="/portal/docs/cliente/duvidas">
     Respostas objetivas para erros comuns, rejeicoes da SEFAZ, integracoes e duvidas recorrentes.
+  </Card>
+  <Card title="Treinamentos" href="/portal/docs/cliente/treinamentos">
+    Trilhas praticas por area para capacitacao e apoio a novos usuarios.
   </Card>
   <Card title="Suporte ao cliente" href="/portal/docs/cliente/suporte">
     Orientacoes sobre atendimento, requisitos e canais para tratar incidentes e solicitacoes.
   </Card>
 </Cards>
+
+<Callout title="Como usar esta central">
+  Comece por <strong>Primeiros Passos</strong> se voce estiver iniciando. Use <strong>Documentacao</strong> para executar processos completos, <strong>Duvidas</strong> para consultas rapidas e <strong>Suporte</strong> quando houver necessidade de atendimento.
+</Callout>
 
 ## Entradas por rotina
 
@@ -46,22 +53,24 @@ Esta area concentra a documentacao de uso do Syspro ERP. Use os atalhos abaixo c
   <Card title="Fiscal" href="/portal/docs/cliente/documentacao/fiscal">
     Emissao, validacoes, rejeicoes e configuracoes ligadas ao fluxo fiscal.
   </Card>
-  <Card title="Treinamentos" href="/portal/docs/cliente/treinamentos">
-    Trilhas praticas para capacitacao por area, com foco em operacao assistida.
-  </Card>
   <Card title="Consultas rapidas" href="/portal/docs/cliente/duvidas/sefaz">
     Rejeicoes e cenarios frequentes para consulta imediata durante a operacao.
   </Card>
 </Cards>
 
-<Callout title="Como usar esta central">
-  Comece pela documentacao por modulo quando precisar executar uma rotina completa. Use Duvidas Frequentes para diagnostico rapido e Treinamentos quando o objetivo for capacitacao.
-</Callout>
-
 ## Atalhos recomendados
 
-- Novo no sistema: [Primeiros passos](/portal/docs/cliente/primeiros-passos)
-- Ajuste de cadastro: [Documentacao > Cadastro](/portal/docs/cliente/documentacao/cadastro)
-- Problema com documento fiscal: [Duvidas > SEFAZ](/portal/docs/cliente/duvidas/sefaz)
-- Apoio operacional: [Suporte ao cliente](/portal/docs/cliente/suporte)
-
+<Cards>
+  <Card title="Novo no sistema" href="/portal/docs/cliente/primeiros-passos">
+    Entrada recomendada para usuarios que ainda estao conhecendo a operacao.
+  </Card>
+  <Card title="Ajuste de cadastro" href="/portal/docs/cliente/documentacao/cadastro">
+    Acesso direto para configuracoes e bases mais recorrentes.
+  </Card>
+  <Card title="Documento fiscal com erro" href="/portal/docs/cliente/duvidas/sefaz">
+    Consulta rapida para rejeicoes e validacoes frequentes da SEFAZ.
+  </Card>
+  <Card title="Abrir atendimento" href="/portal/docs/cliente/suporte">
+    Canais, orientacoes e requisitos para acionar o time de suporte.
+  </Card>
+</Cards>
