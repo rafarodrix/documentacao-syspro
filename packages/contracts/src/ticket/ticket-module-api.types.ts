@@ -215,6 +215,7 @@ export const ticketModuleMutationResponseSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
   error: z.string().optional(),
+  status: ticketModuleStatusSchema.optional(),
 });
 
 export const ticketModuleListResponseSchema = z.object({

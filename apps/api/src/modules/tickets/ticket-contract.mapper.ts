@@ -188,10 +188,11 @@ export function serializeTicketRecord(ticket: TicketRecordSource): TicketModuleR
   };
 }
 
-export function serializeMutationResponse(message?: string): TicketModuleMutationResponse {
+export function serializeMutationResponse(message?: string, status?: TicketModuleRecord['status']): TicketModuleMutationResponse {
   return {
     success: true,
     ...(message ? { message } : {}),
+    ...(status ? { status } : {}),
   };
 }
 

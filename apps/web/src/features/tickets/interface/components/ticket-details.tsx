@@ -132,14 +132,14 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
             });
             const res = await response.json() as TicketModuleMutationResponse;
 
-            if (response.ok && res.success) {
+            if (response.ok && res.success && res.status === "ARCHIVED") {
                 setArchiveDialogOpen(false);
                 toast.success(res.message || "Ticket arquivado com sucesso.");
                 router.push(backUrl);
                 return;
             }
 
-            toast.error(res.error || "Erro ao arquivar ticket.");
+            toast.error(res.error || (res.success ? "O ticket nao retornou com status arquivado." : "Erro ao arquivar ticket."));
         } catch {
             toast.error("Erro ao arquivar ticket.");
         } finally {

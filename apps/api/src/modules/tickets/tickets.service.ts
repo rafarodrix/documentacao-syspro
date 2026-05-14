@@ -1319,7 +1319,7 @@ export class TicketsService {
       });
     }
 
-    return serializeMutationResponse('Ticket atualizado com sucesso.');
+    return serializeMutationResponse('Ticket atualizado com sucesso.', resolvedNextStatus);
   }
 
   async downloadAttachment(
