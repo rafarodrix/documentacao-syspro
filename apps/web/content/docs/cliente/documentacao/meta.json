@@ -2,6 +2,7 @@
   "root": false,
   "title": "Documentação",
   "description": "Guias operacionais do Syspro ERP para execução das rotinas do dia a dia.",
+  "defaultOpen": true,
   "pages": [
     "cadastro",
     "estoque",

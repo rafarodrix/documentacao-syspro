@@ -332,24 +332,18 @@
     margin-top: 0.1rem;
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > a,
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > a,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div {
+  .portal-docs-shell .docs-tree-item-overview,
+  .portal-docs-shell .docs-tree-folder-top {
     margin-top: 0.45rem;
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > :first-child,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > :first-child {
+  .portal-docs-shell .docs-tree-item-overview:first-child,
+  .portal-docs-shell .docs-tree-folder-top:first-child {
     margin-top: 0;
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > a,
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > a,
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > button,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > a,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > a,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > button {
+  .portal-docs-shell .docs-tree-trigger-top-priority,
+  .portal-docs-shell .docs-tree-item-overview-priority {
     min-height: 2.7rem;
     border-radius: 0.9rem;
     padding-top: 0.68rem;
@@ -363,29 +357,46 @@
     box-shadow: 0 10px 24px -22px hsl(var(--foreground) / 0.85);
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > a[data-active='true'],
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > a[data-active='true'],
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > button[data-state='open'],
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > a[data-active='true'],
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > a[data-active='true'],
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > button[data-state='open'] {
+  .portal-docs-shell .docs-tree-trigger-top-priority[data-active='true'],
+  .portal-docs-shell .docs-tree-trigger-top-priority[data-state='open'],
+  .portal-docs-shell .docs-tree-item-overview-priority[data-active='true'] {
     background: linear-gradient(180deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--card) / 0.82) 100%);
     border-color: hsl(var(--primary) / 0.26);
     color: hsl(var(--foreground));
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > [data-radix-collapsible-content],
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > [data-radix-collapsible-content] {
+  .portal-docs-shell .docs-tree-trigger-top-secondary {
+    min-height: 2.45rem;
+    border-radius: 0.82rem;
+    padding-top: 0.56rem;
+    padding-bottom: 0.56rem;
+    padding-inline: 0.78rem;
+    background: transparent;
+    border: 1px solid transparent;
+    font-size: 0.93rem;
+    font-weight: 560;
+    color: hsl(var(--muted-foreground) / 0.92);
+    box-shadow: none;
+  }
+
+  .portal-docs-shell .docs-tree-trigger-top-secondary:hover,
+  .portal-docs-shell .docs-tree-trigger-top-secondary[data-state='open'],
+  .portal-docs-shell .docs-tree-trigger-top-secondary[data-active='true'] {
+    background: hsl(var(--card) / 0.42);
+    border-color: hsl(var(--border) / 0.28);
+    color: hsl(var(--foreground) / 0.96);
+  }
+
+  .portal-docs-shell .docs-tree-content-top {
     margin-top: 0.35rem;
     margin-left: 0.4rem;
     padding-left: 0.45rem;
     border-left: 1px solid hsl(var(--border) / 0.3);
   }
 
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > [data-radix-collapsible-content] a,
-  .portal-docs-shell #nd-sidebar.docs-sidebar-shell .overscroll-contain > div > [data-radix-collapsible-content] button,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > [data-radix-collapsible-content] a,
-  .portal-docs-shell #nd-sidebar-mobile.docs-sidebar-shell .overscroll-contain > div > [data-radix-collapsible-content] button {
+  .portal-docs-shell .docs-tree-content a,
+  .portal-docs-shell .docs-tree-content button,
+  .portal-docs-shell .docs-tree-item {
     min-height: 2.2rem;
     border-radius: 0.75rem;
     font-size: 0.92rem;

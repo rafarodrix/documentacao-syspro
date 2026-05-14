@@ -6,6 +6,7 @@ import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import type { Option as SidebarTabOption } from 'fumadocs-ui/components/layout/root-toggle';
 import { BookOpenText, LifeBuoy, Shield } from 'lucide-react';
 import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
+import { DocsSidebarFolder, DocsSidebarItem } from '@/components/docs/docs-sidebar-tree';
 import { NavTitle } from '@/components/docs/nav-title';
 import { DOCS_SCOPE_ROUTES } from '@/lib/docs-scope';
 
@@ -28,6 +29,10 @@ export function DocsLayoutClient({
     collapsible: true,
     prefetch: false,
     tabs,
+    components: {
+      Folder: DocsSidebarFolder,
+      Item: DocsSidebarItem,
+    },
     footer: <DocsSidebarFooter />,
   } as const;
 
