@@ -66,7 +66,7 @@ function getTopLevelIcon(name: string) {
       return <BookOpen className="h-4 w-4" />;
     case 'Treinamentos':
       return <GraduationCap className="h-4 w-4" />;
-    case 'Dúvidas Frequentes':
+    case 'Dúvidas':
       return <CircleHelp className="h-4 w-4" />;
     case 'Suporte':
       return <LifeBuoy className="h-4 w-4" />;
@@ -80,15 +80,14 @@ export function DocsSidebarFolder({ item, level, children }: FolderProps) {
   const pathname = usePathname();
   const isTopLevel = level === 1;
   const itemLabel = getNodeLabel(item.name);
-  const isPriorityTopLevel = isTopLevel && (itemLabel === 'Primeiros Passos' || itemLabel === 'Documentação');
   const defaultOpen = Boolean(item.defaultOpen) || path.includes(item);
 
   useEffect(() => {
     if (!isTopLevel) return;
-    if (!topLevelOpenName && defaultOpen) {
+    if (!topLevelOpenName && path.includes(item)) {
       setTopLevelOpenName(itemLabel);
     }
-  }, [defaultOpen, isTopLevel, itemLabel]);
+  }, [isTopLevel, itemLabel, item, path]);
 
   if (!isTopLevel) {
     if (item.index) {
@@ -121,13 +120,12 @@ export function DocsSidebarFolder({ item, level, children }: FolderProps) {
     );
   }
 
-    return (
-      <DocsTopLevelFolder
-        item={item}
-        itemLabel={itemLabel}
-        pathname={pathname}
-        priority={isPriorityTopLevel}
-      >
+  return (
+    <DocsTopLevelFolder
+      item={item}
+      itemLabel={itemLabel}
+      pathname={pathname}
+    >
       {children}
     </DocsTopLevelFolder>
   );
@@ -137,13 +135,11 @@ function DocsTopLevelFolder({
   item,
   itemLabel,
   pathname,
-  priority,
   children,
 }: {
   item: PageTreeFolder;
   itemLabel: string;
   pathname: string;
-  priority: boolean;
   children: ReactNode;
 }) {
   const openName = useTopLevelOpenName();
@@ -158,10 +154,7 @@ function DocsTopLevelFolder({
     }
   }, [isRouteActive, itemLabel, openName]);
 
-  const triggerClassName = cn(
-    'docs-tree-trigger docs-tree-trigger-top',
-    priority ? 'docs-tree-trigger-top-priority' : 'docs-tree-trigger-top-secondary',
-  );
+  const triggerClassName = 'docs-tree-trigger docs-tree-trigger-top';
 
   return (
     <Collapsible
@@ -169,28 +162,28 @@ function DocsTopLevelFolder({
       onOpenChange={(nextOpen) => {
         setTopLevelOpenName(nextOpen ? itemLabel : null);
       }}
-      className={cn('docs-tree-folder docs-tree-folder-top', priority && 'docs-tree-folder-top-priority')}
+      className="docs-tree-folder docs-tree-folder-top"
     >
-      <div className={triggerClassName}>
+      <div className={triggerClassName} data-active={isRouteActive} data-state={isOpen ? 'open' : 'closed'}>
         {href ? (
           <Link
             href={href}
-            className="flex min-w-0 flex-1 items-center gap-2 text-inherit no-underline"
+            className="flex min-w-0 flex-1 items-center gap-2.5 text-inherit no-underline"
           >
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
           </Link>
         ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
           </div>
         )}
         <CollapsibleTrigger
-          className="docs-tree-toggle ms-auto inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+          className="docs-tree-toggle ms-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           aria-label={isOpen ? `Recolher ${itemLabel}` : `Expandir ${itemLabel}`}
         >
-          <ChevronDown className={cn('h-4 w-4 transition-transform', !isOpen && '-rotate-90')} />
+          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !isOpen && '-rotate-90')} />
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent className="docs-tree-content docs-tree-content-top">
@@ -210,7 +203,7 @@ export function DocsSidebarItem({ item }: ItemProps) {
       href={item.url}
       external={item.external}
       icon={overviewIcon}
-      className={isOverview ? 'docs-tree-item docs-tree-item-overview docs-tree-item-overview-priority' : 'docs-tree-item'}
+      className={isOverview ? 'docs-tree-item docs-tree-item-overview' : 'docs-tree-item'}
     >
       {label}
     </SidebarItem>

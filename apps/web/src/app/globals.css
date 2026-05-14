@@ -334,7 +334,7 @@
 
   .portal-docs-shell .docs-tree-item-overview,
   .portal-docs-shell .docs-tree-folder-top {
-    margin-top: 0.45rem;
+    margin-top: 0.32rem;
   }
 
   .portal-docs-shell .docs-tree-item-overview:first-child,
@@ -342,69 +342,70 @@
     margin-top: 0;
   }
 
-  .portal-docs-shell .docs-tree-trigger-top-priority,
-  .portal-docs-shell .docs-tree-item-overview-priority {
-    min-height: 2.7rem;
-    border-radius: 0.9rem;
-    padding-top: 0.68rem;
-    padding-bottom: 0.68rem;
-    padding-inline: 0.85rem;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.72) 0%, hsl(var(--background) / 0.62) 100%);
-    border: 1px solid hsl(var(--border) / 0.42);
-    font-size: 0.97rem;
-    font-weight: 600;
-    color: hsl(var(--foreground) / 0.96);
-    box-shadow: 0 10px 24px -22px hsl(var(--foreground) / 0.85);
-  }
-
-  .portal-docs-shell .docs-tree-trigger-top-priority[data-active='true'],
-  .portal-docs-shell .docs-tree-trigger-top-priority[data-state='open'],
-  .portal-docs-shell .docs-tree-item-overview-priority[data-active='true'] {
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--card) / 0.82) 100%);
-    border-color: hsl(var(--primary) / 0.26);
-    color: hsl(var(--foreground));
-  }
-
-  .portal-docs-shell .docs-tree-trigger-top-secondary {
+  .portal-docs-shell .docs-tree-trigger-top,
+  .portal-docs-shell .docs-tree-item-overview {
     min-height: 2.45rem;
-    border-radius: 0.82rem;
-    padding-top: 0.56rem;
-    padding-bottom: 0.56rem;
-    padding-inline: 0.78rem;
+    border-radius: 0.72rem;
+    padding-top: 0.52rem;
+    padding-bottom: 0.52rem;
+    padding-inline: 0.7rem;
     background: transparent;
     border: 1px solid transparent;
-    font-size: 0.93rem;
-    font-weight: 560;
+    font-size: 0.94rem;
+    font-weight: 500;
     color: hsl(var(--muted-foreground) / 0.92);
     box-shadow: none;
   }
 
-  .portal-docs-shell .docs-tree-trigger-top-secondary:hover,
-  .portal-docs-shell .docs-tree-trigger-top-secondary[data-state='open'],
-  .portal-docs-shell .docs-tree-trigger-top-secondary[data-active='true'] {
+  .portal-docs-shell .docs-tree-trigger-top:hover,
+  .portal-docs-shell .docs-tree-item-overview:hover {
+    background: hsl(var(--card) / 0.36);
+    color: hsl(var(--foreground) / 0.94);
+  }
+
+  .portal-docs-shell .docs-tree-trigger-top[data-active='true'],
+  .portal-docs-shell .docs-tree-trigger-top[data-state='open'],
+  .portal-docs-shell .docs-tree-item-overview[data-active='true'] {
     background: hsl(var(--card) / 0.42);
-    border-color: hsl(var(--border) / 0.28);
-    color: hsl(var(--foreground) / 0.96);
+    color: hsl(var(--foreground));
+    box-shadow: inset 2px 0 0 hsl(var(--primary));
+  }
+
+  .portal-docs-shell .docs-tree-trigger-top[data-active='true'] svg,
+  .portal-docs-shell .docs-tree-trigger-top[data-state='open'] svg,
+  .portal-docs-shell .docs-tree-item-overview[data-active='true'] svg {
+    color: hsl(var(--primary) / 0.88);
+  }
+
+  .portal-docs-shell .docs-tree-trigger-top[data-active='true'] span,
+  .portal-docs-shell .docs-tree-trigger-top[data-state='open'] span,
+  .portal-docs-shell .docs-tree-item-overview[data-active='true'] {
+    font-weight: 600;
   }
 
   .portal-docs-shell .docs-tree-content-top {
-    margin-top: 0.35rem;
-    margin-left: 0.4rem;
-    padding-left: 0.45rem;
-    border-left: 1px solid hsl(var(--border) / 0.3);
+    margin-top: 0.18rem;
+    margin-left: 0.35rem;
+    padding-left: 0.4rem;
+    border-left: 1px solid hsl(var(--border) / 0.18);
   }
 
   .portal-docs-shell .docs-tree-content a,
   .portal-docs-shell .docs-tree-content button,
   .portal-docs-shell .docs-tree-item {
-    min-height: 2.2rem;
-    border-radius: 0.75rem;
-    font-size: 0.92rem;
+    min-height: 2rem;
+    border-radius: 0.65rem;
+    font-size: 0.89rem;
     font-weight: 500;
-    color: hsl(var(--muted-foreground) / 0.95);
+    color: hsl(var(--muted-foreground) / 0.9);
     background: transparent;
     border-color: transparent;
     box-shadow: none;
+  }
+
+  .portal-docs-shell .docs-tree-content [data-icon] svg {
+    height: 0.85rem;
+    width: 0.85rem;
   }
 
   .docs-content-surface {
