@@ -47,19 +47,19 @@ export function ClientDashboard({
             <Button asChild className="gap-2">
               <Link href="/portal/tickets/new">
                 <PlusCircle className="h-4 w-4" />
-                Abrir chamado
+                Novo chamado
               </Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
               <Link href="/portal/tickets">
                 <Headset className="h-4 w-4" />
-                Meus chamados
+                Abrir chamados
               </Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
               <Link href="/portal/docs/cliente">
                 <BookOpen className="h-4 w-4" />
-                Documentacao
+                Abrir documentacao
               </Link>
             </Button>
           </div>
@@ -152,7 +152,7 @@ export function ClientDashboard({
       <div className="flex justify-end">
         <Button asChild variant="ghost" className="gap-2 text-muted-foreground">
           <Link href="/portal/tickets">
-            Ver todos os chamados
+            Abrir lista de chamados
             <ArrowUpRight className="h-4 w-4" />
           </Link>
         </Button>

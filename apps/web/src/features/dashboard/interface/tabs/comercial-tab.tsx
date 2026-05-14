@@ -130,7 +130,7 @@ export async function ComercialTab() {
             <Button asChild variant="outline" className="w-full gap-2">
               <Link href="/portal/comercial/leads">
                 <ArrowUpRight className="h-4 w-4" />
-                Abrir CRM Comercial
+                Abrir pipeline comercial
               </Link>
             </Button>
           </div>

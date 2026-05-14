@@ -64,7 +64,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
       action={
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
           <Link href="/portal/cadastros">
-            Ver todos
+            Abrir lista
             <ArrowUpRight className="h-3 w-3" />
           </Link>
         </Button>
@@ -78,7 +78,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
             title="Nenhuma empresa recente"
             description="Os novos registros de empresa serao exibidos aqui."
             className="h-full min-h-60"
-            action={{ label: "Cadastrar empresa", href: "/portal/cadastros" }}
+            action={{ label: "Nova empresa", href: "/portal/cadastros" }}
           />
         ) : (
           <div className="space-y-1">

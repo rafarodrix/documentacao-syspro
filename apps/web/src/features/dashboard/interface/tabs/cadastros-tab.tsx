@@ -98,7 +98,7 @@ export async function CadastrosTab() {
             emptyDescription="Novos contatos aparecerao aqui assim que forem criados."
             viewAllHref="/portal/contatos"
             createHref="/portal/contatos/novo"
-            createLabel="Cadastrar contato"
+            createLabel="Novo contato"
             icon="contact"
             items={recentContacts.map((contact) => ({
               id: contact.id,
@@ -148,7 +148,7 @@ export async function CadastrosTab() {
             emptyTitle="Nenhuma inativacao"
             emptyDescription="Contatos inativados aparecerao aqui."
             viewAllHref="/portal/contatos"
-            createLabel="Ver contatos"
+            createLabel="Abrir contatos"
             icon="contact"
             items={(cadastros?.recentInactivatedContacts ?? []).map((contact) => ({
               id: contact.id,
@@ -167,7 +167,7 @@ export async function CadastrosTab() {
             emptyTitle="Nenhuma inativacao"
             emptyDescription="Usuarios inativados aparecerao aqui."
             viewAllHref="/portal/cadastros/usuarios"
-            createLabel="Ver usuarios"
+            createLabel="Abrir usuarios"
             icon="user"
             items={(cadastros?.recentInactivatedUsers ?? []).map((user) => ({
               id: user.id,

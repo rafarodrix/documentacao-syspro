@@ -72,7 +72,7 @@ export function RecentRecords({
       action={
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
           <Link href={viewAllHref}>
-            Ver todos
+            Abrir lista
             <ArrowUpRight className="h-3 w-3" />
           </Link>
         </Button>
