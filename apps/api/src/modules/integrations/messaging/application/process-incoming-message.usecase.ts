@@ -208,6 +208,7 @@ export class ProcessIncomingMessageUseCase {
           : await this.resolveOrCreateConversationLink(phone, pushName, resolvedConnection, behaviorSettings, {
               interactionKind: messagePayload?.audioMessage ? 'audio' : 'message',
               messageId,
+              textContent,
             });
         contactIdentifier = link.contactIdentifier;
         conversationId = link.conversationId;
@@ -256,6 +257,7 @@ export class ProcessIncomingMessageUseCase {
               {
                 interactionKind: messagePayload?.audioMessage ? 'audio' : 'message',
                 messageId,
+                textContent,
               },
             );
             contactIdentifier = recreatedLink.contactIdentifier;
@@ -1425,7 +1427,7 @@ export class ProcessIncomingMessageUseCase {
     pushName: string,
     connection: ResolvedIntegrationContext,
     behaviorSettings: ChatwootBehaviorSettings,
-    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string },
+    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string; textContent?: string },
   ): Promise<{ contactIdentifier: string; conversationId: string }> {
     const lockKey = `${connection.connectionKey}:${phone}`;
 
@@ -1731,7 +1733,7 @@ export class ProcessIncomingMessageUseCase {
     connection: ResolvedIntegrationContext,
     phone: string,
     settings: ChatwootBehaviorSettings,
-    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string },
+    inboundContext?: { interactionKind: 'message' | 'audio' | 'call'; messageId?: string; textContent?: string },
   ) {
     if (!link?.chatwootConversationId || !link?.chatwootContactId) {
       return link;
@@ -1751,9 +1753,28 @@ export class ProcessIncomingMessageUseCase {
         status === 'pending' &&
         this.shouldCreateNewConversationForCompletedCsat(customAttributes);
       const pendingCsatTimedOut = hasPendingCsat && this.isPendingCsatTimedOut(customAttributes, settings);
+      const isCsatScoreReply =
+        inboundContext?.interactionKind === 'message' &&
+        this.parseCsatScore(inboundContext?.textContent) !== null;
       const shouldBreakPendingCsatForInbound =
         hasPendingCsat &&
+        !isCsatScoreReply &&
         (pendingCsatTimedOut || inboundContext?.interactionKind === 'audio' || inboundContext?.interactionKind === 'call');
+
+      if (hasPendingCsat && isCsatScoreReply) {
+        this.logger.log(JSON.stringify({
+          flow: 'evolution_to_chatwoot',
+          stage: pendingCsatTimedOut
+            ? 'pending_csat_timeout_reply_kept_on_existing_conversation'
+            : 'pending_csat_reply_kept_on_existing_conversation',
+          connectionKey: connection.connectionKey,
+          whatsappNumber: phone,
+          chatwootConversationId: link.chatwootConversationId,
+          previousStatus: status ?? null,
+          messageId: inboundContext?.messageId ?? null,
+        }));
+        return link;
+      }
 
       if (shouldBreakPendingCsatForInbound) {
         const closureOrigin = pendingCsatTimedOut
@@ -1946,6 +1967,13 @@ export class ProcessIncomingMessageUseCase {
     if (!normalized) return null;
     const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  private parseCsatScore(value: unknown): number | null {
+    const normalized = String(value ?? '').trim();
+    if (!/^[1-5]$/.test(normalized)) return null;
+    const score = Number(normalized);
+    return score >= 1 && score <= 5 ? score : null;
   }
 
   private async readStoredChatwootBehaviorSettings(): Promise<ChatwootBehaviorSettings> {

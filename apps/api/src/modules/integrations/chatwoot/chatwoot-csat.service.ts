@@ -40,7 +40,23 @@ export class ChatwootCsatService {
     );
     if (!ChatwootPayloadParser.readBoolean(customAttributes.csat_pending)) return false;
 
+    const score = this.parseCsatScore(
+      payload?.content ??
+      context.message?.content ??
+      payload?.content_attributes?.message ??
+      context.message?.content_attributes?.message,
+    );
+
     if (this.hasPendingCsatTimedOut(customAttributes, settings)) {
+      if (score !== null) {
+        this.logger.log(JSON.stringify({
+          flow: 'chatwoot_to_portal',
+          stage: 'csat_reply_accepted_after_timeout',
+          conversationId,
+          score,
+          connectionKey: resolvedContext.connectionKey,
+        }));
+      } else {
       await this.completePendingCsatWithoutAttempt(
         conversationId,
         customAttributes,
@@ -50,6 +66,7 @@ export class ChatwootCsatService {
         'csat_pending_timed_out_before_reply',
       );
       return false;
+      }
     }
 
     if (this.shouldInterruptPendingCsatForVoiceMessage(payload)) {
@@ -64,12 +81,6 @@ export class ChatwootCsatService {
       return false;
     }
 
-    const score = this.parseCsatScore(
-      payload?.content ??
-      context.message?.content ??
-      payload?.content_attributes?.message ??
-      context.message?.content_attributes?.message,
-    );
     if (score === null) {
       return this.handleInvalidCsatReply(conversationId, customAttributes, resolvedContext, settings);
     }
