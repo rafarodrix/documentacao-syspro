@@ -1,19 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import type { AdminOperacionalData } from "@dosc-syspro/contracts/dashboard";
 
 type SefazHealth = "online" | "unstable" | "offline" | "unknown";
-
-type Summary = {
-  ticketCounts: {
-    total: number;
-    waiting: number;
-    inProgress: number;
-  };
-  sefazHealth: SefazHealth;
-  sefazRoutesCount: number;
-};
 
 const sefazDot: Record<SefazHealth, string> = {
   online: "bg-emerald-500",
@@ -36,18 +24,11 @@ const sefazColor: Record<SefazHealth, string> = {
   unknown: "text-muted-foreground",
 };
 
-export function AdminStatusBar() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-
-  useEffect(() => {
-    fetch("/api/dashboard/operacional")
-      .then((r) => r.json())
-      .then((body) => {
-        if (body?.success && body.data) setSummary(body.data);
-      })
-      .catch(() => null);
-  }, []);
-
+export function AdminStatusBar({
+  summary,
+}: {
+  summary: Pick<AdminOperacionalData, "ticketCounts" | "sefazHealth" | "sefazRoutesCount">;
+}) {
   const today = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "2-digit",
@@ -56,49 +37,36 @@ export function AdminStatusBar() {
   });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 bg-muted/20 px-4 py-2.5 text-xs">
-      {/* Escopo */}
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/70 px-4 py-3 text-xs shadow-sm">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Visao</span>
           <span className="font-semibold text-foreground">Operacao interna</span>
         </div>
 
-        {summary ? (
-          <>
-            <div className="h-3.5 w-px bg-border/60" />
-            <div className="flex items-center gap-1.5">
-              <span className="tabular-nums font-semibold text-foreground">{summary.ticketCounts.total}</span>
-              <span className="text-muted-foreground">tickets abertos</span>
-              {summary.ticketCounts.waiting > 0 ? (
-                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
-                  {summary.ticketCounts.waiting} aguardando
-                </span>
-              ) : null}
-            </div>
+        <div className="h-3.5 w-px bg-border/60" />
+        <div className="flex items-center gap-1.5">
+          <span className="tabular-nums font-semibold text-foreground">{summary.ticketCounts.total}</span>
+          <span className="text-muted-foreground">tickets abertos</span>
+          {summary.ticketCounts.waiting > 0 ? (
+            <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+              {summary.ticketCounts.waiting} aguardando
+            </span>
+          ) : null}
+        </div>
 
-            <div className="h-3.5 w-px bg-border/60" />
-            <div className="flex items-center gap-1.5">
-              <span className={cn("h-1.5 w-1.5 rounded-full", sefazDot[summary.sefazHealth])} />
-              <span className={cn("font-medium", sefazColor[summary.sefazHealth])}>
-                SEFAZ {sefazLabel[summary.sefazHealth]}
-              </span>
-              <span className="text-muted-foreground">
-                · {summary.sefazRoutesCount} rota{summary.sefazRoutesCount !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="h-3.5 w-px bg-border/60" />
-            <div className="h-3 w-32 animate-pulse rounded bg-muted/60" />
-            <div className="h-3.5 w-px bg-border/60" />
-            <div className="h-3 w-28 animate-pulse rounded bg-muted/60" />
-          </>
-        )}
+        <div className="h-3.5 w-px bg-border/60" />
+        <div className="flex items-center gap-1.5">
+          <span className={cn("h-1.5 w-1.5 rounded-full", sefazDot[summary.sefazHealth as SefazHealth])} />
+          <span className={cn("font-medium", sefazColor[summary.sefazHealth as SefazHealth])}>
+            SEFAZ {sefazLabel[summary.sefazHealth as SefazHealth]}
+          </span>
+          <span className="text-muted-foreground">
+            · {summary.sefazRoutesCount} rota{summary.sefazRoutesCount !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
-      {/* Data */}
       <span className="capitalize text-muted-foreground">{today}</span>
     </div>
   );

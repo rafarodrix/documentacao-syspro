@@ -8,41 +8,50 @@ import { CadastrosTab } from "./tabs/cadastros-tab";
 import { ComercialTab } from "./tabs/comercial-tab";
 import { TabSkeleton, TabListSkeleton } from "./components/tab-skeleton";
 import { AdminStatusBar } from "./components/admin-status-bar";
+import type { AdminOperacionalData } from "@dosc-syspro/contracts/dashboard";
+
+const primaryTabsClassName =
+  "h-auto flex-wrap rounded-xl border border-border/50 bg-card/70 p-1 shadow-sm";
+
+const primaryTriggerClassName =
+  "gap-2 rounded-lg px-4 py-2.5 text-sm text-muted-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm";
 
 export function AdminDashboard({
   canAccessCrm,
   canAccessCadastros,
   canViewAvailability,
+  statusSummary,
 }: {
   canAccessCrm: boolean;
   canAccessCadastros: boolean;
   canViewAvailability: boolean;
+  statusSummary: Pick<AdminOperacionalData, "ticketCounts" | "sefazHealth" | "sefazRoutesCount">;
 }) {
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
-      <AdminStatusBar />
+      <AdminStatusBar summary={statusSummary} />
       <Tabs defaultValue="operacional" className="space-y-4">
-        <TabsList className="h-auto flex-wrap bg-muted/50 p-1">
-          <TabsTrigger value="operacional" className="gap-2 px-4 py-2">
+        <TabsList className={primaryTabsClassName}>
+          <TabsTrigger value="operacional" className={primaryTriggerClassName}>
             <Zap className="h-4 w-4" />
             Operacional
           </TabsTrigger>
-          <TabsTrigger value="suporte" className="gap-2 px-4 py-2">
+          <TabsTrigger value="suporte" className={primaryTriggerClassName}>
             <Headset className="h-4 w-4" />
             Suporte
           </TabsTrigger>
-          <TabsTrigger value="sefaz" className="gap-2 px-4 py-2">
+          <TabsTrigger value="sefaz" className={primaryTriggerClassName}>
             <Activity className="h-4 w-4" />
             SEFAZ
           </TabsTrigger>
           {canAccessCadastros ? (
-            <TabsTrigger value="cadastros" className="gap-2 px-4 py-2">
+            <TabsTrigger value="cadastros" className={primaryTriggerClassName}>
               <Building2 className="h-4 w-4" />
               Cadastros
             </TabsTrigger>
           ) : null}
           {canAccessCrm ? (
-            <TabsTrigger value="comercial" className="gap-2 px-4 py-2">
+            <TabsTrigger value="comercial" className={primaryTriggerClassName}>
               <Target className="h-4 w-4" />
               Comercial
             </TabsTrigger>

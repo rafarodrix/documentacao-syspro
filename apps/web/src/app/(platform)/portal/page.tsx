@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
-import { getDashboardData } from "@/features/dashboard/application";
+import { getDashboardData, getOperacionalData } from "@/features/dashboard/application";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { AdminDashboard } from "@/features/dashboard/interface/admin-dashboard";
 import { ClientDashboard } from "@/features/dashboard/interface/client-dashboard";
@@ -32,11 +32,18 @@ export default async function DashboardPage() {
   ]);
 
   if (hasInternalDashboard) {
+    const operacionalData = await getOperacionalData();
+
     return (
       <AdminDashboard
         canAccessCrm={canAccessCrm}
         canAccessCadastros={canAccessCadastros}
         canViewAvailability={canViewAvailability}
+        statusSummary={{
+          ticketCounts: operacionalData.ticketCounts,
+          sefazHealth: operacionalData.sefazHealth,
+          sefazRoutesCount: operacionalData.sefazRoutesCount,
+        }}
       />
     );
   }

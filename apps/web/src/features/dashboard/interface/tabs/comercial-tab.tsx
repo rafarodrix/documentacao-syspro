@@ -14,31 +14,60 @@ export async function ComercialTab() {
   const stageDistribution = crm?.stageDistribution ?? [];
   const winBase = (crm?.wonLeads ?? 0) + (crm?.lostLeads ?? 0);
   const winRate = winBase > 0 ? ((crm?.wonLeads ?? 0) / winBase) * 100 : 0;
-  const averagePipelineTicket = (crm?.activeLeads ?? 0) > 0
-    ? (crm?.pipelineValue ?? 0) / (crm?.activeLeads ?? 1)
+  const averagePipelineTicket = (crm?.activeLeads ?? 0) > 0 ? (crm?.pipelineValue ?? 0) / (crm?.activeLeads ?? 1) : 0;
+  const averageWonTicket = (crm?.wonLeads ?? 0) > 0 ? (crm?.wonValue ?? 0) / (crm?.wonLeads ?? 1) : 0;
+  const averageContractMrr = (contracts?.activeContracts ?? 0) > 0
+    ? (contracts?.totalValue ?? 0) / (contracts?.activeContracts ?? 1)
     : 0;
+  const pipelineCoverage = (contracts?.totalValue ?? 0) > 0 ? (crm?.pipelineValue ?? 0) / (contracts?.totalValue ?? 1) : 0;
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-muted-foreground">Métricas de Contratos e Receita</h3>
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">Receita e capacidade comercial</h3>
+        <p className="text-sm text-muted-foreground">
+          Contratos ativos, cobertura do pipeline e riscos que afetam conversao e previsibilidade.
+        </p>
+      </div>
+
       <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DashboardMetricCard
-          title="Contratos Ativos"
+          title="Contratos ativos"
           value={contracts?.activeContracts ?? 0}
           helper="Clientes com contrato ativo"
           icon={FileText as any}
           tone="blue"
         />
         <DashboardMetricCard
-          title="MRR Estimado"
+          title="MRR estimado"
           value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}
           helper="Receita recorrente mensal liquida estimada"
           icon={DollarSign as any}
           tone="emerald"
         />
+        <DashboardMetricCard
+          title="MRR medio"
+          value={contracts ? formatCurrency(averageContractMrr) : "Sem dados"}
+          helper="Receita media por contrato ativo"
+          icon={FileText as any}
+          tone="blue"
+        />
+        <DashboardMetricCard
+          title="Cobertura do pipeline"
+          value={`${pipelineCoverage.toFixed(1)}x`}
+          helper="Pipeline bruto sobre o MRR atual"
+          icon={Target as any}
+          tone="amber"
+        />
       </div>
 
-      <h3 className="mt-6 text-sm font-medium text-muted-foreground">Pipeline CRM</h3>
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-foreground">Pipeline CRM</h3>
+        <p className="text-sm text-muted-foreground">
+          Leia volume, maturidade e risco do funil antes de entrar nas etapas.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DashboardMetricCard
           title="Pipeline ativo"
@@ -64,7 +93,7 @@ export async function ComercialTab() {
         <DashboardMetricCard
           title="Risco operacional"
           value={(crm?.overdueLeads ?? 0) + (crm?.noNextStepLeads ?? 0)}
-          helper={`${crm?.overdueLeads ?? 0} atrasados • ${crm?.noNextStepLeads ?? 0} sem proximo passo`}
+          helper={`${crm?.overdueLeads ?? 0} atrasados · ${crm?.noNextStepLeads ?? 0} sem proximo passo`}
           icon={TrendingDown as any}
           tone="red"
         />
@@ -83,7 +112,9 @@ export async function ComercialTab() {
           <ExecutiveLine label="Propostas abertas" value={`${crm?.proposalLeads ?? 0}`} />
           <ExecutiveLine label="Em negociacao" value={`${crm?.negotiationLeads ?? 0}`} />
           <ExecutiveLine label="Ticket medio do pipeline" value={crm ? formatCurrency(averagePipelineTicket) : "Sem dados"} />
+          <ExecutiveLine label="Ticket medio ganho" value={crm ? formatCurrency(averageWonTicket) : "Sem dados"} />
           <ExecutiveLine label="Taxa de ganho" value={`${winRate.toFixed(1)}%`} />
+          <ExecutiveLine label="Cobertura do pipeline" value={`${pipelineCoverage.toFixed(1)}x`} />
           <ExecutiveLine label="Perdidos" value={`${crm?.lostLeads ?? 0}`} />
           <ExecutiveLine
             label="Atrasados"
