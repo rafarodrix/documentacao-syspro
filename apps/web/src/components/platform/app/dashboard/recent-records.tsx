@@ -105,9 +105,9 @@ export function RecentRecords({
                     <span className="text-sm font-medium text-foreground truncate leading-tight">{item.title}</span>
                   </div>
                   {item.subtitle ? (
-                    <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{item.subtitle}</div>
+                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.subtitle}</div>
                   ) : null}
-                  {item.meta ? <div className="text-[11px] text-muted-foreground/70 mt-0.5 truncate">{item.meta}</div> : null}
+                  {item.meta ? <div className="mt-0.5 truncate text-[11px] text-muted-foreground/70">{item.meta}</div> : null}
                 </div>
 
                 <div className="text-right shrink-0 space-y-1">

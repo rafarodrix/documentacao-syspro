@@ -50,7 +50,7 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
             <CardTitle className="text-base font-semibold text-foreground">Mais acessados da documentacao</CardTitle>
           </div>
           <CardDescription>
-            Paginas e manuais mais consultados na base de documentacao.
+            Conteudos com maior volume de consulta na base de documentacao.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
@@ -64,7 +64,7 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
                 {item.count}x
               </span>
             </Link>
-          )) : <p className="text-sm text-muted-foreground">Sem estatisticas de acesso agregadas ainda.</p>}
+          )) : <p className="text-sm text-muted-foreground">Ainda nao ha estatisticas agregadas de acesso para exibir.</p>}
         </CardContent>
       </Card>
 
@@ -75,7 +75,7 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
             <CardTitle className="text-base font-semibold text-foreground">Ultimas atualizacoes da documentacao</CardTitle>
           </div>
           <CardDescription>
-            Conteudos novos ou revisados recentemente na base de documentacao.
+            Conteudos publicados ou revisados recentemente na base de documentacao.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
@@ -84,7 +84,7 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
               <p className="text-sm text-foreground">{item.title}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{formatDateMedium(item.lastUpdated) ?? 'Data nao informada'}</p>
             </Link>
-          )) : <p className="text-sm text-muted-foreground">Sem atualizacoes recentes registradas.</p>}
+          )) : <p className="text-sm text-muted-foreground">Nenhuma atualizacao recente registrada na base de documentacao.</p>}
         </CardContent>
       </Card>
     </div>

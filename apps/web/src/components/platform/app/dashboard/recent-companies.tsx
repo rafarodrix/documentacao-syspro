@@ -59,8 +59,8 @@ function getInitials(name: string): string {
 export function RecentCompanies({ companies }: RecentCompaniesProps) {
   return (
     <SectionCard
-      title="Ultimos Cadastros"
-      description="Empresas recentes na plataforma"
+      title="Empresas recentes"
+      description="Ultimas empresas registradas no escopo atual."
       action={
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
           <Link href="/portal/cadastros">
@@ -75,8 +75,8 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
       {companies.length === 0 ? (
           <EmptyState
             icon={Building2}
-            title="Nenhuma empresa cadastrada"
-            description="Cadastros aparecerao aqui assim que criados."
+            title="Nenhuma empresa recente"
+            description="Os novos registros de empresa serao exibidos aqui."
             className="h-full min-h-60"
             action={{ label: "Cadastrar empresa", href: "/portal/cadastros" }}
           />

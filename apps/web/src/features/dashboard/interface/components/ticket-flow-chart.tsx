@@ -122,7 +122,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">Fluxo de tickets</CardTitle>
-          <CardDescription className="text-sm">Abertos, em execucao e fechados nos ultimos 7 dias</CardDescription>
+          <CardDescription className="text-sm">Evolucao diaria de aberturas, execucao e fechamentos nos ultimos 7 dias.</CardDescription>
         </div>
         <Badge variant="outline" className="border-border/60 bg-background/70 px-2.5 text-muted-foreground">
           7 dias
@@ -143,7 +143,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
             />
           ) : (
             <div className="flex h-[320px] items-center justify-center">
-              <p className="text-sm text-muted-foreground">Sem movimentacao no periodo</p>
+              <p className="text-sm text-muted-foreground">Nenhuma movimentacao registrada no periodo.</p>
             </div>
           )}
         </div>

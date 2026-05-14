@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import type { DashboardOpenTicketRecord } from "@dosc-syspro/contracts/dashboard";
-import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -101,11 +101,11 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-sm">Prioridade dos tickets</CardTitle>
-          <p className="text-xs text-muted-foreground">
+          <CardDescription className="text-sm">
             {hasData
-              ? `${alta} de prioridade alta (${altaPct}%)`
-              : "Nenhum ticket aberto"}
-          </p>
+              ? `${alta} ticket${alta === 1 ? "" : "s"} de prioridade alta, equivalente a ${altaPct}% da fila aberta.`
+              : "Nenhum ticket aberto no recorte atual."}
+          </CardDescription>
         </div>
         <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
           {total} abertos
@@ -122,7 +122,7 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
             />
           ) : (
             <div className="flex h-[260px] items-center justify-center">
-              <p className="text-sm text-muted-foreground">Nenhum ticket aberto no momento</p>
+              <p className="text-sm text-muted-foreground">Nenhum ticket aberto no momento.</p>
             </div>
           )}
         </div>

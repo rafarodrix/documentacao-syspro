@@ -134,7 +134,7 @@ export function ActivityChart({
         theme: palette.tooltipTheme,
         x: { show: true },
         y: {
-          formatter: (value) => `${Math.round(value).toLocaleString("pt-BR")} atualizacao(oes)`,
+          formatter: (value) => `${Math.round(value).toLocaleString("pt-BR")} atualizacao${Math.round(value) !== 1 ? "oes" : ""}`,
         },
       },
       legend: { show: false },

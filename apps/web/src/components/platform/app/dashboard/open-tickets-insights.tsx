@@ -58,15 +58,15 @@ function getDefaultAreaFilter(scopeMode: TicketScopeMode): TicketArea {
 }
 
 function getScopeDescription(scopeMode: TicketScopeMode) {
-  if (scopeMode === "own") return "Seus tickets abertos no escopo atual.";
-  if (scopeMode === "development") return "Tickets abertos atualmente na fila de desenvolvimento.";
-  return "Tickets abertos no escopo operacional carregado para este perfil.";
+  if (scopeMode === "own") return "Distribuicao dos tickets abertos vinculados ao seu escopo atual.";
+  if (scopeMode === "development") return "Distribuicao dos tickets abertos atualmente na fila de desenvolvimento.";
+  return "Distribuicao dos tickets abertos no escopo operacional disponivel para este perfil.";
 }
 
 function getScopeTitle(scopeMode: TicketScopeMode) {
   if (scopeMode === "own") return "Distribuicao dos seus tickets";
   if (scopeMode === "development") return "Distribuicao da fila de desenvolvimento";
-  return "Distribuicao operacional";
+  return "Distribuicao operacional de tickets";
 }
 
 function groupRecords(records: DashboardOpenTicketRecord[], key: BreakdownKind): GroupedItem[] {
@@ -327,7 +327,7 @@ export function OpenTicketsInsights({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <BreakdownCard
-          title="Abertos por modulo"
+          title="Tickets abertos por modulo"
           filterLabel={filterLabel}
           items={moduleBreakdown}
           selectedLabel={selectedModuleLabel}
@@ -335,7 +335,7 @@ export function OpenTicketsInsights({
         />
 
         <BreakdownCard
-          title="Abertos por categoria"
+          title="Tickets abertos por categoria"
           filterLabel={filterLabel}
           items={categoryBreakdown}
           selectedLabel={selectedCategoryLabel}
@@ -372,8 +372,8 @@ function BreakdownCard({
               {selectedLabel
                 ? `Filtro ativo: ${selectedLabel}`
                 : topItem
-                  ? `Topico lider: ${topItem.label}`
-                  : "Clique para focar no recorte"}
+                  ? `Maior concentracao atual em ${topItem.label}`
+                  : "Selecione um recorte para detalhar a fila."}
             </p>
           </div>
           <div className="flex items-center gap-2">
