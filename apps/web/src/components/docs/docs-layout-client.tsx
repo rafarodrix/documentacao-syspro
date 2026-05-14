@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree';
 import type { Option as SidebarTabOption } from 'fumadocs-ui/components/layout/root-toggle';
-import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
 import { BookOpenText, LifeBuoy, Shield } from 'lucide-react';
 import { DocsSidebarFooter } from '@/components/docs/docs-sidebar-footer';
 import { NavTitle } from '@/components/docs/nav-title';
@@ -28,7 +27,7 @@ export function DocsLayoutClient({
     defaultOpenLevel: 1,
     collapsible: true,
     prefetch: false,
-    banner: <RootToggle options={tabs} />,
+    tabs,
     footer: <DocsSidebarFooter />,
   } as const;
 
