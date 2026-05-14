@@ -54,10 +54,7 @@ export default async function PortalDocsSlugLayout({
   const activeFolder = findScopeFolder(docsTree, `/portal/docs/${scope}`);
 
   const activeTree: PageTreeRoot = activeFolder && activeFolder.type === 'folder'
-    ? {
-        ...docsTree,
-        children: [activeFolder],
-      }
+    ? activeFolder as unknown as PageTreeRoot
     : docsTree;
 
   return (
