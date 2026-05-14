@@ -56,8 +56,7 @@ export default async function PortalDocsSlugLayout({
   const activeTree: PageTreeRoot = activeFolder && activeFolder.type === 'folder'
     ? {
         ...docsTree,
-        name: activeFolder.name,
-        children: activeFolder.children,
+        children: [activeFolder],
       }
     : docsTree;
 
