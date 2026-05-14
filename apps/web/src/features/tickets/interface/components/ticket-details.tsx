@@ -63,6 +63,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
     const [testingReturnOpen, setTestingReturnOpen] = useState(false);
     const ticketSettings = useTicketModuleSettings();
@@ -117,6 +118,23 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     useEffect(() => {
         setTimelinePagination(messagePagination);
     }, [messagePagination]);
+
+    const handleArchiveTicket = () => {
+        if (!ticket) return;
+
+        startTransition(async () => {
+            const res = await archiveTicketAction(String(ticket.id));
+
+            if (res.success) {
+                setArchiveDialogOpen(false);
+                toast.success(res.message || "Ticket arquivado com sucesso.");
+                router.push(backUrl);
+                return;
+            }
+
+            toast.error(res.error || "Erro ao arquivar ticket.");
+        });
+    };
 
     const changeStatus = (status: TicketModuleStatus) => {
         if (!ticket) return;
@@ -501,7 +519,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         <Separator />
                                         <section className="space-y-2">
                                             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes</p>
-                                            <AlertDialog>
+                                            <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
                                                 <AlertDialogTrigger asChild>
                                                     <Button
                                                         type="button"
@@ -523,19 +541,8 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                                         <AlertDialogAction
                                                             className="bg-red-600 text-white hover:bg-red-700"
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                startTransition(async () => {
-                                                                    const res = await archiveTicketAction(String(ticket.id));
-                                                                    if (res.success) {
-                                                                        toast.success(res.message || "Ticket arquivado com sucesso.");
-                                                                        router.push(backUrl);
-                                                                        router.refresh();
-                                                                    } else {
-                                                                        toast.error(res.error || "Erro ao arquivar ticket.");
-                                                                    }
-                                                                });
-                                                            }}
+                                                            onClick={handleArchiveTicket}
+                                                            disabled={isPending}
                                                         >
                                                             {isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
                                                             Confirmar arquivamento
