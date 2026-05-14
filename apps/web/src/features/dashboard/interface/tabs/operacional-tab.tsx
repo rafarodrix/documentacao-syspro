@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
 import { TrustReleaseCard } from "../components/trust-release-card";
+import { DocsInsightsPanel } from "../components/docs-insights-panel";
 import { getOperacionalData } from "../../application";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
+import { source } from "@/lib/source";
 
 export async function OperacionalTab() {
   const [data, canReleaseInTrust] = await Promise.all([
@@ -17,6 +19,16 @@ export async function OperacionalTab() {
   const todayActivity = (ticketFlow.opened.at(-1)?.value ?? 0) + (ticketFlow.inProgress.at(-1)?.value ?? 0);
   const yesterdayActivity = (ticketFlow.opened.at(-2)?.value ?? 0) + (ticketFlow.inProgress.at(-2)?.value ?? 0);
   const activityDelta = todayActivity - yesterdayActivity;
+  const latestDocs = source
+    .getPages()
+    .filter((page) => !['/portal/docs/cliente', '/portal/docs/suporte', '/portal/docs/admin'].includes(page.url))
+    .map((page) => ({
+      href: page.url,
+      title: String(page.data.title ?? 'Sem título'),
+      lastUpdated: typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined,
+    }))
+    .sort((a, b) => (Date.parse(b.lastUpdated ?? '') || 0) - (Date.parse(a.lastUpdated ?? '') || 0))
+    .slice(0, 5);
 
   return (
     <div className="space-y-4">
@@ -63,6 +75,8 @@ export async function OperacionalTab() {
       </div>
 
       <TicketFlowChart flow={ticketFlow} />
+
+      <DocsInsightsPanel latestUpdates={latestDocs} />
     </div>
   );
 }

@@ -10,8 +10,6 @@ export const DOCS_STORAGE_KEYS = {
   popular: 'docs:popular',
   /** Mapa de timestamps da ultima visita (Record<href, number>) */
   visited: 'docs:visited',
-  /** Preferencia de colapso do painel de atalhos na sidebar */
-  quickLinksOpen: 'docs:quick-links:open',
 } as const;
 
 export type DocsStorageKey = (typeof DOCS_STORAGE_KEYS)[keyof typeof DOCS_STORAGE_KEYS];
