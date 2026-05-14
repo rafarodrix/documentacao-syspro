@@ -13,7 +13,18 @@ export default async function DashboardPage() {
   const [canAccessCrm, canAccessCadastros, canViewAvailability, hasInternalDashboard] = await Promise.all([
     currentUserHasAnyPermission(["crm:view", "crm:manage"], { acceptCompanyScope: true }),
     currentUserHasAnyPermission(
-      ["companies:view_all", "users:view_all", "contacts:view_all", "users:manage_internal"],
+      [
+        "companies:view",
+        "companies:view_own",
+        "companies:view_all",
+        "contacts:view",
+        "contacts:view_team",
+        "contacts:view_all",
+        "users:view",
+        "users:view_team",
+        "users:view_all",
+        "users:manage_internal",
+      ],
       { acceptCompanyScope: true },
     ),
     currentUserHasPermission(DASHBOARD_VIEW_AVAILABILITY, { acceptCompanyScope: true }),
