@@ -1602,7 +1602,7 @@ export class DashboardService {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
 
     const [
-      canViewCompaniesModule,
+      canViewCompaniesDirect,
       canViewContactsDirect,
       canViewContactsScoped,
       canViewContactsGlobal,
@@ -1628,9 +1628,32 @@ export class DashboardService {
     const canViewContactsModule = canViewContactsDirect || canViewContactsScoped || canViewContactsGlobal;
     const canViewUsersModule = canViewUsersGlobal || canViewUsersScoped || canViewUsersDirect;
 
-    const scopedCompanyIds = companyScope.isGlobal ? undefined : companyScope.companyIds;
-    const scopedContactIds = contactScope.isGlobal ? undefined : contactScope.companyIds;
-    const scopedUserIds = userScope.isGlobal ? undefined : userScope.companyIds;
+    const fallbackCompanyIds =
+      canViewCompaniesDirect || canViewContactsDirect || canViewUsersDirect
+        ? await this.authorizationService.getUserCompanyIds(requester)
+        : [];
+
+    const scopedCompanyIds = companyScope.isGlobal
+      ? undefined
+      : companyScope.companyIds.length > 0
+        ? companyScope.companyIds
+        : canViewCompaniesDirect
+          ? fallbackCompanyIds
+          : [];
+    const scopedContactIds = contactScope.isGlobal
+      ? undefined
+      : contactScope.companyIds.length > 0
+        ? contactScope.companyIds
+        : canViewContactsDirect
+          ? fallbackCompanyIds
+          : [];
+    const scopedUserIds = userScope.isGlobal
+      ? undefined
+      : userScope.companyIds.length > 0
+        ? userScope.companyIds
+        : canViewUsersDirect
+          ? fallbackCompanyIds
+          : [];
 
     const companyBaseWhere = this.buildScopedCompaniesWhere(scopedCompanyIds);
     const userBaseWhere = this.buildScopedUsersWhere(scopedUserIds);
@@ -1655,17 +1678,17 @@ export class DashboardService {
       recentUsers,
       recentInactivatedUsers,
     ] = await Promise.all([
-      canViewCompaniesModule ? this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } }) : Promise.resolve(0),
-      canViewCompaniesModule ? this.prisma.company.count({ where: { ...companyBaseWhere, createdAt: { gte: monthStart } } }) : Promise.resolve(0),
-      canViewCompaniesModule ? this.prisma.company.count({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] }, updatedAt: { gte: monthStart } } }) : Promise.resolve(0),
-      this.prisma.user.count({ where: userBaseWhere }),
-      this.prisma.user.count({ where: { ...userBaseWhere, createdAt: { gte: monthStart } } }),
-      this.prisma.user.count({ where: { ...userBaseWhere, isActive: false, updatedAt: { gte: monthStart } } }),
+      canViewCompaniesDirect ? this.prisma.company.count({ where: { ...companyBaseWhere, status: 'ACTIVE' } }) : Promise.resolve(0),
+      canViewCompaniesDirect ? this.prisma.company.count({ where: { ...companyBaseWhere, createdAt: { gte: monthStart } } }) : Promise.resolve(0),
+      canViewCompaniesDirect ? this.prisma.company.count({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] }, updatedAt: { gte: monthStart } } }) : Promise.resolve(0),
+      canViewUsersModule ? this.prisma.user.count({ where: userBaseWhere }) : Promise.resolve(0),
+      canViewUsersModule ? this.prisma.user.count({ where: { ...userBaseWhere, createdAt: { gte: monthStart } } }) : Promise.resolve(0),
+      canViewUsersModule ? this.prisma.user.count({ where: { ...userBaseWhere, isActive: false, updatedAt: { gte: monthStart } } }) : Promise.resolve(0),
       canViewContactsModule ? (this.prisma as any).companyContactCompanyLink.count({ where: scopedContactIds ? { companyId: { in: scopedContactIds } } : undefined }) : Promise.resolve(0),
       canViewContactsModule ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { companyLinks: { some: { companyId: { in: scopedContactIds } } }, createdAt: { gte: monthStart } } : { createdAt: { gte: monthStart } } }) : Promise.resolve(0),
       canViewContactsModule ? (this.prisma as any).companyContact.count({ where: scopedContactIds ? { status: 'ARCHIVED', companyLinks: { some: { companyId: { in: scopedContactIds } } }, updatedAt: { gte: monthStart } } : { status: 'ARCHIVED', updatedAt: { gte: monthStart } } }) : Promise.resolve(0),
-      canViewCompaniesModule ? this.prisma.company.findMany({ where: companyBaseWhere, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } }) : Promise.resolve([]),
-      canViewCompaniesModule ? this.prisma.company.findMany({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] } }, orderBy: { updatedAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } }) : Promise.resolve([]),
+      canViewCompaniesDirect ? this.prisma.company.findMany({ where: companyBaseWhere, orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } }) : Promise.resolve([]),
+      canViewCompaniesDirect ? this.prisma.company.findMany({ where: { ...companyBaseWhere, status: { in: ['INACTIVE', 'SUSPENDED'] } }, orderBy: { updatedAt: 'desc' }, take: 5, select: { id: true, razaoSocial: true, nomeFantasia: true, cnpj: true, status: true, createdAt: true, _count: { select: { memberships: true } }, contactLinks: { select: { id: true } }, addresses: { take: 1, select: { cidade: true, estado: true } } } }) : Promise.resolve([]),
       canViewContactsModule ? (this.prisma as any).companyContact.findMany({ where: scopedContactIds ? { status: { not: 'ARCHIVED' }, companyLinks: { some: { companyId: { in: scopedContactIds } } } } : { status: { not: 'ARCHIVED' } }, orderBy: [{ createdAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, whatsapp: true, createdAt: true, companyLinks: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
       canViewContactsModule ? (this.prisma as any).companyContact.findMany({ where: scopedContactIds ? { status: 'ARCHIVED', companyLinks: { some: { companyId: { in: scopedContactIds } } } } : { status: 'ARCHIVED' }, orderBy: [{ updatedAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, whatsapp: true, createdAt: true, companyLinks: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
       canViewUsersModule ? this.prisma.user.findMany({ where: userBaseWhere, orderBy: [{ createdAt: 'desc' }], take: 5, select: { id: true, name: true, email: true, role: true, createdAt: true, memberships: { orderBy: [{ createdAt: 'asc' }], select: { company: { select: { nomeFantasia: true, razaoSocial: true } } } } } }) : Promise.resolve([]),
@@ -1706,7 +1729,7 @@ export class DashboardService {
     return {
       success: true as const,
       data: {
-        canViewCompanies: canViewCompaniesModule,
+        canViewCompanies: canViewCompaniesDirect,
         canViewContacts: canViewContactsModule,
         canViewUsers: canViewUsersModule || userScope.isGlobal,
         companies: recentCompanies.map(mapCompany),

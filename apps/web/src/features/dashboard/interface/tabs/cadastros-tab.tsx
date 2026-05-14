@@ -1,12 +1,30 @@
 import { Building2, UserRound, Users } from "lucide-react";
 import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
 import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
+import { SectionCard } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { getCadastrosData } from "../../application";
 
 export async function CadastrosTab() {
-  const data = await getCadastrosData();
+  let data: Awaited<ReturnType<typeof getCadastrosData>>;
+
+  try {
+    data = await getCadastrosData();
+  } catch {
+    return (
+      <SectionCard
+        title="Cadastros indisponivel"
+        description="Nao foi possivel carregar os dados desta aba no momento."
+        className="border-border/50 bg-card/70"
+      >
+        <p className="text-sm text-muted-foreground">
+          Revise as permissoes de empresas, contatos e usuarios para este perfil e tente novamente.
+        </p>
+      </SectionCard>
+    );
+  }
+
   const {
     canViewCompanies,
     canViewContacts,
