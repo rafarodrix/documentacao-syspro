@@ -344,31 +344,37 @@
 
   .portal-docs-shell .docs-tree-trigger-top,
   .portal-docs-shell .docs-tree-item-overview {
-    min-height: 2.45rem;
-    border-radius: 0.72rem;
-    padding-top: 0.52rem;
-    padding-bottom: 0.52rem;
-    padding-inline: 0.7rem;
+    min-height: 2.3rem;
+    border-radius: 0.7rem;
+    padding-top: 0.44rem;
+    padding-bottom: 0.44rem;
+    padding-inline: 0.68rem;
     background: transparent;
     border: 1px solid transparent;
     font-size: 0.94rem;
     font-weight: 500;
-    color: hsl(var(--muted-foreground) / 0.92);
+    color: hsl(var(--muted-foreground) / 0.88);
     box-shadow: none;
+    transition:
+      background-color 140ms ease,
+      color 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease;
   }
 
   .portal-docs-shell .docs-tree-trigger-top:hover,
   .portal-docs-shell .docs-tree-item-overview:hover {
-    background: hsl(var(--card) / 0.36);
+    background: hsl(var(--accent) / 0.18);
     color: hsl(var(--foreground) / 0.94);
   }
 
   .portal-docs-shell .docs-tree-trigger-top[data-active='true'],
   .portal-docs-shell .docs-tree-trigger-top[data-state='open'],
   .portal-docs-shell .docs-tree-item-overview[data-active='true'] {
-    background: hsl(var(--card) / 0.42);
+    background: hsl(var(--accent) / 0.24);
     color: hsl(var(--foreground));
-    box-shadow: inset 2px 0 0 hsl(var(--primary));
+    border-color: hsl(var(--border) / 0.35);
+    box-shadow: inset 2px 0 0 hsl(var(--primary) / 0.9);
   }
 
   .portal-docs-shell .docs-tree-trigger-top[data-active='true'] svg,
@@ -383,11 +389,20 @@
     font-weight: 600;
   }
 
+  .portal-docs-shell .docs-tree-link-top {
+    align-self: stretch;
+  }
+
+  .portal-docs-shell .docs-tree-toggle {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
   .portal-docs-shell .docs-tree-content-top {
-    margin-top: 0.18rem;
-    margin-left: 0.35rem;
-    padding-left: 0.4rem;
-    border-left: 1px solid hsl(var(--border) / 0.18);
+    margin-top: 0.14rem;
+    margin-left: 0.4rem;
+    padding-left: 0.42rem;
+    border-left: 1px solid hsl(var(--border) / 0.14);
   }
 
   .portal-docs-shell .docs-tree-content a,
@@ -401,6 +416,12 @@
     background: transparent;
     border-color: transparent;
     box-shadow: none;
+  }
+
+  .portal-docs-shell .docs-tree-content [data-state='open'] > button,
+  .portal-docs-shell .docs-tree-content [data-active='true'],
+  .portal-docs-shell .docs-tree-content button[data-state='open'] {
+    color: hsl(var(--foreground) / 0.94);
   }
 
   .portal-docs-shell .docs-tree-content [data-icon] svg {

@@ -27,18 +27,6 @@ import {
 } from '@/lib/docs-utils';
 import { DOCS_BASE_PATH, getDefaultDocsRouteForRole } from '@/lib/docs-scope';
 
-function resolveDocsSlug(slug: string[]) {
-  if (slug[0] === "manuais-tecnicos") {
-    return ["admin"];
-  }
-
-  if (slug[0] === "manual" || slug[0] === "duvidas" || slug[0] === "treinamento") {
-    return ["cliente", ...slug];
-  }
-
-  return slug;
-}
-
 export default async function PortalDocsPage(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
@@ -51,11 +39,6 @@ export default async function PortalDocsPage(props: {
     redirect(getDefaultDocsRouteForRole(session.role));
   }
 
-  const resolvedSlug = resolveDocsSlug(slug);
-  if (resolvedSlug !== slug) {
-    redirect(`${DOCS_BASE_PATH}/${resolvedSlug.join("/")}`);
-  }
-
   const canAccessCurrentDoc = await canUserAccessDocUrl({
     url: docUrl,
     userId: session.userId,
@@ -66,10 +49,10 @@ export default async function PortalDocsPage(props: {
   }
 
   const docsSource = createDocsSourceForRole(session.role);
-  const page = docsSource.getPage(resolvedSlug);
+  const page = docsSource.getPage(slug);
   if (!page) {
-    const expectedPrefix = resolvedSlug.length > 0 
-      ? `${DOCS_BASE_PATH}/${resolvedSlug.join('/')}/`
+    const expectedPrefix = slug.length > 0
+      ? `${DOCS_BASE_PATH}/${slug.join('/')}/`
       : `${DOCS_BASE_PATH}/`;
       
     const candidatePages = docsSource.getPages().filter((item) => item.url.startsWith(expectedPrefix));
@@ -180,7 +163,7 @@ export async function generateMetadata(props: {
     };
   }
 
-  const page = source.getPage(resolveDocsSlug(slug));
+  const page = source.getPage(slug);
   if (!page) notFound();
 
   return {

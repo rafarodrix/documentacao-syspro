@@ -154,7 +154,7 @@ function DocsTopLevelFolder({
     }
   }, [isRouteActive, itemLabel, openName]);
 
-  const triggerClassName = 'docs-tree-trigger docs-tree-trigger-top';
+  const triggerClassName = 'docs-tree-trigger docs-tree-trigger-top flex min-w-0 items-center gap-2.5';
 
   return (
     <Collapsible
@@ -168,22 +168,22 @@ function DocsTopLevelFolder({
         {href ? (
           <Link
             href={href}
-            className="flex min-w-0 flex-1 items-center gap-2.5 text-inherit no-underline"
+            className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5 text-inherit no-underline"
           >
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
           </Link>
         ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5">
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
           </div>
         )}
         <CollapsibleTrigger
-          className="docs-tree-toggle ms-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+          className="docs-tree-toggle ms-auto inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           aria-label={isOpen ? `Recolher ${itemLabel}` : `Expandir ${itemLabel}`}
         >
-          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !isOpen && '-rotate-90')} />
+          <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent className="docs-tree-content docs-tree-content-top">

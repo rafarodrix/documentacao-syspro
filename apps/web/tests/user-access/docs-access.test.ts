@@ -1,45 +1,56 @@
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("@/features/company/application/company-segment-access", () => ({
-  canAccessByCompanySegment: vi.fn(async () => true),
-}));
+import { describe, expect, it } from "vitest";
 
 import {
   canUserAccessDocUrl,
-  getRequiredSegmentsForDocSlug,
   isAdminOnlyDocUrl,
-  isTechnicalManualSlug,
 } from "@/lib/docs-access";
 
-describe("docs access without role fallback", () => {
-  it("detects technical manuals by slug", () => {
-    expect(isTechnicalManualSlug(["manuais-tecnicos", "arquitetura"])).toBe(true);
-    expect(isTechnicalManualSlug(["manual", "cadastro"])).toBe(false);
-  });
-
-  it("detects admin-only docs by url", () => {
+describe("docs access by scope", () => {
+  it("detects admin-only docs by canonical url", () => {
     expect(isAdminOnlyDocUrl("/portal/docs/suporte/documentacao-docs-interna")).toBe(true);
-    expect(isAdminOnlyDocUrl("/portal/docs/manual/cadastro")).toBe(false);
+    expect(isAdminOnlyDocUrl("/portal/docs/cliente/cadastro")).toBe(false);
   });
 
-  it("keeps segment rules independent from user role", async () => {
-    expect(getRequiredSegmentsForDocSlug(["treinamento", "steps-auto-center"])).not.toHaveLength(0);
-
+  it("blocks support and admin scopes for client roles", async () => {
     await expect(
       canUserAccessDocUrl({
-        url: "/portal/docs/manuais-tecnicos/arquitetura",
+        url: "/portal/docs/suporte/documentacao-docs-interna",
         userId: "user-1",
-        canViewTechnical: false,
-        canBypassSegmentAccess: false,
+        role: "CLIENTE_USER",
       }),
     ).resolves.toBe(false);
 
     await expect(
       canUserAccessDocUrl({
-        url: "/portal/docs/treinamento/steps-auto-center",
+        url: "/portal/docs/admin",
         userId: "user-1",
-        canViewTechnical: true,
-        canBypassSegmentAccess: true,
+        role: "CLIENTE_ADMIN",
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it("allows canonical docs for their matching scope", async () => {
+    await expect(
+      canUserAccessDocUrl({
+        url: "/portal/docs/cliente/primeiros-passos",
+        userId: "user-1",
+        role: "CLIENTE_USER",
+      }),
+    ).resolves.toBe(true);
+
+    await expect(
+      canUserAccessDocUrl({
+        url: "/portal/docs/suporte",
+        userId: "user-1",
+        role: "SUPORTE",
+      }),
+    ).resolves.toBe(true);
+
+    await expect(
+      canUserAccessDocUrl({
+        url: "/portal/docs/admin",
+        userId: "user-1",
+        role: "ADMIN",
       }),
     ).resolves.toBe(true);
   });

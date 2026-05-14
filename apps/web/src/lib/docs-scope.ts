@@ -41,9 +41,3 @@ export function canRoleAccessDocsUrl(role: Role, url: string): boolean {
 export function getDefaultDocsRouteForRole(_role: Role): string {
   return DOCS_SCOPE_ROUTES.cliente;
 }
-
-export function getSupportDocsRouteForRole(role: Role): string {
-  return canRoleAccessDocsScope(role, "suporte")
-    ? DOCS_SCOPE_ROUTES.suporte
-    : `${DOCS_SCOPE_ROUTES.cliente}/suporte`;
-}
