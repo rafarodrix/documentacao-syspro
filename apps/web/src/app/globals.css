@@ -344,43 +344,41 @@
 
   .portal-docs-shell .docs-tree-trigger-top,
   .portal-docs-shell .docs-tree-item-overview {
-    min-height: 2.3rem;
-    border-radius: 0.7rem;
-    padding-top: 0.44rem;
-    padding-bottom: 0.44rem;
-    padding-inline: 0.68rem;
+    min-height: 2.25rem;
+    border-radius: 0.65rem;
+    padding-top: 0.46rem;
+    padding-bottom: 0.46rem;
+    padding-inline: 0.62rem;
     background: transparent;
-    border: 1px solid transparent;
-    font-size: 0.94rem;
+    border: 0;
+    font-size: 0.92rem;
     font-weight: 500;
-    color: hsl(var(--muted-foreground) / 0.88);
+    color: hsl(var(--muted-foreground) / 0.86);
     box-shadow: none;
     transition:
       background-color 140ms ease,
       color 140ms ease,
-      border-color 140ms ease,
       box-shadow 140ms ease;
   }
 
   .portal-docs-shell .docs-tree-trigger-top:hover,
   .portal-docs-shell .docs-tree-item-overview:hover {
-    background: hsl(var(--accent) / 0.18);
+    background: hsl(var(--accent) / 0.22);
     color: hsl(var(--foreground) / 0.94);
   }
 
   .portal-docs-shell .docs-tree-trigger-top[data-active='true'],
   .portal-docs-shell .docs-tree-trigger-top[data-state='open'],
   .portal-docs-shell .docs-tree-item-overview[data-active='true'] {
-    background: hsl(var(--accent) / 0.24);
-    color: hsl(var(--foreground));
-    border-color: hsl(var(--border) / 0.35);
-    box-shadow: inset 2px 0 0 hsl(var(--primary) / 0.9);
+    background: hsl(var(--primary) / 0.12);
+    color: hsl(var(--primary) / 0.98);
+    box-shadow: none;
   }
 
   .portal-docs-shell .docs-tree-trigger-top[data-active='true'] svg,
   .portal-docs-shell .docs-tree-trigger-top[data-state='open'] svg,
   .portal-docs-shell .docs-tree-item-overview[data-active='true'] svg {
-    color: hsl(var(--primary) / 0.88);
+    color: hsl(var(--primary) / 0.98);
   }
 
   .portal-docs-shell .docs-tree-trigger-top[data-active='true'] span,
@@ -393,40 +391,84 @@
     align-self: stretch;
   }
 
+  .portal-docs-shell .docs-tree-link-top[type='button'] {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: inherit;
+  }
+
   .portal-docs-shell .docs-tree-toggle {
     margin-top: 0;
     margin-bottom: 0;
+    opacity: 0.85;
   }
 
   .portal-docs-shell .docs-tree-content-top {
-    margin-top: 0.14rem;
-    margin-left: 0.4rem;
-    padding-left: 0.42rem;
-    border-left: 1px solid hsl(var(--border) / 0.14);
+    margin-top: 0.1rem;
+    margin-left: 0.18rem;
+    padding-left: 0;
+    border-left: 0;
   }
 
   .portal-docs-shell .docs-tree-content a,
   .portal-docs-shell .docs-tree-content button,
   .portal-docs-shell .docs-tree-item {
-    min-height: 2rem;
-    border-radius: 0.65rem;
-    font-size: 0.89rem;
-    font-weight: 500;
-    color: hsl(var(--muted-foreground) / 0.9);
+    min-height: 1.95rem;
+    border-radius: 0.55rem;
+    font-size: 0.88rem;
+    font-weight: 450;
+    color: hsl(var(--muted-foreground) / 0.82);
     background: transparent;
     border-color: transparent;
     box-shadow: none;
   }
 
+  .portal-docs-shell .docs-tree-content a:hover,
+  .portal-docs-shell .docs-tree-content button:hover,
+  .portal-docs-shell .docs-tree-item:hover {
+    background: transparent;
+    color: hsl(var(--foreground) / 0.92);
+  }
+
   .portal-docs-shell .docs-tree-content [data-state='open'] > button,
   .portal-docs-shell .docs-tree-content [data-active='true'],
   .portal-docs-shell .docs-tree-content button[data-state='open'] {
-    color: hsl(var(--foreground) / 0.94);
+    color: hsl(var(--foreground) / 0.96);
+    background: transparent;
+  }
+
+  .portal-docs-shell .docs-tree-content [data-active='true'] {
+    color: hsl(var(--primary) / 0.98);
+  }
+
+  .portal-docs-shell .docs-tree-content [data-radix-collapsible-content] {
+    position: relative;
+    margin-left: 0.08rem;
+  }
+
+  .portal-docs-shell .docs-tree-content [data-radix-collapsible-content]::before {
+    content: '';
+    position: absolute;
+    inset-block: 0.38rem;
+    left: 0.58rem;
+    width: 1px;
+    background: hsl(var(--border) / 0.12);
+  }
+
+  .portal-docs-shell .docs-tree-content [data-radix-collapsible-content] [data-active='true']::before {
+    content: '';
+    position: absolute;
+    inset-block: 0.42rem;
+    left: 0.58rem;
+    width: 1px;
+    background: hsl(var(--primary) / 0.9);
   }
 
   .portal-docs-shell .docs-tree-content [data-icon] svg {
-    height: 0.85rem;
-    width: 0.85rem;
+    height: 0.78rem;
+    width: 0.78rem;
   }
 
   .docs-content-surface {

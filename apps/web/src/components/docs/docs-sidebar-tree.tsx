@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useSyncExternalStore, type MouseEvent, type ReactNode } from 'react';
 import Link from 'fumadocs-core/link';
 import { usePathname } from 'fumadocs-core/framework';
 import type { Folder as PageTreeFolder, Item as PageTreeItem } from 'fumadocs-core/page-tree';
@@ -154,6 +154,22 @@ function DocsTopLevelFolder({
     }
   }, [isRouteActive, itemLabel, openName]);
 
+  function handlePrimaryClick(e: MouseEvent<HTMLElement>) {
+    if (!href) {
+      e.preventDefault();
+      setTopLevelOpenName(isOpen ? null : itemLabel);
+      return;
+    }
+
+    if (isRouteActive) {
+      e.preventDefault();
+      setTopLevelOpenName(isOpen ? null : itemLabel);
+      return;
+    }
+
+    setTopLevelOpenName(itemLabel);
+  }
+
   const triggerClassName = 'docs-tree-trigger docs-tree-trigger-top flex min-w-0 items-center gap-2.5';
 
   return (
@@ -169,15 +185,20 @@ function DocsTopLevelFolder({
           <Link
             href={href}
             className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5 text-inherit no-underline"
+            onClick={handlePrimaryClick}
           >
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
           </Link>
         ) : (
-          <div className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5">
+          <button
+            type="button"
+            className="docs-tree-link-top flex min-w-0 flex-1 items-center gap-2.5 text-left"
+            onClick={handlePrimaryClick}
+          >
             {labelIcon}
             <span className="truncate">{itemLabel}</span>
-          </div>
+          </button>
         )}
         <CollapsibleTrigger
           className="docs-tree-toggle ms-auto inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
