@@ -1322,6 +1322,10 @@ export class TicketsService {
     return serializeMutationResponse('Ticket atualizado com sucesso.', resolvedNextStatus);
   }
 
+  async archiveTicket(id: string, rawHeaders?: IncomingHttpHeaders) {
+    return this.updateStatus(id, { status: TicketStatus.ARCHIVED }, rawHeaders);
+  }
+
   async downloadAttachment(
     ticketId: string,
     attachmentId: string,

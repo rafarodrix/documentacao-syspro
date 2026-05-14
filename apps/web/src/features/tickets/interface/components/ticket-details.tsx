@@ -125,10 +125,8 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
         try {
             setIsArchiving(true);
-            const response = await fetch(`/api/tickets/${ticket.id}/status`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "ARCHIVED" }),
+            const response = await fetch(`/api/tickets/${ticket.id}/archive`, {
+                method: "POST",
             });
             const res = await response.json() as TicketModuleMutationResponse;
 
