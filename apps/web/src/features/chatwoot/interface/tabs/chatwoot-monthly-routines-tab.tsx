@@ -93,9 +93,12 @@ export function ChatwootMonthlyRoutinesTab() {
 
         if (!active) return;
 
-        const nextItems = response.items
-          .filter((item) => item.companyId === resolved.companyId)
-          .sort((a, b) => Date.parse(a.dueDate) - Date.parse(b.dueDate));
+        const nextItems: MonthlyRoutineCompetencyItem[] = response.items
+          .filter((item: MonthlyRoutineCompetencyItem) => item.companyId === resolved.companyId)
+          .sort(
+            (a: MonthlyRoutineCompetencyItem, b: MonthlyRoutineCompetencyItem) =>
+              Date.parse(a.dueDate) - Date.parse(b.dueDate),
+          );
 
         setItems(nextItems);
       } catch (nextError) {

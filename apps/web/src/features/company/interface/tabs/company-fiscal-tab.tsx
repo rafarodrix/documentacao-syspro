@@ -7,6 +7,7 @@ import {
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
 import type { CompanyOption } from "@/features/company/application/company-view.types";
+import { SearchableCompanyPicker } from "@/features/remote/interface/host-details/components/searchable-company-picker";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from "@dosc-syspro/ui";
 import { Building2, FileText, Users2, ListTree } from "lucide-react";
 
@@ -21,6 +22,11 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
   const form = useFormContext<CreateCompanyInput>();
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
+  const companyPickerOptions = companies.map((company) => ({
+    id: company.id,
+    label: company.nomeFantasia || company.razaoSocial,
+    searchText: [company.nomeFantasia, company.razaoSocial, company.cnpj].filter(Boolean).join(" "),
+  }));
 
   const secondaryCnaes = form.watch("cnaesSecundarios") ?? [];
   const companyPartners = form.watch("qsa") ?? [];
@@ -242,24 +248,13 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Empresa Matriz</FormLabel>
-                <Select
-                  onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)}
-                  value={toSelectValue(field.value)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nao definida</SelectItem>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.nomeFantasia || company.razaoSocial}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchableCompanyPicker
+                    value={typeof field.value === "string" && field.value ? field.value : "__UNLINKED__"}
+                    options={companyPickerOptions}
+                    onChange={(value) => field.onChange(value === "__UNLINKED__" ? undefined : value)}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -270,24 +265,13 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Escritorio Contabil</FormLabel>
-                <Select
-                  onValueChange={(v) => field.onChange(v === "__none__" ? undefined : v)}
-                  value={toSelectValue(field.value)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nao definido</SelectItem>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.nomeFantasia || company.razaoSocial}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <SearchableCompanyPicker
+                    value={typeof field.value === "string" && field.value ? field.value : "__UNLINKED__"}
+                    options={companyPickerOptions}
+                    onChange={(value) => field.onChange(value === "__UNLINKED__" ? undefined : value)}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
