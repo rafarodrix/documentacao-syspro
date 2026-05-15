@@ -66,6 +66,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
+    const [archiveReason, setArchiveReason] = useState("");
     const [finalizeOpen, setFinalizeOpen] = useState(false);
     const [testingReturnOpen, setTestingReturnOpen] = useState(false);
     const ticketSettings = useTicketModuleSettings();
@@ -122,23 +123,36 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
         setTimelinePagination(messagePagination);
     }, [messagePagination]);
 
+    const handleArchiveDialogChange = (open: boolean) => {
+        if (!open) setArchiveReason("");
+        setArchiveDialogOpen(open);
+    };
+
     const handleArchiveTicket = async () => {
         if (!ticket) return;
 
         try {
             setIsArchiving(true);
-            const res = await archiveTicketAction(String(ticket.id));
+            const timeout = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("timeout")), 20_000),
+            );
+            const res = await Promise.race([archiveTicketAction(String(ticket.id)), timeout]);
 
             if (res.success) {
                 setArchiveDialogOpen(false);
+                setArchiveReason("");
                 toast.success(res.message || "Ticket arquivado com sucesso.");
                 router.push(backUrl);
                 return;
             }
 
             toast.error(res.error || "Erro ao arquivar ticket.");
-        } catch {
-            toast.error("Erro ao arquivar ticket.");
+        } catch (err) {
+            if (err instanceof Error && err.message === "timeout") {
+                toast.error("O servidor nao respondeu. Verifique sua conexao e tente novamente.");
+            } else {
+                toast.error("Erro ao arquivar ticket.");
+            }
         } finally {
             setIsArchiving(false);
         }
@@ -531,7 +545,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         <Separator />
                                         <section className="space-y-2">
                                             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes</p>
-                                            <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+                                            <AlertDialog open={archiveDialogOpen} onOpenChange={handleArchiveDialogChange}>
                                                 <AlertDialogTrigger asChild>
                                                     <Button
                                                         type="button"
@@ -549,8 +563,21 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                             Esta acao move o ticket para arquivados e remove ele da fila ativa. O historico permanece disponivel para auditoria.
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-xs font-medium text-foreground" htmlFor="archive-reason">
+                                                            Motivo do arquivamento <span className="text-muted-foreground">(opcional)</span>
+                                                        </label>
+                                                        <Textarea
+                                                            id="archive-reason"
+                                                            placeholder="Descreva o motivo para arquivar este ticket..."
+                                                            className="min-h-[80px] resize-none text-sm"
+                                                            value={archiveReason}
+                                                            onChange={(e) => setArchiveReason(e.target.value)}
+                                                            disabled={isArchiving}
+                                                        />
+                                                    </div>
                                                     <AlertDialogFooter>
-                                                        <AlertDialogCancel disabled={isArchiving}>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                                         <Button
                                                             type="button"
                                                             className="bg-red-600 text-white hover:bg-red-700"
