@@ -27,6 +27,11 @@ import {
   type RemoteModuleSettingsInput,
 } from '@dosc-syspro/contracts/remote';
 import {
+  DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS,
+  monthlyRoutineModuleSettingsSchema,
+  type MonthlyRoutineModuleSettingsInput,
+} from '@dosc-syspro/contracts/rotinas-mensais';
+import {
   buildDefaultInterstateIcmsSettings,
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
   DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
@@ -89,6 +94,7 @@ export class SettingsController {
   private static readonly STORAGE_CONFIG_KEY = R2StorageService.STORAGE_CONFIG_KEY;
   private static readonly STORAGE_ACCESS_KEY_ID_KEY = R2StorageService.STORAGE_ACCESS_KEY_ID_KEY;
   private static readonly STORAGE_SECRET_ACCESS_KEY_KEY = R2StorageService.STORAGE_SECRET_ACCESS_KEY_KEY;
+  private static readonly MONTHLY_ROUTINES_SETTINGS_KEY = 'monthly_routines.module.settings';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -389,6 +395,15 @@ export class SettingsController {
     }
   }
 
+  @Get('monthly-routines')
+  async getMonthlyRoutineModuleSettings(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    return {
+      success: true,
+      data: await this.readStoredMonthlyRoutineModuleSettings(),
+    };
+  }
+
   @Get('tickets')
   async getTicketModuleSettings(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'settings:view');
@@ -457,6 +472,28 @@ export class SettingsController {
     });
 
     return { success: true, message: 'Configuracoes do modulo remoto salvas.', data: parsed };
+  }
+
+  @Put('monthly-routines')
+  async updateMonthlyRoutineModuleSettings(@Req() req: Request, @Body() body: MonthlyRoutineModuleSettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = monthlyRoutineModuleSettingsSchema.parse(body);
+
+    await this.prisma.systemSetting.upsert({
+      where: { key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY },
+      update: { value: JSON.stringify(parsed) },
+      create: {
+        key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY,
+        value: JSON.stringify(parsed),
+        description: 'Configuracoes globais do modulo de rotinas mensais',
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Configuracoes de rotinas mensais salvas.',
+      data: parsed,
+    };
   }
 
   @Get('evolution')
@@ -1975,6 +2012,24 @@ export class SettingsController {
       return validation.success ? validation.data : DEFAULT_EVOLUTION_SETTINGS;
     } catch {
       return DEFAULT_EVOLUTION_SETTINGS;
+    }
+  }
+
+  private async readStoredMonthlyRoutineModuleSettings() {
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY },
+        select: { value: true },
+      });
+
+      if (!setting?.value) {
+        return DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS;
+      }
+
+      const parsed = monthlyRoutineModuleSettingsSchema.safeParse(JSON.parse(setting.value));
+      return parsed.success ? parsed.data : DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS;
+    } catch {
+      return DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS;
     }
   }
 }

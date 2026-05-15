@@ -7,6 +7,7 @@ import {
 } from "@/features/settings/application/settings-read.queries";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
 import { TicketSettingsTab } from "@/features/tickets/interface/components/ticket-settings-tab";
+import { MonthlyRoutineModuleSettingsTab } from "@/features/rotinas-mensais/interface/components/monthly-routine-module-settings-tab";
 import { IntegrationsSettingsTab } from "./integrations-tab";
 import {
   SettingsPageIntro,
@@ -27,6 +28,7 @@ import {
   MessageSquare,
   Plug,
   Bot,
+  CalendarRange,
 } from "lucide-react";
 
 import {
@@ -57,6 +59,7 @@ const TAB_VALUES = new Set([
   "agent",
   "integrations",
   "automations",
+  "monthly-routines",
   "access",
   "tax",
   "sefaz",
@@ -102,7 +105,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
       <Tabs defaultValue={defaultTab} className="w-full min-w-0 space-y-6">
         <div className="flex items-center">
-          <SettingsTabsRail className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
+          <SettingsTabsRail className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-8">
             <SettingsTabsRailTrigger
               value="general"
               icon={Settings}
@@ -125,6 +128,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               value="automations"
               icon={Bot}
               title="Automacoes"
+            />
+
+            <SettingsTabsRailTrigger
+              value="monthly-routines"
+              icon={CalendarRange}
+              title="Rotinas Mensais"
             />
 
             <SettingsTabsRailTrigger
@@ -186,6 +195,15 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         >
           <div className="max-w-6xl">
             <AutomationSettingsTab />
+          </div>
+        </TabsContent>
+
+        <TabsContent
+          value="monthly-routines"
+          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+        >
+          <div className="max-w-6xl">
+            <MonthlyRoutineModuleSettingsTab />
           </div>
         </TabsContent>
 
