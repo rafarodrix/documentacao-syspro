@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
   ticketModuleStatusSchema,
@@ -10,6 +10,7 @@ import { TicketsService } from './tickets.service';
 
 @Injectable()
 export class TicketsRouter {
+  private readonly logger = new Logger(TicketsRouter.name);
   public router!: ReturnType<typeof this.createRouter>;
 
   constructor(
@@ -21,10 +22,32 @@ export class TicketsRouter {
 
   private createRouter() {
     return this.trpc.router({
+      linkedCompanies: this.trpc.publicProcedure
+        .query(({ ctx }) => {
+          return this.ticketsService.getLinkedCompanies(ctx.headers);
+        }),
+
       archive: this.trpc.publicProcedure
         .input(z.object({ id: z.string().trim().min(1) }))
         .mutation(({ input, ctx }) => {
+          this.logger.log(JSON.stringify({
+            flow: 'tickets_archive',
+            stage: 'trpc_router_enter',
+            ticketId: input.id,
+            source: ctx.req?.headers['x-trpc-source'] ?? null,
+          }));
           return this.ticketsService.archiveTicket(input.id, ctx.headers);
+        }),
+
+      update: this.trpc.publicProcedure
+        .input(
+          z.object({
+            id: z.string().trim().min(1),
+            data: ticketModuleUpdateRequestSchema,
+          }),
+        )
+        .mutation(({ input, ctx }) => {
+          return this.ticketsService.updateStatus(input.id, input.data, ctx.headers);
         }),
 
       updateStatus: this.trpc.publicProcedure

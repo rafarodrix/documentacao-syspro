@@ -1,13 +1,10 @@
 import type {
   TicketModuleDetailsResponse,
-  TicketModuleLinkedCompaniesResponse,
   TicketModuleListResponse,
   TicketModuleMutationResponse,
-  TicketModuleUpdateRequest,
 } from "@dosc-syspro/contracts/ticket";
 import {
   ticketModuleDetailsResponseSchema,
-  ticketModuleLinkedCompaniesResponseSchema,
   ticketModuleListResponseSchema,
   ticketModuleMutationResponseSchema,
 } from "@dosc-syspro/contracts/ticket";
@@ -53,21 +50,4 @@ export async function replyTicketGateway(
       body: payload,
     }),
   );
-}
-
-export async function updateTicketGateway(
-  ticketId: string,
-  payload: TicketModuleUpdateRequest,
-): Promise<TicketModuleMutationResponse> {
-  return ticketModuleMutationResponseSchema.parse(
-    await callTicketsApi(`/${ticketId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }),
-  );
-}
-
-export async function fetchLinkedCompaniesGateway(): Promise<TicketModuleLinkedCompaniesResponse> {
-  return ticketModuleLinkedCompaniesResponseSchema.parse(await callTicketsApi("/linked-companies"));
 }

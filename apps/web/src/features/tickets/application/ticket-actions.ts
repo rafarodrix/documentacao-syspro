@@ -13,11 +13,9 @@ import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketV
 import { trpc } from "@/lib/api/trpc-client";
 import {
   createTicketMultipartGateway,
-  fetchLinkedCompaniesGateway,
   fetchTicketDetailsPageGateway,
   fetchTicketsGateway,
   replyTicketGateway,
-  updateTicketGateway,
 } from "@/features/tickets/infrastructure";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { toTicketListItem } from "@/features/tickets/application/ticket-list.mapper";
@@ -313,14 +311,14 @@ export async function ticketQuickAction(input: {
 
   try {
     if (input.action === "assume") {
-      const result = await updateTicketGateway(ticketId, { assignedUserId: session.userId, status: "IN_PROGRESS" });
+      const result = await trpc.tickets.update.mutate({ id: ticketId, data: { assignedUserId: session.userId, status: "IN_PROGRESS" } });
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao assumir ticket." };
       }
     }
 
     if (input.action === "priority_high") {
-      const result = await updateTicketGateway(ticketId, { priority: "HIGH" });
+      const result = await trpc.tickets.update.mutate({ id: ticketId, data: { priority: "HIGH" } });
       if (!result.success) {
         return { success: false, error: result.error || "Falha ao elevar prioridade." };
       }
@@ -371,9 +369,7 @@ export async function unassignTicketToMeAction(ticketId: string): Promise<Ticket
   }
 
   try {
-    const { updateTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
-    // Enviando explicitamente uma string vazia para limpar o assignedUserId, que o backend entende como unassign.
-    const result = await updateTicketGateway(ticketId, { assignedUserId: "" });
+    const result = await trpc.tickets.update.mutate({ id: ticketId, data: { assignedUserId: "" } });
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao liberar ticket." };
     }
@@ -462,7 +458,7 @@ export async function updateTicketClassificationAction(
   }
 
   try {
-    const result = await updateTicketGateway(ticketId, updatePayload);
+    const result = await trpc.tickets.update.mutate({ id: ticketId, data: updatePayload });
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao atualizar classificacao." };
     }
@@ -489,9 +485,12 @@ export async function updateTicketAssigneeAction(
   const team = payload.team?.trim().toUpperCase();
 
   try {
-    const result = await updateTicketGateway(ticketId, {
-      assignedUserId,
-      ...(team ? { team } : {}),
+    const result = await trpc.tickets.update.mutate({
+      id: ticketId,
+      data: {
+        assignedUserId,
+        ...(team ? { team } : {}),
+      },
     });
 
     if (!result.success) {
@@ -538,7 +537,7 @@ export async function getUserLinkedCompaniesAction() {
   if (!session) return { success: false, data: [] };
 
   try {
-    const response = await fetchLinkedCompaniesGateway();
+    const response = await trpc.tickets.linkedCompanies.query();
     if (!response.success) {
       return { success: false, data: [] };
     }
@@ -583,10 +582,6 @@ export async function transferTicketAction(ticketId: string, payload: { team: st
   }
 
   try {
-    const { updateTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
-    
-    // Convert priority back to TicketModulePriority format if needed
-    // Assuming backend handles it or we map it properly inside the gateway.
     let priorityStr: "LOW" | "NORMAL" | "HIGH" | "CRITICAL" | undefined;
     if (payload.priority !== undefined) {
        priorityStr = payload.priority === 3 ? "HIGH" : payload.priority === 1 ? "LOW" : "NORMAL";
@@ -599,7 +594,7 @@ export async function transferTicketAction(ticketId: string, payload: { team: st
       ...(priorityStr ? { priority: priorityStr } : {})
     };
 
-    const result = await updateTicketGateway(ticketId, updatePayload);
+    const result = await trpc.tickets.update.mutate({ id: ticketId, data: updatePayload });
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao transferir ticket." };
     }

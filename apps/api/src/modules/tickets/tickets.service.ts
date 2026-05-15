@@ -787,6 +787,7 @@ export class TicketsService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
     const settings = await this.getTicketModuleSettings();
+    const isArchiveFlow = input.status === TicketStatus.ARCHIVED;
 
     const exists = await this.prisma.conversation.findUnique({
       where: { id },
@@ -807,6 +808,19 @@ export class TicketsService {
     });
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(exists.companyId, accessScope);
+
+    if (isArchiveFlow) {
+      this.logger.log(JSON.stringify({
+        flow: 'tickets_archive',
+        stage: 'update_status_enter',
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber ?? null,
+        previousStatus: exists.status,
+        requestedStatus: input.status,
+        requesterUserId: requester.userId,
+        requesterRole: requester.role,
+      }));
+    }
 
     const existingMetadata =
       exists.metadata && typeof exists.metadata === 'object' && !Array.isArray(exists.metadata)
@@ -1132,6 +1146,17 @@ export class TicketsService {
         data: data as Prisma.ConversationUncheckedUpdateInput,
       });
 
+      if (isArchiveFlow) {
+        this.logger.log(JSON.stringify({
+          flow: 'tickets_archive',
+          stage: 'conversation_updated',
+          ticketId: id,
+          previousStatus: exists.status,
+          persistedRequestedStatus: data.status ?? null,
+          persistedClosedAt: data.closedAt instanceof Date ? data.closedAt.toISOString() : data.closedAt ?? null,
+        }));
+      }
+
       if (input.assignedUserId) {
         await tx.conversationAssignment.create({
           data: {
@@ -1319,10 +1344,39 @@ export class TicketsService {
       });
     }
 
+    if (isArchiveFlow) {
+      const persistedTicket = await this.prisma.conversation.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          status: true,
+          closedAt: true,
+          updatedAt: true,
+          assignedUserId: true,
+        },
+      });
+
+      this.logger.log(JSON.stringify({
+        flow: 'tickets_archive',
+        stage: 'update_status_exit',
+        ticketId: id,
+        returnedStatus: resolvedNextStatus,
+        persistedStatus: persistedTicket?.status ?? null,
+        persistedClosedAt: persistedTicket?.closedAt?.toISOString() ?? null,
+        persistedUpdatedAt: persistedTicket?.updatedAt?.toISOString() ?? null,
+        persistedAssignedUserId: persistedTicket?.assignedUserId ?? null,
+      }));
+    }
+
     return serializeMutationResponse('Ticket atualizado com sucesso.', resolvedNextStatus);
   }
 
   async archiveTicket(id: string, rawHeaders?: IncomingHttpHeaders) {
+    this.logger.log(JSON.stringify({
+      flow: 'tickets_archive',
+      stage: 'archive_ticket_enter',
+      ticketId: id,
+    }));
     return this.updateStatus(id, { status: TicketStatus.ARCHIVED }, rawHeaders);
   }
 
