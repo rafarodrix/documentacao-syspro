@@ -1,56 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
 
+async function fetchActiveSessionsCount(): Promise<number> {
+  try {
+    const res = await fetch("/api/remote/sessions/count");
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return typeof data.count === "number" ? data.count : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Contador de sessoes ativas para o header do portal.
  * Escuta o stream SSE global e atualiza o estado em tempo real.
+ * Reconecta automaticamente apos o timeout do Vercel (300s) e ressincroniza o contador.
  */
 export function RemoteActiveSessionsCounter({ initialCount = 0 }: { initialCount?: number }) {
   const [count, setCount] = useState(initialCount);
   const [isUpdating, setIsUpdating] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/remote/sessions/events");
+    let destroyed = false;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+    function connect() {
+      if (destroyed) return;
 
-        if (data.type === "session_change") {
-          setIsUpdating(true);
+      const eventSource = new EventSource("/api/remote/sessions/events");
+      eventSourceRef.current = eventSource;
 
-          // O contador representa apenas sessoes efetivamente ativas.
-          if (data.status === "STARTED") {
-            setCount((prev) => prev + 1);
-            toast.info(`Sessão iniciada no host ${data.hostId}`, {
-              description: data.ticketNumber ? `Ticket #${data.ticketNumber}` : undefined,
-              icon: <Activity className="h-4 w-4 text-emerald-500" />,
-            });
-          } else if (data.status === "ENDED" || data.status === "FAILED" || data.status === "CANCELLED") {
-            setCount((prev) => Math.max(0, prev - 1));
+      eventSource.onopen = async () => {
+        // Ressincroniza o contador ao (re)conectar para compensar eventos perdidos durante o intervalo
+        const current = await fetchActiveSessionsCount();
+        if (!destroyed) setCount(current);
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "session_change") {
+            setIsUpdating(true);
+
+            if (data.status === "STARTED") {
+              setCount((prev) => prev + 1);
+              toast.info(`Sessão iniciada no host ${data.hostId}`, {
+                description: data.ticketNumber ? `Ticket #${data.ticketNumber}` : undefined,
+                icon: <Activity className="h-4 w-4 text-emerald-500" />,
+              });
+            } else if (data.status === "ENDED" || data.status === "FAILED" || data.status === "CANCELLED") {
+              setCount((prev) => Math.max(0, prev - 1));
+            }
+
+            setTimeout(() => setIsUpdating(false), 2000);
           }
-
-          setTimeout(() => setIsUpdating(false), 2000);
+        } catch (error) {
+          console.error("Erro ao processar evento de sessao:", error);
         }
-      } catch (error) {
-        console.error("Erro ao processar evento de sessao:", error);
-      }
-    };
+      };
 
-    eventSource.onerror = (error) => {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("Stream de sessoes remoto encerrado:", error);
-      }
-      eventSource.close();
-    };
+      // Nao fechar manualmente: o EventSource reconecta automaticamente quando a conexao cai
+      // (incluindo o timeout de 300s do Vercel). O onopen ressincronizara o contador.
+      eventSource.onerror = () => {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("Stream de sessoes remoto interrompido, reconectando...");
+        }
+      };
+    }
+
+    connect();
 
     return () => {
-      eventSource.close();
+      destroyed = true;
+      eventSourceRef.current?.close();
+      eventSourceRef.current = null;
     };
   }, []);
 
