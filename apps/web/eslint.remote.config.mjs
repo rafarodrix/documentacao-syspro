@@ -1,26 +1,69 @@
-import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import path from "node:path";
+import tsParser from "@typescript-eslint/parser";
+import reactPlugin from "eslint-plugin-react";
+import hooksPlugin from "eslint-plugin-react-hooks";
+import nextPlugin from "@next/eslint-plugin-next";
 import { FlatCompat } from "@eslint/eslintrc";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load CJS plugin via createRequire (not in node_modules of web, but in root)
+const require = createRequire(import.meta.url);
+const trilink = require("eslint-plugin-trilink-tokens");
+
+// FlatCompat used only for the trilink-tokens plugin (CJS, legacy format)
 const compat = new FlatCompat({
   baseDirectory: __dirname,
-  resolvePluginsRelativeTo: __dirname,
+  resolvePluginsRelativeTo: path.resolve(__dirname, "../../"),
 });
 
 /** @type {import("eslint").Linter.FlatConfig[]} */
 export default [
-  // Bridge next/core-web-vitals (legacy) to flat config
-  ...compat.extends("next/core-web-vitals"),
-
-  // Load trilink-tokens plugin via compat (resolves from root node_modules)
-  ...compat.plugins("trilink-tokens"),
-
-  // Base trilink rules — disabled for the remote feature
+  // TypeScript parser for all .ts/.tsx files
   {
     files: ["src/**/*.{ts,tsx}"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+    },
+  },
+
+  // React flat config (recommended)
+  {
+    ...reactPlugin.configs.flat.recommended,
+    files: ["src/**/*.{ts,tsx}"],
+    settings: { react: { version: "detect" } },
+  },
+
+  // React 17+ new JSX transform: disables react-in-jsx-scope
+  {
+    ...reactPlugin.configs.flat["jsx-runtime"],
+    files: ["src/**/*.{ts,tsx}"],
+  },
+
+  // React Hooks (recommended-latest uses flat config plugin object format)
+  {
+    ...hooksPlugin.configs["recommended-latest"],
+    files: ["src/**/*.{ts,tsx}"],
+  },
+
+  // Next.js core-web-vitals (native flat config export)
+  {
+    ...nextPlugin.flatConfig.coreWebVitals,
+    files: ["src/**/*.{ts,tsx}"],
+  },
+
+  // trilink-tokens plugin — disabled for the remote feature
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    plugins: { "trilink-tokens": trilink },
     rules: {
       "trilink-tokens/no-hex-colors": "warn",
       "trilink-tokens/no-raw-tailwind-palette": "warn",
