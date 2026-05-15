@@ -1,9 +1,8 @@
 import { requireSession } from "@/lib/auth-helpers";
-import { trpc } from "@/lib/api/trpc-client";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
+import { getMonthlyRoutineCompetenciesQuery, getMonthlyRoutineListQuery } from "@/features/rotinas-mensais/application/rotinas-mensais-read.queries";
 import { RotinasMensaisPage } from "@/features/rotinas-mensais/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
-import type { MonthlyRoutineListResponse } from "@dosc-syspro/contracts/rotinas-mensais";
 
 interface RotinasMensaisPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -17,16 +16,31 @@ export default async function RotinasMensaisRootPage({ searchParams }: RotinasMe
   });
 
   if (!canView) return <CadastrosAccessDenied />;
+  const canManage = await currentUserHasAnyPermission(["rotinas_mensais:manage"], {
+    acceptCompanyScope: true,
+  });
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const searchParam = resolvedSearchParams.search;
   const search = typeof searchParam === "string" ? searchParam : Array.isArray(searchParam) ? searchParam[0] ?? "" : "";
 
-  const data = await (trpc.rotinasMensais.list.query({
-    page: "1",
-    pageSize: "20",
-    search,
-  }) as Promise<MonthlyRoutineListResponse>);
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1);
+  const [data, competencies] = await Promise.all([
+    getMonthlyRoutineListQuery({
+      page: "1",
+      pageSize: "20",
+      search,
+    }),
+    getMonthlyRoutineCompetenciesQuery({
+      page: "1",
+      pageSize: "12",
+      year,
+      month,
+      search,
+    }),
+  ]);
 
-  return <RotinasMensaisPage data={data} search={search} />;
+  return <RotinasMensaisPage data={data} competencies={competencies} search={search} canManage={canManage} />;
 }

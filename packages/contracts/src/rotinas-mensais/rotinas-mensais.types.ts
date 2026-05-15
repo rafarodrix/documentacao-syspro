@@ -21,6 +21,12 @@ export const MONTHLY_ROUTINE_EXECUTION_STATUS_VALUES = [
 
 export const monthlyRoutineExecutionStatusSchema = z.enum(MONTHLY_ROUTINE_EXECUTION_STATUS_VALUES);
 
+export const MONTHLY_ROUTINE_REQUEST_CHANNEL_VALUES = ["WHATSAPP"] as const;
+export const MONTHLY_ROUTINE_REQUEST_STATUS_VALUES = ["SENT", "FAILED"] as const;
+
+export const monthlyRoutineRequestChannelSchema = z.enum(MONTHLY_ROUTINE_REQUEST_CHANNEL_VALUES);
+export const monthlyRoutineRequestStatusSchema = z.enum(MONTHLY_ROUTINE_REQUEST_STATUS_VALUES);
+
 export const monthlyRoutineListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
   status: z.enum([...MONTHLY_ROUTINE_CANDIDATE_STATUS_VALUES, "ALL"]).optional(),
@@ -104,8 +110,102 @@ export const monthlyRoutineCompanyConfigViewSchema = z.object({
   accountingContacts: z.array(monthlyRoutineContactOptionSchema),
 });
 
+export const monthlyRoutineCompetencyListQuerySchema = paginationQuerySchema.extend({
+  year: z.string().optional(),
+  month: z.string().optional(),
+  status: z.enum([...MONTHLY_ROUTINE_EXECUTION_STATUS_VALUES, "ALL"]).optional(),
+  search: z.string().trim().optional(),
+});
+
+export const monthlyRoutineCompetencyItemSchema = z.object({
+  id: z.string(),
+  configId: z.string(),
+  companyId: z.string(),
+  companyName: z.string(),
+  accountingFirmName: z.string().nullable(),
+  title: z.string(),
+  year: z.number().int(),
+  month: z.number().int(),
+  status: monthlyRoutineExecutionStatusSchema,
+  dueDate: z.string(),
+  requestedAt: z.string().nullable(),
+  receivedAt: z.string().nullable(),
+  sentAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  clientContactId: z.string().nullable(),
+  clientContactName: z.string().nullable(),
+  accountingContactId: z.string().nullable(),
+  accountingContactName: z.string().nullable(),
+  requiredDocumentsCount: z.number().int().nonnegative(),
+  availableContacts: z.array(monthlyRoutineContactOptionSchema),
+  manualRequestsCount: z.number().int().nonnegative(),
+  lastManualRequestAt: z.string().nullable(),
+  lastManualRequestStatus: monthlyRoutineRequestStatusSchema.nullable(),
+  lastManualRequestContactName: z.string().nullable(),
+  manualRequests: z.array(z.object({
+    id: z.string(),
+    contactId: z.string(),
+    contactName: z.string(),
+    requestedByUserName: z.string(),
+    channel: monthlyRoutineRequestChannelSchema,
+    status: monthlyRoutineRequestStatusSchema,
+    targetPhone: z.string(),
+    message: z.string(),
+    providerMessageId: z.string().nullable(),
+    errorMessage: z.string().nullable(),
+    requestedAt: z.string(),
+    sentAt: z.string().nullable(),
+  })),
+});
+
+export const monthlyRoutineCompetencySummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  pending: z.number().int().nonnegative(),
+  waitingCustomer: z.number().int().nonnegative(),
+  received: z.number().int().nonnegative(),
+  sentToAccounting: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  overdue: z.number().int().nonnegative(),
+});
+
+export const monthlyRoutineCompetencyListResponseSchema = z.object({
+  items: z.array(monthlyRoutineCompetencyItemSchema),
+  pagination: paginationMetaSchema,
+  summary: monthlyRoutineCompetencySummarySchema,
+  year: z.number().int(),
+  month: z.number().int(),
+});
+
+export const monthlyRoutineSyncCompetenciesSchema = z.object({
+  year: z.number().int().min(2000).max(2100).optional(),
+  month: z.number().int().min(1).max(12).optional(),
+});
+
+export const monthlyRoutineSyncCompetenciesResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  generated: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
+  year: z.number().int(),
+  month: z.number().int(),
+});
+
+export const monthlyRoutineSendManualRequestSchema = z.object({
+  competencyId: z.string().min(1),
+  contactId: z.string().min(1),
+  message: z.string().trim().min(8).max(4000).optional(),
+});
+
+export const monthlyRoutineSendManualRequestResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  request: monthlyRoutineCompetencyItemSchema.shape.manualRequests.element,
+});
+
 export type MonthlyRoutineCandidateStatus = z.output<typeof monthlyRoutineCandidateStatusSchema>;
 export type MonthlyRoutineExecutionStatus = z.output<typeof monthlyRoutineExecutionStatusSchema>;
+export type MonthlyRoutineRequestChannel = z.output<typeof monthlyRoutineRequestChannelSchema>;
+export type MonthlyRoutineRequestStatus = z.output<typeof monthlyRoutineRequestStatusSchema>;
 export type MonthlyRoutineListQuery = z.output<typeof monthlyRoutineListQuerySchema>;
 export type MonthlyRoutineSummary = z.output<typeof monthlyRoutineSummarySchema>;
 export type MonthlyRoutineCompanyItem = z.output<typeof monthlyRoutineCompanyItemSchema>;
@@ -114,3 +214,11 @@ export type MonthlyRoutineContactOption = z.output<typeof monthlyRoutineContactO
 export type MonthlyRoutineCompanyConfig = z.output<typeof monthlyRoutineCompanyConfigSchema>;
 export type MonthlyRoutineCompanyConfigUpsertInput = z.output<typeof monthlyRoutineCompanyConfigUpsertSchema>;
 export type MonthlyRoutineCompanyConfigView = z.output<typeof monthlyRoutineCompanyConfigViewSchema>;
+export type MonthlyRoutineCompetencyListQuery = z.output<typeof monthlyRoutineCompetencyListQuerySchema>;
+export type MonthlyRoutineCompetencyItem = z.output<typeof monthlyRoutineCompetencyItemSchema>;
+export type MonthlyRoutineCompetencySummary = z.output<typeof monthlyRoutineCompetencySummarySchema>;
+export type MonthlyRoutineCompetencyListResponse = z.output<typeof monthlyRoutineCompetencyListResponseSchema>;
+export type MonthlyRoutineSyncCompetenciesInput = z.output<typeof monthlyRoutineSyncCompetenciesSchema>;
+export type MonthlyRoutineSyncCompetenciesResult = z.output<typeof monthlyRoutineSyncCompetenciesResultSchema>;
+export type MonthlyRoutineSendManualRequestInput = z.output<typeof monthlyRoutineSendManualRequestSchema>;
+export type MonthlyRoutineSendManualRequestResult = z.output<typeof monthlyRoutineSendManualRequestResultSchema>;

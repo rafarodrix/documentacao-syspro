@@ -280,6 +280,15 @@ enum MonthlyRoutineStatus {
   CANCELED
 }
 
+enum MonthlyRoutineRequestChannel {
+  WHATSAPP
+}
+
+enum MonthlyRoutineRequestStatus {
+  SENT
+  FAILED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -357,6 +366,7 @@ model Company {
   agentDevices                 AgentDevice[]
   monthlyRoutineConfig         MonthlyRoutineConfig?
   monthlyRoutineCompetencies   MonthlyRoutineCompetency[]
+  monthlyRoutineRequests       MonthlyRoutineRequest[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -395,6 +405,7 @@ model CompanyContact {
   crmLeads                     CrmLead[]
   monthlyRoutineClientConfigs     MonthlyRoutineConfig[] @relation("MonthlyRoutineClientContact")
   monthlyRoutineAccountingConfigs MonthlyRoutineConfig[] @relation("MonthlyRoutineAccountingContact")
+  monthlyRoutineRequests          MonthlyRoutineRequest[]
 
   @@index([status])
   @@index([whatsapp])
@@ -501,6 +512,7 @@ model User {
   crmOwnedLeads                       CrmLead[]                     @relation("CrmLeadOwner")
   authoredCrmActivities               CrmActivity[]                 @relation("CrmActivityAuthor")
   assignedCrmTasks                    CrmTask[]                     @relation("CrmTaskAssignee")
+  requestedMonthlyRoutineRequests     MonthlyRoutineRequest[]       @relation("MonthlyRoutineRequestRequestedBy")
 
   // INDICES PARA PERFORMANCE
   @@index([name])
@@ -1316,6 +1328,7 @@ model MonthlyRoutineCompetency {
   completedAt DateTime?
   notes       String? @db.Text
   metadata    Json?
+  requests    MonthlyRoutineRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1324,6 +1337,42 @@ model MonthlyRoutineCompetency {
   @@index([companyId, year, month])
   @@index([status, dueDate])
   @@map("monthly_routine_competency")
+}
+
+model MonthlyRoutineRequest {
+  id String @id @default(cuid())
+
+  competencyId String
+  competency   MonthlyRoutineCompetency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  contactId String
+  contact   CompanyContact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+
+  requestedByUserId String
+  requestedByUser   User @relation("MonthlyRoutineRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  channel               MonthlyRoutineRequestChannel @default(WHATSAPP)
+  status                MonthlyRoutineRequestStatus
+  targetPhone           String
+  message               String @db.Text
+  providerMessageId     String?
+  providerConnectionKey String?
+  errorMessage          String? @db.Text
+  requestedAt           DateTime @default(now())
+  sentAt                DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([competencyId, requestedAt])
+  @@index([companyId, requestedAt])
+  @@index([contactId, requestedAt])
+  @@index([requestedByUserId])
+  @@index([status, requestedAt])
+  @@map("monthly_routine_request")
 }
 
 // cst

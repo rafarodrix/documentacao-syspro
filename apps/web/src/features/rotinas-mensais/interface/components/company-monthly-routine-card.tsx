@@ -44,7 +44,7 @@ export function CompanyMonthlyRoutineCard({
   const handleSave = () => {
     startTransition(async () => {
       try {
-        const result = await trpc.rotinasMensais.upsertCompanyConfig.mutation({
+        const result = await trpc.rotinasMensais.upsertCompanyConfig.mutate({
           companyId: view.company.companyId,
           data: {
             ...draft,
