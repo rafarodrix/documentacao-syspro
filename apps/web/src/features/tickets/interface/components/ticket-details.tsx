@@ -32,7 +32,7 @@ import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ti
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { TicketTestingReturnDialog } from "@/features/tickets/interface/components/ticket-testing-return-dialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
@@ -122,11 +122,6 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     useEffect(() => {
         setTimelinePagination(messagePagination);
     }, [messagePagination]);
-
-    const handleArchiveDialogChange = (open: boolean) => {
-        if (!open) setArchiveReason("");
-        setArchiveDialogOpen(open);
-    };
 
     const handleArchiveTicket = async () => {
         if (!ticket) return;
@@ -556,51 +551,51 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         <Separator />
                                         <section className="space-y-2">
                                             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes</p>
-                                            <AlertDialog open={archiveDialogOpen} onOpenChange={handleArchiveDialogChange}>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className="h-9 w-full justify-start border-red-500/30 text-xs text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                            {!archiveDialogOpen ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="h-9 w-full justify-start border-red-500/30 text-xs text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                                    onClick={() => setArchiveDialogOpen(true)}
+                                                >
+                                                    Arquivar ticket
+                                                </Button>
+                                            ) : (
+                                                <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-3">
+                                                    <p className="text-xs font-medium text-red-700 dark:text-red-400">Confirmar arquivamento?</p>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                        O ticket sera movido para arquivados e removido da fila ativa.
+                                                    </p>
+                                                    <Textarea
+                                                        placeholder="Motivo (opcional)..."
+                                                        className="min-h-[64px] resize-none text-xs"
+                                                        value={archiveReason}
+                                                        onChange={(e) => setArchiveReason(e.target.value)}
                                                         disabled={isArchiving}
-                                                    >
-                                                        Arquivar ticket
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Arquivar ticket?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Esta acao move o ticket para arquivados e remove ele da fila ativa. O historico permanece disponivel para auditoria.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-xs font-medium text-foreground" htmlFor="archive-reason">
-                                                            Motivo do arquivamento <span className="text-muted-foreground">(opcional)</span>
-                                                        </label>
-                                                        <Textarea
-                                                            id="archive-reason"
-                                                            placeholder="Descreva o motivo para arquivar este ticket..."
-                                                            className="min-h-[80px] resize-none text-sm"
-                                                            value={archiveReason}
-                                                            onChange={(e) => setArchiveReason(e.target.value)}
-                                                            disabled={isArchiving}
-                                                        />
-                                                    </div>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    />
+                                                    <div className="flex gap-2">
                                                         <Button
                                                             type="button"
-                                                            className="bg-red-600 text-white hover:bg-red-700"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex-1 text-xs"
+                                                            onClick={() => { setArchiveDialogOpen(false); setArchiveReason(""); }}
+                                                            disabled={isArchiving}
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="flex-1 bg-red-600 text-xs text-white hover:bg-red-700"
                                                             onClick={handleArchiveTicket}
                                                             disabled={isArchiving}
                                                         >
-                                                            {isArchiving && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
-                                                            Confirmar arquivamento
+                                                            {isArchiving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Arquivar"}
                                                         </Button>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </section>
                                     </>
                                 )}
