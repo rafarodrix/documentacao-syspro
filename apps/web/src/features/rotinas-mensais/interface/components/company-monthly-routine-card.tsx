@@ -138,6 +138,9 @@ export function CompanyMonthlyRoutineCard({
                 })
               }
             />
+            <p className="text-xs text-muted-foreground">
+              Apos o dia {draft.dueDay}, a competencia passa automaticamente para atrasada.
+            </p>
           </div>
 
           <div className="space-y-2">

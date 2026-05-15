@@ -154,6 +154,7 @@ export function ChatwootDashboardApp() {
   const [hostReloadToken, setHostReloadToken] = useState(0);
   const [startingHostId, setStartingHostId] = useState<string | null>(null);
   const [isStartingSession, startSessionTransition] = useTransition();
+  const [monthlyRoutineCount, setMonthlyRoutineCount] = useState(0);
 
   // Company / contact binding
   const [manualLinkedCompany, setManualLinkedCompany] = useState<CompanyOption | null>(null);
@@ -269,6 +270,7 @@ export function ChatwootDashboardApp() {
 
   const canCreateTicket = Boolean(resolved.companyId);
   const canOpenInfrastructureHosts = Boolean(resolved.companyId);
+  const canOpenMonthlyRoutines = Boolean(resolved.companyId) && monthlyRoutineCount > 0;
 
   const matchedExistingTicket = useMemo(
     () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
@@ -375,6 +377,48 @@ export function ChatwootDashboardApp() {
       nomeFantasia: onlyCompany.nomeFantasia ?? null,
     });
   }, [linkedCompanies, manualLinkedCompany?.id, resolved.companyId]);
+
+  useEffect(() => {
+    if (!resolved.companyId) {
+      setMonthlyRoutineCount(0);
+      return;
+    }
+
+    let cancelled = false;
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1);
+
+    async function loadMonthlyRoutineAvailability() {
+      try {
+        const response = await trpc.rotinasMensais.listCompetencies.query({
+          page: "1",
+          pageSize: "100",
+          year,
+          month,
+          status: "ALL",
+        });
+
+        if (cancelled) return;
+        const nextCount = response.items.filter((item) => item.companyId === resolved.companyId).length;
+        setMonthlyRoutineCount(nextCount);
+      } catch {
+        if (cancelled) return;
+        setMonthlyRoutineCount(0);
+      }
+    }
+
+    void loadMonthlyRoutineAvailability();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolved.companyId]);
+
+  useEffect(() => {
+    if (activeTab !== "monthly-routines") return;
+    if (canOpenMonthlyRoutines) return;
+    setActiveTab("overview");
+  }, [activeTab, canOpenMonthlyRoutines]);
 
   // ── Sync ticket form fields from settings ──────────
 
@@ -1030,7 +1074,7 @@ export function ChatwootDashboardApp() {
         {/* Tab navigation + content */}
         <div className="flex-1 px-3 py-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-4 rounded-2xl border border-border/60 bg-card p-1">
+            <TabsList className={`grid h-auto w-full ${canOpenMonthlyRoutines ? "grid-cols-4" : "grid-cols-3"} rounded-2xl border border-border/60 bg-card p-1`}>
               <TabsTrigger value="overview" className="rounded-xl py-2 text-xs">
                 Visao geral
               </TabsTrigger>
@@ -1050,9 +1094,14 @@ export function ChatwootDashboardApp() {
                   </span>
                 ) : null}
               </TabsTrigger>
-              <TabsTrigger value="monthly-routines" className="rounded-xl py-2 text-xs">
-                Rotinas
-              </TabsTrigger>
+              {canOpenMonthlyRoutines ? (
+                <TabsTrigger value="monthly-routines" className="rounded-xl py-2 text-xs">
+                  Rotinas
+                  <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
+                    {monthlyRoutineCount}
+                  </span>
+                </TabsTrigger>
+              ) : null}
             </TabsList>
 
             <TabsContent value="overview" className="mt-3 space-y-3">
@@ -1064,9 +1113,11 @@ export function ChatwootDashboardApp() {
             <TabsContent value="infrastructure" className="mt-3 space-y-3">
               <ChatwootInfrastructureTab />
             </TabsContent>
-            <TabsContent value="monthly-routines" className="mt-3 space-y-3">
-              <ChatwootMonthlyRoutinesTab />
-            </TabsContent>
+            {canOpenMonthlyRoutines ? (
+              <TabsContent value="monthly-routines" className="mt-3 space-y-3">
+                <ChatwootMonthlyRoutinesTab />
+              </TabsContent>
+            ) : null}
           </Tabs>
         </div>
       </div>

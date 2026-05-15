@@ -7,7 +7,6 @@ import { CalendarRange, CircleAlert, Eye, Filter, MessageSquareShare, RefreshCw,
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { MonthlyRoutineConfigDialog } from "./monthly-routine-config-dialog";
 import { MonthlyRoutineDetailsDialog } from "./monthly-routine-details-dialog";
 import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-request-dialog";
 import { MonthlyRoutineStatusDialog } from "./monthly-routine-status-dialog";
@@ -99,7 +98,6 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
   const deferredSearch = useDeferredValue(searchDraft);
   const [selectedCompetency, setSelectedCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [selectedStatusCompetency, setSelectedStatusCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
-  const [selectedConfigCompetency, setSelectedConfigCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [selectedDetailsCompetency, setSelectedDetailsCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -361,16 +359,6 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                           </Button>
                           <Button
                             type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="mr-2"
-                            onClick={() => setSelectedConfigCompetency(item)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver configuracao
-                          </Button>
-                          <Button
-                            type="button"
                             variant="outline"
                             size="sm"
                             className="mr-2"
@@ -422,14 +410,6 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
         open={Boolean(selectedDetailsCompetency)}
         onOpenChange={(open) => {
           if (!open) setSelectedDetailsCompetency(null);
-        }}
-      />
-
-      <MonthlyRoutineConfigDialog
-        item={selectedConfigCompetency}
-        open={Boolean(selectedConfigCompetency)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedConfigCompetency(null);
         }}
       />
     </div>

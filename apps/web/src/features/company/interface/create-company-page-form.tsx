@@ -210,7 +210,21 @@ export function CreateCompanyPageForm({
   const { errors, dirtyFields, isSubmitting, isDirty } = form.formState;
   const { isLoadingCep, handleCepChange } = useAddressLookup(form.setValue);
 
-  const canSubmit = isDirty;
+  const monthlyRoutineDirty = useMemo(() => {
+    if (!monthlyRoutineView || !monthlyRoutineDraft) return false;
+    return JSON.stringify({
+      isActive: monthlyRoutineView.config.isActive,
+      title: monthlyRoutineView.config.title,
+      dueDay: monthlyRoutineView.config.dueDay,
+      reminderDays: monthlyRoutineView.config.reminderDays,
+      clientContactId: monthlyRoutineView.config.clientContactId,
+      accountingContactId: monthlyRoutineView.config.accountingContactId,
+      notes: monthlyRoutineView.config.notes,
+      requiredDocuments: monthlyRoutineView.config.requiredDocuments,
+    }) !== JSON.stringify(monthlyRoutineDraft);
+  }, [monthlyRoutineDraft, monthlyRoutineView]);
+
+  const canSubmit = isDirty || monthlyRoutineDirty;
   const currentCnpj = form.watch("cnpj");
 
   function resolvePostSaveHref(data: CreateCompanyInput) {

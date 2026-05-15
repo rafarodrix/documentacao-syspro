@@ -28,6 +28,19 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { EvolutionClient, EvolutionOutboundError } from '../integrations/evolution/evolution.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
 
+const DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS = [
+  'Sintegra',
+  'Livro de entrada',
+  'Livro de saida',
+  'Relatorio de PIS e COFINS',
+  'SPED Fiscal',
+  'SPED Contribuicoes',
+  'XML NF-e entrada',
+  'XML NF-e saida',
+  'XML NF-e CT-e',
+];
+const DEFAULT_MONTHLY_ROUTINE_DUE_DAY = 12;
+
 @Injectable()
 export class RotinasMensaisService {
   constructor(
@@ -169,12 +182,12 @@ export class RotinasMensaisService {
         companyId,
         isActive: existingConfig?.isActive ?? false,
         title: existingConfig?.title ?? 'Envio mensal contabil',
-        dueDay: existingConfig?.dueDay ?? 5,
+        dueDay: existingConfig?.dueDay ?? DEFAULT_MONTHLY_ROUTINE_DUE_DAY,
         reminderDays: existingConfig?.reminderDays ?? 3,
         clientContactId: existingConfig?.clientContactId ?? null,
         accountingContactId: existingConfig?.accountingContactId ?? null,
         notes: existingConfig?.notes ?? null,
-        requiredDocuments: this.normalizeRequiredDocuments(existingConfig?.requiredDocuments),
+        requiredDocuments: this.getRequiredDocumentsOrDefault(existingConfig?.requiredDocuments),
       },
       clientContacts: this.toContactOptions(company.contactLinks),
       accountingContacts: this.toContactOptions(company.accountingFirm?.contactLinks ?? []),
@@ -879,6 +892,11 @@ export class RotinasMensaisService {
     return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
   }
 
+  private getRequiredDocumentsOrDefault(value: unknown) {
+    const normalized = this.normalizeRequiredDocuments(value);
+    return normalized.length > 0 ? normalized : DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS;
+  }
+
   private normalizeOptionalString(value: unknown) {
     if (typeof value !== 'string') return null;
     const normalized = value.trim();
@@ -1020,8 +1038,8 @@ export class RotinasMensaisService {
       accountingContactId: record.config?.accountingContact?.id ?? null,
       accountingContactName: record.config?.accountingContact?.name ?? null,
       configNotes: record.config?.notes ?? null,
-      requiredDocuments: this.normalizeRequiredDocuments(record.config?.requiredDocuments),
-      requiredDocumentsCount: this.normalizeRequiredDocuments(record.config?.requiredDocuments).length,
+      requiredDocuments: this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments),
+      requiredDocumentsCount: this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments).length,
       notes: record.notes ?? null,
       availableContacts,
       manualRequestsCount: manualRequests.length,
