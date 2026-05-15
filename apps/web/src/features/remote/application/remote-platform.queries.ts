@@ -4,23 +4,19 @@ import type {
   RemotePlatformOverview,
   RemoteTenantScope,
 } from "@/features/remote/domain/remote-host.types";
-import {
-  fetchRemoteHostDetailsGateway,
-  fetchRemotePlatformDirectoryGateway,
-  fetchRemotePlatformOverviewGateway,
-} from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
+import { trpc } from "@/lib/api/trpc-client";
 
 export async function getRemotePlatformOverview(_tenantScope: RemoteTenantScope): Promise<RemotePlatformOverview> {
-  return fetchRemotePlatformOverviewGateway();
+  return trpc.remote.overview.query() as Promise<RemotePlatformOverview>;
 }
 
 export async function getRemotePlatformDirectory(_tenantScope: RemoteTenantScope): Promise<RemotePlatformDirectory> {
-  return fetchRemotePlatformDirectoryGateway();
+  return trpc.remote.directory.query() as Promise<RemotePlatformDirectory>;
 }
 
 export async function getRemoteHostDetails(
   _tenantScope: RemoteTenantScope,
   hostId: string,
 ): Promise<RemoteHostDetails | null> {
-  return fetchRemoteHostDetailsGateway(hostId);
+  return trpc.remote.hostDetails.query({ hostId }) as Promise<RemoteHostDetails | null>;
 }

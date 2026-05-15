@@ -104,11 +104,11 @@ export const updateCurrentUserProfileSchema = z
       .object({
         razaoSocial: z.string().min(3, "Razao social obrigatoria").trim(),
         nomeFantasia: emptyStringToNull,
-        emailContato: z.email("E-mail invalido").nullable().or(z.literal("")).transform((value) => {
+        emailContato: z.email("E-mail invalido").nullable().or(z.literal("")).transform((value: string | null) => {
           if (value === "") return null;
           return value;
         }),
-        emailFinanceiro: z.email("E-mail invalido").nullable().or(z.literal("")).transform((value) => {
+        emailFinanceiro: z.email("E-mail invalido").nullable().or(z.literal("")).transform((value: string | null) => {
           if (value === "") return null;
           return value;
         }),
@@ -119,7 +119,7 @@ export const updateCurrentUserProfileSchema = z
       })
       .optional(),
   })
-  .refine((input) => Boolean(input.name !== undefined || input.company !== undefined || input.preferences !== undefined), {
+  .refine((input: { name?: unknown; company?: unknown; preferences?: unknown }) => Boolean(input.name !== undefined || input.company !== undefined || input.preferences !== undefined), {
     message: "Informe ao menos uma alteracao.",
   });
 

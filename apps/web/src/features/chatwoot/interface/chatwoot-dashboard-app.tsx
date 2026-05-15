@@ -11,7 +11,7 @@ import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
-import type { RemoteConfiguredHostItem, RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
+import type { RemoteConfiguredHostItem } from "@/features/remote/domain/remote-host.types";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import {
@@ -590,26 +590,13 @@ export function ChatwootDashboardApp() {
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
     async function loadHosts() {
       try {
         setIsLoadingHosts(true);
         setHostError(null);
-        const response = await fetch("/api/remote-admin/directory", {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          setCompanyHosts([]);
-          setHostError(
-            response.status === 401
-              ? "Faca login no portal neste navegador para ver os hosts reais."
-              : "Nao foi possivel carregar os hosts da empresa.",
-          );
-          return;
-        }
-        const json = (await response.json()) as RemotePlatformDirectory;
+        const json = await trpc.remote.directory.query();
+        if (cancelled) return;
         const items: RemoteConfiguredHostItem[] = Array.isArray(json.items) ? json.items : [];
         const nextHosts = items
           .filter((item) => item.companyId === resolved.companyId)
@@ -631,17 +618,17 @@ export function ChatwootDashboardApp() {
             return bHeartbeat - aHeartbeat;
           });
         setCompanyHosts(nextHosts);
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
+      } catch {
+        if (cancelled) return;
         setCompanyHosts([]);
         setHostError("Nao foi possivel carregar os hosts da empresa.");
       } finally {
-        setIsLoadingHosts(false);
+        if (!cancelled) setIsLoadingHosts(false);
       }
     }
 
     void loadHosts();
-    return () => controller.abort();
+    return () => { cancelled = true; };
   }, [resolved.companyId, hostReloadToken]);
 
   // ── Action handlers ─────────────────────────────────
