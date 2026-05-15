@@ -13,8 +13,6 @@ import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketV
 import { trpc } from "@/lib/api/trpc-client";
 import {
   createTicketMultipartGateway,
-  fetchTicketDetailsPageGateway,
-  fetchTicketsGateway,
   replyTicketGateway,
 } from "@/features/tickets/infrastructure";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
@@ -96,19 +94,6 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(10, params.pageSize ?? 50));
 
-  const query = new URLSearchParams();
-  query.set("page", String(page));
-  query.set("pageSize", String(pageSize));
-  if (params.queue) query.set("queue", params.queue);
-  if (params.statusGroup) query.set("statusGroup", params.statusGroup);
-  if (params.team) query.set("team", params.team);
-  if (params.closedWindow) query.set("closedWindow", params.closedWindow);
-  if (params.category?.trim()) query.set("category", params.category.trim());
-  if (params.module?.trim()) query.set("module", params.module.trim());
-  if (params.sortBy) query.set("sortBy", params.sortBy);
-  if (params.sortOrder) query.set("sortOrder", params.sortOrder);
-  if (params.search?.trim()) query.set("search", params.search.trim());
-
   const emptyResult: TicketsDataResponse = {
     success: false,
     error: "Nao autorizado",
@@ -125,7 +110,19 @@ export async function getTicketsAction(params: TicketQueryParams = {}): Promise<
   };
 
   try {
-    const response = await fetchTicketsGateway(query);
+    const response = await trpc.tickets.list.query({
+      page: String(page),
+      pageSize: String(pageSize),
+      ...(params.queue ? { queue: params.queue } : {}),
+      ...(params.statusGroup ? { statusGroup: params.statusGroup } : {}),
+      ...(params.team ? { team: params.team } : {}),
+      ...(params.closedWindow ? { closedWindow: params.closedWindow } : {}),
+      ...(params.category?.trim() ? { category: params.category.trim() } : {}),
+      ...(params.module?.trim() ? { module: params.module.trim() } : {}),
+      ...(params.sortBy ? { sortBy: params.sortBy } : {}),
+      ...(params.sortOrder ? { sortOrder: params.sortOrder } : {}),
+      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+    });
     
     if (!response.success || !response.data) {
       return { ...emptyResult, error: response.error || "Falha ao carregar chamados." };
@@ -250,7 +247,11 @@ export async function getTicketDetailsAction(ticketId: string, params?: { page?:
   if (!session) return { success: false, error: "Nao autorizado" };
 
   try {
-    const response = await fetchTicketDetailsPageGateway(ticketId, params);
+    const response = await trpc.tickets.details.query({
+      id: ticketId,
+      ...(params?.page ? { page: String(params.page) } : {}),
+      ...(params?.pageSize ? { pageSize: String(params.pageSize) } : {}),
+    });
     return mapTicketModuleDetailsResponse(response);
   } catch (error) {
     console.error("Erro ao carregar detalhes do chamado:", error);

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
+  ticketModuleListQuerySchema,
   ticketModuleStatusSchema,
   ticketModuleTriageRequestSchema,
   ticketModuleUpdateRequestSchema,
@@ -22,6 +23,31 @@ export class TicketsRouter {
 
   private createRouter() {
     return this.trpc.router({
+      list: this.trpc.publicProcedure
+        .input(ticketModuleListQuerySchema.optional())
+        .query(({ input, ctx }) => {
+          return this.ticketsService.findAll(input ?? {}, ctx.headers);
+        }),
+
+      details: this.trpc.publicProcedure
+        .input(
+          z.object({
+            id: z.string().trim().min(1),
+            page: z.string().optional(),
+            pageSize: z.string().optional(),
+          }),
+        )
+        .query(({ input, ctx }) => {
+          return this.ticketsService.findOne(
+            input.id,
+            {
+              page: input.page,
+              pageSize: input.pageSize,
+            },
+            ctx.headers,
+          );
+        }),
+
       linkedCompanies: this.trpc.publicProcedure
         .query(({ ctx }) => {
           return this.ticketsService.getLinkedCompanies(ctx.headers);
