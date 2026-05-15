@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Flag, Video } from "lucide-react";
-import { finalizeTicketAction } from "@/features/tickets/application/ticket-actions";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Input, Label, Textarea } from "@dosc-syspro/ui";
+import { trpc } from "@/lib/api/trpc-client";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketFinalizeDialogProps {
@@ -112,20 +112,22 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
     if (shouldRequireReleaseFields && !releaseTitle.trim()) {
       toast.error("Informe o titulo que vai aparecer no modulo de releases.");
       return;
-    }
-    startTransition(async () => {
-      try {
-        const result = await finalizeTicketAction({
-          ticketId: String(ticket.id),
-          resolutionSummary,
-          resolutionVideoUrl,
-          releaseType: shouldRequireReleaseFields ? releaseType : undefined,
-          releaseTitle: shouldRequireReleaseFields ? releaseTitle : undefined,
-          releaseModule: shouldRequireReleaseFields ? releaseModule : undefined,
-          publishToReleases: isDevelopmentTicket ? publishToReleases : false,
-        });
+        }
+        startTransition(async () => {
+            try {
+                const result = await trpc.tickets.finalize.mutate({
+                    id: String(ticket.id),
+                    data: {
+                      resolutionSummary: resolutionSummary.trim() || undefined,
+                      resolutionVideoUrl: resolutionVideoUrl.trim() || undefined,
+                      releaseType: shouldRequireReleaseFields ? releaseType : undefined,
+                      releaseTitle: shouldRequireReleaseFields ? releaseTitle.trim() || undefined : undefined,
+                      releaseModule: shouldRequireReleaseFields ? releaseModule.trim() || undefined : undefined,
+                      publishToReleases: isDevelopmentTicket ? publishToReleases : false,
+                    },
+                });
 
-        if (!result.success) {
+                if (!result.success) {
           toast.error(result.error || "Nao foi possivel concluir o ticket.");
           return;
         }

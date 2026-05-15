@@ -25,7 +25,6 @@ import {
     Zap,
 } from "lucide-react";
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
@@ -125,7 +124,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
         try {
             setIsArchiving(true);
-            const res = await archiveTicketAction(String(ticket.id));
+            const res = await trpc.tickets.archive.mutate({ id: String(ticket.id) });
 
             if (res.success && res.status === "ARCHIVED") {
                 setArchiveDialogOpen(false);
@@ -223,7 +222,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
         if (!Object.keys(payload).length) return;
 
         startTransition(async () => {
-            const res = await updateTicketClassificationAction(String(ticket.id), payload);
+            const res = await trpc.tickets.update.mutate({ id: String(ticket.id), data: payload });
             if (res.success) {
                 toast.success(successMessage);
                 setTransferNote("");
@@ -507,7 +506,13 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         developmentUsers={developmentUsers}
                                         onUpdateOwners={(payload) => {
                                             startTransition(async () => {
-                                                const res = await updateTicketOwnersAction(String(ticket.id), payload);
+                                                const res = await trpc.tickets.updateOwners.mutate({
+                                                    id: String(ticket.id),
+                                                    data: {
+                                                        ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
+                                                        ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
+                                                    },
+                                                });
                                                 if (res.success) {
                                                     toast.success("Responsaveis atualizados.");
                                                 } else {

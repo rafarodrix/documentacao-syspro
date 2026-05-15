@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { MessageSquareWarning, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketClassificationAction } from "@/features/tickets/application/ticket-actions";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Textarea } from "@dosc-syspro/ui";
+import { trpc } from "@/lib/api/trpc-client";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
 interface TicketTestingReturnDialogProps {
@@ -48,9 +48,12 @@ export function TicketTestingReturnDialog({
     }
 
     startTransition(async () => {
-      const result = await updateTicketClassificationAction(String(ticket.id), {
-        ...payload,
-        note: normalizedNote,
+      const result = await trpc.tickets.update.mutate({
+        id: String(ticket.id),
+        data: {
+          ...payload,
+          note: normalizedNote,
+        },
       });
 
       if (!result.success) {
