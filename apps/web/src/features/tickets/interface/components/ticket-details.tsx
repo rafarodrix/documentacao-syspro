@@ -25,7 +25,7 @@ import {
     Zap,
 } from "lucide-react";
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { archiveTicketAction } from "@/features/tickets/application/ticket-actions";
+import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
@@ -218,14 +218,13 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
         if (!Object.keys(payload).length) return;
 
         startTransition(async () => {
-            const res = await trpc.tickets.update.mutate({ id: String(ticket.id), data: payload });
+            const res = await updateTicketClassificationAction(String(ticket.id), payload);
             if (res.success) {
                 toast.success(successMessage);
                 setTransferNote("");
             } else {
                 toast.error(res.error || "Erro ao atualizar ticket");
             }
-            router.refresh();
         });
     };
 
@@ -502,19 +501,15 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         developmentUsers={developmentUsers}
                                         onUpdateOwners={(payload) => {
                                             startTransition(async () => {
-                                                const res = await trpc.tickets.updateOwners.mutate({
-                                                    id: String(ticket.id),
-                                                    data: {
-                                                        ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
-                                                        ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
-                                                    },
+                                                const res = await updateTicketOwnersAction(String(ticket.id), {
+                                                    ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
+                                                    ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
                                                 });
                                                 if (res.success) {
                                                     toast.success("Responsaveis atualizados.");
                                                 } else {
                                                     toast.error(res.error || "Erro ao atualizar responsaveis");
                                                 }
-                                                router.refresh();
                                             });
                                         }}
                                     />
@@ -537,7 +532,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                         type="button"
                                                         variant="outline"
                                                         className="h-9 w-full justify-start border-red-500/30 text-xs text-red-600 hover:bg-red-500/10 hover:text-red-700"
-                                                        disabled={isPending}
+                                                        disabled={isArchiving}
                                                     >
                                                         Arquivar ticket
                                                     </Button>
