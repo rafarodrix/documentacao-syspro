@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/api/trpc-client";
+import type { UserAccessListItem } from "@dosc-syspro/contracts/user";
 
 export type InternalUserOption = {
     id: string;
@@ -27,7 +28,7 @@ async function fetchInternalUsers(): Promise<InternalUserOption[]> {
 
     const request = trpc.users.list
         .query({})
-        .then((users) => {
+        .then((users: UserAccessListItem[]) => {
             const filtered = users.filter((user) => user.isActive !== false);
             cachedUsers = filtered;
             return filtered;
