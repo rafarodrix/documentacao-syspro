@@ -25,19 +25,20 @@ async function fetchInternalUsers(): Promise<InternalUserOption[]> {
 
     if (pendingUsersRequest) return pendingUsersRequest;
 
-    pendingUsersRequest = trpc.users.list
+    const request = trpc.users.list
         .query({})
         .then((payload) => {
             const users = (payload as InternalUserOption[]).filter((user) => user.isActive !== false);
             cachedUsers = users;
             return users;
         })
-        .catch(() => [])
+        .catch((): InternalUserOption[] => [])
         .finally(() => {
             pendingUsersRequest = null;
         });
 
-    return pendingUsersRequest;
+    pendingUsersRequest = request;
+    return request;
 }
 
 export function useInternalUsers() {
