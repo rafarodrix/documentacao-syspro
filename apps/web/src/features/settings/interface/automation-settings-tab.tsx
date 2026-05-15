@@ -66,6 +66,7 @@ function createWhatsAppBinding(): WhatsAppAutomationBinding {
       releasePublished: false,
       sefazRouteDown: false,
       sefazRouteRecovered: false,
+      monthlyRoutineOverdue: false,
     },
   };
 }
