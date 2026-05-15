@@ -2,7 +2,8 @@ import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyEditViewData } from "@/features/company/application/company-read.queries";
 import { CreateCompanyPageForm } from "@/features/company/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { getMonthlyRoutineCompanyConfigQuery } from "@/features/rotinas-mensais/application/rotinas-mensais-read.queries";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -24,7 +25,16 @@ export default async function CadastrosEmpresaEditarPage({ params, searchParams 
       : Array.isArray(returnToParam)
         ? returnToParam[0] ?? "/portal/cadastros/empresa"
         : "/portal/cadastros/empresa";
-  const view = await getCompanyEditViewData(id);
+  const canViewMonthlyRoutine = await currentUserHasAnyPermission(
+    ["rotinas_mensais:view", "rotinas_mensais:view_all", "rotinas_mensais:manage"],
+    { acceptCompanyScope: true },
+  );
+  const canManageMonthlyRoutine = await currentUserHasPermission("rotinas_mensais:manage", { acceptCompanyScope: true });
+
+  const [view, monthlyRoutineView] = await Promise.all([
+    getCompanyEditViewData(id),
+    canViewMonthlyRoutine ? getMonthlyRoutineCompanyConfigQuery(id).catch(() => null) : Promise.resolve(null),
+  ]);
 
   return (
     <CreateCompanyPageForm
@@ -34,6 +44,8 @@ export default async function CadastrosEmpresaEditarPage({ params, searchParams 
       backHref={backHref}
       companies={view.companies}
       initialData={view.initialData}
+      monthlyRoutineView={monthlyRoutineView ?? undefined}
+      canManageMonthlyRoutine={canManageMonthlyRoutine}
     />
   );
 }

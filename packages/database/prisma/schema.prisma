@@ -270,6 +270,16 @@ enum CrmTaskStatus {
   CANCELED
 }
 
+enum MonthlyRoutineStatus {
+  PENDING
+  WAITING_CUSTOMER
+  RECEIVED
+  SENT_TO_ACCOUNTING
+  COMPLETED
+  OVERDUE
+  CANCELED
+}
+
 // ---------------------------------------------------------
 // MODELOS PRINCIPAIS 
 // ---------------------------------------------------------
@@ -345,6 +355,8 @@ model Company {
   userAccessProfiles           UserAccessProfile[]
   convertedCrmLeads            CrmLead[]                     @relation("CrmLeadConvertedCompany")
   agentDevices                 AgentDevice[]
+  monthlyRoutineConfig         MonthlyRoutineConfig?
+  monthlyRoutineCompetencies   MonthlyRoutineCompetency[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -381,6 +393,8 @@ model CompanyContact {
   users                        User[]
   companyLinks                 CompanyContactCompanyLink[]
   crmLeads                     CrmLead[]
+  monthlyRoutineClientConfigs     MonthlyRoutineConfig[] @relation("MonthlyRoutineClientContact")
+  monthlyRoutineAccountingConfigs MonthlyRoutineConfig[] @relation("MonthlyRoutineAccountingContact")
 
   @@index([status])
   @@index([whatsapp])
@@ -1249,6 +1263,67 @@ model CrmTask {
   @@index([assigneeUserId, status])
   @@index([dueDate])
   @@map("crm_task")
+}
+
+model MonthlyRoutineConfig {
+  id String @id @default(cuid())
+
+  companyId String @unique
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  isActive     Boolean @default(false)
+  title        String  @default("Envio mensal contabil")
+  dueDay       Int     @default(5)
+  reminderDays Int     @default(3)
+
+  clientContactId String?
+  clientContact   CompanyContact? @relation("MonthlyRoutineClientContact", fields: [clientContactId], references: [id], onDelete: SetNull)
+
+  accountingContactId String?
+  accountingContact   CompanyContact? @relation("MonthlyRoutineAccountingContact", fields: [accountingContactId], references: [id], onDelete: SetNull)
+
+  notes             String? @db.Text
+  requiredDocuments Json?
+
+  competencies MonthlyRoutineCompetency[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([clientContactId])
+  @@index([accountingContactId])
+  @@map("monthly_routine_config")
+}
+
+model MonthlyRoutineCompetency {
+  id String @id @default(cuid())
+
+  configId String
+  config   MonthlyRoutineConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  year   Int
+  month  Int
+  status MonthlyRoutineStatus @default(PENDING)
+
+  dueDate     DateTime
+  requestedAt DateTime?
+  receivedAt  DateTime?
+  sentAt      DateTime?
+  completedAt DateTime?
+  notes       String? @db.Text
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([configId, year, month])
+  @@index([companyId, year, month])
+  @@index([status, dueDate])
+  @@map("monthly_routine_competency")
 }
 
 // cst

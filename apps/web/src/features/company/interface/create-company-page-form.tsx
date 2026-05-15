@@ -16,6 +16,7 @@ import {
   INDICADOR_IE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
+import type { MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
@@ -116,6 +117,8 @@ interface CreateCompanyPageFormProps {
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
   canEditCnpj?: boolean;
+  monthlyRoutineView?: MonthlyRoutineCompanyConfigView;
+  canManageMonthlyRoutine?: boolean;
 }
 
 export function CreateCompanyPageForm({
@@ -125,6 +128,8 @@ export function CreateCompanyPageForm({
   companyId,
   initialData,
   canEditCnpj = true,
+  monthlyRoutineView,
+  canManageMonthlyRoutine = false,
 }: CreateCompanyPageFormProps) {
   const router = useRouter();
   const [currentSection, setCurrentSection] = useState<SectionId>("geral");
@@ -403,7 +408,13 @@ export function CreateCompanyPageForm({
                 <CompanyAddressTab isLoadingCep={isLoadingCep} onCepChange={handleCepChange} />
               )}
               {currentSection === "contato" && <CompanyContactTab />}
-              {currentSection === "fiscal" && <CompanyFiscalTab companies={companies} />}
+              {currentSection === "fiscal" && (
+                <CompanyFiscalTab
+                  companies={companies}
+                  monthlyRoutineView={monthlyRoutineView}
+                  canManageMonthlyRoutine={canManageMonthlyRoutine}
+                />
+              )}
               {currentSection === "configuracoes" && <CompanySettingsTab />}
             </motion.div>
           </AnimatePresence>

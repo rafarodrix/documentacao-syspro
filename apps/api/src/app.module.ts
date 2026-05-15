@@ -21,6 +21,7 @@ import { CrmModule } from './modules/crm/crm.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { DocumentosModule } from './modules/documentos/documentos.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { RotinasMensaisModule } from './modules/rotinas-mensais/rotinas-mensais.module';
 import { TrpcApiModule } from './modules/trpc/trpc-api.module';
 
 @Module({
@@ -45,6 +46,7 @@ import { TrpcApiModule } from './modules/trpc/trpc-api.module';
     AgentsModule,
     DocumentosModule,
     AutomationModule,
+    RotinasMensaisModule,
     TrpcApiModule,
   ],
   controllers: [AppController],

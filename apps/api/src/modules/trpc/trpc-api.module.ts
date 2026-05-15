@@ -9,6 +9,7 @@ import { ContactsModule } from '../contacts/contacts.module';
 import { DocsModule } from '../docs/docs.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { RemoteAdminModule } from '../remote-admin/remote-admin.module';
+import { RotinasMensaisModule } from '../rotinas-mensais/rotinas-mensais.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RemoteAdminModule } from '../remote-admin/remote-admin.module';
     ContactsModule,
     DocsModule,
     TicketsModule,
+    RotinasMensaisModule,
     RemoteAdminModule,
   ],
   providers: [TrpcRouter],

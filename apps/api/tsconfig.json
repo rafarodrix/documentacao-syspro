@@ -32,6 +32,7 @@
       "@dosc-syspro/contracts/platform-notifications": ["../../packages/contracts/src/shared/platform-notifications.types.ts"],
       "@dosc-syspro/contracts/remote": ["../../packages/contracts/src/remote/index.ts"],
       "@dosc-syspro/contracts/remote-module-settings": ["../../packages/contracts/src/remote/remote-module-settings.types.ts"],
+      "@dosc-syspro/contracts/rotinas-mensais": ["../../packages/contracts/src/rotinas-mensais/index.ts"],
       "@dosc-syspro/contracts/settings": ["../../packages/contracts/src/settings/index.ts"],
       "@dosc-syspro/contracts/sefaz-endpoints": ["../../packages/contracts/src/sefaz/sefaz-endpoints.types.ts"],
       "@dosc-syspro/contracts/sefaz-routes": ["../../packages/contracts/src/sefaz/sefaz-routes.types.ts"],

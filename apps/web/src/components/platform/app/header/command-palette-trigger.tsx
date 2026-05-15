@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpen, Building2, ContactRound, FileText, Monitor, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
+import { BookOpen, Building2, CalendarRange, ContactRound, FileText, Monitor, Search, Settings, Target, Ticket, Users, Wrench } from "lucide-react";
 import { Input, Dialog, DialogContent, DialogHeader, DialogTitle } from "@dosc-syspro/ui";
 import type { NavigationAccess } from "@/components/platform/app/layout/app-sidebar";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,13 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
         keywords: "tickets chamados suporte atendimento",
         icon: Ticket,
         enabled: navigationAccess?.tickets !== false,
+      },
+      {
+        label: "Rotinas Mensais",
+        href: "/portal/rotinas-mensais",
+        keywords: "rotinas mensais contabil contabilidade documentos recorrentes competencia entrega",
+        icon: CalendarRange,
+        enabled: navigationAccess?.rotinasMensais !== false,
       },
       {
         label: "CRM",

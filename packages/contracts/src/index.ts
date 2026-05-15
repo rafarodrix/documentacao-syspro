@@ -46,6 +46,7 @@ export * from "./evolution/index";
 export * from "./remote/index";
 export * from "./crm/index";
 export * from "./automation/index";
+export * from "./rotinas-mensais/index";
 
 // Isolated shared contract kept as a direct leaf export.
 export {
