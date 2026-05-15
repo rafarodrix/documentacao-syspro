@@ -6,7 +6,6 @@ import { Loader2, MessageSquare, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_TICKET_MODULE_SETTINGS,
-  type TicketModuleListResponse,
 } from "@dosc-syspro/contracts/ticket";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
@@ -539,46 +538,47 @@ export function ChatwootDashboardApp() {
       return;
     }
 
-    const controller = new AbortController();
+    let active = true;
     async function loadTickets() {
       try {
-        setIsLoadingTickets(true);
-        setTicketError(null);
-        const params = new URLSearchParams({
+        if (active) {
+          setIsLoadingTickets(true);
+          setTicketError(null);
+        }
+
+        const response = await trpc.tickets.list.query({
           companyId: resolved.companyId,
           page: "1",
           pageSize: "50",
           sortBy: "updatedAt",
           sortOrder: "desc",
         });
-        const response = await fetch(`/api/tickets?${params.toString()}`, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok) {
+
+        if (!active) return;
+
+        if (!response.success) {
           setLatestTickets([]);
-          setTicketError(
-            response.status === 401
-              ? "Faca login no portal neste navegador para ver tickets reais."
-              : "Nao foi possivel carregar os tickets da empresa.",
-          );
+          setTicketError(response.error || "Nao foi possivel carregar os tickets da empresa.");
           return;
         }
-        const json = (await response.json()) as TicketModuleListResponse;
-        const items = Array.isArray(json.data) ? toTicketListItems(json.data) : [];
+
+        const items = Array.isArray(response.data) ? toTicketListItems(response.data) : [];
         setLatestTickets(items.filter((ticket) => ticket.status !== "RESOLVED" && ticket.status !== "ARCHIVED"));
       } catch (error) {
-        if ((error as Error).name === "AbortError") return;
+        if (!active) return;
         setLatestTickets([]);
-        setTicketError("Nao foi possivel carregar os tickets da empresa.");
+        setTicketError(error instanceof Error ? error.message : "Nao foi possivel carregar os tickets da empresa.");
       } finally {
-        setIsLoadingTickets(false);
+        if (active) {
+          setIsLoadingTickets(false);
+        }
       }
     }
 
     void loadTickets();
-    return () => controller.abort();
+    return () => {
+      active = false;
+    };
   }, [resolved.companyId, ticketReloadToken]);
 
   // ── Host list loader ────────────────────────────────
