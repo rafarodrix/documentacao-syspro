@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 import { updateTicketClassificationAction } from "@/features/tickets/application/ticket-actions";
@@ -39,6 +40,7 @@ function normalizeStatusValue(status?: string | null): TicketModuleStatus | null
 }
 
 export function useTicketClassification(ticket: TicketDetailsItem | undefined, canManageTickets: boolean) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const ticketSettings = useTicketModuleSettings();
 
@@ -124,6 +126,7 @@ export function useTicketClassification(ticket: TicketDetailsItem | undefined, c
             if (res.success) {
                 toast.success(successMessage);
                 setTransferNote("");
+                router.refresh();
             } else {
                 toast.error(res.error || "Erro ao atualizar ticket");
             }

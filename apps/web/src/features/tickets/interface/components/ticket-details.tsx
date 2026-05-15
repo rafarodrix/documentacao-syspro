@@ -34,11 +34,11 @@ import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-
 import { useTicketArchive } from "@/features/tickets/interface/hooks/use-ticket-archive";
 import { useTicketClassification } from "@/features/tickets/interface/hooks/use-ticket-classification";
 import { useTicketOwners } from "@/features/tickets/interface/hooks/use-ticket-owners";
+import { useInternalUsers, type InternalUserOption } from "@/features/tickets/interface/hooks/use-internal-users";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
-import { trpc } from "@/lib/api/trpc-client";
 import { cn } from "@/lib/utils";
 import type { TicketArticleItem, TicketDetailsItem, TicketMessagePagination } from "./ticket-view.types";
 
@@ -48,31 +48,21 @@ interface TicketDetailsProps {
     messagePagination?: TicketMessagePagination;
     canManageTickets: boolean;
     error?: string;
-    currentUserId?: string;
 }
 
 const TICKET_HISTORY_PAGE_SIZE = 50;
 
-type InternalUserOption = {
-    id: string;
-    name: string | null;
-    email: string;
-    role: string;
-    isActive?: boolean;
-};
-
-export function TicketDetails({ ticket, articles, messagePagination, canManageTickets, error, currentUserId }: TicketDetailsProps) {
+export function TicketDetails({ ticket, articles, messagePagination, canManageTickets, error }: TicketDetailsProps) {
     const router = useRouter();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [finalizeOpen, setFinalizeOpen] = useState(false);
     const [testingReturnOpen, setTestingReturnOpen] = useState(false);
     const ticketSettings = useTicketModuleSettings();
-    const [internalUsers, setInternalUsers] = useState<InternalUserOption[]>([]);
+    const internalUsers = useInternalUsers();
     const [timelineArticles, setTimelineArticles] = useState<TicketArticleItem[]>(() => (ticket ? withTechnicalResourceArticles(articles || [], ticket) : (articles || [])));
     const [timelinePagination, setTimelinePagination] = useState<TicketMessagePagination | undefined>(messagePagination);
     const [isLoadingOlderArticles, setIsLoadingOlderArticles] = useState(false);
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
-    void currentUserId;
 
     const { archiveDialogOpen, setArchiveDialogOpen, isArchiving, handleArchiveTicket } = useTicketArchive(ticket?.id);
     const {
@@ -99,30 +89,6 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
         mapLevelToPriority,
     } = useTicketClassification(ticket, canManageTickets);
     const { isUpdatingOwners, onUpdateOwners } = useTicketOwners(ticket?.id);
-
-    useEffect(() => {
-        let active = true;
-
-        async function loadSettings() {
-            try {
-                const usersPayload = await trpc.users.list.query({});
-
-                if (active) {
-                    setInternalUsers((usersPayload as InternalUserOption[]).filter((user) => user.isActive !== false));
-                }
-            } catch {
-                if (active) {
-                    setInternalUsers([]);
-                    toast.error("Nao foi possivel carregar a lista de usuarios.");
-                }
-            }
-        }
-
-        loadSettings();
-        return () => {
-            active = false;
-        };
-    }, []);
 
     useEffect(() => {
         setTimelineArticles(ticket ? withTechnicalResourceArticles(articles || [], ticket) : (articles || []));
