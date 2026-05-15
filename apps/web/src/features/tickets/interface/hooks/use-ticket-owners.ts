@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 
 export function useTicketOwners(ticketId?: string | number) {
+    const router = useRouter();
     const [isUpdatingOwners, setIsUpdatingOwners] = useState(false);
 
     const onUpdateOwners = async (payload: { supportOwnerUserId?: string; developmentOwnerUserId?: string }) => {
@@ -18,6 +20,7 @@ export function useTicketOwners(ticketId?: string | number) {
             });
             if (res.success) {
                 toast.success("Responsaveis atualizados.");
+                router.refresh();
             } else {
                 toast.error(res.error || "Erro ao atualizar responsaveis");
             }
