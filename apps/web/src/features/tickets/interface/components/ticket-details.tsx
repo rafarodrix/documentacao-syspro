@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,13 +25,15 @@ import {
     Zap,
 } from "lucide-react";
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { TicketTestingReturnDialog } from "@/features/tickets/interface/components/ticket-testing-return-dialog";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
+import { useTicketArchive } from "@/features/tickets/interface/hooks/use-ticket-archive";
+import { useTicketClassification } from "@/features/tickets/interface/hooks/use-ticket-classification";
+import { useTicketOwners } from "@/features/tickets/interface/hooks/use-ticket-owners";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
@@ -61,27 +63,42 @@ type InternalUserOption = {
 
 export function TicketDetails({ ticket, articles, messagePagination, canManageTickets, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
-    const [isPending, startTransition] = useTransition();
-    const [isUpdatingOwners, setIsUpdatingOwners] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-    const [isArchiving, setIsArchiving] = useState(false);
-    const [archiveReason, setArchiveReason] = useState("");
     const [finalizeOpen, setFinalizeOpen] = useState(false);
     const [testingReturnOpen, setTestingReturnOpen] = useState(false);
     const ticketSettings = useTicketModuleSettings();
     const [internalUsers, setInternalUsers] = useState<InternalUserOption[]>([]);
-    const [localTeam, setLocalTeam] = useState(ticket?.operations?.currentTeam || "");
-    const [localModule, setLocalModule] = useState(ticket?.operations?.module || "");
-    const [localCategory, setLocalCategory] = useState(ticket?.operations?.category || "");
-    const [localPriority, setLocalPriority] = useState(ticket?.priority);
-    const [transferNote, setTransferNote] = useState("");
     const [timelineArticles, setTimelineArticles] = useState<TicketArticleItem[]>(() => (ticket ? withTechnicalResourceArticles(articles || [], ticket) : (articles || [])));
     const [timelinePagination, setTimelinePagination] = useState<TicketMessagePagination | undefined>(messagePagination);
     const [isLoadingOlderArticles, setIsLoadingOlderArticles] = useState(false);
-    const backUrl = "/portal/tickets";
     const isClosedTicket = ticket ? isTicketClosed(ticket.status) : false;
     void currentUserId;
+
+    const { archiveDialogOpen, setArchiveDialogOpen, isArchiving, handleArchiveTicket } = useTicketArchive(ticket?.id);
+    const {
+        isPending,
+        transferNote,
+        setTransferNote,
+        currentTeam,
+        currentModule,
+        currentCategory,
+        currentPriority,
+        initialTeam,
+        initialModule,
+        initialCategory,
+        initialPriority,
+        classificationDirty,
+        movingToDevelopment,
+        requiresTransferNote,
+        requiresTestingReturnNote,
+        changeTeam,
+        changeClassification,
+        resetClassificationDraft,
+        persistWorkflowChange,
+        saveClassification,
+        mapLevelToPriority,
+    } = useTicketClassification(ticket, canManageTickets);
+    const { isUpdatingOwners, onUpdateOwners } = useTicketOwners(ticket?.id);
 
     useEffect(() => {
         let active = true;
@@ -108,51 +125,12 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     }, []);
 
     useEffect(() => {
-        setLocalTeam(ticket?.operations?.currentTeam || "");
-        setLocalModule(ticket?.operations?.module || "");
-        setLocalCategory(ticket?.operations?.category || "");
-        setLocalPriority(ticket?.priority);
-        setTransferNote("");
-    }, [ticket?.id, ticket?.operations?.category, ticket?.operations?.currentTeam, ticket?.operations?.module, ticket?.priority]);
-
-    useEffect(() => {
         setTimelineArticles(ticket ? withTechnicalResourceArticles(articles || [], ticket) : (articles || []));
     }, [articles, ticket]);
 
     useEffect(() => {
         setTimelinePagination(messagePagination);
     }, [messagePagination]);
-
-    const handleArchiveTicket = async () => {
-        if (!ticket) return;
-        console.log("[archive] iniciando arquivamento do ticket", ticket.id);
-
-        try {
-            setIsArchiving(true);
-            const timeout = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("timeout")), 20_000),
-            );
-            const res = await Promise.race([archiveTicketAction(String(ticket.id)), timeout]);
-
-            if (res.success) {
-                setArchiveDialogOpen(false);
-                setArchiveReason("");
-                toast.success(res.message || "Ticket arquivado com sucesso.");
-                router.push(backUrl);
-                return;
-            }
-
-            toast.error(res.error || "Erro ao arquivar ticket.");
-        } catch (err) {
-            if (err instanceof Error && err.message === "timeout") {
-                toast.error("O servidor nao respondeu. Verifique sua conexao e tente novamente.");
-            } else {
-                toast.error("Erro ao arquivar ticket.");
-            }
-        } finally {
-            setIsArchiving(false);
-        }
-    };
 
     const changeStatus = (status: TicketModuleStatus) => {
         if (!ticket) return;
@@ -168,83 +146,6 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
         persistWorkflowChange(status, classificationDirty ? "Classificacao e estagio atualizados." : "Estagio atualizado.");
     };
 
-    const initialTeam = ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
-    const initialModule = ticket?.operations?.module || "";
-    const initialCategory = ticket?.operations?.category || "";
-    const initialPriority = ticket?.priority ?? 2;
-    const currentTeam = localTeam || ticket?.operations?.currentTeam || ticketSettings.defaultTeam || "SUPORTE";
-    const currentModule = localModule || ticket?.operations?.module || "";
-    const currentCategory = localCategory || ticket?.operations?.category || "";
-    const currentPriority = localPriority ?? ticket?.priority ?? 2;
-
-    const changeTeam = (team: string) => {
-        if (!ticket || team === currentTeam) return;
-        const nextCategory = resolveCategoryForTeam(ticketSettings.categories, team, currentCategory);
-        setLocalTeam(team);
-        if (nextCategory !== currentCategory) setLocalCategory(nextCategory);
-        if (team !== "DESENVOLVIMENTO") setTransferNote("");
-    };
-
-    const changeClassification = (payload: { module?: string; category?: string; priority?: TicketModulePriority }) => {
-        if (payload.module !== undefined) setLocalModule(payload.module);
-        if (payload.category !== undefined) setLocalCategory(payload.category);
-        if (payload.priority !== undefined) setLocalPriority(mapPriorityToLevel(payload.priority));
-    };
-
-    const resetClassificationDraft = () => {
-        setLocalTeam(ticket?.operations?.currentTeam || "");
-        setLocalModule(ticket?.operations?.module || "");
-        setLocalCategory(ticket?.operations?.category || "");
-        setLocalPriority(ticket?.priority);
-        setTransferNote("");
-    };
-
-    const classificationDirty =
-        currentTeam !== initialTeam ||
-        currentModule !== initialModule ||
-        currentCategory !== initialCategory ||
-        currentPriority !== initialPriority;
-    const movingToDevelopment = currentTeam === "DESENVOLVIMENTO" && initialTeam !== "DESENVOLVIMENTO";
-    const returningFromTesting = normalizeStatusValue(ticket?.status) === "TESTING";
-    const requiresTransferNote = movingToDevelopment && canManageTickets;
-    const requiresTestingReturnNote = returningFromTesting && canManageTickets && ticketSettings.requireTestingReturnReason;
-
-    const persistWorkflowChange = (status?: TicketModuleStatus, successMessage = "Alteracoes salvas.") => {
-        if (!ticket) return;
-
-        const payload: { team?: string; module?: string; category?: string; priority?: TicketModulePriority; status?: TicketModuleStatus; note?: string } = {};
-        if (currentTeam !== initialTeam) payload.team = currentTeam;
-        if (currentModule !== initialModule) payload.module = currentModule;
-        if (currentCategory !== initialCategory) payload.category = currentCategory;
-        if (currentPriority !== initialPriority) payload.priority = mapLevelToPriority(currentPriority);
-        if (status) payload.status = status;
-        if (movingToDevelopment) {
-            const normalizedNote = transferNote.trim();
-            if (normalizedNote.length < 20) {
-                toast.error("Informe o contexto para o desenvolvimento com no minimo 20 caracteres.");
-                return;
-            }
-            payload.note = normalizedNote;
-        }
-
-        if (!Object.keys(payload).length) return;
-
-        startTransition(async () => {
-            const res = await updateTicketClassificationAction(String(ticket.id), payload);
-            if (res.success) {
-                toast.success(successMessage);
-                setTransferNote("");
-            } else {
-                toast.error(res.error || "Erro ao atualizar ticket");
-            }
-        });
-    };
-
-    const saveClassification = () => {
-        if (!ticket || !classificationDirty) return;
-        persistWorkflowChange(undefined, "Alteracoes salvas.");
-    };
-
     useTicketHotkeys({
         onChangeStatus: () => document.getElementById("transfer-ticket-btn")?.click(),
         onReply: () => document.getElementById("ticket-reply-input")?.focus(),
@@ -258,10 +159,8 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                 </div>
                 <h1 className="mb-2 text-2xl font-bold text-foreground">Nao foi possivel carregar o chamado</h1>
                 <p className="mb-6 max-w-md text-muted-foreground">{error || "O ticket pode nao existir ou voce nao tem permissao."}</p>
-                <Button variant="outline" asChild className="gap-2">
-                    <Link href={backUrl}>
-                        <ArrowLeft className="h-4 w-4" /> Voltar para lista
-                    </Link>
+                <Button variant="outline" className="gap-2" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4" /> Voltar para lista
                 </Button>
             </div>
         );
@@ -318,10 +217,8 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
     return (
         <div className="mx-auto max-w-360 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-4 flex items-center gap-3 px-4 md:px-0">
-                <Button variant="ghost" size="icon" asChild className="h-9 w-9 shrink-0 rounded-full hover:bg-muted/80">
-                    <Link href={backUrl}>
-                        <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-                    </Link>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full hover:bg-muted/80" onClick={() => router.back()}>
+                    <ArrowLeft className="h-5 w-5 text-muted-foreground" />
                 </Button>
                 <span className="font-mono text-xs text-muted-foreground">{ticket.number}</span>
             </div>
@@ -511,22 +408,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         isPending={isUpdatingOwners}
                                         supportUsers={supportUsers}
                                         developmentUsers={developmentUsers}
-                                        onUpdateOwners={async (payload) => {
-                                            setIsUpdatingOwners(true);
-                                            try {
-                                                const res = await updateTicketOwnersAction(String(ticket.id), {
-                                                    ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
-                                                    ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
-                                                });
-                                                if (res.success) {
-                                                    toast.success("Responsaveis atualizados.");
-                                                } else {
-                                                    toast.error(res.error || "Erro ao atualizar responsaveis");
-                                                }
-                                            } finally {
-                                                setIsUpdatingOwners(false);
-                                            }
-                                        }}
+                                        onUpdateOwners={onUpdateOwners}
                                     />
                                     <SidebarField label="Resolucao" value={<DetailDate value={ticket.resolvedAt} fallback="Pendente" />} />
                                 </section>
@@ -566,20 +448,13 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                                                         O ticket sera movido para arquivados e removido da fila ativa.
                                                     </p>
-                                                    <Textarea
-                                                        placeholder="Motivo (opcional)..."
-                                                        className="min-h-[64px] resize-none text-xs"
-                                                        value={archiveReason}
-                                                        onChange={(e) => setArchiveReason(e.target.value)}
-                                                        disabled={isArchiving}
-                                                    />
                                                     <div className="flex gap-2">
                                                         <Button
                                                             type="button"
                                                             variant="outline"
                                                             size="sm"
                                                             className="flex-1 text-xs"
-                                                            onClick={() => { setArchiveDialogOpen(false); setArchiveReason(""); }}
+                                                            onClick={() => setArchiveDialogOpen(false)}
                                                             disabled={isArchiving}
                                                         >
                                                             Cancelar
@@ -1014,17 +889,6 @@ function getCategoriesForTeam(categories: TicketModuleSettingsOption[], team?: s
     return currentOption ? [currentOption, ...options] : options;
 }
 
-function resolveCategoryForTeam(categories: TicketModuleSettingsOption[], team: string, currentCategory?: string | null) {
-    const normalizedTeam = team.trim().toUpperCase();
-    const teamOptions = categories.filter((category) => !category.defaultTeam || category.defaultTeam === normalizedTeam);
-    const options = teamOptions.length ? teamOptions : categories;
-    const current = (currentCategory || "").trim();
-    const currentIsValid = Boolean(current) && options.some((category) => category.value.toLowerCase() === current.toLowerCase());
-
-    if (currentIsValid) return current;
-    return options[0]?.value || current;
-}
-
 function NativeSelectPill({
     id,
     value,
@@ -1111,12 +975,6 @@ function mapPriorityToLevel(priority: TicketModulePriority) {
     if (priority === "LOW") return 1;
     if (priority === "HIGH" || priority === "CRITICAL") return 3;
     return 2;
-}
-
-function mapLevelToPriority(priority: number): TicketModulePriority {
-    if (priority === 1) return "LOW";
-    if (priority === 3) return "HIGH";
-    return "NORMAL";
 }
 
 function parsePriorityOption(option: TicketModuleSettingsPriority): TicketModulePriority {
