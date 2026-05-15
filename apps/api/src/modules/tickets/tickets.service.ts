@@ -809,8 +809,11 @@ export class TicketsService {
     if (!exists) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(exists.companyId, accessScope);
 
-    if (isArchiveFlow) {
+    if (input.status !== undefined) {
       await this.assertCanManageTickets(requester);
+    }
+
+    if (isArchiveFlow) {
       this.logger.log(JSON.stringify({
         flow: 'tickets_archive',
         stage: 'update_status_enter',
