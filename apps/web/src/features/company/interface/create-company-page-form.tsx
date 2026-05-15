@@ -16,13 +16,14 @@ import {
   INDICADOR_IE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { MonthlyRoutineCompanyConfigUpsertInput, MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
   CompanyOption,
 } from "@/features/company/application/company-view.types";
 import { createCompanyAction, updateCompanyAction, lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
+import { trpc } from "@/lib/api/trpc-client";
 import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
 import { Form, Badge, Button } from "@dosc-syspro/ui";
@@ -136,6 +137,20 @@ export function CreateCompanyPageForm({
   const [isImportingCnpj, setIsImportingCnpj] = useState(false);
   const [lastImportedCnpj, setLastImportedCnpj] = useState<string | null>(null);
   const [justImported, setJustImported] = useState(false);
+  const [monthlyRoutineDraft, setMonthlyRoutineDraft] = useState<MonthlyRoutineCompanyConfigUpsertInput["data"] | null>(
+    monthlyRoutineView
+      ? {
+          isActive: monthlyRoutineView.config.isActive,
+          title: monthlyRoutineView.config.title,
+          dueDay: monthlyRoutineView.config.dueDay,
+          reminderDays: monthlyRoutineView.config.reminderDays,
+          clientContactId: monthlyRoutineView.config.clientContactId,
+          accountingContactId: monthlyRoutineView.config.accountingContactId,
+          notes: monthlyRoutineView.config.notes,
+          requiredDocuments: monthlyRoutineView.config.requiredDocuments,
+        }
+      : null,
+  );
 
   const form = useForm<CreateCompanyInput>({
     resolver: zodResolver(createCompanySchema, undefined, { raw: true }),
@@ -308,6 +323,28 @@ export function CreateCompanyPageForm({
       toast.error(result.message ?? (mode === "edit" ? "Erro ao atualizar empresa." : "Erro ao cadastrar empresa."));
       return;
     }
+
+    if (mode === "edit" && companyId && monthlyRoutineView && monthlyRoutineDraft && canManageMonthlyRoutine) {
+      const routineResult = await trpc.rotinasMensais.upsertCompanyConfig.mutate({
+        companyId,
+        data: {
+          ...monthlyRoutineDraft,
+          title: monthlyRoutineDraft.title.trim(),
+          notes: monthlyRoutineDraft.notes?.trim() ? monthlyRoutineDraft.notes.trim() : null,
+          clientContactId: monthlyRoutineDraft.clientContactId?.trim() ? monthlyRoutineDraft.clientContactId : null,
+          accountingContactId: monthlyRoutineDraft.accountingContactId?.trim()
+            ? monthlyRoutineDraft.accountingContactId
+            : null,
+          requiredDocuments: monthlyRoutineDraft.requiredDocuments,
+        },
+      });
+
+      if (!routineResult.success) {
+        toast.error(routineResult.message ?? "Empresa salva, mas a rotina mensal nao foi atualizada.");
+        return;
+      }
+    }
+
     toast.success(result.message ?? (mode === "edit" ? "Empresa atualizada com sucesso." : "Empresa cadastrada com sucesso."));
     router.replace(resolvePostSaveHref(data));
   };
@@ -415,6 +452,8 @@ export function CreateCompanyPageForm({
                 <CompanySettingsTab
                   monthlyRoutineView={monthlyRoutineView}
                   canManageMonthlyRoutine={canManageMonthlyRoutine}
+                  monthlyRoutineDraft={monthlyRoutineDraft ?? undefined}
+                  onMonthlyRoutineDraftChange={setMonthlyRoutineDraft}
                 />
               )}
             </motion.div>

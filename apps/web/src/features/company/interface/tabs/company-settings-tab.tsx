@@ -7,7 +7,7 @@ import {
   COMPANY_SERVER_TYPE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { MonthlyRoutineCompanyConfigUpsertInput, MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
 import type { CompanyRemoteConnectionInput } from "@/features/company/application/company-view.types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button, Badge, Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { CompanyMonthlyRoutineCard } from "@/features/rotinas-mensais/interface";
@@ -21,9 +21,16 @@ const REMOTE_CONNECTION_LABEL: Record<CompanyRemoteConnectionInput["type"], stri
 interface CompanySettingsTabProps {
   monthlyRoutineView?: MonthlyRoutineCompanyConfigView;
   canManageMonthlyRoutine?: boolean;
+  monthlyRoutineDraft?: MonthlyRoutineCompanyConfigUpsertInput["data"];
+  onMonthlyRoutineDraftChange?: (next: MonthlyRoutineCompanyConfigUpsertInput["data"]) => void;
 }
 
-export function CompanySettingsTab({ monthlyRoutineView, canManageMonthlyRoutine = false }: CompanySettingsTabProps) {
+export function CompanySettingsTab({
+  monthlyRoutineView,
+  canManageMonthlyRoutine = false,
+  monthlyRoutineDraft,
+  onMonthlyRoutineDraftChange,
+}: CompanySettingsTabProps) {
   const form = useFormContext<CreateCompanyInput>();
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -294,6 +301,17 @@ export function CompanySettingsTab({ monthlyRoutineView, canManageMonthlyRoutine
             view={monthlyRoutineView}
             canManage={canManageMonthlyRoutine}
             currentAccountingFirmId={typeof accountingFirmId === "string" ? accountingFirmId : ""}
+            draft={monthlyRoutineDraft ?? {
+              isActive: monthlyRoutineView.config.isActive,
+              title: monthlyRoutineView.config.title,
+              dueDay: monthlyRoutineView.config.dueDay,
+              reminderDays: monthlyRoutineView.config.reminderDays,
+              clientContactId: monthlyRoutineView.config.clientContactId,
+              accountingContactId: monthlyRoutineView.config.accountingContactId,
+              notes: monthlyRoutineView.config.notes,
+              requiredDocuments: monthlyRoutineView.config.requiredDocuments,
+            }}
+            onDraftChange={onMonthlyRoutineDraftChange ?? (() => undefined)}
           />
         ) : (
           <Card className="border-border/60 bg-card shadow-sm">

@@ -1,37 +1,25 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { trpc } from "@/lib/api/trpc-client";
+import { useMemo } from "react";
 import type { MonthlyRoutineCompanyConfigUpsertInput, MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
-import { CalendarRange, Save, TriangleAlert } from "lucide-react";
-import { toast } from "sonner";
+import { Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
+import { CalendarRange, TriangleAlert } from "lucide-react";
 
 interface CompanyMonthlyRoutineCardProps {
   view: MonthlyRoutineCompanyConfigView;
   canManage: boolean;
   currentAccountingFirmId?: string;
+  draft: MonthlyRoutineCompanyConfigUpsertInput["data"];
+  onDraftChange: (next: MonthlyRoutineCompanyConfigUpsertInput["data"]) => void;
 }
 
 export function CompanyMonthlyRoutineCard({
   view,
   canManage,
   currentAccountingFirmId,
+  draft,
+  onDraftChange,
 }: CompanyMonthlyRoutineCardProps) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [draft, setDraft] = useState<MonthlyRoutineCompanyConfigUpsertInput["data"]>({
-    isActive: view.config.isActive,
-    title: view.config.title,
-    dueDay: view.config.dueDay,
-    reminderDays: view.config.reminderDays,
-    clientContactId: view.config.clientContactId,
-    accountingContactId: view.config.accountingContactId,
-    notes: view.config.notes,
-    requiredDocuments: view.config.requiredDocuments,
-  });
-
   const accountingFirmChangedInForm = useMemo(() => {
     if (typeof currentAccountingFirmId !== "string") return false;
     const normalizedCurrent = currentAccountingFirmId.trim();
@@ -40,29 +28,6 @@ export function CompanyMonthlyRoutineCard({
   }, [currentAccountingFirmId, view.company.accountingFirmId]);
 
   const requiredDocumentsText = draft.requiredDocuments.join("\n");
-
-  const handleSave = () => {
-    startTransition(async () => {
-      try {
-        const result = await trpc.rotinasMensais.upsertCompanyConfig.mutate({
-          companyId: view.company.companyId,
-          data: {
-            ...draft,
-            title: draft.title.trim(),
-            notes: draft.notes?.trim() ? draft.notes.trim() : null,
-            clientContactId: draft.clientContactId?.trim() ? draft.clientContactId : null,
-            accountingContactId: draft.accountingContactId?.trim() ? draft.accountingContactId : null,
-            requiredDocuments: draft.requiredDocuments,
-          },
-        });
-
-        toast.success(result.message || "Configuracao salva.");
-        router.refresh();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar a rotina mensal.");
-      }
-    });
-  };
 
   return (
     <Card className="border-border/60 bg-card shadow-sm">
@@ -107,11 +72,21 @@ export function CompanyMonthlyRoutineCard({
               Use esta chave para incluir ou retirar a empresa da geracao recorrente.
             </p>
           </div>
-          <Switch
-            checked={draft.isActive}
-            disabled={!canManage || isPending}
-            onCheckedChange={(checked) => setDraft((current) => ({ ...current, isActive: checked }))}
-          />
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-xs font-semibold uppercase tracking-wide ${
+                draft.isActive ? "text-emerald-400" : "text-muted-foreground"
+              }`}
+            >
+              {draft.isActive ? "Ligada" : "Desligada"}
+            </span>
+            <Switch
+              checked={draft.isActive}
+              disabled={!canManage}
+              className="h-7 w-12 border border-border/80 bg-muted data-[state=checked]:bg-emerald-600 data-[state=unchecked]:bg-zinc-700"
+              onCheckedChange={(checked) => onDraftChange({ ...draft, isActive: checked })}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -119,8 +94,8 @@ export function CompanyMonthlyRoutineCard({
             <Label>Titulo da rotina</Label>
             <Input
               value={draft.title}
-              disabled={!canManage || isPending}
-              onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+              disabled={!canManage}
+              onChange={(event) => onDraftChange({ ...draft, title: event.target.value })}
               placeholder="Ex.: Envio mensal contabil"
             />
           </div>
@@ -129,9 +104,9 @@ export function CompanyMonthlyRoutineCard({
             <Label>Contato principal do cliente</Label>
             <Select
               value={draft.clientContactId ?? "__none__"}
-              disabled={!canManage || isPending}
+              disabled={!canManage}
               onValueChange={(value) =>
-                setDraft((current) => ({ ...current, clientContactId: value === "__none__" ? null : value }))
+                onDraftChange({ ...draft, clientContactId: value === "__none__" ? null : value })
               }
             >
               <SelectTrigger>
@@ -155,12 +130,12 @@ export function CompanyMonthlyRoutineCard({
               min={1}
               max={31}
               value={String(draft.dueDay)}
-              disabled={!canManage || isPending}
+              disabled={!canManage}
               onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  dueDay: Math.min(31, Math.max(1, Number(event.target.value || current.dueDay))),
-                }))
+                onDraftChange({
+                  ...draft,
+                  dueDay: Math.min(31, Math.max(1, Number(event.target.value || draft.dueDay))),
+                })
               }
             />
           </div>
@@ -172,12 +147,12 @@ export function CompanyMonthlyRoutineCard({
               min={0}
               max={30}
               value={String(draft.reminderDays)}
-              disabled={!canManage || isPending}
+              disabled={!canManage}
               onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  reminderDays: Math.min(30, Math.max(0, Number(event.target.value || current.reminderDays))),
-                }))
+                onDraftChange({
+                  ...draft,
+                  reminderDays: Math.min(30, Math.max(0, Number(event.target.value || draft.reminderDays))),
+                })
               }
             />
           </div>
@@ -186,9 +161,9 @@ export function CompanyMonthlyRoutineCard({
             <Label>Contato da contabilidade</Label>
             <Select
               value={draft.accountingContactId ?? "__none__"}
-              disabled={!canManage || isPending || accountingFirmChangedInForm}
+              disabled={!canManage || accountingFirmChangedInForm}
               onValueChange={(value) =>
-                setDraft((current) => ({ ...current, accountingContactId: value === "__none__" ? null : value }))
+                onDraftChange({ ...draft, accountingContactId: value === "__none__" ? null : value })
               }
             >
               <SelectTrigger>
@@ -215,15 +190,15 @@ export function CompanyMonthlyRoutineCard({
           <Label>Checklist padrao de documentos</Label>
           <Textarea
             value={requiredDocumentsText}
-            disabled={!canManage || isPending}
+            disabled={!canManage}
             onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
+              onDraftChange({
+                ...draft,
                 requiredDocuments: event.target.value
                   .split(/\r?\n/)
                   .map((item) => item.trim())
                   .filter(Boolean),
-              }))
+              })
             }
             placeholder={"Digite um item por linha\nEx.: XML de vendas\nRelatorio de caixa\nMovimento de estoque"}
             rows={5}
@@ -234,21 +209,12 @@ export function CompanyMonthlyRoutineCard({
           <Label>Observacoes operacionais</Label>
           <Textarea
             value={draft.notes ?? ""}
-            disabled={!canManage || isPending}
-            onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
+            disabled={!canManage}
+            onChange={(event) => onDraftChange({ ...draft, notes: event.target.value })}
             placeholder="Instrucoes para a equipe, excecoes do cliente e combinados com a contabilidade."
             rows={4}
           />
         </div>
-
-        {canManage ? (
-          <div className="flex justify-end">
-            <Button type="button" onClick={handleSave} disabled={isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {isPending ? "Salvando..." : "Salvar rotina mensal"}
-            </Button>
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );
