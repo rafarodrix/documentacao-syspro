@@ -62,6 +62,7 @@ type InternalUserOption = {
 export function TicketDetails({ ticket, articles, messagePagination, canManageTickets, error, currentUserId }: TicketDetailsProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const [isUpdatingOwners, setIsUpdatingOwners] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
     const [isArchiving, setIsArchiving] = useState(false);
@@ -94,6 +95,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
             } catch {
                 if (active) {
                     setInternalUsers([]);
+                    toast.error("Nao foi possivel carregar a lista de usuarios.");
                 }
             }
         }
@@ -496,11 +498,12 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                     <SupportPeopleFields
                                         ticket={ticket}
                                         canManageTickets={canManageTickets}
-                                        isPending={isPending}
+                                        isPending={isUpdatingOwners}
                                         supportUsers={supportUsers}
                                         developmentUsers={developmentUsers}
-                                        onUpdateOwners={(payload) => {
-                                            startTransition(async () => {
+                                        onUpdateOwners={async (payload) => {
+                                            setIsUpdatingOwners(true);
+                                            try {
                                                 const res = await updateTicketOwnersAction(String(ticket.id), {
                                                     ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
                                                     ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
@@ -510,7 +513,9 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                 } else {
                                                     toast.error(res.error || "Erro ao atualizar responsaveis");
                                                 }
-                                            });
+                                            } finally {
+                                                setIsUpdatingOwners(false);
+                                            }
                                         }}
                                     />
                                     <SidebarField label="Resolucao" value={<DetailDate value={ticket.resolvedAt} fallback="Pendente" />} />
