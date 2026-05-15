@@ -419,6 +419,11 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
 }
 
 export async function archiveTicketAction(ticketId: string): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
   try {
     const result = await trpc.tickets.archive.mutate({ id: ticketId });
     if (!result.success) {
@@ -511,6 +516,11 @@ export async function updateTicketOwnersAction(
   ticketId: string,
   payload: { supportOwnerUserId?: string; developmentOwnerUserId?: string },
 ): Promise<TicketMutationResponse> {
+  const session = await getProtectedSession();
+  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
+    return { success: false, error: "Nao autorizado." };
+  }
+
   try {
     const result = await trpc.tickets.updateOwners.mutate({
       id: ticketId,
