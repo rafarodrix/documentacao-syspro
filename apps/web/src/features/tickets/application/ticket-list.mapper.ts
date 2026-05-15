@@ -78,7 +78,8 @@ export function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
   const moduleName = readNullableMetadata(ticket.metadata, "module");
   const categoryName = readNullableMetadata(ticket.metadata, "category");
   const team = readNullableMetadata(ticket.metadata, "currentTeam");
-  const customerName = ticket.companyContact?.name || ticket.companyContact?.email || companyName || "Cliente";
+  const contactName = ticket.companyContact?.name || ticket.companyContact?.email || null;
+  const customerName = contactName || companyName || "Cliente";
 
   const sla = calculateSlaState(ticket);
 
@@ -91,6 +92,8 @@ export function toTicketListItem(ticket: TicketModuleRecord): TicketListItem {
     statusLabel: mapStatusLabel(ticket.status),
     priority: mapPriorityToLevel(ticket.priority),
     customer: customerName,
+    companyName,
+    contactName,
     team: team === "SUPORTE" || team === "DESENVOLVIMENTO" ? team : null,
     module: moduleName,
     category: categoryName,

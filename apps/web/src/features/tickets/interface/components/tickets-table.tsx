@@ -56,7 +56,14 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                 </div>
                 {!isClosedView && !isOpenView && <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />}
               </div>
-              {canManageTickets && <p className="text-xs text-muted-foreground truncate">{ticket.customer}</p>}
+              {canManageTickets && (
+                <div className="flex flex-col gap-0">
+                  <p className="text-xs text-foreground truncate">{ticket.companyName || ticket.customer}</p>
+                  {ticket.companyName && ticket.contactName && (
+                    <p className="text-[11px] text-muted-foreground truncate">{ticket.contactName}</p>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <TeamBadge team={ticket.team} />
                 {ticket.category ? (
@@ -143,10 +150,19 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                   {canManageTickets && (
                     <TableCell>
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/60 transition-colors group-hover/row:text-primary">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/60 transition-colors group-hover/row:text-primary">
                           <Building2 className="w-3.5 h-3.5" />
                         </div>
-                        <span className="max-w-52 truncate text-sm">{ticket.customer}</span>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="max-w-52 truncate text-sm text-foreground">
+                            {ticket.companyName || ticket.customer}
+                          </span>
+                          {ticket.companyName && ticket.contactName && (
+                            <span className="max-w-52 truncate text-[11px] text-muted-foreground">
+                              {ticket.contactName}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                   )}

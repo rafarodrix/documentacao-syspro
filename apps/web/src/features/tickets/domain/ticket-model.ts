@@ -16,6 +16,8 @@ export interface TicketListItem {
     statusLabel: string;
     priority: TicketPriorityLevel;
     customer: string;
+    companyName: string | null;
+    contactName: string | null;
     team?: "SUPORTE" | "DESENVOLVIMENTO" | null;
     module?: string | null;
     category?: string | null;

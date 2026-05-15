@@ -99,7 +99,7 @@ export function TicketsFilters({
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
                         <Input
                             id="global-ticket-search"
-                            placeholder={canManageTickets ? "Buscar por assunto, ID ou cliente..." : "Buscar por assunto ou ID..."}
+                            placeholder={canManageTickets ? "Buscar por assunto, ID, empresa ou contato..." : "Buscar por assunto ou ID..."}
                             className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50 w-full"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
