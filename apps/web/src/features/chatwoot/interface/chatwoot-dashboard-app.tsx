@@ -9,6 +9,7 @@ import {
 } from "@dosc-syspro/contracts/ticket";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
+import type { MonthlyRoutineCompetencyItem } from "@dosc-syspro/contracts/rotinas-mensais";
 import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import type { RemoteConfiguredHostItem } from "@/features/remote/domain/remote-host.types";
@@ -400,7 +401,9 @@ export function ChatwootDashboardApp() {
         });
 
         if (cancelled) return;
-        const nextCount = response.items.filter((item) => item.companyId === resolved.companyId).length;
+        const nextCount = response.items.filter(
+          (item: MonthlyRoutineCompetencyItem) => item.companyId === resolved.companyId,
+        ).length;
         setMonthlyRoutineCount(nextCount);
       } catch {
         if (cancelled) return;
