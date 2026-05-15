@@ -810,6 +810,7 @@ export class TicketsService {
     this.assertTicketAccess(exists.companyId, accessScope);
 
     if (isArchiveFlow) {
+      await this.assertCanManageTickets(requester);
       this.logger.log(JSON.stringify({
         flow: 'tickets_archive',
         stage: 'update_status_enter',

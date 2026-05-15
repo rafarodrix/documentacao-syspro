@@ -58,6 +58,8 @@ function getDefaultSystemProfilePermissions(profileKey: string): SettingsPermiss
 
 @Injectable()
 export class AuthorizationService {
+  private catalogSynced = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
@@ -587,6 +589,7 @@ export class AuthorizationService {
   }
 
   async syncSystemAuthorizationCatalog() {
+    if (this.catalogSynced) return;
     await this.prisma.$transaction(async (tx) => {
       for (const permission of SETTINGS_PERMISSION_DEFINITIONS) {
         await tx.permission.upsert({
@@ -663,6 +666,7 @@ export class AuthorizationService {
         });
       }
     });
+    this.catalogSynced = true;
   }
 
   private async getFallbackPermissionsForProfileKey(profileKey: SettingsProfileKey): Promise<SettingsPermissionKey[]> {
