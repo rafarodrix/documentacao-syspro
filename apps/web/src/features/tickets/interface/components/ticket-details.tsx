@@ -130,6 +130,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
     const handleArchiveTicket = async () => {
         if (!ticket) return;
+        console.log("[archive] iniciando arquivamento do ticket", ticket.id);
 
         try {
             setIsArchiving(true);
@@ -539,6 +540,16 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                 <section className="space-y-3">
                                     {ticket.resolvedByName && <SidebarField label="Resolvido por" value={<span className="text-xs">{ticket.resolvedByName}</span>} />}
                                 </section>
+
+                                {canManageTickets && isClosedTicket && (
+                                    <>
+                                        <Separator />
+                                        <section className="space-y-2">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes</p>
+                                            <p className="text-xs text-muted-foreground">Este ticket esta fechado e nao pode ser modificado.</p>
+                                        </section>
+                                    </>
+                                )}
 
                                 {canManageTickets && !isClosedTicket && (
                                     <>
