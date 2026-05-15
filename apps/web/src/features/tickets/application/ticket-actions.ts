@@ -420,8 +420,14 @@ export async function updateTicketStatusAction(ticketId: string, status: TicketM
 
 export async function archiveTicketAction(ticketId: string): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
-    return { success: false, error: "Nao autorizado." };
+  if (!session) {
+    console.error("[archiveTicketAction] sessao invalida para ticket", ticketId);
+    return { success: false, error: "Sessao expirada. Faca login novamente." };
+  }
+  const canManage = await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true });
+  if (!canManage) {
+    console.error("[archiveTicketAction] permissao negada para usuario", session.userId, "ticket", ticketId);
+    return { success: false, error: "Sem permissao para arquivar tickets." };
   }
 
   try {
