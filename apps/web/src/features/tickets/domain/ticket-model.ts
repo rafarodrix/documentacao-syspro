@@ -190,8 +190,8 @@ export type TicketDetailsResponse =
     | TicketActionFailure;
 
 export type TicketMutationSuccess<T = void> = T extends void
-    ? { success: true; message?: string }
-    : { success: true; message?: string; data: T };
+    ? { success: true; message?: string; status?: string }
+    : { success: true; message?: string; status?: string; data: T };
 
 export type TicketMutationResponse<T = void> = TicketMutationSuccess<T> | TicketActionFailure;
 

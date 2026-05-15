@@ -25,7 +25,7 @@ import {
     Zap,
 } from "lucide-react";
 import { type TicketModulePriority, type TicketModuleSettingsOption, type TicketModuleSettingsPriority, type TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
-import { updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
+import { archiveTicketAction, updateTicketClassificationAction, updateTicketOwnersAction } from "@/features/tickets/application/ticket-actions";
 import { mapTicketModuleDetailsResponse } from "@/features/tickets/application/ticket-details.mapper";
 import { TicketChat } from "@/features/tickets/interface/components/ticket-chat";
 import { TicketFinalizeDialog } from "@/features/tickets/interface/components/ticket-finalize-dialog";
@@ -125,9 +125,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
         try {
             setIsArchiving(true);
-            const res = await trpc.tickets.archive.mutate({
-                id: String(ticket.id),
-            });
+            const res = await archiveTicketAction(String(ticket.id));
 
             if (res.success && res.status === "ARCHIVED") {
                 setArchiveDialogOpen(false);
@@ -136,12 +134,12 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                 return;
             }
 
-            toast.error(
-                res.error ||
-                (res.success
-                    ? "O ticket nao retornou com status arquivado."
-                    : "Erro ao arquivar ticket."),
-            );
+            if (!res.success) {
+                toast.error(res.error || "Erro ao arquivar ticket.");
+                return;
+            }
+
+            toast.error("O ticket nao retornou com status arquivado.");
         } catch {
             toast.error("Erro ao arquivar ticket.");
         } finally {
