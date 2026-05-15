@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { trpc } from "@/lib/api/trpc-client";
-import type { MonthlyRoutineCompetencyListResponse, MonthlyRoutineListResponse } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { MonthlyRoutineCompetencyListResponse } from "@dosc-syspro/contracts/rotinas-mensais";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
-import { Building2, CalendarRange, CircleAlert, MessageSquareShare, RefreshCw, Search, Settings2, UsersRound } from "lucide-react";
+import { CalendarRange, CircleAlert, Filter, MessageSquareShare, RefreshCw, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -12,36 +11,10 @@ import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-requ
 import { MonthlyRoutineStatusDialog } from "./monthly-routine-status-dialog";
 
 interface RotinasMensaisPageProps {
-  data: MonthlyRoutineListResponse;
   competencies: MonthlyRoutineCompetencyListResponse;
   search: string;
+  status: string;
   canManage: boolean;
-}
-
-function getStatusLabel(status: MonthlyRoutineListResponse["items"][number]["candidateStatus"]) {
-  switch (status) {
-    case "READY_TO_CONFIGURE":
-      return "Pronta para configurar";
-    case "NO_ACCOUNTING_FIRM":
-      return "Sem contador";
-    case "NO_PRIMARY_CONTACT":
-      return "Sem contato principal";
-    default:
-      return status;
-  }
-}
-
-function getStatusVariant(status: MonthlyRoutineListResponse["items"][number]["candidateStatus"]) {
-  switch (status) {
-    case "READY_TO_CONFIGURE":
-      return "default" as const;
-    case "NO_ACCOUNTING_FIRM":
-      return "destructive" as const;
-    case "NO_PRIMARY_CONTACT":
-      return "secondary" as const;
-    default:
-      return "outline" as const;
-  }
 }
 
 function getCompetencyStatusLabel(status: MonthlyRoutineCompetencyListResponse["items"][number]["status"]) {
@@ -104,7 +77,21 @@ function getManualRequestStatusVariant(status: MonthlyRoutineCompetencyListRespo
   }
 }
 
-export function RotinasMensaisPage({ data, competencies, search, canManage }: RotinasMensaisPageProps) {
+function getLatestHistoryEntry(item: MonthlyRoutineCompetencyListResponse["items"][number]) {
+  return item.history[0] ?? null;
+}
+
+const STATUS_FILTER_OPTIONS = [
+  { value: "ALL", label: "Todas", countKey: "total" },
+  { value: "PENDING", label: "Pendentes", countKey: "pending" },
+  { value: "WAITING_CUSTOMER", label: "Aguardando cliente", countKey: "waitingCustomer" },
+  { value: "RECEIVED", label: "Recebidas", countKey: "received" },
+  { value: "SENT_TO_ACCOUNTING", label: "Enviadas", countKey: "sentToAccounting" },
+  { value: "OVERDUE", label: "Atrasadas", countKey: "overdue" },
+  { value: "COMPLETED", label: "Concluidas", countKey: "completed" },
+] as const;
+
+export function RotinasMensaisPage({ competencies, search, status, canManage }: RotinasMensaisPageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -114,6 +101,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
   const deferredSearch = useDeferredValue(searchDraft);
   const [selectedCompetency, setSelectedCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [selectedStatusCompetency, setSelectedStatusCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     setSearchDraft(search);
@@ -139,6 +127,20 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
     return () => window.clearTimeout(handle);
   }, [deferredSearch, pathname, router, searchParams]);
 
+  const setStatusFilter = (nextStatus: string) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextStatus && nextStatus !== "ALL") {
+        params.set("status", nextStatus);
+      } else {
+        params.delete("status");
+      }
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const hasActiveFilters = Boolean(search.trim()) || status !== "ALL";
+
   const handleSyncMonth = () => {
     startSyncTransition(async () => {
       try {
@@ -156,139 +158,128 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-border/60 bg-linear-to-br from-background via-background to-muted/30 p-6 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-3 py-1 text-xs font-medium text-muted-foreground">
-              <CalendarRange className="h-3.5 w-3.5" />
-              Rotinas Mensais
-            </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Base operacional para entrega recorrente</h1>
-              <p className="max-w-3xl text-sm text-muted-foreground md:text-base">
-                Este primeiro corte usa o cadastro de empresa, contador vinculado e contato principal para formar a fila inicial de configuracao do modulo.
-              </p>
-            </div>
-          </div>
-
-          <div className="w-full max-w-md">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchDraft}
-                onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Buscar empresa, contador ou contato..."
-                className="h-11 pl-10"
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {isPending ? "Atualizando lista..." : `${data.pagination.total} registro(s) no recorte atual.`}
-            </p>
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Rotinas Mensais</h1>
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">
+            Gerencie a fila mensal de documentos, disparos e andamento operacional.
+          </p>
         </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Empresas no recorte</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{data.summary.totalCompanies}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Base acessivel para iniciar parametrizacao mensal.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Com contador vinculado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{data.summary.withAccountingFirm}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Empresas que ja podem evoluir para configuracao da rotina.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Prontas para configurar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">{data.summary.readyToConfigure}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Ja possuem contador e ao menos um contato principal.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pendencias cadastrais</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold text-foreground">
-              {data.summary.missingAccountingFirm + data.summary.missingPrimaryContact}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">Empresas que ainda dependem de ajuste antes da automacao mensal.</p>
-          </CardContent>
-        </Card>
-      </section>
-
-      <Card className="border-border/60">
-        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <CardTitle>
-              Competencias do mes {String(competencies.month).padStart(2, "0")}/{competencies.year}
-            </CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Fila operacional gerada a partir das configuracoes ativas por empresa.
-            </p>
-          </div>
-          {canManage ? (
-            <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing}>
+        {canManage ? (
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full sm:w-auto">
               <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
               {isSyncing ? "Sincronizando..." : "Sincronizar competencias"}
             </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-            <Card className="border-border/50 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{competencies.summary.total}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Pendentes</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{competencies.summary.pending}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Aguardando cliente</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{competencies.summary.waitingCustomer}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Recebidas</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{competencies.summary.received}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Enviadas</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{competencies.summary.sentToAccounting}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Atrasadas</p>
-                <p className="mt-1 text-2xl font-semibold text-foreground">{competencies.summary.overdue}</p>
-              </CardContent>
-            </Card>
+          </div>
+        ) : null}
+      </div>
+
+      <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-auto">
+            <div className="flex min-w-max rounded-md bg-muted/40 p-1">
+              {STATUS_FILTER_OPTIONS.map((option) => {
+                const count =
+                  option.countKey === "total"
+                    ? competencies.summary.total
+                    : competencies.summary[option.countKey];
+                const isActive = status === option.value || (status === "" && option.value === "ALL");
+
+                return (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={isActive ? "secondary" : "ghost"}
+                    size="sm"
+                    className={`h-8 px-4 ${isActive ? "bg-background shadow-sm" : ""}`}
+                    onClick={() => setStatusFilter(option.value)}
+                  >
+                    {option.label} ({count})
+                  </Button>
+                );
+              })}
+            </div>
           </div>
 
+          <div className="flex flex-1 items-center gap-3 w-full xl:w-auto">
+            <div className="group relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Input
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+                placeholder="Buscar por empresa, rotina, contato ou contador..."
+                className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50 w-full"
+              />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {hasActiveFilters ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 px-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setSearchDraft("");
+                    setStatusFilter("ALL");
+                  }}
+                >
+                  <X className="mr-2 h-3.5 w-3.5" />
+                  Limpar
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant={showFilters ? "secondary" : "outline"}
+                size="icon"
+                className="h-10 w-10"
+                onClick={() => setShowFilters((current) => !current)}
+                aria-label="Mostrar filtros"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {showFilters ? (
+          <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Competencia</p>
+                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
+                  {String(competencies.month).padStart(2, "0")}/{competencies.year}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Status atual</p>
+                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
+                  {status === "ALL"
+                    ? "Todos"
+                    : STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Registros no recorte</p>
+                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
+                  {isPending ? "Atualizando..." : `${competencies.pagination.total} competencia(s)`}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle>
+            Competencias do mes {String(competencies.month).padStart(2, "0")}/{competencies.year}
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Fila operacional gerada a partir das configuracoes ativas por empresa.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
           {competencies.items.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
               <CircleAlert className="mx-auto h-10 w-10 text-muted-foreground/70" />
@@ -308,7 +299,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                     <th className="px-3 py-3">Vencimento</th>
                     <th className="px-3 py-3">Checklist</th>
                     <th className="px-3 py-3">Solicitacoes</th>
-                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Status e andamento</th>
                     {canManage ? <th className="px-3 py-3 text-right">Acoes</th> : null}
                   </tr>
                 </thead>
@@ -352,9 +343,30 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                         )}
                       </td>
                       <td className="px-3 py-4">
-                        <Badge variant={getCompetencyStatusVariant(item.status)}>
-                          {getCompetencyStatusLabel(item.status)}
-                        </Badge>
+                        <div className="space-y-2">
+                          <Badge variant={getCompetencyStatusVariant(item.status)}>
+                            {getCompetencyStatusLabel(item.status)}
+                          </Badge>
+                          {item.notes ? (
+                            <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground">Observacao:</span> {item.notes}
+                            </div>
+                          ) : null}
+                          {getLatestHistoryEntry(item) ? (
+                            <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                              <div className="font-medium text-foreground">{getLatestHistoryEntry(item)?.title}</div>
+                              <div className="mt-1">
+                                {getLatestHistoryEntry(item)?.authorUserName ? `${getLatestHistoryEntry(item)?.authorUserName} - ` : ""}
+                                {getLatestHistoryEntry(item)?.occurredAt
+                                  ? new Date(getLatestHistoryEntry(item)!.occurredAt).toLocaleString("pt-BR")
+                                  : ""}
+                              </div>
+                              {getLatestHistoryEntry(item)?.description ? (
+                                <div className="mt-1 line-clamp-3">{getLatestHistoryEntry(item)?.description}</div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
                       </td>
                       {canManage ? (
                         <td className="px-3 py-4 text-right">
@@ -405,109 +417,6 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
         }}
         onSaved={() => router.refresh()}
       />
-
-      <Card className="border-border/60">
-        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <CardTitle>Fila inicial de configuracao</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Esta listagem nasce do cadastro de empresa e vai alimentar as proximas etapas do modulo.
-            </p>
-          </div>
-          <Link
-            href="/portal/cadastros/empresa"
-            className="inline-flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/40"
-          >
-            <Settings2 className="h-4 w-4" />
-            Revisar empresas
-          </Link>
-        </CardHeader>
-        <CardContent>
-          {data.items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
-              <CircleAlert className="mx-auto h-10 w-10 text-muted-foreground/70" />
-              <h2 className="mt-4 text-lg font-semibold text-foreground">Nenhuma empresa encontrada</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Ajuste os filtros ou finalize o vinculo de empresas e contadores para iniciar a rotina mensal.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border/60">
-                <thead>
-                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-3">Empresa</th>
-                    <th className="px-3 py-3">Contador</th>
-                    <th className="px-3 py-3">Contato</th>
-                    <th className="px-3 py-3">Regime</th>
-                    <th className="px-3 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {data.items.map((item) => (
-                    <tr key={item.companyId} className="align-top">
-                      <td className="px-3 py-4">
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-xl bg-primary/10 p-2 text-primary">
-                            <Building2 className="h-4 w-4" />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="font-medium text-foreground">{item.companyTradeName || item.companyName}</div>
-                            <div className="text-sm text-muted-foreground">{item.companyName}</div>
-                            <Link
-                              href={`/portal/cadastros/empresa/${item.companyId}/editar`}
-                              className="inline-flex text-xs font-medium text-primary hover:underline"
-                            >
-                              Abrir cadastro da empresa
-                            </Link>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-4 text-sm text-foreground">
-                        {item.accountingFirmName ? (
-                          <div className="space-y-1">
-                            <div>{item.accountingFirmName}</div>
-                            {item.accountingFirmId ? (
-                              <Link
-                                href={`/portal/cadastros/empresa/${item.accountingFirmId}/editar`}
-                                className="inline-flex text-xs font-medium text-primary hover:underline"
-                              >
-                                Abrir cadastro do contador
-                              </Link>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Nao vinculado</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-foreground">
-                        {item.primaryContactName ? (
-                          <div className="space-y-1">
-                            <div className="inline-flex items-center gap-2">
-                              <UsersRound className="h-3.5 w-3.5 text-muted-foreground" />
-                              {item.primaryContactName}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{item.primaryContactEmail || "Sem email principal"}</div>
-                            <div className="text-xs text-muted-foreground">{item.contactsCount} contato(s) vinculado(s)</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Nenhum contato principal</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-foreground">
-                        {item.taxRegime ? item.taxRegime.replaceAll("_", " ") : <span className="text-muted-foreground">Nao definido</span>}
-                      </td>
-                      <td className="px-3 py-4">
-                        <Badge variant={getStatusVariant(item.candidateStatus)}>{getStatusLabel(item.candidateStatus)}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
