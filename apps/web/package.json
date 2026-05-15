@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "lint:remote": "ESLINT_USE_FLAT_CONFIG=false eslint \"src/features/remote/**/*.{ts,tsx}\" --max-warnings 0",
+    "lint:remote": "eslint --config eslint.remote.config.mjs \"src/features/remote/**/*.{ts,tsx}\" --max-warnings 0",
     "start": "next start",
     "typecheck": "next typegen && tsc -p tsconfig.json --noEmit",
     "test": "vitest run --reporter=verbose",

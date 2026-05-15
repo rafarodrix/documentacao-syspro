@@ -6,6 +6,7 @@ import {
   createUserSchema,
   updateUserSchema,
   updateCurrentUserProfileSchema,
+  userAccessListItemSchema,
 } from '@dosc-syspro/contracts/user';
 
 @Injectable()
@@ -28,6 +29,7 @@ export class UsersRouter {
             role: z.string().optional(),
           }),
         )
+        .output(z.array(userAccessListItemSchema))
         .query(({ input, ctx }) => {
           return this.usersService.findAll(input, ctx.headers);
         }),
