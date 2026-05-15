@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { RemoteTenantScope } from "@/features/remote/domain/remote-host.types";
-import { fetchRemoteEfficiencyMetricsGateway } from "@/features/remote/infrastructure/gateways/remote-admin.gateway";
+import { trpc } from "@/lib/api/trpc-client";
 
 export interface EfficiencyMetrics {
   averageTimeToRemoteSeconds: number | null;
@@ -41,5 +41,5 @@ export const efficiencyMetricsSchema = z.object({
 });
 
 export async function getRemoteEfficiencyMetrics(_tenantScope: RemoteTenantScope): Promise<EfficiencyMetrics> {
-  return fetchRemoteEfficiencyMetricsGateway();
+  return trpc.remote.efficiencyMetrics.query() as Promise<EfficiencyMetrics>;
 }

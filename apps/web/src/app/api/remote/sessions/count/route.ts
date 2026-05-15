@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireRemotePermission } from "@/features/remote/application/remote-access";
-import { getActiveSessionsCount } from "@/features/remote/application/session-queries";
-import { getRemoteTenantScope } from "@/features/remote/application/scope";
+import { trpc } from "@/lib/api/trpc-client";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const access = await requireRemotePermission("tools:all", "Nao autorizado");
-  if (!access.ok) {
+  try {
+    const result = await trpc.remote.sessions.query({ status: "ACTIVE", page: 1, pageSize: 1 });
+    return NextResponse.json({ count: result.pagination.total });
+  } catch {
     return new Response("Nao autorizado", { status: 401 });
   }
-
-  const scope = await getRemoteTenantScope();
-  const count = await getActiveSessionsCount(scope);
-
-  return NextResponse.json({ count });
 }
