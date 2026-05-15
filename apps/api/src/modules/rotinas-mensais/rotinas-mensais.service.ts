@@ -123,9 +123,9 @@ export class RotinasMensaisService {
       orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
     });
 
-    const normalizedItems = companies.map((company) => this.toRoutineItem(company));
+    const normalizedItems: MonthlyRoutineCompanyItem[] = companies.map((company: any) => this.toRoutineItem(company));
     const filteredItems = statusFilter
-      ? normalizedItems.filter((item) => item.candidateStatus === statusFilter)
+      ? normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === statusFilter)
       : normalizedItems;
     const total = filteredItems.length;
     const start = (page - 1) * pageSize;
@@ -136,10 +136,10 @@ export class RotinasMensaisService {
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
         totalCompanies: normalizedItems.length,
-        withAccountingFirm: normalizedItems.filter((item) => item.accountingFirmId).length,
-        readyToConfigure: normalizedItems.filter((item) => item.candidateStatus === 'READY_TO_CONFIGURE').length,
-        missingAccountingFirm: normalizedItems.filter((item) => item.candidateStatus === 'NO_ACCOUNTING_FIRM').length,
-        missingPrimaryContact: normalizedItems.filter((item) => item.candidateStatus === 'NO_PRIMARY_CONTACT').length,
+        withAccountingFirm: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => Boolean(item.accountingFirmId)).length,
+        readyToConfigure: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === 'READY_TO_CONFIGURE').length,
+        missingAccountingFirm: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === 'NO_ACCOUNTING_FIRM').length,
+        missingPrimaryContact: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === 'NO_PRIMARY_CONTACT').length,
       },
     };
   }
@@ -275,9 +275,9 @@ export class RotinasMensaisService {
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
     });
 
-    const normalizedItems = refreshedRecords.map((record: any) => this.toCompetencyItem(record));
+    const normalizedItems: MonthlyRoutineCompetencyItem[] = refreshedRecords.map((record: any) => this.toCompetencyItem(record));
     const searchedItems = search
-      ? normalizedItems.filter((item) =>
+      ? normalizedItems.filter((item: MonthlyRoutineCompetencyItem) =>
           [
             item.companyName,
             item.accountingFirmName ?? '',
@@ -291,7 +291,9 @@ export class RotinasMensaisService {
             .includes(search),
         )
       : normalizedItems;
-    const filteredItems = statusFilter ? searchedItems.filter((item) => item.status === statusFilter) : searchedItems;
+    const filteredItems = statusFilter
+      ? searchedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === statusFilter)
+      : searchedItems;
     const total = filteredItems.length;
     const start = (page - 1) * pageSize;
     const items = filteredItems.slice(start, start + pageSize);
@@ -301,12 +303,12 @@ export class RotinasMensaisService {
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
         total: normalizedItems.length,
-        pending: normalizedItems.filter((item) => item.status === 'PENDING').length,
-        waitingCustomer: normalizedItems.filter((item) => item.status === 'WAITING_CUSTOMER').length,
-        received: normalizedItems.filter((item) => item.status === 'RECEIVED').length,
-        sentToAccounting: normalizedItems.filter((item) => item.status === 'SENT_TO_ACCOUNTING').length,
-        completed: normalizedItems.filter((item) => item.status === 'COMPLETED').length,
-        overdue: normalizedItems.filter((item) => item.status === 'OVERDUE').length,
+        pending: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'PENDING').length,
+        waitingCustomer: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'WAITING_CUSTOMER').length,
+        received: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'RECEIVED').length,
+        sentToAccounting: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'SENT_TO_ACCOUNTING').length,
+        completed: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'COMPLETED').length,
+        overdue: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'OVERDUE').length,
       },
       year,
       month,
