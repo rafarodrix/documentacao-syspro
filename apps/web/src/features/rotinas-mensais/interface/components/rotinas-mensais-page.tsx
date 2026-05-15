@@ -5,7 +5,7 @@ import { trpc } from "@/lib/api/trpc-client";
 import type { MonthlyRoutineCompetencyListResponse, MonthlyRoutineListResponse } from "@dosc-syspro/contracts/rotinas-mensais";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
 import { Building2, CalendarRange, CircleAlert, MessageSquareShare, RefreshCw, Search, Settings2, UsersRound } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-request-dialog";
@@ -106,6 +106,7 @@ function getManualRequestStatusVariant(status: MonthlyRoutineCompetencyListRespo
 
 export function RotinasMensaisPage({ data, competencies, search, canManage }: RotinasMensaisPageProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isSyncing, startSyncTransition] = useTransition();
@@ -119,20 +120,24 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
   }, [search]);
 
   useEffect(() => {
-    const normalizedCurrent = search.trim();
+    const normalizedCurrent = (searchParams.get("search") ?? "").trim();
     const normalizedNext = deferredSearch.trim();
     if (normalizedCurrent === normalizedNext) return;
 
-    startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (normalizedNext) {
-        params.set("search", normalizedNext);
-      } else {
-        params.delete("search");
-      }
-      router.replace(`/portal/rotinas-mensais${params.toString() ? `?${params.toString()}` : ""}`);
-    });
-  }, [deferredSearch, router, search, searchParams]);
+    const handle = window.setTimeout(() => {
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (normalizedNext) {
+          params.set("search", normalizedNext);
+        } else {
+          params.delete("search");
+        }
+        router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+      });
+    }, 300);
+
+    return () => window.clearTimeout(handle);
+  }, [deferredSearch, pathname, router, searchParams]);
 
   const handleSyncMonth = () => {
     startSyncTransition(async () => {

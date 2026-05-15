@@ -234,6 +234,18 @@ export class RotinasMensaisService {
       },
     });
 
+    if (input.data.isActive) {
+      const { year, month } = this.resolveYearMonth();
+      await this.ensureCompetenciesForScope(
+        {
+          isGlobal: false,
+          companyIds: [input.companyId],
+        },
+        year,
+        month,
+      );
+    }
+
     return {
       success: true,
       message: 'Configuracao da rotina mensal salva com sucesso.',
