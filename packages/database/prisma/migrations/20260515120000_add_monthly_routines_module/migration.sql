@@ -75,6 +75,23 @@ CREATE TABLE "monthly_routine_request" (
     CONSTRAINT "monthly_routine_request_pkey" PRIMARY KEY ("id")
 );
 
+CREATE TABLE "monthly_routine_history" (
+    "id" TEXT NOT NULL,
+    "competencyId" TEXT NOT NULL,
+    "authorUserId" TEXT,
+    "type" TEXT NOT NULL,
+    "fromStatus" "MonthlyRoutineStatus",
+    "toStatus" "MonthlyRoutineStatus",
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "metadata" JSONB,
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "monthly_routine_history_pkey" PRIMARY KEY ("id")
+);
+
 CREATE UNIQUE INDEX "monthly_routine_config_companyId_key" ON "monthly_routine_config"("companyId");
 CREATE INDEX "monthly_routine_config_isActive_idx" ON "monthly_routine_config"("isActive");
 CREATE INDEX "monthly_routine_config_clientContactId_idx" ON "monthly_routine_config"("clientContactId");
@@ -88,6 +105,9 @@ CREATE INDEX "monthly_routine_request_companyId_requestedAt_idx" ON "monthly_rou
 CREATE INDEX "monthly_routine_request_contactId_requestedAt_idx" ON "monthly_routine_request"("contactId", "requestedAt");
 CREATE INDEX "monthly_routine_request_requestedByUserId_idx" ON "monthly_routine_request"("requestedByUserId");
 CREATE INDEX "monthly_routine_request_status_requestedAt_idx" ON "monthly_routine_request"("status", "requestedAt");
+CREATE INDEX "monthly_routine_history_competencyId_occurredAt_idx" ON "monthly_routine_history"("competencyId", "occurredAt");
+CREATE INDEX "monthly_routine_history_authorUserId_idx" ON "monthly_routine_history"("authorUserId");
+CREATE INDEX "monthly_routine_history_type_occurredAt_idx" ON "monthly_routine_history"("type", "occurredAt");
 
 ALTER TABLE "monthly_routine_config"
 ADD CONSTRAINT "monthly_routine_config_companyId_fkey"
@@ -124,3 +144,11 @@ FOREIGN KEY ("contactId") REFERENCES "company_contact"("id") ON DELETE RESTRICT 
 ALTER TABLE "monthly_routine_request"
 ADD CONSTRAINT "monthly_routine_request_requestedByUserId_fkey"
 FOREIGN KEY ("requestedByUserId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE "monthly_routine_history"
+ADD CONSTRAINT "monthly_routine_history_competencyId_fkey"
+FOREIGN KEY ("competencyId") REFERENCES "monthly_routine_competency"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "monthly_routine_history"
+ADD CONSTRAINT "monthly_routine_history_authorUserId_fkey"
+FOREIGN KEY ("authorUserId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;

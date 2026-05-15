@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-request-dialog";
+import { MonthlyRoutineStatusDialog } from "./monthly-routine-status-dialog";
 
 interface RotinasMensaisPageProps {
   data: MonthlyRoutineListResponse;
@@ -111,6 +112,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
   const [searchDraft, setSearchDraft] = useState(search);
   const deferredSearch = useDeferredValue(searchDraft);
   const [selectedCompetency, setSelectedCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
+  const [selectedStatusCompetency, setSelectedStatusCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
 
   useEffect(() => {
     setSearchDraft(search);
@@ -355,6 +357,15 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                             type="button"
                             variant="outline"
                             size="sm"
+                            className="mr-2"
+                            onClick={() => setSelectedStatusCompetency(item)}
+                          >
+                            Atualizar status
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
                             onClick={() => setSelectedCompetency(item)}
                             disabled={item.availableContacts.length === 0}
                           >
@@ -379,6 +390,15 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
           if (!open) setSelectedCompetency(null);
         }}
         onSent={() => router.refresh()}
+      />
+
+      <MonthlyRoutineStatusDialog
+        item={selectedStatusCompetency}
+        open={Boolean(selectedStatusCompetency)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedStatusCompetency(null);
+        }}
+        onSaved={() => router.refresh()}
       />
 
       <Card className="border-border/60">

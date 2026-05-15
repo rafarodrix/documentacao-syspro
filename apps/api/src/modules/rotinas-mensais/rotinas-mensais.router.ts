@@ -5,6 +5,7 @@ import {
   monthlyRoutineListQuerySchema,
   monthlyRoutineSendManualRequestSchema,
   monthlyRoutineSyncCompetenciesSchema,
+  monthlyRoutineUpdateCompetencyStatusSchema,
 } from '@dosc-syspro/contracts/rotinas-mensais';
 import { z } from 'zod';
 import { TrpcService } from '../trpc/trpc.service';
@@ -52,6 +53,11 @@ export class RotinasMensaisRouter {
         .input(monthlyRoutineSendManualRequestSchema)
         .mutation(({ input, ctx }) => {
           return this.rotinasMensaisService.sendManualRequest(input, ctx.headers);
+        }),
+      updateCompetencyStatus: this.trpc.publicProcedure
+        .input(monthlyRoutineUpdateCompetencyStatusSchema)
+        .mutation(({ input, ctx }) => {
+          return this.rotinasMensaisService.updateCompetencyStatus(input, ctx.headers);
         }),
     });
   }

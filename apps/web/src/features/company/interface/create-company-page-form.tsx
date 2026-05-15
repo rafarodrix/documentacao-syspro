@@ -409,13 +409,14 @@ export function CreateCompanyPageForm({
               )}
               {currentSection === "contato" && <CompanyContactTab />}
               {currentSection === "fiscal" && (
-                <CompanyFiscalTab
-                  companies={companies}
+                <CompanyFiscalTab companies={companies} />
+              )}
+              {currentSection === "configuracoes" && (
+                <CompanySettingsTab
                   monthlyRoutineView={monthlyRoutineView}
                   canManageMonthlyRoutine={canManageMonthlyRoutine}
                 />
               )}
-              {currentSection === "configuracoes" && <CompanySettingsTab />}
             </motion.div>
           </AnimatePresence>
         </RegistryFormScaffold>

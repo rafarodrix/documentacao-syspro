@@ -6,30 +6,24 @@ import {
   TAX_REGIME_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
 import type { CompanyOption } from "@/features/company/application/company-view.types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from "@dosc-syspro/ui";
-import { CompanyMonthlyRoutineCard } from "@/features/rotinas-mensais/interface";
 import { Building2, FileText, Users2, ListTree } from "lucide-react";
 
 interface CompanyFiscalTabProps {
   companies: CompanyOption[];
-  monthlyRoutineView?: MonthlyRoutineCompanyConfigView;
-  canManageMonthlyRoutine?: boolean;
 }
 
 const READONLY_BLOCK_CLASS =
   "space-y-3 rounded-xl border border-border/50 bg-muted/5 p-4";
 
-export function CompanyFiscalTab({ companies, monthlyRoutineView, canManageMonthlyRoutine = false }: CompanyFiscalTabProps) {
+export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
   const form = useFormContext<CreateCompanyInput>();
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
   const toSelectValue = (value: unknown) => (typeof value === "string" ? value : "__none__");
 
   const secondaryCnaes = form.watch("cnaesSecundarios") ?? [];
   const companyPartners = form.watch("qsa") ?? [];
-  const accountingFirmId = form.watch("accountingFirmId");
-
   return (
     <div className="space-y-6">
       {/* Regime e inscricoes */}
@@ -302,13 +296,6 @@ export function CompanyFiscalTab({ companies, monthlyRoutineView, canManageMonth
         </CardContent>
       </Card>
 
-      {monthlyRoutineView ? (
-        <CompanyMonthlyRoutineCard
-          view={monthlyRoutineView}
-          canManage={canManageMonthlyRoutine}
-          currentAccountingFirmId={typeof accountingFirmId === "string" ? accountingFirmId : ""}
-        />
-      ) : null}
     </div>
   );
 }

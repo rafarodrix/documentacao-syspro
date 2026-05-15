@@ -5,6 +5,8 @@ import type {
   MonthlyRoutineCompanyConfigView,
   MonthlyRoutineCompanyItem,
   MonthlyRoutineCompetencyItem,
+  MonthlyRoutineExecutionStatus,
+  MonthlyRoutineHistoryItem,
   MonthlyRoutineCompetencyListQuery,
   MonthlyRoutineCompetencyListResponse,
   MonthlyRoutineContactOption,
@@ -14,11 +16,11 @@ import type {
   MonthlyRoutineSendManualRequestResult,
   MonthlyRoutineSyncCompetenciesInput,
   MonthlyRoutineSyncCompetenciesResult,
+  MonthlyRoutineUpdateCompetencyStatusInput,
+  MonthlyRoutineUpdateCompetencyStatusResult,
 } from '@dosc-syspro/contracts/rotinas-mensais';
 import {
   CompanyStatus,
-  MonthlyRoutineRequestStatus,
-  MonthlyRoutineStatus,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -247,7 +249,7 @@ export class RotinasMensaisService {
     const { year, month } = this.resolveYearMonth(input.year, input.month);
     await this.ensureCompetenciesForScope(scope, year, month);
 
-    const statusFilter = input.status && input.status !== 'ALL' ? (input.status as MonthlyRoutineStatus) : undefined;
+    const statusFilter = input.status && input.status !== 'ALL' ? (input.status as MonthlyRoutineExecutionStatus) : undefined;
     const search = input.search?.trim().toLowerCase();
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
@@ -420,7 +422,7 @@ export class RotinasMensaisService {
           contactId: selectedContact.id,
           requestedByUserId: requester.userId,
           channel: 'WHATSAPP',
-          status: MonthlyRoutineRequestStatus.SENT,
+          status: 'SENT',
           targetPhone,
           message,
           providerMessageId: sendResult.messageId ?? null,
@@ -430,14 +432,31 @@ export class RotinasMensaisService {
         },
         include: this.getManualRequestInclude(),
       });
+      await this.createHistoryEntry({
+        competencyId: competency.id,
+        authorUserId: requester.userId,
+        type: 'MANUAL_REQUEST_SENT',
+        fromStatus: competency.status as MonthlyRoutineExecutionStatus,
+        toStatus:
+          competency.status === 'PENDING' || competency.status === 'OVERDUE'
+            ? 'WAITING_CUSTOMER'
+            : (competency.status as MonthlyRoutineExecutionStatus),
+        title: `Solicitacao enviada para ${selectedContact.name}`,
+        description: message,
+        metadata: {
+          requestId: requestRecord.id,
+          contactId: selectedContact.id,
+          targetPhone,
+        },
+      });
 
       await competencyModel.update({
         where: { id: competency.id },
         data: {
           requestedAt: now,
           status:
-            competency.status === MonthlyRoutineStatus.PENDING || competency.status === MonthlyRoutineStatus.OVERDUE
-              ? MonthlyRoutineStatus.WAITING_CUSTOMER
+            competency.status === 'PENDING' || competency.status === 'OVERDUE'
+              ? 'WAITING_CUSTOMER'
               : competency.status,
         },
       });
@@ -456,7 +475,7 @@ export class RotinasMensaisService {
           contactId: selectedContact.id,
           requestedByUserId: requester.userId,
           channel: 'WHATSAPP',
-          status: MonthlyRoutineRequestStatus.FAILED,
+          status: 'FAILED',
           targetPhone,
           message,
           providerConnectionKey: context.connectionKey,
@@ -475,6 +494,82 @@ export class RotinasMensaisService {
 
       throw new BadRequestException('Nao foi possivel enviar a solicitacao manual. O erro foi registrado.');
     }
+  }
+
+  async updateCompetencyStatus(
+    input: MonthlyRoutineUpdateCompetencyStatusInput,
+    rawHeaders?: IncomingHttpHeaders,
+  ): Promise<MonthlyRoutineUpdateCompetencyStatusResult> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const scope = await this.resolveRoutineManageScope(requester);
+    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+
+    const existing = await competencyModel.findFirst({
+      where: { id: input.competencyId },
+      include: this.getCompetencyListInclude(),
+    });
+
+    if (!existing) {
+      throw new BadRequestException('Competencia da rotina mensal nao encontrada.');
+    }
+
+    await this.assertCompanyInScope(existing.companyId, scope);
+
+    const nextStatus = input.status as MonthlyRoutineExecutionStatus;
+    const previousStatus = existing.status as MonthlyRoutineExecutionStatus;
+    const notes = this.normalizeOptionalString(input.notes);
+
+    const now = new Date();
+    const updateData: Record<string, unknown> = {
+      status: nextStatus,
+      notes,
+    };
+
+    if (nextStatus === 'WAITING_CUSTOMER' && !existing.requestedAt) {
+      updateData.requestedAt = now;
+    }
+    if (nextStatus === 'RECEIVED' && !existing.receivedAt) {
+      updateData.receivedAt = now;
+    }
+    if (nextStatus === 'SENT_TO_ACCOUNTING' && !existing.sentAt) {
+      updateData.sentAt = now;
+    }
+    if (nextStatus === 'COMPLETED' && !existing.completedAt) {
+      updateData.completedAt = now;
+    }
+
+    await competencyModel.update({
+      where: { id: existing.id },
+      data: updateData,
+    });
+
+    await this.createHistoryEntry({
+      competencyId: existing.id,
+      authorUserId: requester.userId,
+      type: 'STATUS_CHANGED',
+      fromStatus: previousStatus,
+      toStatus: nextStatus,
+      title: `Status alterado para ${this.getStatusLabel(nextStatus)}`,
+      description: notes,
+      metadata: {
+        competencyId: existing.id,
+      },
+    });
+
+    const refreshed = await competencyModel.findFirst({
+      where: { id: existing.id },
+      include: this.getCompetencyListInclude(),
+    });
+
+    if (!refreshed) {
+      throw new BadRequestException('Competencia atualizada, mas nao foi possivel recarregar os dados.');
+    }
+
+    return {
+      success: true,
+      message: 'Status da competencia atualizado com sucesso.',
+      competency: this.toCompetencyItem(refreshed),
+    };
   }
 
   private toRoutineItem(company: {
@@ -709,6 +804,18 @@ export class RotinasMensaisService {
         orderBy: [{ requestedAt: 'desc' }],
         take: 5,
       },
+      history: {
+        include: {
+          authorUser: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: [{ occurredAt: 'desc' }],
+        take: 8,
+      },
     };
   }
 
@@ -813,7 +920,7 @@ export class RotinasMensaisService {
             year,
             month,
             dueDate,
-            status: dueDate < new Date() ? MonthlyRoutineStatus.OVERDUE : MonthlyRoutineStatus.PENDING,
+            status: dueDate < new Date() ? 'OVERDUE' : 'PENDING',
           },
         });
         generated += 1;
@@ -851,7 +958,7 @@ export class RotinasMensaisService {
         id: { in: overdueIds },
       },
       data: {
-        status: MonthlyRoutineStatus.OVERDUE,
+        status: 'OVERDUE',
       },
     });
   }
@@ -860,6 +967,9 @@ export class RotinasMensaisService {
     const availableContacts = this.toContactOptions(record.company?.contactLinks ?? []);
     const manualRequests = Array.isArray(record.requests)
       ? record.requests.map((request: any) => this.toManualRequestItem(request))
+      : [];
+    const history = Array.isArray(record.history)
+      ? record.history.map((entry: any) => this.toHistoryItem(entry))
       : [];
     const latestManualRequest = manualRequests[0] ?? null;
 
@@ -886,12 +996,14 @@ export class RotinasMensaisService {
       accountingContactId: record.config?.accountingContact?.id ?? null,
       accountingContactName: record.config?.accountingContact?.name ?? null,
       requiredDocumentsCount: this.normalizeRequiredDocuments(record.config?.requiredDocuments).length,
+      notes: record.notes ?? null,
       availableContacts,
       manualRequestsCount: manualRequests.length,
       lastManualRequestAt: latestManualRequest?.requestedAt ?? null,
       lastManualRequestStatus: latestManualRequest?.status ?? null,
       lastManualRequestContactName: latestManualRequest?.contactName ?? null,
       manualRequests,
+      history,
     };
   }
 
@@ -910,6 +1022,65 @@ export class RotinasMensaisService {
       requestedAt: record.requestedAt instanceof Date ? record.requestedAt.toISOString() : String(record.requestedAt),
       sentAt: record.sentAt instanceof Date ? record.sentAt.toISOString() : null,
     };
+  }
+
+  private toHistoryItem(record: any): MonthlyRoutineHistoryItem {
+    return {
+      id: record.id,
+      type: record.type,
+      title: record.title,
+      description: record.description ?? null,
+      fromStatus: record.fromStatus ?? null,
+      toStatus: record.toStatus ?? null,
+      authorUserName: record.authorUser?.name || record.authorUser?.email || null,
+      occurredAt: record.occurredAt instanceof Date ? record.occurredAt.toISOString() : String(record.occurredAt),
+    };
+  }
+
+  private async createHistoryEntry(input: {
+    competencyId: string;
+    authorUserId?: string | null;
+    type: string;
+    fromStatus?: MonthlyRoutineExecutionStatus | null;
+    toStatus?: MonthlyRoutineExecutionStatus | null;
+    title: string;
+    description?: string | null;
+    metadata?: unknown;
+  }) {
+    const historyModel = (this.prisma as any).monthlyRoutineHistory;
+    await historyModel.create({
+      data: {
+        competencyId: input.competencyId,
+        authorUserId: input.authorUserId ?? null,
+        type: input.type,
+        fromStatus: input.fromStatus ?? null,
+        toStatus: input.toStatus ?? null,
+        title: input.title,
+        description: input.description ?? null,
+        metadata: input.metadata ?? null,
+      },
+    });
+  }
+
+  private getStatusLabel(status: MonthlyRoutineExecutionStatus) {
+    switch (status) {
+      case 'PENDING':
+        return 'Pendente';
+      case 'WAITING_CUSTOMER':
+        return 'Aguardando cliente';
+      case 'RECEIVED':
+        return 'Recebido';
+      case 'SENT_TO_ACCOUNTING':
+        return 'Enviado para contabilidade';
+      case 'COMPLETED':
+        return 'Concluido';
+      case 'OVERDUE':
+        return 'Atrasado';
+      case 'CANCELED':
+        return 'Cancelado';
+      default:
+        return status;
+    }
   }
 
   private resolveContactOutboundPhone(contact: MonthlyRoutineContactOption) {

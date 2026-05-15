@@ -513,6 +513,7 @@ model User {
   authoredCrmActivities               CrmActivity[]                 @relation("CrmActivityAuthor")
   assignedCrmTasks                    CrmTask[]                     @relation("CrmTaskAssignee")
   requestedMonthlyRoutineRequests     MonthlyRoutineRequest[]       @relation("MonthlyRoutineRequestRequestedBy")
+  authoredMonthlyRoutineHistory       MonthlyRoutineHistory[]
 
   // INDICES PARA PERFORMANCE
   @@index([name])
@@ -1329,6 +1330,7 @@ model MonthlyRoutineCompetency {
   notes       String? @db.Text
   metadata    Json?
   requests    MonthlyRoutineRequest[]
+  history     MonthlyRoutineHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1337,6 +1339,32 @@ model MonthlyRoutineCompetency {
   @@index([companyId, year, month])
   @@index([status, dueDate])
   @@map("monthly_routine_competency")
+}
+
+model MonthlyRoutineHistory {
+  id String @id @default(cuid())
+
+  competencyId String
+  competency   MonthlyRoutineCompetency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  authorUserId String?
+  authorUser   User? @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  type           String
+  fromStatus     MonthlyRoutineStatus?
+  toStatus       MonthlyRoutineStatus?
+  title          String
+  description    String? @db.Text
+  metadata       Json?
+  occurredAt     DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([competencyId, occurredAt])
+  @@index([authorUserId])
+  @@index([type, occurredAt])
+  @@map("monthly_routine_history")
 }
 
 model MonthlyRoutineRequest {

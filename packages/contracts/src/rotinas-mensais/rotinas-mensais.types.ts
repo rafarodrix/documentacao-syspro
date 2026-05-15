@@ -27,6 +27,17 @@ export const MONTHLY_ROUTINE_REQUEST_STATUS_VALUES = ["SENT", "FAILED"] as const
 export const monthlyRoutineRequestChannelSchema = z.enum(MONTHLY_ROUTINE_REQUEST_CHANNEL_VALUES);
 export const monthlyRoutineRequestStatusSchema = z.enum(MONTHLY_ROUTINE_REQUEST_STATUS_VALUES);
 
+export const monthlyRoutineHistoryItemSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  fromStatus: monthlyRoutineExecutionStatusSchema.nullable(),
+  toStatus: monthlyRoutineExecutionStatusSchema.nullable(),
+  authorUserName: z.string().nullable(),
+  occurredAt: z.string(),
+});
+
 export const monthlyRoutineListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().optional(),
   status: z.enum([...MONTHLY_ROUTINE_CANDIDATE_STATUS_VALUES, "ALL"]).optional(),
@@ -142,6 +153,7 @@ export const monthlyRoutineCompetencyItemSchema = z.object({
   lastManualRequestAt: z.string().nullable(),
   lastManualRequestStatus: monthlyRoutineRequestStatusSchema.nullable(),
   lastManualRequestContactName: z.string().nullable(),
+  notes: z.string().nullable(),
   manualRequests: z.array(z.object({
     id: z.string(),
     contactId: z.string(),
@@ -156,6 +168,7 @@ export const monthlyRoutineCompetencyItemSchema = z.object({
     requestedAt: z.string(),
     sentAt: z.string().nullable(),
   })),
+  history: z.array(monthlyRoutineHistoryItemSchema),
 });
 
 export const monthlyRoutineCompetencySummarySchema = z.object({
@@ -202,10 +215,23 @@ export const monthlyRoutineSendManualRequestResultSchema = z.object({
   request: monthlyRoutineCompetencyItemSchema.shape.manualRequests.element,
 });
 
+export const monthlyRoutineUpdateCompetencyStatusSchema = z.object({
+  competencyId: z.string().min(1),
+  status: monthlyRoutineExecutionStatusSchema,
+  notes: z.string().trim().max(4000).optional(),
+});
+
+export const monthlyRoutineUpdateCompetencyStatusResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  competency: monthlyRoutineCompetencyItemSchema,
+});
+
 export type MonthlyRoutineCandidateStatus = z.output<typeof monthlyRoutineCandidateStatusSchema>;
 export type MonthlyRoutineExecutionStatus = z.output<typeof monthlyRoutineExecutionStatusSchema>;
 export type MonthlyRoutineRequestChannel = z.output<typeof monthlyRoutineRequestChannelSchema>;
 export type MonthlyRoutineRequestStatus = z.output<typeof monthlyRoutineRequestStatusSchema>;
+export type MonthlyRoutineHistoryItem = z.output<typeof monthlyRoutineHistoryItemSchema>;
 export type MonthlyRoutineListQuery = z.output<typeof monthlyRoutineListQuerySchema>;
 export type MonthlyRoutineSummary = z.output<typeof monthlyRoutineSummarySchema>;
 export type MonthlyRoutineCompanyItem = z.output<typeof monthlyRoutineCompanyItemSchema>;
@@ -222,3 +248,5 @@ export type MonthlyRoutineSyncCompetenciesInput = z.output<typeof monthlyRoutine
 export type MonthlyRoutineSyncCompetenciesResult = z.output<typeof monthlyRoutineSyncCompetenciesResultSchema>;
 export type MonthlyRoutineSendManualRequestInput = z.output<typeof monthlyRoutineSendManualRequestSchema>;
 export type MonthlyRoutineSendManualRequestResult = z.output<typeof monthlyRoutineSendManualRequestResultSchema>;
+export type MonthlyRoutineUpdateCompetencyStatusInput = z.output<typeof monthlyRoutineUpdateCompetencyStatusSchema>;
+export type MonthlyRoutineUpdateCompetencyStatusResult = z.output<typeof monthlyRoutineUpdateCompetencyStatusResultSchema>;
