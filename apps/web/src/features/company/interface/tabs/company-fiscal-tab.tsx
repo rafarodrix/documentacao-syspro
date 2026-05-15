@@ -25,7 +25,7 @@ export function CompanyFiscalTab({ companies }: CompanyFiscalTabProps) {
   const companyPickerOptions = companies.map((company) => ({
     id: company.id,
     label: company.nomeFantasia || company.razaoSocial,
-    searchText: [company.nomeFantasia, company.razaoSocial, company.cnpj].filter(Boolean).join(" "),
+    searchText: [company.nomeFantasia, company.razaoSocial].filter(Boolean).join(" "),
   }));
 
   const secondaryCnaes = form.watch("cnaesSecundarios") ?? [];
