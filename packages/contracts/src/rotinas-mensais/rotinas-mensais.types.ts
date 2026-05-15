@@ -155,6 +155,8 @@ export const monthlyRoutineCompetencyItemSchema = z.object({
   clientContactName: z.string().nullable(),
   accountingContactId: z.string().nullable(),
   accountingContactName: z.string().nullable(),
+  configNotes: z.string().nullable(),
+  requiredDocuments: z.array(z.string()),
   requiredDocumentsCount: z.number().int().nonnegative(),
   availableContacts: z.array(monthlyRoutineContactOptionSchema),
   manualRequestsCount: z.number().int().nonnegative(),

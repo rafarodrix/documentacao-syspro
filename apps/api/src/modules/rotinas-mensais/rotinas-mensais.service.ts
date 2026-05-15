@@ -797,6 +797,7 @@ export class RotinasMensaisService {
         select: {
           id: true,
           title: true,
+          notes: true,
           requiredDocuments: true,
           clientContact: {
             select: {
@@ -1018,6 +1019,8 @@ export class RotinasMensaisService {
       clientContactName: record.config?.clientContact?.name ?? null,
       accountingContactId: record.config?.accountingContact?.id ?? null,
       accountingContactName: record.config?.accountingContact?.name ?? null,
+      configNotes: record.config?.notes ?? null,
+      requiredDocuments: this.normalizeRequiredDocuments(record.config?.requiredDocuments),
       requiredDocumentsCount: this.normalizeRequiredDocuments(record.config?.requiredDocuments).length,
       notes: record.notes ?? null,
       availableContacts,

@@ -3,10 +3,12 @@
 import { trpc } from "@/lib/api/trpc-client";
 import type { MonthlyRoutineCompetencyListResponse } from "@dosc-syspro/contracts/rotinas-mensais";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
-import { CalendarRange, CircleAlert, Filter, MessageSquareShare, RefreshCw, Search, X } from "lucide-react";
+import { CalendarRange, CircleAlert, Eye, Filter, MessageSquareShare, RefreshCw, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { MonthlyRoutineConfigDialog } from "./monthly-routine-config-dialog";
+import { MonthlyRoutineDetailsDialog } from "./monthly-routine-details-dialog";
 import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-request-dialog";
 import { MonthlyRoutineStatusDialog } from "./monthly-routine-status-dialog";
 
@@ -77,10 +79,6 @@ function getManualRequestStatusVariant(status: MonthlyRoutineCompetencyListRespo
   }
 }
 
-function getLatestHistoryEntry(item: MonthlyRoutineCompetencyListResponse["items"][number]) {
-  return item.history[0] ?? null;
-}
-
 const STATUS_FILTER_OPTIONS = [
   { value: "ALL", label: "Todas", countKey: "total" },
   { value: "PENDING", label: "Pendentes", countKey: "pending" },
@@ -101,6 +99,8 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
   const deferredSearch = useDeferredValue(searchDraft);
   const [selectedCompetency, setSelectedCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [selectedStatusCompetency, setSelectedStatusCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
+  const [selectedConfigCompetency, setSelectedConfigCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
+  const [selectedDetailsCompetency, setSelectedDetailsCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -299,7 +299,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                     <th className="px-3 py-3">Vencimento</th>
                     <th className="px-3 py-3">Checklist</th>
                     <th className="px-3 py-3">Solicitacoes</th>
-                    <th className="px-3 py-3">Status e andamento</th>
+                    <th className="px-3 py-3">Status</th>
                     {canManage ? <th className="px-3 py-3 text-right">Acoes</th> : null}
                   </tr>
                 </thead>
@@ -343,33 +343,32 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                         )}
                       </td>
                       <td className="px-3 py-4">
-                        <div className="space-y-2">
-                          <Badge variant={getCompetencyStatusVariant(item.status)}>
-                            {getCompetencyStatusLabel(item.status)}
-                          </Badge>
-                          {item.notes ? (
-                            <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                              <span className="font-medium text-foreground">Observacao:</span> {item.notes}
-                            </div>
-                          ) : null}
-                          {getLatestHistoryEntry(item) ? (
-                            <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-                              <div className="font-medium text-foreground">{getLatestHistoryEntry(item)?.title}</div>
-                              <div className="mt-1">
-                                {getLatestHistoryEntry(item)?.authorUserName ? `${getLatestHistoryEntry(item)?.authorUserName} - ` : ""}
-                                {getLatestHistoryEntry(item)?.occurredAt
-                                  ? new Date(getLatestHistoryEntry(item)!.occurredAt).toLocaleString("pt-BR")
-                                  : ""}
-                              </div>
-                              {getLatestHistoryEntry(item)?.description ? (
-                                <div className="mt-1 line-clamp-3">{getLatestHistoryEntry(item)?.description}</div>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
+                        <Badge variant={getCompetencyStatusVariant(item.status)}>
+                          {getCompetencyStatusLabel(item.status)}
+                        </Badge>
                       </td>
                       {canManage ? (
                         <td className="px-3 py-4 text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="mr-2"
+                            onClick={() => setSelectedDetailsCompetency(item)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver detalhes
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="mr-2"
+                            onClick={() => setSelectedConfigCompetency(item)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver configuracao
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
@@ -416,6 +415,22 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
           if (!open) setSelectedStatusCompetency(null);
         }}
         onSaved={() => router.refresh()}
+      />
+
+      <MonthlyRoutineDetailsDialog
+        item={selectedDetailsCompetency}
+        open={Boolean(selectedDetailsCompetency)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDetailsCompetency(null);
+        }}
+      />
+
+      <MonthlyRoutineConfigDialog
+        item={selectedConfigCompetency}
+        open={Boolean(selectedConfigCompetency)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedConfigCompetency(null);
+        }}
       />
     </div>
   );
