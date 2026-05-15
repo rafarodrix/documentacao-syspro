@@ -11,7 +11,7 @@ import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
 import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
-import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
+import type { RemoteConfiguredHostItem, RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import type { TicketListItem } from "@/features/tickets/domain/ticket-model";
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import {
@@ -610,7 +610,7 @@ export function ChatwootDashboardApp() {
           return;
         }
         const json = (await response.json()) as RemotePlatformDirectory;
-        const items = Array.isArray(json.items) ? json.items : [];
+        const items: RemoteConfiguredHostItem[] = Array.isArray(json.items) ? json.items : [];
         const nextHosts = items
           .filter((item) => item.companyId === resolved.companyId)
           .map((item) => ({
