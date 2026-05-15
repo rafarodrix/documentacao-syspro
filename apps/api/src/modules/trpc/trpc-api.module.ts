@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module';
 import { ContactsModule } from '../contacts/contacts.module';
 import { DocsModule } from '../docs/docs.module';
 import { TicketsModule } from '../tickets/tickets.module';
+import { RemoteAdminModule } from '../remote-admin/remote-admin.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TicketsModule } from '../tickets/tickets.module';
     ContactsModule,
     DocsModule,
     TicketsModule,
+    RemoteAdminModule,
   ],
   providers: [TrpcRouter],
   exports: [TrpcRouter],
