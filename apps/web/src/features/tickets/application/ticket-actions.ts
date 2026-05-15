@@ -10,6 +10,7 @@ import { getProtectedSession } from "@/lib/auth-helpers";
 import { consumeActionRateLimit } from "@dosc-syspro/shared/action-rate-limit";
 import { getRequestIp } from "@/lib/security/request-context";
 import { revalidateReleasesViews, revalidateTicketCollections, revalidateTicketViews } from "@/lib/cache-invalidation";
+import { trpc } from "@/lib/api/trpc-client";
 import {
   createTicketMultipartGateway,
   fetchLinkedCompaniesGateway,
@@ -60,14 +61,16 @@ export async function finalizeTicketAction(input: {
   }
 
   try {
-    const result = await updateTicketGateway(String(input.ticketId), {
-      status: "RESOLVED",
-      resolutionSummary,
-      resolutionVideoUrl: video,
-      releaseType: input.releaseType,
-      releaseTitle: input.releaseTitle?.trim() || undefined,
-      releaseModule: input.releaseModule?.trim() || undefined,
-      publishToReleases: Boolean(input.publishToReleases),
+    const result = await trpc.tickets.finalize.mutate({
+      id: String(input.ticketId),
+      data: {
+        resolutionSummary,
+        resolutionVideoUrl: video,
+        releaseType: input.releaseType,
+        releaseTitle: input.releaseTitle?.trim() || undefined,
+        releaseModule: input.releaseModule?.trim() || undefined,
+        publishToReleases: Boolean(input.publishToReleases),
+      },
     });
 
     if (!result.success) {
@@ -347,14 +350,8 @@ export const getMyTicketsAction = getTicketsAction;
 export const getAdminTicketsAction = getTicketsAction;
 
 export async function assignTicketToMeAction(ticketId: string): Promise<TicketMutationResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
-    return { success: false, error: "Nao autorizado." };
-  }
-
   try {
-    const { assignTicketToMeGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
-    const result = await assignTicketToMeGateway(ticketId);
+    const result = await trpc.tickets.assignToMe.mutate({ id: ticketId });
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao assumir ticket." };
     }
@@ -390,14 +387,8 @@ export async function unassignTicketToMeAction(ticketId: string): Promise<Ticket
 }
 
 export async function triageTicketAction(ticketId: string, payload: TicketModuleTriageRequest): Promise<TicketMutationResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
-    return { success: false, error: "Nao autorizado." };
-  }
-
   try {
-    const { triageTicketGateway } = await import("@/features/tickets/infrastructure/gateways/tickets.gateway");
-    const result = await triageTicketGateway(ticketId, payload);
+    const result = await trpc.tickets.triage.mutate({ id: ticketId, data: payload });
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao iniciar triagem." };
     }
@@ -411,17 +402,12 @@ export async function triageTicketAction(ticketId: string, payload: TicketModule
 }
 
 export async function updateTicketStatusAction(ticketId: string, status: TicketModuleStatus): Promise<TicketMutationResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
-    return { success: false, error: "Nao autorizado." };
-  }
-
   if (status === "RESOLVED") {
     return { success: false, error: "Use o fluxo de finalizacao para resolver o ticket." };
   }
 
   try {
-    const result = await updateTicketGateway(ticketId, { status });
+    const result = await trpc.tickets.updateStatus.mutate({ id: ticketId, status });
     if (!result.success) {
       return { success: false, error: result.error || "Falha ao atualizar status." };
     }
@@ -530,15 +516,13 @@ export async function updateTicketOwnersAction(
   ticketId: string,
   payload: { supportOwnerUserId?: string; developmentOwnerUserId?: string },
 ): Promise<TicketMutationResponse> {
-  const session = await getProtectedSession();
-  if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
-    return { success: false, error: "Nao autorizado." };
-  }
-
   try {
-    const result = await updateTicketGateway(ticketId, {
-      ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
-      ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
+    const result = await trpc.tickets.updateOwners.mutate({
+      id: ticketId,
+      data: {
+        ...(payload.supportOwnerUserId !== undefined ? { supportOwnerUserId: payload.supportOwnerUserId.trim() } : {}),
+        ...(payload.developmentOwnerUserId !== undefined ? { developmentOwnerUserId: payload.developmentOwnerUserId.trim() } : {}),
+      },
     });
 
     if (!result.success) {
