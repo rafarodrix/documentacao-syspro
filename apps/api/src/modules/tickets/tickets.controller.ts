@@ -176,11 +176,6 @@ export class TicketsController {
     return this.ticketsService.updateStatus(id, input, req.headers);
   }
 
-  @Post(':id/archive')
-  archiveTicket(@Req() req: Request, @Param('id') id: string) {
-    return this.ticketsService.archiveTicket(id, req.headers);
-  }
-
   @Post(':id/assign-me')
   assignToMe(@Req() req: Request, @Param('id') id: string) {
     return this.ticketsService.assignToMe(id, req.headers);
