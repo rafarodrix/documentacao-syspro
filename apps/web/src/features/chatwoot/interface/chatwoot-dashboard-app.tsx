@@ -24,6 +24,7 @@ import { ChatwootDashboardContext } from "./chatwoot-dashboard-context";
 import { ChatwootOverviewTab } from "./tabs/chatwoot-overview-tab";
 import { ChatwootTicketsTab } from "./tabs/chatwoot-tickets-tab";
 import { ChatwootInfrastructureTab } from "./tabs/chatwoot-infrastructure-tab";
+import { ChatwootMonthlyRoutinesTab } from "./tabs/chatwoot-monthly-routines-tab";
 import type {
   ChatwootAppContext,
   ContactLookupEntry,
@@ -1029,7 +1030,7 @@ export function ChatwootDashboardApp() {
         {/* Tab navigation + content */}
         <div className="flex-1 px-3 py-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl border border-border/60 bg-card p-1">
+            <TabsList className="grid h-auto w-full grid-cols-4 rounded-2xl border border-border/60 bg-card p-1">
               <TabsTrigger value="overview" className="rounded-xl py-2 text-xs">
                 Visao geral
               </TabsTrigger>
@@ -1049,6 +1050,9 @@ export function ChatwootDashboardApp() {
                   </span>
                 ) : null}
               </TabsTrigger>
+              <TabsTrigger value="monthly-routines" className="rounded-xl py-2 text-xs">
+                Rotinas
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-3 space-y-3">
@@ -1059,6 +1063,9 @@ export function ChatwootDashboardApp() {
             </TabsContent>
             <TabsContent value="infrastructure" className="mt-3 space-y-3">
               <ChatwootInfrastructureTab />
+            </TabsContent>
+            <TabsContent value="monthly-routines" className="mt-3 space-y-3">
+              <ChatwootMonthlyRoutinesTab />
             </TabsContent>
           </Tabs>
         </div>

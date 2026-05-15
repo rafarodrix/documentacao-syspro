@@ -23,6 +23,14 @@ import {
 import { MessageSquareShare } from "lucide-react";
 import { toast } from "sonner";
 
+type MessageTemplateValue = "REQUEST_CONFIRMATION" | "FIRST_REMINDER" | "SECOND_REMINDER";
+
+const MESSAGE_TEMPLATES: Array<{ value: MessageTemplateValue; label: string }> = [
+  { value: "REQUEST_CONFIRMATION", label: "Solicitacao inicial" },
+  { value: "FIRST_REMINDER", label: "Primeiro lembrete" },
+  { value: "SECOND_REMINDER", label: "Segundo lembrete" },
+];
+
 interface MonthlyRoutineManualRequestDialogProps {
   item: MonthlyRoutineCompetencyItem | null;
   open: boolean;
@@ -52,9 +60,15 @@ function getRequestStatusVariant(status: MonthlyRoutineCompetencyItem["manualReq
   }
 }
 
-function buildDefaultMessage(item: MonthlyRoutineCompetencyItem, contactName: string) {
+function buildDefaultMessage(item: MonthlyRoutineCompetencyItem, contactName: string, template: MessageTemplateValue) {
   const firstName = String(contactName || "").trim().split(/\s+/)[0] || "Tudo bem";
   const competence = `${String(item.month).padStart(2, "0")}/${item.year}`;
+  if (template === "FIRST_REMINDER") {
+    return `Ola, ${firstName}. Estamos retomando a solicitacao da competencia ${competence} da empresa ${item.companyName} (${item.title}). Quando puder, nos confirme para seguirmos com a geracao dos arquivos.`;
+  }
+  if (template === "SECOND_REMINDER") {
+    return `Ola, ${firstName}. Este e um novo lembrete sobre a competencia ${competence} da empresa ${item.companyName} (${item.title}). Precisamos da sua confirmacao para concluir esta etapa e seguir com a contabilidade.`;
+  }
   return `Ola, ${firstName}. Podemos gerar os arquivos da competencia ${competence} da empresa ${item.companyName} (${item.title})? Se estiver tudo certo, por favor nos confirme por aqui.`;
 }
 
@@ -67,6 +81,7 @@ export function MonthlyRoutineManualRequestDialog({
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [contactId, setContactId] = useState("");
   const [message, setMessage] = useState("");
+  const [template, setTemplate] = useState<MessageTemplateValue>("REQUEST_CONFIRMATION");
 
   const availableContacts = item?.availableContacts ?? [];
 
@@ -86,8 +101,9 @@ export function MonthlyRoutineManualRequestDialog({
     if (!open || !item) return;
     const nextContactId = initialContactId;
     setContactId(nextContactId);
+    setTemplate(item.manualRequestsCount > 0 ? "FIRST_REMINDER" : "REQUEST_CONFIRMATION");
     const nextContact = availableContacts.find((contact) => contact.id === nextContactId) ?? availableContacts[0] ?? null;
-    setMessage(nextContact ? buildDefaultMessage(item, nextContact.name) : "");
+    setMessage(nextContact ? buildDefaultMessage(item, nextContact.name, item.manualRequestsCount > 0 ? "FIRST_REMINDER" : "REQUEST_CONFIRMATION") : "");
   }, [availableContacts, initialContactId, item, open]);
 
   const handleContactChange = (nextContactId: string) => {
@@ -95,7 +111,17 @@ export function MonthlyRoutineManualRequestDialog({
     if (!item) return;
     const nextContact = availableContacts.find((contact) => contact.id === nextContactId);
     if (nextContact) {
-      setMessage(buildDefaultMessage(item, nextContact.name));
+      setMessage(buildDefaultMessage(item, nextContact.name, template));
+    }
+  };
+
+  const handleTemplateChange = (nextTemplate: string) => {
+    const resolvedTemplate = nextTemplate as MessageTemplateValue;
+    setTemplate(resolvedTemplate);
+    if (!item) return;
+    const nextContact = availableContacts.find((contact) => contact.id === contactId) ?? availableContacts[0] ?? null;
+    if (nextContact) {
+      setMessage(buildDefaultMessage(item, nextContact.name, resolvedTemplate));
     }
   };
 
@@ -115,6 +141,7 @@ export function MonthlyRoutineManualRequestDialog({
         await trpc.rotinasMensais.sendManualRequest.mutate({
           competencyId: item.id,
           contactId,
+          template,
           message: message.trim(),
         });
         toast.success("Solicitacao manual enviada e registrada.");
@@ -171,6 +198,18 @@ export function MonthlyRoutineManualRequestDialog({
 
             <div className="space-y-2">
               <Label htmlFor="monthly-routine-message">Mensagem</Label>
+              <Select value={template} onValueChange={handleTemplateChange}>
+                <SelectTrigger id="monthly-routine-template">
+                  <SelectValue placeholder="Selecione um template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MESSAGE_TEMPLATES.map((templateOption) => (
+                    <SelectItem key={templateOption.value} value={templateOption.value}>
+                      {templateOption.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Textarea
                 id="monthly-routine-message"
                 rows={6}
@@ -183,7 +222,7 @@ export function MonthlyRoutineManualRequestDialog({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-foreground">Historico recente</h3>
-                <span className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</span>
+                <span className="text-xs text-muted-foreground">{item.manualRequestsCount} envio(s) registrado(s)</span>
               </div>
 
               {item.manualRequests.length === 0 ? (
@@ -196,7 +235,7 @@ export function MonthlyRoutineManualRequestDialog({
                     <div key={request.id} className="rounded-xl border border-border/60 px-4 py-3">
                       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <div className="text-sm font-medium text-foreground">{request.contactName}</div>
+                          <div className="text-sm font-medium text-foreground">Envio #{request.attemptNumber} - {request.contactName}</div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(request.requestedAt).toLocaleString("pt-BR")} - {request.requestedByUserName}
                           </div>
@@ -226,7 +265,7 @@ export function MonthlyRoutineManualRequestDialog({
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedContact || !Boolean(selectedContact.whatsapp || selectedContact.phone)}
           >
-            {isSubmitting ? "Enviando..." : "Enviar solicitacao"}
+            {isSubmitting ? "Enviando..." : item?.manualRequestsCount ? "Reenviar solicitacao" : "Enviar solicitacao"}
           </Button>
         </DialogFooter>
       </DialogContent>

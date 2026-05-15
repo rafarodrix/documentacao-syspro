@@ -1382,6 +1382,7 @@ model MonthlyRoutineRequest {
   requestedByUserId String
   requestedByUser   User @relation("MonthlyRoutineRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
 
+  attemptNumber         Int
   channel               MonthlyRoutineRequestChannel @default(WHATSAPP)
   status                MonthlyRoutineRequestStatus
   targetPhone           String
@@ -1396,6 +1397,7 @@ model MonthlyRoutineRequest {
   updatedAt DateTime @updatedAt
 
   @@index([competencyId, requestedAt])
+  @@unique([competencyId, attemptNumber])
   @@index([companyId, requestedAt])
   @@index([contactId, requestedAt])
   @@index([requestedByUserId])

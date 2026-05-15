@@ -60,6 +60,7 @@ CREATE TABLE "monthly_routine_request" (
     "companyId" TEXT NOT NULL,
     "contactId" TEXT NOT NULL,
     "requestedByUserId" TEXT NOT NULL,
+    "attemptNumber" INTEGER NOT NULL,
     "channel" "MonthlyRoutineRequestChannel" NOT NULL DEFAULT 'WHATSAPP',
     "status" "MonthlyRoutineRequestStatus" NOT NULL,
     "targetPhone" TEXT NOT NULL,
@@ -101,6 +102,7 @@ CREATE UNIQUE INDEX "monthly_routine_competency_configId_year_month_key" ON "mon
 CREATE INDEX "monthly_routine_competency_companyId_year_month_idx" ON "monthly_routine_competency"("companyId", "year", "month");
 CREATE INDEX "monthly_routine_competency_status_dueDate_idx" ON "monthly_routine_competency"("status", "dueDate");
 CREATE INDEX "monthly_routine_request_competencyId_requestedAt_idx" ON "monthly_routine_request"("competencyId", "requestedAt");
+CREATE UNIQUE INDEX "monthly_routine_request_competencyId_attemptNumber_key" ON "monthly_routine_request"("competencyId", "attemptNumber");
 CREATE INDEX "monthly_routine_request_companyId_requestedAt_idx" ON "monthly_routine_request"("companyId", "requestedAt");
 CREATE INDEX "monthly_routine_request_contactId_requestedAt_idx" ON "monthly_routine_request"("contactId", "requestedAt");
 CREATE INDEX "monthly_routine_request_requestedByUserId_idx" ON "monthly_routine_request"("requestedByUserId");

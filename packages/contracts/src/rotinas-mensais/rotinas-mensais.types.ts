@@ -27,6 +27,14 @@ export const MONTHLY_ROUTINE_REQUEST_STATUS_VALUES = ["SENT", "FAILED"] as const
 export const monthlyRoutineRequestChannelSchema = z.enum(MONTHLY_ROUTINE_REQUEST_CHANNEL_VALUES);
 export const monthlyRoutineRequestStatusSchema = z.enum(MONTHLY_ROUTINE_REQUEST_STATUS_VALUES);
 
+export const MONTHLY_ROUTINE_MESSAGE_TEMPLATE_VALUES = [
+  "REQUEST_CONFIRMATION",
+  "FIRST_REMINDER",
+  "SECOND_REMINDER",
+] as const;
+
+export const monthlyRoutineMessageTemplateSchema = z.enum(MONTHLY_ROUTINE_MESSAGE_TEMPLATE_VALUES);
+
 export const monthlyRoutineHistoryItemSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -156,6 +164,7 @@ export const monthlyRoutineCompetencyItemSchema = z.object({
   notes: z.string().nullable(),
   manualRequests: z.array(z.object({
     id: z.string(),
+    attemptNumber: z.number().int().positive(),
     contactId: z.string(),
     contactName: z.string(),
     requestedByUserName: z.string(),
@@ -206,6 +215,7 @@ export const monthlyRoutineSyncCompetenciesResultSchema = z.object({
 export const monthlyRoutineSendManualRequestSchema = z.object({
   competencyId: z.string().min(1),
   contactId: z.string().min(1),
+  template: monthlyRoutineMessageTemplateSchema.optional(),
   message: z.string().trim().min(8).max(4000).optional(),
 });
 

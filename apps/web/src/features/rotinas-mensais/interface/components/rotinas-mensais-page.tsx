@@ -340,7 +340,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                             <div className="text-xs text-muted-foreground">
                               {item.lastManualRequestContactName || "Contato"} - {new Date(item.lastManualRequestAt).toLocaleString("pt-BR")}
                             </div>
-                            <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
+                            <div className="text-xs text-muted-foreground">{item.manualRequestsCount} envio(s)</div>
                           </div>
                         ) : (
                           <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
@@ -370,7 +370,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                             disabled={item.availableContacts.length === 0}
                           >
                             <MessageSquareShare className="mr-2 h-4 w-4" />
-                            Disparo manual
+                            {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
                           </Button>
                         </td>
                       ) : null}

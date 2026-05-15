@@ -405,12 +405,19 @@ export class RotinasMensaisService {
       year: competency.year,
       month: competency.month,
       requiredDocuments: this.normalizeRequiredDocuments(competency.config?.requiredDocuments),
+      template: input.template,
     });
 
     const context = await this.integrationContext.getDefaultContext();
     if (!context) {
       throw new BadRequestException('Nenhuma conexao Evolution ativa encontrada para realizar o disparo.');
     }
+
+    const nextAttemptNumber = (await requestModel.count({
+      where: {
+        competencyId: competency.id,
+      },
+    })) + 1;
 
     try {
       const sendResult = await this.evolutionClient.sendTextMessage(context.evolution, targetPhone, message);
@@ -421,6 +428,7 @@ export class RotinasMensaisService {
           companyId: competency.companyId,
           contactId: selectedContact.id,
           requestedByUserId: requester.userId,
+          attemptNumber: nextAttemptNumber,
           channel: 'WHATSAPP',
           status: 'SENT',
           targetPhone,
@@ -445,8 +453,10 @@ export class RotinasMensaisService {
         description: message,
         metadata: {
           requestId: requestRecord.id,
+          attemptNumber: nextAttemptNumber,
           contactId: selectedContact.id,
           targetPhone,
+          template: input.template ?? null,
         },
       });
 
@@ -474,6 +484,7 @@ export class RotinasMensaisService {
           companyId: competency.companyId,
           contactId: selectedContact.id,
           requestedByUserId: requester.userId,
+          attemptNumber: nextAttemptNumber,
           channel: 'WHATSAPP',
           status: 'FAILED',
           targetPhone,
@@ -1010,6 +1021,7 @@ export class RotinasMensaisService {
   private toManualRequestItem(record: any) {
     return {
       id: record.id,
+      attemptNumber: Math.max(1, Number(record.attemptNumber ?? 1)),
       contactId: record.contactId,
       contactName: record.contact?.name ?? 'Contato',
       requestedByUserName: record.requestedByUser?.name || record.requestedByUser?.email || 'Usuario',
@@ -1099,6 +1111,7 @@ export class RotinasMensaisService {
     year: number;
     month: number;
     requiredDocuments: string[];
+    template?: 'REQUEST_CONFIRMATION' | 'FIRST_REMINDER' | 'SECOND_REMINDER';
   }) {
     const firstName = String(input.contactName || '').trim().split(/\s+/)[0] || 'Tudo bem';
     const competence = `${String(input.month).padStart(2, '0')}/${input.year}`;
@@ -1106,6 +1119,15 @@ export class RotinasMensaisService {
       input.requiredDocuments.length > 0
         ? ` Documentos esperados: ${input.requiredDocuments.join(', ')}.`
         : '';
+    const template = input.template ?? 'REQUEST_CONFIRMATION';
+
+    if (template === 'FIRST_REMINDER') {
+      return `Ola, ${firstName}. Estamos retomando a solicitacao da competencia ${competence} da empresa ${input.companyName} (${input.title}).${checklist} Quando puder, nos confirme para seguirmos com a geracao dos arquivos.`;
+    }
+
+    if (template === 'SECOND_REMINDER') {
+      return `Ola, ${firstName}. Este e um novo lembrete sobre a competencia ${competence} da empresa ${input.companyName} (${input.title}).${checklist} Precisamos da sua confirmacao para concluir esta etapa e seguir com a contabilidade.`;
+    }
 
     return `Ola, ${firstName}. Podemos gerar os arquivos da competencia ${competence} da empresa ${input.companyName} (${input.title})?${checklist} Se estiver tudo certo, por favor nos confirme por aqui.`;
   }
