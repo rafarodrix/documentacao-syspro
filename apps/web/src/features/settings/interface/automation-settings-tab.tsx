@@ -479,11 +479,11 @@ export function AutomationSettingsTab() {
 
                           <div className="space-y-4">
                             <div className="space-y-2">
-                            <SettingsGroupLabel
-                              icon={BellRing}
-                              title="Automacoes internas"
-                              description="Fluxos operacionais para grupos de trabalho."
-                            />
+                              <SettingsGroupLabel
+                                icon={BellRing}
+                                title="Automacoes de tickets"
+                                description="Eventos operacionais do modulo de tickets para grupos internos."
+                              />
                             <div className="grid gap-3 md:grid-cols-2">
                               {INTERNAL_WHATSAPP_AUTOMATION_FIELDS.map((automation) => (
                                 <FormField
@@ -608,9 +608,22 @@ function ToggleSettingCard({
           <FormLabel>{label}</FormLabel>
           <FormDescription className="text-[11px]">{description}</FormDescription>
         </div>
-        <FormControl>
-          <Switch checked={checked} onCheckedChange={onCheckedChange} />
-        </FormControl>
+        <div className="flex items-center gap-3">
+          <span
+            className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${
+              checked ? "text-emerald-400" : "text-muted-foreground"
+            }`}
+          >
+            {checked ? "Ligado" : "Desligado"}
+          </span>
+          <FormControl>
+            <Switch
+              checked={checked}
+              onCheckedChange={onCheckedChange}
+              className="h-7 w-12 border border-border/80 bg-zinc-700 data-[state=checked]:bg-emerald-600 data-[state=unchecked]:bg-zinc-700"
+            />
+          </FormControl>
+        </div>
       </div>
     </FormItem>
   );

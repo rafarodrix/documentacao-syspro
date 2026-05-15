@@ -157,12 +157,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               icon={Activity}
               title="Rotas SEFAZ"
             />
-
-            <SettingsTabsRailTrigger
-              value="tickets"
-              icon={MessageSquare}
-              title="Tickets"
-            />
           </SettingsTabsRail>
         </div>
 
