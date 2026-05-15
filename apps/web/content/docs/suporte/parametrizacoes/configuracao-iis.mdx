@@ -1,175 +1,328 @@
 ---
 title: Configuração IIS
-description: Passo a passo para instalar o IIS e habilitar as funções ISAPI e CGI no Windows
-icon: Code
-lastUpdated: 2026-03-22
+description: Guia completo para instalar e configurar o IIS com suporte a ISAPI/CGI para o Syspro ERP no Windows.
+icon: Server
+lastUpdated: 2026-05-15
 owner: Equipe de Documentacao
 status: published
 tags:
-  - duvidas
-  - hardware
-  - configuracao-iis
+  - iis
+  - configuracao
+  - parametrizacoes
+  - infraestrutura
 ---
 
-import { Cards, Card } from 'fumadocs-ui/components/card';
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+
+O IIS (Internet Information Services) é o servidor web da Microsoft utilizado pelo Syspro ERP para expor a interface ISAPI que processa as requisições das estações. Este guia cobre a instalação do IIS e todas as etapas de configuração necessárias para o sistema funcionar corretamente.
+
+<Callout type="warn" title="Pré-requisitos">
+  Execute todas as etapas com uma conta de **Administrador local** no servidor onde o Syspro está instalado. Permissões insuficientes causam falha silenciosa na instalação de componentes.
+</Callout>
+
+---
 
 ## Instalação do IIS
 
+<Steps>
 
-<div className='fd-steps [&_h3]:fd-step'>
+<Step>
 
-### Abrir o Painel de Controle
+### Abrir Recursos do Windows
 
-1. Clique no botão Iniciar e digite "Painel de Controle".
-2. Clique em "Painel de Controle" para abri-lo.
+1. Clique em **Iniciar** e digite `Painel de Controle`.
+2. Acesse **Programas → Ativar ou desativar recursos do Windows**.
 
-### Acessar Programas e Recursos
+</Step>
 
-1. No Painel de Controle, clique em "Programas".
-2. Em "Programas e Recursos", clique em "Ativar ou desativar recursos do Windows".
+<Step>
 
-### Ativar Recursos do Windows
+### Habilitar Serviços de Informações da Internet
 
-1. Na janela "Recursos do Windows", role para baixo e encontre "Serviços de Informações da Internet".
-2. Expanda "Serviços de Informações da Internet" e depois expanda "Recursos de Desenvolvimento de Aplicativos".
-3. Marque as opções:
-   - **Extensões ISAPI**
-   - **Filtros ISAPI**
-   - **CGI**
-4. Certifique-se de que a opção "Serviços da World Wide Web" está marcada.
-5. Clique em "OK" para iniciar a instalação.
-6. Aguarde enquanto o Windows instala os componentes necessários do IIS.
-7. Uma vez concluída a instalação, clique em "Fechar".
+Na janela **Recursos do Windows**, localize e expanda **Serviços de Informações da Internet → Serviços da World Wide Web → Recursos de Desenvolvimento de Aplicativos** e marque:
+
+- **Extensões ISAPI**
+- **Filtros ISAPI**
+- **CGI**
+
+Certifique-se de que **Serviços da World Wide Web** está marcado na raiz e clique em **OK**.
+
+<Callout type="info">
+  O Windows irá baixar e instalar os componentes automaticamente. O processo pode levar alguns minutos dependendo da conexão.
+</Callout>
+
+</Step>
+
+<Step>
 
 ### Verificar a Instalação
 
-1. Abra o navegador da web e digite `http://localhost`.
-2. Você deve ver a página padrão do IIS, confirmando que a instalação foi bem-sucedida.
+Abra o navegador e acesse `http://localhost`. A página padrão do IIS deve ser exibida, confirmando que a instalação foi concluída com sucesso.
 
-</div>
+</Step>
 
+</Steps>
 
+---
 
 ## Configuração do IIS
 
-<div className='fd-steps [&_h3]:fd-step'>
+<Callout type="info" title="Ordem importa">
+  Execute as seções abaixo **na sequência apresentada**: Pool de Aplicativos → Site → Configurações Gerais → Syspro ERP. Pular etapas ou alterar a ordem pode causar erros de permissão ou falha na conexão.
+</Callout>
 
-### Configuração Geral do IIS
+<Tabs items={['Pool de Aplicativos', 'Criar Site', 'Configurações Gerais', 'Syspro ERP']}>
 
-1. **Abrir o Gerenciador do IIS:**
-   - Inicie o Gerenciador do IIS no servidor onde o Syspro está instalado.
-
-2. **Navegar até as Configurações Padrão:**
-   - No painel de navegação à esquerda, selecione o nó do servidor para visualizar as configurações gerais do IIS.
-
-3. **Configurar Autenticação:**
-   - No painel central, clique em "Autenticação".
-   - Configure a autenticação para usar a autenticação do pool de aplicativos conforme necessário.
-
-4. **Configurar Mapeamentos de Manipuladores:**
-   - No painel central, clique em "Mapeamentos de Manipuladores".
-   - No painel de ações à direita, clique em "Editar Permissões e Recursos".
-   - Habilite as permissões de "Leitura", "Escrita" e "Executar" para CGI e ISAPI.
-
-5. **Configurar Restrições de ISAPI e CGI:**
-   - No painel central, clique em "Restrições de ISAPI e CGI".
-   - No painel de ações à direita, clique em "Adicionar..." para adicionar uma nova restrição.
-   - No campo "Caminho", insira `C:\Syspro\Server\SysproServerISAPI.dll`.
-   - No campo "Descrição", insira `Syspro`.
-   - Marque a opção "Permitir que o caminho seja executado".
-   - Clique em "OK" para salvar as configurações.
-
-6. **Acessar a Opção Página de Erros:**
-   - Com o site `Syspro` selecionado, no painel central, localize a seção "IIS".
-   - Clique em "Páginas de Erro".
-   - No painel de ações à direita, clique em "Editar Configurações de Recurso...".
-   - Na janela que se abre, selecione "Erros Detalhados" para exibir detalhes completos dos erros.
-   - Clique em "OK" para salvar as configurações.
+<Tab value="Pool de Aplicativos">
 
 ### Configurar o Pool de Aplicativos
 
-1. **Adicionar ou Editar um Pool de Aplicativos:**
-   - No Gerenciador do IIS, no painel de navegação à esquerda, clique em "Pools de Aplicativos".
-   - Para adicionar um novo pool de aplicativos, clique em "Adicionar Pool de Aplicativos..." no painel de ações à direita. Dê um nome ao novo pool e clique em "OK".
-   - Para editar o pool de aplicativos padrão, selecione o pool de aplicativos desejado na lista.
+<Steps>
 
-2. **Editar Configurações Avançadas:**
-   - Com o pool de aplicativos selecionado, clique em "Configurações Avançadas..." no painel de ações à direita.
+<Step>
 
-3. **Habilitar Aplicativos de 32 Bits:**
-   - Na janela "Configurações Avançadas", na seção "Geral", localize a opção "Habilitar Aplicativos de 32 Bits".
-   - Altere o valor para `True`.
+### Acessar Pools de Aplicativos
 
-4. **Configurar Identidade Personalizada:**
-   - Ainda na janela "Configurações Avançadas", na seção "Modelo de Processos", localize a opção "Identidade".
-   - Clique na opção "Identidade" e selecione "Conta Personalizada...".
-   - Clique em "Definir..." e insira o nome de usuário e senha de uma conta do Windows.
-   - Certifique-se de que a conta utilizada tenha permissões de administrador para o sistema.
+No **Gerenciador do IIS**, no painel esquerdo, clique em **Pools de Aplicativos**.
 
-5. **Salvar Alterações:**
-   - Clique em "OK" para salvar as configurações avançadas.
-   - Certifique-se de que as alterações foram aplicadas corretamente.
+</Step>
 
-### Criar um Novo Site
+<Step>
 
-1. **Navegar até a Seção de Sites:**
-   - No Gerenciador do IIS, no painel de navegação à esquerda, expanda o nó do servidor e clique em "Sites".
+### Adicionar ou Selecionar um Pool
 
-2. **Adicionar um Novo Site:**
-   - No painel de ações à direita, clique em "Adicionar Site...".
+- Para criar um novo pool: clique em **Adicionar Pool de Aplicativos...** no painel direito, defina um nome (ex: `Syspro`) e clique em **OK**.
+- Para usar um existente: selecione-o na lista.
 
-3. **Definir Nome para o Site:**
-   - No campo "Nome do Site", insira `Syspro`.
+</Step>
 
-4. **Definir Pool de Aplicativos:**
-   - No campo "Pool de Aplicativos", selecione o pool de aplicativos configurado no processo anterior.
+<Step>
 
-5. **Definir Caminho Físico:**
-   - No campo "Caminho Físico", clique em "..." e navegue até a pasta do sistema, por exemplo: `C:\Syspro\Server`.
+### Abrir Configurações Avançadas
 
-6. **Definir Porta:**
-   - No campo "Porta", insira `1234`.
+Com o pool selecionado, clique em **Configurações Avançadas...** no painel direito.
 
-7. **Configurar Hostname (opcional):**
-   - Se necessário, insira um nome de host no campo "Nome do Host" para vincular o site a um subdomínio específico.
+</Step>
 
-8. **Concluir a Criação do Site:**
-   - Clique em "OK" para criar o novo site.
+<Step>
 
-### Configurar o Site
+### Habilitar Aplicativos de 32 Bits
 
-1. **Navegar até o Site Criado:**
-   - No Gerenciador do IIS, no painel de navegação à esquerda, expanda o nó do servidor e clique em "Sites".
-   - Encontre e selecione o site `Syspro` criado no passo anterior.
+Na seção **Geral**, localize **Habilitar Aplicativos de 32 Bits** e altere o valor para `True`.
 
-2. **Acessar a Opção Página de Erros:**
-   - Com o site `Syspro` selecionado, no painel central, localize a seção "IIS".
-   - Clique em "Páginas de Erro".
+<Callout type="warn">
+  Esta opção é **obrigatória** para o Syspro ERP. A DLL ISAPI é uma aplicação 32 bits e não carregará corretamente em pools configurados apenas para 64 bits.
+</Callout>
 
-3. **Editar Configurações de Páginas de Erro:**
-   - No painel de ações à direita, clique em "Editar Configurações de Recurso...".
-   - Na janela que se abre, selecione "Erros Detalhados" para exibir detalhes completos dos erros.
+</Step>
 
-4. **Aplicar e Salvar as Configurações:**
-   - Clique em "OK" para salvar as configurações.
-   - Certifique-se de que as alterações foram aplicadas corretamente.
+<Step>
 
-### Configurar Syspro com IIS
+### Configurar Identidade Personalizada
 
-1. **Abrir o Syspro ERP:**
-   - Inicie o aplicativo Syspro ERP no seu computador.
+Na seção **Modelo de Processos**, localize **Identidade**, clique nela e selecione **Conta Personalizada...**. Clique em **Definir...** e insira as credenciais de uma conta Windows com **permissões de Administrador** no servidor.
 
-2. **Acessar a Tela de Parâmetros:**
-   - Na tela de login, clique na opção para acessar as configurações de parâmetros.
+</Step>
 
-3. **Configurar o URL Path (ISAPI):**
-   - Na primeira opção, clique nos "..." para abrir a caixa de seleção.
-   - No campo "URL Path (ISAPI)", insira `sysproserverisapi.dll`.
+<Step>
 
-4. **Salvar as Alterações:**
-   - Salve as alterações feitas.
-   - O sistema realizará um teste de conexão e deverá retornar a mensagem "Teste de conexão OK", indicando que o IIS foi configurado corretamente.
+### Salvar
 
-</div>
+Clique em **OK** para aplicar as configurações avançadas.
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+<Tab value="Criar Site">
+
+### Criar o Site Syspro
+
+<Steps>
+
+<Step>
+
+### Acessar a Seção de Sites
+
+No **Gerenciador do IIS**, expanda o nó do servidor no painel esquerdo e clique em **Sites**.
+
+</Step>
+
+<Step>
+
+### Adicionar Novo Site
+
+No painel direito, clique em **Adicionar Site...**.
+
+</Step>
+
+<Step>
+
+### Preencher os Dados do Site
+
+| Campo | Valor |
+|-------|-------|
+| **Nome do Site** | `Syspro` |
+| **Pool de Aplicativos** | Pool configurado na etapa anterior |
+| **Caminho Físico** | `C:\Syspro\Server` |
+| **Porta** | `1234` |
+| **Nome do Host** | *(opcional)* subdomínio, se necessário |
+
+Clique em **OK** para criar o site.
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+<Tab value="Configurações Gerais">
+
+### Configurações Gerais do IIS
+
+Execute as configurações abaixo no **nó do servidor** (não no site) do Gerenciador do IIS.
+
+<Steps>
+
+<Step>
+
+### Configurar Autenticação
+
+No painel central do nó do servidor, clique em **Autenticação** e configure conforme o modelo de segurança do pool de aplicativos utilizado.
+
+</Step>
+
+<Step>
+
+### Configurar Mapeamentos de Manipuladores
+
+1. No painel central, clique em **Mapeamentos de Manipuladores**.
+2. No painel direito, clique em **Editar Permissões e Recursos**.
+3. Habilite as permissões: **Leitura**, **Escrita** e **Executar** para CGI e ISAPI.
+
+</Step>
+
+<Step>
+
+### Adicionar Restrição ISAPI/CGI para o Syspro
+
+1. No painel central, clique em **Restrições de ISAPI e CGI**.
+2. No painel direito, clique em **Adicionar...**.
+3. Preencha os campos:
+
+| Campo | Valor |
+|-------|-------|
+| **Caminho** | `C:\Syspro\Server\SysproServerISAPI.dll` |
+| **Descrição** | `Syspro` |
+
+4. Marque **Permitir que o caminho seja executado** e clique em **OK**.
+
+<Callout type="warn">
+  O caminho da DLL deve corresponder exatamente ao local de instalação do Syspro no servidor. Verifique se o arquivo `SysproServerISAPI.dll` existe antes de prosseguir.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Configurar Páginas de Erro (Servidor)
+
+1. No painel central do nó do servidor, clique em **Páginas de Erro**.
+2. No painel direito, clique em **Editar Configurações de Recurso...**.
+3. Selecione **Erros Detalhados** e clique em **OK**.
+
+</Step>
+
+<Step>
+
+### Configurar Páginas de Erro (Site Syspro)
+
+Repita o passo anterior, agora com o **site Syspro** selecionado no painel esquerdo, para garantir que erros detalhados também sejam exibidos no nível do site.
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+<Tab value="Syspro ERP">
+
+### Configurar o Syspro ERP para Usar o IIS
+
+<Steps>
+
+<Step>
+
+### Abrir o Syspro ERP
+
+Inicie o aplicativo Syspro ERP e acesse a **tela de login**.
+
+</Step>
+
+<Step>
+
+### Acessar Parâmetros de Conexão
+
+Na tela de login, clique na opção de **configurações de parâmetros** (geralmente representada por `...` ou um ícone de engrenagem).
+
+</Step>
+
+<Step>
+
+### Definir o URL Path ISAPI
+
+No campo **URL Path (ISAPI)**, insira:
+
+```
+sysproserverisapi.dll
+```
+
+</Step>
+
+<Step>
+
+### Testar a Conexão
+
+Salve as alterações. O sistema executará automaticamente um teste de conexão.
+
+O retorno esperado é:
+
+```
+Teste de conexão OK
+```
+
+<Callout type="info" title="Conexão com falha?">
+  Se o teste falhar, verifique: (1) o serviço do IIS está em execução, (2) a porta `1234` não está bloqueada pelo firewall, (3) a restrição ISAPI/CGI foi adicionada corretamente com permissão de execução habilitada.
+</Callout>
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+</Tabs>
+
+---
+
+## Perguntas Frequentes
+
+<Accordions>
+  <Accordion title="O site do IIS não inicia — erro de conflito de porta">
+    A porta `1234` pode estar em uso por outro processo. Verifique com o comando `netstat -ano | findstr :1234` no Prompt de Comando (como Administrador) para identificar o processo conflitante. Caso necessário, altere a porta do site Syspro no Gerenciador do IIS e atualize o parâmetro correspondente no ERP.
+  </Accordion>
+  <Accordion title="A página padrão do IIS não aparece em http://localhost">
+    Confirme que o serviço **Serviços de Informações da Internet** está em execução em `services.msc`. Verifique também se o firewall local não está bloqueando a porta 80. Se o site Syspro usa uma porta diferente (ex: 1234), acesse `http://localhost:1234` para testá-lo especificamente.
+  </Accordion>
+  <Accordion title="Erro 'acesso negado' ao carregar a DLL ISAPI">
+    A conta configurada na **Identidade** do pool de aplicativos precisa ter permissão de leitura e execução sobre `C:\Syspro\Server\`. Clique com o botão direito na pasta → Propriedades → Segurança e adicione a conta com permissões adequadas.
+  </Accordion>
+  <Accordion title="O Syspro retorna 'Teste de conexão FALHOU'">
+    Siga o checklist: (1) IIS em execução, (2) site Syspro ativo no Gerenciador do IIS, (3) restrição ISAPI/CGI adicionada com execução permitida, (4) pool configurado com 32 bits habilitado, (5) caminho físico do site apontando para `C:\Syspro\Server`.
+  </Accordion>
+</Accordions>
