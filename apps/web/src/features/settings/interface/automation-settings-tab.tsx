@@ -131,6 +131,14 @@ const PUBLIC_CHANNEL_AUTOMATION_FIELDS = [
   },
 ] as const;
 
+const MONTHLY_ROUTINE_AUTOMATION_FIELDS = [
+  {
+    key: "monthlyRoutineOverdue",
+    label: "Rotina voltou para atrasado",
+    description: "Dispara quando a competencia volta para Atrasado apos exceder o tempo limite em aguardando cliente.",
+  },
+] as const;
+
 type AutomationSettingsFormInput = z.input<typeof automationModuleSettingsSchema>;
 type AutomationSettingsFormOutput = z.output<typeof automationModuleSettingsSchema>;
 
@@ -149,6 +157,7 @@ export function AutomationSettingsTab() {
   });
 
   const autoResponseEnabled = form.watch("autoResponseEnabled");
+  const waitingCustomerTimeoutEnabled = form.watch("monthlyRoutines.waitingCustomerTimeoutEnabled");
 
   useEffect(() => {
     let active = true;
@@ -309,6 +318,53 @@ export function AutomationSettingsTab() {
 
               <Card className="border-border/60 bg-card/95">
                 <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <BellRing className="h-4 w-4 text-primary/70" />
+                    Rotinas mensais
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="monthlyRoutines.waitingCustomerTimeoutEnabled"
+                    render={({ field }) => (
+                      <ToggleSettingCard
+                        label="Voltar para atrasado por tempo em aguardando cliente"
+                        description="Reavalia a competencia quando ela ficar parada aguardando o cliente por tempo demais."
+                        checked={field.value ?? false}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="monthlyRoutines.waitingCustomerTimeoutHours"
+                    render={({ field }) => (
+                      <FormItem className="rounded-xl border border-border/60 bg-background/60 p-4">
+                        <FormLabel>Janela de recidiva (horas)</FormLabel>
+                        <FormDescription className="text-xs">
+                          Depois desse prazo, a rotina em aguardando cliente volta para atrasado.
+                        </FormDescription>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={240}
+                            disabled={!waitingCustomerTimeoutEnabled}
+                            value={String(field.value ?? 36)}
+                            onChange={(event) => field.onChange(Number(event.target.value || 36))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-card/95">
+                <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
                       <CardTitle className="flex items-center gap-2 text-sm">
@@ -420,8 +476,8 @@ export function AutomationSettingsTab() {
                           </div>
                         </div>
 
-                        <div className="space-y-4">
-                          <div className="space-y-2">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
                             <SettingsGroupLabel
                               icon={BellRing}
                               title="Automacoes internas"
@@ -446,9 +502,9 @@ export function AutomationSettingsTab() {
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <SettingsGroupLabel
-                              icon={Globe2}
+                            <div className="space-y-2">
+                              <SettingsGroupLabel
+                                icon={Globe2}
                               title="Automacoes publicas de canal"
                               description="Eventos de ampla divulgacao para canais abertos."
                             />
@@ -469,10 +525,36 @@ export function AutomationSettingsTab() {
                                   )}
                                 />
                               ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <SettingsGroupLabel
+                                icon={BellRing}
+                                title="Automacoes de rotinas mensais"
+                                description="Eventos operacionais recorrentes da fila mensal."
+                              />
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {MONTHLY_ROUTINE_AUTOMATION_FIELDS.map((automation) => (
+                                  <FormField
+                                    key={automation.key}
+                                    control={form.control}
+                                    name={`whatsapp.bindings.${index}.automations.${automation.key}`}
+                                    render={({ field }) => (
+                                      <ToggleSettingCard
+                                        label={automation.label}
+                                        description={automation.description}
+                                        checked={field.value ?? false}
+                                        onCheckedChange={field.onChange}
+                                        tone="sky"
+                                      />
+                                    )}
+                                  />
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
                     );
                   })}
                 </CardContent>

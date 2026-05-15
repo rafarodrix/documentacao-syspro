@@ -12,6 +12,7 @@ export const whatsappAutomationEventSchema = z.enum([
   "release_published",
   "sefaz_route_down",
   "sefaz_route_recovered",
+  "monthly_routine_overdue",
 ]);
 
 export const whatsappAutomationEventFlagsSchema = z.object({
@@ -26,6 +27,7 @@ export const whatsappAutomationEventFlagsSchema = z.object({
   releasePublished: z.boolean().default(false),
   sefazRouteDown: z.boolean().default(false),
   sefazRouteRecovered: z.boolean().default(false),
+  monthlyRoutineOverdue: z.boolean().default(false),
 });
 
 const DEFAULT_WHATSAPP_AUTOMATION_FLAGS = {
@@ -40,6 +42,17 @@ const DEFAULT_WHATSAPP_AUTOMATION_FLAGS = {
   releasePublished: false,
   sefazRouteDown: false,
   sefazRouteRecovered: false,
+  monthlyRoutineOverdue: false,
+} as const;
+
+export const monthlyRoutineAutomationSettingsSchema = z.object({
+  waitingCustomerTimeoutEnabled: z.boolean().default(true),
+  waitingCustomerTimeoutHours: z.number().int().min(1).max(240).default(36),
+});
+
+const DEFAULT_MONTHLY_ROUTINE_AUTOMATION_SETTINGS = {
+  waitingCustomerTimeoutEnabled: true,
+  waitingCustomerTimeoutHours: 36,
 } as const;
 
 export const whatsappAutomationBindingSchema = z.object({
@@ -55,6 +68,7 @@ export const automationModuleSettingsSchema = z.object({
   autoResponseEnabled: z.boolean(),
   autoResponseMessage: z.string(),
   requireTestingReturnReason: z.boolean().default(true),
+  monthlyRoutines: monthlyRoutineAutomationSettingsSchema.default(DEFAULT_MONTHLY_ROUTINE_AUTOMATION_SETTINGS),
   whatsapp: z.object({
     bindings: z.array(whatsappAutomationBindingSchema).default([]),
   }),
@@ -72,12 +86,17 @@ export type WhatsAppAutomationEventFlags = z.infer<typeof whatsappAutomationEven
 export type WhatsAppAutomationBinding = z.infer<typeof whatsappAutomationBindingSchema>;
 export type AutomationModuleSettings = z.infer<typeof automationModuleSettingsSchema>;
 export type AutomationModuleSettingsResponse = z.infer<typeof automationModuleSettingsResponseSchema>;
+export type MonthlyRoutineAutomationSettings = z.infer<typeof monthlyRoutineAutomationSettingsSchema>;
 
 export const DEFAULT_AUTOMATION_MODULE_SETTINGS: AutomationModuleSettings = {
   autoAssignToCreator: true,
   autoResponseEnabled: false,
   autoResponseMessage: "Ola! Recebemos sua solicitacao e nossa equipe ja esta ciente. Retornaremos em breve com uma analise detalhada.",
   requireTestingReturnReason: true,
+  monthlyRoutines: {
+    waitingCustomerTimeoutEnabled: true,
+    waitingCustomerTimeoutHours: 36,
+  },
   whatsapp: {
     bindings: [],
   },

@@ -584,6 +584,68 @@ export class AutomationWhatsappService {
     });
   }
 
+  async sendMonthlyRoutineOverdueNotification(input: {
+    competencyId: string;
+    companyId: string | null;
+    companyName: string;
+    routineTitle: string;
+    competencyLabel: string;
+    dueDate: string;
+    clientContactName?: string | null;
+    timeoutHours: number;
+  }) {
+    const automationSettings = await this.readAutomationSettings();
+    const targetGroups = this.getTargetGroupsForEvent(automationSettings, 'monthly_routine_overdue');
+
+    if (!targetGroups.length) {
+      this.logger.debug(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'monthly_routine_overdue_notification_skipped_no_group',
+        competencyId: input.competencyId,
+        companyId: input.companyId,
+      }));
+      return;
+    }
+
+    const connection = await this.resolveNotificationContext(input.companyId, targetGroups.map((group) => group.jid));
+    if (!connection) {
+      this.logger.warn(JSON.stringify({
+        flow: 'portal_to_evolution',
+        stage: 'monthly_routine_overdue_notification_skipped_no_connection',
+        competencyId: input.competencyId,
+        companyId: input.companyId,
+        groupCount: targetGroups.length,
+      }));
+      return;
+    }
+
+    const routinesUrl = this.buildPortalMonthlyRoutinesUrl();
+    const message = [
+      '`Rotina mensal atrasada`',
+      `*Empresa:* ${input.companyName}`,
+      `*Rotina:* ${input.routineTitle}`,
+      `*Competencia:* ${input.competencyLabel}`,
+      `*Contato cliente:* ${input.clientContactName?.trim() || 'Nao definido'}`,
+      `*Vencimento:* ${input.dueDate}`,
+      `*Regra aplicada:* aguardando cliente por mais de ${input.timeoutHours}h`,
+      ...(routinesUrl ? ['', `*Link:* ${routinesUrl}`] : []),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await this.dispatchToGroups(targetGroups, connection.evolution, {
+      connectionKey: connection.connectionKey,
+      connectionSource: connection.source,
+      companyId: connection.companyId,
+    }, message, {
+      flow: 'portal_to_evolution',
+      sentStage: 'monthly_routine_overdue_notification_sent',
+      failedStage: 'monthly_routine_overdue_notification_failed',
+      competencyId: input.competencyId,
+      companyId: input.companyId,
+    });
+  }
+
   private async dispatchToGroups(
     groups: Array<{ id: string; label: string; jid: string; active: boolean }>,
     evolution: unknown,
@@ -796,6 +858,8 @@ export class AutomationWhatsappService {
         return binding.automations.sefazRouteDown;
       case 'sefaz_route_recovered':
         return binding.automations.sefazRouteRecovered;
+      case 'monthly_routine_overdue':
+        return binding.automations.monthlyRoutineOverdue;
       default:
         return false;
     }
@@ -964,6 +1028,11 @@ export class AutomationWhatsappService {
   private buildPortalSefazRoutesUrl(rawHeaders?: IncomingHttpHeaders): string | null {
     const origin = this.resolvePortalOrigin(rawHeaders);
     return origin ? `${origin}/portal/configuracoes?tab=sefaz` : null;
+  }
+
+  private buildPortalMonthlyRoutinesUrl(rawHeaders?: IncomingHttpHeaders): string | null {
+    const origin = this.resolvePortalOrigin(rawHeaders);
+    return origin ? `${origin}/portal/rotinas-mensais` : null;
   }
 
   private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {

@@ -29,6 +29,7 @@ import {
   Plug,
   Bot,
   CalendarRange,
+  Blocks,
 } from "lucide-react";
 
 import {
@@ -59,6 +60,7 @@ const TAB_VALUES = new Set([
   "agent",
   "integrations",
   "automations",
+  "modules",
   "monthly-routines",
   "access",
   "tax",
@@ -73,8 +75,16 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   const params = searchParams ? await searchParams : undefined;
   const rawTab = typeof params?.tab === "string" ? params.tab : "general";
+  const defaultModulesTab =
+    rawTab === "tickets" ? "tickets" : rawTab === "monthly-routines" ? "monthly-routines" : "tickets";
   const defaultTab =
-    rawTab === "remote" ? "agent" : TAB_VALUES.has(rawTab) ? rawTab : "general";
+    rawTab === "remote"
+      ? "agent"
+      : rawTab === "tickets" || rawTab === "monthly-routines"
+        ? "modules"
+        : TAB_VALUES.has(rawTab)
+          ? rawTab
+          : "general";
 
   let settingsView: SettingsViewData;
   try {
@@ -105,7 +115,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
       <Tabs defaultValue={defaultTab} className="w-full min-w-0 space-y-6">
         <div className="flex items-center">
-          <SettingsTabsRail className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-8">
+          <SettingsTabsRail className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
             <SettingsTabsRailTrigger
               value="general"
               icon={Settings}
@@ -131,9 +141,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             />
 
             <SettingsTabsRailTrigger
-              value="monthly-routines"
-              icon={CalendarRange}
-              title="Rotinas Mensais"
+              value="modules"
+              icon={Blocks}
+              title="Modulos"
             />
 
             <SettingsTabsRailTrigger
@@ -199,11 +209,32 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         </TabsContent>
 
         <TabsContent
-          value="monthly-routines"
+          value="modules"
           className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
         >
           <div className="max-w-6xl">
-            <MonthlyRoutineModuleSettingsTab />
+            <Tabs defaultValue={defaultModulesTab} className="space-y-4">
+              <SettingsTabsRail className="sm:grid-cols-2 xl:grid-cols-2">
+                <SettingsTabsRailTrigger
+                  value="tickets"
+                  icon={MessageSquare}
+                  title="Tickets"
+                />
+                <SettingsTabsRailTrigger
+                  value="monthly-routines"
+                  icon={CalendarRange}
+                  title="Rotinas Mensais"
+                />
+              </SettingsTabsRail>
+
+              <TabsContent value="tickets" className="space-y-4">
+                <TicketSettingsTab />
+              </TabsContent>
+
+              <TabsContent value="monthly-routines" className="space-y-4">
+                <MonthlyRoutineModuleSettingsTab />
+              </TabsContent>
+            </Tabs>
           </div>
         </TabsContent>
 
@@ -322,14 +353,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </div>
         </TabsContent>
 
-        <TabsContent
-          value="tickets"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            <TicketSettingsTab />
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

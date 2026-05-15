@@ -27,6 +27,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { EvolutionClient, EvolutionOutboundError } from '../integrations/evolution/evolution.client';
 import { IntegrationContextService } from '../settings/integration-context.service';
+import { AutomationSettingsService } from '../automation/automation-settings.service';
+import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
 
 const DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS = [
   'Sintegra',
@@ -48,6 +50,8 @@ export class RotinasMensaisService {
     private readonly authorizationService: AuthorizationService,
     private readonly integrationContext: IntegrationContextService,
     private readonly evolutionClient: EvolutionClient,
+    private readonly automationSettingsService: AutomationSettingsService,
+    private readonly automationWhatsappService: AutomationWhatsappService,
   ) {}
 
   async list(input: MonthlyRoutineListQuery, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineListResponse> {
@@ -984,25 +988,74 @@ export class RotinasMensaisService {
   private async markOverdueCompetencies(records: any[]) {
     const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
     const now = new Date();
-    const overdueIds = records
-      .filter(
-        (record) =>
-          record.dueDate instanceof Date &&
-          record.dueDate < now &&
-          (record.status === 'PENDING' || record.status === 'WAITING_CUSTOMER'),
-      )
-      .map((record) => record.id);
+    const automationSettings = await this.automationSettingsService.readAutomationModuleSettings();
+    const waitingCustomerTimeoutEnabled = automationSettings.monthlyRoutines.waitingCustomerTimeoutEnabled;
+    const waitingCustomerTimeoutHours = automationSettings.monthlyRoutines.waitingCustomerTimeoutHours;
+    const waitingCustomerThreshold = new Date(now.getTime() - waitingCustomerTimeoutHours * 60 * 60 * 1000);
 
-    if (!overdueIds.length) return;
+    const overdueCandidates = records.filter((record) => {
+      if (!(record.dueDate instanceof Date) || record.dueDate >= now) {
+        return false;
+      }
 
-    await competencyModel.updateMany({
-      where: {
-        id: { in: overdueIds },
-      },
-      data: {
-        status: 'OVERDUE',
-      },
+      if (record.status === 'PENDING') {
+        return true;
+      }
+
+      if (
+        record.status === 'WAITING_CUSTOMER' &&
+        waitingCustomerTimeoutEnabled &&
+        record.updatedAt instanceof Date &&
+        record.updatedAt <= waitingCustomerThreshold
+      ) {
+        return true;
+      }
+
+      return false;
     });
+
+    if (!overdueCandidates.length) return;
+
+    for (const record of overdueCandidates) {
+      await competencyModel.update({
+        where: { id: record.id },
+        data: {
+          status: 'OVERDUE',
+        },
+      });
+
+      await this.createHistoryEntry({
+        competencyId: record.id,
+        type: 'AUTO_OVERDUE',
+        fromStatus: record.status as MonthlyRoutineExecutionStatus,
+        toStatus: 'OVERDUE',
+        title:
+          record.status === 'WAITING_CUSTOMER'
+            ? `Rotina voltou para Atrasado apos ${waitingCustomerTimeoutHours}h aguardando cliente`
+            : 'Rotina marcada como Atrasado pelo vencimento',
+        description:
+          record.status === 'WAITING_CUSTOMER'
+            ? 'A competencia permaneceu aguardando cliente acima da janela automatica configurada.'
+            : 'A competencia ultrapassou o vencimento sem avancar para a proxima etapa.',
+        metadata: {
+          rule: record.status === 'WAITING_CUSTOMER' ? 'waiting_customer_timeout' : 'due_date_expired',
+          waitingCustomerTimeoutHours: record.status === 'WAITING_CUSTOMER' ? waitingCustomerTimeoutHours : null,
+        },
+      });
+
+      if (record.status === 'WAITING_CUSTOMER') {
+        await this.automationWhatsappService.sendMonthlyRoutineOverdueNotification({
+          competencyId: record.id,
+          companyId: record.companyId ?? null,
+          companyName: record.company?.nomeFantasia || record.company?.razaoSocial || 'Empresa',
+          routineTitle: record.config?.title || 'Rotina mensal',
+          competencyLabel: `${String(record.month).padStart(2, '0')}/${record.year}`,
+          dueDate: record.dueDate.toLocaleDateString('pt-BR'),
+          clientContactName: record.config?.clientContact?.name ?? null,
+          timeoutHours: waitingCustomerTimeoutHours,
+        });
+      }
+    }
   }
 
   private toCompetencyItem(record: any): MonthlyRoutineCompetencyItem {
