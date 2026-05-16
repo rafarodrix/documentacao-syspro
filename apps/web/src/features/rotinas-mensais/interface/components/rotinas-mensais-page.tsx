@@ -98,7 +98,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
   const deferredSearch = useDeferredValue(searchDraft);
   const [selectedCompetency, setSelectedCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
   const [selectedStatusCompetency, setSelectedStatusCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
-  const [selectedDetailsCompetency, setSelectedDetailsCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
+  const [selectedDetailsCompetencyId, setSelectedDetailsCompetencyId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -352,7 +352,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                             variant="ghost"
                             size="sm"
                             className="mr-2"
-                            onClick={() => setSelectedDetailsCompetency(item)}
+                            onClick={() => setSelectedDetailsCompetencyId(item.id)}
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             Ver detalhes
@@ -406,10 +406,10 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
       />
 
       <MonthlyRoutineDetailsDialog
-        item={selectedDetailsCompetency}
-        open={Boolean(selectedDetailsCompetency)}
+        itemId={selectedDetailsCompetencyId}
+        open={Boolean(selectedDetailsCompetencyId)}
         onOpenChange={(open) => {
-          if (!open) setSelectedDetailsCompetency(null);
+          if (!open) setSelectedDetailsCompetencyId(null);
         }}
       />
     </div>

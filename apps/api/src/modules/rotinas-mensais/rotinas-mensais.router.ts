@@ -35,9 +35,14 @@ export class RotinasMensaisRouter {
           return this.rotinasMensaisService.listCompetencies(input, ctx.headers);
         }),
       getCompanyConfig: this.trpc.publicProcedure
-        .input(z.object({ companyId: z.string() }))
+        .input(z.object({ companyId: z.string().min(1) }))
         .query(({ input, ctx }) => {
           return this.rotinasMensaisService.getCompanyConfig(input.companyId, ctx.headers);
+        }),
+      getCompetency: this.trpc.publicProcedure
+        .input(z.object({ id: z.string().min(1) }))
+        .query(({ input, ctx }) => {
+          return this.rotinasMensaisService.getCompetency(input.id, ctx.headers);
         }),
       upsertCompanyConfig: this.trpc.publicProcedure
         .input(monthlyRoutineCompanyConfigUpsertSchema)

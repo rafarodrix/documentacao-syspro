@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/api/trpc-client";
 import type {
   MonthlyRoutineCompanyConfigView,
+  MonthlyRoutineCompetencyItem,
   MonthlyRoutineCompetencyListResponse,
   MonthlyRoutineListResponse,
 } from "@dosc-syspro/contracts/rotinas-mensais";
@@ -15,6 +16,10 @@ export async function getMonthlyRoutineListQuery(input: {
 
 export async function getMonthlyRoutineCompanyConfigQuery(companyId: string) {
   return (await trpc.rotinasMensais.getCompanyConfig.query({ companyId })) as MonthlyRoutineCompanyConfigView;
+}
+
+export async function getMonthlyRoutineCompetencyQuery(id: string) {
+  return (await trpc.rotinasMensais.getCompetency.query({ id })) as MonthlyRoutineCompetencyItem;
 }
 
 export async function getMonthlyRoutineCompetenciesQuery(input: {
