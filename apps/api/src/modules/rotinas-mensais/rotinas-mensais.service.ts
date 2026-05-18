@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type {
   MonthlyRoutineCompanyConfigUpsertInput,
@@ -29,6 +29,7 @@ import { EvolutionClient, EvolutionOutboundError } from '../integrations/evoluti
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
+import { RotinasMensaisSettingsService } from './rotinas-mensais-settings.service';
 
 const DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS = [
   'Sintegra',
@@ -45,6 +46,8 @@ const DEFAULT_MONTHLY_ROUTINE_DUE_DAY = 12;
 
 @Injectable()
 export class RotinasMensaisService {
+  private readonly logger = new Logger(RotinasMensaisService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
@@ -52,6 +55,7 @@ export class RotinasMensaisService {
     private readonly evolutionClient: EvolutionClient,
     private readonly automationSettingsService: AutomationSettingsService,
     private readonly automationWhatsappService: AutomationWhatsappService,
+    private readonly rotinasMensaisSettingsService: RotinasMensaisSettingsService,
   ) {}
 
   async list(input: MonthlyRoutineListQuery, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineListResponse> {
@@ -284,17 +288,29 @@ export class RotinasMensaisService {
     const scopeWhere = scope.isGlobal ? {} : { companyId: { in: scope.companyIds } };
 
     // Lightweight inline overdue marking: PENDING → OVERDUE when dueDate has passed.
-    // Full overdue processing (WAITING_CUSTOMER timeout, history, notifications) runs via job.
-    await competencyModel.updateMany({
-      where: {
-        year,
-        month,
-        status: 'PENDING',
-        dueDate: { lt: new Date() },
-        ...scopeWhere,
-      },
-      data: { status: 'OVERDUE' },
+    // Full overdue processing (WAITING_CUSTOMER timeout, notifications) runs via job.
+    const overdueWhere = { year, month, status: 'PENDING', dueDate: { lt: new Date() }, ...scopeWhere };
+    const overdueToMark: Array<{ id: string }> = await competencyModel.findMany({
+      where: overdueWhere,
+      select: { id: true },
     });
+
+    if (overdueToMark.length > 0) {
+      await competencyModel.updateMany({ where: overdueWhere, data: { status: 'OVERDUE' } });
+      await Promise.all(
+        overdueToMark.map((record: { id: string }) =>
+          this.createHistoryEntry({
+            competencyId: record.id,
+            type: 'AUTO_OVERDUE',
+            fromStatus: 'PENDING',
+            toStatus: 'OVERDUE',
+            title: 'Rotina marcada como atrasada automaticamente',
+            description: 'A data de vencimento passou sem que os documentos fossem recebidos.',
+            metadata: { rule: 'inline_overdue_check' },
+          }),
+        ),
+      );
+    }
 
     const records = await competencyModel.findMany({
       where: { year, month, ...scopeWhere },
@@ -576,6 +592,21 @@ export class RotinasMensaisService {
     const previousStatus = existing.status as MonthlyRoutineExecutionStatus;
     const notes = this.normalizeOptionalString(input.notes);
 
+    if (previousStatus === 'CANCELED') {
+      throw new BadRequestException('Uma competência cancelada não pode ter seu status alterado.');
+    }
+    if (nextStatus === previousStatus) {
+      throw new BadRequestException(`A competência já está com status "${this.getStatusLabel(previousStatus)}".`);
+    }
+    if (nextStatus === 'CANCELED') {
+      const cancelableFrom: ReadonlyArray<MonthlyRoutineExecutionStatus> = ['PENDING', 'OVERDUE', 'WAITING_CUSTOMER', 'RECEIVED'];
+      if (!cancelableFrom.includes(previousStatus)) {
+        throw new BadRequestException(
+          `Não é possível cancelar uma competência com status "${this.getStatusLabel(previousStatus)}".`,
+        );
+      }
+    }
+
     const now = new Date();
     const updateData: Record<string, unknown> = {
       status: nextStatus,
@@ -632,9 +663,11 @@ export class RotinasMensaisService {
   // Called by RotinasMensaisJobService on each tick.
   async runPeriodicJob(): Promise<void> {
     const { year, month } = this.resolveYearMonth();
+    this.logger.log(`[job] iniciando ciclo periódico — competência ${String(month).padStart(2, '0')}/${year}`);
     await this.ensureCompetenciesForScope({ isGlobal: true, companyIds: [] }, year, month);
     await this.runMarkOverdueJob(year, month);
     await this.runReminderJob(year, month);
+    this.logger.log(`[job] ciclo periódico concluído — competência ${String(month).padStart(2, '0')}/${year}`);
   }
 
   private toRoutineItem(company: {
@@ -1078,14 +1111,23 @@ export class RotinasMensaisService {
       }),
     );
 
-    return results.reduce(
+    const totals = results.reduce(
       (acc, r) => ({ generated: acc.generated + r.generated, updated: acc.updated + r.updated }),
       { generated: 0, updated: 0 },
     );
+
+    if (totals.generated > 0 || totals.updated > 0) {
+      this.logger.log(
+        `[sync] ensureCompetenciesForScope — geradas: ${totals.generated}, atualizadas: ${totals.updated}`,
+      );
+    }
+
+    return totals;
   }
 
   // Full overdue job: marks WAITING_CUSTOMER timeouts, creates history, sends notifications.
   private async runMarkOverdueJob(year: number, month: number): Promise<void> {
+    this.logger.debug(`[job] runMarkOverdueJob — ${String(month).padStart(2, '0')}/${year}`);
     const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
     const now = new Date();
     const automationSettings = await this.automationSettingsService.readAutomationModuleSettings();
@@ -1105,7 +1147,11 @@ export class RotinasMensaisService {
         })
       : [];
 
-    if (!waitingOverdueCandidates.length) return;
+    if (!waitingOverdueCandidates.length) {
+      this.logger.debug('[job] runMarkOverdueJob — nenhum candidato para marcar como atrasado');
+      return;
+    }
+    this.logger.log(`[job] runMarkOverdueJob — marcando ${waitingOverdueCandidates.length} competência(s) como OVERDUE`);
 
     await Promise.all(
       waitingOverdueCandidates.map(async (record: any) => {
@@ -1143,6 +1189,7 @@ export class RotinasMensaisService {
 
   // Sends automated reminders for PENDING competencies approaching their due date.
   private async runReminderJob(year: number, month: number): Promise<void> {
+    this.logger.debug(`[job] runReminderJob — ${String(month).padStart(2, '0')}/${year}`);
     const configModel = (this.prisma as any).monthlyRoutineConfig;
     const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
     const historyModel = (this.prisma as any).monthlyRoutineHistory;

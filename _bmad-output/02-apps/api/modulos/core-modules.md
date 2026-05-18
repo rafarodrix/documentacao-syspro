@@ -302,3 +302,40 @@ Gerencia o inventário de agentes/dispositivos registrados.
 - Lista de dispositivos com status de conexão
 - Vinculação de agente a empresa
 - Dados de hardware (via sync do agente Go)
+
+
+---
+
+## rotinas-mensais
+
+**Path:** `src/modules/rotinas-mensais/`
+
+Módulo de gestão de rotinas mensais contábeis. Controla o ciclo de vida de competências por empresa, disparos automáticos e manuais via WhatsApp, e histórico de eventos.
+
+**Arquivos principais:**
+- `rotinas-mensais.service.ts` — lógica de negócio principal
+- `rotinas-mensais.router.ts` — procedimentos tRPC expostos ao web
+- `rotinas-mensais.module.ts` — configuração NestJS com DI
+- `rotinas-mensais-job.service.ts` — job periódico (a cada 30 min)
+- `rotinas-mensais-settings.service.ts` — leitura das configurações globais do módulo
+
+**Procedures tRPC:**
+- `list` — lista empresas candidatas a rotina com status de configuração
+- `listCompetencies` — lista competências com filtro de status/busca/paginação
+- `getCompetency` — detalhe de uma competência com histórico e solicitações
+- `getCompanyConfig` — configuração atual da rotina de uma empresa
+- `upsertCompanyConfig` — cria ou atualiza configuração de rotina por empresa
+- `syncCompetencies` — força geração de competências para o mês atual
+- `sendManualRequest` — dispara solicitação manual via WhatsApp/Evolution
+- `updateCompetencyStatus` — transição manual de status com histórico
+
+**Status de competência:**
+`PENDING` → `WAITING_CUSTOMER` → `RECEIVED` → `SENT_TO_ACCOUNTING` → `COMPLETED`
+Com desvios: `OVERDUE` (automático quando dueDate passa), `CANCELED` (terminal — não permite retorno)
+
+**Jobs automáticos (30 min):**
+1. `ensureCompetenciesForScope` — cria competências faltantes para todas as empresas ativas
+2. `runMarkOverdueJob` — marca `WAITING_CUSTOMER` com timeout como `OVERDUE`, envia notificação
+3. `runReminderJob` — envia lembrete automático para `PENDING` próximas do vencimento
+
+**Permissões:** `rotinas_mensais:view`, `rotinas_mensais:view_all`, `rotinas_mensais:manage`
