@@ -26,6 +26,7 @@
       "@dosc-syspro/contracts/dashboard": ["../../packages/contracts/src/dashboard/index.ts"],
       "@dosc-syspro/contracts/documento": ["../../packages/contracts/src/documento/documento.types.ts"],
       "@dosc-syspro/contracts/documento-config": ["../../packages/contracts/src/documento/documento-config.types.ts"],
+      "@dosc-syspro/contracts/automation": ["../../packages/contracts/src/automation/index.ts"],
       "@dosc-syspro/contracts/evolution": ["../../packages/contracts/src/evolution/index.ts"],
       "@dosc-syspro/contracts/evolution-settings": ["../../packages/contracts/src/evolution/evolution-settings.types.ts"],
       "@dosc-syspro/contracts/evolution-webhook": ["../../packages/contracts/src/evolution/evolution-webhook.types.ts"],

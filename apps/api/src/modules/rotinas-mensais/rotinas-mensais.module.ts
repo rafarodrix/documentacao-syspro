@@ -7,10 +7,12 @@ import { SettingsModule } from '../settings/settings.module';
 import { AutomationModule } from '../automation/automation.module';
 import { RotinasMensaisRouter } from './rotinas-mensais.router';
 import { RotinasMensaisService } from './rotinas-mensais.service';
+import { RotinasMensaisJobService } from './rotinas-mensais-job.service';
+import { RotinasMensaisSettingsService } from './rotinas-mensais-settings.service';
 
 @Module({
   imports: [PrismaModule, AuthorizationModule, TrpcCoreModule, SettingsModule, EvolutionModule, AutomationModule],
-  providers: [RotinasMensaisService, RotinasMensaisRouter],
-  exports: [RotinasMensaisService, RotinasMensaisRouter],
+  providers: [RotinasMensaisService, RotinasMensaisRouter, RotinasMensaisJobService, RotinasMensaisSettingsService],
+  exports: [RotinasMensaisService, RotinasMensaisRouter, RotinasMensaisSettingsService],
 })
 export class RotinasMensaisModule {}
