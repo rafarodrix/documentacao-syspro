@@ -1,0 +1,81 @@
+---
+title: "Setup & Ambiente"
+description: Como instalar dependências, configurar variáveis de ambiente e rodar o projeto localmente.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - setup
+  - ambiente
+  - onboarding
+---
+
+# Setup & Ambiente
+
+## Pré-requisitos
+
+- **Node.js 22** — use `.nvmrc` do projeto: `nvm use`
+- **npm 10** — incluído com Node 22
+- **PostgreSQL** — para rodar migrations e o portal completo localmente
+
+## Instalação
+
+```bash
+# 1. Instalar dependências do workspace
+npm install
+
+# 2. Configurar variáveis de ambiente
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+cp apps/web/.env.e2e.example apps/web/.env.e2e
+
+# 3. Gerar client do Prisma
+npm run db:generate
+
+# 4. Rodar o portal principal
+npm run dev
+
+# 5. Rodar a API (terminal separado, se necessário)
+npm run dev:api
+```
+
+## Grupos de variáveis de ambiente
+
+| Grupo | Variáveis | Onde |
+|-------|-----------|------|
+| Banco de dados | `DATABASE_URL`, `DIRECT_URL` | `apps/api/.env` |
+| Autenticação | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | `apps/web/.env.local` |
+| Acesso remoto | `REMOTE_*`, `PORTAL_API_*` | `apps/web/.env.local` |
+| Integrações | `EVOLUTION_*`, `CHATWOOT_*` | `apps/web/.env.local` |
+
+Sem as variáveis de banco e autenticação, o portal abre em modo reduzido — fluxos autenticados e integrações não funcionam.
+
+## Scripts principais
+
+```bash
+# Portal (Next.js)
+npm run dev           # dev server
+npm run build         # build de produção (todos os workspaces via Turborepo)
+npm run typecheck     # typecheck — todos os workspaces
+
+# API (NestJS)
+npm run dev:api
+npm run build:api
+npm run typecheck:api
+
+# Banco de dados
+npm run db:generate   # gerar Prisma client
+npm run db:validate   # validar schema
+npm run db:migrate    # migration dev
+npm run db:deploy     # migration produção
+
+# Qualidade
+npm run lint          # ESLint — todos os workspaces
+npm run lint:ds       # auditoria de design tokens
+npm run test          # testes — todos os workspaces
+npm run docs:check    # validar estrutura da documentação MDX
+```
+
+## Editor recomendado
+
+VSCode com as extensões listadas em `.vscode/extensions.json`. O projeto usa Prettier (`.prettierrc`) — configure "Format on Save" no editor.

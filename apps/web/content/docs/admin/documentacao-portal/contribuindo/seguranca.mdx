@@ -1,0 +1,55 @@
+---
+title: Política de Segurança
+description: Como reportar vulnerabilidades, processo de resposta e áreas críticas do projeto.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - seguranca
+  - vulnerabilidades
+  - disclosure
+---
+
+# Política de Segurança
+
+## Reportando uma vulnerabilidade
+
+Se você encontrou uma vulnerabilidade de segurança neste projeto, **não abra uma issue pública**.
+
+Reporte de forma privada através de:
+
+- **GitHub Security Advisories** — aba "Security" → "Report a vulnerability" neste repositório
+- **E-mail direto** — entre em contato com o time de plataforma
+
+### O que incluir no relatório
+
+- Descrição da vulnerabilidade e impacto potencial
+- Passos para reproduzir (exploit proof-of-concept, se houver)
+- Versão / commit afetado
+- Sugestão de correção (opcional)
+
+## Processo de resposta
+
+| Prazo | Etapa |
+|-------|-------|
+| 2 dias úteis | Confirmação de recebimento |
+| 5 dias úteis | Avaliação de severidade e impacto |
+| 48h | Patch para vulnerabilidades críticas |
+| 7 dias | Patch para severidade alta |
+| 30 dias | Patch para severidade média |
+
+O pesquisador receberá crédito público após o patch, se desejar.
+
+## Áreas de maior atenção
+
+- **Autenticação e sessão** — `better-auth`, tokens JWT, `agentToken`
+- **Controle de acesso por tenant** — isolamento por empresa
+- **Acesso remoto** — RustDesk integration, tokens de sessão, `agentToken`
+- **Endpoints com dados sensíveis** — NF-e, dados fiscais, CNPJ
+- **Variáveis de ambiente e segredos** — CI/CD, `.env` files
+
+## Fora do escopo
+
+- Ataques que requerem acesso físico à máquina
+- Vulnerabilidades em dependências sem PoC aplicável a este projeto
+- Problemas de configuração de infraestrutura do cliente final

@@ -1,5 +1,3 @@
-<!-- Workspace reference for AI-assisted development. See WORKSPACE.md for the full guide. -->
-
 # Trilink Syspro — Workspace Reference
 
 Monorepo do portal Syspro ERP (Trilink). Produto principal: `apps/web` (Next.js 15, App Router). Runtime secundário em evolução: `apps/api` (NestJS). Agent de acesso remoto em Go: `apps/agent`.
@@ -44,7 +42,7 @@ shared ────────────────┤
                    apps/api (interface)
 ```
 
-Regra: `core` não importa ninguém. `application` importa `core`, `contracts`, `database`. Apps importam `application`, `contracts`, `ui`, `shared`. ESLint enforce essa fronteira.
+Regra: `core` não importa ninguém. `application` importa `core`, `contracts`, `database`. Apps importam `application`, `contracts`, `ui`, `shared`. O ESLint enforce essa fronteira — componentes não acessam Prisma diretamente.
 
 ## Comandos
 
@@ -61,12 +59,9 @@ npm run db:migrate       # migration dev
 npm run docs:check       # validar estrutura MDX
 ```
 
-## Convenções
+## Documentação completa
 
-- Features em `apps/web/src/features/<feature>/` com camadas `domain/` → `application/` → `infrastructure/` → `interface/`
-- Docs MDX em `apps/web/content/docs/admin/documentacao-portal/` — cada seção tem `meta.json` + `index.mdx`
-- Commits: `tipo(escopo): descrição` — tipos: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`
-- Design system: tokens semânticos do `@dosc-syspro/ui`, nunca hex hardcoded
+`apps/web/content/docs/admin/documentacao-portal/` — referência técnica completa do monorepo, incluindo arquitetura, packages, integrações, acesso remoto e guias de contribuição.
 
 ## Ambiente
 
