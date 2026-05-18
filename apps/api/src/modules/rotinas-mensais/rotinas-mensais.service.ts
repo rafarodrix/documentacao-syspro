@@ -197,7 +197,7 @@ export class RotinasMensaisService {
     };
   }
 
-  async upsertCompanyConfig(input: MonthlyRoutineCompanyConfigUpsertInput, rawHeaders?: IncomingHttpHeaders) {
+  async upsertCompanyConfig(input: MonthlyRoutineCompanyConfigUpsertInput, rawHeaders?: IncomingHttpHeaders): Promise<{ success: boolean; message: string }> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveRoutineManageScope(requester);
     await this.assertCompanyInScope(input.companyId, scope);
