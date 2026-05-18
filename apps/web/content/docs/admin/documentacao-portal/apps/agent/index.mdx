@@ -1,0 +1,168 @@
+---
+title: app/agent — Agente Windows (Go + Wails)
+description: O apps/agent é uma aplicação desktop para Windows que registra e mantém a máquina conectada ao portal Trilink, gerencia o RustDesk e coleta dados de hardware.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - agent
+  - go
+  - wails
+  - windows
+  - rustdesk
+---
+
+> Stack: Go 1.26 · Wails v2 · RustDesk · IPC (Named Pipe)
+> Atualizado em: 2026-05-05
+
+---
+
+## Responsabilidade
+
+O `apps/agent` é uma aplicação desktop para Windows que:
+- Registra e mantém a máquina conectada ao portal Trilink
+- Gerencia o RustDesk (acesso remoto) na máquina local
+- Coleta dados de hardware e relatórios do Syspro
+- Executa backups do banco Firebird
+- Expõe uma UI local (Wails/React) para o usuário final
+
+---
+
+## Dois binários independentes
+
+O agente compila em **dois binários distintos** que se comunicam via IPC:
+
+```
+agent-service.exe
+  ├── Roda como Windows Service (LocalSystem)
+  ├── Executa todo o trabalho crítico em background
+  ├── Servidor IPC (named pipe)
+  └── Responsabilidades:
+      - registro e bootstrap no portal
+      - heartbeat e sync periódico
+      - reconcile de estado desejado
+      - módulos: remote, backup, device, support, tunnel
+
+agent-ui.exe  (alias: agent.exe)
+  ├── Aplicação desktop Wails (WebView2 + React)
+  ├── Exibe estado, chat e pipeline de provisionamento
+  ├── Cliente IPC (conecta ao agent-service)
+  └── Responsabilidades:
+      - UI de onboarding e status
+      - Timeline de progresso
+      - Chat de suporte ao vivo
+```
+
+---
+
+## Estrutura de arquivos
+
+```
+apps/agent/
+├── main.go                    ← entry point do agent-ui (Wails)
+├── wails.json                 ← configuração Wails (binário: agent-ui)
+├── go.mod / go.sum
+│
+├── cmd/
+│   ├── agent/main.go          ← alias do agent-ui
+│   └── agent-service/main.go  ← entry point do agent-service
+│
+├── internal/
+│   ├── app/
+│   │   ├── bootstrap.go       ← bootstrap do serviço (DI completo)
+│   │   ├── ui_bootstrap.go    ← bootstrap da UI (IPC client + Wails host)
+│   │   ├── container.go       ← struct Container (AgentService, IPCServer, AgentUI, UIHost)
+│   │   ├── run.go             ← RunService(), RunUI(), RunServiceDebug()
+│   │   ├── install_runtime.go ← instala RustDesk e dependências
+│   │   ├── runtime_lock.go    ← lock para evitar múltiplas instâncias
+│   │   └── secrets.go         ← leitura/escrita de secrets (DPAPI no Windows)
+│   │
+│   ├── domain/                ← tipos de domínio do agente
+│   ├── core/                  ← serviços core do agente
+│   ├── modules/               ← módulos funcionais plugáveis
+│   │   ├── remote/            ← integração RustDesk
+│   │   ├── backup/            ← backup Firebird via gbak
+│   │   ├── device/            ← coleta de hardware
+│   │   ├── support/           ← funcionalidades de suporte remoto
+│   │   └── tunnel/            ← gerenciamento de túneis (stub)
+│   │
+│   ├── infra/                 ← infraestrutura do agente
+│   └── shared/retry/retry.go  ← retry com backoff exponencial
+│
+├── frontend/                  ← UI React (Vite + TypeScript)
+└── deploy/
+    └── windows-installer/
+        └── AgenteTrilink.iss  ← script InnoSetup para installer Windows
+```
+
+---
+
+## Módulo `remote` (RustDesk)
+
+**Path:** `internal/modules/remote/`
+
+**Responsabilidades:**
+- Instala e configura o RustDesk na máquina
+- Aplica configuração enviada pelo portal (alias, servidor relay)
+- Reporta `rustdeskId` no heartbeat
+- Executa comandos da fila: REAPPLY_ALIAS, REAPPLY_CONFIG, UPGRADE_CLIENT
+
+---
+
+## Módulo `backup` (Firebird)
+
+**Path:** `internal/modules/backup/`
+
+Executa backup do banco de dados Firebird via `gbak`, comprime o resultado e faz upload para Cloudflare R2.
+
+---
+
+## Módulo `device`
+
+**Path:** `internal/modules/device/`
+
+Coleta dados de hardware do dispositivo Windows:
+- CPU, RAM, disco, uptime
+- Versão do OS, hostname
+- Exportado no sync periódico para o portal
+
+---
+
+## IPC (comunicação service ↔ ui)
+
+**Path:** `internal/infra/ipc/`
+
+| Componente       | Protocolo                             |
+|------------------|---------------------------------------|
+| Windows          | Named Pipe (`\\.\pipe\trilink-agent`) |
+| Outros (dev)     | Unix Domain Socket                    |
+
+**Protocolo:** mensagens JSON sobre pipe. Cada mensagem tem tipo + payload.
+
+---
+
+## Secrets e segurança
+
+- `agentToken` persistido com **DPAPI** (Windows Data Protection API) — cifrado com a identidade da máquina
+- Em não-Windows (dev): arquivo simples em `/tmp` (não usar em produção)
+- Rotação de token: o portal enfileira `ROTATE_TOKEN_REQUIRED`, o agente solicita novo token no próximo heartbeat
+
+---
+
+## Build e deploy
+
+```bash
+# Build do agent-ui (Wails) — requer Wails CLI instalado
+wails build
+
+# Build do agent-service
+go build ./cmd/agent-service/...
+
+# Installer Windows
+# Compilar com InnoSetup: deploy/windows-installer/AgenteTrilink.iss
+```
+
+**Dependências de runtime (incluídas no installer):**
+- WebView2 Runtime (para Wails)
+- RustDesk client
+- gbak (Firebird backup tool)

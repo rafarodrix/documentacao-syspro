@@ -4,6 +4,7 @@
   "description": "Documentacao administrativa e tecnica restrita a administradores.",
   "pages": [
     "index",
-    "infraestrutura"
+    "infraestrutura",
+    "documentacao-portal"
   ]
 }

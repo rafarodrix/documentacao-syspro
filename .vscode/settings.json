@@ -1,15 +1,5 @@
 {
     "prisma.pinToPrisma6": true,
     "postman.settings.dotenv-detection-notification-visibility": false,
-    "go.toolsEnvVars": {
-        "GOCACHE": "C:\\DEV\\documentacao-syspro\\apps\\agent\\.gocache",
-        "GOWORK": "C:\\DEV\\documentacao-syspro\\go.work"
-    },
-    "gopls": {
-        "env": {
-            "GOCACHE": "C:\\DEV\\documentacao-syspro\\apps\\agent\\.gocache",
-            "GOWORK": "C:\\DEV\\documentacao-syspro\\go.work"
-        }
-    },
     "mdx-preview.preview.enableScripts": true
 }

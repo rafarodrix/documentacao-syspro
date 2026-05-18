@@ -1,0 +1,108 @@
+---
+title: "Decisão Arquitetural: tRPC interno × REST externo"
+description: Princípio central
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - arquitetura
+  - trpc
+---
+
+# Decisão Arquitetural: tRPC interno × REST externo
+
+> Decisão registrada em: 2026-05-08
+
+---
+
+## Princípio central
+
+```
+tRPC   → comunicação interna  (Next.js ↔ NestJS)
+REST   → comunicação externa  (NestJS ↔ mundo externo)
+```
+
+---
+
+## tRPC: comunicação interna (web ↔ api)
+
+**Quando usar tRPC:**
+- Qualquer chamada originada do `apps/web` (portal) para o `apps/api`
+- Server Components, Server Actions, Client Components — todos usam o mesmo client tRPC
+- Dados que precisam de tipagem end-to-end automática (sem codegen)
+
+**Vantagens no contexto do projeto:**
+- Zero overhead de serialização manual de tipos
+- Erros do backend (`ForbiddenException`, `NotFoundException`) propagam como `TRPCClientError`
+- Input validado por Zod no router — service recebe dados já transformados
+- Refactor de schema quebra o TypeScript em ambos os lados imediatamente
+
+**Domínios migrados para tRPC:**
+| Router              | Procedures principais                                   |
+|---------------------|---------------------------------------------------------|
+| `trpc.companies.*`  | list, create, update, getOptions, ...                   |
+| `trpc.users.*`      | list, getOne, create, update, getCurrentProfile, ...    |
+| `trpc.contacts.*`   | list, getStats, getOne, create, update, link, sync, ... |
+
+---
+
+## REST: comunicação externa (api ↔ integrações)
+
+**Quando usar REST:**
+- `apps/agent` (Go + Wails) → heartbeat, sync, ack, discover, bootstrap
+- Webhooks de entrada: Chatwoot, Evolution (WhatsApp)
+- APIs públicas consumidas externamente
+- Integrações B2B que não controlamos o cliente
+
+**Por quê não tRPC aqui:**
+- Clientes externos (Go, mobile, terceiros) não têm o client tRPC
+- Webhooks são chamadas de entrada sem sessão de usuário
+- REST é o protocolo universalmente suportado para integrações
+
+**Rotas REST mantidas:**
+- `/api/auth/**` — Better Auth handler
+- `/api/remote/**` — Agent Go (heartbeat, sync, ack, discover, bootstrap)
+- `/api/integrations/evolution/**` — webhook Evolution
+- `/api/integrations/chatwoot/**` — webhook Chatwoot
+- `/api/contacts/**` — proxy REST removido (migrado para tRPC)
+- `/api/platform/**` — configurações (ainda não migrado)
+- `/api/tickets/**` — tickets (ainda não migrado)
+- `/api/tax/**` — tributação (ainda não migrado)
+
+---
+
+## Padrão de camadas
+
+```
+Frontend (Next.js)
+  ↓  tRPC (type-safe, HTTP)
+tRPC Router (NestJS — @Injectable)
+  ↓  Zod validated input
+Service (NestJS)
+  ↓  AuthorizationService.getRequester(rawHeaders)
+Prisma → PostgreSQL
+```
+
+```
+Agente Go / Chatwoot / Evolution / APIs externas
+  ↓  REST (HTTP + JSON)
+NestJS Controller
+  ↓
+Service (NestJS)
+  ↓
+Prisma → PostgreSQL
+```
+
+**Os Services são compartilhados** — tanto tRPC Routers quanto REST Controllers chamam o mesmo Service. O transporte muda, a lógica de negócio não.
+
+---
+
+## Sobre Use Cases e Repository Pattern
+
+O padrão Use Case / Repository Interface é o ideal para sistemas com múltiplos consumidores independentes. Para este projeto, a adoção gradual é recomendada:
+
+- **Agora**: `Service → Prisma` diretamente (funcional, simples, sem overhead)
+- **Novos módulos complexos**: considerar Use Case como camada intermediária
+- **Não migrar retroativamente** em massa sem ganho concreto
+
+A separação tRPC × REST já resolve o principal problema de acoplamento — múltiplos transportes chamando o mesmo Service é a essência do Use Case sem a verbosidade extra.

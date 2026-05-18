@@ -1,0 +1,12 @@
+{
+  "title": "Scripts",
+  "pages": [
+    "pedido-cancelar-lancamento",
+    "produto-assossiar-produto-empresa-para-outra",
+    "produto-clonar-estoque-novo-estoque",
+    "produto-codigo-auxiliar-",
+    "produto-duplicidade-empresa-comercial",
+    "produto-referencia-codigo-fiscal",
+    "produto-sincronizar-produtos-entre-empresas"
+  ]
+}

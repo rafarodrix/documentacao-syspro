@@ -1,0 +1,190 @@
+---
+title: "Package: @dosc-syspro/database"
+description: Prisma ORM — schema PostgreSQL, PrismaClient gerado, tipos TypeScript e seed de dados iniciais.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - packages
+  - prisma
+  - postgresql
+---
+
+# Package: @dosc-syspro/database
+
+> Prisma ORM — schema PostgreSQL, client gerado e seed.
+> Atualizado em: 2026-05-05
+
+---
+
+## Responsabilidade
+
+`@dosc-syspro/database` centraliza:
+- Schema Prisma (fonte de verdade do banco)
+- PrismaClient gerado e exportado
+- Tipos TypeScript gerados pelo Prisma
+- Seed de dados iniciais
+
+Não contém lógica de negócio — apenas ORM e tipos.
+
+---
+
+## Exports
+
+```typescript
+// Re-exporta tudo do Prisma gerado
+export { PrismaClient } from '@prisma/client'
+export type { Company, RemoteHost, RemoteSession, ... } from '@prisma/client'
+```
+
+---
+
+## Modelos principais do schema
+
+### Empresas e usuários
+
+| Modelo              | Descrição                                               |
+|---------------------|---------------------------------------------------------|
+| `Company`           | Empresa cliente com dados fiscais, segmento, hierarquia |
+| `CompanyContact`    | Contato vinculado à empresa (CPF, email, telefone)      |
+| `User`              | Usuário do portal                                       |
+| `Membership`        | Vínculo usuário-empresa com role                        |
+| `Permission`        | Permissão granular                                      |
+| `AccessProfile`     | Agrupamento de permissões                               |
+| `Contract`          | Contrato de serviço por empresa                         |
+
+### Acesso remoto
+
+| Modelo                         | Descrição                                          |
+|--------------------------------|----------------------------------------------------|
+| `RemoteHost`                   | Host registrado para acesso remoto                 |
+| `RemoteAgentCommand`           | Fila de comandos para o agente executar            |
+| `RemoteDiscoveredHost`         | Host encontrado em discovery (aguarda vinculação)  |
+| `RemoteHostSysproUpdate`       | Versão do Syspro detectada no host                 |
+| `RemoteSession`                | Sessão de acesso remoto                            |
+| `RemoteAddressBookCredential`  | Credenciais para address book RustDesk             |
+
+### Mensageria e atendimento
+
+| Modelo                  | Descrição                                          |
+|-------------------------|----------------------------------------------------|
+| `Conversation`          | Conversa canal agnóstico (WHATSAPP/EMAIL/PORTAL)   |
+| `ConversationMessage`   | Mensagem em uma conversa                           |
+| `ConversationAssignment`| Atribuição de conversa a usuário/equipe            |
+| `TicketCategory`        | Categorização de tickets                           |
+| `ChatwootCsatRating`    | Rating de satisfação do Chatwoot                   |
+
+### CRM
+
+| Modelo        | Descrição                                            |
+|---------------|------------------------------------------------------|
+| `CrmLead`     | Lead com stage pipeline (LEAD→MQL→SQL→PROPOSAL→WON) |
+| `CrmActivity` | Atividade CRM (NOTE, CALL, MEETING, EMAIL, WHATSAPP) |
+| `CrmTask`     | Tarefa CRM com status e vencimento                   |
+
+### Fiscal e tributação
+
+| Modelo              | Descrição                                         |
+|---------------------|---------------------------------------------------|
+| `TaxCST`            | Código de Situação Tributária                     |
+| `TaxClassification` | Classificação fiscal                              |
+| `TaxNcm`            | NCM com alíquotas e descrição                     |
+| `SefazStatus`       | Status dos serviços SEFAZ por UF                  |
+| `TaxSyncJob`        | Job de sincronização de tabelas tributárias       |
+
+### Configuração
+
+| Modelo            | Descrição                               |
+|-------------------|-----------------------------------------|
+| `DocumentoConfig` | Configuração de tipos de documento      |
+| `SystemSetting`   | Configurações de sistema (key-value)    |
+
+---
+
+## Enums principais
+
+```prisma
+enum Role {
+  ADMIN
+  SUPORTE
+  CLIENTE_ADMIN
+  CLIENTE_USER
+  DEVELOPER
+}
+
+enum CompanyStatus { ACTIVE INACTIVE SUSPENDED }
+
+enum RemoteHostStatus { ACTIVE INACTIVE MAINTENANCE }
+
+enum RemoteSessionStatus { REQUESTED STARTED ENDED }
+
+enum ConversationChannel { WHATSAPP EMAIL PORTAL PHONE }
+
+enum RemoteAgentCommandType {
+  REAPPLY_ALIAS
+  REAPPLY_CONFIG
+  UPGRADE_CLIENT
+  ROTATE_TOKEN_REQUIRED
+}
+
+enum CompanyContactSource { MANUAL WHATSAPP IMPORT }
+
+enum CrmLeadStage { LEAD MQL SQL PROPOSAL WON LOST }
+```
+
+---
+
+## Configuração de conexão
+
+```bash
+# Pool via PgBouncer (para a aplicação)
+DATABASE_URL=postgresql://user:pass@pgbouncer:5432/trilink?pgbouncer=true
+
+# Conexão direta (para migrations e seed)
+DIRECT_URL=postgresql://user:pass@postgres:5432/trilink
+```
+
+O Prisma usa `DATABASE_URL` para queries e `DIRECT_URL` para migrations (evita problemas com pool).
+
+---
+
+## Binary targets
+
+Configurados no `schema.prisma` para suportar múltiplos ambientes:
+
+```prisma
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+```
+
+- `native`: desenvolvimento local (macOS, Windows, Linux glibc)
+- `linux-musl-openssl-3.0.x`: container Docker Alpine
+
+---
+
+## Seed
+
+```bash
+cd packages/database
+npx prisma db seed
+```
+
+O seed (`prisma/seed.ts`) cria dados iniciais de desenvolvimento:
+- Empresa demo
+- Usuário admin
+- Configurações padrão
+
+---
+
+## Migrations
+
+```bash
+# Criar nova migration
+cd packages/database
+npx prisma migrate dev --name <nome>
+
+# Aplicar em produção
+npx prisma migrate deploy
+```
