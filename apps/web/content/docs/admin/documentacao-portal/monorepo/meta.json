@@ -1,4 +1,4 @@
 {
   "title": "Monorepo",
-  "pages": ["index", "visao-geral", "comunicacao-entre-apps", "decisao-trpc-vs-rest", "padroes-arquiteturais"]
+  "pages": ["index", "visao-geral", "comunicacao", "decisao-trpc", "padroes"]
 }
