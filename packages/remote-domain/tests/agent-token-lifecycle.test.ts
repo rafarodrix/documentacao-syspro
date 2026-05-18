@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { processAck } from "../src/use-cases/process-ack";
-import { processDiscover } from "../src/use-cases/process-discover";
-import { processSync } from "../src/use-cases/process-sync";
+import { processAck } from "../src/use-cases/process-ack.use-case";
+import { processDiscover } from "../src/use-cases/process-discover.use-case";
+import { processSync } from "../src/use-cases/process-sync.use-case";
 import type { RemoteAckPort, RemoteDiscoverPort, RemoteSyncPort } from "../src/ports";
 
 function buildSyncPort(overrides: Partial<RemoteSyncPort> = {}): RemoteSyncPort {
@@ -71,6 +71,7 @@ function buildDiscoverPort(overrides: Partial<RemoteDiscoverPort> = {}): RemoteD
     getExpectedDiscoveryToken: vi.fn(() => "DISCOVERY_TOKEN"),
     normalizeRustdeskId: vi.fn((value: string | null | undefined) => value ?? null),
     normalizeSysproUpdates: vi.fn(() => []),
+    normalizeSystemMetrics: vi.fn(() => null),
     serializeSysproUpdatesSnapshot: vi.fn(() => []),
     getTransitions: vi.fn(() => ({
       pending_link: {

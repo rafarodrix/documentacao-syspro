@@ -1,0 +1,95 @@
+---
+title: Fluxo de Desenvolvimento
+description: Convenção de branches, mensagens de commit, processo de PR e padrões de qualidade.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - git
+  - commits
+  - pull-request
+  - fluxo
+---
+
+# Fluxo de Desenvolvimento
+
+## Convenção de branches
+
+```
+<tipo>/<descricao-curta>
+
+feat/remoto-grupos-de-acesso
+fix/token-rotacao-expirado
+chore/atualizar-prisma-6
+docs/arquitetura-acesso-remoto
+refactor/feature-tickets-query-layer
+```
+
+| Prefixo | Quando usar |
+|---------|-------------|
+| `feat/` | Nova funcionalidade |
+| `fix/` | Correção de bug |
+| `chore/` | Manutenção sem impacto funcional |
+| `docs/` | Documentação |
+| `refactor/` | Refatoração sem mudança de comportamento |
+| `test/` | Testes |
+| `ci/` | Pipelines e automação |
+
+## Mensagens de commit
+
+O projeto adota **Conventional Commits**:
+
+```
+<tipo>(<escopo opcional>): <descrição curta no imperativo>
+
+<corpo opcional — o "porquê", não o "o quê">
+```
+
+Exemplos válidos:
+
+```bash
+feat(remote): adicionar endpoint de grupos de acesso
+fix(tokens): corrigir rotação de agentToken expirado
+chore(deps): atualizar prisma para 6.x
+docs(acesso-remoto): documentar fluxo de sessão RustDesk
+refactor(tickets): extrair query layer para feature/tickets/application
+```
+
+**Tipos aceitos:** `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`, `revert`
+
+Evite: `fix bug`, `ajustes`, `WIP`.
+
+## Processo de PR
+
+1. Crie a branch a partir de `main`
+2. Abra como **draft** enquanto o trabalho estiver em andamento
+3. Preencha o template de PR (checklist de testes, breaking changes, evidência)
+4. Garanta que o CI está verde antes de solicitar review
+5. **Squash merge** é preferido — mantém histórico limpo em `main`
+6. Delete a branch após o merge
+
+Prefira PRs pequenas e focadas. Uma PR que resolve um problema único é mais fácil de revisar e reverter.
+
+## Testes
+
+```bash
+npm run test              # todos os workspaces
+npm run test:authz        # testes de autorização
+npm run test:tickets      # testes de tickets
+npm run test:api          # testes da API
+npm run test:packages     # testes dos packages (remote-domain)
+npm run test:e2e          # E2E com Playwright (requer .env.e2e)
+```
+
+Toda PR com mudança de lógica de negócio deve ter testes cobrindo o fluxo principal e os casos de erro relevantes.
+
+## Linting e formatação
+
+```bash
+npm run lint              # ESLint — todos os workspaces
+npm run lint:remote       # regras estritas para features/remote
+npm run lint:ds           # auditoria de tokens do design system
+npm run typecheck         # TypeScript — todos os workspaces
+```
+
+O projeto usa Prettier para formatação — configure o editor para formatar ao salvar usando `.prettierrc`. Violações de lint bloqueiam o merge via CI.

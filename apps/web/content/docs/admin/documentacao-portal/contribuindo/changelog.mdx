@@ -1,0 +1,62 @@
+---
+title: Changelog
+description: Histórico de mudanças do workspace Syspro e template para releases futuros.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - changelog
+  - releases
+  - historico
+---
+
+# Changelog
+
+Mudanças notáveis do workspace. Segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
+
+---
+
+## [Unreleased]
+
+### Adicionado
+
+- Documentação técnica do portal em MDX (`documentacao-portal/`) com seções de monorepo, apps, packages, integrações, acesso remoto, banco de dados, guias e contribuição
+- Módulo de acesso remoto com integração RustDesk
+- Feature de tickets com arquitetura de domínio isolada
+- Packages `remote-domain` e `remote-infra` para domínio de acesso remoto
+- Plugin ESLint interno `eslint-plugin-trilink-tokens` para enforcement de design tokens
+- Script de auditoria de design system (`adoption/audit.sh`)
+- Turborepo como orquestrador de tarefas (cache, paralelismo, grafo de dependências)
+- `.nvmrc`, `.prettierrc`, `CODEOWNERS`, PR template, `security.yml`
+
+### Alterado
+
+- Migração de Turborepo monolítico para npm workspaces + Turborepo orquestrador
+- Package `application` extraído como workspace próprio
+
+### Infraestrutura
+
+- CI com GitHub Actions — quality gate + build em PRs e push para `main`
+- Cache Turborepo e Next.js em CI
+- `docs:check` valida consistência de `meta.json` e MDX no CI
+- Security workflow: `npm audit` + Gitleaks (semanal + push main)
+
+---
+
+## Template para releases futuros
+
+```markdown
+## [x.y.z] - AAAA-MM-DD
+
+### Adicionado
+- ...
+
+### Corrigido
+- ...
+
+### Alterado
+- ...
+
+### Removido
+- ...
+```
