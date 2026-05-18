@@ -90,7 +90,7 @@ export function MonthlyRoutineDetailsDialog({
     setLoading(true);
     trpc.rotinasMensais.getCompetency
       .query({ id: itemId })
-      .then((result) => setItem(result as MonthlyRoutineCompetencyItem))
+      .then((result: MonthlyRoutineCompetencyItem) => setItem(result))
       .catch(() => setItem(null))
       .finally(() => setLoading(false));
   }, [open, itemId]);
