@@ -66,6 +66,21 @@ function checkMdxFrontmatter(mdxFiles) {
         );
       }
     }
+    if (!/^tags:\n\s+-\s+\S/m.test(text)) {
+      errors.push(`Frontmatter sem tags: ${relative(process.cwd(), filePath)}`);
+    }
+  }
+}
+
+function checkNonMdxInContent(allFiles) {
+  const ALLOWED_EXTENSIONS = new Set([".mdx", ".json"]);
+  for (const filePath of allFiles) {
+    const ext = filePath.slice(filePath.lastIndexOf("."));
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      errors.push(
+        `Arquivo nao permitido em content/docs (mover para src/): ${relative(process.cwd(), filePath)}`,
+      );
+    }
   }
 }
 
@@ -222,6 +237,7 @@ function main() {
   checkMetaReferences(metaFiles);
   checkInternalMdxLinks(mdxFiles);
   checkFileNaming(allFiles);
+  checkNonMdxInContent(allFiles);
 
   if (warnings.length > 0) {
     console.log("Avisos de documentacao:");
