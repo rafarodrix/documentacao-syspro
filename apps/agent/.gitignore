@@ -7,3 +7,4 @@ agent-ui
 .tmp-*
 frontend/node_modules/
 frontend/dist/
+frontend/wailsjs/
