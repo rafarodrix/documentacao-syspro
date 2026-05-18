@@ -1,0 +1,176 @@
+---
+title: Package: @dosc-syspro/remote-domain
+description: Atualizado em: 2026-05-05
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - packages
+  - hexagonal
+  - dominio
+---
+
+# Package: @dosc-syspro/remote-domain
+
+> Lógica de domínio pura do módulo de acesso remoto (Ports & Adapters).
+> Atualizado em: 2026-05-05
+
+---
+
+## Responsabilidade
+
+`@dosc-syspro/remote-domain` contém **toda a lógica de negócio** do módulo remoto, sem dependência de frameworks, bancos de dados ou HTTP.
+
+É o núcleo hexagonal — define o que o sistema faz, não como implementa.
+
+---
+
+## Estrutura
+
+```
+packages/remote-domain/src/
+├── remote-domain.port.ts       ← interfaces das ports (contratos de infraestrutura)
+├── remote-domain.contracts.ts  ← tipos de entrada/saída dos use cases
+├── agent-token.ts              ← lógica de criação e validação de agentToken
+├── ack-reason-codes.ts         ← códigos de razão para ACK de comandos
+├── errors.ts                   ← erros de domínio tipados
+└── index.ts                    ← factory: createTrilinkRemote(ports)
+```
+
+---
+
+## Factory principal
+
+```typescript
+// index.ts
+export function createTrilinkRemote(ports: RemoteDomainPorts): TrilinkRemote {
+  return {
+    processHeartbeat,
+    processBootstrap,
+    processDiscover,
+    processSync,
+    processAck,
+    createSession,
+    listSessions,
+    startSession,
+    stopSession,
+    createHost,
+    updateHost,
+    deleteHost,
+    linkDiscoveredHost,
+    rotateHostAgentToken,
+    revokeHostAgentToken,
+    relinkHostSysproUpdate,
+    listAddressBook,
+    listAddressBookCredentials,
+    createAddressBookCredential,
+    revokeAddressBookCredential,
+    rotateAddressBookCredential,
+  }
+}
+```
+
+As `ports` são injetadas pelo `remote-infra` — o domínio nunca instancia dependências diretamente.
+
+---
+
+## Ports (interfaces)
+
+Definidas em `remote-domain.port.ts`:
+
+```typescript
+interface RemoteDomainPorts {
+  sessionPort:       RemoteSessionPort       // persiste sessões
+  hostAdminPort:     RemoteHostAdminPort     // CRUD de hosts
+  bootstrapPort:     RemoteBootstrapPort     // lógica de bootstrap
+  syncPort:          RemoteSyncPort          // processamento de sync
+  heartbeatPort:     RemoteHeartbeatPort     // processamento de heartbeat
+  addressBookPort:   RemoteAddressBookPort   // address book RustDesk
+  discoverPort:      RemoteDiscoverPort      // discovery de novos agentes
+}
+```
+
+---
+
+## Use cases principais
+
+### processHeartbeat
+- Valida `agentToken`
+- Atualiza `lastHeartbeatAt` do host
+- Retorna lista de comandos pendentes (`RemoteAgentCommand[]`)
+- Verifica expiração do token (retorna comando `ROTATE_TOKEN_REQUIRED` se necessário)
+
+### processBootstrap
+- Valida `installToken`
+- Cria `RemoteHost` no banco (se novo) ou atualiza existente
+- Gera `agentToken` com TTL configurado
+- Retorna config do RustDesk para aplicar na máquina
+
+### processDiscover
+- Valida `discoveryToken`
+- Determina `transition`: REGISTER | LINK | ALREADY_LINKED
+- Cria `RemoteDiscoveredHost` se nova máquina
+
+### processSync
+- Valida `agentToken`
+- Persiste `RemoteHostSysproUpdate[]` (versões do Syspro detectadas)
+- Atualiza dados de hardware do host
+
+### processAck
+- Valida `agentToken`
+- Marca `RemoteAgentCommand` como ACKNOWLEDGED
+- Persiste resultado (SUCCESS | FAILURE) e mensagem
+
+### Gerenciamento de sessões
+- `createSession`: cria sessão REQUESTED
+- `startSession`: transita para STARTED (agente aceita conexão)
+- `stopSession`: transita para ENDED
+
+---
+
+## Tipos de entrada/saída
+
+```typescript
+// Exemplo: ProcessHeartbeatInput / Output
+interface ProcessHeartbeatInput {
+  agentToken: string
+  rustdeskId: string
+  stats?: DeviceStats
+}
+
+interface ProcessHeartbeatOutput {
+  ok: boolean
+  pendingCommands: RemoteAgentCommand[]
+  tokenExpiringSoon?: boolean
+}
+```
+
+---
+
+## Erros de domínio
+
+```typescript
+// errors.ts
+type RemoteDomainError =
+  | { code: 'INVALID_AGENT_TOKEN' }
+  | { code: 'TOKEN_EXPIRED' }
+  | { code: 'HOST_NOT_FOUND' }
+  | { code: 'HOST_ALREADY_REGISTERED' }
+  | { code: 'INVALID_INSTALL_TOKEN' }
+  | { code: 'SESSION_NOT_FOUND' }
+  | { code: 'SESSION_ALREADY_ACTIVE' }
+  | { code: 'INVALID_DISCOVERY_TOKEN' }
+```
+
+`mapRemoteDomainError()` converte erros de domínio em `HttpException` do NestJS no controller.
+
+---
+
+## Regras de agentToken
+
+Implementadas em `agent-token.ts`:
+- Token gerado com `crypto.randomBytes` (não previsível)
+- Prefixo `agt_` para identificação visual
+- TTL configurável (padrão: 1 ano)
+- Expiração verificada em todo heartbeat
+- Rotação sem downtime: novo token gerado antes de invalidar o antigo

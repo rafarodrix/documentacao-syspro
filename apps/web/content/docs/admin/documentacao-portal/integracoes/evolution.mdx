@@ -1,0 +1,147 @@
+---
+title: Integração: Evolution API (WhatsApp)
+description: Atualizado em: 2026-05-05
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - integracoes
+  - whatsapp
+  - evolution
+---
+
+# Integração: Evolution API (WhatsApp)
+
+> Mensagens WhatsApp via Evolution API (fork open-source do Baileys).
+> Atualizado em: 2026-05-05
+
+---
+
+## O que é
+
+A Evolution API é o adaptador WhatsApp Web usado para enviar e receber mensagens WhatsApp. A integração permite:
+- Receber mensagens de clientes via WhatsApp
+- Enviar mensagens de resposta pelo portal ou Chatwoot
+- Gerenciar conexões (QR code, status)
+- Automações de atendimento
+
+---
+
+## Arquivos relevantes
+
+| Arquivo (apps/api)                                          | Responsabilidade                       |
+|-------------------------------------------------------------|----------------------------------------|
+| `modules/integrations/evolution/evolution-webhook.controller.ts` | Recebe webhooks Evolution         |
+| `modules/integrations/evolution/evolution-messages.controller.ts`| Envio de mensagens                |
+| `modules/integrations/evolution/evolution.client.ts`        | Cliente HTTP para Evolution API        |
+| `modules/integrations/evolution/evolution.module.ts`        | Módulo NestJS                          |
+| `modules/integrations/messaging/`                           | Processamento unificado de mensagens   |
+
+---
+
+## Configuração
+
+```env
+EVOLUTION_API_URL=https://evolution.example.com
+EVOLUTION_API_KEY=api_key_aqui
+```
+
+Configuração de instância por empresa em `/portal/configuracoes?tab=evolution`.
+
+---
+
+## Webhook: Evolution → Portal
+
+**Endpoint:** `POST /api/integrations/evolution/webhook`
+
+Eventos processados:
+
+| Evento Evolution         | Ação no portal                                      |
+|--------------------------|-----------------------------------------------------|
+| `messages.upsert`        | Nova mensagem ou atualização → process-incoming-message.usecase |
+| `connection.update`      | Atualiza status da conexão WhatsApp                 |
+| `qrcode.updated`         | Novo QR code para conexão da instância              |
+| `messages.delete`        | Marca mensagem como deletada                        |
+
+---
+
+## Fluxo de mensagem recebida
+
+```
+Cliente WhatsApp
+    │ mensagem
+    ▼
+Evolution API
+    │ webhook POST
+    ▼
+evolution-webhook.controller
+    │
+    ▼
+integration-webhook-dedup.service
+    │ verifica messageId duplicado
+    ▼
+process-incoming-message.usecase
+    ├── resolve empresa pelo número de destino
+    ├── busca/cria CompanyContact (source: WHATSAPP)
+    ├── busca/cria Conversation (channel: WHATSAPP)
+    ├── persiste ConversationMessage
+    └── encaminha para Chatwoot (se integração ativa)
+```
+
+---
+
+## Envio de mensagens
+
+**Endpoint:** `POST /api/platform/integrations/evolution/messages/send`
+
+```typescript
+// Payload
+{
+  instanceName: 'minha-instancia',
+  number: '5511987654321',
+  text: 'Olá, como posso ajudar?',
+}
+```
+
+O `evolution.client.ts` faz a chamada HTTP para a Evolution API.
+
+---
+
+## Gerenciamento de conexão
+
+Disponível em `/portal/configuracoes?tab=evolution`:
+- Exibir QR code para parear WhatsApp
+- Status da conexão (conectado/desconectado)
+- Reconectar instância
+
+**Endpoints:**
+- `GET /api/platform/settings/evolution/status` — status da conexão
+- `GET /api/platform/settings/evolution/qrcode` — QR code atual
+
+---
+
+## Normalização de números
+
+Antes de processar mensagens, o número WhatsApp passa por normalização de domínio:
+
+- Remove caracteres não numéricos
+- Normaliza DDI Brasil (55)
+- `newsletter` é tratado como domínio válido (grupos de transmissão)
+
+---
+
+## Automações
+
+O módulo `automation` permite configurar respostas automáticas baseadas em triggers:
+
+```typescript
+// Exemplo de automação
+{
+  trigger: 'FIRST_MESSAGE',
+  action: 'SEND_MESSAGE',
+  message: 'Olá! Recebi sua mensagem e responderemos em breve.',
+  instanceName: 'minha-instancia',
+}
+```
+
+Configurado em `/portal/configuracoes?tab=automacoes`.

@@ -1,0 +1,10 @@
+{
+  "title": "Grupo",
+  "pages": [
+    "grupo-estoque",
+    "grupo-grade",
+    "grupo-preco",
+    "grupo-preco-especial",
+    "grupo-servico"
+  ]
+}

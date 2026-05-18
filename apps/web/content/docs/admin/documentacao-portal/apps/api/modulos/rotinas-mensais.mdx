@@ -1,0 +1,267 @@
+---
+title: API — Módulo rotinas-mensais
+description: Responsabilidade
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - api
+  - rotinas
+  - contabilidade
+---
+
+# API — Módulo rotinas-mensais
+
+> `apps/api/src/modules/rotinas-mensais/` · Atualizado em: 2026-05-15
+
+---
+
+## Responsabilidade
+
+O módulo `rotinas-mensais` gerencia o fluxo mensal recorrente de solicitação de documentação contábil a clientes. Para cada empresa configurada, gera competências (instâncias mensais), permite o envio de solicitações via WhatsApp e rastreia todo o ciclo até a conclusão.
+
+---
+
+## Arquivos
+
+```
+src/modules/rotinas-mensais/
+├── rotinas-mensais.module.ts    ← módulo NestJS
+├── rotinas-mensais.router.ts   ← procedures tRPC
+└── rotinas-mensais.service.ts  ← lógica de negócio (1.230 linhas)
+```
+
+**Contratos:**
+```
+packages/contracts/src/rotinas-mensais/
+├── index.ts
+├── rotinas-mensais.types.ts           ← tipos de domínio + schemas Zod
+└── rotinas-mensais-settings.types.ts  ← configurações do módulo
+```
+
+---
+
+## Procedures tRPC expostas (`trpc.rotinasMensais.*`)
+
+| Procedure              | Tipo     | Descrição                                                              |
+|------------------------|----------|------------------------------------------------------------------------|
+| `list`                 | query    | Lista empresas candidatas à rotina com status e sumário                |
+| `getCompanyConfig`     | query    | Retorna configuração da empresa (cria defaults se não existir)         |
+| `listCompetencies`     | query    | Lista competências (instâncias mensais) com filtros de status/mês/ano  |
+| `upsertCompanyConfig`  | mutation | Cria ou atualiza configuração de rotina da empresa                     |
+| `syncCompetencies`     | mutation | Sincroniza competências para um mês/ano específico                     |
+| `sendManualRequest`    | mutation | Envia solicitação manual via WhatsApp e registra a tentativa           |
+| `updateCompetencyStatus` | mutation | Atualiza status da competência com timestamps automáticos            |
+
+---
+
+## Modelos de banco de dados
+
+```
+monthly_routine_config        ← 1 por empresa (configuração)
+monthly_routine_competency    ← N por config (instância mensal)
+monthly_routine_request       ← N por competência (tentativas de envio)
+monthly_routine_history       ← N por competência (auditoria de mudanças)
+```
+
+**Relacionamentos:**
+```
+Company (1)
+  └── monthly_routine_config (1)
+        ├── monthly_routine_competency (N por mês/ano)
+        │     ├── monthly_routine_request (N tentativas)
+        │     └── monthly_routine_history (N entradas)
+        ├── clientContact (FK → CompanyContact)
+        └── accountingContact (FK → CompanyContact)
+```
+
+---
+
+## Status de candidatura (`MonthlyRoutineCandidateStatus`)
+
+| Status                | Condição                                                    |
+|-----------------------|-------------------------------------------------------------|
+| `READY_TO_CONFIGURE`  | Tem escritório contábil e contato primário vinculados       |
+| `NO_ACCOUNTING_FIRM`  | Sem escritório contábil vinculado                           |
+| `NO_PRIMARY_CONTACT`  | Tem escritório mas sem contato primário definido            |
+
+---
+
+## Workflow de status (`MonthlyRoutineExecutionStatus`)
+
+```
+PENDING → WAITING_CUSTOMER → RECEIVED → SENT_TO_ACCOUNTING → COMPLETED
+   ↑                ↑
+   └── OVERDUE ←────┘ (automático por vencimento ou timeout)
+   └── CANCELED (manual)
+```
+
+| Status               | Descrição                                             |
+|----------------------|-------------------------------------------------------|
+| `PENDING`            | Aguardando envio de solicitação ao cliente            |
+| `WAITING_CUSTOMER`   | Solicitação enviada, aguardando confirmação           |
+| `RECEIVED`           | Cliente confirmou disponibilidade dos documentos      |
+| `SENT_TO_ACCOUNTING` | Documentos enviados ao escritório contábil            |
+| `COMPLETED`          | Ciclo concluído                                       |
+| `OVERDUE`            | Passou do vencimento sem avançar (marcado auto)       |
+| `CANCELED`           | Cancelado manualmente                                 |
+
+---
+
+## Timestamps automáticos por status
+
+| Transição para          | Campo setado automaticamente |
+|-------------------------|------------------------------|
+| `WAITING_CUSTOMER`      | `requestedAt`                |
+| `RECEIVED`              | `receivedAt`                 |
+| `SENT_TO_ACCOUNTING`    | `sentAt`                     |
+| `COMPLETED`             | `completedAt`                |
+
+Os timestamps são setados apenas na **primeira** transição para aquele status (não sobrescreve se já preenchido).
+
+---
+
+## Templates de mensagem WhatsApp
+
+| Template               | Uso sugerido          |
+|------------------------|-----------------------|
+| `REQUEST_CONFIRMATION` | Solicitação inicial   |
+| `FIRST_REMINDER`       | Primeiro lembrete     |
+| `SECOND_REMINDER`      | Segundo lembrete      |
+
+O serviço também aceita mensagem customizada (campo `message`, 8–4.000 caracteres). Se nenhum template nem mensagem for fornecida, usa `REQUEST_CONFIRMATION` como padrão.
+
+---
+
+## Permissões
+
+| Permissão                  | Efeito                                          |
+|----------------------------|-------------------------------------------------|
+| `rotinas_mensais:view`     | Visualiza rotinas das empresas do seu escopo    |
+| `rotinas_mensais:view_all` | Visualiza todas as rotinas (acesso global)      |
+| `rotinas_mensais:manage`   | CRUD completo: configurar, sincronizar, disparar|
+
+---
+
+## Configuração por empresa (`MonthlyRoutineCompanyConfig`)
+
+| Campo                | Tipo            | Descrição                                                      |
+|----------------------|-----------------|----------------------------------------------------------------|
+| `isActive`           | boolean         | Habilita geração de competências para esta empresa             |
+| `title`              | string (3–120)  | Título da rotina exibido nas mensagens                         |
+| `dueDay`             | int (1–31)      | Dia do mês de vencimento (auto-ajusta para último dia do mês)  |
+| `reminderDays`       | int (0–30)      | Dias antes do vencimento para lembrete (campo; automação pendente) |
+| `clientContactId`    | string?         | Contato do cliente para solicitações                           |
+| `accountingContactId`| string?         | Contato do escritório contábil para entrega                    |
+| `requiredDocuments`  | string[]        | Lista de documentos esperados (padrão: 9 documentos fiscais)   |
+| `notes`              | string?         | Observações internas                                           |
+
+**Documentos padrão:**
+`Sintegra`, `Livro de entrada`, `Livro de saida`, `Relatorio de PIS e COFINS`,
+`SPED Fiscal`, `SPED Contribuicoes`, `XML NF-e entrada`, `XML NF-e saida`, `XML NF-e CT-e`
+
+---
+
+## Configurações do módulo (`MonthlyRoutineModuleSettings`)
+
+Persistidas em `SystemSetting` (chave a definir). **Nota:** em 2026-05-15 estas configurações estão definidas nos contratos mas ainda não são consumidas pelo service — o canal de envio é sempre WhatsApp direto via `EvolutionClient`.
+
+| Campo                       | Padrão           | Descrição                                           |
+|-----------------------------|------------------|-----------------------------------------------------|
+| `defaultChannel`            | `CHATWOOT`       | Canal padrão de envio                               |
+| `fallbackToDirectWhatsapp`  | `true`           | Usa WhatsApp direto se Chatwoot falhar              |
+| `reuseOpenConversation`     | `true`           | Reaproveita conversa aberta no Chatwoot             |
+| `markConversationAsPending` | `true`           | Marca conversa como pendente após envio             |
+| `createPrivateNoteOnDispatch` | `true`         | Cria nota privada no Chatwoot ao disparar           |
+| `applyRoutineLabels`        | `true`           | Aplica labels de rotina na conversa                 |
+| `routineLabel`              | `"rotina_mensal"` | Label aplicada                                     |
+| `competencyLabelPrefix`     | `"competencia"`  | Prefixo de label de competência                     |
+
+---
+
+## Fluxo de `ensureCompetenciesForScope`
+
+Chamado inline em `list()`, `listCompetencies()` e `upsertCompanyConfig()`.
+
+```
+1. Busca todos os configs ativos no escopo
+2. Para cada config:
+   a. Calcula dueDate = min(config.dueDay, lastDayOfMonth) UTC 12:00
+   b. findUnique competência pelo índice (configId, year, month)
+   c. Se não existe: cria com status PENDING ou OVERDUE (se dueDate < now)
+   d. Se existe e dueDate mudou: atualiza dueDate
+3. Retorna { generated, updated }
+```
+
+> **Atenção:** Esta operação executa queries individuais em loop sequencial. Com volume alto de empresas, é candidata a otimização via batch ou job periódico.
+
+---
+
+## Fluxo de `markOverdueCompetencies`
+
+Chamado inline em `listCompetencies()` antes de retornar os dados.
+
+```
+1. Lê AutomationModuleSettings (waitingCustomerTimeoutEnabled, waitingCustomerTimeoutHours)
+2. Filtra registros candidatos a OVERDUE:
+   - PENDING com dueDate < now
+   - WAITING_CUSTOMER com updatedAt <= (now - timeoutHours) [se timeout ativo]
+3. Para cada candidato:
+   a. update status = OVERDUE
+   b. createHistoryEntry (type: AUTO_OVERDUE)
+   c. Se era WAITING_CUSTOMER: automationWhatsappService.sendMonthlyRoutineOverdueNotification
+```
+
+> **Atenção:** Executa updates individuais em loop síncrono. Candidato a `updateMany` + execução paralela de notificações.
+
+---
+
+## Integração com outros módulos
+
+| Módulo                        | Uso                                                                         |
+|-------------------------------|-----------------------------------------------------------------------------|
+| `AuthorizationService`        | Resolve requester, permissões e escopo por empresa                          |
+| `EvolutionClient`             | Envia mensagens WhatsApp via Evolution API                                  |
+| `IntegrationContextService`   | Obtém contexto Evolution (`getDefaultContext`)                              |
+| `AutomationSettingsService`   | Lê configurações de timeout do módulo de automação                          |
+| `AutomationWhatsappService`   | Envia notificação de overdue para grupos/contatos via WhatsApp              |
+
+---
+
+## Rota web
+
+`/portal/rotinas-mensais` — listagem de empresas e competências mensais.
+
+**Feature web:** `apps/web/src/features/rotinas-mensais/`
+
+```
+features/rotinas-mensais/
+├── application/
+│   └── rotinas-mensais-read.queries.ts  ← server queries (RSC)
+└── interface/
+    └── components/
+        ├── rotinas-mensais-page.tsx               ← página principal
+        ├── company-monthly-routine-card.tsx        ← configuração por empresa
+        ├── monthly-routine-details-dialog.tsx      ← detalhe da competência
+        ├── monthly-routine-manual-request-dialog.tsx ← enviar solicitação manual
+        ├── monthly-routine-module-settings-tab.tsx ← configurações do módulo
+        └── monthly-routine-status-dialog.tsx       ← atualizar status
+```
+
+---
+
+## Callers externos
+
+Nenhum módulo externo chama `RotinasMensaisService` diretamente. O módulo é standalone — acionado apenas via tRPC pelo frontend.
+
+---
+
+## Itens pendentes de implementação
+
+| Item                              | Status   | Descrição                                                        |
+|-----------------------------------|----------|------------------------------------------------------------------|
+| Canal Chatwoot                    | Pendente | `MonthlyRoutineModuleSettings.defaultChannel` não é consumido    |
+| Lembrete automático               | Pendente | `config.reminderDays` configurável mas sem job de disparo        |
+| Integração contexto por empresa   | Pendente | `sendManualRequest` usa `getDefaultContext` (não por empresa)    |
+| Paginação no banco                | Pendente | Filtros de status/search aplicados em memória                    |
+| Job periódico de sync/overdue     | Pendente | `ensureCompetencies` e `markOverdue` rodam inline nos requests   |

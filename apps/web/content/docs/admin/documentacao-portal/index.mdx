@@ -1,0 +1,30 @@
+---
+title: Documentação do Portal Trilink
+description: Base de conhecimento técnico do monorepo Trilink Portal — arquitetura, apps, packages, integrações e guias de desenvolvimento.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - visao-geral
+  - arquitetura
+  - monorepo
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info">
+  Esta documentação cobre a arquitetura interna do Trilink Portal — uma plataforma de gestão integrada para empresas que utilizam o ERP Syspro.
+</Callout>
+
+## Seções
+
+<Cards>
+  <Card title="Monorepo" href="/portal/docs/admin/documentacao-portal/monorepo" description="Visão geral, stack tecnológica, estrutura e comunicação entre apps." />
+  <Card title="Apps" href="/portal/docs/admin/documentacao-portal/apps" description="Documentação individual de cada aplicação: API, Web, Agent e Mobile." />
+  <Card title="Packages" href="/portal/docs/admin/documentacao-portal/packages" description="Packages internos: contracts, database, remote-domain, remote-infra, shared, core e ui." />
+  <Card title="Integrações" href="/portal/docs/admin/documentacao-portal/integracoes" description="Chatwoot, Evolution (WhatsApp), Cloudflare R2, RustDesk e SEFAZ." />
+  <Card title="Acesso Remoto" href="/portal/docs/admin/documentacao-portal/acesso-remoto" description="Arquitetura completa do módulo remoto, tokens e ciclo de sessões." />
+  <Card title="Banco de Dados" href="/portal/docs/admin/documentacao-portal/banco-dados" description="Schema PostgreSQL via Prisma — modelos, enums e convenções." />
+  <Card title="Guias" href="/portal/docs/admin/documentacao-portal/guias" description="Guias práticos: novo módulo na API, novo package, nomenclatura e padronização de UI." />
+</Cards>

@@ -1,7 +1,7 @@
 ---
 title: Infraestrutura de Software
 description: Topologia atual dos serviços da plataforma Trilink — Vercel, Railway, VPS Contabo, Evolution Go, mapeamento de domínios, variáveis críticas e fluxo de comunicação.
-lastUpdated: 2026-05-01
+lastUpdated: 2026-05-18
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -22,9 +22,10 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 | Frontend | `apps/web` (Next.js) | Vercel |
 | Backend | `apps/api` (NestJS) | Railway |
 | Servidor base (VPS) | Ubuntu 24.04 LTS | Contabo |
-| RustDesk Server | instalado no host VPS | Contabo (mesmo da Evolution) |
+| Orquestração de containers | Dokploy | Contabo VPS |
+| Reverse proxy / SSL | Traefik v3 | Contabo VPS (via Dokploy) |
+| RustDesk Server | container Docker | Contabo VPS |
 | Evolution Go | container Docker | Contabo VPS |
-| Nginx Proxy Manager | container Docker | Contabo VPS |
 | Banco do portal | Prisma + PostgreSQL | Railway / Neon |
 | Bancos Evolution Go | `evogo_auth`, `evogo_users` | Neon |
 
@@ -50,21 +51,23 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 - Provedor: Contabo VPS
 - Sistema operacional: Ubuntu 24.04 LTS
-- RustDesk em operação no mesmo servidor da stack Evolution/Nginx
+- Dokploy instalado no host como plataforma de orquestração
+- Traefik v3 gerenciado pelo Dokploy como reverse proxy central
 
 ### 2. Rede e segurança
 
-- Nginx Proxy Manager recebe tráfego de internet (80/443)
-- SSL/TLS automatizado por Let's Encrypt
-- Roteamento de host:
+- Traefik v3 recebe tráfego de internet (80/443) via entrypoints `web` e `websecure`
+- SSL/TLS automatizado por Let's Encrypt (ACME HTTP Challenge)
+- Roteamento por labels Docker/Swarm:
   - `api.<dominio>` → Evolution Go (container interno)
-  - `acesso.<dominio>` → RustDesk (host)
+  - `acesso.<dominio>` → RustDesk (container)
 
 ### 3. Aplicação (containers)
 
-- Evolution Go (v2) em Docker
+- Evolution Go (v2) e RustDesk em Docker, orquestrados pelo Dokploy
 - Configuração por `.env` com chaves e conexões externas
 - Persistência fora do container (Neon), permitindo recriação segura do serviço
+- Rede padrão: `dokploy-network`
 
 ### 4. Dados
 
@@ -74,15 +77,19 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 ---
 
-## Operação do proxy (Nginx)
+## Operação do proxy (Traefik)
 
-Painel: `http://85.239.248.141:81/nginx/proxy`
+Dashboard Traefik: `:8081` (acesso interno)
 
 Regras obrigatórias:
-- Publicar Evolution via host dedicado com TLS
-- Manter RustDesk no host próprio
+- Cada serviço deve declarar explicitamente `traefik.http.routers.<nome>.service=<nome>-svc`
+- Nunca depender de inferência automática do Traefik (causa erro `too many services`)
 - **Não expor** `:8080` da Evolution diretamente para a internet
-- Encaminhar tráfego externo de `api.<dominio>` para o container Evolution via rede interna Docker
+- Todos os containers devem estar na rede `dokploy-network`
+
+<Callout type="info" title="Consulte o guia de VPS">
+  Para detalhes de labels, Docker Swarm vs Compose e diagnóstico do Traefik, veja [Infraestrutura VPS](/portal/docs/admin/infraestrutura/infraestrutura-vps).
+</Callout>
 
 ---
 
@@ -127,7 +134,7 @@ POSTGRES_USERS_DB=...sslmode=require
 1. Web chama somente backend NestJS (`backend.<dominio>/api`).
 2. Backend NestJS chama Evolution Go quando necessário (`api.<dominio>`).
 3. Evolution envia webhook diretamente para o backend NestJS.
-4. RustDesk permanece isolado no host `acesso.<dominio>`.
+4. RustDesk roteado por subdomínio dedicado `acesso.<dominio>`.
 
 ---
 
@@ -142,7 +149,7 @@ POSTGRES_USERS_DB=...sslmode=require
   <Step>
     ### Backend → Evolution Go
 
-    Quando necessário, o NestJS chama `https://api.<dominio>`. O Nginx Proxy Manager valida TLS e roteia para o container Evolution na VPS.
+    Quando necessário, o NestJS chama `https://api.<dominio>`. O Traefik valida TLS e roteia para o container Evolution na rede `dokploy-network`.
   </Step>
   <Step>
     ### Evolution → Neon
@@ -160,7 +167,7 @@ POSTGRES_USERS_DB=...sslmode=require
 
 ## Controles de segurança
 
-- Evolution sem exposição pública direta na `:8080` (acesso via proxy)
+- Evolution sem exposição pública direta (acesso via Traefik com TLS)
 - TLS na borda com certificado automatizado (Let's Encrypt)
 - `apikey` e segredos de ambiente para integração entre serviços
 - CORS restrito apenas para origens autorizadas
@@ -170,9 +177,7 @@ POSTGRES_USERS_DB=...sslmode=require
 ## Manutenção recomendada
 
 - Aplicar reboot da VPS após atualização de kernel/segurança
-- Backup periódico dos diretórios operacionais:
-  - `~/evolution-go`
-  - `~/nginx-proxy`
+- Backup periódico dos diretórios operacionais via Dokploy
 - Validar rotação de chaves (`GLOBAL_API_KEY`, `INTERNAL_API_KEY`, `EVOLUTION_WEBHOOK_SECRET`) em janela controlada
 
 ---

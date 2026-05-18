@@ -1,0 +1,4 @@
+{
+  "title": "Packages",
+  "pages": ["index", "visao-geral", "contracts", "core", "database", "remote-domain", "remote-infra", "shared", "ui"]
+}

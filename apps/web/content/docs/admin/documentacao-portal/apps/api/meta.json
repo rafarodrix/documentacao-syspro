@@ -1,0 +1,14 @@
+{
+  "title": "API",
+  "pages": [
+    "index",
+    "visao-geral",
+    "modulos/core-modules",
+    "modulos/automation",
+    "modulos/integracoes",
+    "modulos/remote-admin",
+    "modulos/rotinas-mensais",
+    "modulos/empresa-usuarios-contatos-fluxos",
+    "modulos/trpc"
+  ]
+}

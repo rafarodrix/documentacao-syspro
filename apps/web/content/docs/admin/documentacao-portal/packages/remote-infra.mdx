@@ -1,0 +1,123 @@
+---
+title: Package: @dosc-syspro/remote-infra
+description: Atualizado em: 2026-05-05
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - packages
+  - adapters
+  - prisma
+---
+
+# Package: @dosc-syspro/remote-infra
+
+> Implementações das ports do remote-domain (adapters de infraestrutura).
+> Atualizado em: 2026-05-05
+
+---
+
+## Responsabilidade
+
+`@dosc-syspro/remote-infra` implementa todas as interfaces definidas pelo `@dosc-syspro/remote-domain`.
+
+É a camada de adaptação que conecta o domínio puro ao mundo real: banco de dados (Prisma), HTTP, e regras de negócio de infraestrutura.
+
+---
+
+## Exports principais
+
+```typescript
+// Ports (implementações das interfaces do remote-domain)
+export { createRemoteSessionPort }        // persiste sessões no Prisma
+export { createRemoteHostAdminPort }      // CRUD de hosts remotos
+export { createRemoteBootstrapPort }      // lógica de bootstrap do agente
+export { createRemoteSyncPort }           // processamento de sync reports
+export { createRemoteHeartbeatPort }      // processamento de heartbeat
+export { createRemoteAddressBookPort }    // gerenciamento de address book
+export { createRemoteDiscoverPort }       // discovery de novos agentes
+
+// Helpers de negócio
+export { buildAgentToken }                // gera agentToken formatado
+export { buildRustDeskConfigProfile }     // monta config do RustDesk
+export { resolveRustDeskAlias }           // resolve alias do host
+
+// Escopo
+export { resolveScopedCompanyContext }    // resolve companyId do usuário logado
+
+// Integração com tickets
+export { configureRemoteSessionTicketNoteHandler }  // nota no ticket ao iniciar sessão
+```
+
+---
+
+## Como é usado na API
+
+No `apps/api`, o módulo `remote-admin` instancia o domínio injetando as ports:
+
+```typescript
+// apps/api/src/modules/remote-admin/remote-admin.module.ts
+import { createTrilinkRemote } from '@dosc-syspro/remote-domain'
+import {
+  createRemoteSessionPort,
+  createRemoteHostAdminPort,
+  // ...
+} from '@dosc-syspro/remote-infra'
+
+const remote = createTrilinkRemote({
+  sessionPort:    createRemoteSessionPort(prisma),
+  hostAdminPort:  createRemoteHostAdminPort(prisma),
+  bootstrapPort:  createRemoteBootstrapPort(prisma, config),
+  // ...
+})
+```
+
+---
+
+## resolveScopedCompanyContext
+
+Função crítica para segurança — garante que um usuário só acessa recursos da(s) empresa(s) autorizada(s):
+
+```typescript
+const scope = await resolveScopedCompanyContext({
+  userId,
+  role,
+  companyIds,    // vindos do AuthorizationService
+  requestedCompanyId,  // da request (opcional)
+})
+
+// scope.companyId = companyId resolvida e autorizada
+// Lança UnauthorizedException se usuário tentar acessar empresa não autorizada
+```
+
+---
+
+## buildRustDeskConfigProfile
+
+Monta o perfil de configuração do RustDesk para enviar ao agente no bootstrap:
+
+```typescript
+const config = buildRustDeskConfigProfile({
+  relayServer: 'relay.trilink.com.br',
+  alias: 'PC-CLIENTE-01',
+  encryptionKey: '...',
+})
+// Retorna estrutura compatível com o formato de config do RustDesk
+```
+
+---
+
+## Dependências
+
+```json
+{
+  "dependencies": {
+    "@dosc-syspro/database":     "workspace:*",
+    "@dosc-syspro/remote-domain": "workspace:*",
+    "@dosc-syspro/contracts":    "workspace:*",
+    "@dosc-syspro/config":       "workspace:*"
+  }
+}
+```
+
+É o único package que pode depender tanto de `remote-domain` quanto de `database`.

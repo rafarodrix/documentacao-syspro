@@ -1,0 +1,33 @@
+---
+title: Apps
+description: Documentação individual de cada aplicação do monorepo Trilink Portal — API, Web, Agent e Mobile.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - apps
+  - visao-geral
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+## Aplicações do monorepo
+
+<Cards>
+  <Card title="API (NestJS)" href="/portal/docs/admin/documentacao-portal/apps/api" description="Backend principal — tRPC, REST, módulos de domínio, autenticação e build." />
+  <Card title="Web (Next.js)" href="/portal/docs/admin/documentacao-portal/apps/web" description="Frontend do portal — App Router, features, rotas, Fumadocs e API proxy." />
+  <Card title="Agent (Go + Wails)" href="/portal/docs/admin/documentacao-portal/apps/agent" description="Agente desktop Windows — RustDesk, heartbeat, backup Firebird e IPC." />
+  <Card title="Mobile (Placeholder)" href="/portal/docs/admin/documentacao-portal/apps/mobile" description="Stub TypeScript — roadmap para Expo/React Native." />
+  <Card title="Tickets" href="/portal/docs/admin/documentacao-portal/apps/tickets" description="Arquitetura completa do módulo de tickets — estados, SLA, RBAC e integrações." />
+</Cards>
+
+## Sub-seções da API
+
+<Cards>
+  <Card title="Módulos Core" href="/portal/docs/admin/documentacao-portal/apps/api/modulos-core" description="Companies, contacts, users, tickets, CRM, dashboard e outros módulos de negócio." />
+  <Card title="Automação" href="/portal/docs/admin/documentacao-portal/apps/api/automation" description="Automações de notificação WhatsApp disparadas por eventos do portal." />
+  <Card title="Integrações" href="/portal/docs/admin/documentacao-portal/apps/api/integracoes" description="Chatwoot, Evolution, Messaging e Cloudflare R2 Storage." />
+  <Card title="Remote Admin" href="/portal/docs/admin/documentacao-portal/apps/api/remote-admin" description="Endpoints do agente Go e operações administrativas de hosts remotos." />
+  <Card title="Rotinas Mensais" href="/portal/docs/admin/documentacao-portal/apps/api/rotinas-mensais" description="Fluxo mensal recorrente de solicitação de documentação contábil a clientes." />
+  <Card title="tRPC" href="/portal/docs/admin/documentacao-portal/apps/api/trpc" description="Roteador tRPC federated — padrão de sub-routers por domínio." />
+</Cards>

@@ -1,0 +1,25 @@
+---
+title: Packages
+description: Packages internos do monorepo — contracts, database, remote-domain, remote-infra, shared, core e ui.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - packages
+  - monorepo
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+Packages internos compartilhados entre os apps do monorepo.
+
+<Cards>
+  <Card title="Visao Geral" href="/portal/docs/admin/documentacao-portal/packages/visao-geral" description="Mapa de dependencias e responsabilidades de cada package." />
+  <Card title="Contracts" href="/portal/docs/admin/documentacao-portal/packages/contracts" description="Schemas Zod e tipos TypeScript compartilhados entre apps." />
+  <Card title="Core" href="/portal/docs/admin/documentacao-portal/packages/core" description="Entidades de negocio: tickets, releases, RBAC, SLA." />
+  <Card title="Database" href="/portal/docs/admin/documentacao-portal/packages/database" description="Prisma ORM, schema PostgreSQL e client gerado." />
+  <Card title="Remote Domain" href="/portal/docs/admin/documentacao-portal/packages/remote-domain" description="Logica de dominio pura do modulo remoto (Ports e Adapters)." />
+  <Card title="Remote Infra" href="/portal/docs/admin/documentacao-portal/packages/remote-infra" description="Implementacoes das ports do remote-domain (Prisma, HTTP)." />
+  <Card title="Shared" href="/portal/docs/admin/documentacao-portal/packages/shared" description="Utilitarios: formatadores, logger, auth helpers, rate limit." />
+  <Card title="UI" href="/portal/docs/admin/documentacao-portal/packages/ui" description="Componentes React base (Radix UI) e tokens de design." />
+</Cards>
