@@ -1,6 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "ui": "tui",
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "APP_BACKEND_API_URL",
+    "INTERNAL_API_KEY",
+    "NEXT_TELEMETRY_DISABLED"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
