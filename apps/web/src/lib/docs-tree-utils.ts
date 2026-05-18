@@ -1,15 +1,5 @@
 import type { Root as PageTreeRoot, Node as PageTreeNode, Item as PageTreeItem } from 'fumadocs-core/page-tree';
 
-/**
- * Filtra recursivamente a árvore de páginas de documentação.
- *
- * Antes: duas funções paralelas e 4 helpers espelhados em layout.tsx
- * (stripTechnicalDocsPage/Node/Tree + stripAdminOnlyPage/Node/Tree).
- * Agora: um único utilitário genérico que recebe o predicado de filtragem.
- *
- * @param tree  - Árvore raiz do fumadocs
- * @param allow - Retorna `true` para URLs que devem ser exibidas
- */
 export function filterDocTree(
   tree: PageTreeRoot,
   allow: (url: string) => boolean,
