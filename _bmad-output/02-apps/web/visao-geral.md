@@ -67,6 +67,7 @@ apps/web/
 | `/portal/infraestrutura/agentes/:id`      | agents          | Detalhe de agente/dispositivo          |
 | `/portal/infraestrutura/hosts/:id`        | remote          | Detalhe de host remoto                 |
 | `/portal/releases`                        | releases        | Releases e changelogs                  |
+| `/portal/rotinas-mensais`                 | rotinas-mensais | Painel de competências mensais por empresa |
 | `/portal/tools/*`                         | tools           | Ferramentas fiscais e operacionais     |
 
 ---
@@ -88,6 +89,7 @@ Cada feature é um módulo isolado com sua própria camada:
 | `documentos`    | Upload e listagem de documentos de empresa             |
 | `evolution`     | Configuração de instância WhatsApp, QR code            |
 | `releases`      | Timeline de releases por mês/ano                       |
+| `rotinas-mensais` | Painel de competências, disparo manual, histórico    |
 | `remote`        | Hosts remotos, sessões, address book, fleet stats      |
 | `settings`      | Permissões, SEFAZ, integrações, automações             |
 | `sql-scripts`   | Biblioteca de scripts SQL para suporte                 |
