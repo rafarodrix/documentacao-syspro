@@ -1,0 +1,15 @@
+# Owners are auto-requested for review on every PR that touches their paths.
+# Last match wins (bottom entries override top ones).
+
+# Default: all files
+* @rafarodrix
+
+# CI / infra — require explicit review
+.github/                    @rafarodrix
+apps/agent/                 @rafarodrix
+packages/database/          @rafarodrix
+
+# Security-sensitive areas
+apps/api/src/               @rafarodrix
+packages/core/              @rafarodrix
+packages/contracts/         @rafarodrix

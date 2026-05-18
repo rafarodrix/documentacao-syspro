@@ -1,0 +1,22 @@
+{
+  "semi": true,
+  "singleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "all",
+  "tabWidth": 2,
+  "printWidth": 100,
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": ["*.json", "*.jsonc"],
+      "options": { "tabWidth": 2 }
+    },
+    {
+      "files": ["*.mdx", "*.md"],
+      "options": { "printWidth": 120, "proseWrap": "preserve" }
+    }
+  ]
+}
