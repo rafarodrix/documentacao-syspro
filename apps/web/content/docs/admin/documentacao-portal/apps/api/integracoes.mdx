@@ -1,0 +1,179 @@
+---
+title: API — Módulo de Integrações
+description: O módulo de integrações agrupa conectores com serviços externos — Chatwoot, Evolution API (WhatsApp), processamento unificado de mensagens e Cloudflare R2.
+lastUpdated: 2026-05-18
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - integracoes
+  - chatwoot
+  - evolution
+  - whatsapp
+  - r2
+  - api
+---
+
+> `apps/api/src/modules/integrations/` · Atualizado em: 2026-05-05
+
+---
+
+## Visão geral
+
+O módulo de integrações agrupa conectores com serviços externos:
+
+```
+src/modules/integrations/
+├── chatwoot/          ← Chatwoot (customer support)
+├── evolution/         ← Evolution API (WhatsApp)
+├── messaging/         ← processamento unificado de mensagens
+└── storage/           ← Cloudflare R2 (object storage)
+```
+
+---
+
+## Chatwoot
+
+**Path:** `modules/integrations/chatwoot/`
+
+Integração bidirecional com o Chatwoot (plataforma de suporte ao cliente).
+
+| Arquivo                             | Responsabilidade                                    |
+|-------------------------------------|-----------------------------------------------------|
+| `chatwoot-webhook.controller.ts`    | Recebe webhooks do Chatwoot (POST)                  |
+| `chatwoot-agent-context.controller.ts` | Contexto do agente Chatwoot (SSO, dados)        |
+| `chatwoot.client.ts`                | Cliente HTTP para a API do Chatwoot                 |
+| `chatwoot-config.ts`                | Configurações de conexão                            |
+| `chatwoot.module.ts`                | Módulo NestJS                                       |
+
+**Fluxos:**
+
+*Chatwoot → Portal:*
+```
+POST /api/integrations/chatwoot/webhook
+→ chatwoot-webhook.controller
+→ atualiza status da Conversation no banco
+→ sincroniza com Evolution se mensagem enviada via Chatwoot
+```
+
+*Portal → Chatwoot:*
+```
+chatwoot.client.ts → POST /api/v1/accounts/.../conversations/...
+→ cria/atualiza conversa no Chatwoot
+→ sincroniza labels, assignees, status
+```
+
+**Funcionalidades:**
+- Sincronização de conversas Portal ↔ Chatwoot
+- CSAT (Customer Satisfaction): força resolve + rating
+- SSO de agentes via token
+- Resolução automática de conversas por status
+
+---
+
+## Evolution (WhatsApp)
+
+**Path:** `modules/integrations/evolution/`
+
+Integração com Evolution API para mensagens WhatsApp.
+
+| Arquivo                              | Responsabilidade                                    |
+|--------------------------------------|-----------------------------------------------------|
+| `evolution-webhook.controller.ts`    | Recebe webhooks da Evolution (POST)                 |
+| `evolution-messages.controller.ts`   | Envio de mensagens via Evolution                    |
+| `evolution.client.ts`                | Cliente HTTP para a Evolution API                   |
+| `evolution.module.ts`                | Módulo NestJS                                       |
+
+**Tipos de webhook recebidos:**
+- `messages.upsert` — nova mensagem ou atualização
+- `connection.update` — status da conexão WhatsApp
+- `qrcode.updated` — QR code para conectar instância
+
+**Fluxo de mensagem recebida:**
+```
+POST /api/integrations/evolution/webhook
+→ evolution-webhook.controller
+→ messaging/integration-webhook-dedup.service (deduplicação por messageId)
+→ process-incoming-message.usecase
+→ persiste Conversation + ConversationMessage
+→ encaminha para Chatwoot se configurado
+```
+
+**Domínios normalizados:**
+Números WhatsApp passam por normalização de domínio antes de processar.
+`newsletter` é tratado como domínio válido (grupos de transmissão).
+
+---
+
+## Messaging — processamento unificado
+
+**Path:** `modules/integrations/messaging/`
+
+Camada de abstração sobre os canais de mensagem.
+
+```
+messaging/
+├── application/
+│   ├── integration-webhook-dedup.service.ts  ← deduplicação de eventos
+│   ├── process-incoming-message.usecase.ts   ← processa mensagem recebida
+│   └── process-outgoing-message.usecase.ts   ← processa mensagem enviada
+└── messaging.module.ts
+```
+
+**Deduplicação (`integration-webhook-dedup.service.ts`):**
+- Usa o `messageId` do payload como chave de idempotência
+- Persiste flag no banco para evitar reprocessamento
+- Janela de deduplicação: configurável
+
+**process-incoming-message.usecase:**
+1. Resolve empresa pelo número de destino
+2. Busca ou cria `CompanyContact` pelo número de origem
+3. Busca ou cria `Conversation` (canal WHATSAPP)
+4. Persiste `ConversationMessage` com conteúdo e metadata
+5. Sincroniza com Chatwoot (se integração ativa)
+6. Dispara automações configuradas
+
+**process-outgoing-message.usecase:**
+1. Recebe mensagem do Chatwoot (webhook)
+2. Envia via `evolution.client.ts` para o número de destino
+3. Persiste na `Conversation` como mensagem enviada
+
+---
+
+## Storage — Cloudflare R2
+
+**Path:** `modules/integrations/storage/`
+
+Serviço de armazenamento de objetos compatível com S3.
+
+| Arquivo                  | Responsabilidade                          |
+|--------------------------|------------------------------------------|
+| `r2-storage.service.ts`  | Upload, download, geração de URLs        |
+
+**Configuração:**
+```env
+R2_BUCKET_NAME=trilink-prod
+R2_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_PUBLIC_BASE_URL=https://cdn.example.com  # opcional
+```
+
+**Uso:**
+```typescript
+// Upload
+await r2Storage.upload({
+  key: 'documentos/empresa-123/contrato.pdf',
+  buffer: fileBuffer,
+  contentType: 'application/pdf',
+})
+
+// URL pública ou signed
+const url = await r2Storage.getUrl('documentos/empresa-123/contrato.pdf', {
+  ttl: 3600  // signed URL com TTL de 1h (se não houver PUBLIC_BASE_URL)
+})
+```
+
+**Usado por:**
+- Módulo `documentos` — upload de docs de empresa
+- Módulo `tickets` — anexos de chamados
+- Módulo `integrations/messaging` — mídia de mensagens WhatsApp
