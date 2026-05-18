@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trpc } from "@/lib/api/trpc-client";
 import type { MonthlyRoutineCompetencyItem } from "@dosc-syspro/contracts/rotinas-mensais";
 import {
   Badge,
@@ -12,10 +13,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@dosc-syspro/ui";
-import { CalendarClock, ClipboardList, FileText, History, MessageSquareShare } from "lucide-react";
+import { CalendarClock, ClipboardList, FileText, History, Loader2, MessageSquareShare } from "lucide-react";
 
 interface MonthlyRoutineDetailsDialogProps {
-  item: MonthlyRoutineCompetencyItem | null;
+  itemId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -72,16 +73,27 @@ function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["manualReque
 }
 
 export function MonthlyRoutineDetailsDialog({
-  item,
+  itemId,
   open,
   onOpenChange,
 }: MonthlyRoutineDetailsDialogProps) {
   const [section, setSection] = useState<RoutineDetailsSection>("resumo");
+  const [item, setItem] = useState<MonthlyRoutineCompetencyItem | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !itemId) {
+      setItem(null);
+      return;
+    }
     setSection("resumo");
-  }, [open, item?.id]);
+    setLoading(true);
+    trpc.rotinasMensais.getCompetency
+      .query({ id: itemId })
+      .then((result: MonthlyRoutineCompetencyItem) => setItem(result))
+      .catch(() => setItem(null))
+      .finally(() => setLoading(false));
+  }, [open, itemId]);
 
   const sectionButtonClass = (value: RoutineDetailsSection) =>
     `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors ${
@@ -122,7 +134,11 @@ export function MonthlyRoutineDetailsDialog({
           </DialogHeader>
         </div>
 
-        {item ? (
+        {loading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : item ? (
           <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
             <div className="border-b border-border/40 bg-muted/5 p-4 lg:border-b-0 lg:border-r lg:overflow-y-auto">
               <div className="space-y-1 px-1 pb-4">

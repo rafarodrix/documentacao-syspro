@@ -236,7 +236,7 @@ function ToggleRow({
           <p className="text-sm font-medium text-foreground">{label}</p>
           <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         </div>
-        <Checkbox checked={checked} onCheckedChange={onCheckedChange} />
+        <Checkbox checked={checked} onCheckedChange={(v) => onCheckedChange(v === true)} />
       </div>
     </div>
   );

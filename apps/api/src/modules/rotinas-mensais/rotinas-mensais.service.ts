@@ -58,7 +58,6 @@ export class RotinasMensaisService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveRoutineViewScope(requester);
     const { year, month } = this.resolveYearMonth();
-    await this.ensureCompetenciesForScope(scope, year, month);
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
     const search = input.search?.trim();
@@ -198,7 +197,7 @@ export class RotinasMensaisService {
     };
   }
 
-  async upsertCompanyConfig(input: MonthlyRoutineCompanyConfigUpsertInput, rawHeaders?: IncomingHttpHeaders) {
+  async upsertCompanyConfig(input: MonthlyRoutineCompanyConfigUpsertInput, rawHeaders?: IncomingHttpHeaders): Promise<{ success: boolean; message: string }> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveRoutineManageScope(requester);
     await this.assertCompanyInScope(input.companyId, scope);
@@ -213,7 +212,7 @@ export class RotinasMensaisService {
 
     if (accountingContactId) {
       if (!company.accountingFirmId) {
-        throw new ForbiddenException('Nao existe escritorio contabil vinculado para associar este contato.');
+        throw new ForbiddenException('Não existe escritório contábil vinculado para associar este contato.');
       }
 
       const isValidAccountingContact = (company.accountingFirm?.contactLinks ?? []).some(
@@ -221,7 +220,7 @@ export class RotinasMensaisService {
       );
 
       if (!isValidAccountingContact) {
-        throw new ForbiddenException('O contato contabil precisa estar vinculado ao escritorio contabil selecionado.');
+        throw new ForbiddenException('O contato contábil precisa estar vinculado ao escritório contábil selecionado.');
       }
     }
 
@@ -265,7 +264,7 @@ export class RotinasMensaisService {
 
     return {
       success: true,
-      message: 'Configuracao da rotina mensal salva com sucesso.',
+      message: 'Configuração da rotina mensal salva com sucesso.',
     };
   }
 
@@ -276,37 +275,34 @@ export class RotinasMensaisService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveRoutineViewScope(requester);
     const { year, month } = this.resolveYearMonth(input.year, input.month);
-    await this.ensureCompetenciesForScope(scope, year, month);
 
     const statusFilter = input.status && input.status !== 'ALL' ? (input.status as MonthlyRoutineExecutionStatus) : undefined;
     const search = input.search?.trim().toLowerCase();
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
     const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const scopeWhere = scope.isGlobal ? {} : { companyId: { in: scope.companyIds } };
+
+    // Lightweight inline overdue marking: PENDING → OVERDUE when dueDate has passed.
+    // Full overdue processing (WAITING_CUSTOMER timeout, history, notifications) runs via job.
+    await competencyModel.updateMany({
+      where: {
+        year,
+        month,
+        status: 'PENDING',
+        dueDate: { lt: new Date() },
+        ...scopeWhere,
+      },
+      data: { status: 'OVERDUE' },
+    });
 
     const records = await competencyModel.findMany({
-      where: {
-        year,
-        month,
-        ...(scope.isGlobal ? {} : { companyId: { in: scope.companyIds } }),
-      },
+      where: { year, month, ...scopeWhere },
       include: this.getCompetencyListInclude(),
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
     });
 
-    await this.markOverdueCompetencies(records);
-
-    const refreshedRecords = await competencyModel.findMany({
-      where: {
-        year,
-        month,
-        ...(scope.isGlobal ? {} : { companyId: { in: scope.companyIds } }),
-      },
-      include: this.getCompetencyListInclude(),
-      orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-    });
-
-    const normalizedItems: MonthlyRoutineCompetencyItem[] = refreshedRecords.map((record: any) => this.toCompetencyItem(record));
+    const normalizedItems: MonthlyRoutineCompetencyItem[] = records.map((record: any) => this.toCompetencyItem(record));
     const searchedItems = search
       ? normalizedItems.filter((item: MonthlyRoutineCompetencyItem) =>
           [
@@ -346,6 +342,25 @@ export class RotinasMensaisService {
     };
   }
 
+  async getCompetency(id: string, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineCompetencyItem> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const scope = await this.resolveRoutineViewScope(requester);
+    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+
+    const record = await competencyModel.findFirst({
+      where: { id },
+      include: this.getCompetencyDetailInclude(),
+    });
+
+    if (!record) {
+      throw new BadRequestException('Competência da rotina mensal não encontrada.');
+    }
+
+    await this.assertCompanyInScope(record.companyId, scope);
+
+    return this.toCompetencyItem(record);
+  }
+
   async syncCompetencies(
     input: MonthlyRoutineSyncCompetenciesInput,
     rawHeaders?: IncomingHttpHeaders,
@@ -360,7 +375,7 @@ export class RotinasMensaisService {
 
     return {
       success: true,
-      message: 'Competencias sincronizadas com sucesso.',
+      message: 'Competências sincronizadas com sucesso.',
       generated: result.generated,
       updated: result.updated,
       year,
@@ -411,7 +426,7 @@ export class RotinasMensaisService {
     });
 
     if (!competency) {
-      throw new BadRequestException('Competencia da rotina mensal nao encontrada.');
+      throw new BadRequestException('Competência da rotina mensal não encontrada.');
     }
 
     await this.assertCompanyInScope(competency.companyId, scope);
@@ -419,12 +434,12 @@ export class RotinasMensaisService {
     const availableContacts = this.toContactOptions(competency.company?.contactLinks ?? []);
     const selectedContact = availableContacts.find((contact) => contact.id === input.contactId);
     if (!selectedContact) {
-      throw new BadRequestException('O contato selecionado nao pertence a esta empresa.');
+      throw new BadRequestException('O contato selecionado não pertence a esta empresa.');
     }
 
     const targetPhone = this.resolveContactOutboundPhone(selectedContact);
     if (!targetPhone) {
-      throw new BadRequestException('O contato selecionado nao possui WhatsApp ou telefone valido para envio.');
+      throw new BadRequestException('O contato selecionado não possui WhatsApp ou telefone válido para envio.');
     }
 
     const message = input.message?.trim() || this.buildDefaultManualRequestMessage({
@@ -437,9 +452,11 @@ export class RotinasMensaisService {
       template: input.template,
     });
 
-    const context = await this.integrationContext.getDefaultContext();
+    // Resolve Evolution context scoped to this company for correct instance selection.
+    const contexts = await this.integrationContext.listActiveContexts({ companyIds: [competency.companyId] });
+    const context = contexts[0] ?? null;
     if (!context) {
-      throw new BadRequestException('Nenhuma conexao Evolution ativa encontrada para realizar o disparo.');
+      throw new BadRequestException('Nenhuma conexão Evolution ativa encontrada para realizar o disparo.');
     }
 
     const nextAttemptNumber = (await requestModel.count({
@@ -478,7 +495,7 @@ export class RotinasMensaisService {
           competency.status === 'PENDING' || competency.status === 'OVERDUE'
             ? 'WAITING_CUSTOMER'
             : (competency.status as MonthlyRoutineExecutionStatus),
-        title: `Solicitacao enviada para ${selectedContact.name}`,
+        title: `Solicitação enviada para ${selectedContact.name}`,
         description: message,
         metadata: {
           requestId: requestRecord.id,
@@ -502,7 +519,7 @@ export class RotinasMensaisService {
 
       return {
         success: true,
-        message: 'Solicitacao enviada e registrada com sucesso.',
+        message: 'Solicitação enviada e registrada com sucesso.',
         request: this.toManualRequestItem(requestRecord),
       };
     } catch (error: any) {
@@ -519,7 +536,7 @@ export class RotinasMensaisService {
           targetPhone,
           message,
           providerConnectionKey: context.connectionKey,
-          errorMessage: error instanceof Error ? error.message : 'Falha ao enviar solicitacao manual.',
+          errorMessage: error instanceof Error ? error.message : 'Falha ao enviar solicitação manual.',
           requestedAt: now,
         },
       });
@@ -527,12 +544,12 @@ export class RotinasMensaisService {
       if (error instanceof EvolutionOutboundError) {
         throw new BadRequestException(
           error.code === 'WHATSAPP_NUMBER_NOT_REGISTERED'
-            ? 'O numero informado nao esta registrado no WhatsApp.'
-            : 'A Evolution rejeitou o disparo manual desta solicitacao.',
+            ? 'O número informado não está registrado no WhatsApp.'
+            : 'A Evolution rejeitou o disparo manual desta solicitação.',
         );
       }
 
-      throw new BadRequestException('Nao foi possivel enviar a solicitacao manual. O erro foi registrado.');
+      throw new BadRequestException('Não foi possível enviar a solicitação manual. O erro foi registrado.');
     }
   }
 
@@ -550,7 +567,7 @@ export class RotinasMensaisService {
     });
 
     if (!existing) {
-      throw new BadRequestException('Competencia da rotina mensal nao encontrada.');
+      throw new BadRequestException('Competência da rotina mensal não encontrada.');
     }
 
     await this.assertCompanyInScope(existing.companyId, scope);
@@ -602,14 +619,22 @@ export class RotinasMensaisService {
     });
 
     if (!refreshed) {
-      throw new BadRequestException('Competencia atualizada, mas nao foi possivel recarregar os dados.');
+      throw new BadRequestException('Competência atualizada, mas não foi possível recarregar os dados.');
     }
 
     return {
       success: true,
-      message: 'Status da competencia atualizado com sucesso.',
+      message: 'Status da competência atualizado com sucesso.',
       competency: this.toCompetencyItem(refreshed),
     };
+  }
+
+  // Called by RotinasMensaisJobService on each tick.
+  async runPeriodicJob(): Promise<void> {
+    const { year, month } = this.resolveYearMonth();
+    await this.ensureCompetenciesForScope({ isGlobal: true, companyIds: [] }, year, month);
+    await this.runMarkOverdueJob(year, month);
+    await this.runReminderJob(year, month);
   }
 
   private toRoutineItem(company: {
@@ -672,7 +697,7 @@ export class RotinasMensaisService {
       (await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:manage', { acceptCompanyScope: true }));
 
     if (!canView) {
-      throw new ForbiddenException('Sem permissao para acessar rotinas mensais.');
+      throw new ForbiddenException('Sem permissão para acessar rotinas mensais.');
     }
 
     const canViewAll = await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:view_all');
@@ -713,7 +738,7 @@ export class RotinasMensaisService {
     });
 
     if (!canManage) {
-      throw new ForbiddenException('Sem permissao para gerenciar rotinas mensais.');
+      throw new ForbiddenException('Sem permissão para gerenciar rotinas mensais.');
     }
 
     return this.authorizationService.resolveCompanyAccessScope(
@@ -781,14 +806,18 @@ export class RotinasMensaisService {
     });
 
     if (!company) {
-      throw new ForbiddenException('Empresa nao encontrada para configurar rotina mensal.');
+      throw new ForbiddenException('Empresa não encontrada para configurar rotina mensal.');
     }
 
     return company;
   }
 
+  // Light include for list operations: one recent request for status display, no history.
   private getCompetencyListInclude() {
     return {
+      _count: {
+        select: { requests: true },
+      },
       company: {
         select: {
           id: true,
@@ -843,7 +872,73 @@ export class RotinasMensaisService {
       requests: {
         include: this.getManualRequestInclude(),
         orderBy: [{ requestedAt: 'desc' }],
-        take: 5,
+        take: 1,
+      },
+    };
+  }
+
+  // Full include for detail operations: all recent requests and history.
+  private getCompetencyDetailInclude() {
+    return {
+      _count: {
+        select: { requests: true },
+      },
+      company: {
+        select: {
+          id: true,
+          razaoSocial: true,
+          nomeFantasia: true,
+          contactLinks: {
+            select: {
+              isPrimary: true,
+              contact: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  whatsapp: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      config: {
+        select: {
+          id: true,
+          title: true,
+          notes: true,
+          requiredDocuments: true,
+          reminderDays: true,
+          clientContact: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          accountingContact: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          company: {
+            select: {
+              accountingFirm: {
+                select: {
+                  razaoSocial: true,
+                  nomeFantasia: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      requests: {
+        include: this.getManualRequestInclude(),
+        orderBy: [{ requestedAt: 'desc' }],
+        take: 10,
       },
       history: {
         include: {
@@ -855,7 +950,7 @@ export class RotinasMensaisService {
           },
         },
         orderBy: [{ occurredAt: 'desc' }],
-        take: 8,
+        take: 20,
       },
     };
   }
@@ -920,7 +1015,7 @@ export class RotinasMensaisService {
     };
   }
 
-  private async ensureCompetenciesForScope(scope: { isGlobal: boolean; companyIds: string[] }, year: number, month: number) {
+  async ensureCompetenciesForScope(scope: { isGlobal: boolean; companyIds: string[] }, year: number, month: number) {
     const configModel = (this.prisma as any).monthlyRoutineConfig;
     const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
     const configs = await configModel.findMany({
@@ -941,109 +1036,97 @@ export class RotinasMensaisService {
       },
     });
 
-    let generated = 0;
-    let updated = 0;
+    const lastDayOfMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
 
-    for (const config of configs) {
-      const lastDayOfMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
-      const resolvedDueDay = Math.min(config.dueDay, lastDayOfMonth);
-      const dueDate = new Date(Date.UTC(year, month - 1, resolvedDueDay, 12, 0, 0));
-      const existing = await competencyModel.findUnique({
-        where: {
-          configId_year_month: {
-            configId: config.id,
-            year,
-            month,
-          },
-        },
-      });
-
-      if (!existing) {
-        await competencyModel.create({
-          data: {
-            configId: config.id,
-            companyId: config.companyId,
-            year,
-            month,
-            dueDate,
-            status: dueDate < new Date() ? 'OVERDUE' : 'PENDING',
+    const results = await Promise.all(
+      configs.map(async (config: any) => {
+        const resolvedDueDay = Math.min(config.dueDay, lastDayOfMonth);
+        const dueDate = new Date(Date.UTC(year, month - 1, resolvedDueDay, 12, 0, 0));
+        const existing = await competencyModel.findUnique({
+          where: {
+            configId_year_month: {
+              configId: config.id,
+              year,
+              month,
+            },
           },
         });
-        generated += 1;
-        continue;
-      }
 
-      if (existing.dueDate?.getTime?.() !== dueDate.getTime()) {
-        await competencyModel.update({
-          where: { id: existing.id },
-          data: { dueDate },
-        });
-        updated += 1;
-      }
-    }
+        if (!existing) {
+          await competencyModel.create({
+            data: {
+              configId: config.id,
+              companyId: config.companyId,
+              year,
+              month,
+              dueDate,
+              status: dueDate < new Date() ? 'OVERDUE' : 'PENDING',
+            },
+          });
+          return { generated: 1, updated: 0 };
+        }
 
-    return { generated, updated };
+        if (existing.dueDate?.getTime?.() !== dueDate.getTime()) {
+          await competencyModel.update({
+            where: { id: existing.id },
+            data: { dueDate },
+          });
+          return { generated: 0, updated: 1 };
+        }
+
+        return { generated: 0, updated: 0 };
+      }),
+    );
+
+    return results.reduce(
+      (acc, r) => ({ generated: acc.generated + r.generated, updated: acc.updated + r.updated }),
+      { generated: 0, updated: 0 },
+    );
   }
 
-  private async markOverdueCompetencies(records: any[]) {
+  // Full overdue job: marks WAITING_CUSTOMER timeouts, creates history, sends notifications.
+  private async runMarkOverdueJob(year: number, month: number): Promise<void> {
     const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
     const now = new Date();
     const automationSettings = await this.automationSettingsService.readAutomationModuleSettings();
-    const waitingCustomerTimeoutEnabled = automationSettings.monthlyRoutines.waitingCustomerTimeoutEnabled;
-    const waitingCustomerTimeoutHours = automationSettings.monthlyRoutines.waitingCustomerTimeoutHours;
+    const { waitingCustomerTimeoutEnabled, waitingCustomerTimeoutHours } = automationSettings.monthlyRoutines;
     const waitingCustomerThreshold = new Date(now.getTime() - waitingCustomerTimeoutHours * 60 * 60 * 1000);
 
-    const overdueCandidates = records.filter((record) => {
-      if (!(record.dueDate instanceof Date) || record.dueDate >= now) {
-        return false;
-      }
+    const waitingOverdueCandidates = waitingCustomerTimeoutEnabled
+      ? await competencyModel.findMany({
+          where: {
+            year,
+            month,
+            status: 'WAITING_CUSTOMER',
+            dueDate: { lt: now },
+            updatedAt: { lte: waitingCustomerThreshold },
+          },
+          include: this.getCompetencyDetailInclude(),
+        })
+      : [];
 
-      if (record.status === 'PENDING') {
-        return true;
-      }
+    if (!waitingOverdueCandidates.length) return;
 
-      if (
-        record.status === 'WAITING_CUSTOMER' &&
-        waitingCustomerTimeoutEnabled &&
-        record.updatedAt instanceof Date &&
-        record.updatedAt <= waitingCustomerThreshold
-      ) {
-        return true;
-      }
+    await Promise.all(
+      waitingOverdueCandidates.map(async (record: any) => {
+        await competencyModel.update({
+          where: { id: record.id },
+          data: { status: 'OVERDUE' },
+        });
 
-      return false;
-    });
+        await this.createHistoryEntry({
+          competencyId: record.id,
+          type: 'AUTO_OVERDUE',
+          fromStatus: 'WAITING_CUSTOMER',
+          toStatus: 'OVERDUE',
+          title: `Rotina voltou para Atrasado após ${waitingCustomerTimeoutHours}h aguardando cliente`,
+          description: 'A competência permaneceu aguardando cliente acima da janela automática configurada.',
+          metadata: {
+            rule: 'waiting_customer_timeout',
+            waitingCustomerTimeoutHours,
+          },
+        });
 
-    if (!overdueCandidates.length) return;
-
-    for (const record of overdueCandidates) {
-      await competencyModel.update({
-        where: { id: record.id },
-        data: {
-          status: 'OVERDUE',
-        },
-      });
-
-      await this.createHistoryEntry({
-        competencyId: record.id,
-        type: 'AUTO_OVERDUE',
-        fromStatus: record.status as MonthlyRoutineExecutionStatus,
-        toStatus: 'OVERDUE',
-        title:
-          record.status === 'WAITING_CUSTOMER'
-            ? `Rotina voltou para Atrasado apos ${waitingCustomerTimeoutHours}h aguardando cliente`
-            : 'Rotina marcada como Atrasado pelo vencimento',
-        description:
-          record.status === 'WAITING_CUSTOMER'
-            ? 'A competencia permaneceu aguardando cliente acima da janela automatica configurada.'
-            : 'A competencia ultrapassou o vencimento sem avancar para a proxima etapa.',
-        metadata: {
-          rule: record.status === 'WAITING_CUSTOMER' ? 'waiting_customer_timeout' : 'due_date_expired',
-          waitingCustomerTimeoutHours: record.status === 'WAITING_CUSTOMER' ? waitingCustomerTimeoutHours : null,
-        },
-      });
-
-      if (record.status === 'WAITING_CUSTOMER') {
         await this.automationWhatsappService.sendMonthlyRoutineOverdueNotification({
           competencyId: record.id,
           companyId: record.companyId ?? null,
@@ -1054,8 +1137,92 @@ export class RotinasMensaisService {
           clientContactName: record.config?.clientContact?.name ?? null,
           timeoutHours: waitingCustomerTimeoutHours,
         });
-      }
-    }
+      }),
+    );
+  }
+
+  // Sends automated reminders for PENDING competencies approaching their due date.
+  private async runReminderJob(year: number, month: number): Promise<void> {
+    const configModel = (this.prisma as any).monthlyRoutineConfig;
+    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const historyModel = (this.prisma as any).monthlyRoutineHistory;
+
+    const now = new Date();
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    const configs = await configModel.findMany({
+      where: {
+        isActive: true,
+        reminderDays: { gt: 0 },
+        clientContactId: { not: null },
+      },
+      include: {
+        clientContact: {
+          select: { id: true, name: true, phone: true, whatsapp: true },
+        },
+      },
+    });
+
+    await Promise.all(
+      configs.map(async (config: any) => {
+        const competency = await competencyModel.findUnique({
+          where: { configId_year_month: { configId: config.id, year, month } },
+          include: {
+            company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
+          },
+        });
+
+        if (!competency || competency.status !== 'PENDING') return;
+
+        const reminderDate = new Date(competency.dueDate);
+        reminderDate.setUTCDate(reminderDate.getUTCDate() - config.reminderDays);
+        if (now < reminderDate) return;
+
+        const alreadySentToday = await historyModel.findFirst({
+          where: {
+            competencyId: competency.id,
+            type: 'AUTO_REMINDER',
+            occurredAt: { gte: todayStart },
+          },
+        });
+        if (alreadySentToday) return;
+
+        const contact = config.clientContact;
+        const targetPhone = this.resolveContactOutboundPhone(contact);
+        if (!targetPhone) return;
+
+        const companyName = competency.company?.nomeFantasia || competency.company?.razaoSocial || 'empresa';
+        const message = this.buildDefaultManualRequestMessage({
+          contactName: contact.name,
+          companyName,
+          title: config.title || 'Rotina mensal',
+          year,
+          month,
+          requiredDocuments: this.normalizeRequiredDocuments(config.requiredDocuments),
+          template: 'FIRST_REMINDER',
+        });
+
+        const contexts = await this.integrationContext.listActiveContexts({ companyIds: [competency.companyId] });
+        const context = contexts[0] ?? null;
+        if (!context) return;
+
+        try {
+          await this.evolutionClient.sendTextMessage(context.evolution, targetPhone, message);
+        } catch {
+          return;
+        }
+
+        await this.createHistoryEntry({
+          competencyId: competency.id,
+          type: 'AUTO_REMINDER',
+          fromStatus: 'PENDING',
+          toStatus: 'PENDING',
+          title: `Lembrete automático enviado para ${contact.name}`,
+          description: message,
+          metadata: { reminderDays: config.reminderDays, targetPhone },
+        });
+      }),
+    );
   }
 
   private toCompetencyItem(record: any): MonthlyRoutineCompetencyItem {
@@ -1067,6 +1234,9 @@ export class RotinasMensaisService {
       ? record.history.map((entry: any) => this.toHistoryItem(entry))
       : [];
     const latestManualRequest = manualRequests[0] ?? null;
+    const requiredDocuments = this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments);
+    // Use _count from Prisma for total requests when only a subset is loaded.
+    const totalManualRequests = record._count?.requests ?? manualRequests.length;
 
     return {
       id: record.id,
@@ -1091,11 +1261,11 @@ export class RotinasMensaisService {
       accountingContactId: record.config?.accountingContact?.id ?? null,
       accountingContactName: record.config?.accountingContact?.name ?? null,
       configNotes: record.config?.notes ?? null,
-      requiredDocuments: this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments),
-      requiredDocumentsCount: this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments).length,
+      requiredDocuments,
+      requiredDocumentsCount: requiredDocuments.length,
       notes: record.notes ?? null,
       availableContacts,
-      manualRequestsCount: manualRequests.length,
+      manualRequestsCount: totalManualRequests,
       lastManualRequestAt: latestManualRequest?.requestedAt ?? null,
       lastManualRequestStatus: latestManualRequest?.status ?? null,
       lastManualRequestContactName: latestManualRequest?.contactName ?? null,
@@ -1110,7 +1280,7 @@ export class RotinasMensaisService {
       attemptNumber: Math.max(1, Number(record.attemptNumber ?? 1)),
       contactId: record.contactId,
       contactName: record.contact?.name ?? 'Contato',
-      requestedByUserName: record.requestedByUser?.name || record.requestedByUser?.email || 'Usuario',
+      requestedByUserName: record.requestedByUser?.name || record.requestedByUser?.email || 'Usuário',
       channel: record.channel,
       status: record.status,
       targetPhone: record.targetPhone,
@@ -1171,7 +1341,7 @@ export class RotinasMensaisService {
       case 'SENT_TO_ACCOUNTING':
         return 'Enviado para contabilidade';
       case 'COMPLETED':
-        return 'Concluido';
+        return 'Concluído';
       case 'OVERDUE':
         return 'Atrasado';
       case 'CANCELED':
@@ -1208,14 +1378,14 @@ export class RotinasMensaisService {
     const template = input.template ?? 'REQUEST_CONFIRMATION';
 
     if (template === 'FIRST_REMINDER') {
-      return `Ola, ${firstName}. Estamos retomando a solicitacao da competencia ${competence} da empresa ${input.companyName} (${input.title}).${checklist} Quando puder, nos confirme para seguirmos com a geracao dos arquivos.`;
+      return `Olá, ${firstName}. Estamos retomando a solicitação da competência ${competence} da empresa ${input.companyName} (${input.title}).${checklist} Quando puder, nos confirme para seguirmos com a geração dos arquivos.`;
     }
 
     if (template === 'SECOND_REMINDER') {
-      return `Ola, ${firstName}. Este e um novo lembrete sobre a competencia ${competence} da empresa ${input.companyName} (${input.title}).${checklist} Precisamos da sua confirmacao para concluir esta etapa e seguir com a contabilidade.`;
+      return `Olá, ${firstName}. Este é um novo lembrete sobre a competência ${competence} da empresa ${input.companyName} (${input.title}).${checklist} Precisamos da sua confirmação para concluir esta etapa e seguir com a contabilidade.`;
     }
 
-    return `Ola, ${firstName}. Podemos gerar os arquivos da competencia ${competence} da empresa ${input.companyName} (${input.title})?${checklist} Se estiver tudo certo, por favor nos confirme por aqui.`;
+    return `Olá, ${firstName}. Podemos gerar os arquivos da competência ${competence} da empresa ${input.companyName} (${input.title})?${checklist} Se estiver tudo certo, por favor nos confirme por aqui.`;
   }
 
   private parsePage(value: unknown) {

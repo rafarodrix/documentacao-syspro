@@ -23,6 +23,7 @@ _bmad-output/
         core-modules.md       ← companies, contacts, users, tickets, crm, releases...
         integracoes.md        ← chatwoot, evolution, messaging, storage
         remote-admin.md       ← módulo de administração remota (RustDesk)
+        rotinas-mensais.md    ← módulo de rotinas mensais (documentação contábil)
         trpc.md               ← roteador tRPC
     web/
       visao-geral.md          ← Next.js 15, features, rotas, API routes
@@ -72,6 +73,7 @@ _bmad-output/
 | O backend NestJS (API)                 | `02-apps/api/visao-geral.md`                       |
 | Módulos de negócio da API              | `02-apps/api/modulos/core-modules.md`              |
 | **Módulo de tickets (arquitetura)**    | **`02-apps/tickets-architecture.md`**              |
+| Rotinas mensais contábeis              | `02-apps/api/modulos/rotinas-mensais.md`           |
 | Automações WhatsApp (tickets/SEFAZ)    | `02-apps/api/modulos/automation.md`                |
 | Integração Chatwoot/Evolution          | `02-apps/api/modulos/integracoes.md`               |
 | O agente Windows (Go)                  | `02-apps/agent/visao-geral.md`                     |
