@@ -1,4 +1,4 @@
 {
   "title": "Acesso Remoto",
-  "pages": ["index", "arquitetura", "fluxo-tokens-e-sessoes"]
+  "pages": ["index", "arquitetura", "fluxo-tokens"]
 }
