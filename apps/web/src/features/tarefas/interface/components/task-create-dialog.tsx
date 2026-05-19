@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
 import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
+import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { TaskConfigView } from "@dosc-syspro/contracts/tarefas";
 import {
@@ -22,7 +23,7 @@ import {
   SelectValue,
   Textarea,
 } from "@dosc-syspro/ui";
-import { ClipboardPlus } from "lucide-react";
+import { Building2, ClipboardPlus, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 const EMPTY_CONTACT_VALUE = "__none__";
@@ -44,6 +45,19 @@ function buildDefaultDueDateInput() {
   return dueDate.toISOString().slice(0, 10);
 }
 
+function getAssignableUsers(users: ReturnType<typeof useInternalUsers>) {
+  return users
+    .filter((user) => {
+      if (!user?.id) return false;
+      return user.role === "SUPORTE" || user.role === "DEVELOPER" || user.role === "ADMIN";
+    })
+    .sort((left, right) => {
+      const leftName = (left.name?.trim() || left.email).toLowerCase();
+      const rightName = (right.name?.trim() || right.email).toLowerCase();
+      return leftName.localeCompare(rightName);
+    });
+}
+
 export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDialogProps) {
   const users = useInternalUsers();
   const [isSubmitting, startSubmitTransition] = useTransition();
@@ -61,6 +75,20 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
   const [notes, setNotes] = useState("");
 
   const availableContacts = selectedCompanyConfig?.clientContacts ?? [];
+  const assignableUsers = useMemo(() => getAssignableUsers(users), [users]);
+  const companyPickerOptions = useMemo<TicketCompanyPickerOption[]>(
+    () =>
+      companyOptions.map((company) => ({
+        id: company.id,
+        label: getCompanyLabel(company),
+        description:
+          company.nomeFantasia?.trim() && company.nomeFantasia.trim() !== company.razaoSocial.trim()
+            ? company.razaoSocial
+            : null,
+        meta: "Empresa",
+      })),
+    [companyOptions],
+  );
   const selectedCompany = useMemo(
     () => companyOptions.find((option) => option.id === companyId) ?? null,
     [companyId, companyOptions],
@@ -199,76 +227,107 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="task-create-company">Empresa</Label>
-              <Select value={companyId} onValueChange={setCompanyId} disabled={isLoadingCompanies || isSubmitting}>
-                <SelectTrigger id="task-create-company">
-                  <SelectValue placeholder={isLoadingCompanies ? "Carregando empresas..." : "Selecione a empresa"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {companyOptions.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {getCompanyLabel(company)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div className="grid gap-4 py-1">
+          <section className="space-y-4 rounded-md border border-border/60 bg-muted/15 p-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Contexto da tarefa
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use a mesma base de empresa do modulo de tickets para vincular a demanda corretamente.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="task-create-company" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Empresa
+              </Label>
+              <TicketCompanyPicker
+                value={companyId}
+                options={companyPickerOptions}
+                onChange={setCompanyId}
+                loading={isLoadingCompanies}
+                disabled={isLoadingCompanies || isSubmitting}
+                placeholder={isLoadingCompanies ? "Carregando empresas..." : "Selecione a empresa"}
+                searchPlaceholder="Buscar empresa..."
+                emptyMessage="Nenhuma empresa encontrada."
+                className="h-10 bg-background"
+              />
               {selectedCompany ? (
-                <p className="text-xs text-muted-foreground">
-                  Empresa selecionada: {getCompanyLabel(selectedCompany)}
-                </p>
+                <div className="flex items-center gap-2 rounded-md border border-border/50 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5 text-primary/70" />
+                  <span className="truncate">
+                    Empresa selecionada: <span className="font-medium text-foreground">{getCompanyLabel(selectedCompany)}</span>
+                  </span>
+                </div>
               ) : null}
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="task-create-title">Titulo</Label>
+            <div className="space-y-2">
+              <Label htmlFor="task-create-title" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Titulo
+              </Label>
               <Input
                 id="task-create-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Ex: Atualizar parametrizacao apos validacao do cliente"
                 disabled={isSubmitting}
+                className="h-10 bg-background"
               />
             </div>
+          </section>
 
+          <section className="grid gap-4 rounded-md border border-border/60 bg-muted/15 p-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="task-create-due-date">Vencimento</Label>
+              <Label htmlFor="task-create-due-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Vencimento
+              </Label>
               <Input
                 id="task-create-due-date"
                 type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
                 disabled={isSubmitting}
+                className="h-10 bg-background"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-assignee">Responsavel</Label>
+              <Label htmlFor="task-create-assignee" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Responsavel
+              </Label>
               <Select value={assignedToId} onValueChange={setAssignedToId} disabled={isSubmitting}>
-                <SelectTrigger id="task-create-assignee">
+                <SelectTrigger id="task-create-assignee" className="h-10 bg-background">
                   <SelectValue placeholder="Sem responsavel" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={EMPTY_ASSIGNEE_VALUE}>Sem responsavel</SelectItem>
-                  {users.map((user) => (
+                  {assignableUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.name?.trim() || user.email}
+                      <div className="flex items-center gap-2">
+                        <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{user.name?.trim() || user.email}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Apenas usuarios de Suporte, Desenvolvimento e Admin podem ser responsaveis.
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-contact">Contato do cliente</Label>
+              <Label htmlFor="task-create-contact" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Contato do cliente
+              </Label>
               <Select
                 value={clientContactId}
                 onValueChange={setClientContactId}
                 disabled={!companyId || isLoadingConfig || isSubmitting}
               >
-                <SelectTrigger id="task-create-contact">
+                <SelectTrigger id="task-create-contact" className="h-10 bg-background">
                   <SelectValue placeholder={isLoadingConfig ? "Carregando contatos..." : "Selecione um contato"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -283,7 +342,9 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-checklist">Checklist inicial</Label>
+              <Label htmlFor="task-create-checklist" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Checklist inicial
+              </Label>
               <Textarea
                 id="task-create-checklist"
                 rows={4}
@@ -291,11 +352,16 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
                 onChange={(event) => setRequiredDocumentsText(event.target.value)}
                 placeholder="Um item por linha ou separado por virgulas"
                 disabled={isSubmitting}
+                className="bg-background"
               />
             </div>
+          </section>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="task-create-description">Descricao</Label>
+          <section className="grid gap-4 rounded-md border border-border/60 bg-muted/15 p-4">
+            <div className="space-y-2">
+              <Label htmlFor="task-create-description" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Descricao
+              </Label>
               <Textarea
                 id="task-create-description"
                 rows={4}
@@ -303,11 +369,14 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="Contexto operacional, origem da demanda e proximo passo esperado."
                 disabled={isSubmitting}
+                className="bg-background"
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="task-create-notes">Observacoes internas</Label>
+            <div className="space-y-2">
+              <Label htmlFor="task-create-notes" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Observacoes internas
+              </Label>
               <Textarea
                 id="task-create-notes"
                 rows={3}
@@ -315,9 +384,10 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Notas adicionais para a equipe interna."
                 disabled={isSubmitting}
+                className="bg-background"
               />
             </div>
-          </div>
+          </section>
         </div>
 
         <DialogFooter>

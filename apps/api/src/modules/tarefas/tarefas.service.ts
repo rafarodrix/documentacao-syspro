@@ -24,6 +24,7 @@ import type {
 import {
   CompanyStatus,
   Prisma,
+  Role,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -273,6 +274,7 @@ export class TarefasService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveManageScope(requester);
     await this.assertCompanyInScope(input.companyId, scope);
+    await this.assertAssignableTaskOwner(this.normalizeOptionalString(input.assignedToId));
 
     const taskModel = (this.prisma as any).task;
 
@@ -353,6 +355,8 @@ export class TarefasService {
     prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<{ created: boolean; taskId?: string; skippedReason?: string }> {
     const taskModel = (prismaClient as any).task;
+    const assignedToId = input.assignToOwner ? (input.assignedUserId ?? null) : null;
+    await this.assertAssignableTaskOwner(assignedToId);
     const openTask = await taskModel.findFirst({
       where: {
         type: 'TAREFA',
@@ -376,7 +380,7 @@ export class TarefasService {
         title: input.title.trim(),
         description: this.normalizeOptionalString(input.description),
         ticketId: input.ticketId,
-        assignedToId: input.assignToOwner ? (input.assignedUserId ?? null) : null,
+        assignedToId,
         dueDate,
         status: 'PENDING',
         requiredDocuments: [],
@@ -398,6 +402,24 @@ export class TarefasService {
     );
 
     return { created: true, taskId: task.id };
+  }
+
+  private async assertAssignableTaskOwner(userId?: string | null): Promise<void> {
+    const normalizedUserId = this.normalizeOptionalString(userId);
+    if (!normalizedUserId) return;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: normalizedUserId },
+      select: { id: true, role: true, isActive: true },
+    });
+
+    if (!user || user.isActive === false) {
+      throw new BadRequestException('O responsavel informado nao esta disponivel para receber tarefas.');
+    }
+
+    if (![Role.ADMIN, Role.DEVELOPER, Role.SUPORTE].includes(user.role)) {
+      throw new BadRequestException('A tarefa so pode ser atribuida para usuarios de Suporte, Desenvolvimento ou Admin.');
+    }
   }
 
   async listTasks(
