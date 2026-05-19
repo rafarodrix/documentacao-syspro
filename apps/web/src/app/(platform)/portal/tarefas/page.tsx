@@ -1,42 +1,51 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
-import { getMonthlyRoutineCompetenciesQuery } from "@/features/rotinas-mensais/application/rotinas-mensais-read.queries";
-import { RotinasMensaisPage } from "@/features/rotinas-mensais/interface";
+import { getTarefasItemsQuery } from "@/features/tarefas/application/tarefas-read.queries";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 
-interface RotinasMensaisPageProps {
+interface TarefasPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function RotinasMensaisRootPage({ searchParams }: RotinasMensaisPageProps) {
+export default async function TarefasRootPage({ searchParams }: TarefasPageProps) {
   await requireSession();
 
-  const canView = await currentUserHasAnyPermission(["rotinas_mensais:view", "rotinas_mensais:view_all", "rotinas_mensais:manage"], {
+  const canView = await currentUserHasAnyPermission(["tarefas:view", "tarefas:view_all", "tarefas:manage"], {
     acceptCompanyScope: true,
   });
 
   if (!canView) return <CadastrosAccessDenied />;
-  const canManage = await currentUserHasAnyPermission(["rotinas_mensais:manage"], {
+
+  const canManage = await currentUserHasAnyPermission(["tarefas:manage"], {
     acceptCompanyScope: true,
   });
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const searchParam = resolvedSearchParams.search;
   const statusParam = resolvedSearchParams.status;
+  const typeParam = resolvedSearchParams.type;
   const search = typeof searchParam === "string" ? searchParam : Array.isArray(searchParam) ? searchParam[0] ?? "" : "";
   const status = typeof statusParam === "string" ? statusParam : Array.isArray(statusParam) ? statusParam[0] ?? "ALL" : "ALL";
+  const type = typeof typeParam === "string" ? typeParam : Array.isArray(typeParam) ? typeParam[0] ?? "ALL" : "ALL";
 
   const now = new Date();
   const year = String(now.getFullYear());
   const month = String(now.getMonth() + 1);
-  const competencies = await getMonthlyRoutineCompetenciesQuery({
+
+  const tasks = await getTarefasItemsQuery({
     page: "1",
     pageSize: "20",
     year,
     month,
+    type,
     search,
     status,
   });
 
-  return <RotinasMensaisPage competencies={competencies} search={search} status={status} canManage={canManage} />;
+  // TarefasPage component will be implemented as part of the UI layer
+  return (
+    <div>
+      <pre>{JSON.stringify({ tasks: tasks.items.length, canManage }, null, 2)}</pre>
+    </div>
+  );
 }

@@ -1,4 +1,4 @@
 {
   "title": "API",
-  "pages": ["index", "modulos-core", "automation", "integracoes", "remote-admin", "rotinas-mensais", "trpc"]
+  "pages": ["index", "modulos-core", "automation", "integracoes", "remote-admin", "tarefas", "trpc"]
 }

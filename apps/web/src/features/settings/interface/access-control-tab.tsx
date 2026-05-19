@@ -50,7 +50,7 @@ const MODULE_LABELS: Record<string, string> = {
   atendimento: "Atendimento",
   settings: "Configuracoes",
   tools: "Ferramentas",
-  rotinas_mensais: "Rotinas Mensais",
+  tarefas: "Tarefas",
   tickets: "Tickets",
 };
 
@@ -65,7 +65,7 @@ const MODULE_ORDER = [
   "remote",
   "agents",
   "atendimento",
-  "rotinas_mensais",
+  "tarefas",
   "tickets",
   "tools",
   "settings",

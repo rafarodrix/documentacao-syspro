@@ -321,7 +321,7 @@ export function AutomationSettingsTab() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <BellRing className="h-4 w-4 text-primary/70" />
-                    Rotinas mensais
+                    Tarefas
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -532,8 +532,8 @@ export function AutomationSettingsTab() {
                             <div className="space-y-2">
                               <SettingsGroupLabel
                                 icon={BellRing}
-                                title="Automacoes de rotinas mensais"
-                                description="Eventos operacionais recorrentes da fila mensal."
+                                title="Automacoes de tarefas"
+                                description="Eventos operacionais recorrentes da fila de tarefas."
                               />
                               <div className="grid gap-3 md:grid-cols-2">
                                 {MONTHLY_ROUTINE_AUTOMATION_FIELDS.map((automation) => (

@@ -5,14 +5,14 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { EvolutionModule } from '../integrations/evolution/evolution.module';
 import { SettingsModule } from '../settings/settings.module';
 import { AutomationModule } from '../automation/automation.module';
-import { RotinasMensaisRouter } from './rotinas-mensais.router';
-import { RotinasMensaisService } from './rotinas-mensais.service';
-import { RotinasMensaisJobService } from './rotinas-mensais-job.service';
-import { RotinasMensaisSettingsService } from './rotinas-mensais-settings.service';
+import { TarefasRouter } from './tarefas.router';
+import { TarefasService } from './tarefas.service';
+import { TarefasJobService } from './tarefas-job.service';
+import { TarefasSettingsService } from './tarefas-settings.service';
 
 @Module({
   imports: [PrismaModule, AuthorizationModule, TrpcCoreModule, SettingsModule, EvolutionModule, AutomationModule],
-  providers: [RotinasMensaisService, RotinasMensaisRouter, RotinasMensaisJobService, RotinasMensaisSettingsService],
-  exports: [RotinasMensaisService, RotinasMensaisRouter, RotinasMensaisSettingsService],
+  providers: [TarefasService, TarefasRouter, TarefasJobService, TarefasSettingsService],
+  exports: [TarefasService, TarefasRouter, TarefasSettingsService],
 })
-export class RotinasMensaisModule {}
+export class TarefasModule {}

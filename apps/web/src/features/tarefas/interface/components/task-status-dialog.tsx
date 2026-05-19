@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
-import type { MonthlyRoutineCompetencyItem, MonthlyRoutineExecutionStatus } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskItem, TaskStatus } from "@dosc-syspro/contracts/tarefas";
 import {
   Badge,
   Button,
@@ -23,14 +23,14 @@ import {
 import { History, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
-interface MonthlyRoutineStatusDialogProps {
-  item: MonthlyRoutineCompetencyItem | null;
+interface TaskStatusDialogProps {
+  item: TaskItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }
 
-const STATUS_OPTIONS: Array<{ value: MonthlyRoutineExecutionStatus; label: string }> = [
+const STATUS_OPTIONS: Array<{ value: TaskStatus; label: string }> = [
   { value: "PENDING", label: "Pendente" },
   { value: "WAITING_CUSTOMER", label: "Aguardando cliente" },
   { value: "RECEIVED", label: "Recebido" },
@@ -40,14 +40,14 @@ const STATUS_OPTIONS: Array<{ value: MonthlyRoutineExecutionStatus; label: strin
   { value: "CANCELED", label: "Cancelado" },
 ];
 
-function getHistoryStatusLabel(status: MonthlyRoutineExecutionStatus | null) {
+function getHistoryStatusLabel(status: TaskStatus | null) {
   if (!status) return "Sem status";
   return STATUS_OPTIONS.find((option) => option.value === status)?.label || status;
 }
 
-export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }: MonthlyRoutineStatusDialogProps) {
+export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStatusDialogProps) {
   const [isSubmitting, startTransition] = useTransition();
-  const [status, setStatus] = useState<MonthlyRoutineExecutionStatus>("PENDING");
+  const [status, setStatus] = useState<TaskStatus>("PENDING");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -61,16 +61,16 @@ export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }
 
     startTransition(async () => {
       try {
-        await trpc.rotinasMensais.updateCompetencyStatus.mutate({
-          competencyId: item.id,
+        await trpc.tarefas.updateTaskStatus.mutate({
+          taskId: item.id,
           status,
           notes: notes.trim() || undefined,
         });
-        toast.success("Status da competencia atualizado.");
+        toast.success("Status da tarefa atualizado.");
         onOpenChange(false);
         onSaved();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar o status da competencia.");
+        toast.error(error instanceof Error ? error.message : "Nao foi possivel atualizar o status da tarefa.");
       }
     });
   };
@@ -81,10 +81,10 @@ export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCcw className="h-4 w-4 text-primary" />
-            Atualizar status da competencia
+            Atualizar status da tarefa
           </DialogTitle>
           <DialogDescription>
-            Registra a mudanca operacional e adiciona o evento ao historico da rotina mensal.
+            Registra a mudanca operacional e adiciona o evento ao historico da tarefa.
           </DialogDescription>
         </DialogHeader>
 
@@ -93,14 +93,17 @@ export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }
             <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
               <div className="text-sm font-medium text-foreground">{item.companyName}</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                Competencia {String(item.month).padStart(2, "0")}/{item.year} - {item.title}
+                {item.year && item.month
+                  ? `Competencia ${String(item.month).padStart(2, "0")}/${item.year} - `
+                  : ""}
+                {item.title}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthly-routine-status">Novo status</Label>
-              <Select value={status} onValueChange={(value) => setStatus(value as MonthlyRoutineExecutionStatus)}>
-                <SelectTrigger id="monthly-routine-status">
+              <Label htmlFor="task-status">Novo status</Label>
+              <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
+                <SelectTrigger id="task-status">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -114,9 +117,9 @@ export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthly-routine-status-notes">Observacoes</Label>
+              <Label htmlFor="task-status-notes">Observacoes</Label>
               <Textarea
-                id="monthly-routine-status-notes"
+                id="task-status-notes"
                 rows={4}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
@@ -132,7 +135,7 @@ export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }
 
               {item.history.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                  Nenhum evento registrado para esta competencia.
+                  Nenhum evento registrado para esta tarefa.
                 </div>
               ) : (
                 <div className="space-y-2">

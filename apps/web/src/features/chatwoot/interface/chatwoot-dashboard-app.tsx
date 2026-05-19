@@ -9,7 +9,7 @@ import {
 } from "@dosc-syspro/contracts/ticket";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
 import type { ContactOption } from "@dosc-syspro/contracts/contact";
-import type { MonthlyRoutineCompetencyItem } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
 import { buildSearchText, includesNormalizedSearch } from "@dosc-syspro/shared";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
 import type { RemoteConfiguredHostItem } from "@/features/remote/domain/remote-host.types";
@@ -25,7 +25,7 @@ import { ChatwootDashboardContext } from "./chatwoot-dashboard-context";
 import { ChatwootOverviewTab } from "./tabs/chatwoot-overview-tab";
 import { ChatwootTicketsTab } from "./tabs/chatwoot-tickets-tab";
 import { ChatwootInfrastructureTab } from "./tabs/chatwoot-infrastructure-tab";
-import { ChatwootMonthlyRoutinesTab } from "./tabs/chatwoot-monthly-routines-tab";
+import { ChatwootTarefasTab } from "./tabs/chatwoot-tarefas-tab";
 import type {
   ChatwootAppContext,
   ContactLookupEntry,
@@ -155,7 +155,7 @@ export function ChatwootDashboardApp() {
   const [hostReloadToken, setHostReloadToken] = useState(0);
   const [startingHostId, setStartingHostId] = useState<string | null>(null);
   const [isStartingSession, startSessionTransition] = useTransition();
-  const [monthlyRoutineCount, setMonthlyRoutineCount] = useState(0);
+  const [tarefasCount, setTarefasCount] = useState(0);
 
   // Company / contact binding
   const [manualLinkedCompany, setManualLinkedCompany] = useState<CompanyOption | null>(null);
@@ -271,7 +271,7 @@ export function ChatwootDashboardApp() {
 
   const canCreateTicket = Boolean(resolved.companyId);
   const canOpenInfrastructureHosts = Boolean(resolved.companyId);
-  const canOpenMonthlyRoutines = Boolean(resolved.companyId) && monthlyRoutineCount > 0;
+  const canOpenTarefas = Boolean(resolved.companyId) && tarefasCount > 0;
 
   const matchedExistingTicket = useMemo(
     () => latestTickets.find((ticket) => ticket.number === resolved.ticketNumber) ?? null,
@@ -381,7 +381,7 @@ export function ChatwootDashboardApp() {
 
   useEffect(() => {
     if (!resolved.companyId) {
-      setMonthlyRoutineCount(0);
+      setTarefasCount(0);
       return;
     }
 
@@ -390,9 +390,9 @@ export function ChatwootDashboardApp() {
     const year = String(now.getFullYear());
     const month = String(now.getMonth() + 1);
 
-    async function loadMonthlyRoutineAvailability() {
+    async function loadTarefasAvailability() {
       try {
-        const response = await trpc.rotinasMensais.listCompetencies.query({
+        const response = await trpc.tarefas.listTasks.query({
           page: "1",
           pageSize: "100",
           year,
@@ -402,26 +402,26 @@ export function ChatwootDashboardApp() {
 
         if (cancelled) return;
         const nextCount = response.items.filter(
-          (item: MonthlyRoutineCompetencyItem) => item.companyId === resolved.companyId,
+          (item: TaskItem) => item.companyId === resolved.companyId,
         ).length;
-        setMonthlyRoutineCount(nextCount);
+        setTarefasCount(nextCount);
       } catch {
         if (cancelled) return;
-        setMonthlyRoutineCount(0);
+        setTarefasCount(0);
       }
     }
 
-    void loadMonthlyRoutineAvailability();
+    void loadTarefasAvailability();
     return () => {
       cancelled = true;
     };
   }, [resolved.companyId]);
 
   useEffect(() => {
-    if (activeTab !== "monthly-routines") return;
-    if (canOpenMonthlyRoutines) return;
+    if (activeTab !== "tarefas") return;
+    if (canOpenTarefas) return;
     setActiveTab("overview");
-  }, [activeTab, canOpenMonthlyRoutines]);
+  }, [activeTab, canOpenTarefas]);
 
   // ── Sync ticket form fields from settings ──────────
 
@@ -1077,7 +1077,7 @@ export function ChatwootDashboardApp() {
         {/* Tab navigation + content */}
         <div className="flex-1 px-3 py-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`grid h-auto w-full ${canOpenMonthlyRoutines ? "grid-cols-4" : "grid-cols-3"} rounded-2xl border border-border/60 bg-card p-1`}>
+            <TabsList className={`grid h-auto w-full ${canOpenTarefas ? "grid-cols-4" : "grid-cols-3"} rounded-2xl border border-border/60 bg-card p-1`}>
               <TabsTrigger value="overview" className="rounded-xl py-2 text-xs">
                 Visao geral
               </TabsTrigger>
@@ -1097,11 +1097,11 @@ export function ChatwootDashboardApp() {
                   </span>
                 ) : null}
               </TabsTrigger>
-              {canOpenMonthlyRoutines ? (
-                <TabsTrigger value="monthly-routines" className="rounded-xl py-2 text-xs">
-                  Rotinas
+              {canOpenTarefas ? (
+                <TabsTrigger value="tarefas" className="rounded-xl py-2 text-xs">
+                  Tarefas
                   <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none text-primary">
-                    {monthlyRoutineCount}
+                    {tarefasCount}
                   </span>
                 </TabsTrigger>
               ) : null}
@@ -1116,9 +1116,9 @@ export function ChatwootDashboardApp() {
             <TabsContent value="infrastructure" className="mt-3 space-y-3">
               <ChatwootInfrastructureTab />
             </TabsContent>
-            {canOpenMonthlyRoutines ? (
-              <TabsContent value="monthly-routines" className="mt-3 space-y-3">
-                <ChatwootMonthlyRoutinesTab />
+            {canOpenTarefas ? (
+              <TabsContent value="tarefas" className="mt-3 space-y-3">
+                <ChatwootTarefasTab />
               </TabsContent>
             ) : null}
           </Tabs>

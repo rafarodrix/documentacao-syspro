@@ -7,9 +7,10 @@ import { TicketHistoryService } from './ticket-history.service';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
 import { TrpcCoreModule } from '../trpc/trpc-core.module';
 import { TicketsRouter } from './tickets.router';
+import { TarefasModule } from '../tarefas/tarefas.module';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => AutomationModule), TrpcCoreModule],
+  imports: [PrismaModule, forwardRef(() => AutomationModule), TrpcCoreModule, forwardRef(() => TarefasModule)],
   controllers: [TicketsController],
   providers: [TicketsService, TicketHistoryService, R2StorageService, TicketsRouter],
   exports: [TicketsService, TicketsRouter],

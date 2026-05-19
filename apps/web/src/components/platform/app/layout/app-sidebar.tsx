@@ -64,7 +64,7 @@ export interface NavigationAccess {
   users: boolean
   contacts: boolean
   tickets: boolean
-  rotinasMensais: boolean
+  tarefas: boolean
   atendimento: boolean
   infrastructure: boolean
   remote: boolean
@@ -91,7 +91,7 @@ const NAV_CADASTROS: NavItemType[] = [
 
 const NAV_SUPPORT: NavItemType[] = [
   { title: "Tickets", href: "/portal/tickets", icon: Ticket },
-  { title: "Rotinas Mensais", href: "/portal/rotinas-mensais", icon: CalendarRange },
+  { title: "Tarefas", href: "/portal/tarefas", icon: CalendarRange },
   { title: "Atendimento", href: "/portal/atendimento", icon: MessagesSquare, newTab: true },
   { title: "Infraestrutura", href: "/portal/infraestrutura", icon: Monitor },
 ]
@@ -295,7 +295,7 @@ export function AppSidebar({ user, mobile = false, onClose, collapsed = false, n
   })
   const supportItems = filterByAccess(supportNavItems, {
     "/portal/tickets": navigationAccess?.tickets,
-    "/portal/rotinas-mensais": navigationAccess?.rotinasMensais,
+    "/portal/tarefas": navigationAccess?.tarefas,
     "/portal/atendimento": navigationAccess?.atendimento,
     "/portal/infraestrutura": navigationAccess?.infrastructure,
   })

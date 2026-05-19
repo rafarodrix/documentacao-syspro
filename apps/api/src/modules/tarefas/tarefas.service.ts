@@ -1,24 +1,26 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type {
-  MonthlyRoutineCompanyConfigUpsertInput,
-  MonthlyRoutineCompanyConfigView,
-  MonthlyRoutineCompanyItem,
-  MonthlyRoutineCompetencyItem,
-  MonthlyRoutineExecutionStatus,
-  MonthlyRoutineHistoryItem,
-  MonthlyRoutineCompetencyListQuery,
-  MonthlyRoutineCompetencyListResponse,
-  MonthlyRoutineContactOption,
-  MonthlyRoutineListQuery,
-  MonthlyRoutineListResponse,
-  MonthlyRoutineSendManualRequestInput,
-  MonthlyRoutineSendManualRequestResult,
-  MonthlyRoutineSyncCompetenciesInput,
-  MonthlyRoutineSyncCompetenciesResult,
-  MonthlyRoutineUpdateCompetencyStatusInput,
-  MonthlyRoutineUpdateCompetencyStatusResult,
-} from '@dosc-syspro/contracts/rotinas-mensais';
+  TaskConfigUpsertInput,
+  TaskConfigView,
+  TaskCompanyItem,
+  TaskItem,
+  TaskStatus,
+  TaskHistoryItem,
+  TaskItemListQuery,
+  TaskItemListResponse,
+  TaskContactOption,
+  TaskListQuery,
+  TaskListResponse,
+  TaskSendManualRequestInput,
+  TaskSendManualRequestResult,
+  TaskSyncCompetenciesInput,
+  TaskSyncCompetenciesResult,
+  TaskUpdateStatusInput,
+  TaskUpdateStatusResult,
+  CreateTaskInput,
+  CreateTaskResult,
+} from '@dosc-syspro/contracts/tarefas';
 import {
   CompanyStatus,
 } from '@prisma/client';
@@ -29,9 +31,9 @@ import { EvolutionClient, EvolutionOutboundError } from '../integrations/evoluti
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
-import { RotinasMensaisSettingsService } from './rotinas-mensais-settings.service';
+import { TarefasSettingsService } from './tarefas-settings.service';
 
-const DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS = [
+const DEFAULT_TASK_REQUIRED_DOCUMENTS = [
   'Sintegra',
   'Livro de entrada',
   'Livro de saida',
@@ -42,11 +44,11 @@ const DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS = [
   'XML NF-e saida',
   'XML NF-e CT-e',
 ];
-const DEFAULT_MONTHLY_ROUTINE_DUE_DAY = 12;
+const DEFAULT_TASK_DUE_DAY = 12;
 
 @Injectable()
-export class RotinasMensaisService {
-  private readonly logger = new Logger(RotinasMensaisService.name);
+export class TarefasService {
+  private readonly logger = new Logger(TarefasService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,12 +57,12 @@ export class RotinasMensaisService {
     private readonly evolutionClient: EvolutionClient,
     private readonly automationSettingsService: AutomationSettingsService,
     private readonly automationWhatsappService: AutomationWhatsappService,
-    private readonly rotinasMensaisSettingsService: RotinasMensaisSettingsService,
+    private readonly tarefasSettingsService: TarefasSettingsService,
   ) {}
 
-  async list(input: MonthlyRoutineListQuery, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineListResponse> {
+  async list(input: TaskListQuery, rawHeaders?: IncomingHttpHeaders): Promise<TaskListResponse> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineViewScope(requester);
+    const scope = await this.resolveViewScope(requester);
     const { year, month } = this.resolveYearMonth();
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
@@ -123,7 +125,7 @@ export class RotinasMensaisService {
             nomeFantasia: true,
           },
         },
-        monthlyRoutineConfig: {
+        taskConfig: {
           select: {
             id: true,
             isActive: true,
@@ -145,9 +147,9 @@ export class RotinasMensaisService {
       orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
     });
 
-    const normalizedItems: MonthlyRoutineCompanyItem[] = companies.map((company: any) => this.toRoutineItem(company));
+    const normalizedItems: TaskCompanyItem[] = companies.map((company: any) => this.toCompanyItem(company));
     const filteredItems = statusFilter
-      ? normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === statusFilter)
+      ? normalizedItems.filter((item: TaskCompanyItem) => item.candidateStatus === statusFilter)
       : normalizedItems;
     const total = filteredItems.length;
     const start = (page - 1) * pageSize;
@@ -158,21 +160,21 @@ export class RotinasMensaisService {
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
         totalCompanies: normalizedItems.length,
-        withAccountingFirm: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => Boolean(item.accountingFirmId)).length,
-        readyToConfigure: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === 'READY_TO_CONFIGURE').length,
-        missingAccountingFirm: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === 'NO_ACCOUNTING_FIRM').length,
-        missingPrimaryContact: normalizedItems.filter((item: MonthlyRoutineCompanyItem) => item.candidateStatus === 'NO_PRIMARY_CONTACT').length,
+        withAccountingFirm: normalizedItems.filter((item: TaskCompanyItem) => Boolean(item.accountingFirmId)).length,
+        readyToConfigure: normalizedItems.filter((item: TaskCompanyItem) => item.candidateStatus === 'READY_TO_CONFIGURE').length,
+        missingAccountingFirm: normalizedItems.filter((item: TaskCompanyItem) => item.candidateStatus === 'NO_ACCOUNTING_FIRM').length,
+        missingPrimaryContact: normalizedItems.filter((item: TaskCompanyItem) => item.candidateStatus === 'NO_PRIMARY_CONTACT').length,
       },
     };
   }
 
-  async getCompanyConfig(companyId: string, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineCompanyConfigView> {
+  async getCompanyConfig(companyId: string, rawHeaders?: IncomingHttpHeaders): Promise<TaskConfigView> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineViewScope(requester);
+    const scope = await this.resolveViewScope(requester);
     await this.assertCompanyInScope(companyId, scope);
 
-    const company = await this.getCompanyRoutineContext(companyId);
-    const configModel = (this.prisma as any).monthlyRoutineConfig;
+    const company = await this.getCompanyContext(companyId);
+    const configModel = (this.prisma as any).taskConfig;
     const existingConfig = await configModel.findUnique({
       where: { companyId },
     });
@@ -189,7 +191,7 @@ export class RotinasMensaisService {
         companyId,
         isActive: existingConfig?.isActive ?? false,
         title: existingConfig?.title ?? 'Envio mensal contabil',
-        dueDay: existingConfig?.dueDay ?? DEFAULT_MONTHLY_ROUTINE_DUE_DAY,
+        dueDay: existingConfig?.dueDay ?? DEFAULT_TASK_DUE_DAY,
         reminderDays: existingConfig?.reminderDays ?? 3,
         clientContactId: existingConfig?.clientContactId ?? null,
         accountingContactId: existingConfig?.accountingContactId ?? null,
@@ -201,12 +203,12 @@ export class RotinasMensaisService {
     };
   }
 
-  async upsertCompanyConfig(input: MonthlyRoutineCompanyConfigUpsertInput, rawHeaders?: IncomingHttpHeaders): Promise<{ success: boolean; message: string }> {
+  async upsertCompanyConfig(input: TaskConfigUpsertInput, rawHeaders?: IncomingHttpHeaders): Promise<{ success: boolean; message: string }> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineManageScope(requester);
+    const scope = await this.resolveManageScope(requester);
     await this.assertCompanyInScope(input.companyId, scope);
 
-    const company = await this.getCompanyRoutineContext(input.companyId);
+    const company = await this.getCompanyContext(input.companyId);
     const clientContactId = this.normalizeOptionalString(input.data.clientContactId);
     const accountingContactId = this.normalizeOptionalString(input.data.accountingContactId);
 
@@ -228,7 +230,7 @@ export class RotinasMensaisService {
       }
     }
 
-    const configModel = (this.prisma as any).monthlyRoutineConfig;
+    const configModel = (this.prisma as any).taskConfig;
     await configModel.upsert({
       where: { companyId: input.companyId },
       create: {
@@ -257,74 +259,157 @@ export class RotinasMensaisService {
     if (input.data.isActive) {
       const { year, month } = this.resolveYearMonth();
       await this.ensureCompetenciesForScope(
-        {
-          isGlobal: false,
-          companyIds: [input.companyId],
-        },
+        { isGlobal: false, companyIds: [input.companyId] },
         year,
         month,
       );
     }
 
+    return { success: true, message: 'Configuração da rotina mensal salva com sucesso.' };
+  }
+
+  async createTask(input: CreateTaskInput, rawHeaders?: IncomingHttpHeaders): Promise<CreateTaskResult> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const scope = await this.resolveManageScope(requester);
+    await this.assertCompanyInScope(input.companyId, scope);
+
+    const taskModel = (this.prisma as any).task;
+
+    const task = await taskModel.create({
+      data: {
+        type: 'TAREFA',
+        companyId: input.companyId,
+        title: input.title.trim(),
+        description: this.normalizeOptionalString(input.description),
+        dueDate: new Date(input.dueDate),
+        clientContactId: this.normalizeOptionalString(input.clientContactId),
+        assignedToId: this.normalizeOptionalString(input.assignedToId),
+        requiredDocuments: input.requiredDocuments,
+        notes: this.normalizeOptionalString(input.notes),
+        status: 'PENDING',
+      },
+      include: this.getTaskListInclude(),
+    });
+
+    await this.createHistoryEntry({
+      taskId: task.id,
+      authorUserId: requester.userId,
+      type: 'TASK_CREATED',
+      title: 'Tarefa criada manualmente',
+      description: input.description ?? null,
+      metadata: { source: 'manual' },
+    });
+
     return {
       success: true,
-      message: 'Configuração da rotina mensal salva com sucesso.',
+      message: 'Tarefa criada com sucesso.',
+      task: this.toTaskItem(task),
     };
   }
 
-  async listCompetencies(
-    input: MonthlyRoutineCompetencyListQuery,
+  async createFromTicket(ticket: {
+    id: string;
+    subject: string | null;
+    companyId: string | null;
+    assignedUserId: string | null;
+  }): Promise<void> {
+    if (!ticket.companyId) return;
+
+    const settings = await this.tarefasSettingsService.readModuleSettings();
+    if (!settings.autoCreateOnTicketResolved) return;
+
+    const taskModel = (this.prisma as any).task;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + settings.autoTaskDueDays);
+
+    const title = settings.autoTaskTitle
+      .replace('{ticket_subject}', ticket.subject ?? 'Atendimento')
+      .replace('{company_name}', ticket.companyId);
+
+    await taskModel.create({
+      data: {
+        type: 'TAREFA',
+        companyId: ticket.companyId,
+        title,
+        ticketId: ticket.id,
+        assignedToId: settings.autoTaskAssignToTicketOwner ? (ticket.assignedUserId ?? null) : null,
+        dueDate,
+        status: 'PENDING',
+        requiredDocuments: [],
+      },
+    });
+
+    this.logger.log(`[ticket] tarefa criada automaticamente para ticket ${ticket.id} — empresa ${ticket.companyId}`);
+  }
+
+  async listTasks(
+    input: TaskItemListQuery,
     rawHeaders?: IncomingHttpHeaders,
-  ): Promise<MonthlyRoutineCompetencyListResponse> {
+  ): Promise<TaskItemListResponse> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineViewScope(requester);
+    const scope = await this.resolveViewScope(requester);
     const { year, month } = this.resolveYearMonth(input.year, input.month);
 
-    const statusFilter = input.status && input.status !== 'ALL' ? (input.status as MonthlyRoutineExecutionStatus) : undefined;
+    const statusFilter = input.status && input.status !== 'ALL' ? (input.status as TaskStatus) : undefined;
+    const typeFilter = input.type && input.type !== 'ALL' ? input.type : undefined;
     const search = input.search?.trim().toLowerCase();
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const taskModel = (this.prisma as any).task;
     const scopeWhere = scope.isGlobal ? {} : { companyId: { in: scope.companyIds } };
 
-    // Lightweight inline overdue marking: PENDING → OVERDUE when dueDate has passed.
-    // Full overdue processing (WAITING_CUSTOMER timeout, notifications) runs via job.
-    const overdueWhere = { year, month, status: 'PENDING', dueDate: { lt: new Date() }, ...scopeWhere };
-    const overdueToMark: Array<{ id: string }> = await competencyModel.findMany({
-      where: overdueWhere,
-      select: { id: true },
-    });
+    const isMonthlyFilter = !typeFilter || typeFilter === 'ROTINA_MENSAL';
 
-    if (overdueToMark.length > 0) {
-      await competencyModel.updateMany({ where: overdueWhere, data: { status: 'OVERDUE' } });
-      await Promise.all(
-        overdueToMark.map((record: { id: string }) =>
-          this.createHistoryEntry({
-            competencyId: record.id,
-            type: 'AUTO_OVERDUE',
-            fromStatus: 'PENDING',
-            toStatus: 'OVERDUE',
-            title: 'Rotina marcada como atrasada automaticamente',
-            description: 'A data de vencimento passou sem que os documentos fossem recebidos.',
-            metadata: { rule: 'inline_overdue_check' },
-          }),
-        ),
-      );
+    // Lightweight inline overdue marking for ROTINA_MENSAL
+    if (isMonthlyFilter) {
+      const overdueWhere = { year, month, type: 'ROTINA_MENSAL', status: 'PENDING', dueDate: { lt: new Date() }, ...scopeWhere };
+      const overdueToMark: Array<{ id: string }> = await taskModel.findMany({
+        where: overdueWhere,
+        select: { id: true },
+      });
+
+      if (overdueToMark.length > 0) {
+        await taskModel.updateMany({ where: overdueWhere, data: { status: 'OVERDUE' } });
+        await Promise.all(
+          overdueToMark.map((record: { id: string }) =>
+            this.createHistoryEntry({
+              taskId: record.id,
+              type: 'AUTO_OVERDUE',
+              fromStatus: 'PENDING',
+              toStatus: 'OVERDUE',
+              title: 'Tarefa marcada como atrasada automaticamente',
+              description: 'A data de vencimento passou sem que os documentos fossem recebidos.',
+              metadata: { rule: 'inline_overdue_check' },
+            }),
+          ),
+        );
+      }
     }
 
-    const records = await competencyModel.findMany({
-      where: { year, month, ...scopeWhere },
-      include: this.getCompetencyListInclude(),
+    const listWhere: any = {
+      ...(typeFilter ? { type: typeFilter } : {}),
+      ...(isMonthlyFilter && !typeFilter ? {} : {}),
+      ...scopeWhere,
+    };
+
+    if (typeFilter === 'ROTINA_MENSAL' || !typeFilter) {
+      // include monthly tasks filtered by year/month when no type or ROTINA_MENSAL selected
+    }
+
+    const records = await taskModel.findMany({
+      where: listWhere,
+      include: this.getTaskListInclude(),
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
     });
 
-    const normalizedItems: MonthlyRoutineCompetencyItem[] = records.map((record: any) => this.toCompetencyItem(record));
+    const normalizedItems: TaskItem[] = records.map((record: any) => this.toTaskItem(record));
     const searchedItems = search
-      ? normalizedItems.filter((item: MonthlyRoutineCompetencyItem) =>
+      ? normalizedItems.filter((item: TaskItem) =>
           [
             item.companyName,
             item.accountingFirmName ?? '',
             item.title,
+            item.description ?? '',
             item.clientContactName ?? '',
             item.accountingContactName ?? '',
             item.lastManualRequestContactName ?? '',
@@ -335,7 +420,7 @@ export class RotinasMensaisService {
         )
       : normalizedItems;
     const filteredItems = statusFilter
-      ? searchedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === statusFilter)
+      ? searchedItems.filter((item: TaskItem) => item.status === statusFilter)
       : searchedItems;
     const total = filteredItems.length;
     const start = (page - 1) * pageSize;
@@ -346,43 +431,43 @@ export class RotinasMensaisService {
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
         total: normalizedItems.length,
-        pending: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'PENDING').length,
-        waitingCustomer: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'WAITING_CUSTOMER').length,
-        received: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'RECEIVED').length,
-        sentToAccounting: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'SENT_TO_ACCOUNTING').length,
-        completed: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'COMPLETED').length,
-        overdue: normalizedItems.filter((item: MonthlyRoutineCompetencyItem) => item.status === 'OVERDUE').length,
+        pending: normalizedItems.filter((item: TaskItem) => item.status === 'PENDING').length,
+        waitingCustomer: normalizedItems.filter((item: TaskItem) => item.status === 'WAITING_CUSTOMER').length,
+        received: normalizedItems.filter((item: TaskItem) => item.status === 'RECEIVED').length,
+        sentToAccounting: normalizedItems.filter((item: TaskItem) => item.status === 'SENT_TO_ACCOUNTING').length,
+        completed: normalizedItems.filter((item: TaskItem) => item.status === 'COMPLETED').length,
+        overdue: normalizedItems.filter((item: TaskItem) => item.status === 'OVERDUE').length,
       },
-      year,
-      month,
+      year: typeFilter === 'TAREFA' ? null : year,
+      month: typeFilter === 'TAREFA' ? null : month,
     };
   }
 
-  async getCompetency(id: string, rawHeaders?: IncomingHttpHeaders): Promise<MonthlyRoutineCompetencyItem> {
+  async getTask(id: string, rawHeaders?: IncomingHttpHeaders): Promise<TaskItem> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineViewScope(requester);
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const scope = await this.resolveViewScope(requester);
+    const taskModel = (this.prisma as any).task;
 
-    const record = await competencyModel.findFirst({
+    const record = await taskModel.findFirst({
       where: { id },
-      include: this.getCompetencyDetailInclude(),
+      include: this.getTaskDetailInclude(),
     });
 
     if (!record) {
-      throw new BadRequestException('Competência da rotina mensal não encontrada.');
+      throw new BadRequestException('Tarefa não encontrada.');
     }
 
     await this.assertCompanyInScope(record.companyId, scope);
 
-    return this.toCompetencyItem(record);
+    return this.toTaskItem(record);
   }
 
   async syncCompetencies(
-    input: MonthlyRoutineSyncCompetenciesInput,
+    input: TaskSyncCompetenciesInput,
     rawHeaders?: IncomingHttpHeaders,
-  ): Promise<MonthlyRoutineSyncCompetenciesResult> {
+  ): Promise<TaskSyncCompetenciesResult> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineManageScope(requester);
+    const scope = await this.resolveManageScope(requester);
     const { year, month } = this.resolveYearMonth(
       input.year ? String(input.year) : undefined,
       input.month ? String(input.month) : undefined,
@@ -400,16 +485,16 @@ export class RotinasMensaisService {
   }
 
   async sendManualRequest(
-    input: MonthlyRoutineSendManualRequestInput,
+    input: TaskSendManualRequestInput,
     rawHeaders?: IncomingHttpHeaders,
-  ): Promise<MonthlyRoutineSendManualRequestResult> {
+  ): Promise<TaskSendManualRequestResult> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineManageScope(requester);
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
-    const requestModel = (this.prisma as any).monthlyRoutineRequest;
+    const scope = await this.resolveManageScope(requester);
+    const taskModel = (this.prisma as any).task;
+    const requestModel = (this.prisma as any).taskRequest;
 
-    const competency = await competencyModel.findFirst({
-      where: { id: input.competencyId },
+    const task = await taskModel.findFirst({
+      where: { id: input.taskId },
       include: {
         company: {
           select: {
@@ -420,34 +505,25 @@ export class RotinasMensaisService {
               select: {
                 isPrimary: true,
                 contact: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    phone: true,
-                    whatsapp: true,
-                  },
+                  select: { id: true, name: true, email: true, phone: true, whatsapp: true },
                 },
               },
             },
           },
         },
         config: {
-          select: {
-            title: true,
-            requiredDocuments: true,
-          },
+          select: { title: true, requiredDocuments: true },
         },
       },
     });
 
-    if (!competency) {
-      throw new BadRequestException('Competência da rotina mensal não encontrada.');
+    if (!task) {
+      throw new BadRequestException('Tarefa não encontrada.');
     }
 
-    await this.assertCompanyInScope(competency.companyId, scope);
+    await this.assertCompanyInScope(task.companyId, scope);
 
-    const availableContacts = this.toContactOptions(competency.company?.contactLinks ?? []);
+    const availableContacts = this.toContactOptions(task.company?.contactLinks ?? []);
     const selectedContact = availableContacts.find((contact) => contact.id === input.contactId);
     if (!selectedContact) {
       throw new BadRequestException('O contato selecionado não pertence a esta empresa.');
@@ -460,34 +536,29 @@ export class RotinasMensaisService {
 
     const message = input.message?.trim() || this.buildDefaultManualRequestMessage({
       contactName: selectedContact.name,
-      companyName: competency.company?.nomeFantasia || competency.company?.razaoSocial || 'empresa',
-      title: competency.config?.title || 'Rotina mensal',
-      year: competency.year,
-      month: competency.month,
-      requiredDocuments: this.normalizeRequiredDocuments(competency.config?.requiredDocuments),
+      companyName: task.company?.nomeFantasia || task.company?.razaoSocial || 'empresa',
+      title: task.config?.title || task.title || 'Tarefa',
+      year: task.year ?? new Date().getFullYear(),
+      month: task.month ?? new Date().getMonth() + 1,
+      requiredDocuments: this.normalizeRequiredDocuments(task.config?.requiredDocuments ?? task.requiredDocuments),
       template: input.template,
     });
 
-    // Resolve Evolution context scoped to this company for correct instance selection.
-    const contexts = await this.integrationContext.listActiveContexts({ companyIds: [competency.companyId] });
+    const contexts = await this.integrationContext.listActiveContexts({ companyIds: [task.companyId] });
     const context = contexts[0] ?? null;
     if (!context) {
       throw new BadRequestException('Nenhuma conexão Evolution ativa encontrada para realizar o disparo.');
     }
 
-    const nextAttemptNumber = (await requestModel.count({
-      where: {
-        competencyId: competency.id,
-      },
-    })) + 1;
+    const nextAttemptNumber = (await requestModel.count({ where: { taskId: task.id } })) + 1;
 
     try {
       const sendResult = await this.evolutionClient.sendTextMessage(context.evolution, targetPhone, message);
       const now = new Date();
       const requestRecord = await requestModel.create({
         data: {
-          competencyId: competency.id,
-          companyId: competency.companyId,
+          taskId: task.id,
+          companyId: task.companyId,
           contactId: selectedContact.id,
           requestedByUserId: requester.userId,
           attemptNumber: nextAttemptNumber,
@@ -502,34 +573,23 @@ export class RotinasMensaisService {
         },
         include: this.getManualRequestInclude(),
       });
+
       await this.createHistoryEntry({
-        competencyId: competency.id,
+        taskId: task.id,
         authorUserId: requester.userId,
         type: 'MANUAL_REQUEST_SENT',
-        fromStatus: competency.status as MonthlyRoutineExecutionStatus,
-        toStatus:
-          competency.status === 'PENDING' || competency.status === 'OVERDUE'
-            ? 'WAITING_CUSTOMER'
-            : (competency.status as MonthlyRoutineExecutionStatus),
+        fromStatus: task.status as TaskStatus,
+        toStatus: task.status === 'PENDING' || task.status === 'OVERDUE' ? 'WAITING_CUSTOMER' : (task.status as TaskStatus),
         title: `Solicitação enviada para ${selectedContact.name}`,
         description: message,
-        metadata: {
-          requestId: requestRecord.id,
-          attemptNumber: nextAttemptNumber,
-          contactId: selectedContact.id,
-          targetPhone,
-          template: input.template ?? null,
-        },
+        metadata: { requestId: requestRecord.id, attemptNumber: nextAttemptNumber, contactId: selectedContact.id, targetPhone, template: input.template ?? null },
       });
 
-      await competencyModel.update({
-        where: { id: competency.id },
+      await taskModel.update({
+        where: { id: task.id },
         data: {
           requestedAt: now,
-          status:
-            competency.status === 'PENDING' || competency.status === 'OVERDUE'
-              ? 'WAITING_CUSTOMER'
-              : competency.status,
+          status: task.status === 'PENDING' || task.status === 'OVERDUE' ? 'WAITING_CUSTOMER' : task.status,
         },
       });
 
@@ -542,8 +602,8 @@ export class RotinasMensaisService {
       const now = new Date();
       await requestModel.create({
         data: {
-          competencyId: competency.id,
-          companyId: competency.companyId,
+          taskId: task.id,
+          companyId: task.companyId,
           contactId: selectedContact.id,
           requestedByUserId: requester.userId,
           attemptNumber: nextAttemptNumber,
@@ -569,98 +629,81 @@ export class RotinasMensaisService {
     }
   }
 
-  async updateCompetencyStatus(
-    input: MonthlyRoutineUpdateCompetencyStatusInput,
+  async updateTaskStatus(
+    input: TaskUpdateStatusInput,
     rawHeaders?: IncomingHttpHeaders,
-  ): Promise<MonthlyRoutineUpdateCompetencyStatusResult> {
+  ): Promise<TaskUpdateStatusResult> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const scope = await this.resolveRoutineManageScope(requester);
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const scope = await this.resolveManageScope(requester);
+    const taskModel = (this.prisma as any).task;
 
-    const existing = await competencyModel.findFirst({
-      where: { id: input.competencyId },
-      include: this.getCompetencyListInclude(),
+    const existing = await taskModel.findFirst({
+      where: { id: input.taskId },
+      include: this.getTaskListInclude(),
     });
 
     if (!existing) {
-      throw new BadRequestException('Competência da rotina mensal não encontrada.');
+      throw new BadRequestException('Tarefa não encontrada.');
     }
 
     await this.assertCompanyInScope(existing.companyId, scope);
 
-    const nextStatus = input.status as MonthlyRoutineExecutionStatus;
-    const previousStatus = existing.status as MonthlyRoutineExecutionStatus;
+    const nextStatus = input.status as TaskStatus;
+    const previousStatus = existing.status as TaskStatus;
     const notes = this.normalizeOptionalString(input.notes);
 
     if (previousStatus === 'CANCELED') {
-      throw new BadRequestException('Uma competência cancelada não pode ter seu status alterado.');
+      throw new BadRequestException('Uma tarefa cancelada não pode ter seu status alterado.');
     }
     if (nextStatus === previousStatus) {
-      throw new BadRequestException(`A competência já está com status "${this.getStatusLabel(previousStatus)}".`);
+      throw new BadRequestException(`A tarefa já está com status "${this.getStatusLabel(previousStatus)}".`);
     }
     if (nextStatus === 'CANCELED') {
-      const cancelableFrom: ReadonlyArray<MonthlyRoutineExecutionStatus> = ['PENDING', 'OVERDUE', 'WAITING_CUSTOMER', 'RECEIVED'];
+      const cancelableFrom: ReadonlyArray<TaskStatus> = ['PENDING', 'OVERDUE', 'WAITING_CUSTOMER', 'RECEIVED'];
       if (!cancelableFrom.includes(previousStatus)) {
         throw new BadRequestException(
-          `Não é possível cancelar uma competência com status "${this.getStatusLabel(previousStatus)}".`,
+          `Não é possível cancelar uma tarefa com status "${this.getStatusLabel(previousStatus)}".`,
         );
       }
     }
 
     const now = new Date();
-    const updateData: Record<string, unknown> = {
-      status: nextStatus,
-      notes,
-    };
+    const updateData: Record<string, unknown> = { status: nextStatus, notes };
 
-    if (nextStatus === 'WAITING_CUSTOMER' && !existing.requestedAt) {
-      updateData.requestedAt = now;
-    }
-    if (nextStatus === 'RECEIVED' && !existing.receivedAt) {
-      updateData.receivedAt = now;
-    }
-    if (nextStatus === 'SENT_TO_ACCOUNTING' && !existing.sentAt) {
-      updateData.sentAt = now;
-    }
-    if (nextStatus === 'COMPLETED' && !existing.completedAt) {
-      updateData.completedAt = now;
-    }
+    if (nextStatus === 'WAITING_CUSTOMER' && !existing.requestedAt) updateData.requestedAt = now;
+    if (nextStatus === 'RECEIVED' && !existing.receivedAt) updateData.receivedAt = now;
+    if (nextStatus === 'SENT_TO_ACCOUNTING' && !existing.sentAt) updateData.sentAt = now;
+    if (nextStatus === 'COMPLETED' && !existing.completedAt) updateData.completedAt = now;
 
-    await competencyModel.update({
-      where: { id: existing.id },
-      data: updateData,
-    });
+    await taskModel.update({ where: { id: existing.id }, data: updateData });
 
     await this.createHistoryEntry({
-      competencyId: existing.id,
+      taskId: existing.id,
       authorUserId: requester.userId,
       type: 'STATUS_CHANGED',
       fromStatus: previousStatus,
       toStatus: nextStatus,
       title: `Status alterado para ${this.getStatusLabel(nextStatus)}`,
       description: notes,
-      metadata: {
-        competencyId: existing.id,
-      },
+      metadata: { taskId: existing.id },
     });
 
-    const refreshed = await competencyModel.findFirst({
+    const refreshed = await taskModel.findFirst({
       where: { id: existing.id },
-      include: this.getCompetencyListInclude(),
+      include: this.getTaskListInclude(),
     });
 
     if (!refreshed) {
-      throw new BadRequestException('Competência atualizada, mas não foi possível recarregar os dados.');
+      throw new BadRequestException('Tarefa atualizada, mas não foi possível recarregar os dados.');
     }
 
     return {
       success: true,
-      message: 'Status da competência atualizado com sucesso.',
-      competency: this.toCompetencyItem(refreshed),
+      message: 'Status da tarefa atualizado com sucesso.',
+      task: this.toTaskItem(refreshed),
     };
   }
 
-  // Called by RotinasMensaisJobService on each tick.
   async runPeriodicJob(): Promise<void> {
     const { year, month } = this.resolveYearMonth();
     this.logger.log(`[job] iniciando ciclo periódico — competência ${String(month).padStart(2, '0')}/${year}`);
@@ -670,34 +713,20 @@ export class RotinasMensaisService {
     this.logger.log(`[job] ciclo periódico concluído — competência ${String(month).padStart(2, '0')}/${year}`);
   }
 
-  private toRoutineItem(company: {
+  private toCompanyItem(company: {
     id: string;
     razaoSocial: string;
     nomeFantasia: string | null;
     status: CompanyStatus;
     regimeTributario: string | null;
     accountingFirmId: string | null;
-    accountingFirm: {
-      id: string;
-      razaoSocial: string;
-      nomeFantasia: string | null;
-    } | null;
-    monthlyRoutineConfig?: {
-      id: string;
-      isActive: boolean;
-    } | null;
-    contactLinks: Array<{
-      isPrimary: boolean;
-      contact: {
-        id: string;
-        name: string;
-        email: string | null;
-      };
-    }>;
-  }): MonthlyRoutineCompanyItem {
+    accountingFirm: { id: string; razaoSocial: string; nomeFantasia: string | null } | null;
+    taskConfig?: { id: string; isActive: boolean } | null;
+    contactLinks: Array<{ isPrimary: boolean; contact: { id: string; name: string; email: string | null } }>;
+  }): TaskCompanyItem {
     const primaryContactLink = company.contactLinks.find((link) => link.isPrimary) ?? company.contactLinks[0] ?? null;
     const accountingFirmName = company.accountingFirm?.nomeFantasia || company.accountingFirm?.razaoSocial || null;
-    let candidateStatus: MonthlyRoutineCompanyItem['candidateStatus'] = 'READY_TO_CONFIGURE';
+    let candidateStatus: TaskCompanyItem['candidateStatus'] = 'READY_TO_CONFIGURE';
 
     if (!company.accountingFirmId) {
       candidateStatus = 'NO_ACCOUNTING_FIRM';
@@ -717,41 +746,41 @@ export class RotinasMensaisService {
       primaryContactName: primaryContactLink?.contact.name ?? null,
       primaryContactEmail: primaryContactLink?.contact.email ?? null,
       contactsCount: company.contactLinks.length,
-      routineConfigId: company.monthlyRoutineConfig?.id ?? null,
-      routineEnabled: company.monthlyRoutineConfig?.isActive ?? false,
+      routineConfigId: company.taskConfig?.id ?? null,
+      routineEnabled: company.taskConfig?.isActive ?? false,
       candidateStatus,
     };
   }
 
-  private async resolveRoutineViewScope(requester: Awaited<ReturnType<AuthorizationService['getRequester']>>) {
+  private async resolveViewScope(requester: Awaited<ReturnType<AuthorizationService['getRequester']>>) {
     const canView =
-      (await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:view', { acceptCompanyScope: true })) ||
-      (await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:view_all', { acceptCompanyScope: true })) ||
-      (await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:manage', { acceptCompanyScope: true }));
+      (await this.authorizationService.userHasPermission(requester, 'tarefas:view', { acceptCompanyScope: true })) ||
+      (await this.authorizationService.userHasPermission(requester, 'tarefas:view_all', { acceptCompanyScope: true })) ||
+      (await this.authorizationService.userHasPermission(requester, 'tarefas:manage', { acceptCompanyScope: true }));
 
     if (!canView) {
-      throw new ForbiddenException('Sem permissão para acessar rotinas mensais.');
+      throw new ForbiddenException('Sem permissão para acessar tarefas.');
     }
 
-    const canViewAll = await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:view_all');
+    const canViewAll = await this.authorizationService.userHasPermission(requester, 'tarefas:view_all');
     if (canViewAll) {
       return { isGlobal: true, companyIds: [] as string[] };
     }
 
-    const routineScope = await this.authorizationService.resolveCompanyAccessScope(
+    const taskScope = await this.authorizationService.resolveCompanyAccessScope(
       requester,
-      'rotinas_mensais:view',
-      'rotinas_mensais:view_all',
+      'tarefas:view',
+      'tarefas:view_all',
     );
 
-    if (routineScope.isGlobal || routineScope.companyIds.length > 0) {
-      return routineScope;
+    if (taskScope.isGlobal || taskScope.companyIds.length > 0) {
+      return taskScope;
     }
 
     const manageScope = await this.authorizationService.resolveCompanyAccessScope(
       requester,
-      'rotinas_mensais:manage',
-      'rotinas_mensais:view_all',
+      'tarefas:manage',
+      'tarefas:view_all',
     );
 
     if (manageScope.isGlobal || manageScope.companyIds.length > 0) {
@@ -759,42 +788,32 @@ export class RotinasMensaisService {
     }
 
     const fallbackCompanyIds = await this.authorizationService.getUserCompanyIds(requester);
-    return {
-      isGlobal: false,
-      companyIds: fallbackCompanyIds,
-    };
+    return { isGlobal: false, companyIds: fallbackCompanyIds };
   }
 
-  private async resolveRoutineManageScope(requester: Awaited<ReturnType<AuthorizationService['getRequester']>>) {
-    const canManage = await this.authorizationService.userHasPermission(requester, 'rotinas_mensais:manage', {
+  private async resolveManageScope(requester: Awaited<ReturnType<AuthorizationService['getRequester']>>) {
+    const canManage = await this.authorizationService.userHasPermission(requester, 'tarefas:manage', {
       acceptCompanyScope: true,
     });
 
     if (!canManage) {
-      throw new ForbiddenException('Sem permissão para gerenciar rotinas mensais.');
+      throw new ForbiddenException('Sem permissão para gerenciar tarefas.');
     }
 
-    return this.authorizationService.resolveCompanyAccessScope(
-      requester,
-      'rotinas_mensais:manage',
-      'rotinas_mensais:view_all',
-    );
+    return this.authorizationService.resolveCompanyAccessScope(requester, 'tarefas:manage', 'tarefas:view_all');
   }
 
   private async assertCompanyInScope(companyId: string, scope: { isGlobal: boolean; companyIds: string[] }) {
     if (scope.isGlobal) return;
     if (!scope.companyIds.includes(companyId)) {
-      throw new ForbiddenException('Empresa fora do escopo permitido para esta rotina mensal.');
+      throw new ForbiddenException('Empresa fora do escopo permitido para esta tarefa.');
     }
   }
 
-  private async getCompanyRoutineContext(companyId: string) {
+  private async getCompanyContext(companyId: string) {
     const companyModel = this.prisma.company as any;
     const company = await companyModel.findFirst({
-      where: {
-        id: companyId,
-        deletedAt: null,
-      },
+      where: { id: companyId, deletedAt: null },
       select: {
         id: true,
         razaoSocial: true,
@@ -809,13 +828,7 @@ export class RotinasMensaisService {
               select: {
                 isPrimary: true,
                 contact: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    phone: true,
-                    whatsapp: true,
-                  },
+                  select: { id: true, name: true, email: true, phone: true, whatsapp: true },
                 },
               },
             },
@@ -825,13 +838,7 @@ export class RotinasMensaisService {
           select: {
             isPrimary: true,
             contact: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                whatsapp: true,
-              },
+              select: { id: true, name: true, email: true, phone: true, whatsapp: true },
             },
           },
         },
@@ -839,18 +846,15 @@ export class RotinasMensaisService {
     });
 
     if (!company) {
-      throw new ForbiddenException('Empresa não encontrada para configurar rotina mensal.');
+      throw new ForbiddenException('Empresa não encontrada.');
     }
 
     return company;
   }
 
-  // Light include for list operations: one recent request for status display, no history.
-  private getCompetencyListInclude() {
+  private getTaskListInclude() {
     return {
-      _count: {
-        select: { requests: true },
-      },
+      _count: { select: { requests: true } },
       company: {
         select: {
           id: true,
@@ -860,13 +864,7 @@ export class RotinasMensaisService {
             select: {
               isPrimary: true,
               contact: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  phone: true,
-                  whatsapp: true,
-                },
+                select: { id: true, name: true, email: true, phone: true, whatsapp: true },
               },
             },
           },
@@ -878,30 +876,16 @@ export class RotinasMensaisService {
           title: true,
           notes: true,
           requiredDocuments: true,
-          clientContact: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          accountingContact: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+          clientContact: { select: { id: true, name: true } },
+          accountingContact: { select: { id: true, name: true } },
           company: {
             select: {
-              accountingFirm: {
-                select: {
-                  razaoSocial: true,
-                  nomeFantasia: true,
-                },
-              },
+              accountingFirm: { select: { razaoSocial: true, nomeFantasia: true } },
             },
           },
         },
       },
+      assignedTo: { select: { id: true, name: true } },
       requests: {
         include: this.getManualRequestInclude(),
         orderBy: [{ requestedAt: 'desc' }],
@@ -910,12 +894,9 @@ export class RotinasMensaisService {
     };
   }
 
-  // Full include for detail operations: all recent requests and history.
-  private getCompetencyDetailInclude() {
+  private getTaskDetailInclude() {
     return {
-      _count: {
-        select: { requests: true },
-      },
+      _count: { select: { requests: true } },
       company: {
         select: {
           id: true,
@@ -925,13 +906,7 @@ export class RotinasMensaisService {
             select: {
               isPrimary: true,
               contact: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  phone: true,
-                  whatsapp: true,
-                },
+                select: { id: true, name: true, email: true, phone: true, whatsapp: true },
               },
             },
           },
@@ -944,30 +919,16 @@ export class RotinasMensaisService {
           notes: true,
           requiredDocuments: true,
           reminderDays: true,
-          clientContact: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          accountingContact: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+          clientContact: { select: { id: true, name: true } },
+          accountingContact: { select: { id: true, name: true } },
           company: {
             select: {
-              accountingFirm: {
-                select: {
-                  razaoSocial: true,
-                  nomeFantasia: true,
-                },
-              },
+              accountingFirm: { select: { razaoSocial: true, nomeFantasia: true } },
             },
           },
         },
       },
+      assignedTo: { select: { id: true, name: true } },
       requests: {
         include: this.getManualRequestInclude(),
         orderBy: [{ requestedAt: 'desc' }],
@@ -975,12 +936,7 @@ export class RotinasMensaisService {
       },
       history: {
         include: {
-          authorUser: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
+          authorUser: { select: { name: true, email: true } },
         },
         orderBy: [{ occurredAt: 'desc' }],
         take: 20,
@@ -990,22 +946,12 @@ export class RotinasMensaisService {
 
   private getManualRequestInclude() {
     return {
-      contact: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      requestedByUser: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
+      contact: { select: { id: true, name: true } },
+      requestedByUser: { select: { name: true, email: true } },
     };
   }
 
-  private toContactOptions(contactLinks: Array<any>): MonthlyRoutineContactOption[] {
+  private toContactOptions(contactLinks: Array<any>): TaskContactOption[] {
     return contactLinks
       .map((link) => link.contact)
       .filter(Boolean)
@@ -1026,7 +972,7 @@ export class RotinasMensaisService {
 
   private getRequiredDocumentsOrDefault(value: unknown) {
     const normalized = this.normalizeRequiredDocuments(value);
-    return normalized.length > 0 ? normalized : DEFAULT_MONTHLY_ROUTINE_REQUIRED_DOCUMENTS;
+    return normalized.length > 0 ? normalized : DEFAULT_TASK_REQUIRED_DOCUMENTS;
   }
 
   private normalizeOptionalString(value: unknown) {
@@ -1041,16 +987,13 @@ export class RotinasMensaisService {
     const parsedMonth = Number(monthValue);
     return {
       year: Number.isFinite(parsedYear) && parsedYear >= 2000 ? Math.floor(parsedYear) : now.getFullYear(),
-      month:
-        Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
-          ? Math.floor(parsedMonth)
-          : now.getMonth() + 1,
+      month: Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? Math.floor(parsedMonth) : now.getMonth() + 1,
     };
   }
 
   async ensureCompetenciesForScope(scope: { isGlobal: boolean; companyIds: string[] }, year: number, month: number) {
-    const configModel = (this.prisma as any).monthlyRoutineConfig;
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const configModel = (this.prisma as any).taskConfig;
+    const taskModel = (this.prisma as any).task;
     const configs = await configModel.findMany({
       where: {
         isActive: true,
@@ -1060,13 +1003,7 @@ export class RotinasMensaisService {
           ...(scope.isGlobal ? {} : { id: { in: scope.companyIds } }),
         },
       },
-      include: {
-        company: {
-          select: {
-            id: true,
-          },
-        },
-      },
+      include: { company: { select: { id: true } } },
     });
 
     const lastDayOfMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
@@ -1075,35 +1012,29 @@ export class RotinasMensaisService {
       configs.map(async (config: any) => {
         const resolvedDueDay = Math.min(config.dueDay, lastDayOfMonth);
         const dueDate = new Date(Date.UTC(year, month - 1, resolvedDueDay, 12, 0, 0));
-        const existing = await competencyModel.findUnique({
-          where: {
-            configId_year_month: {
-              configId: config.id,
-              year,
-              month,
-            },
-          },
+        const existing = await taskModel.findUnique({
+          where: { configId_year_month: { configId: config.id, year, month } },
         });
 
         if (!existing) {
-          await competencyModel.create({
+          await taskModel.create({
             data: {
+              type: 'ROTINA_MENSAL',
               configId: config.id,
               companyId: config.companyId,
+              title: config.title || 'Rotina mensal',
               year,
               month,
               dueDate,
               status: dueDate < new Date() ? 'OVERDUE' : 'PENDING',
+              requiredDocuments: [],
             },
           });
           return { generated: 1, updated: 0 };
         }
 
         if (existing.dueDate?.getTime?.() !== dueDate.getTime()) {
-          await competencyModel.update({
-            where: { id: existing.id },
-            data: { dueDate },
-          });
+          await taskModel.update({ where: { id: existing.id }, data: { dueDate } });
           return { generated: 0, updated: 1 };
         }
 
@@ -1117,33 +1048,31 @@ export class RotinasMensaisService {
     );
 
     if (totals.generated > 0 || totals.updated > 0) {
-      this.logger.log(
-        `[sync] ensureCompetenciesForScope — geradas: ${totals.generated}, atualizadas: ${totals.updated}`,
-      );
+      this.logger.log(`[sync] ensureCompetenciesForScope — geradas: ${totals.generated}, atualizadas: ${totals.updated}`);
     }
 
     return totals;
   }
 
-  // Full overdue job: marks WAITING_CUSTOMER timeouts, creates history, sends notifications.
   private async runMarkOverdueJob(year: number, month: number): Promise<void> {
     this.logger.debug(`[job] runMarkOverdueJob — ${String(month).padStart(2, '0')}/${year}`);
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
+    const taskModel = (this.prisma as any).task;
     const now = new Date();
     const automationSettings = await this.automationSettingsService.readAutomationModuleSettings();
     const { waitingCustomerTimeoutEnabled, waitingCustomerTimeoutHours } = automationSettings.monthlyRoutines;
     const waitingCustomerThreshold = new Date(now.getTime() - waitingCustomerTimeoutHours * 60 * 60 * 1000);
 
     const waitingOverdueCandidates = waitingCustomerTimeoutEnabled
-      ? await competencyModel.findMany({
+      ? await taskModel.findMany({
           where: {
+            type: 'ROTINA_MENSAL',
             year,
             month,
             status: 'WAITING_CUSTOMER',
             dueDate: { lt: now },
             updatedAt: { lte: waitingCustomerThreshold },
           },
-          include: this.getCompetencyDetailInclude(),
+          include: this.getTaskDetailInclude(),
         })
       : [];
 
@@ -1151,34 +1080,29 @@ export class RotinasMensaisService {
       this.logger.debug('[job] runMarkOverdueJob — nenhum candidato para marcar como atrasado');
       return;
     }
-    this.logger.log(`[job] runMarkOverdueJob — marcando ${waitingOverdueCandidates.length} competência(s) como OVERDUE`);
+
+    this.logger.log(`[job] runMarkOverdueJob — marcando ${waitingOverdueCandidates.length} tarefa(s) como OVERDUE`);
 
     await Promise.all(
       waitingOverdueCandidates.map(async (record: any) => {
-        await competencyModel.update({
-          where: { id: record.id },
-          data: { status: 'OVERDUE' },
-        });
+        await taskModel.update({ where: { id: record.id }, data: { status: 'OVERDUE' } });
 
         await this.createHistoryEntry({
-          competencyId: record.id,
+          taskId: record.id,
           type: 'AUTO_OVERDUE',
           fromStatus: 'WAITING_CUSTOMER',
           toStatus: 'OVERDUE',
-          title: `Rotina voltou para Atrasado após ${waitingCustomerTimeoutHours}h aguardando cliente`,
-          description: 'A competência permaneceu aguardando cliente acima da janela automática configurada.',
-          metadata: {
-            rule: 'waiting_customer_timeout',
-            waitingCustomerTimeoutHours,
-          },
+          title: `Tarefa voltou para Atrasado após ${waitingCustomerTimeoutHours}h aguardando cliente`,
+          description: 'A tarefa permaneceu aguardando cliente acima da janela automática configurada.',
+          metadata: { rule: 'waiting_customer_timeout', waitingCustomerTimeoutHours },
         });
 
         await this.automationWhatsappService.sendMonthlyRoutineOverdueNotification({
           competencyId: record.id,
           companyId: record.companyId ?? null,
           companyName: record.company?.nomeFantasia || record.company?.razaoSocial || 'Empresa',
-          routineTitle: record.config?.title || 'Rotina mensal',
-          competencyLabel: `${String(record.month).padStart(2, '0')}/${record.year}`,
+          routineTitle: record.config?.title || record.title || 'Rotina mensal',
+          competencyLabel: record.year && record.month ? `${String(record.month).padStart(2, '0')}/${record.year}` : 'Tarefa',
           dueDate: record.dueDate.toLocaleDateString('pt-BR'),
           clientContactName: record.config?.clientContact?.name ?? null,
           timeoutHours: waitingCustomerTimeoutHours,
@@ -1187,12 +1111,11 @@ export class RotinasMensaisService {
     );
   }
 
-  // Sends automated reminders for PENDING competencies approaching their due date.
   private async runReminderJob(year: number, month: number): Promise<void> {
     this.logger.debug(`[job] runReminderJob — ${String(month).padStart(2, '0')}/${year}`);
-    const configModel = (this.prisma as any).monthlyRoutineConfig;
-    const competencyModel = (this.prisma as any).monthlyRoutineCompetency;
-    const historyModel = (this.prisma as any).monthlyRoutineHistory;
+    const configModel = (this.prisma as any).taskConfig;
+    const taskModel = (this.prisma as any).task;
+    const historyModel = (this.prisma as any).taskHistory;
 
     const now = new Date();
     const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -1204,33 +1127,25 @@ export class RotinasMensaisService {
         clientContactId: { not: null },
       },
       include: {
-        clientContact: {
-          select: { id: true, name: true, phone: true, whatsapp: true },
-        },
+        clientContact: { select: { id: true, name: true, phone: true, whatsapp: true } },
       },
     });
 
     await Promise.all(
       configs.map(async (config: any) => {
-        const competency = await competencyModel.findUnique({
+        const task = await taskModel.findUnique({
           where: { configId_year_month: { configId: config.id, year, month } },
-          include: {
-            company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
-          },
+          include: { company: { select: { id: true, razaoSocial: true, nomeFantasia: true } } },
         });
 
-        if (!competency || competency.status !== 'PENDING') return;
+        if (!task || task.status !== 'PENDING') return;
 
-        const reminderDate = new Date(competency.dueDate);
+        const reminderDate = new Date(task.dueDate);
         reminderDate.setUTCDate(reminderDate.getUTCDate() - config.reminderDays);
         if (now < reminderDate) return;
 
         const alreadySentToday = await historyModel.findFirst({
-          where: {
-            competencyId: competency.id,
-            type: 'AUTO_REMINDER',
-            occurredAt: { gte: todayStart },
-          },
+          where: { taskId: task.id, type: 'AUTO_REMINDER', occurredAt: { gte: todayStart } },
         });
         if (alreadySentToday) return;
 
@@ -1238,7 +1153,7 @@ export class RotinasMensaisService {
         const targetPhone = this.resolveContactOutboundPhone(contact);
         if (!targetPhone) return;
 
-        const companyName = competency.company?.nomeFantasia || competency.company?.razaoSocial || 'empresa';
+        const companyName = task.company?.nomeFantasia || task.company?.razaoSocial || 'empresa';
         const message = this.buildDefaultManualRequestMessage({
           contactName: contact.name,
           companyName,
@@ -1249,7 +1164,7 @@ export class RotinasMensaisService {
           template: 'FIRST_REMINDER',
         });
 
-        const contexts = await this.integrationContext.listActiveContexts({ companyIds: [competency.companyId] });
+        const contexts = await this.integrationContext.listActiveContexts({ companyIds: [task.companyId] });
         const context = contexts[0] ?? null;
         if (!context) return;
 
@@ -1260,7 +1175,7 @@ export class RotinasMensaisService {
         }
 
         await this.createHistoryEntry({
-          competencyId: competency.id,
+          taskId: task.id,
           type: 'AUTO_REMINDER',
           fromStatus: 'PENDING',
           toStatus: 'PENDING',
@@ -1272,7 +1187,7 @@ export class RotinasMensaisService {
     );
   }
 
-  private toCompetencyItem(record: any): MonthlyRoutineCompetencyItem {
+  private toTaskItem(record: any): TaskItem {
     const availableContacts = this.toContactOptions(record.company?.contactLinks ?? []);
     const manualRequests = Array.isArray(record.requests)
       ? record.requests.map((request: any) => this.toManualRequestItem(request))
@@ -1281,32 +1196,38 @@ export class RotinasMensaisService {
       ? record.history.map((entry: any) => this.toHistoryItem(entry))
       : [];
     const latestManualRequest = manualRequests[0] ?? null;
-    const requiredDocuments = this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments);
-    // Use _count from Prisma for total requests when only a subset is loaded.
+    const requiredDocuments = record.type === 'ROTINA_MENSAL'
+      ? this.getRequiredDocumentsOrDefault(record.config?.requiredDocuments)
+      : this.normalizeRequiredDocuments(record.requiredDocuments);
     const totalManualRequests = record._count?.requests ?? manualRequests.length;
 
     return {
       id: record.id,
-      configId: record.configId,
+      type: record.type ?? 'ROTINA_MENSAL',
+      configId: record.configId ?? null,
       companyId: record.companyId,
       companyName: record.company?.nomeFantasia || record.company?.razaoSocial || 'Empresa',
       accountingFirmName:
         record.config?.company?.accountingFirm?.nomeFantasia ||
         record.config?.company?.accountingFirm?.razaoSocial ||
         null,
-      title: record.config?.title || 'Rotina mensal',
-      year: record.year,
-      month: record.month,
+      title: record.title || record.config?.title || 'Tarefa',
+      description: record.description ?? null,
+      year: record.year ?? null,
+      month: record.month ?? null,
       status: record.status,
       dueDate: record.dueDate instanceof Date ? record.dueDate.toISOString() : String(record.dueDate),
       requestedAt: record.requestedAt instanceof Date ? record.requestedAt.toISOString() : null,
       receivedAt: record.receivedAt instanceof Date ? record.receivedAt.toISOString() : null,
       sentAt: record.sentAt instanceof Date ? record.sentAt.toISOString() : null,
       completedAt: record.completedAt instanceof Date ? record.completedAt.toISOString() : null,
-      clientContactId: record.config?.clientContact?.id ?? null,
+      clientContactId: record.config?.clientContact?.id ?? record.clientContactId ?? null,
       clientContactName: record.config?.clientContact?.name ?? null,
       accountingContactId: record.config?.accountingContact?.id ?? null,
       accountingContactName: record.config?.accountingContact?.name ?? null,
+      assignedToId: record.assignedTo?.id ?? null,
+      assignedToName: record.assignedTo?.name ?? null,
+      ticketId: record.ticketId ?? null,
       configNotes: record.config?.notes ?? null,
       requiredDocuments,
       requiredDocumentsCount: requiredDocuments.length,
@@ -1339,7 +1260,7 @@ export class RotinasMensaisService {
     };
   }
 
-  private toHistoryItem(record: any): MonthlyRoutineHistoryItem {
+  private toHistoryItem(record: any): TaskHistoryItem {
     return {
       id: record.id,
       type: record.type,
@@ -1353,19 +1274,19 @@ export class RotinasMensaisService {
   }
 
   private async createHistoryEntry(input: {
-    competencyId: string;
+    taskId: string;
     authorUserId?: string | null;
     type: string;
-    fromStatus?: MonthlyRoutineExecutionStatus | null;
-    toStatus?: MonthlyRoutineExecutionStatus | null;
+    fromStatus?: TaskStatus | null;
+    toStatus?: TaskStatus | null;
     title: string;
     description?: string | null;
     metadata?: unknown;
   }) {
-    const historyModel = (this.prisma as any).monthlyRoutineHistory;
+    const historyModel = (this.prisma as any).taskHistory;
     await historyModel.create({
       data: {
-        competencyId: input.competencyId,
+        taskId: input.taskId,
         authorUserId: input.authorUserId ?? null,
         type: input.type,
         fromStatus: input.fromStatus ?? null,
@@ -1377,28 +1298,20 @@ export class RotinasMensaisService {
     });
   }
 
-  private getStatusLabel(status: MonthlyRoutineExecutionStatus) {
+  private getStatusLabel(status: TaskStatus) {
     switch (status) {
-      case 'PENDING':
-        return 'Pendente';
-      case 'WAITING_CUSTOMER':
-        return 'Aguardando cliente';
-      case 'RECEIVED':
-        return 'Recebido';
-      case 'SENT_TO_ACCOUNTING':
-        return 'Enviado para contabilidade';
-      case 'COMPLETED':
-        return 'Concluído';
-      case 'OVERDUE':
-        return 'Atrasado';
-      case 'CANCELED':
-        return 'Cancelado';
-      default:
-        return status;
+      case 'PENDING': return 'Pendente';
+      case 'WAITING_CUSTOMER': return 'Aguardando cliente';
+      case 'RECEIVED': return 'Recebido';
+      case 'SENT_TO_ACCOUNTING': return 'Enviado para contabilidade';
+      case 'COMPLETED': return 'Concluído';
+      case 'OVERDUE': return 'Atrasado';
+      case 'CANCELED': return 'Cancelado';
+      default: return status;
     }
   }
 
-  private resolveContactOutboundPhone(contact: MonthlyRoutineContactOption) {
+  private resolveContactOutboundPhone(contact: TaskContactOption) {
     return this.normalizePhone(contact.whatsapp) || this.normalizePhone(contact.phone);
   }
 
@@ -1418,10 +1331,9 @@ export class RotinasMensaisService {
   }) {
     const firstName = String(input.contactName || '').trim().split(/\s+/)[0] || 'Tudo bem';
     const competence = `${String(input.month).padStart(2, '0')}/${input.year}`;
-    const checklist =
-      input.requiredDocuments.length > 0
-        ? ` Documentos esperados: ${input.requiredDocuments.join(', ')}.`
-        : '';
+    const checklist = input.requiredDocuments.length > 0
+      ? ` Documentos esperados: ${input.requiredDocuments.join(', ')}.`
+      : '';
     const template = input.template ?? 'REQUEST_CONFIRMATION';
 
     if (template === 'FIRST_REMINDER') {
