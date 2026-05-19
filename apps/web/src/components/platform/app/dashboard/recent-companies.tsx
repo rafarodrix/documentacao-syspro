@@ -60,7 +60,6 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
   return (
     <SectionCard
       title="Empresas recentes"
-      description="Ultimas empresas registradas no escopo atual."
       action={
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
           <Link href="/portal/cadastros">
@@ -77,7 +76,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
             icon={Building2}
             title="Nenhuma empresa recente"
             description="Os novos registros de empresa serao exibidos aqui."
-            className="h-full min-h-60"
+            className="h-full min-h-48"
             action={{ label: "Nova empresa", href: "/portal/cadastros" }}
           />
         ) : (
@@ -90,9 +89,9 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
                 <Link
                   key={company.id}
                   href={`/portal/cadastros/empresa?empresa=${company.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
+                  className="flex items-center gap-3 px-3 py-2 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
                 >
-                  <div className="h-9 w-9 rounded-lg bg-linear-to-br from-muted to-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground group-hover:border-border/80 transition-colors">
+                  <div className="h-8 w-8 rounded-md bg-linear-to-br from-muted to-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground group-hover:border-border/80 transition-colors">
                     {getInitials(company.nomeFantasia || company.razaoSocial)}
                   </div>
 

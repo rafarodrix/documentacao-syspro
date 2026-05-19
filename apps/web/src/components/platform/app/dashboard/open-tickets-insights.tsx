@@ -57,12 +57,6 @@ function getDefaultAreaFilter(scopeMode: TicketScopeMode): TicketArea {
   return "ALL";
 }
 
-function getScopeDescription(scopeMode: TicketScopeMode) {
-  if (scopeMode === "own") return "Distribuicao dos tickets abertos vinculados ao seu escopo atual.";
-  if (scopeMode === "development") return "Distribuicao dos tickets abertos atualmente na fila de desenvolvimento.";
-  return "Distribuicao dos tickets abertos no escopo operacional disponivel para este perfil.";
-}
-
 function getScopeTitle(scopeMode: TicketScopeMode) {
   if (scopeMode === "own") return "Distribuicao dos seus tickets";
   if (scopeMode === "development") return "Distribuicao da fila de desenvolvimento";
@@ -266,10 +260,9 @@ export function OpenTicketsInsights({
   return (
     <div className="space-y-3">
       {showScopeHeader ? (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card/40 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-4 py-2.5">
         <div className="space-y-1">
           <h3 className="text-base font-semibold text-foreground">{getScopeTitle(scopeMode)}</h3>
-          <p className="text-sm text-muted-foreground">{getScopeDescription(scopeMode)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {allowAreaFilter ? (
@@ -284,7 +277,7 @@ export function OpenTicketsInsights({
                   type="button"
                   onClick={() => setAreaFilter(value)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                     areaFilter === value
                       ? "border-primary/40 bg-primary/10 text-primary"
                       : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
@@ -316,7 +309,7 @@ export function OpenTicketsInsights({
                 setSelectedModule("");
                 setSelectedCategory("");
               }}
-              className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             >
               Limpar foco
             </button>
@@ -363,12 +356,12 @@ function BreakdownCard({
   const topItem = items[0];
 
   return (
-    <Card className="border-border/60 bg-card/70 shadow-sm">
+    <Card className="border-border/60 bg-card shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="text-sm">{title}</CardTitle>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {selectedLabel
                 ? `Filtro ativo: ${selectedLabel}`
                 : topItem
@@ -390,7 +383,7 @@ function BreakdownCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {hasData ? (
-          <div className="rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 px-2 py-3">
+          <div className="rounded-lg border border-border/50 bg-background px-2 py-3">
             <ReactApexChart
               type="bar"
               height={260}

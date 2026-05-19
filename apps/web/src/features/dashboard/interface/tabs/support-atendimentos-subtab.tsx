@@ -364,7 +364,6 @@ export function SupportAtendimentosSubtab() {
       <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard
           title="Saude do CSAT"
-          description="Indicadores principais de satisfacao."
           className="border-border/50 bg-card"
           contentClassName="space-y-3 text-sm"
         >
@@ -380,7 +379,6 @@ export function SupportAtendimentosSubtab() {
 
         <SectionCard
           title="Risco operacional"
-          description="Itens que merecem atencao."
           className="border-border/50 bg-card"
           contentClassName="space-y-3 text-sm"
         >
@@ -400,7 +398,6 @@ export function SupportAtendimentosSubtab() {
 
         <SectionCard
           title="Cobertura"
-          description="Quem esta sustentando a operacao."
           className="border-border/50 bg-card"
           contentClassName="space-y-3 text-sm"
         >
@@ -414,7 +411,6 @@ export function SupportAtendimentosSubtab() {
       <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard
           title="Status da fila"
-          description="Distribuicao dos atendimentos por status."
           className="border-border/50 bg-card xl:col-span-2"
           contentClassName="grid gap-3 lg:grid-cols-2"
         >
@@ -433,7 +429,6 @@ export function SupportAtendimentosSubtab() {
 
         <SectionCard
           title="Canais"
-          description="Origem dos atendimentos."
           className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
@@ -446,7 +441,6 @@ export function SupportAtendimentosSubtab() {
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
           title="Carga por atendente"
-          description="Quem esta com mais itens abertos ou aguardando."
           className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
@@ -461,7 +455,6 @@ export function SupportAtendimentosSubtab() {
 
         <SectionCard
           title="CSAT por atendente"
-          description="Respostas recebidas e concentracao de notas baixas."
           className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
@@ -483,7 +476,6 @@ export function SupportAtendimentosSubtab() {
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
           title="Distribuicao do CSAT"
-          description="Notas recebidas no periodo."
           className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
@@ -502,7 +494,6 @@ export function SupportAtendimentosSubtab() {
 
         <SectionCard
           title="Contatos mais recorrentes"
-          description="Quem mais acionou a operacao no recorte filtrado."
           className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >

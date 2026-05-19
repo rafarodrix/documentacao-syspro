@@ -68,7 +68,6 @@ export function RecentRecords({
   return (
     <SectionCard
       title={title}
-      description={description}
       action={
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground" asChild>
           <Link href={viewAllHref}>
@@ -85,7 +84,7 @@ export function RecentRecords({
             icon={Icon}
             title={emptyTitle}
             description={emptyDescription}
-            className="h-full min-h-60"
+            className="h-full min-h-48"
             action={createHref && createLabel ? { label: createLabel, href: createHref } : undefined}
           />
         ) : (
@@ -94,9 +93,9 @@ export function RecentRecords({
               <Link
                 key={item.id}
                 href={viewAllHref}
-                className="flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
+                className="flex items-center gap-3 px-3 py-2 -mx-1 rounded-lg hover:bg-muted/60 transition-colors group"
               >
-                <div className="h-9 w-9 rounded-lg bg-linear-to-br from-muted to-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground group-hover:border-border/80 transition-colors">
+                <div className="h-8 w-8 rounded-md bg-linear-to-br from-muted to-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground group-hover:border-border/80 transition-colors">
                   {getInitials(item.title)}
                 </div>
 

@@ -65,7 +65,7 @@ export function SefazStatusWidget({
     (nfceActive && Boolean(nfce?.status) && nfce?.status !== "ONLINE");
 
   return (
-    <Card className={cn("border-border/50 bg-card/70", hasDegradation && "border-amber-500/30")}>
+    <Card className={cn("border-border/50 bg-card", hasDegradation && "border-amber-500/30")}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Zap className="h-4 w-4 text-amber-500" />
@@ -131,7 +131,7 @@ function StatusRow({
             {!active ? "Desativado" : !latency || rawStatus === "OFFLINE" ? "Sem leitura" : `${latency}ms`}
           </p>
           {active && duration ? (
-            <p className="text-[10px] text-muted-foreground/70">há {duration}</p>
+            <p className="text-[10px] text-muted-foreground/70">ha {duration}</p>
           ) : null}
         </div>
       </div>
