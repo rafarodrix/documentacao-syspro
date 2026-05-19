@@ -29,7 +29,7 @@ export function ContextBadge({ children, tone }: { children: ReactNode; tone: "g
       : tone === "warn"
         ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
         : "border-border/60 bg-background text-muted-foreground";
-  return <Badge variant="outline" className={cn("h-6 rounded-full px-2.5 text-[11px] font-medium", className)}>{children}</Badge>;
+  return <Badge variant="outline" className={cn("h-5 rounded-full px-2 text-[10px] font-medium", className)}>{children}</Badge>;
 }
 
 export function InlineLoading({ label }: { label: string }) {
@@ -43,7 +43,7 @@ export function InlineLoading({ label }: { label: string }) {
 
 export function InlineWarning({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 shadow-sm dark:text-amber-300">
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 shadow-sm dark:text-amber-300">
       {message}
     </div>
   );
@@ -51,7 +51,7 @@ export function InlineWarning({ message }: { message: string }) {
 
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+    <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
       {label}
     </div>
   );
@@ -69,9 +69,9 @@ export function DetailItem({
   breakAll?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
+    <div className="rounded-lg border border-border/60 bg-background px-3 py-2">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 text-sm font-medium text-foreground", breakAll && "break-all")}>{value}</p>
+      <p className={cn("mt-1 text-sm font-medium leading-snug text-foreground", breakAll && "break-all")}>{value}</p>
       {helper ? <p className="mt-1 text-xs text-muted-foreground">{helper}</p> : null}
     </div>
   );
@@ -116,16 +116,16 @@ export function CompanyOperationalSettingsCard({
   const remoteConnections = Array.isArray(company.remoteConnections) ? company.remoteConnections : [];
 
   return (
-    <div className={cn("rounded-lg border px-3 py-3", isActive ? "border-primary/20 bg-primary/5" : "border-border/60 bg-card")}>
+    <div className={cn("rounded-xl border px-3 py-3", isActive ? "border-primary/15 bg-muted/20" : "border-border/60 bg-card")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">{getCompanyLabel(company)}</p>
           <p className="mt-1 text-xs text-muted-foreground">{company.razaoSocial}</p>
         </div>
-        <Badge variant="outline">{isActive ? "Em contexto" : "Vinculada"}</Badge>
+        <ContextBadge tone="neutral">{isActive ? "Em contexto" : "Vinculada"}</ContextBadge>
       </div>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <DetailItem label="Servidor" value={formatCompanyServerType(company.serverType)} helper={formatCompanyEndpoint(company)} />
         <DetailItem label="Instalacao" value={readString(company.installationDirectory) || "Nao informado"} breakAll />
         {company.serverType === "IIS" ? (
@@ -145,7 +145,7 @@ export function CompanyOperationalSettingsCard({
       </div>
 
       {readString(company.observacoes) ? (
-        <div className="mt-3 rounded-md border border-border/60 bg-background px-3 py-2">
+        <div className="mt-3 rounded-lg border border-border/60 bg-background px-3 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Observacoes</p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{readString(company.observacoes)}</p>
         </div>
@@ -154,7 +154,7 @@ export function CompanyOperationalSettingsCard({
       {remoteConnections.length > 0 ? (
         <div className="mt-3 space-y-2">
           {remoteConnections.map((connection, index) => (
-            <div key={`${company.id}-${connection.type}-${index}`} className="rounded-md border border-border/60 bg-background px-3 py-2">
+            <div key={`${company.id}-${connection.type}-${index}`} className="rounded-lg border border-border/60 bg-background px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {formatRemoteConnectionType(connection.type)}
               </p>

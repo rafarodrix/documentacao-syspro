@@ -50,31 +50,36 @@ export function ChatwootOverviewTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
         <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Headphones className="h-4 w-4 text-primary" />
               Contato
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-border/60 bg-card px-3 py-3">
-              <p className="text-base font-semibold text-foreground">{effectiveContactName || "Nao identificado"}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {portalContactMatch?.id ? `ID ${portalContactMatch.id} no portal` : "Ainda nao localizado no portal"}
-              </p>
+          <CardContent className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+              <DetailItem
+                label="Contato"
+                value={effectiveContactName || "Nao identificado"}
+                helper={portalContactMatch?.id ? `ID ${portalContactMatch.id} no portal` : "Ainda nao localizado no portal"}
+              />
+              <DetailItem
+                label="Portal"
+                value={portalContactMatch ? "Correspondencia encontrada" : "Sem correspondencia"}
+              />
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               <DetailItem label="Telefone" value={resolved.customerPhone || "Sem telefone"} />
               <DetailItem label="E-mail" value={resolved.customerEmail || "Sem e-mail"} breakAll />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={handleCopySummary}>
+              <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleCopySummary}>
                 Copiar resumo
               </Button>
               {contactEditHref ? (
-                <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Button asChild variant="ghost" size="sm" className="h-8 gap-1.5 px-3 text-xs">
                   <Link href={contactEditHref} target="_blank" rel="noreferrer">
                     <ArrowUpRight className="h-3.5 w-3.5" />
                     Editar contato
@@ -86,7 +91,7 @@ export function ChatwootOverviewTab() {
         </Card>
 
         <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Building2 className="h-4 w-4 text-primary" />
               Empresa ativa
@@ -95,29 +100,25 @@ export function ChatwootOverviewTab() {
           <CardContent className="space-y-3">
             {primaryCompany ? (
               <>
-                <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground">{getCompanyLabel(primaryCompany)}</p>
                       {primaryCompany.razaoSocial !== getCompanyLabel(primaryCompany) ? (
                         <p className="mt-0.5 text-xs text-muted-foreground">{primaryCompany.razaoSocial}</p>
                       ) : null}
                     </div>
-                    <DetailItem
-                      label="ID"
-                      value={primaryCompany.id}
-                      helper="Ativa nesta conversa"
-                    />
+                    <div className="min-w-[11rem] max-w-full">
+                      <DetailItem label="ID" value={primaryCompany.id} helper="Ativa nesta conversa" breakAll />
+                    </div>
                   </div>
 
                   {recommendedHost ? (
-                    <div className="mt-3 rounded-lg border border-border/60 bg-card px-3 py-3">
+                    <div className="mt-3 rounded-lg border border-border/60 bg-background px-3 py-2.5">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-foreground">{recommendedHost.name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Host recomendado para acesso remoto neste contexto.
-                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">Host recomendado neste contexto.</p>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           <RemoteHostStatusBadges host={recommendedHost} />
@@ -127,12 +128,7 @@ export function ChatwootOverviewTab() {
                   ) : null}
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Configuracoes operacionais
-                  </p>
-                  <CompanyOperationalSettingsCard company={primaryCompany} isActive />
-                </div>
+                <CompanyOperationalSettingsCard company={primaryCompany} isActive />
               </>
             ) : (
               <EmptyState label="Selecione uma empresa no topo do painel para carregar os dados operacionais desta conversa." />
@@ -143,7 +139,7 @@ export function ChatwootOverviewTab() {
 
       {shouldShowBindingWizard ? (
         <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Building2 className="h-4 w-4 text-amber-600" />
               Vincular empresa ao contato
@@ -183,7 +179,7 @@ export function ChatwootOverviewTab() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="shrink-0 gap-1.5"
+                          className="h-9 shrink-0 gap-1.5 px-3 text-xs"
                           onClick={handleSaveContactName}
                           disabled={
                             !contactNameDraft.trim() ||
@@ -295,7 +291,8 @@ export function ChatwootOverviewTab() {
               )}
               <Button
                 type="button"
-                className="gap-2"
+                size="sm"
+                className="h-9 gap-2 px-3 text-xs"
                 onClick={handleBindCompany}
                 disabled={!selectedCompanyOption || isBindingCompany}
               >

@@ -38,7 +38,7 @@ export function ChatwootInfrastructureTab() {
 
   return (
     <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 text-sm">
@@ -50,8 +50,8 @@ export function ChatwootInfrastructureTab() {
             type="button"
             variant="outline"
             size="sm"
+            className="h-8 px-3 text-xs"
             onClick={() => setHostReloadToken((current) => current + 1)}
-            className="shrink-0"
           >
             Atualizar
           </Button>
@@ -60,7 +60,7 @@ export function ChatwootInfrastructureTab() {
       <CardContent className="space-y-4">
         {/* Recommended host */}
         {canUseInfrastructure && recommendedHost ? (
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export function ChatwootInfrastructureTab() {
                 <Button
                   type="button"
                   size="sm"
-                  className="gap-1.5"
+                  className="h-8 gap-1.5 px-3 text-xs"
                   onClick={() => handleStartHostSession(recommendedHost)}
                   disabled={isStartingSession || !recommendedHost.agent.rustdeskId?.trim()}
                 >
@@ -89,7 +89,7 @@ export function ChatwootInfrastructureTab() {
                   ) : null}
                   Acessar
                 </Button>
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="h-8 px-3 text-xs">
                   <Link
                     href={`/portal/infraestrutura/hosts/${recommendedHost.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
                     target="_blank"
@@ -107,7 +107,13 @@ export function ChatwootInfrastructureTab() {
         {isLoadingHosts ? <InlineLoading label="Carregando hosts..." /> : null}
         {hostError ? <InlineWarning message={hostError} /> : null}
         {!isLoadingHosts && !hostError && !canUseInfrastructure ? (
-          <EmptyState label="Selecione a empresa em contexto no topo do painel para carregar os hosts corretos." />
+          <EmptyState
+            label={
+              needsContextSelection
+                ? "Escolha a empresa em contexto no topo do painel para listar os hosts corretos."
+                : "Selecione uma empresa em contexto para carregar os hosts desta conversa."
+            }
+          />
         ) : null}
         {!isLoadingHosts && !hostError && canUseInfrastructure && companyHosts.length === 0 ? (
           <EmptyState label="Nenhum host encontrado para esta empresa." />
@@ -120,7 +126,7 @@ export function ChatwootInfrastructureTab() {
               const operationalMeta = getRemoteOperationalStatusMeta(host.operationalStatus);
 
               return (
-                <div key={host.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5">
+                <div key={host.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{host.name}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -134,27 +140,28 @@ export function ChatwootInfrastructureTab() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStartHostSession(host)}
-                    disabled={isStartingSession || !host.agent.rustdeskId?.trim()}
-                  >
-                    {isStartingSession && startingHostId === host.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : null}
-                    Acessar
-                  </Button>
-                  <Button asChild variant="ghost" size="sm">
-                    <Link
-                      href={`/portal/infraestrutura/hosts/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
-                      target="_blank"
-                      rel="noreferrer"
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                      onClick={() => handleStartHostSession(host)}
+                      disabled={isStartingSession || !host.agent.rustdeskId?.trim()}
                     >
-                      Ver
-                    </Link>
-                  </Button>
+                      {isStartingSession && startingHostId === host.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : null}
+                      Acessar
+                    </Button>
+                    <Button asChild variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
+                      <Link
+                        href={`/portal/infraestrutura/hosts/${host.id}${resolved.ticketNumber ? `?ticketNumber=${encodeURIComponent(resolved.ticketNumber)}` : ""}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Portal
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               );
@@ -165,7 +172,7 @@ export function ChatwootInfrastructureTab() {
         <Button
           asChild
           variant="secondary"
-          className="mt-1 w-full gap-2"
+          className="mt-1 h-9 w-full gap-2 text-xs"
           disabled={!canUseInfrastructure}
         >
           <Link href={resolved.infrastructureHostsHref} target="_blank" rel="noreferrer">

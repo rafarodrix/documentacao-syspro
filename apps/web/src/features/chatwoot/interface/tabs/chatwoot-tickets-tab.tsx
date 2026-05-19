@@ -50,7 +50,7 @@ export function ChatwootTicketsTab() {
 
   return (
     <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 text-sm">
@@ -63,7 +63,7 @@ export function ChatwootTicketsTab() {
               type="button"
               variant={showEmbeddedTicketForm ? "secondary" : "default"}
               size="sm"
-              className="gap-1.5"
+              className="h-8 gap-1.5 px-3 text-xs"
               onClick={() => {
                 setShowEmbeddedTicketForm((current) => !current);
                 setActiveTab("tickets");
@@ -78,6 +78,7 @@ export function ChatwootTicketsTab() {
               type="button"
               variant="outline"
               size="sm"
+              className="h-8 px-3 text-xs"
               onClick={() => setTicketReloadToken((current) => current + 1)}
             >
               Atualizar
@@ -88,7 +89,7 @@ export function ChatwootTicketsTab() {
       <CardContent className="space-y-4">
         {/* Embedded ticket creation form */}
         {showEmbeddedTicketForm ? (
-          <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
             <form onSubmit={handleEmbeddedTicketSubmit}>
               <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_18rem]">
 
@@ -123,7 +124,7 @@ export function ChatwootTicketsTab() {
                 </div>
 
                 {/* Right — classification */}
-                <div className="space-y-3 border-t border-border/60 bg-muted/5 p-4 xl:border-t-0">
+                <div className="space-y-3 border-t border-border/60 bg-muted/10 p-4 xl:border-t-0">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     <Waypoints className="h-3.5 w-3.5" />
                     Classificacao
@@ -232,7 +233,7 @@ export function ChatwootTicketsTab() {
               ) : null}
 
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-4 py-3">
-                <Button asChild type="button" variant="ghost" size="sm">
+                <Button asChild type="button" variant="ghost" size="sm" className="h-8 px-3 text-xs">
                   <Link href={resolved.ticketHref} target="_blank" rel="noreferrer">
                     Tela completa
                   </Link>
@@ -241,6 +242,7 @@ export function ChatwootTicketsTab() {
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="h-8 px-3 text-xs"
                   onClick={() => {
                     setEmbeddedTicketForm((current) => ({ ...current, title: "", description: "" }));
                     setEmbeddedTicketFeedback(null);
@@ -248,7 +250,7 @@ export function ChatwootTicketsTab() {
                 >
                   Limpar
                 </Button>
-                <Button type="submit" size="sm" className="gap-1.5" disabled={isSubmittingEmbeddedTicket}>
+                <Button type="submit" size="sm" className="h-8 gap-1.5 px-3 text-xs" disabled={isSubmittingEmbeddedTicket}>
                   {isSubmittingEmbeddedTicket ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ticket className="h-3.5 w-3.5" />}
                   Criar ticket
                 </Button>
@@ -259,7 +261,7 @@ export function ChatwootTicketsTab() {
 
         {/* Priority ticket highlight */}
         {priorityTicket ? (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -276,7 +278,7 @@ export function ChatwootTicketsTab() {
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Button asChild size="sm" className="gap-1.5">
+                <Button asChild size="sm" className="h-8 gap-1.5 px-3 text-xs">
                   <Link href={`/portal/tickets/${priorityTicket.id}`} target="_blank" rel="noreferrer">
                     <ArrowUpRight className="h-3.5 w-3.5" />
                     Abrir
@@ -286,6 +288,7 @@ export function ChatwootTicketsTab() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="h-8 px-3 text-xs"
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(String(priorityTicket.number));
@@ -302,7 +305,6 @@ export function ChatwootTicketsTab() {
           </div>
         ) : null}
 
-        {/* Ticket list states */}
         {isLoadingTickets ? <InlineLoading label="Carregando tickets..." /> : null}
         {ticketError ? <InlineWarning message={ticketError} /> : null}
         {!isLoadingTickets && !ticketError && !canUseTickets ? (
@@ -324,7 +326,7 @@ export function ChatwootTicketsTab() {
         {!isLoadingTickets && !ticketError && canUseTickets && latestTickets.length > 0 ? (
           <div className="space-y-1.5">
             {latestTickets.filter((ticket) => ticket.id !== priorityTicket?.id).map((ticket) => (
-              <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
+              <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">
                     #{ticket.number} - {ticket.title}
@@ -339,9 +341,12 @@ export function ChatwootTicketsTab() {
                     </span>
                   </div>
                 </div>
-                <Button asChild variant="ghost" size="sm" className="shrink-0">
+                <Button asChild variant="ghost" size="sm" className="h-8 shrink-0 px-2.5 text-xs">
                   <Link href={`/portal/tickets/${ticket.id}`} target="_blank" rel="noreferrer">
-                    <ArrowUpRight className="h-3.5 w-3.5" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      Abrir
+                    </span>
                   </Link>
                 </Button>
               </div>

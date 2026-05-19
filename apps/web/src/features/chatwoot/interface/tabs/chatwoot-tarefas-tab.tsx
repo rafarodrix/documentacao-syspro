@@ -158,7 +158,7 @@ export function ChatwootTarefasTab() {
   return (
     <>
       <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-sm">
@@ -170,17 +170,17 @@ export function ChatwootTarefasTab() {
               <Button
                 type="button"
                 size="sm"
-                className="gap-1.5"
+                className="h-8 gap-1.5 px-3 text-xs"
                 onClick={() => setCreateDialogOpen(true)}
                 disabled={!resolved.companyId || needsContextSelection}
               >
                 <ClipboardPlus className="h-3.5 w-3.5" />
                 Nova tarefa
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={handleRefresh}>
+              <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleRefresh}>
                 Atualizar
               </Button>
-              <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={handleSync} disabled={!resolved.companyId || isSyncing}>
+              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-3 text-xs" onClick={handleSync} disabled={!resolved.companyId || isSyncing}>
                 {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                 Sincronizar rotinas
               </Button>
@@ -188,6 +188,9 @@ export function ChatwootTarefasTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {needsContextSelection ? (
+            <EmptyState label="Escolha a empresa em contexto no topo do painel para operar as tarefas corretas desta conversa." />
+          ) : null}
           {!resolved.companyId && !needsContextSelection ? (
             <InlineWarning message="Vincule ou selecione uma empresa para habilitar as tarefas desta conversa." />
           ) : null}
@@ -202,7 +205,7 @@ export function ChatwootTarefasTab() {
           {!isLoading && !error && items.length > 0 ? (
             <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+                <div key={item.id} className="rounded-xl border border-border/60 bg-card p-3">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
@@ -213,9 +216,11 @@ export function ChatwootTarefasTab() {
                         <ContextBadge tone={getTaskStatusTone(item.status)}>
                           {getTaskStatusLabel(item.status)}
                         </ContextBadge>
-                        <Badge variant="outline">Vence em {new Date(item.dueDate).toLocaleDateString("pt-BR")}</Badge>
+                        <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px]">
+                          Vence em {new Date(item.dueDate).toLocaleDateString("pt-BR")}
+                        </Badge>
                         {item.ticketId ? (
-                          <Badge variant="outline" className="gap-1">
+                          <Badge variant="outline" className="h-5 gap-1 rounded-full px-2 text-[10px]">
                             <Ticket className="h-3 w-3" />
                             Com ticket
                           </Badge>
@@ -225,7 +230,7 @@ export function ChatwootTarefasTab() {
                         <p className="text-xs text-muted-foreground">{item.description}</p>
                       ) : null}
                       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Contato cliente" : "Responsavel"}
                           </p>
@@ -235,7 +240,7 @@ export function ChatwootTarefasTab() {
                               : item.assignedToName || "Nao definido"}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Contabilidade" : "Contato cliente"}
                           </p>
@@ -245,7 +250,7 @@ export function ChatwootTarefasTab() {
                               : item.clientContactName || "Nao definido"}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Envios" : "Origem"}
                           </p>
@@ -257,7 +262,7 @@ export function ChatwootTarefasTab() {
                                 : "Criacao manual"}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Ultimo disparo" : "Ultima atualizacao"}
                           </p>
@@ -299,12 +304,12 @@ export function ChatwootTarefasTab() {
 
                     <div className="flex shrink-0 flex-wrap gap-2">
                       {item.type === "ROTINA_MENSAL" ? (
-                        <Button type="button" size="sm" className="gap-1.5" onClick={() => openManualRequest(item)}>
+                        <Button type="button" size="sm" className="h-8 gap-1.5 px-3 text-xs" onClick={() => openManualRequest(item)}>
                           <MessageSquareShare className="h-3.5 w-3.5" />
                           {item.manualRequestsCount > 0 ? "Reenviar" : "Enviar mensagem"}
                         </Button>
                       ) : null}
-                      <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => openStatusDialog(item)}>
+                      <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 px-3 text-xs" onClick={() => openStatusDialog(item)}>
                         <CircleCheckBig className="h-3.5 w-3.5" />
                         Finalizar / status
                       </Button>
