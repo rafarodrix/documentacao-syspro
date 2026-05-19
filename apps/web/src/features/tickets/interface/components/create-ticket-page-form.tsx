@@ -48,6 +48,7 @@ type CustomerEmailOption = {
   companyId: string;
   email: string;
   companyName: string;
+  legalName?: string | null;
   contactName: string | null;
 };
 
@@ -130,6 +131,15 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
   const watchedSubject = form.watch("subject");
   const descriptionText = markdownToPlainText(descriptionMarkdown);
   const selectedClientCompany = clientCompanies.find((company) => company.id === selectedCompanyId) ?? null;
+  const selectedInternalCompanyOption = useMemo(
+    () =>
+      customerOptions.find(
+        (item) =>
+          item.companyId === selectedCompanyId &&
+          ((customerEmail && item.email === customerEmail) || item.companyName === customerCompany),
+      ) ?? null,
+    [customerCompany, customerEmail, customerOptions, selectedCompanyId],
+  );
 
   const filteredCategories = useMemo(
     () => ticketSettings.categories.filter((category) => !selectedTeam || category.defaultTeam === selectedTeam),
@@ -150,8 +160,8 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
       opts.push({
         id: baseId,
         label: option.companyName,
-        description: option.contactName || option.email,
-        meta: option.contactName ? option.email : null,
+        description: option.legalName || option.contactName || option.email,
+        meta: option.legalName ? (option.contactName || option.email || null) : (option.contactName ? option.email : null),
       });
     }
 
@@ -501,6 +511,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
                     {(customerEmail && customerCompany) || selectedCompanyId ? (
                       <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
                         <p className="font-medium text-foreground">{customerCompany || "Empresa vinculada ao ticket"}</p>
+                        {selectedInternalCompanyOption?.legalName ? <p className="text-muted-foreground">{selectedInternalCompanyOption.legalName}</p> : null}
                         {customerEmail ? <p className="text-muted-foreground">{customerEmail}</p> : null}
                       </div>
                     ) : null}

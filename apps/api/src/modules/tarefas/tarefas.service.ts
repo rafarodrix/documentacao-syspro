@@ -417,7 +417,8 @@ export class TarefasService {
       throw new BadRequestException('O responsavel informado nao esta disponivel para receber tarefas.');
     }
 
-    if (![Role.ADMIN, Role.DEVELOPER, Role.SUPORTE].includes(user.role)) {
+    const assignableRoles: Role[] = [Role.ADMIN, Role.DEVELOPER, Role.SUPORTE];
+    if (!assignableRoles.includes(user.role)) {
       throw new BadRequestException('A tarefa so pode ser atribuida para usuarios de Suporte, Desenvolvimento ou Admin.');
     }
   }
@@ -428,7 +429,10 @@ export class TarefasService {
   ): Promise<TaskItemListResponse> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveViewScope(requester);
-    const { year, month } = this.resolveYearMonth(input.year, input.month);
+    const shouldApplyCompetenceFilter = input.type !== 'TAREFA';
+    const { year, month } = shouldApplyCompetenceFilter
+      ? this.resolveYearMonth(input.year, input.month)
+      : { year: null, month: null };
 
     const statusFilter = input.status && input.status !== 'ALL' ? (input.status as TaskStatus) : undefined;
     const typeFilter = input.type && input.type !== 'ALL' ? input.type : undefined;
@@ -438,10 +442,10 @@ export class TarefasService {
     const taskModel = (this.prisma as any).task;
     const scopeWhere = scope.isGlobal ? {} : { companyId: { in: scope.companyIds } };
 
-    const isMonthlyFilter = !typeFilter || typeFilter === 'ROTINA_MENSAL';
+    const includesMonthlyTasks = typeFilter !== 'TAREFA';
 
     // Lightweight inline overdue marking for ROTINA_MENSAL
-    if (isMonthlyFilter) {
+    if (includesMonthlyTasks && year && month) {
       const overdueWhere = { year, month, type: 'ROTINA_MENSAL', status: 'PENDING', dueDate: { lt: new Date() }, ...scopeWhere };
       const overdueToMark: Array<{ id: string }> = await taskModel.findMany({
         where: overdueWhere,
@@ -468,13 +472,8 @@ export class TarefasService {
 
     const listWhere: any = {
       ...(typeFilter ? { type: typeFilter } : {}),
-      ...(isMonthlyFilter && !typeFilter ? {} : {}),
       ...scopeWhere,
     };
-
-    if (typeFilter === 'ROTINA_MENSAL' || !typeFilter) {
-      // include monthly tasks filtered by year/month when no type or ROTINA_MENSAL selected
-    }
 
     const records = await taskModel.findMany({
       where: listWhere,
@@ -483,8 +482,14 @@ export class TarefasService {
     });
 
     const normalizedItems: TaskItem[] = records.map((record: any) => this.toTaskItem(record));
+    const competenceScopedItems = normalizedItems.filter((item: TaskItem) => {
+      if (item.type !== 'ROTINA_MENSAL') return true;
+      if (!includesMonthlyTasks) return false;
+      if (year == null || month == null) return true;
+      return item.year === year && item.month === month;
+    });
     const searchedItems = search
-      ? normalizedItems.filter((item: TaskItem) =>
+      ? competenceScopedItems.filter((item: TaskItem) =>
           [
             item.companyName,
             item.accountingFirmName ?? '',
@@ -498,7 +503,7 @@ export class TarefasService {
             .toLowerCase()
             .includes(search),
         )
-      : normalizedItems;
+      : competenceScopedItems;
     const filteredItems = statusFilter
       ? searchedItems.filter((item: TaskItem) => item.status === statusFilter)
       : searchedItems;
@@ -510,13 +515,13 @@ export class TarefasService {
       items,
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
-        total: normalizedItems.length,
-        pending: normalizedItems.filter((item: TaskItem) => item.status === 'PENDING').length,
-        waitingCustomer: normalizedItems.filter((item: TaskItem) => item.status === 'WAITING_CUSTOMER').length,
-        received: normalizedItems.filter((item: TaskItem) => item.status === 'RECEIVED').length,
-        sentToAccounting: normalizedItems.filter((item: TaskItem) => item.status === 'SENT_TO_ACCOUNTING').length,
-        completed: normalizedItems.filter((item: TaskItem) => item.status === 'COMPLETED').length,
-        overdue: normalizedItems.filter((item: TaskItem) => item.status === 'OVERDUE').length,
+        total: competenceScopedItems.length,
+        pending: competenceScopedItems.filter((item: TaskItem) => item.status === 'PENDING').length,
+        waitingCustomer: competenceScopedItems.filter((item: TaskItem) => item.status === 'WAITING_CUSTOMER').length,
+        received: competenceScopedItems.filter((item: TaskItem) => item.status === 'RECEIVED').length,
+        sentToAccounting: competenceScopedItems.filter((item: TaskItem) => item.status === 'SENT_TO_ACCOUNTING').length,
+        completed: competenceScopedItems.filter((item: TaskItem) => item.status === 'COMPLETED').length,
+        overdue: competenceScopedItems.filter((item: TaskItem) => item.status === 'OVERDUE').length,
       },
       year: typeFilter === 'TAREFA' ? null : year,
       month: typeFilter === 'TAREFA' ? null : month,

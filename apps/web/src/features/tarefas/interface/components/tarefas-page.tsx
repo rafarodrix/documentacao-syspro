@@ -234,7 +234,22 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
   const competenceLabel = tasks.year && tasks.month
     ? `${String(tasks.month).padStart(2, "0")}/${tasks.year}`
     : null;
-  const activeTypeLabel = TYPE_FILTER_OPTIONS.find((option) => option.value === type)?.label ?? type;
+  const isManualBacklogView = type === "TAREFA";
+  const isMonthlyView = type === "ROTINA_MENSAL";
+  const pageTitle = isManualBacklogView
+    ? "Backlog operacional"
+    : isMonthlyView
+      ? competenceLabel
+        ? `Rotinas mensais de ${competenceLabel}`
+        : "Rotinas mensais"
+      : competenceLabel
+        ? `Backlog operacional + rotinas de ${competenceLabel}`
+        : "Tarefas";
+  const pageDescription = isManualBacklogView
+    ? "Tarefas avulsas permanecem visiveis no backlog ate serem concluidas ou canceladas, sem depender da competencia mensal."
+    : isMonthlyView
+      ? "Rotinas mensais sempre obedecem o recorte da competencia selecionada."
+      : "Nesta visao consolidada, rotinas mensais respeitam a competencia e tarefas avulsas continuam no backlog operacional.";
 
   return (
     <div className="space-y-6">
@@ -242,7 +257,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Tarefas</h1>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Gerencie a fila de tarefas, rotinas mensais, disparos e andamento operacional.
+            Gerencie rotinas mensais por competencia e tarefas avulsas como backlog operacional continuo.
           </p>
         </div>
         {canManage ? (
@@ -251,10 +266,12 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
               <Plus className="mr-2 h-4 w-4" />
               Nova tarefa
             </Button>
-            <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full sm:w-auto">
-              <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-              {isSyncing ? "Sincronizando..." : "Sincronizar rotinas do mes"}
-            </Button>
+            {!isManualBacklogView ? (
+              <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full sm:w-auto">
+                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                {isSyncing ? "Sincronizando..." : "Sincronizar rotinas do mes"}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -326,7 +343,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
         {showFilters ? (
           <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {competenceLabel ? (
+              {competenceLabel && !isManualBacklogView ? (
                 <div className="space-y-1.5">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground">Periodo mensal</p>
                   <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
@@ -335,7 +352,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                 </div>
               ) : null}
               <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Tipo</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
                 <Select value={type || "ALL"} onValueChange={setTypeFilter}>
                   <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
                     <SelectValue placeholder="Todos os tipos" />
@@ -358,9 +375,13 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                 </div>
               </div>
               <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Tipo selecionado</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Regra do recorte</p>
                 <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
-                  {activeTypeLabel}
+                  {isManualBacklogView
+                    ? "Tarefas sem competencia"
+                    : isMonthlyView
+                      ? "Somente competencia mensal"
+                      : "Competencia + backlog"}
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -376,11 +397,9 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
 
       <Card className="border-border/60">
         <CardHeader>
-          <CardTitle>
-            {competenceLabel ? `Tarefas do mes ${competenceLabel}` : "Tarefas"}
-          </CardTitle>
+          <CardTitle>{pageTitle}</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Fila operacional gerada a partir das configuracoes ativas por empresa.
+            {pageDescription}
           </p>
         </CardHeader>
         <CardContent className="space-y-5">

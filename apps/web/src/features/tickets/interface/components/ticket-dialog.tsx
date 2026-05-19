@@ -98,6 +98,15 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
     handleDescriptionPaste,
     attachmentAccept,
   } = useTicketDialog(() => setOpen(false), { hasInternalTicketAccess });
+  const selectedInternalCompanyOption = useMemo(
+    () =>
+      customerOptions.find(
+        (item) =>
+          item.companyId === selectedCompanyId &&
+          ((customerEmail && item.email === customerEmail) || item.companyName === customerCompany),
+      ) ?? null,
+    [customerCompany, customerEmail, customerOptions, selectedCompanyId],
+  );
 
   const internalCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
     const opts: TicketCompanyPickerOption[] = [];
@@ -113,8 +122,8 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
       opts.push({
         id,
         label: option.companyName,
-        description: option.contactName || option.email,
-        meta: option.contactName ? option.email : null,
+        description: option.legalName || option.contactName || option.email,
+        meta: option.legalName ? (option.contactName || option.email || null) : (option.contactName ? option.email : null),
       });
     }
 
@@ -415,6 +424,9 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                       {(customerCompany || customerEmail || selectedCompanyId) ? (
                         <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs animate-in slide-in-from-top-1">
                           <p className="font-semibold text-foreground text-[13px]">{customerCompany || "Empresa selecionada"}</p>
+                          {selectedInternalCompanyOption?.legalName ? (
+                            <p className="text-muted-foreground mt-0.5">{selectedInternalCompanyOption.legalName}</p>
+                          ) : null}
                           {customerEmail ? <p className="text-muted-foreground mt-0.5">{customerEmail}</p> : null}
                         </div>
                       ) : null}

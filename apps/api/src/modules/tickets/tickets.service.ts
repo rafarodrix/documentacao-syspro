@@ -468,7 +468,13 @@ export class TicketsService {
       take: limit * 2,
     });
 
-    const dedup = new Map<string, { companyId: string; email: string; companyName: string; contactName: string | null }>();
+    const dedup = new Map<string, {
+      companyId: string;
+      email: string;
+      companyName: string;
+      legalName: string | null;
+      contactName: string | null;
+    }>();
 
     for (const company of companyRows) {
       const companyName = company.nomeFantasia?.trim() || company.razaoSocial?.trim();
@@ -478,6 +484,10 @@ export class TicketsService {
         companyId: company.id,
         email: '',
         companyName,
+        legalName:
+          company.nomeFantasia?.trim() && company.razaoSocial?.trim() && company.nomeFantasia.trim() !== company.razaoSocial.trim()
+            ? company.razaoSocial.trim()
+            : null,
         contactName: company.emailContato?.trim() || company.cnpj || 'Empresa cadastrada',
       });
     }
@@ -496,6 +506,12 @@ export class TicketsService {
           companyId: link.companyId,
           email,
           companyName,
+          legalName:
+            link.company?.nomeFantasia?.trim() &&
+            link.company?.razaoSocial?.trim() &&
+            link.company.nomeFantasia.trim() !== link.company.razaoSocial.trim()
+              ? link.company.razaoSocial.trim()
+              : null,
           contactName: contact.name?.trim() || null,
         });
 
