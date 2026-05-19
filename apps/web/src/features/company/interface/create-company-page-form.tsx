@@ -16,7 +16,7 @@ import {
   INDICADOR_IE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { MonthlyRoutineCompanyConfigUpsertInput, MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
 import type {
   CompanyActionResponse,
   CompanyRegistryLookupResponse,
@@ -118,7 +118,7 @@ interface CreateCompanyPageFormProps {
   companyId?: string;
   initialData?: Partial<CreateCompanyInput>;
   canEditCnpj?: boolean;
-  monthlyRoutineView?: MonthlyRoutineCompanyConfigView;
+  monthlyRoutineView?: TaskConfigView;
   canManageMonthlyRoutine?: boolean;
 }
 
@@ -137,7 +137,7 @@ export function CreateCompanyPageForm({
   const [isImportingCnpj, setIsImportingCnpj] = useState(false);
   const [lastImportedCnpj, setLastImportedCnpj] = useState<string | null>(null);
   const [justImported, setJustImported] = useState(false);
-  const [monthlyRoutineDraft, setMonthlyRoutineDraft] = useState<MonthlyRoutineCompanyConfigUpsertInput["data"] | null>(
+  const [monthlyRoutineDraft, setMonthlyRoutineDraft] = useState<TaskConfigUpsertInput["data"] | null>(
     monthlyRoutineView
       ? {
           isActive: monthlyRoutineView.config.isActive,
@@ -339,7 +339,7 @@ export function CreateCompanyPageForm({
     }
 
     if (mode === "edit" && companyId && monthlyRoutineView && monthlyRoutineDraft && canManageMonthlyRoutine) {
-      const routineResult = await trpc.rotinasMensais.upsertCompanyConfig.mutate({
+      const routineResult = await trpc.tarefas.upsertCompanyConfig.mutate({
         companyId,
         data: {
           ...monthlyRoutineDraft,
@@ -464,10 +464,10 @@ export function CreateCompanyPageForm({
               )}
               {currentSection === "configuracoes" && (
                 <CompanySettingsTab
-                  monthlyRoutineView={monthlyRoutineView}
-                  canManageMonthlyRoutine={canManageMonthlyRoutine}
-                  monthlyRoutineDraft={monthlyRoutineDraft ?? undefined}
-                  onMonthlyRoutineDraftChange={setMonthlyRoutineDraft}
+                  taskConfigView={monthlyRoutineView}
+                  canManageTasks={canManageMonthlyRoutine}
+                  taskConfigDraft={monthlyRoutineDraft ?? undefined}
+                  onTaskConfigDraftChange={setMonthlyRoutineDraft}
                 />
               )}
             </motion.div>

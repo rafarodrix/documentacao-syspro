@@ -7,10 +7,10 @@ import {
   COMPANY_SERVER_TYPE_VALUES,
   type CreateCompanyInput,
 } from "@dosc-syspro/contracts/company";
-import type { MonthlyRoutineCompanyConfigUpsertInput, MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
 import type { CompanyRemoteConnectionInput } from "@/features/company/application/company-view.types";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button, Badge, Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { CompanyMonthlyRoutineCard } from "@/features/rotinas-mensais/interface";
+import { CompanyTaskConfigCard } from "@/features/tarefas/interface";
 import { Server, Network, Plus, Trash2, Info } from "lucide-react";
 
 const REMOTE_CONNECTION_LABEL: Record<CompanyRemoteConnectionInput["type"], string> = {
@@ -19,17 +19,17 @@ const REMOTE_CONNECTION_LABEL: Record<CompanyRemoteConnectionInput["type"], stri
 };
 
 interface CompanySettingsTabProps {
-  monthlyRoutineView?: MonthlyRoutineCompanyConfigView;
-  canManageMonthlyRoutine?: boolean;
-  monthlyRoutineDraft?: MonthlyRoutineCompanyConfigUpsertInput["data"];
-  onMonthlyRoutineDraftChange?: (next: MonthlyRoutineCompanyConfigUpsertInput["data"]) => void;
+  taskConfigView?: TaskConfigView;
+  canManageTasks?: boolean;
+  taskConfigDraft?: TaskConfigUpsertInput["data"];
+  onTaskConfigDraftChange?: (next: TaskConfigUpsertInput["data"]) => void;
 }
 
 export function CompanySettingsTab({
-  monthlyRoutineView,
-  canManageMonthlyRoutine = false,
-  monthlyRoutineDraft,
-  onMonthlyRoutineDraftChange,
+  taskConfigView,
+  canManageTasks = false,
+  taskConfigDraft,
+  onTaskConfigDraftChange,
 }: CompanySettingsTabProps) {
   const form = useFormContext<CreateCompanyInput>();
   const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -296,22 +296,22 @@ export function CompanySettingsTab({
       </TabsContent>
 
       <TabsContent value="rotinas-mensais" className="space-y-6">
-        {monthlyRoutineView ? (
-          <CompanyMonthlyRoutineCard
-            view={monthlyRoutineView}
-            canManage={canManageMonthlyRoutine}
+        {taskConfigView ? (
+          <CompanyTaskConfigCard
+            view={taskConfigView}
+            canManage={canManageTasks}
             currentAccountingFirmId={typeof accountingFirmId === "string" ? accountingFirmId : ""}
-            draft={monthlyRoutineDraft ?? {
-              isActive: monthlyRoutineView.config.isActive,
-              title: monthlyRoutineView.config.title,
-              dueDay: monthlyRoutineView.config.dueDay,
-              reminderDays: monthlyRoutineView.config.reminderDays,
-              clientContactId: monthlyRoutineView.config.clientContactId,
-              accountingContactId: monthlyRoutineView.config.accountingContactId,
-              notes: monthlyRoutineView.config.notes,
-              requiredDocuments: monthlyRoutineView.config.requiredDocuments,
+            draft={taskConfigDraft ?? {
+              isActive: taskConfigView.config.isActive,
+              title: taskConfigView.config.title,
+              dueDay: taskConfigView.config.dueDay,
+              reminderDays: taskConfigView.config.reminderDays,
+              clientContactId: taskConfigView.config.clientContactId,
+              accountingContactId: taskConfigView.config.accountingContactId,
+              notes: taskConfigView.config.notes,
+              requiredDocuments: taskConfigView.config.requiredDocuments,
             }}
-            onDraftChange={onMonthlyRoutineDraftChange ?? (() => undefined)}
+            onDraftChange={onTaskConfigDraftChange ?? (() => undefined)}
           />
         ) : (
           <Card className="border-border/60 bg-card shadow-sm">

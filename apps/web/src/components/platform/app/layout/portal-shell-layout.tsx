@@ -47,7 +47,7 @@ export async function PortalShellLayout({
     tickets: await currentUserHasAnyPermission(["tickets:view_own", "tickets:view_all", "tickets:create", "tickets:manage"], {
       acceptCompanyScope: true,
     }),
-    rotinasMensais: await currentUserHasAnyPermission(["rotinas_mensais:view", "rotinas_mensais:view_all", "rotinas_mensais:manage"], {
+    tarefas: await currentUserHasAnyPermission(["tarefas:view", "tarefas:view_all", "tarefas:manage"], {
       acceptCompanyScope: true,
     }),
     atendimento: await currentUserHasPermission("atendimento:view", { acceptCompanyScope: true }),

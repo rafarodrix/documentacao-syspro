@@ -7,7 +7,7 @@ import {
 } from "@/features/settings/application/settings-read.queries";
 import { RemoteAccessSettingsTab } from "@/features/remote/interface/settings-tab";
 import { TicketSettingsTab } from "@/features/tickets/interface/components/ticket-settings-tab";
-import { MonthlyRoutineModuleSettingsTab } from "@/features/rotinas-mensais/interface/components/monthly-routine-module-settings-tab";
+import { TarefasModuleSettingsTab } from "@/features/tarefas/interface";
 import { IntegrationsSettingsTab } from "./integrations-tab";
 import {
   SettingsPageIntro,
@@ -61,6 +61,7 @@ const TAB_VALUES = new Set([
   "integrations",
   "automations",
   "modules",
+  "tarefas",
   "monthly-routines",
   "access",
   "tax",
@@ -76,11 +77,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const params = searchParams ? await searchParams : undefined;
   const rawTab = typeof params?.tab === "string" ? params.tab : "general";
   const defaultModulesTab =
-    rawTab === "tickets" ? "tickets" : rawTab === "monthly-routines" ? "monthly-routines" : "tickets";
+    rawTab === "tickets" ? "tickets" : rawTab === "tarefas" || rawTab === "monthly-routines" ? "tarefas" : "tickets";
   const defaultTab =
     rawTab === "remote"
       ? "agent"
-      : rawTab === "tickets" || rawTab === "monthly-routines"
+      : rawTab === "tickets" || rawTab === "tarefas" || rawTab === "monthly-routines"
         ? "modules"
         : TAB_VALUES.has(rawTab)
           ? rawTab
@@ -215,9 +216,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   title="Tickets"
                 />
                 <SettingsTabsRailTrigger
-                  value="monthly-routines"
+                  value="tarefas"
                   icon={CalendarRange}
-                  title="Rotinas Mensais"
+                  title="Tarefas"
                 />
               </SettingsTabsRail>
 
@@ -225,8 +226,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 <TicketSettingsTab />
               </TabsContent>
 
-              <TabsContent value="monthly-routines" className="space-y-4">
-                <MonthlyRoutineModuleSettingsTab />
+              <TabsContent value="tarefas" className="space-y-4">
+                <TarefasModuleSettingsTab />
               </TabsContent>
             </Tabs>
           </div>

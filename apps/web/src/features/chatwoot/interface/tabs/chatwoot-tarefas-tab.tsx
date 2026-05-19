@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import type { MonthlyRoutineCompetencyItem } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { CalendarClock, CircleCheckBig, Loader2, MessageSquareShare, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/api/trpc-client";
-import { MonthlyRoutineManualRequestDialog } from "@/features/rotinas-mensais/interface/components/monthly-routine-manual-request-dialog";
-import { MonthlyRoutineStatusDialog } from "@/features/rotinas-mensais/interface/components/monthly-routine-status-dialog";
+import { TaskManualRequestDialog } from "@/features/tarefas/interface/components/task-manual-request-dialog";
+import { TaskStatusDialog } from "@/features/tarefas/interface/components/task-status-dialog";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import { ContextBadge, EmptyState, InlineLoading, InlineWarning } from "../chatwoot-dashboard-ui";
 
-function getRoutineStatusLabel(status: MonthlyRoutineCompetencyItem["status"]) {
+function getTaskStatusLabel(status: TaskItem["status"]) {
   switch (status) {
     case "PENDING":
       return "Pendente";
@@ -32,7 +32,7 @@ function getRoutineStatusLabel(status: MonthlyRoutineCompetencyItem["status"]) {
   }
 }
 
-function getRoutineStatusTone(status: MonthlyRoutineCompetencyItem["status"]) {
+function getTaskStatusTone(status: TaskItem["status"]) {
   switch (status) {
     case "COMPLETED":
       return "good" as const;
@@ -43,7 +43,7 @@ function getRoutineStatusTone(status: MonthlyRoutineCompetencyItem["status"]) {
   }
 }
 
-function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["lastManualRequestStatus"]) {
+function getRequestStatusLabel(status: TaskItem["lastManualRequestStatus"]) {
   switch (status) {
     case "SENT":
       return "Ultimo envio concluido";
@@ -54,14 +54,14 @@ function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["lastManualR
   }
 }
 
-export function ChatwootMonthlyRoutinesTab() {
+export function ChatwootTarefasTab() {
   const { resolved, effectiveContactName, linkedCompanies } = useChatwootDashboard();
-  const [items, setItems] = useState<MonthlyRoutineCompetencyItem[]>([]);
+  const [items, setItems] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [selectedManualItem, setSelectedManualItem] = useState<MonthlyRoutineCompetencyItem | null>(null);
-  const [selectedStatusItem, setSelectedStatusItem] = useState<MonthlyRoutineCompetencyItem | null>(null);
+  const [selectedManualItem, setSelectedManualItem] = useState<TaskItem | null>(null);
+  const [selectedStatusItem, setSelectedStatusItem] = useState<TaskItem | null>(null);
   const [isSyncing, startSyncTransition] = useTransition();
 
   const today = useMemo(() => new Date(), []);
@@ -83,7 +83,7 @@ export function ChatwootMonthlyRoutinesTab() {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await trpc.rotinasMensais.listCompetencies.query({
+        const response = await trpc.tarefas.listTasks.query({
           page: "1",
           pageSize: "100",
           year: String(currentYear),
@@ -93,10 +93,10 @@ export function ChatwootMonthlyRoutinesTab() {
 
         if (!active) return;
 
-        const nextItems: MonthlyRoutineCompetencyItem[] = response.items
-          .filter((item: MonthlyRoutineCompetencyItem) => item.companyId === resolved.companyId)
+        const nextItems: TaskItem[] = response.items
+          .filter((item: TaskItem) => item.companyId === resolved.companyId)
           .sort(
-            (a: MonthlyRoutineCompetencyItem, b: MonthlyRoutineCompetencyItem) =>
+            (a: TaskItem, b: TaskItem) =>
               Date.parse(a.dueDate) - Date.parse(b.dueDate),
           );
 
@@ -104,7 +104,7 @@ export function ChatwootMonthlyRoutinesTab() {
       } catch (nextError) {
         if (!active) return;
         setItems([]);
-        setError(nextError instanceof Error ? nextError.message : "Nao foi possivel carregar as rotinas mensais.");
+        setError(nextError instanceof Error ? nextError.message : "Nao foi possivel carregar as tarefas.");
       } finally {
         if (active) {
           setIsLoading(false);
@@ -118,11 +118,11 @@ export function ChatwootMonthlyRoutinesTab() {
     };
   }, [currentMonth, currentYear, reloadToken, resolved.companyId]);
 
-  const openManualRequest = (item: MonthlyRoutineCompetencyItem) => {
+  const openManualRequest = (item: TaskItem) => {
     setSelectedManualItem(item);
   };
 
-  const openStatusDialog = (item: MonthlyRoutineCompetencyItem) => {
+  const openStatusDialog = (item: TaskItem) => {
     setSelectedStatusItem(item);
   };
 
@@ -133,7 +133,7 @@ export function ChatwootMonthlyRoutinesTab() {
   const handleSync = () => {
     startSyncTransition(async () => {
       try {
-        await trpc.rotinasMensais.syncCompetencies.mutate({
+        await trpc.tarefas.syncCompetencies.mutate({
           year: currentYear,
           month: currentMonth,
         });
@@ -153,10 +153,10 @@ export function ChatwootMonthlyRoutinesTab() {
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <CalendarClock className="h-4 w-4 text-primary" />
-                Rotinas mensais
+                Tarefas
               </CardTitle>
               <CardDescription>
-                Solicite documentos e finalize a competencia do mes sem sair do Chatwoot.
+                Solicite documentos e finalize a tarefa do mes sem sair do Chatwoot.
               </CardDescription>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -187,14 +187,14 @@ export function ChatwootMonthlyRoutinesTab() {
               <p className="mt-1 text-sm font-semibold text-foreground">{competenceLabel}</p>
             </div>
             <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rotinas</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tarefas</p>
               <p className="mt-1 text-sm font-semibold text-foreground">{items.length} em contexto</p>
             </div>
           </div>
 
           {needsContextSelection ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
-              <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para operar a rotina correta.</span>
+              <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para operar a tarefa correta.</span>
               <Button type="button" size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                 Ver seletor
               </Button>
@@ -202,14 +202,14 @@ export function ChatwootMonthlyRoutinesTab() {
           ) : null}
 
           {!resolved.companyId && !needsContextSelection ? (
-            <InlineWarning message="Vincule ou selecione uma empresa para habilitar as rotinas mensais desta conversa." />
+            <InlineWarning message="Vincule ou selecione uma empresa para habilitar as tarefas desta conversa." />
           ) : null}
 
-          {isLoading ? <InlineLoading label="Carregando rotinas mensais da empresa..." /> : null}
+          {isLoading ? <InlineLoading label="Carregando tarefas da empresa..." /> : null}
           {error ? <InlineWarning message={error} /> : null}
 
           {!isLoading && !error && resolved.companyId && items.length === 0 ? (
-            <EmptyState label="Nenhuma rotina mensal encontrada para a empresa em contexto nesta competencia." />
+            <EmptyState label="Nenhuma tarefa encontrada para a empresa em contexto nesta competencia." />
           ) : null}
 
           {!isLoading && !error && items.length > 0 ? (
@@ -220,8 +220,8 @@ export function ChatwootMonthlyRoutinesTab() {
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                        <ContextBadge tone={getRoutineStatusTone(item.status)}>
-                          {getRoutineStatusLabel(item.status)}
+                        <ContextBadge tone={getTaskStatusTone(item.status)}>
+                          {getTaskStatusLabel(item.status)}
                         </ContextBadge>
                         <Badge variant="outline">Vence em {new Date(item.dueDate).toLocaleDateString("pt-BR")}</Badge>
                       </div>
@@ -269,7 +269,7 @@ export function ChatwootMonthlyRoutinesTab() {
         </CardContent>
       </Card>
 
-      <MonthlyRoutineManualRequestDialog
+      <TaskManualRequestDialog
         item={selectedManualItem}
         open={selectedManualItem != null}
         onOpenChange={(open) => {
@@ -280,7 +280,7 @@ export function ChatwootMonthlyRoutinesTab() {
         onSent={handleRefresh}
       />
 
-      <MonthlyRoutineStatusDialog
+      <TaskStatusDialog
         item={selectedStatusItem}
         open={selectedStatusItem != null}
         onOpenChange={(open) => {

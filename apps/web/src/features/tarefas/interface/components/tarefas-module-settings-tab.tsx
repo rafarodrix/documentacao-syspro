@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { Loader2, Save, Settings2 } from "lucide-react";
 import {
-  DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS,
-  monthlyRoutineModuleSettingsSchema,
-  type MonthlyRoutineModuleSettings,
-} from "@dosc-syspro/contracts/rotinas-mensais";
+  DEFAULT_TASK_MODULE_SETTINGS,
+  taskModuleSettingsSchema,
+  type TaskModuleSettings,
+} from "@dosc-syspro/contracts/tarefas";
 import { toast } from "sonner";
 import {
   Badge,
@@ -26,8 +26,8 @@ import {
   SelectValue,
 } from "@dosc-syspro/ui";
 
-export function MonthlyRoutineModuleSettingsTab() {
-  const [settings, setSettings] = useState<MonthlyRoutineModuleSettings>(DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS);
+export function TarefasModuleSettingsTab() {
+  const [settings, setSettings] = useState<TaskModuleSettings>(DEFAULT_TASK_MODULE_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -37,15 +37,15 @@ export function MonthlyRoutineModuleSettingsTab() {
     async function load() {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/platform/settings/monthly-routines", { method: "GET", cache: "no-store" });
+        const response = await fetch("/api/platform/settings/tarefas", { method: "GET", cache: "no-store" });
         const json = await response.json().catch(() => ({}));
-        const parsed = monthlyRoutineModuleSettingsSchema.safeParse(json?.data);
+        const parsed = taskModuleSettingsSchema.safeParse(json?.data);
         if (active) {
-          setSettings(parsed.success ? parsed.data : DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS);
+          setSettings(parsed.success ? parsed.data : DEFAULT_TASK_MODULE_SETTINGS);
         }
       } catch {
         if (active) {
-          setSettings(DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS);
+          setSettings(DEFAULT_TASK_MODULE_SETTINGS);
         }
       } finally {
         if (active) setIsLoading(false);
@@ -60,32 +60,32 @@ export function MonthlyRoutineModuleSettingsTab() {
 
   async function save() {
     setIsSaving(true);
-    const parsed = monthlyRoutineModuleSettingsSchema.safeParse(settings);
+    const parsed = taskModuleSettingsSchema.safeParse(settings);
     if (!parsed.success) {
-      toast.error("Configuracao global de rotinas mensais invalida.");
+      toast.error("Configuracao global de tarefas invalida.");
       setIsSaving(false);
       return;
     }
 
     try {
-      const response = await fetch("/api/platform/settings/monthly-routines", {
+      const response = await fetch("/api/platform/settings/tarefas", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsed.data),
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok || !json?.success) {
-        toast.error(json?.error || "Falha ao salvar configuracoes de rotinas mensais.");
+        toast.error(json?.error || "Falha ao salvar configuracoes de tarefas.");
         return;
       }
 
-      const saved = monthlyRoutineModuleSettingsSchema.safeParse(json?.data);
+      const saved = taskModuleSettingsSchema.safeParse(json?.data);
       if (saved.success) {
         setSettings(saved.data);
       }
-      toast.success(json?.message || "Configuracoes de rotinas mensais salvas.");
+      toast.success(json?.message || "Configuracoes de tarefas salvas.");
     } catch {
-      toast.error("Falha ao salvar configuracoes de rotinas mensais.");
+      toast.error("Falha ao salvar configuracoes de tarefas.");
     } finally {
       setIsSaving(false);
     }
@@ -97,7 +97,7 @@ export function MonthlyRoutineModuleSettingsTab() {
         <div>
           <CardTitle className="flex items-center gap-2">
             <Settings2 className="h-5 w-5 text-primary" />
-            Rotinas Mensais
+            Tarefas
           </CardTitle>
           <CardDescription>
             Defina o canal principal, fallback e regras operacionais globais do atendimento recorrente.
@@ -113,7 +113,7 @@ export function MonthlyRoutineModuleSettingsTab() {
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando configuracoes de rotinas mensais...
+            Carregando configuracoes de tarefas...
           </div>
         ) : (
           <>
@@ -134,7 +134,7 @@ export function MonthlyRoutineModuleSettingsTab() {
                   onValueChange={(value) =>
                     setSettings((prev) => ({
                       ...prev,
-                      defaultChannel: value as MonthlyRoutineModuleSettings["defaultChannel"],
+                      defaultChannel: value as TaskModuleSettings["defaultChannel"],
                     }))
                   }
                 >
@@ -210,7 +210,52 @@ export function MonthlyRoutineModuleSettingsTab() {
                   setSettings((prev) => ({ ...prev, applyRoutineLabels: checked === true }))
                 }
               />
+              <ToggleRow
+                label="Criar tarefa ao fechar ticket"
+                description="Gera automaticamente uma tarefa de acompanhamento quando um ticket e resolvido."
+                checked={settings.autoCreateOnTicketResolved}
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({ ...prev, autoCreateOnTicketResolved: checked === true }))
+                }
+              />
             </div>
+
+            {settings.autoCreateOnTicketResolved ? (
+              <div className="grid gap-4 rounded-xl border border-border/50 bg-muted/10 p-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Titulo da tarefa automatica</Label>
+                  <Input
+                    value={settings.autoTaskTitle}
+                    onChange={(event) => setSettings((prev) => ({ ...prev, autoTaskTitle: event.target.value }))}
+                    placeholder="Acompanhamento pos-atendimento — {ticket_subject}"
+                  />
+                  <p className="text-xs text-muted-foreground">Use {"{ticket_subject}"} para incluir o assunto do ticket.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Prazo da tarefa (dias)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={String(settings.autoTaskDueDays)}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        autoTaskDueDays: Math.min(90, Math.max(1, Number(event.target.value || 3))),
+                      }))
+                    }
+                  />
+                </div>
+                <ToggleRow
+                  label="Atribuir ao responsavel do ticket"
+                  description="A tarefa gerada sera atribuida ao mesmo colaborador responsavel pelo ticket."
+                  checked={settings.autoTaskAssignToTicketOwner}
+                  onCheckedChange={(checked) =>
+                    setSettings((prev) => ({ ...prev, autoTaskAssignToTicketOwner: checked === true }))
+                  }
+                />
+              </div>
+            ) : null}
           </>
         )}
       </CardContent>

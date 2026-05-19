@@ -7,7 +7,7 @@ import { ContactsRouter } from '../contacts/contacts.router';
 import { DocsRouter } from '../docs/docs.router';
 import { TicketsRouter } from '../tickets/tickets.router';
 import { RemoteAdminRouter } from '../remote-admin/remote-admin.router';
-import { RotinasMensaisRouter } from '../rotinas-mensais/rotinas-mensais.router';
+import { TarefasRouter } from '../tarefas/tarefas.router';
 
 @Injectable()
 export class TrpcRouter {
@@ -20,7 +20,7 @@ export class TrpcRouter {
     private readonly contactsRouter: ContactsRouter,
     private readonly docsRouter: DocsRouter,
     private readonly ticketsRouter: TicketsRouter,
-    private readonly rotinasMensaisRouter: RotinasMensaisRouter,
+    private readonly tarefasRouter: TarefasRouter,
     private readonly remoteAdminRouter: RemoteAdminRouter,
   ) {
     this.appRouter = this.createRouter();
@@ -36,7 +36,7 @@ export class TrpcRouter {
       contacts: this.contactsRouter.router,
       docs: this.docsRouter.router,
       tickets: this.ticketsRouter.router,
-      rotinasMensais: this.rotinasMensaisRouter.router,
+      tarefas: this.tarefasRouter.router,
       remote: this.remoteAdminRouter.router,
     });
   }

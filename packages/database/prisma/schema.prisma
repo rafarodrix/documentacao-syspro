@@ -270,7 +270,12 @@ enum CrmTaskStatus {
   CANCELED
 }
 
-enum MonthlyRoutineStatus {
+enum TaskType {
+  ROTINA_MENSAL
+  TAREFA
+}
+
+enum TaskStatus {
   PENDING
   WAITING_CUSTOMER
   RECEIVED
@@ -280,11 +285,11 @@ enum MonthlyRoutineStatus {
   CANCELED
 }
 
-enum MonthlyRoutineRequestChannel {
+enum TaskRequestChannel {
   WHATSAPP
 }
 
-enum MonthlyRoutineRequestStatus {
+enum TaskRequestStatus {
   SENT
   FAILED
 }
@@ -364,9 +369,9 @@ model Company {
   userAccessProfiles           UserAccessProfile[]
   convertedCrmLeads            CrmLead[]                     @relation("CrmLeadConvertedCompany")
   agentDevices                 AgentDevice[]
-  monthlyRoutineConfig         MonthlyRoutineConfig?
-  monthlyRoutineCompetencies   MonthlyRoutineCompetency[]
-  monthlyRoutineRequests       MonthlyRoutineRequest[]
+  taskConfig                   TaskConfig?
+  tasks                        Task[]
+  taskRequests                 TaskRequest[]
 
   // AUDITORIA
   observacoes String?   @db.Text
@@ -403,9 +408,9 @@ model CompanyContact {
   users                        User[]
   companyLinks                 CompanyContactCompanyLink[]
   crmLeads                     CrmLead[]
-  monthlyRoutineClientConfigs     MonthlyRoutineConfig[] @relation("MonthlyRoutineClientContact")
-  monthlyRoutineAccountingConfigs MonthlyRoutineConfig[] @relation("MonthlyRoutineAccountingContact")
-  monthlyRoutineRequests          MonthlyRoutineRequest[]
+  taskClientConfigs               TaskConfig[] @relation("TaskClientContact")
+  taskAccountingConfigs           TaskConfig[] @relation("TaskAccountingContact")
+  taskRequests                    TaskRequest[]
 
   @@index([status])
   @@index([whatsapp])
@@ -512,8 +517,9 @@ model User {
   crmOwnedLeads                       CrmLead[]                     @relation("CrmLeadOwner")
   authoredCrmActivities               CrmActivity[]                 @relation("CrmActivityAuthor")
   assignedCrmTasks                    CrmTask[]                     @relation("CrmTaskAssignee")
-  requestedMonthlyRoutineRequests     MonthlyRoutineRequest[]       @relation("MonthlyRoutineRequestRequestedBy")
-  authoredMonthlyRoutineHistory       MonthlyRoutineHistory[]
+  requestedTaskRequests               TaskRequest[]                 @relation("TaskRequestRequestedBy")
+  authoredTaskHistory                 TaskHistory[]
+  assignedTasks                       Task[]                        @relation("TaskAssignee")
 
   // INDICES PARA PERFORMANCE
   @@index([name])
@@ -1012,6 +1018,7 @@ model Conversation {
   assignments      ConversationAssignment[]
   ticketCategory   TicketCategory?          @relation(fields: [ticketCategoryId], references: [id], onDelete: SetNull)
   ticketCategoryId String?
+  tasks            Task[]
 
   @@index([ticketCategoryId])
   @@index([channel, status])
@@ -1278,7 +1285,7 @@ model CrmTask {
   @@map("crm_task")
 }
 
-model MonthlyRoutineConfig {
+model TaskConfig {
   id String @id @default(cuid())
 
   companyId String @unique
@@ -1290,15 +1297,15 @@ model MonthlyRoutineConfig {
   reminderDays Int     @default(3)
 
   clientContactId String?
-  clientContact   CompanyContact? @relation("MonthlyRoutineClientContact", fields: [clientContactId], references: [id], onDelete: SetNull)
+  clientContact   CompanyContact? @relation("TaskClientContact", fields: [clientContactId], references: [id], onDelete: SetNull)
 
   accountingContactId String?
-  accountingContact   CompanyContact? @relation("MonthlyRoutineAccountingContact", fields: [accountingContactId], references: [id], onDelete: SetNull)
+  accountingContact   CompanyContact? @relation("TaskAccountingContact", fields: [accountingContactId], references: [id], onDelete: SetNull)
 
   notes             String? @db.Text
   requiredDocuments Json?
 
-  competencies MonthlyRoutineCompetency[]
+  tasks Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1306,21 +1313,26 @@ model MonthlyRoutineConfig {
   @@index([isActive])
   @@index([clientContactId])
   @@index([accountingContactId])
-  @@map("monthly_routine_config")
+  @@map("task_config")
 }
 
-model MonthlyRoutineCompetency {
+model Task {
   id String @id @default(cuid())
 
-  configId String
-  config   MonthlyRoutineConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  type      TaskType @default(ROTINA_MENSAL)
+
+  configId String?
+  config   TaskConfig? @relation(fields: [configId], references: [id], onDelete: Cascade)
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  year   Int
-  month  Int
-  status MonthlyRoutineStatus @default(PENDING)
+  year   Int?
+  month  Int?
+  status TaskStatus @default(PENDING)
+
+  title       String
+  description String? @db.Text
 
   dueDate     DateTime
   requestedAt DateTime?
@@ -1329,8 +1341,15 @@ model MonthlyRoutineCompetency {
   completedAt DateTime?
   notes       String? @db.Text
   metadata    Json?
-  requests    MonthlyRoutineRequest[]
-  history     MonthlyRoutineHistory[]
+
+  ticketId String?
+  ticket   Conversation? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  assignedToId String?
+  assignedTo   User? @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  requests TaskRequest[]
+  history  TaskHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1338,40 +1357,42 @@ model MonthlyRoutineCompetency {
   @@unique([configId, year, month])
   @@index([companyId, year, month])
   @@index([status, dueDate])
-  @@map("monthly_routine_competency")
+  @@index([type, status])
+  @@index([ticketId])
+  @@map("task")
 }
 
-model MonthlyRoutineHistory {
+model TaskHistory {
   id String @id @default(cuid())
 
-  competencyId String
-  competency   MonthlyRoutineCompetency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  taskId String
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   authorUserId String?
   authorUser   User? @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
 
-  type           String
-  fromStatus     MonthlyRoutineStatus?
-  toStatus       MonthlyRoutineStatus?
-  title          String
-  description    String? @db.Text
-  metadata       Json?
-  occurredAt     DateTime @default(now())
+  type        String
+  fromStatus  TaskStatus?
+  toStatus    TaskStatus?
+  title       String
+  description String? @db.Text
+  metadata    Json?
+  occurredAt  DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([competencyId, occurredAt])
+  @@index([taskId, occurredAt])
   @@index([authorUserId])
   @@index([type, occurredAt])
-  @@map("monthly_routine_history")
+  @@map("task_history")
 }
 
-model MonthlyRoutineRequest {
+model TaskRequest {
   id String @id @default(cuid())
 
-  competencyId String
-  competency   MonthlyRoutineCompetency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  taskId String
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -1380,11 +1401,11 @@ model MonthlyRoutineRequest {
   contact   CompanyContact @relation(fields: [contactId], references: [id], onDelete: Restrict)
 
   requestedByUserId String
-  requestedByUser   User @relation("MonthlyRoutineRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  requestedByUser   User @relation("TaskRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
 
   attemptNumber         Int
-  channel               MonthlyRoutineRequestChannel @default(WHATSAPP)
-  status                MonthlyRoutineRequestStatus
+  channel               TaskRequestChannel @default(WHATSAPP)
+  status                TaskRequestStatus
   targetPhone           String
   message               String @db.Text
   providerMessageId     String?
@@ -1396,13 +1417,13 @@ model MonthlyRoutineRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([competencyId, requestedAt])
-  @@unique([competencyId, attemptNumber])
+  @@index([taskId, requestedAt])
+  @@unique([taskId, attemptNumber])
   @@index([companyId, requestedAt])
   @@index([contactId, requestedAt])
   @@index([requestedByUserId])
   @@index([status, requestedAt])
-  @@map("monthly_routine_request")
+  @@map("task_request")
 }
 
 // cst
