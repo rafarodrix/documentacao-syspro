@@ -403,10 +403,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
           <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-auto">
             <div className="flex min-w-max rounded-md bg-muted/40 p-1">
               {STATUS_FILTER_OPTIONS.map((option) => {
-                const count =
-                  option.countKey === "total"
-                    ? tasks.summary.open
-                    : tasks.summary[option.countKey];
+                const count = tasks.summary[option.countKey];
                 const isActive = status === option.value || (status === "" && option.value === "OPEN");
 
                 return (
