@@ -373,7 +373,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
       </div>
 
       <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center">
           <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-auto">
             <div className="flex min-w-max rounded-md bg-muted/40 p-1">
               {STATUS_FILTER_OPTIONS.map((option) => {
@@ -412,7 +412,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-10 px-3 text-muted-foreground hover:text-foreground"
+                  className="h-9 px-3 text-muted-foreground hover:text-foreground"
                   onClick={clearFilters}
                 >
                   <X className="mr-2 h-3.5 w-3.5" />
@@ -423,7 +423,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                 type="button"
                 variant={showFilters ? "secondary" : "outline"}
                 size="icon"
-                className="h-10 w-10"
+                className="h-9 w-9"
                 onClick={() => setShowFilters((current) => !current)}
                 aria-label="Mostrar filtros"
               >
@@ -434,7 +434,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
         </div>
 
         {showFilters ? (
-          <div className="mt-3 rounded-lg border border-border/40 bg-background p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mt-3 rounded-lg border border-border/40 bg-background p-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)]">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
@@ -511,7 +511,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">
                   {shouldUseCompetenceFilter ? "Competência aplicada" : "Vencimento final"}
@@ -545,7 +545,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
       </section>
 
       <Card className="border-border/60">
-        <CardContent className="space-y-5 pt-6">
+        <CardContent className="space-y-4 pt-5">
           {tasks.pagination.total > 0 ? (
             <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>
@@ -652,7 +652,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                             <div className="text-xs text-muted-foreground">
                               {item.lastManualRequestContactName || "Contato"} - {new Date(item.lastManualRequestAt).toLocaleString("pt-BR")}
                             </div>
-                            <div className="text-xs text-muted-foreground">{item.manualRequestsCount} envio(s)</div>
+                            <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
                           </div>
                         ) : (
                           <span className="text-sm text-muted-foreground">Sem disparos manuais</span>

@@ -162,13 +162,11 @@ export function TaskManualRequestDialog({
             <MessageSquareShare className="h-4 w-4 text-primary" />
             Disparo manual para contato
           </DialogTitle>
-          <DialogDescription>
-            Registra a solicitacao na tarefa e envia a mensagem manualmente para um contato associado a empresa.
-          </DialogDescription>
+          <DialogDescription>Registre e envie uma solicitacao manual para um contato da empresa.</DialogDescription>
         </DialogHeader>
 
         {item ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="task-contact">Contato</Label>
               <Select value={contactId} onValueChange={handleContactChange} disabled={availableContacts.length === 0}>
@@ -187,6 +185,8 @@ export function TaskManualRequestDialog({
                 <p className="text-xs text-muted-foreground">
                   Destino: {selectedContact.whatsapp || selectedContact.phone || "Sem telefone cadastrado"}
                 </p>
+              ) : availableContacts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum contato com telefone disponivel para esta empresa.</p>
               ) : null}
             </div>
 
@@ -220,7 +220,7 @@ export function TaskManualRequestDialog({
               </div>
 
               {item.manualRequests.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
                   Nenhuma solicitacao manual registrada para esta tarefa.
                 </div>
               ) : (
@@ -250,7 +250,7 @@ export function TaskManualRequestDialog({
           </div>
         ) : null}
 
-        <DialogFooter>
+        <DialogFooter className="pt-1">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>

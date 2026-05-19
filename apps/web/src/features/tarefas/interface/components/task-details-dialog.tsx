@@ -106,7 +106,7 @@ export function TaskDetailsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[98vw] sm:max-w-6xl p-0 flex flex-col max-h-[90vh] h-[85vh] overflow-hidden gap-0">
-        <div className="p-5 border-b border-border/40 shrink-0">
+        <div className="p-4 border-b border-border/40 shrink-0">
           <DialogHeader className="gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <DialogTitle className="flex items-center gap-2 text-xl">
@@ -116,9 +116,7 @@ export function TaskDetailsDialog({
 
               {item ? <Badge variant={getStatusVariant(item.status)}>{getStatusLabel(item.status)}</Badge> : null}
             </div>
-            <DialogDescription>
-              Visualize o andamento operacional, checklist e configuracao projetada da empresa.
-            </DialogDescription>
+            <DialogDescription>Andamento, checklist e historico da tarefa.</DialogDescription>
             {item ? (
               <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:gap-3">
                 <span className="font-medium text-foreground">{item.companyName}</span>
@@ -140,8 +138,8 @@ export function TaskDetailsDialog({
           </div>
         ) : item ? (
           <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <div className="border-b border-border/40 bg-muted/5 p-4 lg:border-b-0 lg:border-r lg:overflow-y-auto">
-              <div className="space-y-1 px-1 pb-4">
+            <div className="border-b border-border/40 bg-muted/5 p-3 lg:border-b-0 lg:border-r lg:overflow-y-auto">
+              <div className="space-y-1 px-1 pb-3">
                 <div className="text-sm font-semibold text-foreground">{item.companyName}</div>
                 <div className="text-xs text-muted-foreground">
                   {item.title}
@@ -169,31 +167,31 @@ export function TaskDetailsDialog({
               </div>
             </div>
 
-            <div className="min-h-0 overflow-y-auto p-6">
+            <div className="min-h-0 overflow-y-auto p-5">
               {section === "resumo" ? (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-lg border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contabilidade</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{item.accountingFirmName || "Nao vinculada"}</p>
                       <p className="mt-1 text-xs text-muted-foreground">Contato: {item.accountingContactName || "Nao definido"}</p>
                     </div>
-                    <div className="rounded-lg border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{item.clientContactName || "Nao definido"}</p>
                     </div>
-                    <div className="rounded-lg border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vencimento</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{new Date(item.dueDate).toLocaleDateString("pt-BR")}</p>
                     </div>
-                    <div className="rounded-lg border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Solicitacoes</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{item.manualRequestsCount} envio(s)</p>
                     </div>
                   </div>
 
                   {item.ticketId ? (
-                    <div className="rounded-lg border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Origem</p>
                       <div className="mt-1 flex items-center justify-between gap-3">
                         <p className="text-sm font-medium text-foreground">Vinculada ao ticket {item.ticketId}</p>
@@ -212,7 +210,7 @@ export function TaskDetailsDialog({
 
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium text-foreground">Observacao operacional</h3>
-                    <div className="rounded-lg border border-border/60 px-4 py-3 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-border/60 px-3.5 py-3 text-sm text-muted-foreground">
                       {item.notes?.trim() || "Nenhuma observacao operacional registrada."}
                     </div>
                   </div>
@@ -220,14 +218,14 @@ export function TaskDetailsDialog({
               ) : null}
 
               {section === "andamento" ? (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="flex items-center gap-2">
                     <MessageSquareShare className="h-4 w-4 text-muted-foreground" />
                     <h3 className="text-sm font-medium text-foreground">Solicitacoes manuais</h3>
                   </div>
 
                   {item.manualRequests.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
                       Nenhum disparo manual registrado para esta tarefa.
                     </div>
                   ) : (
@@ -256,15 +254,15 @@ export function TaskDetailsDialog({
               ) : null}
 
               {section === "configuracao" ? (
-                <div className="space-y-5">
-                  <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="space-y-2.5">
                     <div className="flex items-center gap-2">
                       <ClipboardList className="h-4 w-4 text-muted-foreground" />
                       <h3 className="text-sm font-medium text-foreground">Checklist da empresa</h3>
                     </div>
 
                     {item.requiredDocuments.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
+                      <div className="rounded-lg border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
                         Nenhum item de checklist configurado.
                       </div>
                     ) : (
@@ -278,7 +276,7 @@ export function TaskDetailsDialog({
                     )}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <h3 className="text-sm font-medium text-foreground">Observacoes da empresa</h3>
                     <div className="rounded-lg border border-border/60 px-4 py-3 text-sm text-muted-foreground">
                       {item.configNotes?.trim() || "Nenhuma observacao configurada na empresa."}
@@ -288,14 +286,14 @@ export function TaskDetailsDialog({
               ) : null}
 
               {section === "historico" ? (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="flex items-center gap-2">
                     <History className="h-4 w-4 text-muted-foreground" />
                     <h3 className="text-sm font-medium text-foreground">Historico operacional</h3>
                   </div>
 
                   {item.history.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
                       Nenhum evento registrado para esta tarefa.
                     </div>
                   ) : (
@@ -320,7 +318,7 @@ export function TaskDetailsDialog({
           </div>
         ) : null}
 
-        <DialogFooter className="shrink-0 border-t border-border/40 px-6 py-4">
+        <DialogFooter className="shrink-0 border-t border-border/40 px-5 py-3.5">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>

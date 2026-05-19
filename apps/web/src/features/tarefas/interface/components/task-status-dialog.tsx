@@ -89,7 +89,7 @@ export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStat
         </DialogHeader>
 
         {item ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="task-status">Novo status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
@@ -124,7 +124,7 @@ export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStat
               </div>
 
               {item.history.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-border/60 px-4 py-4 text-sm text-muted-foreground">
                   Nenhum evento registrado para esta tarefa.
                 </div>
               ) : (
@@ -153,7 +153,7 @@ export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStat
           </div>
         ) : null}
 
-        <DialogFooter>
+        <DialogFooter className="pt-1">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
