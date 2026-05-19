@@ -32,6 +32,7 @@ import { TaskCreateDialog } from "./task-create-dialog";
 import { TaskDetailsDialog } from "./task-details-dialog";
 import { TaskManualRequestDialog } from "./task-manual-request-dialog";
 import { TaskStatusDialog } from "./task-status-dialog";
+import { cn } from "@/lib/utils";
 
 interface TarefasPageProps {
   tasks: TaskItemListResponse;
@@ -140,12 +141,27 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [selectedStatusTask, setSelectedStatusTask] = useState<TaskItem | null>(null);
   const [selectedDetailsTaskId, setSelectedDetailsTaskId] = useState<string | null>(null);
+  const [selectedRowTaskId, setSelectedRowTaskId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     setSearchDraft(search);
   }, [search]);
+
+  useEffect(() => {
+    if (!tasks.items.length) {
+      setSelectedRowTaskId(null);
+      return;
+    }
+
+    setSelectedRowTaskId((current) => {
+      if (current && tasks.items.some((item) => item.id === current)) {
+        return current;
+      }
+      return tasks.items[0]?.id ?? null;
+    });
+  }, [tasks.items]);
 
   useEffect(() => {
     const normalizedCurrent = (searchParams.get("search") ?? "").trim();
@@ -483,7 +499,11 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   {tasks.items.map((item) => (
                     <TableRow
                       key={item.id}
-                      className="align-top cursor-pointer transition-colors hover:bg-muted/10"
+                      className={cn(
+                        "align-top cursor-pointer transition-colors hover:bg-muted/10",
+                        selectedRowTaskId === item.id && "bg-primary/5 hover:bg-primary/10",
+                      )}
+                      onClick={() => setSelectedRowTaskId(item.id)}
                       onDoubleClick={() => setSelectedDetailsTaskId(item.id)}
                       title="Duplo clique para ver detalhes"
                     >
