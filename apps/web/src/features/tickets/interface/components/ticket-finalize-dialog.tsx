@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertCircle, Loader2, Flag, Video } from "lucide-react";
-import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Input, Label, Textarea } from "@dosc-syspro/ui";
+import { Button, Checkbox, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Input, Label, Textarea } from "@dosc-syspro/ui";
 import { trpc } from "@/lib/api/trpc-client";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
@@ -41,6 +41,18 @@ function inferReleaseType(ticket: TicketDetailsItem): ReleaseTypeValue | "" {
   return "";
 }
 
+function buildFollowUpTaskTitle(ticket: TicketDetailsItem) {
+  return `Atualizacao pos-ticket #${ticket.number}`;
+}
+
+function buildFollowUpTaskDescription(ticket: TicketDetailsItem) {
+  const base = [`Origem: ticket #${ticket.number}`, `Assunto: ${ticket.title}`];
+  if (ticket.resolutionSummary?.trim()) {
+    base.push("", "Resumo do fechamento:", ticket.resolutionSummary.trim());
+  }
+  return base.join("\n");
+}
+
 export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, onOpenChange }: TicketFinalizeDialogProps) {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -58,6 +70,11 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   const [releaseTitle, setReleaseTitle] = useState(ticket.releaseTitle || ticket.title || "");
   const [releaseModule, setReleaseModule] = useState(ticket.releaseModule || ticket.operations?.module || "");
   const [publishToReleases, setPublishToReleases] = useState(shouldSuggestRelease);
+  const [createFollowUpTask, setCreateFollowUpTask] = useState(false);
+  const [followUpTaskTitle, setFollowUpTaskTitle] = useState(buildFollowUpTaskTitle(ticket));
+  const [followUpTaskDescription, setFollowUpTaskDescription] = useState(buildFollowUpTaskDescription(ticket));
+  const [followUpTaskDueDays, setFollowUpTaskDueDays] = useState("3");
+  const [followUpAssignToOwner, setFollowUpAssignToOwner] = useState(Boolean(ticket.ownerId));
   const [releaseType, setReleaseType] = useState<ReleaseTypeValue>(
     ticket.releaseType === "BUG" ||
       ticket.releaseType === "MELHORIA" ||
@@ -67,11 +84,16 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
   );
 
   const shouldRequireReleaseFields = publishToReleases;
+  const canCreateFollowUpTask = Boolean(ticket.companyId);
+  const followUpDueDaysNumber = Number(followUpTaskDueDays);
   const canFinalize = useMemo(() => {
     if (isDevelopmentTicket && !resolutionSummary.trim()) return false;
     if (shouldRequireReleaseFields && !releaseTitle.trim()) return false;
+    if (createFollowUpTask && !canCreateFollowUpTask) return false;
+    if (createFollowUpTask && !followUpTaskTitle.trim()) return false;
+    if (createFollowUpTask && (!Number.isFinite(followUpDueDaysNumber) || followUpDueDaysNumber < 0 || followUpDueDaysNumber > 365)) return false;
     return true;
-  }, [isDevelopmentTicket, releaseTitle, resolutionSummary, shouldRequireReleaseFields]);
+  }, [canCreateFollowUpTask, createFollowUpTask, followUpDueDaysNumber, followUpTaskTitle, isDevelopmentTicket, releaseTitle, resolutionSummary, shouldRequireReleaseFields]);
 
   useEffect(() => {
     if (!open) return;
@@ -80,6 +102,11 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
     setReleaseTitle(ticket.releaseTitle || ticket.title || "");
     setReleaseModule(ticket.releaseModule || ticket.operations?.module || "");
     setPublishToReleases(shouldSuggestRelease);
+    setCreateFollowUpTask(false);
+    setFollowUpTaskTitle(buildFollowUpTaskTitle(ticket));
+    setFollowUpTaskDescription(buildFollowUpTaskDescription(ticket));
+    setFollowUpTaskDueDays("3");
+    setFollowUpAssignToOwner(Boolean(ticket.ownerId));
     setReleaseType(
       ticket.releaseType === "BUG" ||
         ticket.releaseType === "MELHORIA" ||
@@ -91,6 +118,8 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
     effectiveReleaseType,
     open,
     shouldSuggestRelease,
+    ticket.number,
+    ticket.ownerId,
     ticket.releaseModule,
     ticket.releaseType,
     ticket.releaseTitle,
@@ -112,31 +141,73 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
     if (shouldRequireReleaseFields && !releaseTitle.trim()) {
       toast.error("Informe o titulo que vai aparecer no modulo de releases.");
       return;
-        }
-        startTransition(async () => {
-            try {
-                const result = await trpc.tickets.finalize.mutate({
-                    id: String(ticket.id),
-                    data: {
-                      resolutionSummary: resolutionSummary.trim() || undefined,
-                      resolutionVideoUrl: resolutionVideoUrl.trim() || undefined,
-                      releaseType: shouldRequireReleaseFields ? releaseType : undefined,
-                      releaseTitle: shouldRequireReleaseFields ? releaseTitle.trim() || undefined : undefined,
-                      releaseModule: shouldRequireReleaseFields ? releaseModule.trim() || undefined : undefined,
-                      publishToReleases: isDevelopmentTicket ? publishToReleases : false,
-                    },
-                });
+    }
+    if (createFollowUpTask && !canCreateFollowUpTask) {
+      toast.error("O ticket precisa estar vinculado a uma empresa para gerar tarefa.");
+      return;
+    }
+    if (createFollowUpTask && !followUpTaskTitle.trim()) {
+      toast.error("Informe o titulo da tarefa de acompanhamento.");
+      return;
+    }
+    if (createFollowUpTask && (!Number.isFinite(followUpDueDaysNumber) || followUpDueDaysNumber < 0 || followUpDueDaysNumber > 365)) {
+      toast.error("Informe um prazo valido em dias para a tarefa de acompanhamento.");
+      return;
+    }
 
-                if (!result.success) {
+    startTransition(async () => {
+      try {
+        const result = await trpc.tickets.finalize.mutate({
+          id: String(ticket.id),
+          data: {
+            resolutionSummary: resolutionSummary.trim() || undefined,
+            resolutionVideoUrl: resolutionVideoUrl.trim() || undefined,
+            releaseType: shouldRequireReleaseFields ? releaseType : undefined,
+            releaseTitle: shouldRequireReleaseFields ? releaseTitle.trim() || undefined : undefined,
+            releaseModule: shouldRequireReleaseFields ? releaseModule.trim() || undefined : undefined,
+            publishToReleases: isDevelopmentTicket ? publishToReleases : false,
+          },
+        });
+
+        if (!result.success) {
           toast.error(result.error || "Nao foi possivel concluir o ticket.");
           return;
         }
 
-        toast.success(
-          publishToReleases
-            ? "Ticket finalizado e publicado em Releases."
-            : result.message || "Ticket finalizado com sucesso.",
-        );
+        let followUpTaskCreated = false;
+        let followUpTaskError: string | null = null;
+
+        if (createFollowUpTask && ticket.companyId) {
+          try {
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + followUpDueDaysNumber);
+
+            await trpc.tarefas.createTask.mutate({
+              companyId: ticket.companyId,
+              title: followUpTaskTitle.trim(),
+              description: followUpTaskDescription.trim() || resolutionSummary.trim() || undefined,
+              dueDate: new Date(`${dueDate.toISOString().slice(0, 10)}T12:00:00`).toISOString(),
+              assignedToId: followUpAssignToOwner && ticket.ownerId ? String(ticket.ownerId) : undefined,
+              requiredDocuments: [],
+            });
+            followUpTaskCreated = true;
+          } catch (error) {
+            followUpTaskError = error instanceof Error ? error.message : "Falha ao criar a tarefa de acompanhamento.";
+          }
+        }
+
+        if (followUpTaskError) {
+          toast.error(`Ticket finalizado, mas a tarefa nao foi criada: ${followUpTaskError}`);
+        } else if (followUpTaskCreated) {
+          toast.success("Ticket finalizado e tarefa de acompanhamento criada.");
+        } else {
+          toast.success(
+            publishToReleases
+              ? "Ticket finalizado e publicado em Releases."
+              : result.message || "Ticket finalizado com sucesso.",
+          );
+        }
+
         setOpen(false);
         router.refresh();
       } catch {
@@ -156,7 +227,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
           </Button>
         </DialogTrigger>
       ) : null}
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary">
             <Flag className="h-5 w-5" />
@@ -200,6 +271,88 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
                 disabled={isPending}
               />
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-md border border-border/60 bg-muted/15 p-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Acompanhamento pos-fechamento
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Gere uma tarefa avulsa para tratar ajustes, atualizacoes ou pendencias identificadas no fechamento.
+              </p>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
+              <Checkbox
+                checked={createFollowUpTask}
+                onCheckedChange={(value) => setCreateFollowUpTask(value === true)}
+                disabled={isPending || !canCreateFollowUpTask}
+                className="mt-0.5"
+              />
+              <span>
+                Gerar tarefa de atualizacao ao concluir este ticket
+              </span>
+            </label>
+
+            {!canCreateFollowUpTask ? (
+              <p className="flex items-center gap-1.5 text-[11px] text-amber-600">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Vincule uma empresa ao ticket para habilitar a abertura de tarefa.
+              </p>
+            ) : null}
+
+            {createFollowUpTask ? (
+              <div className="grid gap-3 rounded-md border border-border/50 bg-background/80 p-3 md:grid-cols-2">
+                <div className="space-y-1 md:col-span-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da tarefa *</Label>
+                  <Input
+                    value={followUpTaskTitle}
+                    onChange={(event) => setFollowUpTaskTitle(event.target.value)}
+                    disabled={isPending}
+                    placeholder="Ex: Atualizar parametrizacao apos homologacao"
+                    className="h-9 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1 md:col-span-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Descricao</Label>
+                  <Textarea
+                    rows={4}
+                    value={followUpTaskDescription}
+                    onChange={(event) => setFollowUpTaskDescription(event.target.value)}
+                    disabled={isPending}
+                    placeholder="Explique o que precisa ser ajustado ou acompanhado apos o fechamento."
+                    className="text-xs resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prazo em dias *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={followUpTaskDueDays}
+                    onChange={(event) => setFollowUpTaskDueDays(event.target.value)}
+                    disabled={isPending}
+                    className="h-9 text-xs"
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/10 px-3 py-2 text-xs text-foreground">
+                  <Checkbox
+                    checked={followUpAssignToOwner}
+                    onCheckedChange={(value) => setFollowUpAssignToOwner(value === true)}
+                    disabled={isPending || !ticket.ownerId}
+                  />
+                  <span>
+                    Atribuir ao responsavel atual do ticket
+                    {!ticket.ownerId ? " (sem responsavel definido)" : ""}
+                  </span>
+                </label>
+              </div>
+            ) : null}
           </div>
 
           {isDevelopmentTicket ? (

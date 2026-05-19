@@ -23,10 +23,11 @@ import {
   TableHeader,
   TableRow,
 } from "@dosc-syspro/ui";
-import { CircleAlert, Eye, Filter, ListTodo, MessageSquareShare, RefreshCw, Repeat, Search, X } from "lucide-react";
+import { CircleAlert, Eye, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { TaskCreateDialog } from "./task-create-dialog";
 import { TaskDetailsDialog } from "./task-details-dialog";
 import { TaskManualRequestDialog } from "./task-manual-request-dialog";
 import { TaskStatusDialog } from "./task-status-dialog";
@@ -134,6 +135,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [selectedStatusTask, setSelectedStatusTask] = useState<TaskItem | null>(null);
   const [selectedDetailsTaskId, setSelectedDetailsTaskId] = useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -244,6 +246,10 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
         </div>
         {canManage ? (
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button type="button" onClick={() => setIsCreateDialogOpen(true)} className="h-10 w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Nova tarefa
+            </Button>
             <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full sm:w-auto">
               <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
               {isSyncing ? "Sincronizando..." : "Sincronizar competencias"}
@@ -531,6 +537,12 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
           ) : null}
         </CardContent>
       </Card>
+
+      <TaskCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onCreated={() => router.refresh()}
+      />
 
       <TaskManualRequestDialog
         item={selectedTask}

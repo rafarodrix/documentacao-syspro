@@ -321,10 +321,11 @@ export class TarefasService {
     const taskModel = (this.prisma as any).task;
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + settings.autoTaskDueDays);
+    const companyName = await this.resolveCompanyDisplayName(ticket.companyId);
 
     const title = settings.autoTaskTitle
       .replace('{ticket_subject}', ticket.subject ?? 'Atendimento')
-      .replace('{company_name}', ticket.companyId);
+      .replace('{company_name}', companyName);
 
     await taskModel.create({
       data: {
@@ -1355,5 +1356,14 @@ export class TarefasService {
   private parsePageSize(value: unknown) {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 1 ? Math.min(Math.floor(parsed), 100) : 20;
+  }
+
+  private async resolveCompanyDisplayName(companyId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { nomeFantasia: true, razaoSocial: true },
+    });
+
+    return company?.nomeFantasia?.trim() || company?.razaoSocial?.trim() || companyId;
   }
 }

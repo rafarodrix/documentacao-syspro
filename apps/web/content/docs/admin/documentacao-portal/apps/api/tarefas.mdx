@@ -167,6 +167,20 @@ Campos globais usados pela geracao:
 | `autoTaskTitle` | string? | Template do titulo |
 | `autoTaskAssignToTicketOwner` | boolean | Atribui ao responsavel do ticket |
 
+### Dois caminhos operacionais
+
+Hoje o dominio suporta dois caminhos oficiais para abertura de tarefa avulsa:
+
+1. Criacao manual via `trpc.tarefas.createTask`, usada pela tela `/portal/tarefas`.
+2. Geracao a partir do fechamento de ticket:
+   - automatica por configuracao global (`autoCreateOnTicketResolved`)
+   - opcional por operador na UI de fechamento do ticket, quando a demanda de acompanhamento e pontual
+
+O segundo caminho e indicado para cenarios como:
+- ajuste pos-homologacao
+- atualizacao solicitada apos teste
+- pendencia operacional que nao deve manter o ticket aberto
+
 ---
 
 ## Configuracao global
@@ -219,7 +233,13 @@ Comportamento atual da tela:
 - filtro por tipo (`ROTINA_MENSAL` ou `TAREFA`)
 - recorte mensal padrao pelo mes corrente
 - paginacao server-driven
-- dialogos para detalhe, disparo manual e atualizacao de status
+- dialogos para detalhe, disparo manual, atualizacao de status e criacao manual de tarefa
+
+Na finalizacao de tickets, a UI pode abrir tarefa de acompanhamento usando o mesmo contrato `createTask`, vinculando:
+- empresa do ticket
+- prazo em dias
+- titulo e descricao ajustaveis
+- responsavel atual do ticket, opcionalmente
 
 O modulo de configuracao global aparece em:
 
