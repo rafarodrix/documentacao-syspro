@@ -1032,7 +1032,7 @@ export class AutomationWhatsappService {
 
   private buildPortalMonthlyRoutinesUrl(rawHeaders?: IncomingHttpHeaders): string | null {
     const origin = this.resolvePortalOrigin(rawHeaders);
-    return origin ? `${origin}/portal/rotinas-mensais` : null;
+    return origin ? `${origin}/portal/tarefas` : null;
   }
 
   private readHeader(rawHeaders: IncomingHttpHeaders | undefined, key: string): string | null {

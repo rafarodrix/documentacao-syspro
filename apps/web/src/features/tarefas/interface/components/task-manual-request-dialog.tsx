@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
-import type { MonthlyRoutineCompetencyItem } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
 import {
   Badge,
   Button,
@@ -31,14 +31,14 @@ const MESSAGE_TEMPLATES: Array<{ value: MessageTemplateValue; label: string }> =
   { value: "SECOND_REMINDER", label: "Segundo lembrete" },
 ];
 
-interface MonthlyRoutineManualRequestDialogProps {
-  item: MonthlyRoutineCompetencyItem | null;
+interface TaskManualRequestDialogProps {
+  item: TaskItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSent: () => void;
 }
 
-function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["manualRequests"][number]["status"]) {
+function getRequestStatusLabel(status: TaskItem["manualRequests"][number]["status"]) {
   switch (status) {
     case "SENT":
       return "Enviado";
@@ -49,7 +49,7 @@ function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["manualReque
   }
 }
 
-function getRequestStatusVariant(status: MonthlyRoutineCompetencyItem["manualRequests"][number]["status"]) {
+function getRequestStatusVariant(status: TaskItem["manualRequests"][number]["status"]) {
   switch (status) {
     case "SENT":
       return "success" as const;
@@ -60,24 +60,25 @@ function getRequestStatusVariant(status: MonthlyRoutineCompetencyItem["manualReq
   }
 }
 
-function buildDefaultMessage(item: MonthlyRoutineCompetencyItem, contactName: string, template: MessageTemplateValue) {
+function buildDefaultMessage(item: TaskItem, contactName: string, template: MessageTemplateValue) {
   const firstName = String(contactName || "").trim().split(/\s+/)[0] || "Tudo bem";
-  const competence = `${String(item.month).padStart(2, "0")}/${item.year}`;
+  const competence = item.year && item.month ? `${String(item.month).padStart(2, "0")}/${item.year}` : "";
+  const competenceLabel = competence ? ` da competencia ${competence}` : "";
   if (template === "FIRST_REMINDER") {
-    return `Ola, ${firstName}. Estamos retomando a solicitacao da competencia ${competence} da empresa ${item.companyName} (${item.title}). Quando puder, nos confirme para seguirmos com a geracao dos arquivos.`;
+    return `Ola, ${firstName}. Estamos retomando a solicitacao${competenceLabel} da empresa ${item.companyName} (${item.title}). Quando puder, nos confirme para seguirmos com a geracao dos arquivos.`;
   }
   if (template === "SECOND_REMINDER") {
-    return `Ola, ${firstName}. Este e um novo lembrete sobre a competencia ${competence} da empresa ${item.companyName} (${item.title}). Precisamos da sua confirmacao para concluir esta etapa e seguir com a contabilidade.`;
+    return `Ola, ${firstName}. Este e um novo lembrete${competenceLabel} da empresa ${item.companyName} (${item.title}). Precisamos da sua confirmacao para concluir esta etapa e seguir com a contabilidade.`;
   }
-  return `Ola, ${firstName}. Podemos gerar os arquivos da competencia ${competence} da empresa ${item.companyName} (${item.title})? Se estiver tudo certo, por favor nos confirme por aqui.`;
+  return `Ola, ${firstName}. Podemos gerar os arquivos${competenceLabel} da empresa ${item.companyName} (${item.title})? Se estiver tudo certo, por favor nos confirme por aqui.`;
 }
 
-export function MonthlyRoutineManualRequestDialog({
+export function TaskManualRequestDialog({
   item,
   open,
   onOpenChange,
   onSent,
-}: MonthlyRoutineManualRequestDialogProps) {
+}: TaskManualRequestDialogProps) {
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [contactId, setContactId] = useState("");
   const [message, setMessage] = useState("");
@@ -138,8 +139,8 @@ export function MonthlyRoutineManualRequestDialog({
 
     startSubmitTransition(async () => {
       try {
-        await trpc.rotinasMensais.sendManualRequest.mutate({
-          competencyId: item.id,
+        await trpc.tarefas.sendManualRequest.mutate({
+          taskId: item.id,
           contactId,
           template,
           message: message.trim(),
@@ -162,7 +163,7 @@ export function MonthlyRoutineManualRequestDialog({
             Disparo manual para contato
           </DialogTitle>
           <DialogDescription>
-            Registra a solicitacao na competencia e envia a mensagem manualmente para um contato associado a empresa.
+            Registra a solicitacao na tarefa e envia a mensagem manualmente para um contato associado a empresa.
           </DialogDescription>
         </DialogHeader>
 
@@ -171,14 +172,17 @@ export function MonthlyRoutineManualRequestDialog({
             <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
               <div className="text-sm font-medium text-foreground">{item.companyName}</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                Competencia {String(item.month).padStart(2, "0")}/{item.year} - {item.title}
+                {item.year && item.month
+                  ? `Competencia ${String(item.month).padStart(2, "0")}/${item.year} - `
+                  : ""}
+                {item.title}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthly-routine-contact">Contato</Label>
+              <Label htmlFor="task-contact">Contato</Label>
               <Select value={contactId} onValueChange={handleContactChange} disabled={availableContacts.length === 0}>
-                <SelectTrigger id="monthly-routine-contact">
+                <SelectTrigger id="task-contact">
                   <SelectValue placeholder="Selecione um contato" />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,9 +201,9 @@ export function MonthlyRoutineManualRequestDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="monthly-routine-message">Mensagem</Label>
+              <Label htmlFor="task-message">Mensagem</Label>
               <Select value={template} onValueChange={handleTemplateChange}>
-                <SelectTrigger id="monthly-routine-template">
+                <SelectTrigger id="task-template">
                   <SelectValue placeholder="Selecione um template" />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,7 +215,7 @@ export function MonthlyRoutineManualRequestDialog({
                 </SelectContent>
               </Select>
               <Textarea
-                id="monthly-routine-message"
+                id="task-message"
                 rows={6}
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
@@ -227,7 +231,7 @@ export function MonthlyRoutineManualRequestDialog({
 
               {item.manualRequests.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                  Nenhuma solicitacao manual registrada para esta competencia.
+                  Nenhuma solicitacao manual registrada para esta tarefa.
                 </div>
               ) : (
                 <div className="space-y-2">

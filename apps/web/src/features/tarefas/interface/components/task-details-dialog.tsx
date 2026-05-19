@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/api/trpc-client";
-import type { MonthlyRoutineCompetencyItem } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskItem, TaskStatus } from "@dosc-syspro/contracts/tarefas";
 import {
   Badge,
   Button,
@@ -15,15 +15,15 @@ import {
 } from "@dosc-syspro/ui";
 import { CalendarClock, ClipboardList, FileText, History, Loader2, MessageSquareShare } from "lucide-react";
 
-interface MonthlyRoutineDetailsDialogProps {
+interface TaskDetailsDialogProps {
   itemId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type RoutineDetailsSection = "resumo" | "andamento" | "configuracao" | "historico";
+type TaskDetailsSection = "resumo" | "andamento" | "configuracao" | "historico";
 
-function getStatusLabel(status: MonthlyRoutineCompetencyItem["status"]) {
+function getStatusLabel(status: TaskStatus) {
   switch (status) {
     case "PENDING":
       return "Pendente";
@@ -44,7 +44,7 @@ function getStatusLabel(status: MonthlyRoutineCompetencyItem["status"]) {
   }
 }
 
-function getStatusVariant(status: MonthlyRoutineCompetencyItem["status"]) {
+function getStatusVariant(status: TaskStatus) {
   switch (status) {
     case "COMPLETED":
       return "success" as const;
@@ -61,7 +61,7 @@ function getStatusVariant(status: MonthlyRoutineCompetencyItem["status"]) {
   }
 }
 
-function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["manualRequests"][number]["status"]) {
+function getRequestStatusLabel(status: TaskItem["manualRequests"][number]["status"]) {
   switch (status) {
     case "SENT":
       return "Enviado";
@@ -72,13 +72,13 @@ function getRequestStatusLabel(status: MonthlyRoutineCompetencyItem["manualReque
   }
 }
 
-export function MonthlyRoutineDetailsDialog({
+export function TaskDetailsDialog({
   itemId,
   open,
   onOpenChange,
-}: MonthlyRoutineDetailsDialogProps) {
-  const [section, setSection] = useState<RoutineDetailsSection>("resumo");
-  const [item, setItem] = useState<MonthlyRoutineCompetencyItem | null>(null);
+}: TaskDetailsDialogProps) {
+  const [section, setSection] = useState<TaskDetailsSection>("resumo");
+  const [item, setItem] = useState<TaskItem | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -88,14 +88,14 @@ export function MonthlyRoutineDetailsDialog({
     }
     setSection("resumo");
     setLoading(true);
-    trpc.rotinasMensais.getCompetency
+    trpc.tarefas.getTask
       .query({ id: itemId })
-      .then((result: MonthlyRoutineCompetencyItem) => setItem(result))
+      .then((result: TaskItem) => setItem(result))
       .catch(() => setItem(null))
       .finally(() => setLoading(false));
   }, [open, itemId]);
 
-  const sectionButtonClass = (value: RoutineDetailsSection) =>
+  const sectionButtonClass = (value: TaskDetailsSection) =>
     `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors ${
       section === value
         ? "bg-primary/10 text-primary border border-primary/20"
@@ -112,7 +112,7 @@ export function MonthlyRoutineDetailsDialog({
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/10 shadow-sm">
                   <CalendarClock className="h-5 w-5" />
                 </div>
-                Detalhes da competencia
+                Detalhes da tarefa
               </DialogTitle>
 
               {item ? <Badge variant={getStatusVariant(item.status)}>{getStatusLabel(item.status)}</Badge> : null}
@@ -125,7 +125,8 @@ export function MonthlyRoutineDetailsDialog({
                 <span className="font-medium text-foreground">{item.companyName}</span>
                 <span className="hidden sm:inline">•</span>
                 <span>
-                  {item.title} - {String(item.month).padStart(2, "0")}/{item.year}
+                  {item.title}
+                  {item.year && item.month ? ` - ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
                 </span>
                 <span className="hidden sm:inline">•</span>
                 <span>Vencimento {new Date(item.dueDate).toLocaleDateString("pt-BR")}</span>
@@ -144,7 +145,8 @@ export function MonthlyRoutineDetailsDialog({
               <div className="space-y-1 px-1 pb-4">
                 <div className="text-sm font-semibold text-foreground">{item.companyName}</div>
                 <div className="text-xs text-muted-foreground">
-                  {item.title} - {String(item.month).padStart(2, "0")}/{item.year}
+                  {item.title}
+                  {item.year && item.month ? ` - ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
                 </div>
               </div>
 
@@ -176,7 +178,8 @@ export function MonthlyRoutineDetailsDialog({
                       <div>
                         <div className="text-sm font-medium text-foreground">{item.companyName}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {item.title} - Competencia {String(item.month).padStart(2, "0")}/{item.year}
+                          {item.title}
+                          {item.year && item.month ? ` - Competencia ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
                         </div>
                       </div>
                       <Badge variant={getStatusVariant(item.status)}>{getStatusLabel(item.status)}</Badge>
@@ -204,7 +207,7 @@ export function MonthlyRoutineDetailsDialog({
                   </div>
 
                   <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-foreground">Observacao operacional da competencia</h3>
+                    <h3 className="text-sm font-medium text-foreground">Observacao operacional</h3>
                     <div className="rounded-xl border border-border/60 px-4 py-3 text-sm text-muted-foreground">
                       {item.notes?.trim() || "Nenhuma observacao operacional registrada."}
                     </div>
@@ -221,7 +224,7 @@ export function MonthlyRoutineDetailsDialog({
 
                   {item.manualRequests.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                      Nenhum disparo manual registrado para esta competencia.
+                      Nenhum disparo manual registrado para esta tarefa.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -250,33 +253,33 @@ export function MonthlyRoutineDetailsDialog({
 
               {section === "configuracao" ? (
                 <div className="space-y-5">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-medium text-foreground">Checklist da empresa</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-sm font-medium text-foreground">Checklist da empresa</h3>
+                    </div>
+
+                    {item.requiredDocuments.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
+                        Nenhum item de checklist configurado.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {item.requiredDocuments.map((document, index) => (
+                          <div key={`${item.id}-document-${index}`} className="rounded-xl border border-border/60 px-4 py-3 text-sm text-foreground">
+                            {document}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {item.requiredDocuments.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                      Nenhum item de checklist configurado.
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-foreground">Observacoes da empresa</h3>
+                    <div className="rounded-xl border border-border/60 px-4 py-3 text-sm text-muted-foreground">
+                      {item.configNotes?.trim() || "Nenhuma observacao configurada na empresa."}
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {item.requiredDocuments.map((document, index) => (
-                        <div key={`${item.id}-document-${index}`} className="rounded-xl border border-border/60 px-4 py-3 text-sm text-foreground">
-                          {document}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-foreground">Observacoes da empresa</h3>
-                  <div className="rounded-xl border border-border/60 px-4 py-3 text-sm text-muted-foreground">
-                    {item.configNotes?.trim() || "Nenhuma observacao configurada na empresa."}
                   </div>
-                </div>
                 </div>
               ) : null}
 
@@ -289,7 +292,7 @@ export function MonthlyRoutineDetailsDialog({
 
                   {item.history.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                      Nenhum evento registrado para esta competencia.
+                      Nenhum evento registrado para esta tarefa.
                     </div>
                   ) : (
                     <div className="space-y-2">

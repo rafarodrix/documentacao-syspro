@@ -1,21 +1,21 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { RotinasMensaisService } from './rotinas-mensais.service';
+import { TarefasService } from './tarefas.service';
 
 const JOB_INTERVAL_MS = Math.max(
   60_000,
-  Number(process.env.MONTHLY_ROUTINES_JOB_INTERVAL_MS ?? 10 * 60 * 1000),
+  Number(process.env.TAREFAS_JOB_INTERVAL_MS ?? 10 * 60 * 1000),
 );
 
 @Injectable()
-export class RotinasMensaisJobService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(RotinasMensaisJobService.name);
+export class TarefasJobService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(TarefasJobService.name);
   private timer?: NodeJS.Timeout;
   private running = false;
 
-  constructor(private readonly rotinasMensaisService: RotinasMensaisService) {}
+  constructor(private readonly tarefasService: TarefasService) {}
 
   onModuleInit() {
-    this.logger.log(`Job de rotinas mensais iniciado. Intervalo: ${JOB_INTERVAL_MS / 1000}s`);
+    this.logger.log(`Job de tarefas iniciado. Intervalo: ${JOB_INTERVAL_MS / 1000}s`);
     this.scheduleNext();
   }
 
@@ -35,9 +35,9 @@ export class RotinasMensaisJobService implements OnModuleInit, OnModuleDestroy {
     }
     this.running = true;
     try {
-      await this.rotinasMensaisService.runPeriodicJob();
+      await this.tarefasService.runPeriodicJob();
     } catch (error) {
-      this.logger.error('Erro no job periódico de rotinas mensais', error);
+      this.logger.error('Erro no job periódico de tarefas', error);
     } finally {
       this.running = false;
       this.scheduleNext();

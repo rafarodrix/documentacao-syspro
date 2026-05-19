@@ -63,11 +63,11 @@ export function CommandPaletteTrigger({ navigationAccess }: CommandPaletteTrigge
         enabled: navigationAccess?.tickets !== false,
       },
       {
-        label: "Rotinas Mensais",
-        href: "/portal/rotinas-mensais",
-        keywords: "rotinas mensais contabil contabilidade documentos recorrentes competencia entrega",
+        label: "Tarefas",
+        href: "/portal/tarefas",
+        keywords: "tarefas rotinas mensais contabil contabilidade documentos recorrentes competencia entrega ticket",
         icon: CalendarRange,
-        enabled: navigationAccess?.rotinasMensais !== false,
+        enabled: navigationAccess?.tarefas !== false,
       },
       {
         label: "CRM",

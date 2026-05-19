@@ -1,25 +1,25 @@
 "use client";
 
 import { useMemo } from "react";
-import type { MonthlyRoutineCompanyConfigUpsertInput, MonthlyRoutineCompanyConfigView } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
 import { Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
 import { CalendarRange, TriangleAlert } from "lucide-react";
 
-interface CompanyMonthlyRoutineCardProps {
-  view: MonthlyRoutineCompanyConfigView;
+interface CompanyTaskConfigCardProps {
+  view: TaskConfigView;
   canManage: boolean;
   currentAccountingFirmId?: string;
-  draft: MonthlyRoutineCompanyConfigUpsertInput["data"];
-  onDraftChange: (next: MonthlyRoutineCompanyConfigUpsertInput["data"]) => void;
+  draft: TaskConfigUpsertInput["data"];
+  onDraftChange: (next: TaskConfigUpsertInput["data"]) => void;
 }
 
-export function CompanyMonthlyRoutineCard({
+export function CompanyTaskConfigCard({
   view,
   canManage,
   currentAccountingFirmId,
   draft,
   onDraftChange,
-}: CompanyMonthlyRoutineCardProps) {
+}: CompanyTaskConfigCardProps) {
   const accountingFirmChangedInForm = useMemo(() => {
     if (typeof currentAccountingFirmId !== "string") return false;
     const normalizedCurrent = currentAccountingFirmId.trim();

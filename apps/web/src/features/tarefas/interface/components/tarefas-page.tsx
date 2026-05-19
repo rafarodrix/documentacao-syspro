@@ -1,24 +1,24 @@
 "use client";
 
 import { trpc } from "@/lib/api/trpc-client";
-import type { MonthlyRoutineCompetencyListResponse } from "@dosc-syspro/contracts/rotinas-mensais";
+import type { TaskItem, TaskItemListResponse } from "@dosc-syspro/contracts/tarefas";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
 import { CalendarRange, CircleAlert, Eye, Filter, MessageSquareShare, RefreshCw, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { MonthlyRoutineDetailsDialog } from "./monthly-routine-details-dialog";
-import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-request-dialog";
-import { MonthlyRoutineStatusDialog } from "./monthly-routine-status-dialog";
+import { TaskDetailsDialog } from "./task-details-dialog";
+import { TaskManualRequestDialog } from "./task-manual-request-dialog";
+import { TaskStatusDialog } from "./task-status-dialog";
 
-interface RotinasMensaisPageProps {
-  competencies: MonthlyRoutineCompetencyListResponse;
+interface TarefasPageProps {
+  tasks: TaskItemListResponse;
   search: string;
   status: string;
   canManage: boolean;
 }
 
-function getCompetencyStatusLabel(status: MonthlyRoutineCompetencyListResponse["items"][number]["status"]) {
+function getTaskStatusLabel(status: TaskItem["status"]) {
   switch (status) {
     case "PENDING":
       return "Pendente";
@@ -39,7 +39,7 @@ function getCompetencyStatusLabel(status: MonthlyRoutineCompetencyListResponse["
   }
 }
 
-function getCompetencyStatusVariant(status: MonthlyRoutineCompetencyListResponse["items"][number]["status"]) {
+function getTaskStatusVariant(status: TaskItem["status"]) {
   switch (status) {
     case "COMPLETED":
       return "success" as const;
@@ -56,7 +56,7 @@ function getCompetencyStatusVariant(status: MonthlyRoutineCompetencyListResponse
   }
 }
 
-function getManualRequestStatusLabel(status: MonthlyRoutineCompetencyListResponse["items"][number]["manualRequests"][number]["status"]) {
+function getManualRequestStatusLabel(status: TaskItem["manualRequests"][number]["status"]) {
   switch (status) {
     case "SENT":
       return "Enviado";
@@ -67,7 +67,7 @@ function getManualRequestStatusLabel(status: MonthlyRoutineCompetencyListRespons
   }
 }
 
-function getManualRequestStatusVariant(status: MonthlyRoutineCompetencyListResponse["items"][number]["manualRequests"][number]["status"]) {
+function getManualRequestStatusVariant(status: TaskItem["manualRequests"][number]["status"]) {
   switch (status) {
     case "SENT":
       return "success" as const;
@@ -88,7 +88,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: "COMPLETED", label: "Concluidas", countKey: "completed" },
 ] as const;
 
-export function RotinasMensaisPage({ competencies, search, status, canManage }: RotinasMensaisPageProps) {
+export function TarefasPage({ tasks, search, status, canManage }: TarefasPageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -96,9 +96,9 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
   const [isSyncing, startSyncTransition] = useTransition();
   const [searchDraft, setSearchDraft] = useState(search);
   const deferredSearch = useDeferredValue(searchDraft);
-  const [selectedCompetency, setSelectedCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
-  const [selectedStatusCompetency, setSelectedStatusCompetency] = useState<MonthlyRoutineCompetencyListResponse["items"][number] | null>(null);
-  const [selectedDetailsCompetencyId, setSelectedDetailsCompetencyId] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
+  const [selectedStatusTask, setSelectedStatusTask] = useState<TaskItem | null>(null);
+  const [selectedDetailsTaskId, setSelectedDetailsTaskId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -142,9 +142,9 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
   const handleSyncMonth = () => {
     startSyncTransition(async () => {
       try {
-        const result = await trpc.rotinasMensais.syncCompetencies.mutate({
-          year: competencies.year,
-          month: competencies.month,
+        const result = await trpc.tarefas.syncCompetencies.mutate({
+          year: tasks.year ?? undefined,
+          month: tasks.month ?? undefined,
         });
         toast.success(`${result.message} ${result.generated} gerada(s), ${result.updated} atualizada(s).`);
         router.refresh();
@@ -154,13 +154,17 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
     });
   };
 
+  const competenceLabel = tasks.year && tasks.month
+    ? `${String(tasks.month).padStart(2, "0")}/${tasks.year}`
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Rotinas Mensais</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Tarefas</h1>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Gerencie a fila mensal de documentos, disparos e andamento operacional.
+            Gerencie a fila de tarefas, rotinas mensais, disparos e andamento operacional.
           </p>
         </div>
         {canManage ? (
@@ -180,8 +184,8 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
               {STATUS_FILTER_OPTIONS.map((option) => {
                 const count =
                   option.countKey === "total"
-                    ? competencies.summary.total
-                    : competencies.summary[option.countKey];
+                    ? tasks.summary.total
+                    : tasks.summary[option.countKey];
                 const isActive = status === option.value || (status === "" && option.value === "ALL");
 
                 return (
@@ -206,7 +210,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
               <Input
                 value={searchDraft}
                 onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Buscar por empresa, rotina, contato ou contador..."
+                placeholder="Buscar por empresa, tarefa, contato ou contador..."
                 className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50 w-full"
               />
             </div>
@@ -243,12 +247,14 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
         {showFilters ? (
           <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Competencia</p>
-                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
-                  {String(competencies.month).padStart(2, "0")}/{competencies.year}
+              {competenceLabel ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Competencia</p>
+                  <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
+                    {competenceLabel}
+                  </div>
                 </div>
-              </div>
+              ) : null}
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Status atual</p>
                 <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
@@ -260,7 +266,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Registros no recorte</p>
                 <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
-                  {isPending ? "Atualizando..." : `${competencies.pagination.total} competencia(s)`}
+                  {isPending ? "Atualizando..." : `${tasks.pagination.total} tarefa(s)`}
                 </div>
               </div>
             </div>
@@ -271,19 +277,19 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle>
-            Competencias do mes {String(competencies.month).padStart(2, "0")}/{competencies.year}
+            {competenceLabel ? `Tarefas do mes ${competenceLabel}` : "Tarefas"}
           </CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             Fila operacional gerada a partir das configuracoes ativas por empresa.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          {competencies.items.length === 0 ? (
+          {tasks.items.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
               <CircleAlert className="mx-auto h-10 w-10 text-muted-foreground/70" />
-              <h2 className="mt-4 text-lg font-semibold text-foreground">Nenhuma competencia gerada</h2>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">Nenhuma tarefa encontrada</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Ative empresas na configuracao de rotina mensal para iniciar a fila do mes.
+                Ative empresas na configuracao de rotina mensal ou crie tarefas manualmente.
               </p>
             </div>
           ) : (
@@ -292,7 +298,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                 <thead>
                   <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-3">Empresa</th>
-                    <th className="px-3 py-3">Rotina</th>
+                    <th className="px-3 py-3">Tarefa</th>
                     <th className="px-3 py-3">Contato cliente</th>
                     <th className="px-3 py-3">Vencimento</th>
                     <th className="px-3 py-3">Checklist</th>
@@ -302,7 +308,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {competencies.items.map((item) => (
+                  {tasks.items.map((item) => (
                     <tr key={item.id} className="align-top">
                       <td className="px-3 py-4">
                         <div className="space-y-1">
@@ -313,9 +319,11 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                       <td className="px-3 py-4">
                         <div className="space-y-1">
                           <div className="text-sm font-medium text-foreground">{item.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {String(item.month).padStart(2, "0")}/{item.year}
-                          </div>
+                          {item.year && item.month ? (
+                            <div className="text-xs text-muted-foreground">
+                              {String(item.month).padStart(2, "0")}/{item.year}
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</td>
@@ -341,8 +349,8 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                         )}
                       </td>
                       <td className="px-3 py-4">
-                        <Badge variant={getCompetencyStatusVariant(item.status)}>
-                          {getCompetencyStatusLabel(item.status)}
+                        <Badge variant={getTaskStatusVariant(item.status)}>
+                          {getTaskStatusLabel(item.status)}
                         </Badge>
                       </td>
                       {canManage ? (
@@ -352,7 +360,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                             variant="ghost"
                             size="sm"
                             className="mr-2"
-                            onClick={() => setSelectedDetailsCompetencyId(item.id)}
+                            onClick={() => setSelectedDetailsTaskId(item.id)}
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             Ver detalhes
@@ -362,7 +370,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                             variant="outline"
                             size="sm"
                             className="mr-2"
-                            onClick={() => setSelectedStatusCompetency(item)}
+                            onClick={() => setSelectedStatusTask(item)}
                           >
                             Atualizar status
                           </Button>
@@ -370,7 +378,7 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedCompetency(item)}
+                            onClick={() => setSelectedTask(item)}
                             disabled={item.availableContacts.length === 0}
                           >
                             <MessageSquareShare className="mr-2 h-4 w-4" />
@@ -387,29 +395,29 @@ export function RotinasMensaisPage({ competencies, search, status, canManage }: 
         </CardContent>
       </Card>
 
-      <MonthlyRoutineManualRequestDialog
-        item={selectedCompetency}
-        open={Boolean(selectedCompetency)}
+      <TaskManualRequestDialog
+        item={selectedTask}
+        open={Boolean(selectedTask)}
         onOpenChange={(open) => {
-          if (!open) setSelectedCompetency(null);
+          if (!open) setSelectedTask(null);
         }}
         onSent={() => router.refresh()}
       />
 
-      <MonthlyRoutineStatusDialog
-        item={selectedStatusCompetency}
-        open={Boolean(selectedStatusCompetency)}
+      <TaskStatusDialog
+        item={selectedStatusTask}
+        open={Boolean(selectedStatusTask)}
         onOpenChange={(open) => {
-          if (!open) setSelectedStatusCompetency(null);
+          if (!open) setSelectedStatusTask(null);
         }}
         onSaved={() => router.refresh()}
       />
 
-      <MonthlyRoutineDetailsDialog
-        itemId={selectedDetailsCompetencyId}
-        open={Boolean(selectedDetailsCompetencyId)}
+      <TaskDetailsDialog
+        itemId={selectedDetailsTaskId}
+        open={Boolean(selectedDetailsTaskId)}
         onOpenChange={(open) => {
-          if (!open) setSelectedDetailsCompetencyId(null);
+          if (!open) setSelectedDetailsTaskId(null);
         }}
       />
     </div>

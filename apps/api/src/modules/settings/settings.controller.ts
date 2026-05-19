@@ -27,10 +27,10 @@ import {
   type RemoteModuleSettingsInput,
 } from '@dosc-syspro/contracts/remote';
 import {
-  DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS,
-  monthlyRoutineModuleSettingsSchema,
-  type MonthlyRoutineModuleSettingsInput,
-} from '@dosc-syspro/contracts/rotinas-mensais';
+  DEFAULT_TASK_MODULE_SETTINGS,
+  taskModuleSettingsSchema,
+  type TaskModuleSettingsInput,
+} from '@dosc-syspro/contracts/tarefas';
 import {
   buildDefaultInterstateIcmsSettings,
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
@@ -94,7 +94,7 @@ export class SettingsController {
   private static readonly STORAGE_CONFIG_KEY = R2StorageService.STORAGE_CONFIG_KEY;
   private static readonly STORAGE_ACCESS_KEY_ID_KEY = R2StorageService.STORAGE_ACCESS_KEY_ID_KEY;
   private static readonly STORAGE_SECRET_ACCESS_KEY_KEY = R2StorageService.STORAGE_SECRET_ACCESS_KEY_KEY;
-  private static readonly MONTHLY_ROUTINES_SETTINGS_KEY = 'monthly_routines.module.settings';
+  private static readonly MONTHLY_ROUTINES_SETTINGS_KEY = 'tarefas.module.settings';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -475,9 +475,9 @@ export class SettingsController {
   }
 
   @Put('monthly-routines')
-  async updateMonthlyRoutineModuleSettings(@Req() req: Request, @Body() body: MonthlyRoutineModuleSettingsInput) {
+  async updateMonthlyRoutineModuleSettings(@Req() req: Request, @Body() body: TaskModuleSettingsInput) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
-    const parsed = monthlyRoutineModuleSettingsSchema.parse(body);
+    const parsed = taskModuleSettingsSchema.parse(body);
 
     await this.prisma.systemSetting.upsert({
       where: { key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY },
@@ -485,13 +485,13 @@ export class SettingsController {
       create: {
         key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY,
         value: JSON.stringify(parsed),
-        description: 'Configuracoes globais do modulo de rotinas mensais',
+        description: 'Configuracoes globais do modulo de tarefas',
       },
     });
 
     return {
       success: true,
-      message: 'Configuracoes de rotinas mensais salvas.',
+      message: 'Configuracoes do modulo de tarefas salvas.',
       data: parsed,
     };
   }
@@ -2023,13 +2023,13 @@ export class SettingsController {
       });
 
       if (!setting?.value) {
-        return DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS;
+        return DEFAULT_TASK_MODULE_SETTINGS;
       }
 
-      const parsed = monthlyRoutineModuleSettingsSchema.safeParse(JSON.parse(setting.value));
-      return parsed.success ? parsed.data : DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS;
+      const parsed = taskModuleSettingsSchema.safeParse(JSON.parse(setting.value));
+      return parsed.success ? parsed.data : DEFAULT_TASK_MODULE_SETTINGS;
     } catch {
-      return DEFAULT_MONTHLY_ROUTINE_MODULE_SETTINGS;
+      return DEFAULT_TASK_MODULE_SETTINGS;
     }
   }
 }

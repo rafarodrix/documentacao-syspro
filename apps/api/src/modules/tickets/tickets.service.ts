@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import type {
   TicketModuleSettings,
   TicketModuleCreateRequest,
@@ -49,6 +49,7 @@ import { TicketHistoryService } from './ticket-history.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
+import { TarefasService } from '../tarefas/tarefas.service';
 
 type TicketAttachmentInsertRow = {
   messageId: string;
@@ -84,6 +85,7 @@ export class TicketsService {
     private readonly automationSettingsService: AutomationSettingsService,
     private readonly automationWhatsappService: AutomationWhatsappService,
     private readonly r2StorageService: R2StorageService,
+    @Optional() private readonly tarefasService: TarefasService | null = null,
   ) {}
 
   async create(
@@ -1344,6 +1346,21 @@ export class TicketsService {
           companyId: exists.companyId,
           publishedAt: resolvedClosedAt,
           rawHeaders,
+        });
+      });
+    }
+
+    if (
+      exists.status !== TicketStatus.RESOLVED &&
+      resolvedNextStatus === TicketStatus.RESOLVED &&
+      this.tarefasService
+    ) {
+      this.runAutomationInBackground('tarefas_create_from_ticket', exists.id, async () => {
+        await this.tarefasService!.createFromTicket({
+          id: exists.id,
+          subject: exists.subject ?? null,
+          companyId: exists.companyId ?? null,
+          assignedUserId: exists.assignedUserId ?? null,
         });
       });
     }
