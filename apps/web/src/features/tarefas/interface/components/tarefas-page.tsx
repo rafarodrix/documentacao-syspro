@@ -1,9 +1,29 @@
 "use client";
 
 import { trpc } from "@/lib/api/trpc-client";
+import { RegistryEmptyState, RegistryPagination, RegistryTableCard } from "@/components/platform/shared/registry-list-scaffold";
 import type { TaskItem, TaskItemListResponse } from "@dosc-syspro/contracts/tarefas";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
-import { CalendarRange, CircleAlert, Eye, Filter, MessageSquareShare, RefreshCw, Search, X } from "lucide-react";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@dosc-syspro/ui";
+import { CircleAlert, Eye, Filter, ListTodo, MessageSquareShare, RefreshCw, Repeat, Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -15,6 +35,7 @@ interface TarefasPageProps {
   tasks: TaskItemListResponse;
   search: string;
   status: string;
+  type: string;
   canManage: boolean;
 }
 
@@ -78,6 +99,14 @@ function getManualRequestStatusVariant(status: TaskItem["manualRequests"][number
   }
 }
 
+function getTaskTypeLabel(type: TaskItem["type"]) {
+  return type === "ROTINA_MENSAL" ? "Rotina mensal" : "Tarefa avulsa";
+}
+
+function getTaskTypeVariant(type: TaskItem["type"]) {
+  return type === "ROTINA_MENSAL" ? "secondary" as const : "outline" as const;
+}
+
 const STATUS_FILTER_OPTIONS = [
   { value: "ALL", label: "Todas", countKey: "total" },
   { value: "PENDING", label: "Pendentes", countKey: "pending" },
@@ -88,7 +117,13 @@ const STATUS_FILTER_OPTIONS = [
   { value: "COMPLETED", label: "Concluidas", countKey: "completed" },
 ] as const;
 
-export function TarefasPage({ tasks, search, status, canManage }: TarefasPageProps) {
+const TYPE_FILTER_OPTIONS = [
+  { value: "ALL", label: "Todos os tipos" },
+  { value: "ROTINA_MENSAL", label: "Rotinas mensais" },
+  { value: "TAREFA", label: "Tarefas avulsas" },
+] as const;
+
+export function TarefasPage({ tasks, search, status, type, canManage }: TarefasPageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -118,6 +153,7 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
         } else {
           params.delete("search");
         }
+        params.delete("page");
         router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
       });
     }, 300);
@@ -133,11 +169,49 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
       } else {
         params.delete("status");
       }
+      params.delete("page");
       router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
     });
   };
 
-  const hasActiveFilters = Boolean(search.trim()) || status !== "ALL";
+  const setTypeFilter = (nextType: string) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextType && nextType !== "ALL") {
+        params.set("type", nextType);
+      } else {
+        params.delete("type");
+      }
+      params.delete("page");
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const setPage = (nextPage: number) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextPage <= 1) {
+        params.delete("page");
+      } else {
+        params.set("page", String(nextPage));
+      }
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchDraft("");
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("search");
+      params.delete("status");
+      params.delete("type");
+      params.delete("page");
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const hasActiveFilters = Boolean(search.trim()) || status !== "ALL" || type !== "ALL";
 
   const handleSyncMonth = () => {
     startSyncTransition(async () => {
@@ -157,6 +231,7 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
   const competenceLabel = tasks.year && tasks.month
     ? `${String(tasks.month).padStart(2, "0")}/${tasks.year}`
     : null;
+  const activeTypeLabel = TYPE_FILTER_OPTIONS.find((option) => option.value === type)?.label ?? type;
 
   return (
     <div className="space-y-6">
@@ -221,10 +296,7 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
                   variant="ghost"
                   size="sm"
                   className="h-10 px-3 text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    setSearchDraft("");
-                    setStatusFilter("ALL");
-                  }}
+                  onClick={clearFilters}
                 >
                   <X className="mr-2 h-3.5 w-3.5" />
                   Limpar
@@ -246,7 +318,7 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
 
         {showFilters ? (
           <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {competenceLabel ? (
                 <div className="space-y-1.5">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground">Competencia</p>
@@ -256,11 +328,32 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
                 </div>
               ) : null}
               <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Tipo</p>
+                <Select value={type || "ALL"} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
+                    <SelectValue placeholder="Todos os tipos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPE_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Status atual</p>
                 <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
                   {status === "ALL"
                     ? "Todos"
                     : STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Tipo selecionado</p>
+                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
+                  {activeTypeLabel}
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -284,56 +377,84 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          {tasks.items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
-              <CircleAlert className="mx-auto h-10 w-10 text-muted-foreground/70" />
-              <h2 className="mt-4 text-lg font-semibold text-foreground">Nenhuma tarefa encontrada</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Ative empresas na configuracao de rotina mensal ou crie tarefas manualmente.
-              </p>
+          {tasks.pagination.total > 0 ? (
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Exibindo <span className="font-medium text-foreground">{tasks.items.length}</span> de{" "}
+                <span className="font-medium text-foreground">{tasks.pagination.total}</span> tarefas no filtro atual
+              </span>
+              <span>
+                Pagina <span className="font-medium text-foreground">{tasks.pagination.page}</span> de{" "}
+                <span className="font-medium text-foreground">
+                  {Math.max(1, Math.ceil(tasks.pagination.total / tasks.pagination.pageSize))}
+                </span>
+              </span>
             </div>
+          ) : null}
+
+          {tasks.items.length === 0 ? (
+            <RegistryEmptyState
+              icon={CircleAlert}
+              title="Nenhuma tarefa encontrada"
+              description={
+                hasActiveFilters
+                  ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
+                  : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila."
+              }
+              searchTerm={search.trim() || undefined}
+              onClear={hasActiveFilters ? clearFilters : undefined}
+            />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border/60">
-                <thead>
-                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-3">Empresa</th>
-                    <th className="px-3 py-3">Tarefa</th>
-                    <th className="px-3 py-3">Contato cliente</th>
-                    <th className="px-3 py-3">Vencimento</th>
-                    <th className="px-3 py-3">Checklist</th>
-                    <th className="px-3 py-3">Solicitacoes</th>
-                    <th className="px-3 py-3">Status</th>
-                    {canManage ? <th className="px-3 py-3 text-right">Acoes</th> : null}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
+            <RegistryTableCard>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/20">
+                    <TableRow className="border-b border-border/60 hover:bg-transparent">
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresa</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tarefa</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato cliente</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vencimento</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checklist</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Solicitacoes</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+                      {canManage ? <TableHead className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead> : null}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {tasks.items.map((item) => (
-                    <tr key={item.id} className="align-top">
-                      <td className="px-3 py-4">
+                    <TableRow key={item.id} className="align-top">
+                      <TableCell className="px-3 py-4">
                         <div className="space-y-1">
                           <div className="font-medium text-foreground">{item.companyName}</div>
                           <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
                         </div>
-                      </td>
-                      <td className="px-3 py-4">
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
                         <div className="space-y-1">
-                          <div className="text-sm font-medium text-foreground">{item.title}</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-sm font-medium text-foreground">{item.title}</div>
+                            <Badge variant={getTaskTypeVariant(item.type)} className="gap-1">
+                              {item.type === "ROTINA_MENSAL" ? <Repeat className="h-3 w-3" /> : <ListTodo className="h-3 w-3" />}
+                              {getTaskTypeLabel(item.type)}
+                            </Badge>
+                          </div>
                           {item.year && item.month ? (
                             <div className="text-xs text-muted-foreground">
                               {String(item.month).padStart(2, "0")}/{item.year}
                             </div>
-                          ) : null}
+                          ) : (
+                            <div className="text-xs text-muted-foreground">Sem competencia mensal vinculada</div>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</td>
-                      <td className="px-3 py-4 text-sm text-foreground">
+                      </TableCell>
+                      <TableCell className="px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
+                      <TableCell className="px-3 py-4 text-sm text-foreground">
                         {new Date(item.dueDate).toLocaleDateString("pt-BR")}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-foreground">
+                      </TableCell>
+                      <TableCell className="px-3 py-4 text-sm text-foreground">
                         {item.requiredDocumentsCount} item(ns)
-                      </td>
-                      <td className="px-3 py-4">
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
                         {item.lastManualRequestAt ? (
                           <div className="space-y-1">
                             <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
@@ -347,14 +468,14 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
                         ) : (
                           <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
                         )}
-                      </td>
-                      <td className="px-3 py-4">
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
                         <Badge variant={getTaskStatusVariant(item.status)}>
                           {getTaskStatusLabel(item.status)}
                         </Badge>
-                      </td>
+                      </TableCell>
                       {canManage ? (
-                        <td className="px-3 py-4 text-right">
+                        <TableCell className="px-3 py-4 text-right">
                           <Button
                             type="button"
                             variant="ghost"
@@ -384,14 +505,30 @@ export function TarefasPage({ tasks, search, status, canManage }: TarefasPagePro
                             <MessageSquareShare className="mr-2 h-4 w-4" />
                             {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
                           </Button>
-                        </td>
+                        </TableCell>
                       ) : null}
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                  </TableBody>
+                </Table>
+              </div>
+            </RegistryTableCard>
           )}
+
+          {tasks.pagination.total > 0 ? (
+            <RegistryPagination
+              pagination={{
+                page: tasks.pagination.page,
+                pageSize: tasks.pagination.pageSize,
+                total: tasks.pagination.total,
+                hasPreviousPage: tasks.pagination.hasPreviousPage,
+                hasNextPage: tasks.pagination.hasNextPage,
+              }}
+              itemLabel={{ singular: "tarefa", plural: "tarefas" }}
+              isLoading={isPending}
+              onPageChange={setPage}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

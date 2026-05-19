@@ -1,7 +1,7 @@
 ---
-title: app/web — Frontend Next.js
-description: O apps/web é o frontend do portal Trilink — App Router, features, Fumadocs, rotas e configuração de ambiente.
-lastUpdated: 2026-05-18
+title: app/web - Frontend Next.js
+description: O apps/web concentra o portal administrativo, a base de documentacao e os proxies HTTP para o backend.
+lastUpdated: 2026-05-19
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -11,183 +11,133 @@ tags:
   - fumadocs
 ---
 
-> Stack: Next.js 15 (App Router) · React 19 · TypeScript 5.8 · Tailwind CSS · tRPC Client · Fumadocs
-> Atualizado em: 2026-05-05
+> Stack: Next.js 15 · React 19 · TypeScript · Tailwind · tRPC Client · Fumadocs
 
 ---
 
 ## Responsabilidade
 
-O `apps/web` é o frontend do portal Trilink. Combina:
-- **Portal de gestão**: empresas, contatos, tickets, CRM, releases, documentos
-- **Base de documentação**: manuais técnicos e guias para clientes (Fumadocs/MDX)
-- **Infraestrutura remota**: UI para gerenciar hosts RustDesk, sessões e agentes
-- **Configurações**: integrações, permissões, SEFAZ, automações
+O `apps/web` e o frontend principal do portal Trilink. Ele combina:
+- portal administrativo autenticado
+- documentacao interna e externa em MDX
+- rotas proxy para o backend NestJS
+- interfaces de configuracao, tickets, infraestrutura e tarefas
 
 ---
 
 ## Estrutura principal
 
-```
+```text
 apps/web/
-├── src/
-│   ├── app/                         ← Next.js App Router
-│   │   ├── (autenticacao)/          ← pages de login, registro, reset
-│   │   ├── (platform)/portal/       ← portal principal (requer autenticação)
-│   │   ├── (site)/                  ← landing page, termos, privacidade
-│   │   ├── api/                     ← API Routes (proxy para backend)
-│   │   └── chatwoot/app/            ← page Chatwoot integrada
-│   │
-│   ├── features/                    ← features organizadas por domínio
-│   ├── components/                  ← componentes compartilhados
-│   └── ...
-│
-├── content/docs/                    ← conteúdo MDX da base de docs
-│   ├── admin/                       ← documentação técnica interna
-│   ├── cliente/                     ← manuais, dúvidas e treinamentos
-│   └── suporte/                     ← scripts e materiais operacionais
-│
-├── public/                          ← assets estáticos
-├── source.config.ts                 ← configuração Fumadocs
-└── next.config.mjs
+|-- src/
+|   |-- app/
+|   |   |-- (autenticacao)/
+|   |   |-- (platform)/portal/
+|   |   |-- (site)/
+|   |   |-- api/
+|   |   `-- chatwoot/app/
+|   |-- components/
+|   `-- features/
+|-- content/docs/
+|   |-- admin/
+|   |-- cliente/
+|   `-- suporte/
+|-- public/
+|-- source.config.ts
+`-- next.config.mjs
 ```
 
 ---
 
-## Rotas do portal (`/portal/*`)
+## Rotas principais do portal
 
-| Rota                                      | Feature         | Descrição                              |
-|-------------------------------------------|-----------------|----------------------------------------|
-| `/portal`                                 | dashboard       | Painel inicial com KPIs                |
-| `/portal/cadastros/empresa`               | company         | Listagem e cadastro de empresas        |
-| `/portal/cadastros/empresa/:id/editar`    | company         | Editar empresa                         |
-| `/portal/cadastros/sistema`               | company         | Cadastro de sistemas/contratos         |
-| `/portal/cadastros/usuarios`              | user-access     | Gestão de usuários                     |
-| `/portal/chamados`                        | tickets         | Conversas (legacy tickets)             |
-| `/portal/tickets`                         | tickets         | Tickets internos                       |
-| `/portal/tickets/:id`                     | tickets         | Detalhe de ticket com chat Markdown    |
-| `/portal/tickets/novo`                    | tickets         | Criar novo ticket                      |
-| `/portal/comercial/leads`                 | crm             | Pipeline de leads CRM                  |
-| `/portal/contatos`                        | contacts        | Contatos por empresa                   |
-| `/portal/contratos`                       | contracts       | Contratos de serviço                   |
-| `/portal/atendimento`                     | chatwoot        | Embedded Chatwoot                      |
-| `/portal/configuracoes`                   | settings        | Configurações globais                  |
-| `/portal/docs`                            | docs            | Documentação interna (Fumadocs)        |
-| `/portal/infraestrutura`                  | remote          | Painel de hosts remotos                |
-| `/portal/infraestrutura/agentes/:id`      | agents          | Detalhe de agente/dispositivo          |
-| `/portal/infraestrutura/hosts/:id`        | remote          | Detalhe de host remoto                 |
-| `/portal/releases`                        | releases        | Releases e changelogs                  |
-| `/portal/rotinas-mensais`                 | rotinas-mensais | Painel de competências mensais por empresa |
-| `/portal/tools/*`                         | tools           | Ferramentas fiscais e operacionais     |
+| Rota | Feature | Descricao |
+|------|---------|-----------|
+| `/portal` | dashboard | Painel inicial com indicadores |
+| `/portal/cadastros/empresa` | company | Empresas |
+| `/portal/cadastros/usuarios` | user-access | Usuarios e acessos |
+| `/portal/contatos` | contacts | Contatos |
+| `/portal/tickets` | tickets | Tickets internos |
+| `/portal/comercial/leads` | crm | CRM |
+| `/portal/contratos` | contracts | Contratos |
+| `/portal/atendimento` | chatwoot | Chatwoot embutido |
+| `/portal/tarefas` | tarefas | Rotinas mensais e tarefas avulsas |
+| `/portal/infraestrutura` | remote | Hosts e sessoes remotas |
+| `/portal/configuracoes` | settings | Configuracoes globais |
+| `/portal/docs` | docs | Base interna de documentacao |
+| `/portal/releases` | releases | Releases e changelogs |
+
+> A rota legada `/portal/rotinas-mensais` nao e mais a superficie oficial do modulo.
 
 ---
 
-## Features (`src/features/`)
+## Features
 
-Cada feature é um módulo isolado com sua própria camada:
-
-| Feature         | Descrição                                              |
-|-----------------|--------------------------------------------------------|
-| `agents`        | Inventário de dispositivos registrados                 |
-| `auth`          | Login, registro, perfil, logout                        |
-| `chatwoot`      | Embedded Chatwoot, configuração de integração          |
-| `company`       | CRUD de empresas, segmentação, status, contratos       |
-| `contracts`     | Contratos de serviço por empresa                       |
-| `crm`           | Leads, atividades, tarefas (pipeline Kanban)           |
-| `dashboard`     | KPIs, gráficos, métricas de suporte                    |
-| `docs`          | Feedback de docs, visualizações, busca                 |
-| `documentos`    | Upload e listagem de documentos de empresa             |
-| `evolution`     | Configuração de instância WhatsApp, QR code            |
-| `releases`      | Timeline de releases por mês/ano                       |
-| `rotinas-mensais` | Painel de competências, disparo manual, histórico    |
-| `remote`        | Hosts remotos, sessões, address book, fleet stats      |
-| `settings`      | Permissões, SEFAZ, integrações, automações             |
-| `sql-scripts`   | Biblioteca de scripts SQL para suporte                 |
-| `tax`           | NCM lookup, CST, ICMS, sync de tributação              |
-| `tickets`       | Tickets com workflow, chat Markdown, anexos            |
-| `user-access`   | Usuários, perfis de acesso, permissões                 |
+| Feature | Descricao |
+|---------|-----------|
+| `agents` | Inventario de dispositivos |
+| `auth` | Autenticacao e perfil |
+| `chatwoot` | Operacao integrada do Chatwoot |
+| `company` | Empresas e cadastro relacionado |
+| `contacts` | Contatos por empresa |
+| `contracts` | Contratos de servico |
+| `crm` | Leads, atividades e tarefas de CRM |
+| `dashboard` | KPIs do portal |
+| `docs` | Componentes e integracao com Fumadocs |
+| `releases` | Timeline de releases |
+| `remote` | Infraestrutura remota |
+| `settings` | Configuracoes globais |
+| `tarefas` | Lista, filtros, detalhes e configuracao de tarefas |
+| `tax` | Ferramentas e tabelas fiscais |
+| `tickets` | Workflow de chamados |
+| `user-access` | Perfis e permissoes |
 
 ---
 
-## Ferramentas (`/portal/tools/*`)
+## API Routes de proxy
 
-Calculadoras e utilitários fiscais disponíveis no portal:
+As rotas em `src/app/api/` fazem proxy para o backend NestJS.
 
-| Rota                              | Ferramenta                              |
-|-----------------------------------|-----------------------------------------|
-| `/tools/analisador-xml`           | Analisador de XML de NFe/NFCe           |
-| `/tools/calculadora-difal`        | Cálculo de DIFAL (ICMS interestadual)   |
-| `/tools/calculadora-precificacao` | Precificação de produtos                |
-| `/tools/configuracao-documento`   | Configuração de tipos de documento      |
-| `/tools/consulta-cnpj`            | Consulta CNPJ na Receita Federal        |
-| `/tools/custos-departamento`      | Rateio de custos por departamento       |
-| `/tools/fator-producao`           | Cálculo de fator de produção            |
-| `/tools/visualizador-danfe`       | Visualizador de DANFE em PDF            |
+Grupos principais:
+- `/api/platform/**`
+- `/api/tickets/**`
+- `/api/remote/**`
+- `/api/remote-admin/**`
+- `/api/tax/**`
+- `/api/crm/**`
+- `/api/search`
+- `/api/sefaz/**`
 
----
+No modulo de tarefas, os pontos importantes no web sao:
 
-## Documentação interna (Fumadocs)
-
-Rota: `/portal/docs/[[...slug]]`
-
-O conteúdo fica em `content/docs/` como arquivos MDX:
-
-```
-content/docs/
-├── admin/           ← arquitetura, guias internos e documentação do portal
-├── cliente/         ← documentação, dúvidas e treinamentos para clientes
-└── suporte/         ← scripts SQL, parametrizações e materiais operacionais
+```text
+/api/platform/settings/tarefas
+/portal/tarefas
 ```
 
-Configurado em `source.config.ts` com Fumadocs MDX.
+---
 
-Componentes customizados disponíveis nos MDX:
-- `docs/docs-feature-badge.tsx` — badge de feature
-- `docs/docs-page-feedback.tsx` — feedback de página
-- `docs/docs-reading-progress.tsx` — barra de progresso de leitura
-- `docs/docs-section-links.tsx` — links de seção
+## Documentacao interna
+
+Rota:
+
+```text
+/portal/docs/[[...slug]]
+```
+
+Conteudo:
+
+```text
+apps/web/content/docs/
+|-- admin/
+|-- cliente/
+`-- suporte/
+```
 
 ---
 
-## API Routes (proxy backend)
+## Observacoes de padrao
 
-As API Routes em `src/app/api/` fazem proxy para o NestJS usando `backend-proxy.ts`.
-
-Grupos de rotas (proxy REST):
-- `/api/contacts/**` — contatos
-- `/api/tickets/**` — tickets
-- `/api/remote/**` — acesso remoto (hosts, sessões, RustDesk)
-- `/api/remote-admin/**` — procedimentos administrativos remotos
-- `/api/platform/**` — configurações, permissões, integrações
-- `/api/tax/**` — tributação
-- `/api/crm/**` — CRM
-- `/api/search` — busca full-text
-- `/api/sefaz/**` — consulta status SEFAZ
-
-> **Domínios migrados para tRPC** (sem rota proxy REST):
-> - `companies` → `trpc.companies.*`
-> - `users` → `trpc.users.*`
-> - `contacts` → `trpc.contacts.*`
-
----
-
-## Configuração e ambiente
-
-```bash
-# apps/web/.env.local
-NEXT_PUBLIC_API_URL=http://localhost:3001    # URL base da API (NestJS)
-BETTER_AUTH_SECRET=...                       # mesmo secret da API
-BETTER_AUTH_URL=http://localhost:3000
-```
-
-```bash
-# Desenvolvimento
-npm run dev
-
-# Build
-npm run build
-
-# Testes
-npm run test:web
-npm run test:e2e
-```
+- URLs de filtro devem refletir estado da tela.
+- Listagens grandes devem usar paginacao server-driven.
+- Features de dominio devem usar nomenclatura atual do modulo, evitando aliases legados quando a migracao ja foi concluida.

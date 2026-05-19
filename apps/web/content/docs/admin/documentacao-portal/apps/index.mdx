@@ -1,7 +1,7 @@
 ---
 title: Apps
-description: Documentação individual de cada aplicação do monorepo Trilink Portal — API, Web, Agent e Mobile.
-lastUpdated: 2026-05-18
+description: Documentacao das aplicacoes do monorepo Trilink Portal.
+lastUpdated: 2026-05-19
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -11,23 +11,23 @@ tags:
 
 import { Cards, Card } from 'fumadocs-ui/components/card';
 
-## Aplicações do monorepo
+## Aplicacoes do monorepo
 
 <Cards>
-  <Card title="API (NestJS)" href="/portal/docs/admin/documentacao-portal/apps/api" description="Backend principal — tRPC, REST, módulos de domínio, autenticação e build." />
-  <Card title="Web (Next.js)" href="/portal/docs/admin/documentacao-portal/apps/web" description="Frontend do portal — App Router, features, rotas, Fumadocs e API proxy." />
-  <Card title="Agent (Go + Wails)" href="/portal/docs/admin/documentacao-portal/apps/agent" description="Agente desktop Windows — RustDesk, heartbeat, backup Firebird e IPC." />
-  <Card title="Mobile (Placeholder)" href="/portal/docs/admin/documentacao-portal/apps/mobile" description="Stub TypeScript — roadmap para Expo/React Native." />
-  <Card title="Tickets" href="/portal/docs/admin/documentacao-portal/apps/tickets-architecture" description="Arquitetura completa do módulo de tickets — estados, SLA, RBAC e integrações." />
+  <Card title="API (NestJS)" href="/portal/docs/admin/documentacao-portal/apps/api" description="Backend principal com tRPC, REST, modulos de dominio e automacoes." />
+  <Card title="Web (Next.js)" href="/portal/docs/admin/documentacao-portal/apps/web" description="Frontend do portal, rotas App Router, Fumadocs e proxies HTTP." />
+  <Card title="Agent (Go + Wails)" href="/portal/docs/admin/documentacao-portal/apps/agent" description="Agente desktop para operacao remota e automacao local." />
+  <Card title="Mobile (Placeholder)" href="/portal/docs/admin/documentacao-portal/apps/mobile" description="Stub TypeScript para a futura aplicacao mobile." />
+  <Card title="Tickets" href="/portal/docs/admin/documentacao-portal/apps/tickets-architecture" description="Arquitetura detalhada do modulo de tickets." />
 </Cards>
 
-## Sub-seções da API
+## Sub-secoes da API
 
 <Cards>
-  <Card title="Módulos Core" href="/portal/docs/admin/documentacao-portal/apps/api/modulos-core" description="Companies, contacts, users, tickets, CRM, dashboard e outros módulos de negócio." />
-  <Card title="Automação" href="/portal/docs/admin/documentacao-portal/apps/api/automation" description="Automações de notificação WhatsApp disparadas por eventos do portal." />
-  <Card title="Integrações" href="/portal/docs/admin/documentacao-portal/apps/api/integracoes" description="Chatwoot, Evolution, Messaging e Cloudflare R2 Storage." />
-  <Card title="Remote Admin" href="/portal/docs/admin/documentacao-portal/apps/api/remote-admin" description="Endpoints do agente Go e operações administrativas de hosts remotos." />
-  <Card title="Rotinas Mensais" href="/portal/docs/admin/documentacao-portal/apps/api/rotinas-mensais" description="Fluxo mensal recorrente de solicitação de documentação contábil a clientes." />
-  <Card title="tRPC" href="/portal/docs/admin/documentacao-portal/apps/api/trpc" description="Roteador tRPC federated — padrão de sub-routers por domínio." />
+  <Card title="Modulos Core" href="/portal/docs/admin/documentacao-portal/apps/api/modulos-core" description="Companies, contacts, users, tickets, tarefas, CRM e outros modulos de negocio." />
+  <Card title="Automacao" href="/portal/docs/admin/documentacao-portal/apps/api/automation" description="Automacoes de notificacao e processamento do portal." />
+  <Card title="Integracoes" href="/portal/docs/admin/documentacao-portal/apps/api/integracoes" description="Chatwoot, Evolution, Messaging e storage." />
+  <Card title="Remote Admin" href="/portal/docs/admin/documentacao-portal/apps/api/remote-admin" description="Operacoes administrativas de infraestrutura remota." />
+  <Card title="Tarefas" href="/portal/docs/admin/documentacao-portal/apps/api/tarefas" description="Rotinas mensais e tarefas avulsas no mesmo dominio." />
+  <Card title="tRPC" href="/portal/docs/admin/documentacao-portal/apps/api/trpc" description="Router federado e padrao de subrouters por dominio." />
 </Cards>

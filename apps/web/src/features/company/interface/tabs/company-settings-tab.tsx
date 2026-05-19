@@ -47,7 +47,7 @@ export function CompanySettingsTab({
     <Tabs defaultValue="instalacao" className="space-y-5">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="instalacao">Instalacao</TabsTrigger>
-        <TabsTrigger value="rotinas-mensais">Rotinas Mensais</TabsTrigger>
+        <TabsTrigger value="rotinas-mensais">Tarefas</TabsTrigger>
       </TabsList>
 
       <TabsContent value="instalacao" className="space-y-6">
@@ -314,11 +314,11 @@ export function CompanySettingsTab({
             onDraftChange={onTaskConfigDraftChange ?? (() => undefined)}
           />
         ) : (
-          <Card className="border-border/60 bg-card shadow-sm">
-            <CardContent className="p-5 text-sm text-muted-foreground">
-              A configuracao de rotinas mensais ficara disponivel apos carregar o contexto da empresa.
-            </CardContent>
-          </Card>
+            <Card className="border-border/60 bg-card shadow-sm">
+              <CardContent className="p-5 text-sm text-muted-foreground">
+              A configuracao de tarefas ficara disponivel apos carregar o contexto da empresa.
+              </CardContent>
+            </Card>
         )}
       </TabsContent>
     </Tabs>

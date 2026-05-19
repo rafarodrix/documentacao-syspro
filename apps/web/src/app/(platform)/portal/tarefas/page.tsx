@@ -22,9 +22,12 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
   });
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const pageParam = resolvedSearchParams.page;
   const searchParam = resolvedSearchParams.search;
   const statusParam = resolvedSearchParams.status;
   const typeParam = resolvedSearchParams.type;
+  const pageValue = typeof pageParam === "string" ? Number(pageParam) : Array.isArray(pageParam) ? Number(pageParam[0]) : 1;
+  const page = Number.isFinite(pageValue) && pageValue > 0 ? pageValue : 1;
   const search = typeof searchParam === "string" ? searchParam : Array.isArray(searchParam) ? searchParam[0] ?? "" : "";
   const status = typeof statusParam === "string" ? statusParam : Array.isArray(statusParam) ? statusParam[0] ?? "ALL" : "ALL";
   const type = typeof typeParam === "string" ? typeParam : Array.isArray(typeParam) ? typeParam[0] ?? "ALL" : "ALL";
@@ -34,7 +37,7 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
   const month = String(now.getMonth() + 1);
 
   const tasks = await getTarefasItemsQuery({
-    page: "1",
+    page: String(page),
     pageSize: "20",
     year,
     month,
@@ -43,5 +46,5 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
     status,
   });
 
-  return <TarefasPage tasks={tasks} search={search} status={status} canManage={canManage} />;
+  return <TarefasPage tasks={tasks} search={search} status={status} type={type} canManage={canManage} />;
 }

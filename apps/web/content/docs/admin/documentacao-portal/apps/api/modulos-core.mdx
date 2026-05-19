@@ -1,7 +1,7 @@
 ---
-title: API — Módulos Core de Negócio
-description: Módulos de domínio principal da API — companies, users, contacts, tickets, CRM, dashboard e outros módulos de negócio.
-lastUpdated: 2026-05-18
+title: API - Modulos Core de Negocio
+description: Panorama dos modulos centrais de dominio do apps/api.
+lastUpdated: 2026-05-19
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -10,9 +10,9 @@ tags:
   - nestjs
 ---
 
-# API — Módulos Core de Negócio
+# API - Modulos Core de Negocio
 
-> Módulos de domínio principal do `apps/api`. Atualizado em: 2026-05-05
+> Visao geral dos modulos centrais do `apps/api`.
 
 ---
 
@@ -20,27 +20,7 @@ tags:
 
 **Path:** `src/modules/companies/`
 
-Gerencia empresas do portal (clientes Trilink).
-
-| Arquivo                  | Responsabilidade                                       |
-|--------------------------|-------------------------------------------------------|
-| `companies.router.ts`    | Procedures tRPC de empresas                           |
-| `companies.service.ts`   | Lógica: criação, atualização, status, segmentação     |
-| `companies.module.ts`    | Módulo NestJS com `forwardRef(TrpcModule)`            |
-
-**Funcionalidades:**
-- CRUD completo de empresas com dados fiscais (CNPJ, razão social, IE)
-- Segmentação de empresas (tipo de negócio)
-- Hierarquia matriz/filial
-- Status da empresa: ACTIVE, INACTIVE, SUSPENDED, PENDING_DOCS
-- Busca por CNPJ com consulta a API externa
-- Integração com contratos de serviço
-- Configuração de parâmetros SEFAZ por empresa
-- Controle de acesso com escopo (usuário CLIENTE vê apenas sua empresa)
-- Inativação em cascata sobre contratos, contatos e vínculos derivados
-
-**Fluxo relacionado:**
-- `empresa-usuarios-contatos-fluxos.md` — visão integrada dos três módulos
+Responsavel por empresas, hierarquia matriz/filial, dados fiscais e status operacional.
 
 ---
 
@@ -48,50 +28,7 @@ Gerencia empresas do portal (clientes Trilink).
 
 **Path:** `src/modules/contacts/`
 
-Gerencia contatos vinculados a empresas. **Totalmente migrado para tRPC** — sem controller REST.
-
-| Arquivo                  | Responsabilidade                                       |
-|--------------------------|-------------------------------------------------------|
-| `contacts.router.ts`     | Procedures tRPC de contatos                           |
-| `contacts.service.ts`    | Lógica: CRUD, vincular empresa, sync com Evolution    |
-| `contacts.module.ts`     | Módulo NestJS com `forwardRef(TrpcModule)`            |
-
-**Procedures tRPC expostas (`trpc.contacts.*`):**
-
-| Procedure    | Tipo     | Descrição                                              |
-|--------------|----------|--------------------------------------------------------|
-| `list`       | query    | Lista contatos com filtros `q`, `unlinked`, `companyId`, paginação |
-| `getUnlinked`| query    | Retorna contatos sem empresa vinculada                 |
-| `getStats`   | query    | Totais: linked, unlinked, withEmail, withPhone         |
-| `getOne`     | query    | Busca contato por ID                                   |
-| `create`     | mutation | Cria contato com vínculos de empresa                   |
-| `update`     | mutation | Atualiza dados ou empresas do contato (campos nullable)|
-| `link`       | mutation | Vincula contato a uma empresa específica               |
-| `remove`     | mutation | Arquiva contato (soft-delete)                          |
-| `sync`       | mutation | Sincroniza contatos do Evolution (WhatsApp)            |
-
-**Funcionalidades:**
-- Contatos com CPF, email, telefone, cargo
-- Relação M:N com empresas via `CompanyContactCompanyLink`
-- `source`: MANUAL | WHATSAPP | IMPORT
-- `status`: PENDING_LINK | LINKED | ARCHIVED
-- Sincronização de contatos com Evolution (WhatsApp)
-- Controle de acesso por empresa via `AuthorizationService`
-- Stats de contatos por empresa
-- Sincronização de apresentação do contato no Chatwoot após mutações
-
-**Fluxo relacionado:**
-- `empresa-usuarios-contatos-fluxos.md` — vínculo M:N com empresas e impacto em usuários
-
-**Componentes web que consomem `trpc.contacts.*`:**
-- `src/features/contact/interface/*` — boundary de UI do módulo de contatos
-- `src/components/platform/app/contatos/contacts-tab.tsx` — implementação atual da listagem
-- `src/components/platform/app/contatos/create-contact-page-form.tsx` — implementação atual do formulário
-- `src/app/(platform)/portal/contatos/[id]/editar/page.tsx` — server page (getOne)
-- `src/features/user-access/interface/create-user-page-form.tsx` — busca de contatos para vincular usuário
-- `src/features/chatwoot/interface/chatwoot-dashboard-app.tsx` — lookup e criação de contatos pelo Chatwoot
-
-> O vínculo real entre usuário e empresa passa por `contactId -> companyLinks`, e não por seleção direta de empresa no cadastro de usuário.
+Gerencia contatos, vinculos com empresa e sincronizacao operacional com canais de atendimento.
 
 ---
 
@@ -99,52 +36,7 @@ Gerencia contatos vinculados a empresas. **Totalmente migrado para tRPC** — se
 
 **Path:** `src/modules/users/`
 
-Gerencia usuários do portal. **Totalmente migrado para tRPC** — sem controller REST.
-
-| Arquivo                          | Responsabilidade                                  |
-|----------------------------------|--------------------------------------------------|
-| `users.router.ts`                | Procedures tRPC (lista, busca, CRUD, perfil, SSO) |
-| `users.service.ts`               | Lógica de negócio: CRUD, perfis, Chatwoot sync    |
-| `user-contact-access.service.ts` | Sincronização de memberships a partir do contato  |
-| `users.module.ts`                | Módulo NestJS com `forwardRef(TrpcModule)`        |
-
-**Procedures tRPC expostas (`trpc.users.*`):**
-
-| Procedure              | Tipo     | Descrição                                        |
-|------------------------|----------|--------------------------------------------------|
-| `list`                 | query    | Lista usuários com filtros `search` e `role`     |
-| `getOne`               | query    | Busca usuário por ID                             |
-| `checkEmail`           | query    | Verifica disponibilidade de e-mail               |
-| `getCurrentProfile`    | query    | Retorna perfil + empresas do usuário logado      |
-| `getChatwootSsoLink`   | query    | Gera link SSO para acesso unificado ao Chatwoot  |
-| `create`               | mutation | Cria usuário e sincroniza com auth provider      |
-| `update`               | mutation | Atualiza dados ou status do usuário              |
-| `updateCurrentProfile` | mutation | Atualiza perfil e dados de empresa do usuário    |
-| `remove`               | mutation | Soft-delete (isActive=false, deletedAt)          |
-
-**Funcionalidades:**
-- CRUD completo com validação de e-mail e controle de role
-- Sincronização automática de `Membership` e `UserContactLink` via contato vinculado
-- Perfil do usuário com dados de empresa editáveis
-- SSO com Chatwoot com provisionamento automático de agente
-- Controle de acesso por escopo: admin global vs. gestor de unidade
-- Usuário cliente sempre deriva escopo de empresa a partir do contato associado
-
-**Fluxo relacionado:**
-- `empresa-usuarios-contatos-fluxos.md` — herança de escopo via contato e sincronização de memberships
-
----
-
-## auth
-
-**Path:** `src/modules/auth/`
-
-Autenticação via Better Auth.
-
-- Endpoints montados em `/api/auth/[...all]` (Better Auth handler)
-- Login, registro, esqueceu senha, reset
-- Session management com cookie HttpOnly
-- Verificação de email
+CRUD de usuarios, perfil atual, escopo e sincronizacao de acesso derivado do contato vinculado.
 
 ---
 
@@ -152,22 +44,7 @@ Autenticação via Better Auth.
 
 **Path:** `src/modules/authorization/`
 
-Resolução de escopo e permissões.
-
-| Arquivo                        | Responsabilidade                          |
-|--------------------------------|------------------------------------------|
-| `authorization.service.ts`     | Resolve role, escopo e permissões        |
-| `authorization.module.ts`      | Módulo global                            |
-
-**Escopo resolvido:**
-```typescript
-{
-  userId: string
-  role: 'ADMIN' | 'SUPORTE' | 'CLIENTE_ADMIN' | 'CLIENTE_USER' | 'DEVELOPER'
-  companyIds: string[]  // [] = acesso global
-  permissions: string[] // ex: ['companies:view_all', 'remote:manage']
-}
-```
+Resolve escopo, role e permissoes por usuario.
 
 ---
 
@@ -175,40 +52,44 @@ Resolução de escopo e permissões.
 
 **Path:** `src/modules/tickets/`
 
-Sistema de chamados técnicos internos. Usa o modelo `Conversation { channel: PORTAL }` do banco — ver nota sobre nomenclatura em `apps/tickets-architecture`.
+Workflow de chamados internos, timeline de mensagens, SLA, anexos e integracao com Chatwoot.
 
-| Arquivo                        | Responsabilidade                                           |
-|--------------------------------|------------------------------------------------------------|
-| `tickets.controller.ts`        | HTTP endpoints REST (GET, POST, PATCH, linked-companies)   |
-| `tickets.service.ts`           | Lógica core: criar, listar, atualizar, validar transições  |
-| `ticket-history.service.ts`    | Log de mudanças de campo (campo, valorAnterior, valorNovo) |
-| `ticket-contract.mapper.ts`    | Prisma `Conversation` → `TicketModuleRecord` (contracts)   |
-| `update-ticket.dto.ts`         | DTO de atualização (mínimo; schemas em `@dosc-syspro/contracts`) |
+---
 
-**Endpoints expostos:**
+## tarefas
 
-| Método | Path | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/tickets` | Lista com filtros: status, queue, team, search, paginação |
-| `POST` | `/api/tickets` | Cria ticket (multipart/form-data, suporta anexos) |
-| `GET` | `/api/tickets/:id` | Detalhe com mensagens, histórico e anexos |
-| `PATCH` | `/api/tickets/:id` | Atualiza status, prioridade, responsável, equipe |
-| `POST` | `/api/tickets/:id/reply` | Adiciona mensagem com anexos opcionais |
-| `GET` | `/api/tickets/linked-companies` | Empresas elegíveis para vínculo |
+**Path:** `src/modules/tarefas/`
 
-**Funcionalidades:**
-- Workflow de estados com validação de transições (`ticket-provider-state-matrix.ts`)
-- Cálculo e pausa de SLA por prioridade (campos `slaResponseDueAt`, `slaResolutionDueAt`)
-- Mensagens em Markdown com suporte a anexos (R2 ou banco)
-- Histórico de alterações por campo
-- Busca full-text por assunto e conteúdo
-- Integração bidirecional com Chatwoot
-- Automações WhatsApp por evento de status
-- Controle de acesso por role e escopo de empresa
+Modulo que unifica:
+- rotinas mensais recorrentes
+- tarefas avulsas
+- disparos manuais via WhatsApp
+- historico e transicoes de status
 
-**Contratos (source of truth):** `@dosc-syspro/contracts/ticket/ticket-module-api.types.ts`
+Arquivos principais:
+- `tarefas.module.ts`
+- `tarefas.router.ts`
+- `tarefas.service.ts`
+- `tarefas-job.service.ts`
+- `tarefas-settings.service.ts`
 
-**Documentação completa:** `/portal/docs/admin/documentacao-portal/apps/tickets-architecture`
+Procedures tRPC:
+- `list`
+- `listTasks`
+- `getTask`
+- `getCompanyConfig`
+- `upsertCompanyConfig`
+- `createTask`
+- `syncCompetencies`
+- `sendManualRequest`
+- `updateTaskStatus`
+
+Permissoes:
+- `tarefas:view`
+- `tarefas:view_all`
+- `tarefas:manage`
+
+> O modulo legado `rotinas-mensais` deixou de ser a superficie oficial. O dominio atual e `tarefas`.
 
 ---
 
@@ -216,12 +97,7 @@ Sistema de chamados técnicos internos. Usa o modelo `Conversation { channel: PO
 
 **Path:** `src/modules/crm/`
 
-CRM de leads e oportunidades.
-
-**Modelos:**
-- `CrmLead`: stages LEAD → MQL → SQL → PROPOSAL → WON | LOST
-- `CrmActivity`: NOTE, CALL, MEETING, EMAIL, WHATSAPP
-- `CrmTask`: tarefas com status e vencimento
+Leads, atividades e tarefas comerciais.
 
 ---
 
@@ -229,13 +105,7 @@ CRM de leads e oportunidades.
 
 **Path:** `src/modules/dashboard/`
 
-Agrega métricas e KPIs para o painel inicial.
-
-**Métricas expostas:**
-- Total de empresas por status
-- Tickets abertos por prioridade
-- Volume de mensagens WhatsApp
-- Status de serviços SEFAZ
+Consolida KPIs e metricas para o painel principal.
 
 ---
 
@@ -243,12 +113,7 @@ Agrega métricas e KPIs para o painel inicial.
 
 **Path:** `src/modules/releases/`
 
-Gerencia releases e changelogs do produto Syspro.
-
-- Releases organizadas por ano/mês
-- Vinculação de tickets a uma release
-- `buildReleaseFromTicket` (via `@dosc-syspro/core`)
-- Endpoint público de listagem
+Organiza changelogs e releases do produto.
 
 ---
 
@@ -256,25 +121,14 @@ Gerencia releases e changelogs do produto Syspro.
 
 **Path:** `src/modules/settings/`
 
-Configurações globais e por empresa.
+Configuracoes globais, integracoes, permissao, automacoes, SEFAZ e configuracao dos modulos.
 
-| Arquivo                              | Responsabilidade                          |
-|--------------------------------------|------------------------------------------|
-| `settings.controller.ts`            | REST endpoints de configurações          |
-| `permissions/permissions.service.ts` | CRUD de perfis e permissões              |
-| `permissions/permissions.catalog.ts` | Catálogo de todas as permissões          |
-| `integration-connections.service.ts` | Conexões com integrações externas        |
-| `integration-context.service.ts`     | Contexto de integração por empresa       |
-| `sefaz-monitor.service.ts`           | Monitor periódico de status SEFAZ        |
+No contexto de tarefas, os endpoints administrativos oficiais sao:
 
-**Configurações disponíveis:**
-- Permissões e perfis de acesso
-- Configuração Chatwoot por empresa
-- Configuração Evolution (WhatsApp)
-- Configurações SEFAZ (rotas, UF)
-- Configurações do módulo remoto
-- Automações de atendimento
-- Configurações de tickets
+```text
+GET /settings/tarefas
+PUT /settings/tarefas
+```
 
 ---
 
@@ -282,14 +136,7 @@ Configurações globais e por empresa.
 
 **Path:** `src/modules/tax/`
 
-Configurações tributárias para NFe/NFCe.
-
-**Funcionalidades:**
-- Lookup de NCM (Nomenclatura Comum do Mercosul)
-- Sincronização de CST, CFOP, ICMS, ICMS-ST
-- TaxSyncJob: jobs de sincronização em background
-- Sugestão de tributação por NCM
-- ICMS interestadual (DIFAL)
+Sincronizacao e consulta de tabelas fiscais.
 
 ---
 
@@ -297,11 +144,7 @@ Configurações tributárias para NFe/NFCe.
 
 **Path:** `src/modules/documentos/`
 
-Armazenamento de documentos de empresas.
-
-- Upload de arquivos para Cloudflare R2
-- Metadata persistida no PostgreSQL
-- Download com URL assinada ou URL pública
+Upload e armazenamento de documentos corporativos.
 
 ---
 
@@ -309,45 +152,4 @@ Armazenamento de documentos de empresas.
 
 **Path:** `src/modules/agents/`
 
-Gerencia o inventário de agentes/dispositivos registrados.
-
-- Lista de dispositivos com status de conexão
-- Vinculação de agente a empresa
-- Dados de hardware (via sync do agente Go)
-
-
----
-
-## rotinas-mensais
-
-**Path:** `src/modules/rotinas-mensais/`
-
-Módulo de gestão de rotinas mensais contábeis. Controla o ciclo de vida de competências por empresa, disparos automáticos e manuais via WhatsApp, e histórico de eventos.
-
-**Arquivos principais:**
-- `rotinas-mensais.service.ts` — lógica de negócio principal
-- `rotinas-mensais.router.ts` — procedimentos tRPC expostos ao web
-- `rotinas-mensais.module.ts` — configuração NestJS com DI
-- `rotinas-mensais-job.service.ts` — job periódico (a cada 30 min)
-- `rotinas-mensais-settings.service.ts` — leitura das configurações globais do módulo
-
-**Procedures tRPC:**
-- `list` — lista empresas candidatas a rotina com status de configuração
-- `listCompetencies` — lista competências com filtro de status/busca/paginação
-- `getCompetency` — detalhe de uma competência com histórico e solicitações
-- `getCompanyConfig` — configuração atual da rotina de uma empresa
-- `upsertCompanyConfig` — cria ou atualiza configuração de rotina por empresa
-- `syncCompetencies` — força geração de competências para o mês atual
-- `sendManualRequest` — dispara solicitação manual via WhatsApp/Evolution
-- `updateCompetencyStatus` — transição manual de status com histórico
-
-**Status de competência:**
-`PENDING` → `WAITING_CUSTOMER` → `RECEIVED` → `SENT_TO_ACCOUNTING` → `COMPLETED`
-Com desvios: `OVERDUE` (automático quando dueDate passa), `CANCELED` (terminal — não permite retorno)
-
-**Jobs automáticos (30 min):**
-1. `ensureCompetenciesForScope` — cria competências faltantes para todas as empresas ativas
-2. `runMarkOverdueJob` — marca `WAITING_CUSTOMER` com timeout como `OVERDUE`, envia notificação
-3. `runReminderJob` — envia lembrete automático para `PENDING` próximas do vencimento
-
-**Permissões:** `rotinas_mensais:view`, `rotinas_mensais:view_all`, `rotinas_mensais:manage`
+Inventario e vinculacao de dispositivos do agente.

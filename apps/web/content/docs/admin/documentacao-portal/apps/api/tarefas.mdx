@@ -1,12 +1,11 @@
 ---
-title: API — Módulo tarefas
-description: O módulo tarefas gerencia tanto as rotinas mensais recorrentes quanto tarefas avulsas vinculadas a empresas, colaboradores ou tickets — com status, histórico e notificações via WhatsApp.
+title: API - Modulo tarefas
+description: O modulo tarefas unifica rotinas mensais recorrentes e tarefas avulsas vinculadas a empresas, usuarios e tickets.
 lastUpdated: 2026-05-19
 owner: Engenharia de Plataforma
-status: draft
+status: published
 tags:
   - tarefas
-  - rotinas-mensais
   - whatsapp
   - tickets
   - api
@@ -15,302 +14,251 @@ tags:
 import { Callout } from 'fumadocs-ui/components/callout';
 
 <Callout type="info">
-  Este módulo é a evolução do módulo `rotinas-mensais`. Mantém toda a funcionalidade de rotinas mensais e adiciona suporte a tarefas avulsas — manuais ou geradas automaticamente por tickets.
+  O modulo `tarefas` substitui operacionalmente o legado `rotinas-mensais`. O fluxo mensal continua existindo, mas agora convive com tarefas avulsas no mesmo dominio.
 </Callout>
 
-> `apps/api/src/modules/tarefas/` · Design: 2026-05-19
+> `apps/api/src/modules/tarefas/` · Revisado em 2026-05-19
 
 ---
 
 ## Responsabilidade
 
-O módulo `tarefas` centraliza dois tipos de demandas operacionais:
+O modulo `tarefas` centraliza dois tipos de demanda operacional:
 
-| Tipo | Descrição |
+| Tipo | Descricao |
 |------|-----------|
-| **`ROTINA_MENSAL`** | Fluxo mensal recorrente de solicitação de documentação contábil. Gerado automaticamente por job periódico para cada empresa com rotina ativa. |
-| **`TAREFA`** | Demanda avulsa — criada manualmente por um colaborador ou gerada automaticamente ao fechar um ticket. Sem vínculo obrigatório a mês/ano. |
+| `ROTINA_MENSAL` | Instancia recorrente gerada por mes para empresas com configuracao ativa. |
+| `TAREFA` | Demanda avulsa criada manualmente ou automaticamente a partir de um ticket. |
 
-Ambos os tipos compartilham o mesmo workflow de status, histórico de auditoria e integração com WhatsApp.
+Ambos compartilham:
+- workflow de status
+- historico de auditoria
+- solicitacoes manuais via WhatsApp
+- listagem unificada no portal
 
 ---
 
-## Arquivos
+## Estrutura
 
-```
-src/modules/tarefas/
-├── tarefas.module.ts              ← módulo NestJS
-├── tarefas.router.ts              ← procedures tRPC
-├── tarefas.service.ts             ← lógica core (create, list, update, dispatch)
-├── tarefas-job.service.ts         ← job periódico (sync rotinas, overdue, lembretes)
-└── tarefas-settings.service.ts    ← configurações globais do módulo
+```text
+apps/api/src/modules/tarefas/
+|-- tarefas.module.ts
+|-- tarefas.router.ts
+|-- tarefas.service.ts
+|-- tarefas-job.service.ts
+`-- tarefas-settings.service.ts
 ```
 
-**Contratos:**
-```
+```text
 packages/contracts/src/tarefas/
-├── index.ts
-├── tarefas.types.ts               ← tipos de domínio + schemas Zod
-└── tarefas-settings.types.ts      ← configurações do módulo
+|-- index.ts
+|-- tarefas.types.ts
+`-- tarefas-settings.types.ts
 ```
 
 ---
 
-## Procedures tRPC expostas (`trpc.tarefas.*`)
+## Procedures tRPC
 
-| Procedure | Tipo | Descrição |
+As procedures expostas em `trpc.tarefas.*` sao:
+
+| Procedure | Tipo | Descricao |
 |-----------|------|-----------|
-| `list` | query | Lista empresas com tarefas/rotinas ativas, com sumário por status |
-| `listTasks` | query | Lista tarefas com filtros: tipo, status, empresa, data, origem |
-| `getTask` | query | Detalhes de uma tarefa com histórico e solicitações |
-| `getCompanyConfig` | query | Configuração de rotina mensal da empresa (cria defaults se não existir) |
-| `upsertCompanyConfig` | mutation | Cria ou atualiza configuração de rotina mensal |
-| `createTask` | mutation | Cria tarefa avulsa manualmente |
-| `syncCompetencies` | mutation | Sincroniza rotinas mensais para um mês/ano específico |
-| `sendManualRequest` | mutation | Envia solicitação manual via WhatsApp |
-| `updateTaskStatus` | mutation | Atualiza status da tarefa com timestamps automáticos |
+| `list` | query | Lista empresas candidatas a configuracao de rotina mensal. |
+| `listTasks` | query | Lista tarefas com filtros por tipo, status, busca, mes e ano. |
+| `getTask` | query | Retorna o detalhe completo da tarefa. |
+| `getCompanyConfig` | query | Retorna a configuracao mensal da empresa. |
+| `upsertCompanyConfig` | mutation | Cria ou atualiza `task_config`. |
+| `createTask` | mutation | Cria tarefa avulsa manualmente. |
+| `syncCompetencies` | mutation | Gera ou reconcilia tarefas mensais para um recorte de mes/ano. |
+| `sendManualRequest` | mutation | Dispara solicitacao manual via WhatsApp. |
+| `updateTaskStatus` | mutation | Atualiza status e registra historico. |
 
 ---
 
-## Modelos de banco de dados
+## Modelos de banco
 
-```
-task_config              ← configuração de rotina mensal por empresa (1 por empresa)
-task                     ← tarefa ou instância de rotina mensal (N por empresa)
-task_request             ← tentativas de envio WhatsApp (N por tarefa)
-task_history             ← auditoria de mudanças (N por tarefa)
+| Tabela | Papel |
+|--------|-------|
+| `task_config` | Configuracao mensal por empresa. |
+| `task` | Registro principal de rotina mensal ou tarefa avulsa. |
+| `task_request` | Historico de tentativas de envio manual. |
+| `task_history` | Auditoria de transicoes e eventos. |
+
+### Relacionamentos
+
+```text
+Company
+|-- task_config (0..1)
+|   `-- task (N)          -> rotinas mensais geradas
+`-- task (N)              -> tarefas avulsas ou mensais
+    |-- task_request (N)
+    |-- task_history (N)
+    |-- ticket?           -> Conversation
+    `-- assignedTo?       -> User
 ```
 
-**Relacionamentos:**
-```
-Company (1)
-  ├── task_config (0..1)                  ← só para ROTINA_MENSAL
-  │     └── task (N)                      ← competências mensais geradas
-  └── task (N)                            ← tarefas avulsas (TAREFA)
-        ├── task_request (N)              ← tentativas de envio
-        ├── task_history (N)             ← auditoria
-        ├── ticket? (FK → Conversation)  ← origem (se gerada por ticket)
-        └── assignedUser? (FK → User)    ← responsável
-```
+---
 
-### Schema do modelo `task`
+## Modelo `task`
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | string | UUID |
-| `type` | enum | `ROTINA_MENSAL` \| `TAREFA` |
+Campos mais relevantes:
+
+| Campo | Tipo | Observacao |
+|-------|------|------------|
+| `id` | string | Identificador da tarefa |
+| `type` | enum | `ROTINA_MENSAL` ou `TAREFA` |
 | `companyId` | string | Empresa vinculada |
-| `configId` | string? | FK → `task_config` (apenas `ROTINA_MENSAL`) |
-| `title` | string | Título exibido |
-| `description` | string? | Descrição da tarefa |
-| `status` | enum | Ver workflow de status abaixo |
-| `dueDate` | DateTime? | Prazo livre (tarefas avulsas) |
-| `competencyYear` | int? | Ano de competência (apenas `ROTINA_MENSAL`) |
-| `competencyMonth` | int? | Mês de competência (apenas `ROTINA_MENSAL`) |
-| `ticketId` | string? | FK → `Conversation` (se originada de ticket) |
-| `assignedToId` | string? | FK → `User` responsável |
-| `clientContactId` | string? | Contato do cliente |
-| `requiredDocuments` | string[] | Documentos esperados (checklist) |
-| `notes` | string? | Observações internas |
-| `requestedAt` | DateTime? | Quando solicitação foi enviada |
-| `receivedAt` | DateTime? | Quando cliente confirmou |
-| `sentAt` | DateTime? | Quando enviado ao escritório |
-| `completedAt` | DateTime? | Quando concluído |
-| `createdById` | string | Usuário que criou (ou 'system' se automático) |
-| `createdAt` | DateTime | — |
-| `updatedAt` | DateTime | — |
+| `configId` | string? | Preenchido para rotina mensal |
+| `title` | string | Titulo exibido na UI |
+| `description` | string? | Texto livre |
+| `year` | int? | Mes/ano da rotina mensal |
+| `month` | int? | Mes/ano da rotina mensal |
+| `status` | enum | Estado operacional atual |
+| `dueDate` | DateTime | Prazo principal |
+| `ticketId` | string? | Origem em ticket, quando existir |
+| `assignedToId` | string? | Responsavel |
+| `notes` | string? | Observacoes internas |
+
+> A rotina mensal usa `year` e `month`. O modelo atual nao usa os nomes antigos `competencyYear` ou `competencyMonth`.
 
 ---
 
-## Tipo de tarefa
+## Workflow de status
 
-### `ROTINA_MENSAL`
-
-- Gerada automaticamente pelo job periódico para cada empresa com `task_config.isActive = true`
-- Vinculada obrigatoriamente a `competencyYear` + `competencyMonth`
-- Prazo calculado a partir de `task_config.dueDay`
-- Uma por empresa por mês
-
-### `TAREFA`
-
-- Criada manualmente via `createTask` ou automaticamente via integração com tickets
-- `dueDate` livre, definido no momento de criação
-- Pode ou não ter `ticketId` (se gerada a partir de fechamento de ticket)
-- Pode ter responsável (`assignedToId`)
-- Sem vínculo com `task_config`
-
----
-
-## Workflow de status (`TaskExecutionStatus`)
-
-```
-PENDING → WAITING_CUSTOMER → RECEIVED → SENT_TO_ACCOUNTING → COMPLETED
-   ↑
-   └── OVERDUE (automático por vencimento)
-   └── CANCELED (manual)
+```text
+PENDING -> WAITING_CUSTOMER -> RECEIVED -> SENT_TO_ACCOUNTING -> COMPLETED
+   |              |
+   |              `-> OVERDUE
+   `-> CANCELED
 ```
 
-| Status | Descrição |
-|--------|-----------|
-| `PENDING` | Aguardando ação inicial |
-| `WAITING_CUSTOMER` | Solicitação enviada, aguardando resposta do cliente |
-| `RECEIVED` | Cliente confirmou ou entregou o necessário |
-| `SENT_TO_ACCOUNTING` | Enviado ao escritório contábil (específico de rotinas) |
-| `COMPLETED` | Tarefa concluída |
-| `OVERDUE` | Passou do prazo sem avançar (marcado automaticamente) |
-| `CANCELED` | Cancelado manualmente |
+| Status | Significado |
+|--------|-------------|
+| `PENDING` | Ainda nao houve acao inicial |
+| `WAITING_CUSTOMER` | Solicitação enviada ao cliente |
+| `RECEIVED` | Cliente respondeu ou entregou o material |
+| `SENT_TO_ACCOUNTING` | Material encaminhado ao escritorio |
+| `COMPLETED` | Fluxo encerrado |
+| `OVERDUE` | Prazo vencido sem avancar |
+| `CANCELED` | Encerrado manualmente |
 
-### Timestamps automáticos por transição
+### Timestamps automaticos
 
-| Transição para | Campo setado |
-|----------------|--------------|
+| Status de destino | Campo preenchido |
+|-------------------|------------------|
 | `WAITING_CUSTOMER` | `requestedAt` |
 | `RECEIVED` | `receivedAt` |
 | `SENT_TO_ACCOUNTING` | `sentAt` |
 | `COMPLETED` | `completedAt` |
 
-Timestamps são setados apenas na **primeira** transição — não sobrescreve se já preenchido.
+---
+
+## Integracao com tickets
+
+Quando um ticket elegivel e resolvido, o modulo pode criar uma tarefa avulsa automaticamente.
+
+Campos globais usados pela geracao:
+
+| Campo | Tipo | Uso |
+|-------|------|-----|
+| `autoCreateOnTicketResolved` | boolean | Liga a geracao automatica |
+| `autoTaskDueDays` | int | Prazo padrao em dias |
+| `autoTaskTitle` | string? | Template do titulo |
+| `autoTaskAssignToTicketOwner` | boolean | Atribui ao responsavel do ticket |
 
 ---
 
-## Integração com Tickets
+## Configuracao global
 
-Quando um ticket muda para status `RESOLVED`, o módulo `tarefas` pode gerar automaticamente uma tarefa para a empresa vinculada ao ticket.
+As configuracoes globais do modulo ficam em `system_setting` com a chave:
 
-### Fluxo
-
-```
-tickets.service.ts: updateTicket()
-  └── status → RESOLVED
-        └── tarefas.service.ts: createFromTicket(ticket)
-              ├── verifica se ticket tem companyId
-              ├── verifica configuração: geração automática habilitada?
-              └── cria task {
-                    type: TAREFA,
-                    companyId: ticket.companyId,
-                    ticketId: ticket.id,
-                    title: `Acompanhamento pós-atendimento — ${ticket.subject}`,
-                    dueDate: now + configuredDays,
-                    status: PENDING,
-                    createdById: 'system'
-                  }
+```text
+tarefas.module.settings
 ```
 
-### Configuração
+Endpoint REST administrativo atual:
 
-A geração automática por ticket é controlada por configuração global do módulo:
+```text
+GET /settings/tarefas
+PUT /settings/tarefas
+```
 
-| Campo | Tipo | Descrição |
+> O caminho legado `/settings/monthly-routines` foi removido da operacao corrente.
+
+---
+
+## Configuracao mensal por empresa
+
+Campos relevantes de `task_config`:
+
+| Campo | Tipo | Descricao |
 |-------|------|-----------|
-| `autoCreateOnTicketResolved` | boolean | Habilita criação automática ao resolver ticket |
-| `autoTaskDueDays` | int | Dias de prazo para tarefa gerada (padrão: 3) |
-| `autoTaskTitle` | string? | Template do título (suporta `{ticket_subject}`, `{company_name}`) |
-| `autoTaskAssignToTicketOwner` | boolean | Atribui ao responsável do ticket automaticamente |
+| `isActive` | boolean | Liga geracao mensal para a empresa |
+| `title` | string | Titulo base da rotina |
+| `dueDay` | int | Dia do vencimento |
+| `reminderDays` | int | Dias antes do vencimento para lembrete |
+| `clientContactId` | string? | Contato usado no disparo |
+| `accountingContactId` | string? | Contato do escritorio |
+| `requiredDocuments` | string[] | Checklist esperado |
+| `notes` | string? | Observacoes internas |
 
 ---
 
-## Permissões
+## UI do portal
 
-| Permissão | Efeito |
-|-----------|--------|
-| `tarefas:view` | Visualiza tarefas das empresas do escopo do usuário |
-| `tarefas:view_all` | Visualiza todas as tarefas (acesso global) |
-| `tarefas:manage` | CRUD completo: criar, configurar, disparar, atualizar status |
+Rota principal:
 
----
+```text
+/portal/tarefas
+```
 
-## Configuração de rotina mensal por empresa (`task_config`)
+Comportamento atual da tela:
+- busca por texto livre
+- filtro por status
+- filtro por tipo (`ROTINA_MENSAL` ou `TAREFA`)
+- recorte mensal padrao pelo mes corrente
+- paginacao server-driven
+- dialogos para detalhe, disparo manual e atualizacao de status
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `isActive` | boolean | Habilita geração de rotinas mensais para esta empresa |
-| `title` | string (3–120) | Título da rotina exibido nas mensagens |
-| `dueDay` | int (1–31) | Dia do mês de vencimento (auto-ajusta para último dia do mês) |
-| `reminderDays` | int (0–30) | Dias antes do vencimento para lembrete automático |
-| `clientContactId` | string? | Contato do cliente para solicitações |
-| `accountingContactId` | string? | Contato do escritório contábil para entrega |
-| `requiredDocuments` | string[] | Lista de documentos esperados |
-| `notes` | string? | Observações internas |
+O modulo de configuracao global aparece em:
 
-**Documentos padrão:**
-`Sintegra`, `Livro de entrada`, `Livro de saida`, `Relatorio de PIS e COFINS`,
-`SPED Fiscal`, `SPED Contribuicoes`, `XML NF-e entrada`, `XML NF-e saida`, `XML NF-e CT-e`
+```text
+/portal/configuracoes?tab=tarefas
+```
 
 ---
 
-## Templates de mensagem WhatsApp
+## Job periodico
 
-| Template | Uso sugerido |
-|----------|-------------|
-| `REQUEST_CONFIRMATION` | Solicitação inicial |
-| `FIRST_REMINDER` | Primeiro lembrete |
-| `SECOND_REMINDER` | Segundo lembrete |
-
-Aceita mensagem customizada (campo `message`, 8–4.000 caracteres). Se nenhum template nem mensagem for fornecida, usa `REQUEST_CONFIRMATION` como padrão.
+`tarefas-job.service.ts` agenda a execucao recorrente do modulo. Na pratica, ele delega para o service principal tarefas como:
+- garantir geracao de rotinas faltantes
+- marcar itens vencidos
+- processar automacoes e lembretes dependentes de configuracao
 
 ---
 
-## Migração do módulo `rotinas-mensais`
+## Migracao do legado
+
+Historicamente o modulo veio de `rotinas-mensais`, mas o estado atual esperado e:
+
+| Legado | Atual |
+|--------|-------|
+| `monthly_routine_config` | `task_config` |
+| `monthly_routine_competency` | `task` |
+| `monthly_routine_request` | `task_request` |
+| `monthly_routine_history` | `task_history` |
+| `trpc.rotinasMensais.*` | `trpc.tarefas.*` |
+| `/settings/monthly-routines` | `/settings/tarefas` |
 
 <Callout type="warn">
-  O módulo `rotinas-mensais` será descontinuado e substituído por `tarefas`. As tabelas do banco serão renomeadas e os dados migrados conforme plano abaixo.
+  Se algum ambiente ainda estiver usando paths ou nomes antigos, trate isso como debito tecnico de migracao e nao como superficie oficial do modulo.
 </Callout>
-
-### Renomeação de tabelas
-
-| Tabela antiga | Tabela nova | Observação |
-|--------------|-------------|------------|
-| `monthly_routine_config` | `task_config` | Mantém todos os campos |
-| `monthly_routine_competency` | `task` | Adiciona campos: `type`, `ticketId`, `assignedToId`, `description` |
-| `monthly_routine_request` | `task_request` | Mantém todos os campos |
-| `monthly_routine_history` | `task_history` | Mantém todos os campos |
-
-### Passos de migração (Prisma)
-
-```sql
--- 1. Renomear tabelas
-ALTER TABLE monthly_routine_config RENAME TO task_config;
-ALTER TABLE monthly_routine_competency RENAME TO task;
-ALTER TABLE monthly_routine_request RENAME TO task_request;
-ALTER TABLE monthly_routine_history RENAME TO task_history;
-
--- 2. Adicionar campos novos em `task`
-ALTER TABLE task ADD COLUMN type TEXT NOT NULL DEFAULT 'ROTINA_MENSAL';
-ALTER TABLE task ADD COLUMN ticket_id TEXT REFERENCES "Conversation"(id);
-ALTER TABLE task ADD COLUMN assigned_to_id TEXT REFERENCES "User"(id);
-ALTER TABLE task ADD COLUMN description TEXT;
-ALTER TABLE task ADD COLUMN due_date TIMESTAMP;
-
--- 3. Tornar campos de competência opcionais
-ALTER TABLE task ALTER COLUMN competency_year DROP NOT NULL;
-ALTER TABLE task ALTER COLUMN competency_month DROP NOT NULL;
-ALTER TABLE task ALTER COLUMN config_id DROP NOT NULL;
-```
-
-### Renomeação de procedures tRPC
-
-| Procedure antiga | Procedure nova |
-|-----------------|---------------|
-| `trpc.rotinasMensais.list` | `trpc.tarefas.list` |
-| `trpc.rotinasMensais.listCompetencies` | `trpc.tarefas.listTasks` |
-| `trpc.rotinasMensais.getCompetency` | `trpc.tarefas.getTask` |
-| `trpc.rotinasMensais.getCompanyConfig` | `trpc.tarefas.getCompanyConfig` |
-| `trpc.rotinasMensais.upsertCompanyConfig` | `trpc.tarefas.upsertCompanyConfig` |
-| `trpc.rotinasMensais.syncCompetencies` | `trpc.tarefas.syncCompetencies` |
-| `trpc.rotinasMensais.sendManualRequest` | `trpc.tarefas.sendManualRequest` |
-| `trpc.rotinasMensais.updateCompetencyStatus` | `trpc.tarefas.updateTaskStatus` |
 
 ---
 
-## Itens de implementação
+## Pontos de atencao
 
-| Item | Prioridade | Descrição |
-|------|-----------|-----------|
-| Renomear módulo API e contratos | P0 | `rotinas-mensais` → `tarefas` em todos os pacotes |
-| Migração Prisma | P0 | Renomear tabelas e adicionar campos novos |
-| Procedure `createTask` | P0 | Criação manual de tarefa avulsa |
-| Integração com tickets | P1 | Hook em `tickets.service.ts` ao status `RESOLVED` |
-| Configuração de geração automática | P1 | `autoCreateOnTicketResolved` nas settings globais |
-| Canal Chatwoot | P2 | `defaultChannel` consumido no dispatch (era pendente em rotinas-mensais) |
-| Lembrete automático | P2 | `reminderDays` com job de disparo (era pendente em rotinas-mensais) |
-| Paginação no banco | P2 | Filtros aplicados via Prisma, não em memória |
+- O modulo usa o mesmo dominio para recorrencia mensal e tarefa avulsa, entao a UI deve sempre exibir `type`.
+- A listagem precisa refletir `pagination`, `status` e `type` na URL para manter navegacao consistente.
+- Permissoes continuam centralizadas em `tarefas:view`, `tarefas:view_all` e `tarefas:manage`.
