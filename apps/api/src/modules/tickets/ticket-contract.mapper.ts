@@ -188,11 +188,16 @@ export function serializeTicketRecord(ticket: TicketRecordSource): TicketModuleR
   };
 }
 
-export function serializeMutationResponse(message?: string, status?: TicketModuleRecord['status']): TicketModuleMutationResponse {
+export function serializeMutationResponse(
+  message?: string,
+  status?: TicketModuleRecord['status'],
+  extra?: Partial<Pick<TicketModuleMutationResponse, 'followUpTaskCreated' | 'followUpTaskId' | 'followUpTaskSkippedReason'>>,
+): TicketModuleMutationResponse {
   return {
     success: true,
     ...(message ? { message } : {}),
     ...(status ? { status } : {}),
+    ...(extra ?? {}),
   };
 }
 

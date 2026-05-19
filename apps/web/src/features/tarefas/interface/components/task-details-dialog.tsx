@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/api/trpc-client";
 import type { TaskItem, TaskStatus } from "@dosc-syspro/contracts/tarefas";
@@ -13,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@dosc-syspro/ui";
-import { CalendarClock, ClipboardList, FileText, History, Loader2, MessageSquareShare } from "lucide-react";
+import { CalendarClock, ClipboardList, ExternalLink, FileText, History, Loader2, MessageSquareShare } from "lucide-react";
 
 interface TaskDetailsDialogProps {
   itemId: string | null;
@@ -179,7 +180,7 @@ export function TaskDetailsDialog({
                         <div className="text-sm font-medium text-foreground">{item.companyName}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
                           {item.title}
-                          {item.year && item.month ? ` - Competencia ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
+                          {item.year && item.month ? ` - Rotina ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
                         </div>
                       </div>
                       <Badge variant={getStatusVariant(item.status)}>{getStatusLabel(item.status)}</Badge>
@@ -205,6 +206,24 @@ export function TaskDetailsDialog({
                       <p className="mt-1 text-sm font-medium text-foreground">{item.manualRequestsCount} envio(s)</p>
                     </div>
                   </div>
+
+                  {item.ticketId ? (
+                    <div className="rounded-xl border border-border/60 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Origem</p>
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">Vinculada ao ticket {item.ticketId}</p>
+                        <Link
+                          href={`/portal/tickets/${item.ticketId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                        >
+                          Abrir ticket
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium text-foreground">Observacao operacional</h3>

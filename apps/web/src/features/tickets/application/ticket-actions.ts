@@ -36,6 +36,12 @@ export async function finalizeTicketAction(input: {
   releaseTitle?: string;
   releaseModule?: string;
   publishToReleases?: boolean;
+  followUpTask?: {
+    title: string;
+    description?: string;
+    dueDays: number;
+    assignToOwner?: boolean;
+  };
 }): Promise<TicketMutationResponse> {
   const session = await getProtectedSession();
   if (!session || !(await currentUserHasPermission("tickets:manage", { acceptCompanyScope: true }))) {
@@ -66,6 +72,7 @@ export async function finalizeTicketAction(input: {
         releaseTitle: input.releaseTitle?.trim() || undefined,
         releaseModule: input.releaseModule?.trim() || undefined,
         publishToReleases: Boolean(input.publishToReleases),
+        followUpTask: input.followUpTask,
       },
     });
 

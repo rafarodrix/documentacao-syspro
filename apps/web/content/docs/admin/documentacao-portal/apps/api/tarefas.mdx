@@ -181,6 +181,13 @@ O segundo caminho e indicado para cenarios como:
 - atualizacao solicitada apos teste
 - pendencia operacional que nao deve manter o ticket aberto
 
+### Comportamento do fechamento com tarefa
+
+Quando a tarefa opcional e marcada no fechamento:
+- o backend conclui o ticket e cria a tarefa no mesmo fluxo
+- a tarefa nasce vinculada ao `ticketId`
+- se ja existir uma tarefa avulsa aberta para o mesmo ticket, o sistema nao duplica automaticamente
+
 ---
 
 ## Configuracao global
@@ -235,7 +242,7 @@ Comportamento atual da tela:
 - paginacao server-driven
 - dialogos para detalhe, disparo manual, atualizacao de status e criacao manual de tarefa
 
-Na finalizacao de tickets, a UI pode abrir tarefa de acompanhamento usando o mesmo contrato `createTask`, vinculando:
+Na finalizacao de tickets, a UI pode solicitar a tarefa de acompanhamento no proprio `trpc.tickets.finalize`, vinculando:
 - empresa do ticket
 - prazo em dias
 - titulo e descricao ajustaveis

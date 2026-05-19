@@ -30,4 +30,11 @@ export class UpdateTicketDto implements TicketModuleUpdateRequest {
   team?: string;
 
   note?: string;
+
+  followUpTask?: {
+    title: string;
+    description?: string;
+    dueDays: number;
+    assignToOwner?: boolean;
+  };
 }

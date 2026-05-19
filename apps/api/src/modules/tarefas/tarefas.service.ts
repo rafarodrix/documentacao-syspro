@@ -23,6 +23,7 @@ import type {
 } from '@dosc-syspro/contracts/tarefas';
 import {
   CompanyStatus,
+  Prisma,
 } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -318,29 +319,85 @@ export class TarefasService {
     const settings = await this.tarefasSettingsService.readModuleSettings();
     if (!settings.autoCreateOnTicketResolved) return;
 
-    const taskModel = (this.prisma as any).task;
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + settings.autoTaskDueDays);
     const companyName = await this.resolveCompanyDisplayName(ticket.companyId);
 
     const title = settings.autoTaskTitle
       .replace('{ticket_subject}', ticket.subject ?? 'Atendimento')
       .replace('{company_name}', companyName);
 
-    await taskModel.create({
+    const result = await this.createFollowUpTaskFromTicket({
+      ticketId: ticket.id,
+      ticketSubject: ticket.subject,
+      companyId: ticket.companyId,
+      assignedUserId: ticket.assignedUserId,
+      title,
+      dueDays: settings.autoTaskDueDays,
+      assignToOwner: settings.autoTaskAssignToTicketOwner,
+    });
+
+    this.logger.log(`[ticket] tarefa criada automaticamente para ticket ${ticket.id} — empresa ${ticket.companyId}`);
+  }
+
+  async createFollowUpTaskFromTicket(
+    input: {
+      ticketId: string;
+      ticketSubject: string | null;
+      companyId: string;
+      assignedUserId?: string | null;
+      title: string;
+      description?: string | null;
+      dueDays: number;
+      assignToOwner?: boolean;
+      authorUserId?: string | null;
+    },
+    prismaClient: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<{ created: boolean; taskId?: string; skippedReason?: string }> {
+    const taskModel = (prismaClient as any).task;
+    const openTask = await taskModel.findFirst({
+      where: {
+        type: 'TAREFA',
+        ticketId: input.ticketId,
+        status: { in: ['PENDING', 'WAITING_CUSTOMER', 'RECEIVED', 'SENT_TO_ACCOUNTING', 'OVERDUE'] },
+      },
+      select: { id: true },
+    });
+
+    if (openTask) {
+      return { created: false, skippedReason: 'existing_open_follow_up' };
+    }
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + Math.max(0, input.dueDays));
+
+    const task = await taskModel.create({
       data: {
         type: 'TAREFA',
-        companyId: ticket.companyId,
-        title,
-        ticketId: ticket.id,
-        assignedToId: settings.autoTaskAssignToTicketOwner ? (ticket.assignedUserId ?? null) : null,
+        companyId: input.companyId,
+        title: input.title.trim(),
+        description: this.normalizeOptionalString(input.description),
+        ticketId: input.ticketId,
+        assignedToId: input.assignToOwner ? (input.assignedUserId ?? null) : null,
         dueDate,
         status: 'PENDING',
         requiredDocuments: [],
       },
     });
 
-    this.logger.log(`[ticket] tarefa criada automaticamente para ticket ${ticket.id} — empresa ${ticket.companyId}`);
+    await this.createHistoryEntry(
+      {
+        taskId: task.id,
+        authorUserId: input.authorUserId ?? null,
+        type: 'TASK_CREATED',
+        title: 'Tarefa criada a partir do fechamento do ticket',
+        description: input.ticketSubject?.trim()
+          ? `Origem: ticket ${input.ticketId} - ${input.ticketSubject.trim()}`
+          : `Origem: ticket ${input.ticketId}`,
+        metadata: { source: 'ticket_finalize', ticketId: input.ticketId },
+      },
+      prismaClient,
+    );
+
+    return { created: true, taskId: task.id };
   }
 
   async listTasks(
@@ -1283,8 +1340,8 @@ export class TarefasService {
     title: string;
     description?: string | null;
     metadata?: unknown;
-  }) {
-    const historyModel = (this.prisma as any).taskHistory;
+  }, prismaClient: Prisma.TransactionClient | PrismaService = this.prisma) {
+    const historyModel = (prismaClient as any).taskHistory;
     await historyModel.create({
       data: {
         taskId: input.taskId,

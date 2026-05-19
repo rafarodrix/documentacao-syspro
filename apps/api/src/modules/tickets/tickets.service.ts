@@ -840,6 +840,7 @@ export class TicketsService {
     const supportOwnerUserId = input.supportOwnerUserId?.trim();
     const developmentOwnerUserId = input.developmentOwnerUserId?.trim();
     const publishToReleases = input.publishToReleases;
+    const followUpTask = input.followUpTask;
     const shouldPublishToReleases = publishToReleases === true;
     const effectiveResolutionSummary = resolutionSummary || exists.resolutionSummary?.trim();
     const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
@@ -886,6 +887,9 @@ export class TicketsService {
     let resolvedReleaseType = normalizeReleaseType(exists.releaseType) || normalizeReleaseType(existingMetadata.categoryType);
     let resolvedResolutionSummary = exists.resolutionSummary?.trim() || null;
     let resolvedClosedAt: Date | null = null;
+    let followUpTaskCreated = false;
+    let followUpTaskId: string | undefined;
+    let followUpTaskSkippedReason: string | undefined;
 
     if (shouldPublishToReleases && !effectiveResolutionSummary) {
       throw new BadRequestException('Resolucao obrigatoria para publicar em releases.');
@@ -916,6 +920,18 @@ export class TicketsService {
         new URL(resolutionVideoUrl);
       } catch {
         throw new BadRequestException('Link de video invalido.');
+      }
+    }
+
+    if (followUpTask) {
+      if (requestedStatus !== TicketStatus.RESOLVED) {
+        throw new BadRequestException('A tarefa de acompanhamento so pode ser criada ao concluir o ticket.');
+      }
+      if (!exists.companyId) {
+        throw new BadRequestException('O ticket precisa estar vinculado a uma empresa para gerar tarefa de acompanhamento.');
+      }
+      if (!this.tarefasService) {
+        throw new BadRequestException('O modulo de tarefas nao esta disponivel para criar a tarefa de acompanhamento.');
       }
     }
 
@@ -1270,6 +1286,27 @@ export class TicketsService {
           },
         });
       }
+
+      if (followUpTask && requestedStatus === TicketStatus.RESOLVED && exists.companyId && this.tarefasService) {
+        const followUpResult = await this.tarefasService.createFollowUpTaskFromTicket(
+          {
+            ticketId: exists.id,
+            ticketSubject: exists.subject ?? null,
+            companyId: exists.companyId,
+            assignedUserId: exists.assignedUserId ?? null,
+            title: followUpTask.title,
+            description: followUpTask.description ?? effectiveResolutionSummary ?? null,
+            dueDays: followUpTask.dueDays,
+            assignToOwner: Boolean(followUpTask.assignToOwner),
+            authorUserId: requester.userId,
+          },
+          tx,
+        );
+
+        followUpTaskCreated = followUpResult.created;
+        followUpTaskId = followUpResult.taskId;
+        followUpTaskSkippedReason = followUpResult.skippedReason;
+      }
     });
 
     if (
@@ -1353,7 +1390,8 @@ export class TicketsService {
     if (
       exists.status !== TicketStatus.RESOLVED &&
       resolvedNextStatus === TicketStatus.RESOLVED &&
-      this.tarefasService
+      this.tarefasService &&
+      !followUpTask
     ) {
       this.runAutomationInBackground('tarefas_create_from_ticket', exists.id, async () => {
         await this.tarefasService!.createFromTicket({
@@ -1389,7 +1427,11 @@ export class TicketsService {
       }));
     }
 
-    return serializeMutationResponse('Ticket atualizado com sucesso.', resolvedNextStatus);
+    return serializeMutationResponse('Ticket atualizado com sucesso.', resolvedNextStatus, {
+      followUpTaskCreated: followUpTask ? followUpTaskCreated : undefined,
+      followUpTaskId,
+      followUpTaskSkippedReason,
+    });
   }
 
   async archiveTicket(id: string, rawHeaders?: IncomingHttpHeaders) {

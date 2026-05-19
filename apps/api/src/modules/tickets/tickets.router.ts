@@ -98,6 +98,7 @@ export class TicketsRouter {
               releaseTitle: true,
               releaseModule: true,
               publishToReleases: true,
+              followUpTask: true,
             }),
           }),
         )

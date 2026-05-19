@@ -166,6 +166,14 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             releaseTitle: shouldRequireReleaseFields ? releaseTitle.trim() || undefined : undefined,
             releaseModule: shouldRequireReleaseFields ? releaseModule.trim() || undefined : undefined,
             publishToReleases: isDevelopmentTicket ? publishToReleases : false,
+            followUpTask: createFollowUpTask
+              ? {
+                  title: followUpTaskTitle.trim(),
+                  description: followUpTaskDescription.trim() || resolutionSummary.trim() || undefined,
+                  dueDays: followUpDueDaysNumber,
+                  assignToOwner: followUpAssignToOwner && Boolean(ticket.ownerId),
+                }
+              : undefined,
           },
         });
 
@@ -174,32 +182,10 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
           return;
         }
 
-        let followUpTaskCreated = false;
-        let followUpTaskError: string | null = null;
-
-        if (createFollowUpTask && ticket.companyId) {
-          try {
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + followUpDueDaysNumber);
-
-            await trpc.tarefas.createTask.mutate({
-              companyId: ticket.companyId,
-              title: followUpTaskTitle.trim(),
-              description: followUpTaskDescription.trim() || resolutionSummary.trim() || undefined,
-              dueDate: new Date(`${dueDate.toISOString().slice(0, 10)}T12:00:00`).toISOString(),
-              assignedToId: followUpAssignToOwner && ticket.ownerId ? String(ticket.ownerId) : undefined,
-              requiredDocuments: [],
-            });
-            followUpTaskCreated = true;
-          } catch (error) {
-            followUpTaskError = error instanceof Error ? error.message : "Falha ao criar a tarefa de acompanhamento.";
-          }
-        }
-
-        if (followUpTaskError) {
-          toast.error(`Ticket finalizado, mas a tarefa nao foi criada: ${followUpTaskError}`);
-        } else if (followUpTaskCreated) {
+        if (result.followUpTaskCreated) {
           toast.success("Ticket finalizado e tarefa de acompanhamento criada.");
+        } else if (createFollowUpTask && result.followUpTaskSkippedReason === "existing_open_follow_up") {
+          toast.success("Ticket finalizado. Ja existe uma tarefa aberta vinculada a este ticket.");
         } else {
           toast.success(
             publishToReleases

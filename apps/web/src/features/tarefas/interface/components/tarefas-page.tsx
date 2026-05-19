@@ -23,7 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@dosc-syspro/ui";
-import { CircleAlert, Eye, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
+import { CircleAlert, Eye, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -225,7 +226,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
         toast.success(`${result.message} ${result.generated} gerada(s), ${result.updated} atualizada(s).`);
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Nao foi possivel sincronizar as competencias.");
+        toast.error(error instanceof Error ? error.message : "Nao foi possivel sincronizar as rotinas do mes.");
       }
     });
   };
@@ -252,7 +253,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
             </Button>
             <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full sm:w-auto">
               <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-              {isSyncing ? "Sincronizando..." : "Sincronizar competencias"}
+              {isSyncing ? "Sincronizando..." : "Sincronizar rotinas do mes"}
             </Button>
           </div>
         ) : null}
@@ -327,7 +328,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {competenceLabel ? (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Competencia</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Periodo mensal</p>
                   <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
                     {competenceLabel}
                   </div>
@@ -449,8 +450,19 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                               {String(item.month).padStart(2, "0")}/{item.year}
                             </div>
                           ) : (
-                            <div className="text-xs text-muted-foreground">Sem competencia mensal vinculada</div>
+                            <div className="text-xs text-muted-foreground">Sem rotina mensal vinculada</div>
                           )}
+                          {item.ticketId ? (
+                            <Link
+                              href={`/portal/tickets/${item.ticketId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                            >
+                              Ticket de origem
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell className="px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>

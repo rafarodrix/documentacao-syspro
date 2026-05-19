@@ -100,6 +100,12 @@ export const ticketModuleUpdateRequestSchema = z.object({
   module: z.string().trim().optional(),
   team: z.string().trim().optional(),
   note: z.string().trim().optional(),
+  followUpTask: z.object({
+    title: z.string().trim().min(3).max(120),
+    description: z.string().trim().max(4000).optional(),
+    dueDays: z.number().int().min(0).max(365),
+    assignToOwner: z.boolean().optional(),
+  }).optional(),
 });
 
 export const ticketModuleReplyRequestSchema = z.object({
@@ -216,6 +222,9 @@ export const ticketModuleMutationResponseSchema = z.object({
   message: z.string().optional(),
   error: z.string().optional(),
   status: ticketModuleStatusSchema.optional(),
+  followUpTaskCreated: z.boolean().optional(),
+  followUpTaskId: z.string().optional(),
+  followUpTaskSkippedReason: z.string().optional(),
 });
 
 export const ticketModuleListResponseSchema = z.object({
