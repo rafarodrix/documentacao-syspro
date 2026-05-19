@@ -448,15 +448,26 @@ export class TarefasService {
       ? this.resolveYearMonth(input.year, input.month)
       : { year: null, month: null };
 
-    const statusFilter = input.status && input.status !== 'ALL' ? (input.status as TaskStatus) : undefined;
+    const openStatuses: TaskStatus[] = ['PENDING', 'WAITING_CUSTOMER', 'RECEIVED', 'SENT_TO_ACCOUNTING', 'OVERDUE'];
+    const statusSelection = input.status ?? 'OPEN';
+    const statusFilter =
+      statusSelection && statusSelection !== 'ALL' && statusSelection !== 'OPEN'
+        ? (statusSelection as TaskStatus)
+        : undefined;
     const typeFilter = input.type && input.type !== 'ALL' ? input.type : undefined;
-    const search = input.search?.trim().toLowerCase();
+    const search = input.search?.trim();
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
     const taskModel = (this.prisma as any).task;
     const scopeWhere = scope.isGlobal ? {} : { companyId: { in: scope.companyIds } };
 
     const includesMonthlyTasks = typeFilter !== 'TAREFA';
+
+    // Self-heal the current competence before reading monthly tasks so newly activated
+    // companies show up even if their generation trigger ran before config persistence.
+    if (includesMonthlyTasks && year && month) {
+      await this.ensureCompetenciesForScope(scope, year, month);
+    }
 
     // Lightweight inline overdue marking for ROTINA_MENSAL
     if (includesMonthlyTasks && year && month) {
@@ -484,60 +495,105 @@ export class TarefasService {
       }
     }
 
-    const listWhere: any = {
-      ...(typeFilter ? { type: typeFilter } : {}),
-      ...scopeWhere,
+    const baseConditions: any[] = [];
+    if (!scope.isGlobal) {
+      baseConditions.push(scopeWhere);
+    }
+
+    if (typeFilter === 'TAREFA') {
+      baseConditions.push({ type: 'TAREFA' });
+    } else if (typeFilter === 'ROTINA_MENSAL') {
+      baseConditions.push({ type: 'ROTINA_MENSAL', ...(year != null ? { year } : {}), ...(month != null ? { month } : {}) });
+    } else {
+      baseConditions.push({
+        OR: [
+          { type: 'TAREFA' },
+          { type: 'ROTINA_MENSAL', ...(year != null ? { year } : {}), ...(month != null ? { month } : {}) },
+        ],
+      });
+    }
+
+    if (search) {
+      baseConditions.push({
+        OR: [
+          { company: { is: { razaoSocial: { contains: search, mode: 'insensitive' } } } },
+          { company: { is: { nomeFantasia: { contains: search, mode: 'insensitive' } } } },
+          { company: { is: { accountingFirm: { is: { razaoSocial: { contains: search, mode: 'insensitive' } } } } } },
+          { company: { is: { accountingFirm: { is: { nomeFantasia: { contains: search, mode: 'insensitive' } } } } } },
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          {
+            company: {
+              is: {
+                contactLinks: {
+                  some: {
+                    contact: {
+                      name: { contains: search, mode: 'insensitive' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          { config: { is: { clientContact: { is: { name: { contains: search, mode: 'insensitive' } } } } } },
+          { config: { is: { accountingContact: { is: { name: { contains: search, mode: 'insensitive' } } } } } },
+          { requests: { some: { contact: { name: { contains: search, mode: 'insensitive' } } } } },
+        ],
+      });
+    }
+
+    const buildTaskWhere = (extra?: any) => {
+      const conditions = [...baseConditions];
+      if (extra) conditions.push(extra);
+      if (conditions.length === 0) return {};
+      if (conditions.length === 1) return conditions[0];
+      return { AND: conditions };
     };
 
-    const records = await taskModel.findMany({
-      where: listWhere,
-      include: this.getTaskListInclude(),
-      orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
-    });
+    const recordsWhere =
+      statusSelection === 'ALL'
+        ? buildTaskWhere()
+        : statusSelection === 'OPEN'
+          ? buildTaskWhere({ status: { in: openStatuses } })
+          : buildTaskWhere({ status: statusFilter });
 
-    const normalizedItems: TaskItem[] = records.map((record: any) => this.toTaskItem(record));
-    const competenceScopedItems = normalizedItems.filter((item: TaskItem) => {
-      if (item.type !== 'ROTINA_MENSAL') return true;
-      if (!includesMonthlyTasks) return false;
-      if (year == null || month == null) return true;
-      return item.year === year && item.month === month;
-    });
-    const searchedItems = search
-      ? competenceScopedItems.filter((item: TaskItem) =>
-          [
-            item.companyName,
-            item.accountingFirmName ?? '',
-            item.title,
-            item.description ?? '',
-            item.clientContactName ?? '',
-            item.accountingContactName ?? '',
-            item.lastManualRequestContactName ?? '',
-          ]
-            .join(' ')
-            .toLowerCase()
-            .includes(search),
-        )
-      : competenceScopedItems;
-    const openStatuses: TaskStatus[] = ['PENDING', 'WAITING_CUSTOMER', 'RECEIVED', 'SENT_TO_ACCOUNTING', 'OVERDUE'];
-    const filteredItems = statusFilter
-      ? searchedItems.filter((item: TaskItem) => item.status === statusFilter)
-      : searchedItems.filter((item: TaskItem) => openStatuses.includes(item.status));
-    const openItems = competenceScopedItems.filter((item: TaskItem) => openStatuses.includes(item.status));
-    const total = filteredItems.length;
-    const start = (page - 1) * pageSize;
-    const items = filteredItems.slice(start, start + pageSize);
+    const summaryWhere = buildTaskWhere();
+
+    const [records, total, summaryTotal, summaryOpen, summaryPending, summaryWaitingCustomer, summaryReceived, summarySentToAccounting, summaryCompleted, summaryOverdue, summaryCanceled] = await Promise.all([
+      taskModel.findMany({
+        where: recordsWhere,
+        include: this.getTaskListInclude(),
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      taskModel.count({ where: recordsWhere }),
+      taskModel.count({ where: summaryWhere }),
+      taskModel.count({ where: buildTaskWhere({ status: { in: openStatuses } }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'PENDING' }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'WAITING_CUSTOMER' }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'RECEIVED' }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'SENT_TO_ACCOUNTING' }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'COMPLETED' }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'OVERDUE' }) }),
+      taskModel.count({ where: buildTaskWhere({ status: 'CANCELED' }) }),
+    ]);
+
+    const items = records.map((record: any) => this.toTaskItem(record));
 
     return {
       items,
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
-        total: openItems.length,
-        pending: competenceScopedItems.filter((item: TaskItem) => item.status === 'PENDING').length,
-        waitingCustomer: competenceScopedItems.filter((item: TaskItem) => item.status === 'WAITING_CUSTOMER').length,
-        received: competenceScopedItems.filter((item: TaskItem) => item.status === 'RECEIVED').length,
-        sentToAccounting: competenceScopedItems.filter((item: TaskItem) => item.status === 'SENT_TO_ACCOUNTING').length,
-        completed: competenceScopedItems.filter((item: TaskItem) => item.status === 'COMPLETED').length,
-        overdue: competenceScopedItems.filter((item: TaskItem) => item.status === 'OVERDUE').length,
+        total: summaryTotal,
+        open: summaryOpen,
+        pending: summaryPending,
+        waitingCustomer: summaryWaitingCustomer,
+        received: summaryReceived,
+        sentToAccounting: summarySentToAccounting,
+        completed: summaryCompleted,
+        overdue: summaryOverdue,
+        canceled: summaryCanceled,
       },
       year: typeFilter === 'TAREFA' ? null : year,
       month: typeFilter === 'TAREFA' ? null : month,

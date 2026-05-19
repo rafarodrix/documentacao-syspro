@@ -111,7 +111,7 @@ function getTaskTypeVariant(type: TaskItem["type"]) {
 }
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "ALL", label: "Em aberto", countKey: "total" },
+  { value: "OPEN", label: "Em aberto", countKey: "open" },
   { value: "PENDING", label: "Pendentes", countKey: "pending" },
   { value: "WAITING_CUSTOMER", label: "Aguardando cliente", countKey: "waitingCustomer" },
   { value: "RECEIVED", label: "Recebidas", countKey: "received" },
@@ -121,8 +121,9 @@ const STATUS_FILTER_OPTIONS = [
 
 const ADVANCED_STATUS_FILTER_OPTIONS = [
   ...STATUS_FILTER_OPTIONS,
+  { value: "ALL", label: "Todas", countKey: "total" },
   { value: "COMPLETED", label: "Concluidas", countKey: "completed" },
-  { value: "CANCELED", label: "Canceladas" },
+  { value: "CANCELED", label: "Canceladas", countKey: "canceled" },
 ] as const;
 
 const TYPE_FILTER_OPTIONS = [
@@ -188,7 +189,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
   const setStatusFilter = (nextStatus: string) => {
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
-      if (nextStatus && nextStatus !== "ALL") {
+      if (nextStatus && nextStatus !== "ALL" && nextStatus !== "OPEN") {
         params.set("status", nextStatus);
       } else {
         params.delete("status");
@@ -235,7 +236,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
     });
   };
 
-  const hasActiveFilters = Boolean(search.trim()) || status !== "ALL" || type !== "ALL";
+  const hasActiveFilters = Boolean(search.trim()) || status !== "OPEN" || type !== "ALL";
 
   const handleSyncMonth = () => {
     startSyncTransition(async () => {
@@ -304,9 +305,9 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
               {STATUS_FILTER_OPTIONS.map((option) => {
                 const count =
                   option.countKey === "total"
-                    ? tasks.summary.total
+                    ? tasks.summary.open
                     : tasks.summary[option.countKey];
-                const isActive = status === option.value || (status === "" && option.value === "ALL");
+                const isActive = status === option.value || (status === "" && option.value === "OPEN");
 
                 return (
                   <Button
@@ -381,9 +382,9 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
               </div>
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Status</p>
-                <Select value={status || "ALL"} onValueChange={setStatusFilter}>
+                <Select value={status || "OPEN"} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
-                    <SelectValue placeholder="Todos os status" />
+                    <SelectValue placeholder="Em aberto" />
                   </SelectTrigger>
                   <SelectContent>
                     {ADVANCED_STATUS_FILTER_OPTIONS.map((option) => {
@@ -417,8 +418,8 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                     </span>
                   ) : null}
                   <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
-                    {status === "ALL"
-                      ? "Todos os status"
+                    {status === "OPEN"
+                      ? "Em aberto"
                       : ADVANCED_STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
                   </span>
                   <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">

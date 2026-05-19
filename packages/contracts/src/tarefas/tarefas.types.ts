@@ -135,7 +135,7 @@ export const taskItemListQuerySchema = paginationQuerySchema.extend({
   year: z.string().optional(),
   month: z.string().optional(),
   type: z.enum([...TASK_TYPE_VALUES, "ALL"]).optional(),
-  status: z.enum([...TASK_STATUS_VALUES, "ALL"]).optional(),
+  status: z.enum([...TASK_STATUS_VALUES, "ALL", "OPEN"]).optional(),
   search: z.string().trim().optional(),
 });
 
@@ -194,12 +194,14 @@ export const taskItemSchema = z.object({
 
 export const taskItemSummarySchema = z.object({
   total: z.number().int().nonnegative(),
+  open: z.number().int().nonnegative(),
   pending: z.number().int().nonnegative(),
   waitingCustomer: z.number().int().nonnegative(),
   received: z.number().int().nonnegative(),
   sentToAccounting: z.number().int().nonnegative(),
   completed: z.number().int().nonnegative(),
   overdue: z.number().int().nonnegative(),
+  canceled: z.number().int().nonnegative(),
 });
 
 export const taskItemListResponseSchema = z.object({
