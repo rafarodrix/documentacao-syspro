@@ -128,10 +128,11 @@ type Module struct {
 	logger          Logger
 	events          EventBus
 	device          DeviceSnapshotProvider
-	discoveryToken string
-	installToken   string
-	agentVersion   string
-	stateDir       string
+	discoveryToken  string
+	installToken    string
+	agentVersion    string
+	environment     string
+	stateDir        string
 	rustDeskFactory func() rustDeskController
 }
 
@@ -154,6 +155,10 @@ func WithDevice(d DeviceSnapshotProvider) Option {
 
 func WithAgentVersion(version string) Option {
 	return func(m *Module) { m.agentVersion = version }
+}
+
+func WithEnvironment(env string) Option {
+	return func(m *Module) { m.environment = env }
 }
 
 func WithStateDir(stateDir string) Option {
@@ -277,6 +282,7 @@ func (m *Module) runDiscoverBootstrapSync(ctx context.Context, st *remoteState, 
 		AgentVersion:   m.agentVersion,
 		ServiceStatus:  firstNonEmpty(st.ServiceStatus, "unknown"),
 		Provider:       "go-agent",
+		Environment:    m.environment,
 	})
 	if err != nil {
 		if isApplyContextCanceled(err) {
@@ -345,6 +351,7 @@ func (m *Module) runBootstrapThenSync(ctx context.Context, st *remoteState, host
 		ServerHost:     st.ServerHost,
 		APIHost:        st.APIHost,
 		PublicKey:      st.PublicKey,
+		Environment:    m.environment,
 	})
 	if err != nil {
 		if isApplyContextCanceled(err) {
