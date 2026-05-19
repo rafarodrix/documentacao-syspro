@@ -111,7 +111,7 @@ function getTaskTypeVariant(type: TaskItem["type"]) {
 }
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "ALL", label: "Todas", countKey: "total" },
+  { value: "ALL", label: "Em aberto", countKey: "total" },
   { value: "PENDING", label: "Pendentes", countKey: "pending" },
   { value: "WAITING_CUSTOMER", label: "Aguardando cliente", countKey: "waitingCustomer" },
   { value: "RECEIVED", label: "Recebidas", countKey: "received" },
@@ -122,6 +122,7 @@ const STATUS_FILTER_OPTIONS = [
 const ADVANCED_STATUS_FILTER_OPTIONS = [
   ...STATUS_FILTER_OPTIONS,
   { value: "COMPLETED", label: "Concluidas", countKey: "completed" },
+  { value: "CANCELED", label: "Canceladas" },
 ] as const;
 
 const TYPE_FILTER_OPTIONS = [
@@ -386,14 +387,15 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   </SelectTrigger>
                   <SelectContent>
                     {ADVANCED_STATUS_FILTER_OPTIONS.map((option) => {
-                      const count =
-                        option.countKey === "total"
+                      const count = option.countKey
+                        ? option.countKey === "total"
                           ? tasks.summary.total
-                          : tasks.summary[option.countKey];
+                          : tasks.summary[option.countKey]
+                        : null;
 
                       return (
                         <SelectItem key={option.value} value={option.value}>
-                          {option.label} ({count})
+                          {count == null ? option.label : `${option.label} (${count})`}
                         </SelectItem>
                       );
                     })}

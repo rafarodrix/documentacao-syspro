@@ -518,9 +518,11 @@ export class TarefasService {
             .includes(search),
         )
       : competenceScopedItems;
+    const openStatuses: TaskStatus[] = ['PENDING', 'WAITING_CUSTOMER', 'RECEIVED', 'SENT_TO_ACCOUNTING', 'OVERDUE'];
     const filteredItems = statusFilter
       ? searchedItems.filter((item: TaskItem) => item.status === statusFilter)
-      : searchedItems;
+      : searchedItems.filter((item: TaskItem) => openStatuses.includes(item.status));
+    const openItems = competenceScopedItems.filter((item: TaskItem) => openStatuses.includes(item.status));
     const total = filteredItems.length;
     const start = (page - 1) * pageSize;
     const items = filteredItems.slice(start, start + pageSize);
@@ -529,7 +531,7 @@ export class TarefasService {
       items,
       pagination: buildPaginationMeta({ page, pageSize, total }),
       summary: {
-        total: competenceScopedItems.length,
+        total: openItems.length,
         pending: competenceScopedItems.filter((item: TaskItem) => item.status === 'PENDING').length,
         waitingCustomer: competenceScopedItems.filter((item: TaskItem) => item.status === 'WAITING_CUSTOMER').length,
         received: competenceScopedItems.filter((item: TaskItem) => item.status === 'RECEIVED').length,
