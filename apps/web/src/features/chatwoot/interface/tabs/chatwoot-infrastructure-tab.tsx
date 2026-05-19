@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Clock3, Loader2, Monitor, Waypoints } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import {
   EmptyState,
@@ -45,11 +45,6 @@ export function ChatwootInfrastructureTab() {
               <Monitor className="h-4 w-4 text-primary" />
               Infraestrutura
             </CardTitle>
-            <CardDescription>
-              {needsContextSelection
-                ? "Selecione a empresa em contexto no topo do painel para carregar os hosts corretos."
-                : "Hosts e atalhos operacionais da empresa em contexto."}
-            </CardDescription>
           </div>
           <Button
             type="button"
@@ -63,36 +58,6 @@ export function ChatwootInfrastructureTab() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">
-              {resolved.companyName || (needsContextSelection ? "Selecionar empresa" : "Sem vinculo")}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
-            <p className="mt-1 text-sm font-semibold text-foreground">
-              {resolved.contactName || "Nao identificado"}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hosts</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">
-              {canUseInfrastructure ? `${companyHosts.length} disponive${companyHosts.length !== 1 ? "is" : "l"}` : "Contexto pendente"}
-            </p>
-          </div>
-        </div>
-
-        {needsContextSelection ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
-            <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para continuar.</span>
-            <Button type="button" size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-              Ver seletor
-            </Button>
-          </div>
-        ) : null}
-
         {/* Recommended host */}
         {canUseInfrastructure && recommendedHost ? (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">

@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Building2, Headphones, Loader2 } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import {
   CompanyOperationalSettingsCard,
   DetailItem,
   EmptyState,
-  GuidedStep,
   InlineLoading,
   InlineNotice,
   InlineWarning,
@@ -58,7 +57,6 @@ export function ChatwootOverviewTab() {
               <Headphones className="h-4 w-4 text-primary" />
               Contato
             </CardTitle>
-            <CardDescription>Dados da conversa e correspondencia no portal.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg border border-border/60 bg-card px-3 py-3">
@@ -93,11 +91,6 @@ export function ChatwootOverviewTab() {
               <Building2 className="h-4 w-4 text-primary" />
               Empresa ativa
             </CardTitle>
-            <CardDescription>
-              {resolved.companyId
-                ? "Detalhes da empresa atualmente selecionada no topo do painel."
-                : "Selecione uma empresa no topo do painel para carregar o contexto operacional."}
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {primaryCompany ? (
@@ -151,28 +144,12 @@ export function ChatwootOverviewTab() {
       {shouldShowBindingWizard ? (
         <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm">
           <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Building2 className="h-4 w-4 text-amber-600" />
-                  Vincular empresa ao contato
-                </CardTitle>
-                <CardDescription className="mt-1">
-                  Sem empresa vinculada, tickets e infraestrutura ficam bloqueados.
-                </CardDescription>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                3 passos
-              </div>
-            </div>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Building2 className="h-4 w-4 text-amber-600" />
+              Vincular empresa ao contato
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid gap-2 md:grid-cols-3">
-              <GuidedStep index={1} title="Localizar contato" description="Confirmar ou criar o contato no portal." />
-              <GuidedStep index={2} title="Escolher empresa" description="Selecionar a empresa desta conversa." />
-              <GuidedStep index={3} title="Liberar operacao" description="Tickets e infraestrutura ficam disponiveis." />
-            </div>
-
             <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
               <div className="rounded-lg border border-border/60 bg-card p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">1. Contato no portal</p>

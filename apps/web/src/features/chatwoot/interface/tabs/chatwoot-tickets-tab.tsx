@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Clock3, Loader2, MessageSquare, Ticket, Waypoints } from "lucide-react";
 import { toast } from "sonner";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@dosc-syspro/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@dosc-syspro/ui";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { getSuggestedCategoryForTeam } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
@@ -19,7 +19,6 @@ import {
 export function ChatwootTicketsTab() {
   const {
     resolved,
-    effectiveContactName,
     linkedCompanies,
     contextCompanyId,
     latestTickets,
@@ -58,11 +57,6 @@ export function ChatwootTicketsTab() {
               <Ticket className="h-4 w-4 text-primary" />
               Tickets da empresa
             </CardTitle>
-            <CardDescription>
-              {needsContextSelection
-                ? "Selecione a empresa em contexto no topo do painel para listar e abrir tickets no escopo correto."
-                : "Chamados abertos da empresa em contexto, com abertura rapida sem sair do Chatwoot."}
-            </CardDescription>
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
@@ -92,36 +86,6 @@ export function ChatwootTicketsTab() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">
-              {resolved.companyName || (needsContextSelection ? "Selecionar empresa" : "Sem vinculo")}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
-            <p className="mt-1 truncate text-sm font-semibold text-foreground">{effectiveContactName || "Nao identificado"}</p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Volume</p>
-            <p className="mt-1 text-sm font-semibold text-foreground">
-              {canUseTickets
-                ? `${latestTickets.length} ticket${latestTickets.length !== 1 ? "s" : ""} aberto${latestTickets.length !== 1 ? "s" : ""}`
-                : "Contexto pendente"}
-            </p>
-          </div>
-        </div>
-
-        {needsContextSelection ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
-            <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para continuar.</span>
-            <Button type="button" size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-              Ver seletor
-            </Button>
-          </div>
-        ) : null}
-
         {/* Embedded ticket creation form */}
         {showEmbeddedTicketForm ? (
           <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
@@ -166,14 +130,6 @@ export function ChatwootTicketsTab() {
                   </p>
 
                   {/* Context strip — compact, no duplicate boxes */}
-                  <div className="rounded-lg border border-border/40 bg-background px-2.5 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{resolved.companyName || resolved.companyId || "-"}</span>
-                    <span className="mx-1.5 text-border">|</span>
-                    <span>{effectiveContactName || "-"}</span>
-                    {resolved.customerPhone ? <span className="mx-1.5 text-border">|</span> : null}
-                    {resolved.customerPhone ? <span>{resolved.customerPhone}</span> : null}
-                  </div>
-
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Setor</label>
                     <Select

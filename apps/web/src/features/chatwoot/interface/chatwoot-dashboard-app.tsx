@@ -987,7 +987,7 @@ export function ChatwootDashboardApp() {
         requestRefresh,
       }}
     >
-      <div className="flex min-h-screen flex-col bg-[linear-gradient(180deg,rgba(59,130,246,0.05),transparent_28%),hsl(var(--background))] text-foreground">
+      <div className="flex min-h-screen flex-col bg-background text-foreground">
         {/* App header — compact, no wrapping card */}
         <div className="border-b border-border/60 bg-background/85 backdrop-blur">
           <div className="space-y-3 px-3 py-3">
@@ -1029,39 +1029,25 @@ export function ChatwootDashboardApp() {
             </div>
 
             {linkedCompanies.length > 0 ? (
-              <div className="rounded-2xl border border-border/60 bg-card px-3 py-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Empresa em contexto
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {linkedCompanies.length > 1
-                        ? "A selecao abaixo altera tickets, infraestrutura e os detalhes exibidos nas abas."
-                        : "O contexto abaixo guia tickets, infraestrutura e os detalhes exibidos nas abas."}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {linkedCompanies.map((company) => {
-                      const isActive = company.id === resolved.companyId;
+              <div className="flex flex-wrap gap-2">
+                {linkedCompanies.map((company) => {
+                  const isActive = company.id === resolved.companyId;
 
-                      return (
-                        <button
-                          key={company.id}
-                          type="button"
-                          onClick={() => handleSelectContextCompany(company.id)}
-                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                            isActive
-                              ? "border-primary/40 bg-primary/10 text-primary"
-                              : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                          }`}
-                        >
-                          {getCompanyLabel(company)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                  return (
+                    <button
+                      key={company.id}
+                      type="button"
+                      onClick={() => handleSelectContextCompany(company.id)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        isActive
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                      }`}
+                    >
+                      {getCompanyLabel(company)}
+                    </button>
+                  );
+                })}
               </div>
             ) : null}
           </div>

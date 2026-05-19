@@ -106,20 +106,6 @@ export function getRemoteHostSummary(host: RemoteHostEntry | null) {
   };
 }
 
-export function GuidedStep({ index, title, description }: { index: number; title: string; description: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card p-3 shadow-sm">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-          {index}
-        </span>
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-      </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
 export function CompanyOperationalSettingsCard({
   company,
   isActive,

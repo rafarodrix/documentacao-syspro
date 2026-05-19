@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { ArrowUpRight, CalendarClock, CircleCheckBig, ClipboardPlus, Loader2, MessageSquareShare, RefreshCw, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/api/trpc-client";
@@ -65,7 +65,7 @@ function getTaskTypeTone(type: TaskItem["type"]) {
 }
 
 export function ChatwootTarefasTab() {
-  const { resolved, effectiveContactName, linkedCompanies } = useChatwootDashboard();
+  const { resolved, linkedCompanies } = useChatwootDashboard();
   const [items, setItems] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,11 +78,8 @@ export function ChatwootTarefasTab() {
   const today = useMemo(() => new Date(), []);
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
-  const competenceLabel = `${String(currentMonth).padStart(2, "0")}/${currentYear}`;
   const hasMultipleLinkedCompanies = linkedCompanies.length > 1;
   const needsContextSelection = hasMultipleLinkedCompanies && !resolved.companyId;
-  const monthlyItems = useMemo(() => items.filter((item) => item.type === "ROTINA_MENSAL"), [items]);
-  const manualItems = useMemo(() => items.filter((item) => item.type === "TAREFA"), [items]);
 
   useEffect(() => {
     if (!resolved.companyId) {
@@ -168,9 +165,6 @@ export function ChatwootTarefasTab() {
                 <CalendarClock className="h-4 w-4 text-primary" />
                 Tarefas
               </CardTitle>
-              <CardDescription>
-                Acompanhe rotinas mensais e tarefas avulsas da empresa em contexto sem sair do Chatwoot.
-              </CardDescription>
             </div>
             <div className="flex shrink-0 gap-2">
               <Button
@@ -194,39 +188,6 @@ export function ChatwootTarefasTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresa</p>
-              <p className="mt-1 truncate text-sm font-semibold text-foreground">
-                {resolved.companyName || (needsContextSelection ? "Selecionar empresa" : "Sem vinculo")}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
-              <p className="mt-1 truncate text-sm font-semibold text-foreground">{effectiveContactName || "Nao identificado"}</p>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Competencia</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{competenceLabel}</p>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tarefas</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{items.length} em contexto</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {monthlyItems.length} rotina(s) e {manualItems.length} tarefa(s) avulsa(s)
-              </p>
-            </div>
-          </div>
-
-          {needsContextSelection ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-700 dark:text-amber-300">
-              <span>Este contato possui mais de uma empresa vinculada. Escolha a empresa em contexto no topo do painel para operar a tarefa correta.</span>
-              <Button type="button" size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                Ver seletor
-              </Button>
-            </div>
-          ) : null}
-
           {!resolved.companyId && !needsContextSelection ? (
             <InlineWarning message="Vincule ou selecione uma empresa para habilitar as tarefas desta conversa." />
           ) : null}
