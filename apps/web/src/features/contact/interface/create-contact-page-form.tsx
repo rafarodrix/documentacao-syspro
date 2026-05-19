@@ -269,12 +269,17 @@ export function CreateContactPageForm({
           submitLabel={isEdit ? "Salvar alteracoes" : "Salvar contato"}
           isSubmitting={isSubmitting}
           canSubmit={canSubmit}
+          contentClassName="bg-linear-to-b from-background via-background to-muted/[0.12]"
           footerLeft={
             hasErrors ? (
               <Badge variant="destructive" className="gap-1 text-[11px] font-medium">
                 Campos invalidos
               </Badge>
-            ) : null
+            ) : (
+              <Badge variant="muted" className="gap-1 text-[11px] font-medium">
+                {selectedCompanies.length} empresa(s) vinculada(s)
+              </Badge>
+            )
           }
           footerCenter={
             <>
@@ -314,16 +319,32 @@ export function CreateContactPageForm({
             >
               {currentSection === "geral" ? (
                 <section className="space-y-5">
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-md bg-primary/10 p-1.5">
-                      <UserRound className="h-4 w-4 text-primary" />
+                  <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
+                        <UserRound className="h-4 w-4 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Dados do contato</p>
+                        <p className="text-xs text-muted-foreground">Identidade, canais e documentos.</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Dados do contato</p>
-                      <p className="text-xs text-muted-foreground">Identidade, canais e documentos.</p>
+                    <div className="mt-4 grid gap-2 md:grid-cols-3">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Obrigatório</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">Nome do contato</p>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Canais</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">Telefone, WhatsApp e e-mail</p>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Documento</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">CPF opcional para referência</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 rounded-2xl border border-border/60 bg-background/75 p-4 shadow-sm md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="name"
@@ -453,7 +474,7 @@ export function CreateContactPageForm({
                     control={form.control}
                     name="notes"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="rounded-2xl border border-border/60 bg-background/75 p-4 shadow-sm">
                         <FormLabel>Observacoes</FormLabel>
                         <FormControl>
                           <Textarea
@@ -472,69 +493,84 @@ export function CreateContactPageForm({
 
               {currentSection === "empresas" ? (
                 <section className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="rounded-md bg-primary/10 p-1.5">
-                        <Building2 className="h-4 w-4 text-primary" />
+                  <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
+                          <Building2 className="h-4 w-4 text-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Empresas vinculadas</p>
+                          <p className="text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">Empresas vinculadas</p>
-                        <p className="text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
+                      <Badge
+                        variant="success"
+                        className="w-fit rounded-lg px-2 py-1 text-[10px] font-semibold"
+                      >
+                        {watchedCompanyIds?.length ?? 0} selecionada(s)
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 md:grid-cols-2">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Uso</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">Selecione empresas relevantes para operação e atendimento.</p>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Leitura</p>
+                        <p className="mt-1 text-sm font-medium text-foreground">Vínculos ficam visíveis em listas, tickets e fluxos internos.</p>
                       </div>
                     </div>
-                    <Badge
-                      variant="success"
-                      className="w-fit rounded-md px-2 py-1 text-[10px] font-semibold"
-                    >
-                      {watchedCompanyIds?.length ?? 0} selecionada(s)
-                    </Badge>
                   </div>
 
-                  <Controller
-                  control={form.control}
-                  name="companyIds"
-                  render={({ field }) => (
-                    <>
-                      <CompanyMultiPicker
-                        selectedIds={field.value ?? []}
-                        options={filteredCompanies}
-                        query={companyQuery}
-                        onQueryChange={setCompanyQuery}
-                        onToggle={(companyId) => {
-                          const current = field.value ?? [];
-                          field.onChange(
-                            current.includes(companyId)
-                              ? current.filter((id) => id !== companyId)
-                              : [...current, companyId],
-                          );
-                        }}
-                      />
+                  <div className="rounded-2xl border border-border/60 bg-background/75 p-4 shadow-sm">
+                    <Controller
+                      control={form.control}
+                      name="companyIds"
+                      render={({ field }) => (
+                        <>
+                          <CompanyMultiPicker
+                            selectedIds={field.value ?? []}
+                            options={filteredCompanies}
+                            query={companyQuery}
+                            onQueryChange={setCompanyQuery}
+                            onToggle={(companyId) => {
+                              const current = field.value ?? [];
+                              field.onChange(
+                                current.includes(companyId)
+                                  ? current.filter((id) => id !== companyId)
+                                  : [...current, companyId],
+                              );
+                            }}
+                          />
 
-                      <div className="flex flex-wrap gap-2">
-                        {selectedCompanies.length === 0 ? (
-                          <span className="rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
-                            Nenhuma empresa vinculada.
-                          </span>
-                        ) : (
-                          selectedCompanies.map((company) => (
-                            <button
-                              key={company.id}
-                              type="button"
-                              onClick={() => {
-                                const current = field.value ?? [];
-                                field.onChange(current.filter((id) => id !== company.id));
-                              }}
-                              className="inline-flex max-w-full items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground hover:bg-muted"
-                            >
-                              <span className="truncate">{getCompanyLabel(company)}</span>
-                              <X className="h-3 w-3 shrink-0 text-muted-foreground" />
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  )}
-                />
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCompanies.length === 0 ? (
+                              <span className="rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                                Nenhuma empresa vinculada.
+                              </span>
+                            ) : (
+                              selectedCompanies.map((company) => (
+                                <button
+                                  key={company.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = field.value ?? [];
+                                    field.onChange(current.filter((id) => id !== company.id));
+                                  }}
+                                  className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+                                >
+                                  <span className="truncate">{getCompanyLabel(company)}</span>
+                                  <X className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </>
+                      )}
+                    />
+                  </div>
                 </section>
               ) : null}
             </motion.div>
@@ -572,7 +608,7 @@ function CompanyMultiPicker({
         <Button
           type="button"
           variant="outline"
-          className="h-auto min-h-11 w-full justify-between border-border/60 bg-background px-3 py-2 shadow-xs"
+          className="h-auto min-h-11 w-full justify-between rounded-xl border-border/60 bg-background px-3 py-2 shadow-xs"
         >
           <div className="min-w-0 text-left">
             <span className="block truncate text-sm font-medium text-foreground">
@@ -590,10 +626,10 @@ function CompanyMultiPicker({
 
       <PopoverContent
         align="start"
-        className="w-[var(--radix-popover-trigger-width)] min-w-[28rem] p-0"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[28rem] rounded-2xl border-border/60 p-0 shadow-xl"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <div className="border-b p-2">
+        <div className="border-b border-border/60 bg-background/90 p-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -606,7 +642,7 @@ function CompanyMultiPicker({
           </div>
         </div>
 
-        <div className="max-h-80 overflow-y-auto py-1.5">
+        <div className="max-h-80 overflow-y-auto bg-background/95 py-1.5">
           {options.length === 0 ? (
             <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
               Nenhuma empresa encontrada.
@@ -620,7 +656,7 @@ function CompanyMultiPicker({
                   type="button"
                   onClick={() => onToggle(company.id)}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors",
+                    "flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors",
                     selected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50",
                   )}
                 >

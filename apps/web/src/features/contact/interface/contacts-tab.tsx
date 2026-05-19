@@ -31,6 +31,8 @@ import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
+  RegistryMetricCard,
+  RegistryMetrics,
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
@@ -182,6 +184,27 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     return contactStats ?? localCounts;
   }, [contactStats, contacts]);
 
+  const contactsWithPrimaryChannel = useMemo(
+    () => contacts.filter((contact) => Boolean(contact.email) || Boolean(getPrimaryPhone(contact))).length,
+    [contacts],
+  );
+
+  const emptyStateDescription = useMemo(() => {
+    if (searchTerm.trim()) {
+      return "Tente outro nome, cargo, documento, canal ou empresa para ampliar o recorte.";
+    }
+
+    if (scope === "linked") {
+      return "Nenhum contato vinculado a empresas apareceu neste recorte.";
+    }
+
+    if (scope === "unlinked") {
+      return "Nenhum contato sem empresa ficou pendente neste recorte.";
+    }
+
+    return "Ajuste os filtros ou cadastre um novo contato.";
+  }, [scope, searchTerm]);
+
   const handleScopeChange = (nextScope: ScopeFilter) => {
     setPage(1);
     setScope(nextScope);
@@ -273,6 +296,64 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       />
 
       <div className="space-y-5">
+        <section className="rounded-2xl border border-border/60 bg-linear-to-br from-background via-card to-muted/20 p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Primeiro Passe DESIGN.md
+              </p>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">
+                Contatos com leitura mais densa, neutra e operacional
+              </h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Esta tela prioriza contraste discreto, menos ruído cromático e uma hierarquia direta para nome,
+                canais e vínculo com empresas.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3 lg:w-[28rem]">
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Cobertura</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">{contactsWithPrimaryChannel}</p>
+                <p className="text-xs text-muted-foreground">registros com algum canal principal</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Vínculos</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">{counts.linked}</p>
+                <p className="text-xs text-muted-foreground">contatos associados a empresas</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sem empresa</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">{counts.unlinked}</p>
+                <p className="text-xs text-muted-foreground">itens prontos para triagem</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <RegistryMetrics>
+          <RegistryMetricCard
+            title="Base filtrada"
+            value={pagination.total}
+            description="Total no recorte atual"
+            icon={Users}
+            tone="neutral"
+          />
+          <RegistryMetricCard
+            title="Com empresa"
+            value={counts.linked}
+            description="Contatos já vinculados"
+            icon={Building2}
+            tone="success"
+          />
+          <RegistryMetricCard
+            title="Sem empresa"
+            value={counts.unlinked}
+            description="Pendentes de vínculo"
+            icon={Unlink}
+            tone="warning"
+          />
+        </RegistryMetrics>
+
         <RegistryToolbar
           searchValue={searchTerm}
           searchPlaceholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
@@ -332,7 +413,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
               <RegistryEmptyState
                 icon={Users}
                 title="Nenhum contato encontrado"
-                description="Ajuste os filtros ou cadastre um novo contato."
+                description={emptyStateDescription}
                 searchTerm={searchTerm}
                 onClear={() => handleSearchChange("")}
               />
@@ -376,7 +457,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
                       <RegistryEmptyState
                         icon={Users}
                         title="Nenhum contato encontrado"
-                        description="Ajuste os filtros ou cadastre um novo contato."
+                        description={emptyStateDescription}
                         searchTerm={searchTerm}
                         onClear={() => handleSearchChange("")}
                         compact
@@ -415,7 +496,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
               Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{filteredData.length}</span>
             </span>
             <span>
-              Email: {counts.withEmail} | Telefone: {counts.withPhone}
+              Email: {counts.withEmail} | Telefone: {counts.withPhone} | Canal principal: {contactsWithPrimaryChannel}
             </span>
           </div>
         </div>
@@ -451,13 +532,13 @@ function ContactRow({
     <ClickableTableRow
       enabled={canEdit}
       onOpen={onEdit}
-      className="group/row border-border/50 transition-colors hover:bg-muted/30"
+      className="group/row border-border/50 transition-colors hover:bg-muted/20 data-[state=open]:bg-muted/20"
       style={{ animationDelay: `${animationDelay}ms` }}
       title="Clique para editar"
     >
       <TableCell className="py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/60 transition-colors group-hover/row:text-primary">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-muted-foreground shadow-sm transition-colors group-hover/row:text-foreground">
             <UserRound className="h-4 w-4" />
           </div>
           <div className="min-w-0">
@@ -532,11 +613,11 @@ function MobileContactCard({
     <ClickableCard
       enabled={canEdit}
       onOpen={onEdit}
-      className="space-y-3 p-4"
+      className="space-y-3 rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm"
       title="Clique para editar"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-1">
           <p className="truncate text-sm font-semibold text-foreground">{contact.name || "Sem nome"}</p>
           {contact.jobTitle ? <p className="mt-1 truncate text-xs text-muted-foreground">{contact.jobTitle}</p> : null}
           <p className="mt-1 truncate text-xs text-muted-foreground">{phone || "Sem telefone"}</p>
@@ -669,7 +750,7 @@ function ContactActionsMenu({
 function LinkedBadge({ count }: { count: number }) {
   if (count > 0) {
     return (
-      <Badge variant="success" className="rounded-md px-2 py-1 text-[10px] font-semibold">
+      <Badge variant="success" className="rounded-lg px-2 py-1 text-[10px] font-semibold">
         <CheckCircle2 className="mr-1 h-3 w-3" />
         {count} {count === 1 ? "empresa" : "empresas"}
       </Badge>
@@ -677,7 +758,7 @@ function LinkedBadge({ count }: { count: number }) {
   }
 
   return (
-    <Badge variant="muted" className="rounded-md px-2 py-1 text-[10px] font-semibold">
+    <Badge variant="muted" className="rounded-lg px-2 py-1 text-[10px] font-semibold">
       Sem empresa
     </Badge>
   );
