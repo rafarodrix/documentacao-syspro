@@ -167,6 +167,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
         label: hasContact ? option.contactName || option.companyName : option.companyName,
         description: hasContact ? companySupportText : [option.legalName, option.cnpj].filter(Boolean).join(" • "),
         meta: hasContact ? contactSupportText : null,
+        kind: hasContact ? "contact" : "company",
       });
     }
 
@@ -177,6 +178,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
           id: currentId,
           label: customerCompany || "Empresa selecionada",
           description: customerEmail || undefined,
+          kind: "company",
         });
       }
     }
@@ -187,6 +189,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
   const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
     id: company.id,
     label: company.name,
+    kind: "company",
   }));
 
   const requiresAssociatedCompany = source === "chatwoot";

@@ -93,6 +93,7 @@ export function TaskCreateDialog({
             ? company.razaoSocial
             : null,
         meta: "Empresa",
+        kind: "company",
       })),
     [companyOptions],
   );

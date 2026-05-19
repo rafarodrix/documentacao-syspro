@@ -11,6 +11,7 @@ export type TicketCompanyPickerOption = {
   label: string;
   description?: string | null;
   meta?: string | null;
+  kind?: "company" | "contact";
 };
 
 interface TicketCompanyPickerProps {
@@ -109,6 +110,7 @@ export function TicketCompanyPicker({
         <div className="max-h-64 overflow-y-auto py-1.5 scrollbar-thin">
           {filtered.map((option) => {
             const isSelected = option.id === value;
+            const isContact = option.kind === "contact";
 
             return (
               <button
@@ -124,13 +126,13 @@ export function TicketCompanyPicker({
                 )}
               >
                 <div className="flex h-7 w-7 items-center justify-center shrink-0 rounded-md bg-muted/50 border border-border/50 text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
+                  {isContact ? <UserRound className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
                 </div>
                 <div className="min-w-0 flex-1 flex flex-col justify-center">
                   <span className="block truncate font-semibold text-foreground/90">{option.label}</span>
                   {option.description ? (
                     <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
-                      <UserRound className="h-3 w-3 shrink-0 opacity-70" />
+                      {isContact ? <Building2 className="h-3 w-3 shrink-0 opacity-70" /> : <UserRound className="h-3 w-3 shrink-0 opacity-70" />}
                       {option.description}
                     </span>
                   ) : null}
