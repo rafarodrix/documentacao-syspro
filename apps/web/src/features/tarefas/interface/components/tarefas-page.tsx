@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@dosc-syspro/ui";
-import { CircleAlert, Eye, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
+import { CircleAlert, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
@@ -116,6 +116,10 @@ const STATUS_FILTER_OPTIONS = [
   { value: "RECEIVED", label: "Recebidas", countKey: "received" },
   { value: "SENT_TO_ACCOUNTING", label: "Enviadas", countKey: "sentToAccounting" },
   { value: "OVERDUE", label: "Atrasadas", countKey: "overdue" },
+] as const;
+
+const ADVANCED_STATUS_FILTER_OPTIONS = [
+  ...STATUS_FILTER_OPTIONS,
   { value: "COMPLETED", label: "Concluidas", countKey: "completed" },
 ] as const;
 
@@ -342,7 +346,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
 
         {showFilters ? (
           <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_1fr]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,16rem)_minmax(0,16rem)_1fr]">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
                 <Select value={type || "ALL"} onValueChange={setTypeFilter}>
@@ -355,6 +359,28 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                         {option.label}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Status</p>
+                <Select value={status || "ALL"} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADVANCED_STATUS_FILTER_OPTIONS.map((option) => {
+                      const count =
+                        option.countKey === "total"
+                          ? tasks.summary.total
+                          : tasks.summary[option.countKey];
+
+                      return (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label} ({count})
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -375,7 +401,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
                     {status === "ALL"
                       ? "Todos os status"
-                      : STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
+                      : ADVANCED_STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
                   </span>
                   <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
                     {isPending ? "Atualizando..." : `${tasks.pagination.total} registro(s)`}
@@ -455,14 +481,19 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   </TableHeader>
                   <TableBody>
                   {tasks.items.map((item) => (
-                    <TableRow key={item.id} className="align-top">
-                      <TableCell className="px-3 py-4">
+                    <TableRow
+                      key={item.id}
+                      className="align-top cursor-pointer transition-colors hover:bg-muted/10"
+                      onDoubleClick={() => setSelectedDetailsTaskId(item.id)}
+                      title="Duplo clique para ver detalhes"
+                    >
+                      <TableCell className="w-[18%] px-3 py-4">
                         <div className="space-y-1">
                           <div className="font-medium text-foreground">{item.companyName}</div>
                           <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
                         </div>
                       </TableCell>
-                      <TableCell className="px-3 py-4">
+                      <TableCell className="w-[24%] px-3 py-4">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="text-sm font-medium text-foreground">{item.title}</div>
@@ -491,14 +522,14 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell className="px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
-                      <TableCell className="px-3 py-4 text-sm text-foreground">
+                      <TableCell className="w-[12%] px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
+                      <TableCell className="w-[9%] px-3 py-4 text-sm text-foreground whitespace-nowrap">
                         {new Date(item.dueDate).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="px-3 py-4 text-sm text-foreground">
+                      <TableCell className="w-[8%] px-3 py-4 text-sm text-foreground whitespace-nowrap">
                         {item.requiredDocumentsCount} item(ns)
                       </TableCell>
-                      <TableCell className="px-3 py-4">
+                      <TableCell className="w-[15%] px-3 py-4">
                         {item.lastManualRequestAt ? (
                           <div className="space-y-1">
                             <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
@@ -513,28 +544,18 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                           <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
                         )}
                       </TableCell>
-                      <TableCell className="px-3 py-4">
+                      <TableCell className="w-[8%] px-3 py-4">
                         <Badge variant={getTaskStatusVariant(item.status)}>
                           {getTaskStatusLabel(item.status)}
                         </Badge>
                       </TableCell>
                       {canManage ? (
-                        <TableCell className="px-3 py-4 text-right">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="mr-2"
-                            onClick={() => setSelectedDetailsTaskId(item.id)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver detalhes
-                          </Button>
+                        <TableCell className="w-[16%] px-3 py-4 text-right" onDoubleClick={(event) => event.stopPropagation()}>
+                          <div className="flex flex-col items-end gap-2 xl:flex-row xl:justify-end">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="mr-2"
                             onClick={() => setSelectedStatusTask(item)}
                           >
                             Atualizar status
@@ -549,6 +570,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                             <MessageSquareShare className="mr-2 h-4 w-4" />
                             {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
                           </Button>
+                          </div>
                         </TableCell>
                       ) : null}
                     </TableRow>
