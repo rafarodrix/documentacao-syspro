@@ -16,7 +16,6 @@ apps/
   agent/                                   — agente Go (RustDesk heartbeat)
 
 packages/
-  application/   @dosc-syspro/application  — casos de uso, procedures tRPC
   contracts/     @dosc-syspro/contracts    — DTOs e schemas Zod
   config/        @dosc-syspro/config       — leitura/validação de env vars
   core/          @dosc-syspro/core         — regras puras e entidades de domínio
