@@ -308,6 +308,7 @@ export function CompanySettingsTab({
               reminderDays: taskConfigView.config.reminderDays,
               clientContactId: taskConfigView.config.clientContactId,
               accountingContactId: taskConfigView.config.accountingContactId,
+              assignedToId: taskConfigView.config.assignedToId,
               notes: taskConfigView.config.notes,
               requiredDocuments: taskConfigView.config.requiredDocuments,
             }}

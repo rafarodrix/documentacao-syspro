@@ -2,8 +2,11 @@
 
 import { useMemo } from "react";
 import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
+import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
 import { Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
-import { CalendarRange, TriangleAlert } from "lucide-react";
+import { CalendarRange, TriangleAlert, UserRound } from "lucide-react";
+
+const EMPTY_ASSIGNEE_VALUE = "__unassigned__";
 
 interface CompanyTaskConfigCardProps {
   view: TaskConfigView;
@@ -20,12 +23,24 @@ export function CompanyTaskConfigCard({
   draft,
   onDraftChange,
 }: CompanyTaskConfigCardProps) {
+  const users = useInternalUsers();
   const accountingFirmChangedInForm = useMemo(() => {
     if (typeof currentAccountingFirmId !== "string") return false;
     const normalizedCurrent = currentAccountingFirmId.trim();
     const normalizedSaved = (view.company.accountingFirmId ?? "").trim();
     return normalizedCurrent !== normalizedSaved;
   }, [currentAccountingFirmId, view.company.accountingFirmId]);
+  const assignableUsers = useMemo(
+    () =>
+      users
+        .filter((user) => user?.id && (user.role === "SUPORTE" || user.role === "DEVELOPER" || user.role === "ADMIN"))
+        .sort((left, right) => {
+          const leftName = (left.name?.trim() || left.email).toLowerCase();
+          const rightName = (right.name?.trim() || right.email).toLowerCase();
+          return leftName.localeCompare(rightName);
+        }),
+    [users],
+  );
 
   const requiredDocumentsText = draft.requiredDocuments.join("\n");
 
@@ -117,6 +132,32 @@ export function CompanyTaskConfigCard({
                 {view.clientContacts.map((contact) => (
                   <SelectItem key={contact.id} value={contact.id}>
                     {contact.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tecnico responsavel pela rotina</Label>
+            <Select
+              value={draft.assignedToId ?? EMPTY_ASSIGNEE_VALUE}
+              disabled={!canManage}
+              onValueChange={(value) =>
+                onDraftChange({ ...draft, assignedToId: value === EMPTY_ASSIGNEE_VALUE ? null : value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sem responsavel fixo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={EMPTY_ASSIGNEE_VALUE}>Sem responsavel fixo</SelectItem>
+                {assignableUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    <div className="flex items-center gap-2">
+                      <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{user.name?.trim() || user.email}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

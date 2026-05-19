@@ -179,6 +179,14 @@ export class TarefasService {
     const configModel = (this.prisma as any).taskConfig;
     const existingConfig = await configModel.findUnique({
       where: { companyId },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     return {
@@ -197,6 +205,8 @@ export class TarefasService {
         reminderDays: existingConfig?.reminderDays ?? 3,
         clientContactId: existingConfig?.clientContactId ?? null,
         accountingContactId: existingConfig?.accountingContactId ?? null,
+        assignedToId: existingConfig?.assignedToId ?? null,
+        assignedToName: existingConfig?.assignedTo?.name ?? null,
         notes: existingConfig?.notes ?? null,
         requiredDocuments: this.getRequiredDocumentsOrDefault(existingConfig?.requiredDocuments),
       },
@@ -213,6 +223,8 @@ export class TarefasService {
     const company = await this.getCompanyContext(input.companyId);
     const clientContactId = this.normalizeOptionalString(input.data.clientContactId);
     const accountingContactId = this.normalizeOptionalString(input.data.accountingContactId);
+    const assignedToId = this.normalizeOptionalString(input.data.assignedToId);
+    await this.assertAssignableTaskOwner(assignedToId);
 
     if (clientContactId && !company.contactLinks.some((link: any) => link.contact.id === clientContactId)) {
       throw new ForbiddenException('O contato do cliente precisa estar vinculado a esta empresa.');
@@ -243,6 +255,7 @@ export class TarefasService {
         reminderDays: input.data.reminderDays,
         clientContactId,
         accountingContactId,
+        assignedToId,
         notes: this.normalizeOptionalString(input.data.notes),
         requiredDocuments: input.data.requiredDocuments,
       },
@@ -253,6 +266,7 @@ export class TarefasService {
         reminderDays: input.data.reminderDays,
         clientContactId,
         accountingContactId,
+        assignedToId,
         notes: this.normalizeOptionalString(input.data.notes),
         requiredDocuments: input.data.requiredDocuments,
       },
@@ -1110,6 +1124,7 @@ export class TarefasService {
               title: config.title || 'Rotina mensal',
               year,
               month,
+              assignedToId: config.assignedToId ?? null,
               dueDate,
               status: dueDate < new Date() ? 'OVERDUE' : 'PENDING',
               requiredDocuments: [],
@@ -1118,8 +1133,17 @@ export class TarefasService {
           return { generated: 1, updated: 0 };
         }
 
-        if (existing.dueDate?.getTime?.() !== dueDate.getTime()) {
-          await taskModel.update({ where: { id: existing.id }, data: { dueDate } });
+        if (
+          existing.dueDate?.getTime?.() !== dueDate.getTime() ||
+          (existing.assignedToId ?? null) !== (config.assignedToId ?? null)
+        ) {
+          await taskModel.update({
+            where: { id: existing.id },
+            data: {
+              dueDate,
+              assignedToId: config.assignedToId ?? null,
+            },
+          });
           return { generated: 0, updated: 1 };
         }
 

@@ -96,6 +96,7 @@ export function TaskCreateDialog({
   const [selectedCompanyConfig, setSelectedCompanyConfig] = useState<TaskConfigView | null>(null);
   const [selectedCompanyOptionValue, setSelectedCompanyOptionValue] = useState("");
   const [selectedContactEmail, setSelectedContactEmail] = useState("");
+  const [contactAutoSelected, setContactAutoSelected] = useState(false);
   const [companyId, setCompanyId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -222,6 +223,7 @@ export function TaskCreateDialog({
         : "",
     );
     setSelectedContactEmail("");
+    setContactAutoSelected(false);
     setCompanySearchQuery("");
     setCompanyOptionsError(null);
     setSelectedCompanyConfig(null);
@@ -253,13 +255,16 @@ export function TaskCreateDialog({
           const matchedContact = result.clientContacts.find(
             (contact: TaskContactOption) => contact.email?.trim().toLowerCase() === selectedContactEmail,
           );
+          setContactAutoSelected(Boolean(matchedContact));
           setClientContactId(matchedContact?.id ?? result.config.clientContactId ?? EMPTY_CONTACT_VALUE);
           return;
         }
+        setContactAutoSelected(false);
         setClientContactId(result.config.clientContactId ?? EMPTY_CONTACT_VALUE);
       } catch {
         if (active) {
           setSelectedCompanyConfig(null);
+          setContactAutoSelected(false);
           setClientContactId(EMPTY_CONTACT_VALUE);
           toast.error("Nao foi possivel carregar os contatos da empresa selecionada.");
         }
@@ -332,7 +337,7 @@ export function TaskCreateDialog({
           <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
             <div className="space-y-2">
               <Label htmlFor="task-create-company" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Empresa
+                Empresa ou contato
               </Label>
               <TicketCompanyPicker
                 value={selectedCompanyOptionValue}
@@ -342,6 +347,7 @@ export function TaskCreateDialog({
                   setSelectedCompanyOptionValue(value);
                   setCompanyId(parsed.companyId);
                   setSelectedContactEmail(parsed.contactName ? parsed.email : "");
+                  setContactAutoSelected(false);
                 }}
                 onSearch={setCompanySearchQuery}
                 loading={isLoadingCompanyOptions}
@@ -407,11 +413,19 @@ export function TaskCreateDialog({
 
             <div className="space-y-2">
               <Label htmlFor="task-create-contact" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Contato do cliente
+                Contato para retorno
               </Label>
+              {contactAutoSelected ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Preenchido automaticamente a partir do contato selecionado na busca.
+                </p>
+              ) : null}
               <Select
                 value={clientContactId}
-                onValueChange={setClientContactId}
+                onValueChange={(value) => {
+                  setClientContactId(value);
+                  setContactAutoSelected(false);
+                }}
                 disabled={!companyId || isLoadingConfig || isSubmitting}
               >
                 <SelectTrigger id="task-create-contact" className="h-10 bg-background">

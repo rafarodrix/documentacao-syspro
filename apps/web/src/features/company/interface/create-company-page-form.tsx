@@ -142,13 +142,14 @@ export function CreateCompanyPageForm({
       ? {
           isActive: monthlyRoutineView.config.isActive,
           title: monthlyRoutineView.config.title,
-          dueDay: monthlyRoutineView.config.dueDay,
-          reminderDays: monthlyRoutineView.config.reminderDays,
-          clientContactId: monthlyRoutineView.config.clientContactId,
-          accountingContactId: monthlyRoutineView.config.accountingContactId,
-          notes: monthlyRoutineView.config.notes,
-          requiredDocuments: monthlyRoutineView.config.requiredDocuments,
-        }
+        dueDay: monthlyRoutineView.config.dueDay,
+        reminderDays: monthlyRoutineView.config.reminderDays,
+        clientContactId: monthlyRoutineView.config.clientContactId,
+        accountingContactId: monthlyRoutineView.config.accountingContactId,
+        assignedToId: monthlyRoutineView.config.assignedToId,
+        notes: monthlyRoutineView.config.notes,
+        requiredDocuments: monthlyRoutineView.config.requiredDocuments,
+      }
       : null,
   );
 
@@ -219,6 +220,7 @@ export function CreateCompanyPageForm({
       reminderDays: monthlyRoutineView.config.reminderDays,
       clientContactId: monthlyRoutineView.config.clientContactId,
       accountingContactId: monthlyRoutineView.config.accountingContactId,
+      assignedToId: monthlyRoutineView.config.assignedToId,
       notes: monthlyRoutineView.config.notes,
       requiredDocuments: monthlyRoutineView.config.requiredDocuments,
     }) !== JSON.stringify(monthlyRoutineDraft);
@@ -349,6 +351,7 @@ export function CreateCompanyPageForm({
           accountingContactId: monthlyRoutineDraft.accountingContactId?.trim()
             ? monthlyRoutineDraft.accountingContactId
             : null,
+          assignedToId: monthlyRoutineDraft.assignedToId?.trim() ? monthlyRoutineDraft.assignedToId : null,
           requiredDocuments: monthlyRoutineDraft.requiredDocuments,
         },
       });

@@ -517,6 +517,7 @@ model User {
   crmOwnedLeads                       CrmLead[]                     @relation("CrmLeadOwner")
   authoredCrmActivities               CrmActivity[]                 @relation("CrmActivityAuthor")
   assignedCrmTasks                    CrmTask[]                     @relation("CrmTaskAssignee")
+  assignedTaskConfigs                 TaskConfig[]                  @relation("TaskConfigAssignee")
   requestedTaskRequests               TaskRequest[]                 @relation("TaskRequestRequestedBy")
   authoredTaskHistory                 TaskHistory[]
   assignedTasks                       Task[]                        @relation("TaskAssignee")
@@ -1302,6 +1303,9 @@ model TaskConfig {
   accountingContactId String?
   accountingContact   CompanyContact? @relation("TaskAccountingContact", fields: [accountingContactId], references: [id], onDelete: SetNull)
 
+  assignedToId String?
+  assignedTo   User? @relation("TaskConfigAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
   notes             String? @db.Text
   requiredDocuments Json?
 
@@ -1313,6 +1317,7 @@ model TaskConfig {
   @@index([isActive])
   @@index([clientContactId])
   @@index([accountingContactId])
+  @@index([assignedToId])
   @@map("task_config")
 }
 

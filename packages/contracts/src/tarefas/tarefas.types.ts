@@ -98,6 +98,8 @@ export const taskConfigSchema = z.object({
   reminderDays: z.number().int().min(0).max(30),
   clientContactId: z.string().nullable(),
   accountingContactId: z.string().nullable(),
+  assignedToId: z.string().nullable(),
+  assignedToName: z.string().nullable(),
   notes: z.string().nullable(),
   requiredDocuments: z.array(z.string()),
 });
@@ -111,6 +113,7 @@ export const taskConfigUpsertSchema = z.object({
     reminderDays: z.number().int().min(0).max(30),
     clientContactId: z.string().trim().nullable().optional(),
     accountingContactId: z.string().trim().nullable().optional(),
+    assignedToId: z.string().trim().nullable().optional(),
     notes: z.string().trim().max(4000).nullable().optional(),
     requiredDocuments: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
   }),
