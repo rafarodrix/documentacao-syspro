@@ -37,7 +37,7 @@ export function AdminStatusBar({
   });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card/70 px-4 py-3 text-xs shadow-sm">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-4 py-2.5 text-xs">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Visao</span>

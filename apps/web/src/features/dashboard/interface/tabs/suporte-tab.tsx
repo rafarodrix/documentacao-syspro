@@ -8,10 +8,10 @@ import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
 import { SupportTarefasSubtab } from "./support-tarefas-subtab";
 
 const supportTabsClassName =
-  "h-auto flex-wrap rounded-xl border border-border/50 bg-card/70 p-1 shadow-sm";
+  "h-auto flex-wrap rounded-lg border border-border/50 bg-card p-1";
 
 const supportTriggerClassName =
-  "gap-2 rounded-lg px-4 py-2.5 text-sm text-muted-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm";
+  "gap-2 rounded-md px-3.5 py-2 text-sm text-muted-foreground transition-colors data-[state=active]:bg-background data-[state=active]:text-foreground";
 
 export async function SuporteTab() {
   const canViewAtendimentos = await currentUserHasPermission(

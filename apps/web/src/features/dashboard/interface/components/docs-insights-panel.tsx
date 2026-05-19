@@ -43,7 +43,7 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <Card className="border-border/50 bg-card/70">
+      <Card className="border-border/50 bg-card">
         <CardHeader className="space-y-1 pb-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <TrendingUp className="h-4 w-4" />
@@ -68,7 +68,7 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/70">
+      <Card className="border-border/50 bg-card">
         <CardHeader className="space-y-1 pb-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock3 className="h-4 w-4" />

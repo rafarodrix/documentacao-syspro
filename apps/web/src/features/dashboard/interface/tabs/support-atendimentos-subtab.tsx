@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Input,
@@ -204,13 +203,10 @@ export function SupportAtendimentosSubtab() {
 
   return (
     <div className="space-y-4">
-      <Card className="border-border/60 bg-card/70 shadow-sm">
+      <Card className="border-border/60 bg-card shadow-sm">
         <CardHeader className="gap-3 pb-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-1">
             <CardTitle className="text-base">Atendimentos</CardTitle>
-            <CardDescription>
-              Visao operacional do Chatwoot com filtros por periodo, atendente e contato.
-            </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/70 px-2.5 py-1">
@@ -333,8 +329,7 @@ export function SupportAtendimentosSubtab() {
         <div className="grid gap-4">
           <SectionCard
             title="Ritmo operacional"
-            description="Leitura curta da fila atual."
-            className="border-border/50 bg-card/70"
+            className="border-border/50 bg-card"
             contentClassName="space-y-3 text-sm"
           >
             <ExecutiveLine
@@ -350,8 +345,7 @@ export function SupportAtendimentosSubtab() {
 
           <SectionCard
             title="Encerramentos"
-            description="Fechamentos e excecoes do recorte."
-            className="border-border/50 bg-card/70"
+            className="border-border/50 bg-card"
             contentClassName="space-y-3 text-sm"
           >
             <ExecutiveLine label="Resolvidos" value={`${data?.resolvedCount ?? 0}`} />
@@ -371,7 +365,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Saude do CSAT"
           description="Indicadores principais de satisfacao."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3 text-sm"
         >
           <ExecutiveLine label="Respondido" value={`${data?.csatResponseCount ?? 0} · ${formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)}`} />
@@ -387,7 +381,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Risco operacional"
           description="Itens que merecem atencao."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3 text-sm"
         >
           <ExecutiveLine
@@ -407,7 +401,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Cobertura"
           description="Quem esta sustentando a operacao."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3 text-sm"
         >
           <ExecutiveLine label="Atendentes ativos" value={`${data?.assigneeLoads?.length ?? 0}`} />
@@ -421,7 +415,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Status da fila"
           description="Distribuicao dos atendimentos por status."
-          className="border-border/50 bg-card/70 xl:col-span-2"
+          className="border-border/50 bg-card xl:col-span-2"
           contentClassName="grid gap-3 lg:grid-cols-2"
         >
           {(data?.statusCounts ?? []).map((item) => (
@@ -440,7 +434,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Canais"
           description="Origem dos atendimentos."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
           {(data?.channelCounts ?? []).map((item) => (
@@ -453,7 +447,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Carga por atendente"
           description="Quem esta com mais itens abertos ou aguardando."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
           {(data?.assigneeLoads ?? []).length ? (
@@ -468,7 +462,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="CSAT por atendente"
           description="Respostas recebidas e concentracao de notas baixas."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
           {(data?.csatAgentPerformance ?? []).length ? (
@@ -490,7 +484,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Distribuicao do CSAT"
           description="Notas recebidas no periodo."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
           {(data?.csatScoreDistribution ?? []).map((item) => (
@@ -509,7 +503,7 @@ export function SupportAtendimentosSubtab() {
         <SectionCard
           title="Contatos mais recorrentes"
           description="Quem mais acionou a operacao no recorte filtrado."
-          className="border-border/50 bg-card/70"
+          className="border-border/50 bg-card"
           contentClassName="space-y-3"
         >
           {(data?.topContacts ?? []).length ? (

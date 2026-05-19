@@ -118,7 +118,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
   );
 
   return (
-    <Card className="w-full border-border/60 bg-card/70 shadow-sm">
+    <Card className="w-full border-border/60 bg-card shadow-sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">Fluxo de tickets</CardTitle>
@@ -129,7 +129,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
         </Badge>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <div className="min-h-[336px] rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 p-3">
+        <div className="min-h-[336px] rounded-lg border border-border/50 bg-background p-3">
           {hasData ? (
             <ReactApexChart
               type="area"

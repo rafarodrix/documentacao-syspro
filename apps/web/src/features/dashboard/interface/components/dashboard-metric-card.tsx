@@ -59,17 +59,17 @@ export function DashboardMetricCard({
   trend?: Trend;
 }) {
   return (
-    <Card className="h-full min-h-[136px] border-border/50 bg-card/70 shadow-sm">
+    <Card className="h-full min-h-[124px] border-border/50 bg-card">
       <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 pb-2 pt-4">
         <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {title}
         </CardTitle>
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", toneClasses[tone])}>
+        <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", toneClasses[tone])}>
           <Icon className="h-3.5 w-3.5" />
         </div>
       </CardHeader>
       <CardContent className="flex h-full flex-col justify-between px-4 pb-4">
-        <div className="text-3xl font-semibold tracking-tight tabular-nums">{value}</div>
+        <div className="text-2xl font-semibold tracking-tight tabular-nums">{value}</div>
         {trend ? (
           <TrendIndicator {...trend} />
         ) : (

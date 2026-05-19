@@ -93,7 +93,7 @@ export function CrmStageChart({ distribution }: { distribution: DashboardCrmStag
   );
 
   return (
-    <Card className="border-border/60 bg-card/70 shadow-sm">
+    <Card className="border-border/60 bg-card shadow-sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-sm">Distribuicao do funil</CardTitle>
@@ -106,7 +106,7 @@ export function CrmStageChart({ distribution }: { distribution: DashboardCrmStag
         </Badge>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <div className="rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 px-2 py-3">
+        <div className="rounded-lg border border-border/50 bg-background px-2 py-3">
           {hasData ? (
             <ReactApexChart
               type="bar"

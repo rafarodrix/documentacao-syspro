@@ -15,8 +15,7 @@ export async function CadastrosTab() {
     return (
       <SectionCard
         title="Cadastros indisponivel"
-        description="Nao foi possivel carregar os dados desta aba no momento."
-        className="border-border/50 bg-card/70"
+        className="border-border/50 bg-card"
       >
         <p className="text-sm text-muted-foreground">
           Revise as permissoes de empresas, contatos e usuarios para este perfil e tente novamente.
@@ -41,13 +40,7 @@ export async function CadastrosTab() {
   const colsClass = canViewUsers || canViewCompanies || canViewContacts ? "xl:grid-cols-3" : "xl:grid-cols-1";
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Panorama de cadastros</h3>
-        <p className="text-sm text-muted-foreground">
-          Volume ativo, crescimento recente e movimentacao de empresas, contatos e usuarios.
-        </p>
-      </div>
+    <div className="space-y-5">
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {canViewCompanies ? (
@@ -79,13 +72,6 @@ export async function CadastrosTab() {
             tone="emerald"
           />
         ) : null}
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Entradas recentes</h3>
-        <p className="text-sm text-muted-foreground">
-          Novos registros criados recentemente dentro do escopo liberado para o seu perfil.
-        </p>
       </div>
 
       <div className={cn("grid grid-cols-1 gap-4", colsClass)}>
@@ -130,13 +116,6 @@ export async function CadastrosTab() {
             }))}
           />
         ) : null}
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Inativacoes recentes</h3>
-        <p className="text-sm text-muted-foreground">
-          Registros descontinuados recentemente para leitura rapida de impacto operacional.
-        </p>
       </div>
 
       <div className={cn("grid grid-cols-1 gap-4", colsClass)}>

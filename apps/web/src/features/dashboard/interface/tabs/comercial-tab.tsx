@@ -23,12 +23,6 @@ export async function ComercialTab() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Receita e capacidade comercial</h3>
-        <p className="text-sm text-muted-foreground">
-          Contratos ativos, cobertura do pipeline e riscos que afetam conversao e previsibilidade.
-        </p>
-      </div>
 
       <div className="mb-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <DashboardMetricCard
@@ -59,13 +53,6 @@ export async function ComercialTab() {
           icon={Target as any}
           tone="amber"
         />
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Pipeline CRM</h3>
-        <p className="text-sm text-muted-foreground">
-          Leia volume, maturidade e risco do funil antes de entrar nas etapas.
-        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -102,7 +89,7 @@ export async function ComercialTab() {
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
         <CrmStageChart distribution={stageDistribution} />
 
-        <SectionCard title="Leitura executiva" className="border-border/50 bg-card/70" contentClassName="space-y-3 text-sm">
+        <SectionCard title="Leitura executiva" className="border-border/50 bg-card" contentClassName="space-y-3 text-sm">
           <ExecutiveLine
             label="MRR estimado"
             value={contracts ? formatCurrency(contracts.totalValue) : "Sem dados"}

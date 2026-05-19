@@ -33,16 +33,10 @@ export async function OperacionalTab() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Visao operacional</h3>
-        <p className="text-sm text-muted-foreground">
-          Tickets, contratos ativos e ritmo diario da operacao em um unico recorte.
-        </p>
-      </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {dailyPassword ? (
-          <Card className="border-border/50 bg-muted/30 shadow-none">
+          <Card className="border-border/50 bg-card shadow-none">
             <CardHeader className="flex flex-row items-center justify-between px-4 pb-1.5 pt-4">
               <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Senha do dia
@@ -89,13 +83,6 @@ export async function OperacionalTab() {
         <div className="min-w-0">
           <TicketsSummary tickets={tickets} />
         </div>
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Base de conhecimento</h3>
-        <p className="text-sm text-muted-foreground">
-          Acompanhe os conteudos mais consultados e as atualizacoes recentes da documentacao interna.
-        </p>
       </div>
 
       <DocsInsightsPanel latestUpdates={latestDocs} />

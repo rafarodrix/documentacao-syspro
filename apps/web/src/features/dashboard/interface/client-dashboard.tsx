@@ -22,16 +22,10 @@ export function ClientDashboard({
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:space-y-5 sm:p-6">
-      <Card className="border-border/50 bg-card/70 shadow-sm">
+      <Card className="border-border/50 bg-card shadow-sm">
         <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Painel do cliente
-            </p>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight">Acompanhe suporte, operacao e documentacao</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Consolide chamados, disponibilidade e acessos operacionais em um painel unico.
-            </p>
+            <h1 className="text-xl font-semibold tracking-tight">Suporte, operacao e documentacao</h1>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/70 px-2.5 py-1">
                 <Building2 className="h-3.5 w-3.5" />
@@ -67,7 +61,7 @@ export function ClientDashboard({
       </Card>
 
       <div className={`grid grid-cols-1 gap-4 ${data.dailyPassword ? "md:grid-cols-[1.2fr_1fr_1fr_0.85fr]" : "md:grid-cols-3"}`}>
-        <Card className="h-full min-h-[136px] border-border/50 bg-card/70 shadow-sm">
+        <Card className="h-full min-h-[124px] border-border/50 bg-card shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {hasMultipleCompanies ? "Minhas empresas" : "Minha empresa"}
@@ -105,7 +99,7 @@ export function ClientDashboard({
         />
 
         {data.dailyPassword ? (
-          <Card className="h-full min-h-[136px] border-border/50 bg-card/70 shadow-sm">
+          <Card className="h-full min-h-[124px] border-border/50 bg-card shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 <KeyRound className="h-4 w-4 text-amber-500" />

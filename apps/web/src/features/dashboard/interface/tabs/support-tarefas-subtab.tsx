@@ -1,17 +1,19 @@
+"use client";
+
 import {
   AlertTriangle,
   CheckCircle2,
   ClipboardList,
   Clock,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { getTarefasData } from "../../application";
 import type { DashboardTarefasOverdueItem } from "@dosc-syspro/contracts/dashboard";
 
 const MONTH_NAMES = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
@@ -46,9 +48,9 @@ export async function SupportTarefasSubtab() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <DashboardMetricCard
-          title="Total de Tarefas"
+          title="Total de tarefas"
           value={summary.total}
-          helper={`Competência ${competencia}`}
+          helper={`Competencia ${competencia}`}
           icon={ClipboardList}
           tone="blue"
         />
@@ -60,26 +62,26 @@ export async function SupportTarefasSubtab() {
           tone="red"
           trend={
             summary.total > 0
-              ? { delta: summary.overdue, label: "vencidas no mês", downIsGood: true }
+              ? { delta: summary.overdue, label: "vencidas no mes", downIsGood: true }
               : undefined
           }
         />
         <DashboardMetricCard
-          title="Aguardando Cliente"
+          title="Aguardando cliente"
           value={summary.waitingCustomer}
           helper="Aguardando retorno do cliente"
           icon={Clock}
           tone="amber"
         />
         <DashboardMetricCard
-          title="Concluídas"
+          title="Concluidas"
           value={summary.completed}
-          helper={`${completionRate}% de conclusão no mês`}
+          helper={`${completionRate}% de conclusao no mes`}
           icon={CheckCircle2}
           tone="emerald"
           trend={
             summary.total > 0
-              ? { delta: summary.completed, label: "concluídas no mês", downIsGood: false }
+              ? { delta: summary.completed, label: "concluidas no mes", downIsGood: false }
               : undefined
           }
         />
@@ -88,38 +90,31 @@ export async function SupportTarefasSubtab() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="min-w-0">
           <ActivityChart
-            title="Movimentação de tarefas"
-            description={`Atividade dos últimos 7 dias — competência ${competencia}`}
+            title="Movimentacao de tarefas"
+            description={`Atividade dos ultimos 7 dias - competencia ${competencia}`}
             points={activity}
-            badgeLabel="Concluídas / Recebidas"
-            emptyLabel="Sem atividade recente no período"
+            badgeLabel="Concluidas / Recebidas"
+            emptyLabel="Sem atividade recente no periodo"
           />
         </div>
 
         <div className="min-w-0">
-          <Card className="h-full border-border/60 bg-card/70 shadow-sm">
+          <Card className="h-full border-border/60 bg-card shadow-sm">
             <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
-              <div className="space-y-1">
-                <CardTitle className="text-sm">Tarefas vencidas</CardTitle>
-                <CardDescription className="text-sm">
-                  {overdueItems.length > 0
-                    ? `${overdueItems.length} tarefa${overdueItems.length === 1 ? "" : "s"} com prazo expirado`
-                    : "Nenhuma tarefa vencida no período."}
-                </CardDescription>
-              </div>
+              <CardTitle className="text-sm">Tarefas vencidas</CardTitle>
               <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
                 {summary.overdue} vencidas
               </Badge>
             </CardHeader>
             <CardContent className="px-4 pb-4">
               {overdueItems.length > 0 ? (
-                <div className="divide-y divide-border/50 rounded-xl border border-border/50 bg-background/60 px-3">
+                <div className="divide-y divide-border/50 rounded-lg border border-border/50 bg-background px-3">
                   {overdueItems.map((item) => (
                     <OverdueItem key={item.id} item={item} />
                   ))}
                 </div>
               ) : (
-                <div className="flex h-[200px] items-center justify-center rounded-xl border border-border/50 bg-background/60">
+                <div className="flex h-[160px] items-center justify-center rounded-lg border border-border/50 bg-background">
                   <p className="text-sm text-muted-foreground">Nenhuma tarefa vencida.</p>
                 </div>
               )}

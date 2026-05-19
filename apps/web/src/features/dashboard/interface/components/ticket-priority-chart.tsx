@@ -97,7 +97,7 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
   const altaPct = total > 0 ? Math.round((alta / total) * 100) : 0;
 
   return (
-    <Card className="h-full border-border/60 bg-card/70 shadow-sm">
+    <Card className="h-full border-border/60 bg-card shadow-sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-sm">Prioridade dos tickets</CardTitle>
@@ -112,7 +112,7 @@ export function TicketPriorityChart({ records }: { records: DashboardOpenTicketR
         </Badge>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        <div className="rounded-2xl border border-border/50 bg-linear-to-br from-background/80 via-background/70 to-primary/5 p-3">
+        <div className="rounded-lg border border-border/50 bg-background p-3">
           {hasData ? (
             <ReactApexChart
               type="donut"
