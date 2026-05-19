@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { getCompanyOptionsQuery } from "@/features/company/application/company-read.queries";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
-import { ContactPageIntro, CreateContactPageForm } from "@/features/contact/interface";
+import { CreateContactPageForm } from "@/features/contact/interface";
 import { trpc } from "@/lib/api/trpc-client";
 import { notFound } from "next/navigation";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
@@ -56,24 +56,21 @@ export default async function EditarContatoPage({ params }: PageProps) {
     (contact.companies?.map((c) => c.id) ?? (contact.companyId ? [contact.companyId] : []));
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <ContactPageIntro mode="edit" companyCount={result.length} contactName={contact.name ?? ""} />
-      <CreateContactPageForm
-        mode="edit"
-        contactId={contact.id}
-        backHref="/portal/contatos"
-        companies={result}
-        initialData={{
-          name: contact.name ?? "",
-          email: contact.email ?? "",
-          phone: contact.phone ?? "",
-          cpf: contact.cpf ?? "",
-          jobTitle: contact.jobTitle ?? "",
-          whatsapp: contact.whatsapp ?? "",
-          notes: contact.notes ?? "",
-          companyIds,
-        }}
-      />
-    </div>
+    <CreateContactPageForm
+      mode="edit"
+      contactId={contact.id}
+      backHref="/portal/contatos"
+      companies={result}
+      initialData={{
+        name: contact.name ?? "",
+        email: contact.email ?? "",
+        phone: contact.phone ?? "",
+        cpf: contact.cpf ?? "",
+        jobTitle: contact.jobTitle ?? "",
+        whatsapp: contact.whatsapp ?? "",
+        notes: contact.notes ?? "",
+        companyIds,
+      }}
+    />
   );
 }

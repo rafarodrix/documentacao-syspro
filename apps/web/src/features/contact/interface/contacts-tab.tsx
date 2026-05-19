@@ -31,8 +31,6 @@ import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
-  RegistryMetricCard,
-  RegistryMetrics,
   RegistryPagination,
   RegistryTableCard,
   RegistryToolbar,
@@ -184,11 +182,6 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     return contactStats ?? localCounts;
   }, [contactStats, contacts]);
 
-  const contactsWithPrimaryChannel = useMemo(
-    () => contacts.filter((contact) => Boolean(contact.email) || Boolean(getPrimaryPhone(contact))).length,
-    [contacts],
-  );
-
   const emptyStateDescription = useMemo(() => {
     if (searchTerm.trim()) {
       return "Tente outro nome, cargo, documento, canal ou empresa para ampliar o recorte.";
@@ -296,64 +289,6 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       />
 
       <div className="space-y-5">
-        <section className="rounded-2xl border border-border/60 bg-linear-to-br from-background via-card to-muted/20 p-4 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Primeiro Passe DESIGN.md
-              </p>
-              <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">
-                Contatos com leitura mais densa, neutra e operacional
-              </h2>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Esta tela prioriza contraste discreto, menos ruído cromático e uma hierarquia direta para nome,
-                canais e vínculo com empresas.
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3 lg:w-[28rem]">
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Cobertura</p>
-                <p className="mt-2 text-lg font-semibold text-foreground">{contactsWithPrimaryChannel}</p>
-                <p className="text-xs text-muted-foreground">registros com algum canal principal</p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Vínculos</p>
-                <p className="mt-2 text-lg font-semibold text-foreground">{counts.linked}</p>
-                <p className="text-xs text-muted-foreground">contatos associados a empresas</p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sem empresa</p>
-                <p className="mt-2 text-lg font-semibold text-foreground">{counts.unlinked}</p>
-                <p className="text-xs text-muted-foreground">itens prontos para triagem</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <RegistryMetrics>
-          <RegistryMetricCard
-            title="Base filtrada"
-            value={pagination.total}
-            description="Total no recorte atual"
-            icon={Users}
-            tone="neutral"
-          />
-          <RegistryMetricCard
-            title="Com empresa"
-            value={counts.linked}
-            description="Contatos já vinculados"
-            icon={Building2}
-            tone="success"
-          />
-          <RegistryMetricCard
-            title="Sem empresa"
-            value={counts.unlinked}
-            description="Pendentes de vínculo"
-            icon={Unlink}
-            tone="warning"
-          />
-        </RegistryMetrics>
-
         <RegistryToolbar
           searchValue={searchTerm}
           searchPlaceholder="Buscar por nome, cargo, CPF, email, telefone ou empresa..."
@@ -491,14 +426,6 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
             isLoading={loadingList}
             onPageChange={setPage}
           />
-          <div className="flex flex-col gap-1 px-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{filteredData.length}</span>
-            </span>
-            <span>
-              Email: {counts.withEmail} | Telefone: {counts.withPhone} | Canal principal: {contactsWithPrimaryChannel}
-            </span>
-          </div>
         </div>
       </div>
     </>

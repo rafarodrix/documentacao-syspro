@@ -1344,6 +1344,7 @@ model Task {
   receivedAt  DateTime?
   sentAt      DateTime?
   completedAt DateTime?
+  requiredDocuments Json?
   notes       String? @db.Text
   metadata    Json?
 

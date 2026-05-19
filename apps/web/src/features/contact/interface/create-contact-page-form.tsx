@@ -319,31 +319,6 @@ export function CreateContactPageForm({
             >
               {currentSection === "geral" ? (
                 <section className="space-y-5">
-                  <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
-                        <UserRound className="h-4 w-4 text-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">Dados do contato</p>
-                        <p className="text-xs text-muted-foreground">Identidade, canais e documentos.</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-2 md:grid-cols-3">
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Obrigatório</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">Nome do contato</p>
-                      </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Canais</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">Telefone, WhatsApp e e-mail</p>
-                      </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Documento</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">CPF opcional para referência</p>
-                      </div>
-                    </div>
-                  </div>
                   <div className="grid gap-4 rounded-2xl border border-border/60 bg-background/75 p-4 shadow-sm md:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -493,37 +468,6 @@ export function CreateContactPageForm({
 
               {currentSection === "empresas" ? (
                 <section className="space-y-4">
-                  <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-xl border border-border/60 bg-muted/30 p-2">
-                          <Building2 className="h-4 w-4 text-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">Empresas vinculadas</p>
-                          <p className="text-xs text-muted-foreground">O contato pode pertencer a uma ou mais empresas.</p>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="success"
-                        className="w-fit rounded-lg px-2 py-1 text-[10px] font-semibold"
-                      >
-                        {watchedCompanyIds?.length ?? 0} selecionada(s)
-                      </Badge>
-                    </div>
-
-                    <div className="mt-4 grid gap-2 md:grid-cols-2">
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Uso</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">Selecione empresas relevantes para operação e atendimento.</p>
-                      </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Leitura</p>
-                        <p className="mt-1 text-sm font-medium text-foreground">Vínculos ficam visíveis em listas, tickets e fluxos internos.</p>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="rounded-2xl border border-border/60 bg-background/75 p-4 shadow-sm">
                     <Controller
                       control={form.control}
