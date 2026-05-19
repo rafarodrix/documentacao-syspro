@@ -33,6 +33,8 @@ interface TaskCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  initialCompanyId?: string;
+  lockCompany?: boolean;
 }
 
 function getCompanyLabel(company: CompanyOption) {
@@ -58,7 +60,13 @@ function getAssignableUsers(users: ReturnType<typeof useInternalUsers>) {
     });
 }
 
-export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDialogProps) {
+export function TaskCreateDialog({
+  open,
+  onOpenChange,
+  onCreated,
+  initialCompanyId,
+  lockCompany = false,
+}: TaskCreateDialogProps) {
   const users = useInternalUsers();
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
@@ -126,7 +134,7 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
 
   useEffect(() => {
     if (!open) return;
-    setCompanyId("");
+    setCompanyId(initialCompanyId?.trim() || "");
     setSelectedCompanyConfig(null);
     setTitle("");
     setDescription("");
@@ -135,7 +143,7 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
     setClientContactId(EMPTY_CONTACT_VALUE);
     setRequiredDocumentsText("");
     setNotes("");
-  }, [open]);
+  }, [initialCompanyId, open]);
 
   useEffect(() => {
     if (!open || !companyId) {
@@ -247,7 +255,7 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
                 options={companyPickerOptions}
                 onChange={setCompanyId}
                 loading={isLoadingCompanies}
-                disabled={isLoadingCompanies || isSubmitting}
+                disabled={lockCompany || isLoadingCompanies || isSubmitting}
                 placeholder={isLoadingCompanies ? "Carregando empresas..." : "Selecione a empresa"}
                 searchPlaceholder="Buscar empresa..."
                 emptyMessage="Nenhuma empresa encontrada."
@@ -260,6 +268,11 @@ export function TaskCreateDialog({ open, onOpenChange, onCreated }: TaskCreateDi
                     Empresa selecionada: <span className="font-medium text-foreground">{getCompanyLabel(selectedCompany)}</span>
                   </span>
                 </div>
+              ) : null}
+              {lockCompany ? (
+                <p className="text-[11px] text-muted-foreground">
+                  A empresa segue fixa pelo contexto atual da conversa.
+                </p>
               ) : null}
             </div>
 
