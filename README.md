@@ -1,62 +1,56 @@
-﻿# Trilink Syspro Workspace
+# Trilink Syspro Workspace
 
-Monorepo do portal, documentacao tecnica e shells de expansao do ecossistema Syspro ERP.
+Monorepo do portal Syspro ERP da Trilink.
 
 ## Visao geral
 
-Este workspace concentra:
+O workspace concentra:
 
-- `apps/web`: aplicacao principal em Next.js, portal, docs e operacao
-- `apps/api`: shell HTTP dedicado para evolucao do backend
-- `apps/mobile`: shell estrutural para futuro runtime mobile
+- `apps/web`: portal principal em Next.js 15, documentacao MDX e operacao
+- `apps/api`: shell HTTP em NestJS para modulos de backend
+- `apps/agent`: agente Windows em Go + Wails para acesso remoto
+- `apps/mobile`: shell estrutural para evolucao futura
 - `packages/*`: contratos, dominio compartilhado, banco, UI e utilitarios
-
-Hoje o runtime principal continua sendo o `@dosc-syspro/web`, mas a base ja esta organizada para evolucao incremental de multi-app.
 
 ## Setup rapido
 
-1. Instale as dependencias do workspace:
-
 ```bash
 npm install
-```
-
-2. Crie os arquivos de ambiente a partir dos exemplos de cada app:
-
-```bash
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env.local
-cp apps/web/.env.e2e.example apps/web/.env.e2e
-```
-
-3. Gere o client do Prisma quando necessario:
-
-```bash
 npm run db:generate
-```
-
-4. Rode o runtime desejado:
-
-```bash
 npm run dev
-npm run dev:api
 ```
+
+Arquivos de ambiente esperados:
+
+- `apps/api/.env`
+- `apps/web/.env.local`
+- `apps/web/.env.e2e`
+
+Arquivos de referencia versionados:
+
+- `apps/api/.env.example`
+- `apps/web/.env.example`
+- `apps/web/.env.e2e.example`
 
 ## Estrutura
 
 ```text
 apps/
+  agent/
   api/
   mobile/
   web/
 packages/
-  api/
   config/
   contracts/
   core/
   database/
+  remote-domain/
+  remote-infra/
   shared/
   ui/
+tools/
+  eslint-plugin-trilink-tokens/
 ```
 
 ## Principios
@@ -65,49 +59,35 @@ packages/
 - features do web evoluem em `src/features/<feature>`
 - adapters de infraestrutura ficam isolados
 - contratos compartilhados saem de telas e entram em packages quando estabilizam
-- a expansao para API e mobile deve reaproveitar contratos e dominio, nao duplicar fluxo
+- apps e packages reaproveitam contratos e dominio, sem duplicar fluxo
 
 ## Scripts principais
 
 ```bash
 npm run dev
+npm run dev:api
 npm run build
 npm run lint
 npm run typecheck
 npm run test
+npm run docs:check
 ```
 
-Scripts especificos do workspace:
+Scripts uteis:
 
 ```bash
-npm run build:api
-npm run dev:api
-npm run typecheck:api
+npm run test:web
 npm run test:api
-
-npm run build:mobile
-npm run dev:mobile
-npm run typecheck:mobile
-
-npm run db:generate
+npm run test:packages
+npm run test:e2e
 npm run db:validate
 npm run db:migrate
 npm run db:seed:remote
 ```
 
-Scripts uteis adicionais:
-
-```bash
-npm run test:e2e
-npm run test:api
-npm run test:packages
-```
-
 ## Aplicacoes
 
 ### `apps/web`
-
-Aplicacao principal em Next.js 15 com:
 
 - portal autenticado
 - documentacao MDX com Fumadocs
@@ -115,17 +95,19 @@ Aplicacao principal em Next.js 15 com:
 
 ### `apps/api`
 
-Shell HTTP em Node para expor o pacote `@dosc-syspro/application` fora do runtime do web.
+- backend modular em NestJS
+- tRPC server, REST e integracoes operacionais
+
+### `apps/agent`
+
+- agente Windows em Go
+- integracao com RustDesk, heartbeat e operacoes locais
 
 ### `apps/mobile`
 
-Shell estrutural que fixa os boundaries do mobile sobre `contracts`, `core` e `shared`.
+- shell estrutural para evolucao futura
 
 ## Packages
-
-### `@dosc-syspro/application`
-
-Nucleo modular do backend-for-frontend, com contexto, procedures e roteadores.
 
 ### `@dosc-syspro/contracts`
 
@@ -133,15 +115,23 @@ DTOs e schemas de fronteira compartilhados.
 
 ### `@dosc-syspro/config`
 
-Leitura e validacao centralizada de configuracoes de runtime (env).
+Leitura e validacao centralizada de configuracoes de runtime.
 
 ### `@dosc-syspro/core`
 
-Regras puras e entidades extraiveis do app.
+Regras puras e entidades compartilhadas.
 
 ### `@dosc-syspro/database`
 
 Schema Prisma, migrations e bootstrap do client.
+
+### `@dosc-syspro/remote-domain`
+
+Casos de uso e contratos do modulo remoto.
+
+### `@dosc-syspro/remote-infra`
+
+Implementacoes de infraestrutura do dominio remoto.
 
 ### `@dosc-syspro/shared`
 
@@ -151,38 +141,10 @@ Helpers puros e utilitarios sem acoplamento de UI.
 
 Primitives e componentes reutilizaveis sem regra de negocio.
 
-## Ambiente
-
-O projeto depende de variaveis por app:
-
-- `apps/api/.env`
-- `apps/web/.env.local`
-- `apps/web/.env.e2e`
-
-Principais grupos:
-
-- banco (`DATABASE_URL`, `DIRECT_URL`)
-- auth (`BETTER_AUTH_*`)
-- integracoes (`EVOLUTION_*`, `CHATWOOT_*`)
-- operacao remota (`REMOTE_*`, `PORTAL_API_*`)
-
-Sem essas variaveis, partes do portal podem abrir em modo reduzido ou falhar em fluxos autenticados e de integracao.
-
-Arquivos versionados de referencia:
-
-- `apps/api/.env.example`
-- `apps/web/.env.example`
-- `apps/web/.env.e2e.example`
-
 ## Documentacao interna
 
 A referencia arquitetural e operacional fica em:
 
-- `apps/web/content/docs/manuais-tecnicos`
-- `_bmad-output/project-context.md`
-
-Documentos principais:
-
-- arquitetura do monorepo
-- backlog de infraestrutura
-- estrategia da plataforma remota
+- `apps/web/content/docs/admin/documentacao-portal`
+- `apps/web/content/docs/cliente`
+- `apps/web/content/docs/suporte`

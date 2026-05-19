@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 
 const ROOT = resolve(process.cwd(), "content", "docs");
+const DOCS_BASE_PATH = "/portal/docs";
 const MDX_EXTENSION = ".mdx";
 const SEPARATOR_RE = /^---.*---$/;
 const NON_ASCII_OR_SPACE_RE = /[^\x00-\x7F]|\s/;
@@ -89,10 +90,10 @@ function routeFromMdx(filePath) {
   const noExt = rel.replace(/\.mdx$/, "");
   const route =
     noExt === "index"
-      ? "/docs"
+      ? DOCS_BASE_PATH
       : noExt.endsWith("/index")
-        ? `/docs/${noExt.slice(0, -"/index".length)}`
-        : `/docs/${noExt}`;
+        ? `${DOCS_BASE_PATH}/${noExt.slice(0, -"/index".length)}`
+        : `${DOCS_BASE_PATH}/${noExt}`;
   return normalizeRoute(route);
 }
 
@@ -156,7 +157,7 @@ function checkInternalMdxLinks(mdxFiles) {
       if (/^(https?:|mailto:|tel:)/i.test(href)) continue;
 
       let targetRoute = "";
-      if (href.startsWith("/docs")) {
+      if (href.startsWith(DOCS_BASE_PATH)) {
         targetRoute = normalizeRoute(href);
       } else if (href.startsWith("./") || href.startsWith("../")) {
         targetRoute = resolveRelativeRoute(currentRoute, href);
@@ -164,7 +165,7 @@ function checkInternalMdxLinks(mdxFiles) {
         continue;
       }
 
-      if (!targetRoute.startsWith("/docs")) continue;
+      if (!targetRoute.startsWith(DOCS_BASE_PATH)) continue;
       if (!validRoutes.has(targetRoute)) {
         errors.push(`Link interno quebrado em ${relPath}: ${href} -> ${targetRoute}`);
       }

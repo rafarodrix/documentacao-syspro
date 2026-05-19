@@ -87,7 +87,7 @@ export type { MeuTipo } from './meu-tipo'
 // apps/api/package.json ou outro package
 {
   "dependencies": {
-    "@dosc-syspro/<nome>": "workspace:*"
+    "@dosc-syspro/<nome>": "file:../../packages/<nome>"
   }
 }
 ```
@@ -110,7 +110,7 @@ Criar `packages/<nome>/README.md` com:
 - [ ] `package.json` com nome `@dosc-syspro/<nome>`
 - [ ] `tsconfig.json` estendendo `../../tsconfig.base.json`
 - [ ] `src/index.ts` com exports explícitos
-- [ ] Adicionado como `workspace:*` nos consumers
+- [ ] Adicionado nos consumers com o mesmo padrão usado no workspace
 - [ ] `npm install` executado na raiz
 - [ ] README com propósito e exports
-- [ ] Documentação em `_bmad-output/03-packages/<nome>.md`
+- [ ] Documentação interna atualizada em `apps/web/content/docs/admin/documentacao-portal/`

@@ -43,10 +43,9 @@ apps/web/
 │   └── ...
 │
 ├── content/docs/                    ← conteúdo MDX da base de docs
-│   ├── manual/                      ← manuais do sistema Syspro
-│   ├── duvidas/                     ← FAQ e resolução de problemas
-│   ├── suporte/                     ← scripts e infraestrutura de suporte
-│   └── treinamento/                 ← guias de treinamento
+│   ├── admin/                       ← documentação técnica interna
+│   ├── cliente/                     ← manuais, dúvidas e treinamentos
+│   └── suporte/                     ← scripts e materiais operacionais
 │
 ├── public/                          ← assets estáticos
 ├── source.config.ts                 ← configuração Fumadocs
@@ -135,10 +134,9 @@ O conteúdo fica em `content/docs/` como arquivos MDX:
 
 ```
 content/docs/
-├── manual/          ← manuais operacionais do Syspro (cadastro, estoque, fiscal, financeiro...)
-├── duvidas/         ← FAQ: rejeições SEFAZ, hardware, configurações
-├── suporte/         ← scripts SQL, parametrizações, infraestrutura
-└── treinamento/     ← guias passo a passo por segmento
+├── admin/           ← arquitetura, guias internos e documentação do portal
+├── cliente/         ← documentação, dúvidas e treinamentos para clientes
+└── suporte/         ← scripts SQL, parametrizações e materiais operacionais
 ```
 
 Configurado em `source.config.ts` com Fumadocs MDX.
@@ -184,12 +182,12 @@ BETTER_AUTH_URL=http://localhost:3000
 
 ```bash
 # Desenvolvimento
-npm run dev --workspace=web
+npm run dev
 
 # Build
-npm run build --workspace=web
+npm run build
 
 # Testes
-npx turbo test:web
-npx turbo test:web:e2e   # Playwright E2E
+npm run test:web
+npm run test:e2e
 ```
