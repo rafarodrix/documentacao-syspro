@@ -10,7 +10,6 @@ import {
   Button,
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -23,7 +22,7 @@ import {
   SelectValue,
   Textarea,
 } from "@dosc-syspro/ui";
-import { Building2, ClipboardPlus, UserRound } from "lucide-react";
+import { ClipboardPlus, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 const EMPTY_CONTACT_VALUE = "__none__";
@@ -96,10 +95,6 @@ export function TaskCreateDialog({
         meta: "Empresa",
       })),
     [companyOptions],
-  );
-  const selectedCompany = useMemo(
-    () => companyOptions.find((option) => option.id === companyId) ?? null,
-    [companyId, companyOptions],
   );
 
   useEffect(() => {
@@ -224,30 +219,18 @@ export function TaskCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-2xl [&>button]:hidden">
+        <DialogHeader className="space-y-0">
+          <DialogTitle className="flex items-center gap-2 text-xl">
             <ClipboardPlus className="h-4 w-4 text-primary" />
             Nova tarefa avulsa
           </DialogTitle>
-          <DialogDescription>
-            Crie uma tarefa manual para acompanhamento operacional, vinculando empresa, prazo e responsavel.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-1">
-          <section className="space-y-4 rounded-md border border-border/60 bg-muted/15 p-4">
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Contexto da tarefa
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Use a mesma base de empresa do modulo de tickets para vincular a demanda corretamente.
-              </p>
-            </div>
-
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
             <div className="space-y-2">
-              <Label htmlFor="task-create-company" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-company" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Empresa
               </Label>
               <TicketCompanyPicker
@@ -261,23 +244,10 @@ export function TaskCreateDialog({
                 emptyMessage="Nenhuma empresa encontrada."
                 className="h-10 bg-background"
               />
-              {selectedCompany ? (
-                <div className="flex items-center gap-2 rounded-md border border-border/50 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5 text-primary/70" />
-                  <span className="truncate">
-                    Empresa selecionada: <span className="font-medium text-foreground">{getCompanyLabel(selectedCompany)}</span>
-                  </span>
-                </div>
-              ) : null}
-              {lockCompany ? (
-                <p className="text-[11px] text-muted-foreground">
-                  A empresa segue fixa pelo contexto atual da conversa.
-                </p>
-              ) : null}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-title" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-title" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Titulo
               </Label>
               <Input
@@ -291,9 +261,9 @@ export function TaskCreateDialog({
             </div>
           </section>
 
-          <section className="grid gap-4 rounded-md border border-border/60 bg-muted/15 p-4 md:grid-cols-2">
+          <section className="grid gap-4 rounded-xl border border-border/60 bg-muted/10 p-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="task-create-due-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-due-date" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Vencimento
               </Label>
               <Input
@@ -307,7 +277,7 @@ export function TaskCreateDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-assignee" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-assignee" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Responsavel
               </Label>
               <Select value={assignedToId} onValueChange={setAssignedToId} disabled={isSubmitting}>
@@ -326,13 +296,10 @@ export function TaskCreateDialog({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-muted-foreground">
-                Apenas usuarios de Suporte, Desenvolvimento e Admin podem ser responsaveis.
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-contact" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-contact" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Contato do cliente
               </Label>
               <Select
@@ -355,7 +322,7 @@ export function TaskCreateDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-checklist" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-checklist" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Checklist inicial
               </Label>
               <Textarea
@@ -370,9 +337,9 @@ export function TaskCreateDialog({
             </div>
           </section>
 
-          <section className="grid gap-4 rounded-md border border-border/60 bg-muted/15 p-4">
+          <section className="grid gap-4 rounded-xl border border-border/60 bg-muted/10 p-4">
             <div className="space-y-2">
-              <Label htmlFor="task-create-description" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-description" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Descricao
               </Label>
               <Textarea
@@ -387,7 +354,7 @@ export function TaskCreateDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="task-create-notes" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="task-create-notes" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Observacoes internas
               </Label>
               <Textarea
@@ -403,11 +370,11 @@ export function TaskCreateDialog({
           </section>
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+        <DialogFooter className="border-t border-border/50 pt-4">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="h-10">
             Cancelar
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+          <Button type="button" onClick={handleSubmit} disabled={isSubmitting} className="h-10 min-w-28">
             {isSubmitting ? "Criando..." : "Criar tarefa"}
           </Button>
         </DialogFooter>
