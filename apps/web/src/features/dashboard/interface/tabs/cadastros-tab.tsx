@@ -14,7 +14,7 @@ export async function CadastrosTab() {
   } catch {
     return (
       <SectionCard
-        title="Cadastros indisponivel"
+        title="Cadastros indisponiveis"
         className="border-border/50 bg-card"
       >
         <p className="text-sm text-muted-foreground">

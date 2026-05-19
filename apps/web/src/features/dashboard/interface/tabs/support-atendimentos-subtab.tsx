@@ -314,7 +314,7 @@ export function SupportAtendimentosSubtab() {
         <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Atendimentos no periodo" icon={Inbox as any} tone="blue" />
         <DashboardMetricCard title="Em andamento" value={data?.openCount ?? 0} helper="Fila operacional ativa" icon={UserRound as any} tone="amber" />
         <DashboardMetricCard title="Aguardando" value={waitingCount} helper="Cliente ou retorno interno" icon={Users as any} tone="blue" />
-        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} respostas`} icon={MessageSquareText as any} tone="emerald" />
+        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} resposta(s)`} icon={MessageSquareText as any} tone="emerald" />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">

@@ -260,62 +260,62 @@ export function OpenTicketsInsights({
   return (
     <div className="space-y-3">
       {showScopeHeader ? (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-4 py-2.5">
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold text-foreground">{getScopeTitle(scopeMode)}</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-4 py-2.5">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-foreground">{getScopeTitle(scopeMode)}</h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {allowAreaFilter ? (
+              <>
+                {([
+                  ["ALL", "Todas as areas"],
+                  ["SUPORTE", "Suporte"],
+                  ["DESENVOLVIMENTO", "Desenvolvimento"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setAreaFilter(value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      areaFilter === value
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
+                {filterLabel}
+              </Badge>
+            )}
+            {selectedModuleLabel ? (
+              <Badge variant="outline" className="border-border/60 bg-background/70">
+                Modulo: {selectedModuleLabel}
+              </Badge>
+            ) : null}
+            {selectedCategoryLabel ? (
+              <Badge variant="outline" className="border-border/60 bg-background/70">
+                Categoria: {selectedCategoryLabel}
+              </Badge>
+            ) : null}
+            {hasActiveDetailFilter ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedModule("");
+                  setSelectedCategory("");
+                }}
+                className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                Limpar foco
+              </button>
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {allowAreaFilter ? (
-            <>
-              {([
-                ["ALL", "Todas as areas"],
-                ["SUPORTE", "Suporte"],
-                ["DESENVOLVIMENTO", "Desenvolvimento"],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setAreaFilter(value)}
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                    areaFilter === value
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border/60 bg-background text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </>
-          ) : (
-            <Badge variant="outline" className="border-border/60 bg-background/70 text-foreground">
-              {filterLabel}
-            </Badge>
-          )}
-          {selectedModuleLabel ? (
-            <Badge variant="outline" className="border-border/60 bg-background/70">
-              Modulo: {selectedModuleLabel}
-            </Badge>
-          ) : null}
-          {selectedCategoryLabel ? (
-            <Badge variant="outline" className="border-border/60 bg-background/70">
-              Categoria: {selectedCategoryLabel}
-            </Badge>
-          ) : null}
-          {hasActiveDetailFilter ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedModule("");
-                setSelectedCategory("");
-              }}
-              className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              Limpar foco
-            </button>
-          ) : null}
-        </div>
-      </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
