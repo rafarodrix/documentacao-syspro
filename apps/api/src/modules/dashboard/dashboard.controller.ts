@@ -21,6 +21,11 @@ export class DashboardController {
     return this.dashboardService.getSuporteData(req.headers);
   }
 
+  @Get('suporte/tarefas')
+  getTarefasData(@Req() req: Request) {
+    return this.dashboardService.getTarefasData(req.headers);
+  }
+
   @Get('suporte/atendimentos')
   getAtendimentosData(
     @Req() req: Request,
