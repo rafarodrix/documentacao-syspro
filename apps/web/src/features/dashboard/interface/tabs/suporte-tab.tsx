@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { Headset, Ticket } from "lucide-react";
+import { ClipboardList, Headset, Ticket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { TabListSkeleton } from "../components/tab-skeleton";
 import { SupportTicketsSubtab } from "./support-tickets-subtab";
 import { SupportAtendimentosSubtab } from "./support-atendimentos-subtab";
+import { SupportTarefasSubtab } from "./support-tarefas-subtab";
 
 const supportTabsClassName =
   "h-auto flex-wrap rounded-xl border border-border/50 bg-card/70 p-1 shadow-sm";
@@ -25,6 +26,10 @@ export async function SuporteTab() {
           <Ticket className="h-4 w-4" />
           Tickets
         </TabsTrigger>
+        <TabsTrigger value="tarefas" className={supportTriggerClassName}>
+          <ClipboardList className="h-4 w-4" />
+          Tarefas
+        </TabsTrigger>
         {canViewAtendimentos ? (
           <TabsTrigger value="atendimentos" className={supportTriggerClassName}>
             <Headset className="h-4 w-4" />
@@ -36,6 +41,12 @@ export async function SuporteTab() {
       <TabsContent value="tickets">
         <Suspense fallback={<TabListSkeleton />}>
           <SupportTicketsSubtab />
+        </Suspense>
+      </TabsContent>
+
+      <TabsContent value="tarefas">
+        <Suspense fallback={<TabListSkeleton />}>
+          <SupportTarefasSubtab />
         </Suspense>
       </TabsContent>
 

@@ -5,12 +5,14 @@ import {
   adminAtendimentosDataSchema,
   adminCadastrosDataSchema,
   adminComercialDataSchema,
+  adminTarefasDataSchema,
   type DashboardView,
   type AdminOperacionalData,
   type AdminSuporteData,
   type AdminAtendimentosData,
   type AdminCadastrosData,
   type AdminComercialData,
+  type AdminTarefasData,
 } from "@dosc-syspro/contracts/dashboard";
 import { callWebApi } from "@/lib/web-api";
 import type { ZodType } from "zod";
@@ -70,6 +72,10 @@ export function getAtendimentosData(params?: {
   if (params?.contact?.trim()) query.set("contact", params.contact.trim());
   const suffix = query.size ? `?${query.toString()}` : "";
   return fetchTabData(`/api/dashboard/suporte/atendimentos${suffix}`, adminAtendimentosDataSchema);
+}
+
+export function getTarefasData(): Promise<AdminTarefasData> {
+  return fetchTabData("/api/dashboard/suporte/tarefas", adminTarefasDataSchema);
 }
 
 export function getCadastrosData(): Promise<AdminCadastrosData> {

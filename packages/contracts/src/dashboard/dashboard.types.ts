@@ -173,6 +173,34 @@ export const adminSuporteDataSchema = z.object({
   allowAreaFilter: z.boolean(),
 });
 
+export const dashboardTarefasOverdueItemSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  companyName: z.string().min(1),
+  dueDate: z.string().min(1),
+  assignedToName: z.string().nullable(),
+  daysOverdue: z.number().int().nonnegative(),
+});
+
+export const dashboardTarefasSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  pending: z.number().int().nonnegative(),
+  waitingCustomer: z.number().int().nonnegative(),
+  received: z.number().int().nonnegative(),
+  sentToAccounting: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  overdue: z.number().int().nonnegative(),
+  canceled: z.number().int().nonnegative(),
+});
+
+export const adminTarefasDataSchema = z.object({
+  year: z.number().int().positive(),
+  month: z.number().int().min(1).max(12),
+  summary: dashboardTarefasSummarySchema,
+  activity: z.array(dashboardActivityPointSchema),
+  overdueItems: z.array(dashboardTarefasOverdueItemSchema).default([]),
+});
+
 export const dashboardConversationStatusSummarySchema = z.object({
   status: z.enum(["Novo", "Sem responsavel", "Triagem", "Em andamento", "Aguardando cliente", "Aguardando interno", "Teste", "Resolvido", "Arquivado"]),
   count: z.number().int().nonnegative(),
@@ -276,6 +304,9 @@ export const adminTabResponseSchema = z.object({
 export type AdminOperacionalData = z.infer<typeof adminOperacionalDataSchema>;
 export type AdminSuporteData = z.infer<typeof adminSuporteDataSchema>;
 export type AdminAtendimentosData = z.infer<typeof adminAtendimentosDataSchema>;
+export type AdminTarefasData = z.infer<typeof adminTarefasDataSchema>;
+export type DashboardTarefasSummary = z.infer<typeof dashboardTarefasSummarySchema>;
+export type DashboardTarefasOverdueItem = z.infer<typeof dashboardTarefasOverdueItemSchema>;
 export type AdminCadastrosData = z.infer<typeof adminCadastrosDataSchema>;
 export type AdminComercialData = z.infer<typeof adminComercialDataSchema>;
 
