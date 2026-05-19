@@ -334,7 +334,7 @@ export function TaskCreateDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-1">
-          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/10 p-4">
+          <section className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="task-create-company" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Empresa ou contato
@@ -374,7 +374,7 @@ export function TaskCreateDialog({
             </div>
           </section>
 
-          <section className="grid gap-4 rounded-xl border border-border/60 bg-muted/10 p-4 md:grid-cols-2">
+          <section className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="task-create-due-date" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Vencimento
@@ -458,7 +458,7 @@ export function TaskCreateDialog({
             </div>
           </section>
 
-          <section className="grid gap-4 rounded-xl border border-border/60 bg-muted/10 p-4">
+          <section className="grid gap-4 border-t border-border/50 pt-4">
             <div className="space-y-2">
               <Label htmlFor="task-create-description" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Descricao

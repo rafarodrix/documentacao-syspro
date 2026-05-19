@@ -90,16 +90,6 @@ export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStat
 
         {item ? (
           <div className="space-y-5">
-            <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-              <div className="text-sm font-medium text-foreground">{item.companyName}</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {item.year && item.month
-                  ? `Competencia ${String(item.month).padStart(2, "0")}/${item.year} - `
-                  : ""}
-                {item.title}
-              </div>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="task-status">Novo status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
@@ -140,7 +130,7 @@ export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStat
               ) : (
                 <div className="space-y-2">
                   {item.history.map((entry) => (
-                    <div key={entry.id} className="rounded-xl border border-border/60 px-4 py-3">
+                    <div key={entry.id} className="rounded-lg border border-border/60 px-4 py-3">
                       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <div>
                           <div className="text-sm font-medium text-foreground">{entry.title}</div>

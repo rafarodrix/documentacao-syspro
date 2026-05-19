@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
 import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
-import { Badge, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
 import { CalendarRange, TriangleAlert, UserRound } from "lucide-react";
 
 const EMPTY_ASSIGNEE_VALUE = "__unassigned__";
@@ -48,23 +48,10 @@ export function CompanyTaskConfigCard({
     <Card className="border-border/60 bg-card shadow-sm">
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="rounded-md bg-primary/10 p-1.5">
-            <CalendarRange className="h-4 w-4 text-primary" />
-          </div>
+          <CalendarRange className="h-4 w-4 text-primary" />
           <div>
             <CardTitle className="text-sm font-semibold text-foreground">Rotina Mensal</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Configuracao operacional da coleta e envio mensal para a contabilidade.
-            </p>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={draft.isActive ? "success" : "secondary"}>
-            {draft.isActive ? "Ativa" : "Inativa"}
-          </Badge>
-          <Badge variant="outline">
-            Contador: {view.company.accountingFirmName || "Nao vinculado"}
-          </Badge>
         </div>
       </CardHeader>
 
@@ -80,7 +67,7 @@ export function CompanyTaskConfigCard({
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/10 px-4 py-3">
+        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
           <div>
             <p className="text-sm font-medium text-foreground">Participa da rotina mensal</p>
             <p className="text-xs text-muted-foreground">

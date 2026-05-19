@@ -97,22 +97,20 @@ export function TaskDetailsDialog({
   }, [open, itemId]);
 
   const sectionButtonClass = (value: TaskDetailsSection) =>
-    `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors ${
+    `flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left transition-colors ${
       section === value
-        ? "bg-primary/10 text-primary border border-primary/20"
+        ? "bg-muted text-foreground border border-border/60"
         : "text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent"
     }`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[98vw] sm:max-w-6xl p-0 flex flex-col max-h-[90vh] h-[85vh] overflow-hidden gap-0 shadow-2xl border-primary/20">
-        <div className="p-6 border-b border-border/40 bg-muted/10 shrink-0">
+      <DialogContent className="w-[98vw] sm:max-w-6xl p-0 flex flex-col max-h-[90vh] h-[85vh] overflow-hidden gap-0">
+        <div className="p-5 border-b border-border/40 shrink-0">
           <DialogHeader className="gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <DialogTitle className="flex items-center gap-3 text-xl">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/10 shadow-sm">
-                  <CalendarClock className="h-5 w-5" />
-                </div>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <CalendarClock className="h-5 w-5 text-primary" />
                 Detalhes da tarefa
               </DialogTitle>
 
@@ -174,41 +172,28 @@ export function TaskDetailsDialog({
             <div className="min-h-0 overflow-y-auto p-6">
               {section === "resumo" ? (
                 <div className="space-y-5">
-                  <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{item.companyName}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {item.title}
-                          {item.year && item.month ? ` - Rotina ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
-                        </div>
-                      </div>
-                      <Badge variant={getStatusVariant(item.status)}>{getStatusLabel(item.status)}</Badge>
-                    </div>
-                  </div>
-
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-xl border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contabilidade</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{item.accountingFirmName || "Nao vinculada"}</p>
                       <p className="mt-1 text-xs text-muted-foreground">Contato: {item.accountingContactName || "Nao definido"}</p>
                     </div>
-                    <div className="rounded-xl border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cliente</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{item.clientContactName || "Nao definido"}</p>
                     </div>
-                    <div className="rounded-xl border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vencimento</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{new Date(item.dueDate).toLocaleDateString("pt-BR")}</p>
                     </div>
-                    <div className="rounded-xl border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Solicitacoes</p>
                       <p className="mt-1 text-sm font-medium text-foreground">{item.manualRequestsCount} envio(s)</p>
                     </div>
                   </div>
 
                   {item.ticketId ? (
-                    <div className="rounded-xl border border-border/60 px-4 py-3">
+                    <div className="rounded-lg border border-border/60 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Origem</p>
                       <div className="mt-1 flex items-center justify-between gap-3">
                         <p className="text-sm font-medium text-foreground">Vinculada ao ticket {item.ticketId}</p>
@@ -227,7 +212,7 @@ export function TaskDetailsDialog({
 
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium text-foreground">Observacao operacional</h3>
-                    <div className="rounded-xl border border-border/60 px-4 py-3 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-border/60 px-4 py-3 text-sm text-muted-foreground">
                       {item.notes?.trim() || "Nenhuma observacao operacional registrada."}
                     </div>
                   </div>
@@ -248,7 +233,7 @@ export function TaskDetailsDialog({
                   ) : (
                     <div className="space-y-2">
                       {item.manualRequests.map((request) => (
-                        <div key={request.id} className="rounded-xl border border-border/60 px-4 py-3">
+                        <div key={request.id} className="rounded-lg border border-border/60 px-4 py-3">
                           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                             <div>
                               <div className="text-sm font-medium text-foreground">
@@ -285,7 +270,7 @@ export function TaskDetailsDialog({
                     ) : (
                       <div className="space-y-2">
                         {item.requiredDocuments.map((document, index) => (
-                          <div key={`${item.id}-document-${index}`} className="rounded-xl border border-border/60 px-4 py-3 text-sm text-foreground">
+                          <div key={`${item.id}-document-${index}`} className="rounded-lg border border-border/60 px-4 py-3 text-sm text-foreground">
                             {document}
                           </div>
                         ))}
@@ -295,7 +280,7 @@ export function TaskDetailsDialog({
 
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium text-foreground">Observacoes da empresa</h3>
-                    <div className="rounded-xl border border-border/60 px-4 py-3 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-border/60 px-4 py-3 text-sm text-muted-foreground">
                       {item.configNotes?.trim() || "Nenhuma observacao configurada na empresa."}
                     </div>
                   </div>
@@ -316,7 +301,7 @@ export function TaskDetailsDialog({
                   ) : (
                     <div className="space-y-2">
                       {item.history.map((entry) => (
-                        <div key={entry.id} className="rounded-xl border border-border/60 px-4 py-3">
+                        <div key={entry.id} className="rounded-lg border border-border/60 px-4 py-3">
                           <div className="text-sm font-medium text-foreground">{entry.title}</div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {entry.authorUserName ? `${entry.authorUserName} - ` : ""}
@@ -335,7 +320,7 @@ export function TaskDetailsDialog({
           </div>
         ) : null}
 
-        <DialogFooter className="shrink-0 border-t border-border/40 bg-muted/5 px-6 py-4">
+        <DialogFooter className="shrink-0 border-t border-border/40 px-6 py-4">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>

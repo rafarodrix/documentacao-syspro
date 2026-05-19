@@ -8,8 +8,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Input,
   Select,
   SelectContent,
@@ -347,32 +345,8 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
     ? `${String(tasks.month).padStart(2, "0")}/${tasks.year}`
     : null;
   const isManualBacklogView = type === "TAREFA";
-  const isMonthlyView = type === "ROTINA_MENSAL";
   const shouldUseCompetenceFilter = origin === "MONTHLY" || (origin === "ALL" && type !== "TAREFA");
   const shouldUseOperationalDueFilter = origin === "MANUAL" || origin === "TICKET" || type === "TAREFA";
-  const pageTitle = origin === "MANUAL"
-    ? "Tarefas manuais"
-    : origin === "TICKET"
-      ? "Tarefas originadas de tickets"
-      : isManualBacklogView
-    ? "Backlog operacional"
-    : isMonthlyView
-      ? competenceLabel
-        ? `Rotinas mensais de ${competenceLabel}`
-        : "Rotinas mensais"
-      : competenceLabel
-        ? `Backlog operacional + rotinas de ${competenceLabel}`
-        : "Tarefas";
-  const pageDescription = origin === "MANUAL"
-    ? "Demandas criadas manualmente permanecem no backlog operacional ate serem concluidas ou canceladas."
-    : origin === "TICKET"
-      ? "Acompanhe tarefas abertas a partir do fechamento de tickets, com foco em follow-ups operacionais."
-      : isManualBacklogView
-    ? "Tarefas avulsas permanecem visiveis no backlog ate serem concluidas ou canceladas, sem depender da competencia mensal."
-    : isMonthlyView
-      ? "Rotinas mensais sempre obedecem o recorte da competencia selecionada."
-      : "Nesta visao consolidada, rotinas mensais respeitam a competencia e tarefas avulsas continuam no backlog operacional.";
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -460,7 +434,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
         </div>
 
         {showFilters ? (
-          <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mt-3 rounded-lg border border-border/40 bg-background p-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)]">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
@@ -537,7 +511,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_1fr]">
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">
                   {shouldUseCompetenceFilter ? "Competência aplicada" : "Vencimento final"}
@@ -565,63 +539,13 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                       : "Sem intervalo de vencimento aplicado"}
                 </div>
               </div>
-              <div className="rounded-md border border-border/60 bg-background/80 px-3 py-2.5 text-sm">
-                <div className="flex flex-wrap items-center gap-2 text-foreground">
-                  <span className="font-medium">
-                    {isManualBacklogView
-                      ? "Backlog operacional"
-                      : isMonthlyView
-                        ? "Rotinas mensais"
-                        : "Visao consolidada"}
-                  </span>
-                  {competenceLabel && !isManualBacklogView ? (
-                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
-                      Competencia {competenceLabel}
-                    </span>
-                  ) : null}
-                  {origin !== "ALL" ? (
-                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
-                      {ORIGIN_FILTER_OPTIONS.find((option) => option.value === origin)?.label || origin}
-                    </span>
-                  ) : null}
-                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
-                    {status === "OPEN"
-                      ? "Em aberto"
-                      : ADVANCED_STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
-                  </span>
-                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
-                    {isPending ? "Atualizando..." : `${tasks.pagination.total} registro(s)`}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {isManualBacklogView
-                    ? "Tarefas avulsas continuam visiveis ate serem concluidas ou canceladas."
-                    : isMonthlyView
-                      ? "Somente as rotinas da competencia selecionada aparecem nesta visao."
-                      : "Rotinas mensais respeitam a competencia; tarefas avulsas permanecem no backlog."}
-                </p>
-              </div>
             </div>
-            {hasActiveFilters ? (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                <span>Busca e abas de status continuam sendo os filtros principais desta tela.</span>
-                <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={clearFilters}>
-                  Limpar filtros
-                </Button>
-              </div>
-            ) : null}
           </div>
         ) : null}
       </section>
 
       <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle>{pageTitle}</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {pageDescription}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-5 pt-6">
           {tasks.pagination.total > 0 ? (
             <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>
@@ -677,13 +601,13 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                       onDoubleClick={() => setSelectedDetailsTaskId(item.id)}
                       title="Duplo clique para ver detalhes"
                     >
-                      <TableCell className="w-[18%] px-3 py-4">
+                      <TableCell className="w-[18%] px-3 py-3.5">
                         <div className="space-y-1">
                           <div className="font-medium text-foreground">{item.companyName}</div>
                           <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[24%] px-3 py-4">
+                      <TableCell className="w-[24%] px-3 py-3.5">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="text-sm font-medium text-foreground">{item.title}</div>
@@ -712,14 +636,14 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[12%] px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
-                      <TableCell className="w-[9%] px-3 py-4 text-sm text-foreground whitespace-nowrap">
+                      <TableCell className="w-[12%] px-3 py-3.5 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
+                      <TableCell className="w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
                         {new Date(item.dueDate).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="w-[8%] px-3 py-4 text-sm text-foreground whitespace-nowrap">
+                      <TableCell className="w-[8%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
                         {item.requiredDocumentsCount} item(ns)
                       </TableCell>
-                      <TableCell className="w-[15%] px-3 py-4">
+                      <TableCell className="w-[15%] px-3 py-3.5">
                         {item.lastManualRequestAt ? (
                           <div className="space-y-1">
                             <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
@@ -734,18 +658,19 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                           <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
                         )}
                       </TableCell>
-                      <TableCell className="w-[8%] px-3 py-4">
+                      <TableCell className="w-[8%] px-3 py-3.5">
                         <Badge variant={getTaskStatusVariant(item.status)}>
                           {getTaskStatusLabel(item.status)}
                         </Badge>
                       </TableCell>
                       {canManage ? (
-                        <TableCell className="w-[16%] px-3 py-4 text-right" onDoubleClick={(event) => event.stopPropagation()}>
+                        <TableCell className="w-[16%] px-3 py-3.5 text-right" onDoubleClick={(event) => event.stopPropagation()}>
                           <div className="flex flex-col items-end gap-2 xl:flex-row xl:justify-end">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
+                            className="h-8"
                             onClick={() => setSelectedStatusTask(item)}
                           >
                             Atualizar status
@@ -754,6 +679,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                             type="button"
                             variant="outline"
                             size="sm"
+                            className="h-8"
                             onClick={() => setSelectedTask(item)}
                             disabled={item.availableContacts.length === 0}
                           >

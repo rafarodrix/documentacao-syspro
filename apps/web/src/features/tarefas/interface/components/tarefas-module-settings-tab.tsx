@@ -9,11 +9,9 @@ import {
 } from "@dosc-syspro/contracts/tarefas";
 import { toast } from "sonner";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Checkbox,
@@ -99,9 +97,6 @@ export function TarefasModuleSettingsTab() {
             <Settings2 className="h-5 w-5 text-primary" />
             Tarefas
           </CardTitle>
-          <CardDescription>
-            Defina o canal principal, fallback e regras operacionais globais do atendimento recorrente.
-          </CardDescription>
         </div>
         <Button size="sm" onClick={save} disabled={isLoading || isSaving}>
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -117,15 +112,6 @@ export function TarefasModuleSettingsTab() {
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={settings.defaultChannel === "CHATWOOT" ? "success" : "secondary"}>
-                Canal principal: {settings.defaultChannel === "CHATWOOT" ? "Chatwoot" : "WhatsApp direto"}
-              </Badge>
-              <Badge variant="outline">
-                Fallback: {settings.fallbackToDirectWhatsapp ? "Ativo" : "Desligado"}
-              </Badge>
-            </div>
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Canal padrao do disparo</Label>
@@ -221,7 +207,7 @@ export function TarefasModuleSettingsTab() {
             </div>
 
             {settings.autoCreateOnTicketResolved ? (
-              <div className="grid gap-4 rounded-xl border border-border/50 bg-muted/10 p-4 md:grid-cols-2">
+              <div className="grid gap-4 border-t border-border/50 pt-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Titulo da tarefa automatica</Label>
                   <Input
@@ -275,7 +261,7 @@ function ToggleRow({
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/15 p-4">
+    <div className="rounded-lg border border-border/60 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-foreground">{label}</p>
