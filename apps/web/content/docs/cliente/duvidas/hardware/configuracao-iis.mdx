@@ -1,0 +1,42 @@
+---
+title: Configuração do IIS
+description: Guia para instalação e configuração do IIS (Internet Information Services) para uso com o Syspro ERP no Windows.
+lastUpdated: 2026-05-19
+owner: Equipe de Documentacao
+status: published
+tags:
+  - duvidas
+  - hardware
+  - iis
+  - configuracao
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+## O que é o IIS
+
+O IIS (Internet Information Services) é o servidor web da Microsoft utilizado pelo Syspro ERP para expor a interface ISAPI que processa as requisições das estações de trabalho.
+
+<Callout>
+  A configuração do IIS é necessária apenas para instalações do tipo **Servidor IIS**. Se você usa o Syspro Server tradicional, este guia não se aplica.
+</Callout>
+
+## Passos básicos
+
+<Steps>
+  <Step>
+    ### Ativar o IIS no Windows
+    Acesse **Painel de Controle → Programas → Ativar ou desativar recursos do Windows** e marque **Serviços de Informações da Internet**.
+  </Step>
+  <Step>
+    ### Habilitar ISAPI e CGI
+    Dentro das opções do IIS, certifique-se de habilitar **Extensões ISAPI** e **Filtros ISAPI**.
+  </Step>
+  <Step>
+    ### Configurar o site
+    Crie um novo site no IIS apontando para o diretório de instalação do Syspro ERP e configure as permissões adequadas.
+  </Step>
+</Steps>
+
+Para instruções detalhadas, entre em contato com o suporte técnico.
