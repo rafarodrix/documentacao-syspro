@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
+import type { CustomerEmailOption } from "@/features/tickets/application/customer-emails";
 import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
-import type { CompanyOption } from "@dosc-syspro/contracts/company";
-import type { TaskConfigView } from "@dosc-syspro/contracts/tarefas";
+import type { TaskConfigView, TaskContactOption } from "@dosc-syspro/contracts/tarefas";
 import {
   Button,
   Dialog,
@@ -36,14 +36,34 @@ interface TaskCreateDialogProps {
   lockCompany?: boolean;
 }
 
-function getCompanyLabel(company: CompanyOption) {
-  return company.nomeFantasia?.trim() || company.razaoSocial;
-}
-
 function buildDefaultDueDateInput() {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 3);
   return dueDate.toISOString().slice(0, 10);
+}
+
+function encodePickerPart(value?: string | null) {
+  return encodeURIComponent((value || "").trim());
+}
+
+function buildPickerValue(input: Pick<CustomerEmailOption, "companyId" | "email" | "contactName">) {
+  return [
+    encodePickerPart(input.companyId),
+    encodePickerPart(input.email),
+    encodePickerPart(input.contactName),
+  ].join("::");
+}
+
+function parsePickerValue(value: string) {
+  const [companyId = "", email = "", contactName = ""] = value
+    .split("::")
+    .map((part) => decodeURIComponent(part || ""));
+
+  return {
+    companyId: companyId.trim(),
+    email: email.trim().toLowerCase(),
+    contactName: contactName.trim(),
+  };
 }
 
 function getAssignableUsers(users: ReturnType<typeof useInternalUsers>) {
@@ -68,10 +88,14 @@ export function TaskCreateDialog({
 }: TaskCreateDialogProps) {
   const users = useInternalUsers();
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+  const [isLoadingCompanyOptions, setIsLoadingCompanyOptions] = useState(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
-  const [companyOptions, setCompanyOptions] = useState<CompanyOption[]>([]);
+  const [companySearchQuery, setCompanySearchQuery] = useState("");
+  const [companyOptionsError, setCompanyOptionsError] = useState<string | null>(null);
+  const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
   const [selectedCompanyConfig, setSelectedCompanyConfig] = useState<TaskConfigView | null>(null);
+  const [selectedCompanyOptionValue, setSelectedCompanyOptionValue] = useState("");
+  const [selectedContactEmail, setSelectedContactEmail] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -83,54 +107,123 @@ export function TaskCreateDialog({
 
   const availableContacts = selectedCompanyConfig?.clientContacts ?? [];
   const assignableUsers = useMemo(() => getAssignableUsers(users), [users]);
+  const selectedCustomerOption = useMemo(
+    () => customerOptions.find((option) => buildPickerValue(option) === selectedCompanyOptionValue) ?? null,
+    [customerOptions, selectedCompanyOptionValue],
+  );
   const companyPickerOptions = useMemo<TicketCompanyPickerOption[]>(
-    () =>
-      companyOptions.map((company) => ({
-        id: company.id,
-        label: getCompanyLabel(company),
-        description:
-          company.nomeFantasia?.trim() && company.nomeFantasia.trim() !== company.razaoSocial.trim()
-            ? company.razaoSocial
-            : null,
-        meta: "Empresa",
-        kind: "company",
-      })),
-    [companyOptions],
+    () => {
+      const options = customerOptions.map((option) => {
+        const hasContact = Boolean(option.contactName?.trim());
+        const companySupportText = [option.companyName, option.legalName, option.cnpj].filter(Boolean).join(" | ");
+        const contactSupportText = [option.legalName, option.cnpj, option.email].filter(Boolean).join(" | ");
+
+        return {
+          id: buildPickerValue(option),
+          label: hasContact ? option.contactName || option.companyName : option.companyName,
+          description: hasContact ? companySupportText : [option.legalName, option.cnpj].filter(Boolean).join(" | "),
+          meta: hasContact ? contactSupportText : null,
+          kind: hasContact ? "contact" : "company",
+        } satisfies TicketCompanyPickerOption;
+      });
+
+      if (
+        companyId &&
+        selectedCompanyOptionValue &&
+        !options.some((option) => option.id === selectedCompanyOptionValue)
+      ) {
+        options.push({
+          id: selectedCompanyOptionValue,
+          label:
+            selectedCustomerOption?.contactName?.trim() ||
+            selectedCustomerOption?.companyName ||
+            selectedCompanyConfig?.company.companyName ||
+            "Empresa selecionada",
+          description:
+            selectedCustomerOption?.contactName?.trim()
+              ? [
+                  selectedCustomerOption.companyName,
+                  selectedCustomerOption.legalName,
+                  selectedCustomerOption.cnpj,
+                ]
+                  .filter(Boolean)
+                  .join(" | ")
+              : [selectedCustomerOption?.legalName, selectedCustomerOption?.cnpj].filter(Boolean).join(" | "),
+          meta:
+            selectedCustomerOption?.contactName?.trim()
+              ? [selectedCustomerOption.legalName, selectedCustomerOption.cnpj, selectedCustomerOption.email]
+                  .filter(Boolean)
+                  .join(" | ")
+              : null,
+          kind: selectedCustomerOption?.contactName?.trim() ? "contact" : "company",
+        });
+      }
+
+      return options;
+    },
+    [
+      companyId,
+      customerOptions,
+      selectedCompanyConfig?.company.companyName,
+      selectedCompanyOptionValue,
+      selectedCustomerOption,
+    ],
   );
 
   useEffect(() => {
     if (!open) return;
 
-    let active = true;
-
-    async function loadCompanyOptions() {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
       try {
-        setIsLoadingCompanies(true);
-        const result = await trpc.companies.getOptions.query();
-        if (!active) return;
-        setCompanyOptions(Array.isArray(result) ? (result as CompanyOption[]) : []);
-      } catch {
-        if (active) {
-          setCompanyOptions([]);
-          toast.error("Nao foi possivel carregar as empresas para criar a tarefa.");
+        setIsLoadingCompanyOptions(true);
+        setCompanyOptionsError(null);
+
+        const params = new URLSearchParams();
+        params.set("q", companySearchQuery.trim());
+        params.set("limit", "15");
+
+        const response = await fetch(`/api/platform/tickets/customer-emails?${params.toString()}`, {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const json = (await response.json().catch(() => null)) as { error?: string } | null;
+          setCompanyOptionsError(json?.error || "Falha ao consultar empresas e contatos.");
+          setCustomerOptions([]);
+          return;
+        }
+
+        const json = (await response.json()) as { options?: CustomerEmailOption[] };
+        setCustomerOptions(Array.isArray(json.options) ? json.options : []);
+      } catch (error) {
+        if ((error as Error)?.name !== "AbortError") {
+          setCompanyOptionsError("Falha ao consultar empresas e contatos.");
+          setCustomerOptions([]);
         }
       } finally {
-        if (active) {
-          setIsLoadingCompanies(false);
-        }
+        setIsLoadingCompanyOptions(false);
       }
-    }
-
-    void loadCompanyOptions();
+    }, 250);
 
     return () => {
-      active = false;
+      clearTimeout(timer);
+      controller.abort();
     };
-  }, [open]);
+  }, [companySearchQuery, open]);
 
   useEffect(() => {
     if (!open) return;
     setCompanyId(initialCompanyId?.trim() || "");
+    setSelectedCompanyOptionValue(
+      initialCompanyId?.trim()
+        ? buildPickerValue({ companyId: initialCompanyId.trim(), email: "", contactName: "" })
+        : "",
+    );
+    setSelectedContactEmail("");
+    setCompanySearchQuery("");
+    setCompanyOptionsError(null);
     setSelectedCompanyConfig(null);
     setTitle("");
     setDescription("");
@@ -156,6 +249,13 @@ export function TaskCreateDialog({
         const result = await trpc.tarefas.getCompanyConfig.query({ companyId });
         if (!active) return;
         setSelectedCompanyConfig(result);
+        if (selectedContactEmail) {
+          const matchedContact = result.clientContacts.find(
+            (contact: TaskContactOption) => contact.email?.trim().toLowerCase() === selectedContactEmail,
+          );
+          setClientContactId(matchedContact?.id ?? result.config.clientContactId ?? EMPTY_CONTACT_VALUE);
+          return;
+        }
         setClientContactId(result.config.clientContactId ?? EMPTY_CONTACT_VALUE);
       } catch {
         if (active) {
@@ -175,7 +275,7 @@ export function TaskCreateDialog({
     return () => {
       active = false;
     };
-  }, [companyId, open]);
+  }, [companyId, open, selectedContactEmail]);
 
   const handleSubmit = () => {
     if (!companyId) {
@@ -235,14 +335,20 @@ export function TaskCreateDialog({
                 Empresa
               </Label>
               <TicketCompanyPicker
-                value={companyId}
+                value={selectedCompanyOptionValue}
                 options={companyPickerOptions}
-                onChange={setCompanyId}
-                loading={isLoadingCompanies}
-                disabled={lockCompany || isLoadingCompanies || isSubmitting}
-                placeholder={isLoadingCompanies ? "Carregando empresas..." : "Selecione a empresa"}
-                searchPlaceholder="Buscar empresa..."
-                emptyMessage="Nenhuma empresa encontrada."
+                onChange={(value) => {
+                  const parsed = parsePickerValue(value);
+                  setSelectedCompanyOptionValue(value);
+                  setCompanyId(parsed.companyId);
+                  setSelectedContactEmail(parsed.contactName ? parsed.email : "");
+                }}
+                onSearch={setCompanySearchQuery}
+                loading={isLoadingCompanyOptions}
+                disabled={lockCompany || isSubmitting}
+                placeholder={isLoadingCompanyOptions ? "Carregando empresas..." : "Pesquisar empresa ou contato"}
+                searchPlaceholder="Buscar empresa, razao social, CNPJ ou contato..."
+                emptyMessage={companyOptionsError || "Nenhum resultado encontrado."}
                 className="h-10 bg-background"
               />
             </div>
