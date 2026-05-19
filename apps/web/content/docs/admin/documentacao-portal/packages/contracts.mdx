@@ -45,6 +45,7 @@ O package usa exports condicionais (subpath imports):
 | `@dosc-syspro/contracts/evolution-webhook` | Payloads de webhooks Evolution            |
 | `@dosc-syspro/contracts/remote`         | Contratos RustDesk (heartbeat, bootstrap, sync, ack, discover) |
 | `@dosc-syspro/contracts/remote-module-settings` | Configurações do módulo remoto       |
+| `@dosc-syspro/contracts/contract`       | Schemas de contratos de empresa (create, update, list, status, readjuste em lote) |
 | `@dosc-syspro/contracts/crm`            | Tipos de CRM (leads, atividades, tarefas)     |
 | `@dosc-syspro/contracts/automation`     | Tipos de automação e triggers                 |
 | `@dosc-syspro/contracts/dashboard`      | Tipos de métricas e KPIs                      |
@@ -143,6 +144,71 @@ await trpc.contacts.update.mutate({
 ```
 
 **Atenção no service:** quando o método de update recebe o input do tRPC, usar `z.output<typeof updateSchema>` (não `z.input`) como tipo do parâmetro — o tRPC entrega o tipo pós-transform. Usar o tipo de input pode causar inferência `unknown` em campos com `.transform()` na schema.
+
+---
+
+## Domínio contract — detalhamento
+
+Controla o ciclo de vida dos contratos entre a plataforma e empresas clientes.
+
+```typescript
+// @dosc-syspro/contracts/contract
+
+// Status possíveis
+export const CONTRACT_STATUS_VALUES = ["ACTIVE", "CANCELLED", "SUSPENDED"] as const;
+export const contractStatusSchema = z.enum(CONTRACT_STATUS_VALUES);
+
+// Criação — campos opcionais omitidos, sem nullable
+export const createContractSchema = z.object({
+  companyId: z.string().min(1),
+  percentage: z.coerce.number().min(0.0001).max(100),
+  minimumWage: z.coerce.number().min(1),
+  taxRate: z.coerce.number().min(0).max(100),
+  programmerRate: z.coerce.number().min(0).max(100),
+  startDate: z.string().min(1),
+  endDate: z.string().optional(),
+  status: contractStatusSchema.default("ACTIVE"),
+  contractNumber: z.string().max(80).optional(),
+  notes: z.string().max(1000).optional(),
+  allowTaxOverride: z.boolean().optional().default(false),
+})
+// refine: taxRate + programmerRate <= 100
+// refine: endDate > startDate (quando endDate informado)
+
+// Atualização — schema próprio, campos clearáveis com nullable()
+export const updateContractSchema = z.object({
+  id: z.string().min(1),
+  companyId: z.string().min(1).optional(),
+  percentage: z.coerce.number().optional(),
+  // ... mesmos campos do create, todos .optional()
+  endDate: z.string().nullable().optional(),      // clearável
+  contractNumber: z.string().max(80).nullable().optional(), // clearável
+  notes: z.string().max(1000).nullable().optional(),        // clearável
+  allowTaxOverride: z.boolean().nullable().optional(),      // clearável
+})
+// mesmas refinements do create (guarda de taxRate+programmerRate e datas)
+
+// Listagem e view
+export const contractListItemSchema    // item da grid
+export const contractsAdminViewSchema  // { contracts[], companies[] }
+
+// Parâmetros e impactos
+export const contractSystemParamsSchema    // { minimumWage }
+export const contractSuspendImpactSchema   // preview de suspensão
+export const batchReadjustContractsSchema  // readjuste em lote por novo salário mínimo
+```
+
+**Campos clearáveis no update:** `endDate`, `contractNumber`, `notes` e `allowTaxOverride` aceitam `null` para que o Prisma execute `SET NULL` no banco.
+
+```typescript
+// update: null limpa o campo, undefined mantém o valor atual
+await trpc.contracts.update.mutate({
+  id: contractId,
+  data: { endDate: null }  // remove a data de encerramento
+})
+```
+
+**No service:** use `z.output<typeof updateContractSchema>` como tipo do parâmetro — evita inferência `unknown` em campos com `.transform()`.
 
 ---
 
