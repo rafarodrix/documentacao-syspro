@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 import { getTarefasItemsQuery } from "@/features/tarefas/application/tarefas-read.queries";
+import { TarefasPage } from "@/features/tarefas/interface";
 import { CadastrosAccessDenied } from "@/components/platform/cadastros/shared/cadastros-access-denied";
 
 interface TarefasPageProps {
@@ -42,10 +43,5 @@ export default async function TarefasRootPage({ searchParams }: TarefasPageProps
     status,
   });
 
-  // TarefasPage component will be implemented as part of the UI layer
-  return (
-    <div>
-      <pre>{JSON.stringify({ tasks: tasks.items.length, canManage }, null, 2)}</pre>
-    </div>
-  );
+  return <TarefasPage tasks={tasks} search={search} status={status} canManage={canManage} />;
 }
