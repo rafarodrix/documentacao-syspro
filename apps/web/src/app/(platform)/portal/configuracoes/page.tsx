@@ -62,7 +62,6 @@ const TAB_VALUES = new Set([
   "automations",
   "modules",
   "tarefas",
-  "monthly-routines",
   "access",
   "tax",
   "sefaz",
@@ -76,12 +75,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
   const params = searchParams ? await searchParams : undefined;
   const rawTab = typeof params?.tab === "string" ? params.tab : "general";
-  const defaultModulesTab =
-    rawTab === "tickets" ? "tickets" : rawTab === "tarefas" || rawTab === "monthly-routines" ? "tarefas" : "tickets";
+  const defaultModulesTab = rawTab === "tickets" ? "tickets" : rawTab === "tarefas" ? "tarefas" : "tickets";
   const defaultTab =
     rawTab === "remote"
       ? "agent"
-      : rawTab === "tickets" || rawTab === "tarefas" || rawTab === "monthly-routines"
+      : rawTab === "tickets" || rawTab === "tarefas"
         ? "modules"
         : TAB_VALUES.has(rawTab)
           ? rawTab

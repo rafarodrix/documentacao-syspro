@@ -94,7 +94,7 @@ export class SettingsController {
   private static readonly STORAGE_CONFIG_KEY = R2StorageService.STORAGE_CONFIG_KEY;
   private static readonly STORAGE_ACCESS_KEY_ID_KEY = R2StorageService.STORAGE_ACCESS_KEY_ID_KEY;
   private static readonly STORAGE_SECRET_ACCESS_KEY_KEY = R2StorageService.STORAGE_SECRET_ACCESS_KEY_KEY;
-  private static readonly MONTHLY_ROUTINES_SETTINGS_KEY = 'tarefas.module.settings';
+  private static readonly TASK_MODULE_SETTINGS_KEY = 'tarefas.module.settings';
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
@@ -395,12 +395,12 @@ export class SettingsController {
     }
   }
 
-  @Get('monthly-routines')
-  async getMonthlyRoutineModuleSettings(@Req() req: Request) {
+  @Get('tarefas')
+  async getTaskModuleSettings(@Req() req: Request) {
     await this.authorizationService.assertPermission(req.headers, 'settings:view');
     return {
       success: true,
-      data: await this.readStoredMonthlyRoutineModuleSettings(),
+      data: await this.readStoredTaskModuleSettings(),
     };
   }
 
@@ -474,16 +474,16 @@ export class SettingsController {
     return { success: true, message: 'Configuracoes do modulo remoto salvas.', data: parsed };
   }
 
-  @Put('monthly-routines')
-  async updateMonthlyRoutineModuleSettings(@Req() req: Request, @Body() body: TaskModuleSettingsInput) {
+  @Put('tarefas')
+  async updateTaskModuleSettings(@Req() req: Request, @Body() body: TaskModuleSettingsInput) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
     const parsed = taskModuleSettingsSchema.parse(body);
 
     await this.prisma.systemSetting.upsert({
-      where: { key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY },
+      where: { key: SettingsController.TASK_MODULE_SETTINGS_KEY },
       update: { value: JSON.stringify(parsed) },
       create: {
-        key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY,
+        key: SettingsController.TASK_MODULE_SETTINGS_KEY,
         value: JSON.stringify(parsed),
         description: 'Configuracoes globais do modulo de tarefas',
       },
@@ -2015,10 +2015,10 @@ export class SettingsController {
     }
   }
 
-  private async readStoredMonthlyRoutineModuleSettings() {
+  private async readStoredTaskModuleSettings() {
     try {
       const setting = await this.prisma.systemSetting.findUnique({
-        where: { key: SettingsController.MONTHLY_ROUTINES_SETTINGS_KEY },
+        where: { key: SettingsController.TASK_MODULE_SETTINGS_KEY },
         select: { value: true },
       });
 
