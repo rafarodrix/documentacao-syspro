@@ -2,15 +2,16 @@ import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
 import { Building2, ArrowUpRight, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CompanyStatus } from "@prisma/client"
 import { EmptyState, SectionCard } from "@/components/patterns";
+
+type CompanyStatusValue = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_DOCS"
 
 export interface RecentCompanyItem {
   id: string
   razaoSocial: string
   nomeFantasia: string | null
   cnpj: string
-  status: CompanyStatus
+  status: CompanyStatusValue | string
   cidade?: string | null
   estado?: string | null
   createdAt: Date | string | null
@@ -22,11 +23,16 @@ interface RecentCompaniesProps {
   companies: RecentCompanyItem[]
 }
 
-const STATUS_CONFIG: Record<CompanyStatus, { label: string; class: string }> = {
+const STATUS_CONFIG: Record<CompanyStatusValue, { label: string; class: string }> = {
   ACTIVE: { label: "Ativa", class: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
   INACTIVE: { label: "Inativa", class: "bg-muted text-muted-foreground border-border" },
   SUSPENDED: { label: "Suspensa", class: "bg-red-500/10 text-red-600 border-red-500/20" },
   PENDING_DOCS: { label: "Docs Pend.", class: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+}
+
+const FALLBACK_STATUS = {
+  label: "Status",
+  class: "bg-muted text-muted-foreground border-border",
 }
 
 function formatCNPJ(cnpj: string) {
@@ -82,7 +88,7 @@ export function RecentCompanies({ companies }: RecentCompaniesProps) {
         ) : (
           <div className="space-y-1">
             {companies.map((company) => {
-              const statusCfg = STATUS_CONFIG[company.status]
+              const statusCfg = STATUS_CONFIG[company.status as CompanyStatusValue] ?? FALLBACK_STATUS
               const location = [company.cidade, company.estado].filter(Boolean).join(", ")
 
               return (
