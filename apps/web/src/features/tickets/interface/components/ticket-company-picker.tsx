@@ -134,7 +134,7 @@ export function TicketCompanyPicker({
                       {option.description}
                     </span>
                   ) : null}
-                  {option.meta ? <span className="block truncate text-[10px] uppercase text-muted-foreground/70">{option.meta}</span> : null}
+                  {option.meta ? <span className="block truncate text-[11px] text-muted-foreground/70">{option.meta}</span> : null}
                 </div>
                 {isSelected ? <Check className="mt-1 h-4 w-4 shrink-0 text-primary" /> : null}
               </button>

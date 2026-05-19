@@ -49,6 +49,7 @@ type CustomerEmailOption = {
   email: string;
   companyName: string;
   legalName?: string | null;
+  cnpj?: string | null;
   contactName: string | null;
 };
 
@@ -157,11 +158,15 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
       }
       usedIds.add(baseId);
 
+      const hasContact = Boolean(option.contactName?.trim());
+      const companySupportText = [option.companyName, option.legalName, option.cnpj].filter(Boolean).join(" • ");
+      const contactSupportText = [option.legalName, option.cnpj, option.email].filter(Boolean).join(" • ");
+
       opts.push({
         id: baseId,
-        label: option.companyName,
-        description: option.legalName || option.contactName || option.email,
-        meta: option.legalName ? (option.contactName || option.email || null) : (option.contactName ? option.email : null),
+        label: hasContact ? option.contactName || option.companyName : option.companyName,
+        description: hasContact ? companySupportText : [option.legalName, option.cnpj].filter(Boolean).join(" • "),
+        meta: hasContact ? contactSupportText : null,
       });
     }
 

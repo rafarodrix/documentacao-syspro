@@ -460,6 +460,7 @@ export class TicketsService {
               select: {
                 nomeFantasia: true,
                 razaoSocial: true,
+                cnpj: true,
               },
             },
           },
@@ -473,6 +474,7 @@ export class TicketsService {
       email: string;
       companyName: string;
       legalName: string | null;
+      cnpj: string | null;
       contactName: string | null;
     }>();
 
@@ -488,7 +490,8 @@ export class TicketsService {
           company.nomeFantasia?.trim() && company.razaoSocial?.trim() && company.nomeFantasia.trim() !== company.razaoSocial.trim()
             ? company.razaoSocial.trim()
             : null,
-        contactName: company.emailContato?.trim() || company.cnpj || 'Empresa cadastrada',
+        cnpj: company.cnpj?.trim() || null,
+        contactName: null,
       });
     }
 
@@ -512,6 +515,7 @@ export class TicketsService {
             link.company.nomeFantasia.trim() !== link.company.razaoSocial.trim()
               ? link.company.razaoSocial.trim()
               : null,
+          cnpj: link.company?.cnpj?.trim() || null,
           contactName: contact.name?.trim() || null,
         });
 

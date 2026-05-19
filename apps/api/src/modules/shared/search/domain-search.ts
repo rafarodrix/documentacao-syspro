@@ -75,7 +75,19 @@ export function buildTicketSearchWhere(query: string | null | undefined): Prisma
 }
 
 export function buildTicketCustomerOptionCompanySearchWhere(query: string | null | undefined): Prisma.CompanyWhereInput {
-  return buildCompanySearchWhere(query);
+  const term = prepareSearchTerm(query);
+  if (!term.hasValue) return {};
+
+  return {
+    OR: [
+      { searchText: searchTextContains(term.raw) } as Prisma.CompanyWhereInput,
+      { nomeFantasia: searchTextContains(term.raw) } as Prisma.CompanyWhereInput,
+      { razaoSocial: searchTextContains(term.raw) } as Prisma.CompanyWhereInput,
+      ...(term.digits
+        ? [{ cnpj: { contains: term.digits } } as Prisma.CompanyWhereInput]
+        : []),
+    ],
+  } as Prisma.CompanyWhereInput;
 }
 
 export function buildTicketCustomerOptionContactSearchWhere(
@@ -87,12 +99,21 @@ export function buildTicketCustomerOptionContactSearchWhere(
   return {
     OR: [
       { searchText: searchTextContains(term.raw) } as Prisma.CompanyContactWhereInput,
+      { name: searchTextContains(term.raw) } as Prisma.CompanyContactWhereInput,
+      { email: searchTextContains(term.raw) } as Prisma.CompanyContactWhereInput,
       {
         companyLinks: {
           some: {
             company: {
               deletedAt: null,
-              searchText: searchTextContains(term.raw),
+              OR: [
+                { searchText: searchTextContains(term.raw) } as Prisma.CompanyWhereInput,
+                { nomeFantasia: searchTextContains(term.raw) } as Prisma.CompanyWhereInput,
+                { razaoSocial: searchTextContains(term.raw) } as Prisma.CompanyWhereInput,
+                ...(term.digits
+                  ? [{ cnpj: { contains: term.digits } } as Prisma.CompanyWhereInput]
+                  : []),
+              ],
             } as Prisma.CompanyWhereInput,
           },
         },

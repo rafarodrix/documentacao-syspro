@@ -119,11 +119,15 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
       }
       usedIds.add(id);
 
+      const hasContact = Boolean(option.contactName?.trim());
+      const companySupportText = [option.companyName, option.legalName, option.cnpj].filter(Boolean).join(" • ");
+      const contactSupportText = [option.legalName, option.cnpj, option.email].filter(Boolean).join(" • ");
+
       opts.push({
         id,
-        label: option.companyName,
-        description: option.legalName || option.contactName || option.email,
-        meta: option.legalName ? (option.contactName || option.email || null) : (option.contactName ? option.email : null),
+        label: hasContact ? option.contactName || option.companyName : option.companyName,
+        description: hasContact ? companySupportText : [option.legalName, option.cnpj].filter(Boolean).join(" • "),
+        meta: hasContact ? contactSupportText : null,
       });
     }
 

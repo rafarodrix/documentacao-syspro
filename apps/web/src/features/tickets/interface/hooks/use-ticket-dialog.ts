@@ -31,6 +31,7 @@ type CustomerEmailOption = {
     email: string;
     companyName: string;
     legalName?: string | null;
+    cnpj?: string | null;
     contactName: string | null;
 };
 

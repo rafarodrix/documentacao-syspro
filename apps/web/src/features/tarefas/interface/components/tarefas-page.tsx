@@ -342,15 +342,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
 
         {showFilters ? (
           <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {competenceLabel && !isManualBacklogView ? (
-                <div className="space-y-1.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Periodo mensal</p>
-                  <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
-                    {competenceLabel}
-                  </div>
-                </div>
-              ) : null}
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_1fr]">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
                 <Select value={type || "ALL"} onValueChange={setTypeFilter}>
@@ -366,31 +358,46 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Status atual</p>
-                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
-                  {status === "ALL"
-                    ? "Todos"
-                    : STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
+              <div className="rounded-md border border-border/60 bg-background/80 px-3 py-2.5 text-sm">
+                <div className="flex flex-wrap items-center gap-2 text-foreground">
+                  <span className="font-medium">
+                    {isManualBacklogView
+                      ? "Backlog operacional"
+                      : isMonthlyView
+                        ? "Rotinas mensais"
+                        : "Visao consolidada"}
+                  </span>
+                  {competenceLabel && !isManualBacklogView ? (
+                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+                      Competencia {competenceLabel}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+                    {status === "ALL"
+                      ? "Todos os status"
+                      : STATUS_FILTER_OPTIONS.find((option) => option.value === status)?.label || status}
+                  </span>
+                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+                    {isPending ? "Atualizando..." : `${tasks.pagination.total} registro(s)`}
+                  </span>
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Regra do recorte</p>
-                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   {isManualBacklogView
-                    ? "Tarefas sem competencia"
+                    ? "Tarefas avulsas continuam visiveis ate serem concluidas ou canceladas."
                     : isMonthlyView
-                      ? "Somente competencia mensal"
-                      : "Competencia + backlog"}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Registros no recorte</p>
-                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">
-                  {isPending ? "Atualizando..." : `${tasks.pagination.total} tarefa(s)`}
-                </div>
+                      ? "Somente as rotinas da competencia selecionada aparecem nesta visao."
+                      : "Rotinas mensais respeitam a competencia; tarefas avulsas permanecem no backlog."}
+                </p>
               </div>
             </div>
+            {hasActiveFilters ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground">
+                <span>Busca e abas de status continuam sendo os filtros principais desta tela.</span>
+                <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={clearFilters}>
+                  Limpar filtros
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
