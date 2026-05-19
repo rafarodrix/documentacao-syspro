@@ -34,24 +34,20 @@ export const createContractSchema = z
 export const updateContractSchema = z
   .object({
     id: z.string().min(1, "ID do contrato obrigatorio."),
-    companyId: z.string().min(1, "Selecione uma empresa.").optional(),
-    percentage: z.coerce.number().min(0.0001, "O percentual deve ser maior que 0.").max(100, "O percentual nao pode exceder 100%.").optional(),
-    minimumWage: z.coerce.number().min(1, "O salario minimo deve ser informado.").optional(),
-    taxRate: z.coerce.number().min(0, "A taxa nao pode ser negativa.").max(100, "Imposto nao pode exceder 100%.").optional(),
-    programmerRate: z.coerce.number().min(0, "A taxa nao pode ser negativa.").max(100, "Repasse nao pode exceder 100%.").optional(),
-    startDate: z.string().min(1, "Data de inicio obrigatoria").optional(),
+    companyId: z.string().min(1, "Selecione uma empresa."),
+    percentage: z.coerce.number().min(0.0001, "O percentual deve ser maior que 0.").max(100, "O percentual nao pode exceder 100%."),
+    minimumWage: z.coerce.number().min(1, "O salario minimo deve ser informado."),
+    taxRate: z.coerce.number().min(0, "A taxa nao pode ser negativa.").max(100, "Imposto nao pode exceder 100%."),
+    programmerRate: z.coerce.number().min(0, "A taxa nao pode ser negativa.").max(100, "Repasse nao pode exceder 100%."),
+    startDate: z.string().min(1, "Data de inicio obrigatoria"),
+    status: contractStatusSchema,
+    allowTaxOverride: z.boolean().optional().default(false),
     endDate: z.string().nullable().optional(),
-    status: contractStatusSchema.optional(),
     contractNumber: z.string().max(80, "Maximo 80 caracteres.").nullable().optional(),
     notes: z.string().max(1000, "Maximo 1000 caracteres.").nullable().optional(),
-    allowTaxOverride: z.boolean().nullable().optional(),
   })
   .refine(
-    (data) => {
-      const tax = data.taxRate ?? 0;
-      const prog = data.programmerRate ?? 0;
-      return tax + prog <= 100;
-    },
+    (data) => data.taxRate + data.programmerRate <= 100,
     {
       message: "A soma de Impostos + Repasse nao pode ultrapassar 100%.",
       path: ["programmerRate"],
@@ -59,7 +55,7 @@ export const updateContractSchema = z
   )
   .refine(
     (data) => {
-      if (!data.endDate || !data.startDate) return true;
+      if (!data.endDate) return true;
       return new Date(data.endDate) > new Date(data.startDate);
     },
     {

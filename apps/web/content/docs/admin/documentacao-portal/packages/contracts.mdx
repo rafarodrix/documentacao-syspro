@@ -175,18 +175,24 @@ export const createContractSchema = z.object({
 // refine: taxRate + programmerRate <= 100
 // refine: endDate > startDate (quando endDate informado)
 
-// Atualização — schema próprio, campos clearáveis com nullable()
+// Atualização — schema próprio: campos obrigatórios mantidos, clearáveis com nullable()
 export const updateContractSchema = z.object({
   id: z.string().min(1),
-  companyId: z.string().min(1).optional(),
-  percentage: z.coerce.number().optional(),
-  // ... mesmos campos do create, todos .optional()
-  endDate: z.string().nullable().optional(),      // clearável
-  contractNumber: z.string().max(80).nullable().optional(), // clearável
-  notes: z.string().max(1000).nullable().optional(),        // clearável
-  allowTaxOverride: z.boolean().nullable().optional(),      // clearável
+  // Campos obrigatórios (mesmos que create — update envia todos)
+  companyId: z.string().min(1),
+  percentage: z.coerce.number().min(0.0001).max(100),
+  minimumWage: z.coerce.number().min(1),
+  taxRate: z.coerce.number().min(0).max(100),
+  programmerRate: z.coerce.number().min(0).max(100),
+  startDate: z.string().min(1),
+  status: contractStatusSchema,
+  allowTaxOverride: z.boolean().optional().default(false),
+  // Campos clearáveis — aceitam null para SET NULL no banco
+  endDate: z.string().nullable().optional(),
+  contractNumber: z.string().max(80).nullable().optional(),
+  notes: z.string().max(1000).nullable().optional(),
 })
-// mesmas refinements do create (guarda de taxRate+programmerRate e datas)
+// mesmas refinements do create (taxRate+programmerRate <= 100 e endDate > startDate)
 
 // Listagem e view
 export const contractListItemSchema    // item da grid
@@ -198,7 +204,7 @@ export const contractSuspendImpactSchema   // preview de suspensão
 export const batchReadjustContractsSchema  // readjuste em lote por novo salário mínimo
 ```
 
-**Campos clearáveis no update:** `endDate`, `contractNumber`, `notes` e `allowTaxOverride` aceitam `null` para que o Prisma execute `SET NULL` no banco.
+**Campos obrigatórios no update:** os campos numéricos e `companyId` permanecem requeridos — o update de contrato sempre envia o formulário completo. Somente `endDate`, `contractNumber` e `notes` aceitam `null` para que o Prisma execute `SET NULL` no banco.
 
 ```typescript
 // update: null limpa o campo, undefined mantém o valor atual
