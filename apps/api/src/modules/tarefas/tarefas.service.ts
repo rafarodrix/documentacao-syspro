@@ -443,7 +443,8 @@ export class TarefasService {
   ): Promise<TaskItemListResponse> {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const scope = await this.resolveViewScope(requester);
-    const shouldApplyCompetenceFilter = input.type !== 'TAREFA';
+    const originFilter = input.origin && input.origin !== 'ALL' ? input.origin : undefined;
+    const shouldApplyCompetenceFilter = input.type !== 'TAREFA' && originFilter !== 'MANUAL' && originFilter !== 'TICKET';
     const { year, month } = shouldApplyCompetenceFilter
       ? this.resolveYearMonth(input.year, input.month)
       : { year: null, month: null };
@@ -456,16 +457,18 @@ export class TarefasService {
         : undefined;
     const typeFilter = input.type && input.type !== 'ALL' ? input.type : undefined;
     const search = input.search?.trim();
+    const dueFrom = this.parseOptionalDateInput(input.dueFrom, 'start');
+    const dueTo = this.parseOptionalDateInput(input.dueTo, 'end');
     const page = this.parsePage(input.page);
     const pageSize = this.parsePageSize(input.pageSize);
     const taskModel = (this.prisma as any).task;
     const scopeWhere = scope.isGlobal ? {} : { companyId: { in: scope.companyIds } };
 
-    const includesMonthlyTasks = typeFilter !== 'TAREFA';
+    const includesMonthlyTasks = typeFilter !== 'TAREFA' && originFilter !== 'MANUAL' && originFilter !== 'TICKET';
 
     // Self-heal the current competence before reading monthly tasks so newly activated
     // companies show up even if their generation trigger ran before config persistence.
-    if (includesMonthlyTasks && year && month) {
+    if (input.reconcileCurrentCompetence === true && includesMonthlyTasks && year && month) {
       await this.ensureCompetenciesForScope(scope, year, month);
     }
 
@@ -500,7 +503,13 @@ export class TarefasService {
       baseConditions.push(scopeWhere);
     }
 
-    if (typeFilter === 'TAREFA') {
+    if (originFilter === 'MONTHLY') {
+      baseConditions.push({ type: 'ROTINA_MENSAL', ...(year != null ? { year } : {}), ...(month != null ? { month } : {}) });
+    } else if (originFilter === 'MANUAL') {
+      baseConditions.push({ type: 'TAREFA', ticketId: null });
+    } else if (originFilter === 'TICKET') {
+      baseConditions.push({ type: 'TAREFA', ticketId: { not: null } });
+    } else if (typeFilter === 'TAREFA') {
       baseConditions.push({ type: 'TAREFA' });
     } else if (typeFilter === 'ROTINA_MENSAL') {
       baseConditions.push({ type: 'ROTINA_MENSAL', ...(year != null ? { year } : {}), ...(month != null ? { month } : {}) });
@@ -511,6 +520,27 @@ export class TarefasService {
           { type: 'ROTINA_MENSAL', ...(year != null ? { year } : {}), ...(month != null ? { month } : {}) },
         ],
       });
+    }
+
+    if (dueFrom || dueTo) {
+      const dueDateFilter: Record<string, Date> = {};
+      if (dueFrom) dueDateFilter.gte = dueFrom;
+      if (dueTo) dueDateFilter.lte = dueTo;
+
+      if (originFilter === 'MONTHLY' || typeFilter === 'ROTINA_MENSAL') {
+        baseConditions.push({ dueDate: dueDateFilter });
+      } else if (originFilter === 'MANUAL') {
+        baseConditions.push({ type: 'TAREFA', ticketId: null, dueDate: dueDateFilter });
+      } else if (originFilter === 'TICKET') {
+        baseConditions.push({ type: 'TAREFA', ticketId: { not: null }, dueDate: dueDateFilter });
+      } else {
+        baseConditions.push({
+          OR: [
+            { type: 'TAREFA', dueDate: dueDateFilter },
+            { type: 'ROTINA_MENSAL', ...(year != null ? { year } : {}), ...(month != null ? { month } : {}), dueDate: dueDateFilter },
+          ],
+        });
+      }
     }
 
     if (search) {
@@ -595,8 +625,8 @@ export class TarefasService {
         overdue: summaryOverdue,
         canceled: summaryCanceled,
       },
-      year: typeFilter === 'TAREFA' ? null : year,
-      month: typeFilter === 'TAREFA' ? null : month,
+      year: typeFilter === 'TAREFA' || originFilter === 'MANUAL' || originFilter === 'TICKET' ? null : year,
+      month: typeFilter === 'TAREFA' || originFilter === 'MANUAL' || originFilter === 'TICKET' ? null : month,
     };
   }
 
@@ -1522,6 +1552,14 @@ export class TarefasService {
   private parsePageSize(value: unknown) {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 1 ? Math.min(Math.floor(parsed), 100) : 20;
+  }
+
+  private parseOptionalDateInput(value: unknown, mode: 'start' | 'end') {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+
+    const parsed = new Date(`${normalized}${mode === 'start' ? 'T00:00:00.000Z' : 'T23:59:59.999Z'}`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private async resolveCompanyDisplayName(companyId: string) {

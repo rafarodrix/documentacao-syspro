@@ -28,7 +28,11 @@ export async function getTarefasItemsQuery(input: {
   year?: string;
   month?: string;
   type?: string;
+  origin?: string;
   status?: string;
+  dueFrom?: string;
+  dueTo?: string;
+  reconcileCurrentCompetence?: boolean;
   search?: string;
 }) {
   return (await trpc.tarefas.listTasks.query(input)) as TaskItemListResponse;

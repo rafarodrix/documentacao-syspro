@@ -135,7 +135,11 @@ export const taskItemListQuerySchema = paginationQuerySchema.extend({
   year: z.string().optional(),
   month: z.string().optional(),
   type: z.enum([...TASK_TYPE_VALUES, "ALL"]).optional(),
+  origin: z.enum(["ALL", "MONTHLY", "MANUAL", "TICKET"]).optional(),
   status: z.enum([...TASK_STATUS_VALUES, "ALL", "OPEN"]).optional(),
+  dueFrom: z.string().optional(),
+  dueTo: z.string().optional(),
+  reconcileCurrentCompetence: z.boolean().optional(),
   search: z.string().trim().optional(),
 });
 

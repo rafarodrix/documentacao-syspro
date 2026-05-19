@@ -39,6 +39,11 @@ interface TarefasPageProps {
   search: string;
   status: string;
   type: string;
+  origin: string;
+  year: string;
+  month: string;
+  dueFrom: string;
+  dueTo: string;
   canManage: boolean;
 }
 
@@ -132,7 +137,14 @@ const TYPE_FILTER_OPTIONS = [
   { value: "TAREFA", label: "Tarefas avulsas" },
 ] as const;
 
-export function TarefasPage({ tasks, search, status, type, canManage }: TarefasPageProps) {
+const ORIGIN_FILTER_OPTIONS = [
+  { value: "ALL", label: "Todas as origens" },
+  { value: "MONTHLY", label: "Rotina mensal" },
+  { value: "MANUAL", label: "Manual" },
+  { value: "TICKET", label: "Ticket" },
+] as const;
+
+export function TarefasPage({ tasks, search, status, type, origin, year, month, dueFrom, dueTo, canManage }: TarefasPageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -207,6 +219,69 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
       } else {
         params.delete("type");
       }
+
+      if (nextType === "TAREFA" && params.get("origin") === "MONTHLY") {
+        params.delete("origin");
+      }
+
+      if (nextType === "ROTINA_MENSAL") {
+        const currentOrigin = params.get("origin");
+        if (currentOrigin === "MANUAL" || currentOrigin === "TICKET") {
+          params.set("origin", "MONTHLY");
+        }
+      }
+
+      params.delete("page");
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const setOriginFilter = (nextOrigin: string) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextOrigin && nextOrigin !== "ALL") {
+        params.set("origin", nextOrigin);
+      } else {
+        params.delete("origin");
+      }
+
+      if (nextOrigin === "MANUAL" || nextOrigin === "TICKET") {
+        params.set("type", "TAREFA");
+      }
+
+      if (nextOrigin === "MONTHLY") {
+        params.set("type", "ROTINA_MENSAL");
+      }
+
+      params.delete("page");
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const setCompetenceFilter = (nextValue: string) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextValue) {
+        const [nextYear, nextMonth] = nextValue.split("-");
+        if (nextYear) params.set("year", nextYear);
+        if (nextMonth) params.set("month", String(Number(nextMonth)));
+      } else {
+        params.delete("year");
+        params.delete("month");
+      }
+      params.delete("page");
+      router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
+    });
+  };
+
+  const setDueDateFilter = (key: "dueFrom" | "dueTo", value: string) => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
       params.delete("page");
       router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
     });
@@ -231,12 +306,27 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
       params.delete("search");
       params.delete("status");
       params.delete("type");
+      params.delete("origin");
+      params.delete("year");
+      params.delete("month");
+      params.delete("dueFrom");
+      params.delete("dueTo");
       params.delete("page");
       router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
     });
   };
 
-  const hasActiveFilters = Boolean(search.trim()) || status !== "OPEN" || type !== "ALL";
+  const currentMonthValue = `${year}-${String(Number(month)).padStart(2, "0")}`;
+  const now = new Date();
+  const defaultMonthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    status !== "OPEN" ||
+    type !== "ALL" ||
+    origin !== "ALL" ||
+    currentMonthValue !== defaultMonthValue ||
+    Boolean(dueFrom) ||
+    Boolean(dueTo);
 
   const handleSyncMonth = () => {
     startSyncTransition(async () => {
@@ -258,7 +348,13 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
     : null;
   const isManualBacklogView = type === "TAREFA";
   const isMonthlyView = type === "ROTINA_MENSAL";
-  const pageTitle = isManualBacklogView
+  const shouldUseCompetenceFilter = origin === "MONTHLY" || (origin === "ALL" && type !== "TAREFA");
+  const shouldUseOperationalDueFilter = origin === "MANUAL" || origin === "TICKET" || type === "TAREFA";
+  const pageTitle = origin === "MANUAL"
+    ? "Tarefas manuais"
+    : origin === "TICKET"
+      ? "Tarefas originadas de tickets"
+      : isManualBacklogView
     ? "Backlog operacional"
     : isMonthlyView
       ? competenceLabel
@@ -267,7 +363,11 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
       : competenceLabel
         ? `Backlog operacional + rotinas de ${competenceLabel}`
         : "Tarefas";
-  const pageDescription = isManualBacklogView
+  const pageDescription = origin === "MANUAL"
+    ? "Demandas criadas manualmente permanecem no backlog operacional ate serem concluidas ou canceladas."
+    : origin === "TICKET"
+      ? "Acompanhe tarefas abertas a partir do fechamento de tickets, com foco em follow-ups operacionais."
+      : isManualBacklogView
     ? "Tarefas avulsas permanecem visiveis no backlog ate serem concluidas ou canceladas, sem depender da competencia mensal."
     : isMonthlyView
       ? "Rotinas mensais sempre obedecem o recorte da competencia selecionada."
@@ -364,7 +464,7 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
 
         {showFilters ? (
           <div className="mt-3 rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,16rem)_minmax(0,16rem)_1fr]">
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)]">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
                 <Select value={type || "ALL"} onValueChange={setTypeFilter}>
@@ -373,6 +473,21 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   </SelectTrigger>
                   <SelectContent>
                     {TYPE_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Origem</p>
+                <Select value={origin || "ALL"} onValueChange={setOriginFilter}>
+                  <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
+                    <SelectValue placeholder="Todas as origens" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORIGIN_FILTER_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -403,6 +518,56 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                  {shouldUseCompetenceFilter ? "Competência mensal" : "Vencimento inicial"}
+                </p>
+                {shouldUseCompetenceFilter ? (
+                  <Input
+                    type="month"
+                    value={currentMonthValue}
+                    onChange={(event) => setCompetenceFilter(event.target.value)}
+                    className="h-9 border-border/60 bg-background text-sm"
+                  />
+                ) : (
+                  <Input
+                    type="date"
+                    value={dueFrom}
+                    onChange={(event) => setDueDateFilter("dueFrom", event.target.value)}
+                    className="h-9 border-border/60 bg-background text-sm"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_1fr]">
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                  {shouldUseCompetenceFilter ? "Competência aplicada" : "Vencimento final"}
+                </p>
+                {shouldUseCompetenceFilter ? (
+                  <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-muted-foreground">
+                    {competenceLabel ? `Rotinas em ${competenceLabel}` : "Sem competência ativa"}
+                  </div>
+                ) : (
+                  <Input
+                    type="date"
+                    value={dueTo}
+                    onChange={(event) => setDueDateFilter("dueTo", event.target.value)}
+                    className="h-9 border-border/60 bg-background text-sm"
+                  />
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Periodo operacional</p>
+                <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-muted-foreground">
+                  {!shouldUseOperationalDueFilter
+                    ? "Rotinas usam competência mensal"
+                    : dueFrom || dueTo
+                      ? `Vencimento ${dueFrom || "..."} até ${dueTo || "..."}`
+                      : "Sem intervalo de vencimento aplicado"}
+                </div>
+              </div>
               <div className="rounded-md border border-border/60 bg-background/80 px-3 py-2.5 text-sm">
                 <div className="flex flex-wrap items-center gap-2 text-foreground">
                   <span className="font-medium">
@@ -415,6 +580,11 @@ export function TarefasPage({ tasks, search, status, type, canManage }: TarefasP
                   {competenceLabel && !isManualBacklogView ? (
                     <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
                       Competencia {competenceLabel}
+                    </span>
+                  ) : null}
+                  {origin !== "ALL" ? (
+                    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+                      {ORIGIN_FILTER_OPTIONS.find((option) => option.value === origin)?.label || origin}
                     </span>
                   ) : null}
                   <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
