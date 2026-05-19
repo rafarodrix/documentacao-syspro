@@ -76,6 +76,38 @@ BEGIN
     SELECT 1
     FROM information_schema.columns
     WHERE table_schema = 'public'
+      AND table_name = 'task'
+      AND column_name = 'config_id'
+  ) AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task'
+      AND column_name = 'configId'
+  ) THEN
+    ALTER TABLE "task" RENAME COLUMN "config_id" TO "configId";
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task_request'
+      AND column_name = 'competency_id'
+  ) AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task_request'
+      AND column_name = 'taskId'
+  ) THEN
+    ALTER TABLE "task_request" RENAME COLUMN "competency_id" TO "taskId";
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
       AND table_name = 'task_request'
       AND column_name = 'competencyId'
   ) AND NOT EXISTS (
@@ -93,6 +125,22 @@ BEGIN
     FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = 'task_history'
+      AND column_name = 'competency_id'
+  ) AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task_history'
+      AND column_name = 'taskId'
+  ) THEN
+    ALTER TABLE "task_history" RENAME COLUMN "competency_id" TO "taskId";
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task_history'
       AND column_name = 'competencyId'
   ) AND NOT EXISTS (
     SELECT 1
@@ -102,6 +150,38 @@ BEGIN
       AND column_name = 'taskId'
   ) THEN
     ALTER TABLE "task_history" RENAME COLUMN "competencyId" TO "taskId";
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task'
+      AND column_name = 'ticket_id'
+  ) AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task'
+      AND column_name = 'ticketId'
+  ) THEN
+    ALTER TABLE "task" RENAME COLUMN "ticket_id" TO "ticketId";
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task'
+      AND column_name = 'assigned_to_id'
+  ) AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'task'
+      AND column_name = 'assignedToId'
+  ) THEN
+    ALTER TABLE "task" RENAME COLUMN "assigned_to_id" TO "assignedToId";
   END IF;
 END $$;
 
@@ -183,6 +263,16 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'monthly_routine_history_authorUserId_fkey')
     AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'task_history_authorUserId_fkey') THEN
     ALTER TABLE "task_history" RENAME CONSTRAINT "monthly_routine_history_authorUserId_fkey" TO "task_history_authorUserId_fkey";
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'task_ticket_id_fkey')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'task_ticketId_fkey') THEN
+    ALTER TABLE "task" RENAME CONSTRAINT "task_ticket_id_fkey" TO "task_ticketId_fkey";
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'task_assigned_to_id_fkey')
+    AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'task_assignedToId_fkey') THEN
+    ALTER TABLE "task" RENAME CONSTRAINT "task_assigned_to_id_fkey" TO "task_assignedToId_fkey";
   END IF;
 END $$;
 
@@ -266,6 +356,11 @@ BEGIN
   IF to_regclass('"monthly_routine_history_type_occurredAt_idx"') IS NOT NULL
     AND to_regclass('"task_history_type_occurredAt_idx"') IS NULL THEN
     ALTER INDEX "monthly_routine_history_type_occurredAt_idx" RENAME TO "task_history_type_occurredAt_idx";
+  END IF;
+
+  IF to_regclass('"task_ticket_id_idx"') IS NOT NULL
+    AND to_regclass('"task_ticketId_idx"') IS NULL THEN
+    ALTER INDEX "task_ticket_id_idx" RENAME TO "task_ticketId_idx";
   END IF;
 END $$;
 
