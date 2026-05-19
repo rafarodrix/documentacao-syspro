@@ -330,15 +330,15 @@ export function CreateContactPageForm({
                       </div>
                     </div>
                     <div className="mt-4 grid gap-2 md:grid-cols-3">
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Obrigatório</p>
                         <p className="mt-1 text-sm font-medium text-foreground">Nome do contato</p>
                       </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Canais</p>
                         <p className="mt-1 text-sm font-medium text-foreground">Telefone, WhatsApp e e-mail</p>
                       </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Documento</p>
                         <p className="mt-1 text-sm font-medium text-foreground">CPF opcional para referência</p>
                       </div>
@@ -513,11 +513,11 @@ export function CreateContactPageForm({
                     </div>
 
                     <div className="mt-4 grid gap-2 md:grid-cols-2">
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Uso</p>
                         <p className="mt-1 text-sm font-medium text-foreground">Selecione empresas relevantes para operação e atendimento.</p>
                       </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+                      <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Leitura</p>
                         <p className="mt-1 text-sm font-medium text-foreground">Vínculos ficam visíveis em listas, tickets e fluxos internos.</p>
                       </div>
@@ -547,7 +547,7 @@ export function CreateContactPageForm({
 
                           <div className="flex flex-wrap gap-2">
                             {selectedCompanies.length === 0 ? (
-                              <span className="rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                              <span className="rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
                                 Nenhuma empresa vinculada.
                               </span>
                             ) : (
@@ -559,7 +559,7 @@ export function CreateContactPageForm({
                                     const current = field.value ?? [];
                                     field.onChange(current.filter((id) => id !== company.id));
                                   }}
-                                  className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+                                  className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
                                 >
                                   <span className="truncate">{getCompanyLabel(company)}</span>
                                   <X className="h-3 w-3 shrink-0 text-muted-foreground" />

@@ -27,21 +27,21 @@ export function ContactPageIntro({ mode, companyCount, contactName }: ContactPag
         </div>
 
         <div className="grid gap-2 sm:grid-cols-3 lg:w-[30rem]">
-          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Modo</p>
             <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground">
               {isEdit ? <PencilLine className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
               {isEdit ? "Edição" : "Cadastro"}
             </p>
           </div>
-          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</p>
             <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground">
               <UserRound className="h-4 w-4" />
               <span className="truncate">{contactName?.trim() || "Novo registro"}</span>
             </p>
           </div>
-          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Empresas disponíveis</p>
             <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground">
               <Building2 className="h-4 w-4" />

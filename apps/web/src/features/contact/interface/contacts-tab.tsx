@@ -311,17 +311,17 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-3 lg:w-[28rem]">
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Cobertura</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">{contactsWithPrimaryChannel}</p>
                 <p className="text-xs text-muted-foreground">registros com algum canal principal</p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Vínculos</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">{counts.linked}</p>
                 <p className="text-xs text-muted-foreground">contatos associados a empresas</p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2.5">
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sem empresa</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">{counts.unlinked}</p>
                 <p className="text-xs text-muted-foreground">itens prontos para triagem</p>
@@ -536,7 +536,7 @@ function ContactRow({
       style={{ animationDelay: `${animationDelay}ms` }}
       title="Clique para editar"
     >
-      <TableCell className="py-3">
+      <TableCell className="py-3.5">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-muted-foreground shadow-sm transition-colors group-hover/row:text-foreground">
             <UserRound className="h-4 w-4" />
@@ -635,12 +635,12 @@ function MobileContactCard({
       <div className="flex flex-wrap items-center gap-2">
         <LinkedBadge count={linkedCount} />
         {contact.email ? (
-          <span className="max-w-full truncate rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground">
+          <span className="max-w-full truncate rounded-lg border border-border/50 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground">
             {contact.email}
           </span>
         ) : null}
         {contact.cpf ? (
-          <span className="max-w-full truncate rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground">
+          <span className="max-w-full truncate rounded-lg border border-border/50 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground">
             CPF {formatCpf(contact.cpf)}
           </span>
         ) : null}
@@ -691,7 +691,7 @@ function ContactActionsMenu({
           <span className="sr-only">Acoes do contato</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 p-1.5">
+      <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/60 p-1.5 shadow-lg">
         <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {contact.name || "Contato"}
         </DropdownMenuLabel>
@@ -750,7 +750,7 @@ function ContactActionsMenu({
 function LinkedBadge({ count }: { count: number }) {
   if (count > 0) {
     return (
-      <Badge variant="success" className="rounded-lg px-2 py-1 text-[10px] font-semibold">
+      <Badge variant="success" className="rounded-lg px-2 py-1 text-[10px] font-semibold tracking-wide">
         <CheckCircle2 className="mr-1 h-3 w-3" />
         {count} {count === 1 ? "empresa" : "empresas"}
       </Badge>
@@ -758,7 +758,7 @@ function LinkedBadge({ count }: { count: number }) {
   }
 
   return (
-    <Badge variant="muted" className="rounded-lg px-2 py-1 text-[10px] font-semibold">
+    <Badge variant="muted" className="rounded-lg px-2 py-1 text-[10px] font-semibold tracking-wide">
       Sem empresa
     </Badge>
   );
@@ -766,8 +766,8 @@ function LinkedBadge({ count }: { count: number }) {
 
 function ContactValue({ icon: Icon, value, fallback }: { icon: LucideIcon; value?: string | null; fallback: string }) {
   return (
-    <span className={cn("inline-flex max-w-56 items-center gap-2 truncate text-sm", value ? "text-muted-foreground" : "text-muted-foreground/60")}>
-      <Icon className="h-3.5 w-3.5 shrink-0" />
+    <span className={cn("inline-flex max-w-56 items-center gap-2 truncate text-[13px]", value ? "text-muted-foreground" : "text-muted-foreground/60")}>
+      <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
       <span className="truncate">{value || fallback}</span>
     </span>
   );
