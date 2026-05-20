@@ -93,12 +93,12 @@ services:
       INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS: ${INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS:-86400}
       INTEGRATION_CONFIG_ENCRYPTION_KEY: ${INTEGRATION_CONFIG_ENCRYPTION_KEY:-}
     expose:
-      - "${PORT:-3000}"
+      - "3000"
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "wget -qO- http://localhost:${PORT:-3000}/api/health/live || exit 1",
+          "wget -qO- http://localhost:3000/api/health/live || exit 1",
         ]
       interval: 30s
       timeout: 10s
