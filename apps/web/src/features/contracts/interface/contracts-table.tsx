@@ -460,19 +460,17 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 </DialogContent>
             </Dialog>
 
-            <Card className="group relative overflow-hidden border-border/60 shadow-lg bg-background/50 backdrop-blur-xl">
-                <div className="absolute top-0 left-0 w-full h-0.5 bg-linear-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
+            <Card className="border-border/60 bg-card shadow-sm">
                 <div className="overflow-x-auto">
                     <Table>
-                        <TableHeader className="bg-muted/20">
+                        <TableHeader className="bg-muted/10">
                             <TableRow className="hover:bg-transparent border-b border-border/60">
-                                <TableHead className="w-75 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 h-12">Empresa / Parceiro</TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Vigencia</TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Base (Sal. Min)</TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Aliq.</TableHead>
-                                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Status</TableHead>
-                                <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">Liquido (Final)</TableHead>
+                                <TableHead className="w-75 h-11 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Empresa</TableHead>
+                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Vigencia</TableHead>
+                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Base</TableHead>
+                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Aliq.</TableHead>
+                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Status</TableHead>
+                                <TableHead className="text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Liquido</TableHead>
                                 <TableHead className="w-12.5" />
                             </TableRow>
                         </TableHeader>
@@ -504,12 +502,12 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                     return (
                                         <TableRow
                                             key={contract.id}
-                                            className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                                            className="group/row border-border/40 hover:bg-muted/30 transition-colors"
                                             style={{ animationDelay: `${index * 50}ms` }}
                                         >
-                                            <TableCell className="py-4">
+                                            <TableCell className="py-3.5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all group-hover/row:bg-primary/20 group-hover/row:scale-105">
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
                                                         <Building2 className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5">
@@ -537,7 +535,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                             </TableCell>
 
                                             <TableCell>
-                                                <Badge variant="outline" className="bg-background/50 font-mono text-[10px] font-normal border-border/60">
+                                                <Badge variant="outline" className="h-5 border-border/60 bg-background font-mono text-[10px] font-normal">
                                                     {percentage.toFixed(4)}%
                                                 </Badge>
                                             </TableCell>
@@ -545,7 +543,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                             <TableCell>
                                                 <Badge
                                                     variant={isActive ? "success" : "muted"}
-                                                    className="gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                                    className="h-5 gap-1.5 rounded-full px-2 py-0 text-[10px] font-medium"
                                                 >
                                                     <span className={cn("h-1.5 w-1.5 rounded-full bg-current", isActive ? "animate-pulse" : "opacity-60")} />
                                                     {isActive ? "Ativo" : "Inativo"}
@@ -555,7 +553,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                             <TableCell className="text-right">
                                                 <div className="flex flex-col items-end gap-0.5">
                                                     <span className={cn(
-                                                        "font-bold font-mono text-sm tracking-tight tabular-nums",
+                                                        "font-semibold font-mono text-sm tracking-tight tabular-nums",
                                                         isActive ? "text-primary" : "text-muted-foreground",
                                                     )}>
                                                         {formatCurrency(net)}
@@ -641,4 +639,3 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
         </>
     );
 }
-

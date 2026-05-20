@@ -2,7 +2,7 @@
 
 import type { Prisma } from "@prisma/client";
 import type { ElementType } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { Card, CardContent } from "@dosc-syspro/ui";
 import { DollarSign, Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NumberTicker } from "@/components/magicui/number-ticker";
@@ -36,28 +36,27 @@ function StatCard({
     title, value, type = "number", icon: Icon, description, colorClass, bgClass, decimalPlaces = 0,
 }: StatCardProps) {
     return (
-        <Card className="group relative overflow-hidden border-border/60 bg-background/50 backdrop-blur-xl transition-all hover:border-primary/20 hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground tracking-wide uppercase text-[11px]">
-                    {title}
-                </CardTitle>
-                <div className={cn("p-2 rounded-full transition-colors group-hover:bg-background", bgClass)}>
+        <Card className="border-border/60 bg-card shadow-sm">
+            <CardContent className="flex items-start justify-between gap-4 p-4">
+                <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        {title}
+                    </p>
+                    <div className="mt-1 flex items-baseline gap-2">
+                        <div className="text-2xl font-semibold text-foreground">
+                            <NumberTicker
+                                value={value}
+                                type={type}
+                                decimalPlaces={decimalPlaces}
+                                className="tracking-tight"
+                            />
+                        </div>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+                </div>
+                <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", bgClass)}>
                     <Icon className={cn("h-4 w-4", colorClass)} />
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-baseline gap-2">
-                    <div className="text-2xl font-bold text-foreground">
-                        <NumberTicker
-                            value={value}
-                            type={type}
-                            decimalPlaces={decimalPlaces}
-                            className="tracking-tight"
-                        />
-                    </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">{description}</p>
-                <div className={cn("absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity group-hover:opacity-20", bgClass.replace("/10", "/30"))} />
             </CardContent>
         </Card>
     );
@@ -93,8 +92,8 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
                 decimalPlaces={2}
                 icon={DollarSign}
                 colorClass="text-emerald-600 dark:text-emerald-400"
-                bgClass="bg-emerald-500/10"
-                description="Apos deducao de impostos e repasses."
+                bgClass="border-emerald-500/20 bg-emerald-500/10"
+                description="Apos impostos e repasses."
             />
 
             {/* ds-allow: surface accent */}
@@ -104,8 +103,8 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
                 type="number"
                 icon={Users}
                 colorClass="text-blue-600 dark:text-blue-400"
-                bgClass="bg-blue-500/10"
-                description={`Total de ${totalContracts} contratos cadastrados.`}
+                bgClass="border-blue-500/20 bg-blue-500/10"
+                description={`${totalContracts} contratos cadastrados no total.`}
             />
 
             {/* ds-allow: surface accent */}
@@ -116,10 +115,9 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
                 decimalPlaces={2}
                 icon={Activity}
                 colorClass="text-amber-600 dark:text-amber-400"
-                bgClass="bg-amber-500/10"
-                description="Media aplicada sobre o valor base do cliente."
+                bgClass="border-amber-500/20 bg-amber-500/10"
+                description="Aliquota media aplicada na base do cliente."
             />
         </div>
     );
 }
-

@@ -119,11 +119,11 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
     }
 
     return (
-        <div className="w-full min-h-[calc(100vh-200px)] rounded-2xl border border-border/50 bg-background/70 backdrop-blur-sm">
+        <div className="w-full rounded-2xl border border-border/50 bg-background">
             <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight">Cadastro de Contrato</h2>
-                    <p className="text-sm text-muted-foreground">Tela padrao full-screen para operacoes de cadastro.</p>
+                    <p className="text-sm text-muted-foreground">Defina empresa, vigencia e regra financeira do contrato.</p>
                 </div>
                 <Button variant="outline" className="gap-2" onClick={() => router.replace("/portal/contratos")}>
                     <ArrowLeft className="h-4 w-4" />
@@ -227,7 +227,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg border border-border/50 bg-muted/20">
+                        <div className="grid grid-cols-1 gap-4 rounded-lg border border-border/50 bg-muted/10 p-3 md:grid-cols-2">
                             <div className="space-y-1.5">
                                 <div className="flex items-center justify-between">
                                     <Label className="text-xs">Impostos (%)</Label>
@@ -277,8 +277,8 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                 </div>
 
                 <div className="space-y-6">
-                    <div className="rounded-xl border border-border/60 bg-card shadow-sm overflow-hidden sticky top-6">
-                        <div className="bg-muted/30 px-4 py-2.5 border-b border-border/40 flex items-center gap-2">
+                    <div className="sticky top-6 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+                        <div className="flex items-center gap-2 border-b border-border/40 px-4 py-2.5">
                             <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resumo Mensal</span>
                         </div>
@@ -314,4 +314,3 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
         </div>
     );
 }
-

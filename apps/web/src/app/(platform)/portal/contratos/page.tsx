@@ -32,7 +32,7 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       <PageHeader
         title="Contratos"
-        description="Inativar o ultimo contrato ativo bloqueia empresa e usuarios cliente vinculados."
+        description="Gerencie vigencia, calculo e bloqueio operacional dos contratos."
         actions={!isCreateMode ? (
           <div className="flex items-center gap-3">
             <BulkReadjustDialog />
