@@ -23,16 +23,20 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
     request.headers.get("x-correlation-id") ??
     request.headers.get("x-request-id") ??
     crypto.randomUUID();
+  const requestOrigin = request.headers.get("origin") ?? request.nextUrl.origin;
 
   const upstreamHeaders = new Headers(request.headers);
   upstreamHeaders.delete("host");
   upstreamHeaders.delete("content-length");
-  // Remove browser origin/referer: este é um proxy server-to-server, não uma
-  // requisição de browser direto. Sem o cabeçalho origin o Better Auth trata como
-  // chamada server-side e ignora a verificação CSRF de origem, evitando falha
-  // quando EXTRA_TRUSTED_ORIGINS não inclui o domínio do frontend.
-  upstreamHeaders.delete("origin");
-  upstreamHeaders.delete("referer");
+  // Better Auth exige um Origin valido para mutacoes de auth vindas do browser.
+  // Preservamos o Origin original e, se ele nao vier, sintetizamos a partir
+  // do host atual do frontend para manter a validacao CSRF consistente.
+  upstreamHeaders.set("origin", requestOrigin);
+  if (request.headers.get("referer")) {
+    upstreamHeaders.set("referer", request.headers.get("referer") ?? `${requestOrigin}/`);
+  } else {
+    upstreamHeaders.delete("referer");
+  }
   upstreamHeaders.set("x-correlation-id", correlationId);
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
@@ -50,7 +54,6 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
       signal: controller.signal,
     });
 
-    // Log sempre — essencial para diagnosticar 404/502 vindos do backend
     console.log(
       JSON.stringify({
         event: "auth.proxy.upstream.response",
