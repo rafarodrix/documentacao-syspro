@@ -4,7 +4,7 @@ import type { AuthGatewayResult } from "@/features/auth/domain/auth.types";
 
 type AuthClientPasswordApi = {
   signIn: {
-    email(input: { email: string; password: string; callbackURL: string }): Promise<{ error?: { message?: string } | null }>;
+    email(input: { email: string; password: string; callbackURL?: string }): Promise<{ error?: { message?: string } | null }>;
   };
   forgetPassword(input: { email: string; redirectTo: string }): Promise<unknown>;
   resetPassword(input: { newPassword: string; token: string }): Promise<{ error?: { message?: string } | null }>;
@@ -45,7 +45,7 @@ export const authGateway = {
     }
   },
 
-  async login(email: string, password: string, callbackURL: string): Promise<AuthGatewayResult> {
+  async login(email: string, password: string, callbackURL?: string): Promise<AuthGatewayResult> {
     if (!email?.trim() || !password) {
       return { success: false, error: "Preencha e-mail e senha." };
     }
@@ -53,9 +53,13 @@ export const authGateway = {
     const client = getPasswordApiClient();
 
     try {
-      const { error } = await client.signIn.email({ email, password, callbackURL });
+      const input: { email: string; password: string; callbackURL?: string } = { email, password };
+      if (callbackURL) input.callbackURL = callbackURL;
+
+      const { error } = await client.signIn.email(input);
 
       if (error) {
+        console.error("[AuthGateway] Login Error raw message:", error.message);
         return { success: false, error: translateAuthError(error.message || "") };
       }
 
