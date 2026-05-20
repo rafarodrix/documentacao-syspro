@@ -474,17 +474,17 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 </DialogContent>
             </Dialog>
 
-            <Card className="border-border/60 bg-card shadow-sm">
+            <Card className="border-border/60 bg-card">
                 <div className="overflow-x-auto">
                     <Table>
-                        <TableHeader className="bg-muted/10">
+                        <TableHeader className="bg-muted/20">
                             <TableRow className="hover:bg-transparent border-b border-border/60">
-                                <TableHead className="w-75 h-11 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Empresa</TableHead>
-                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Vigencia</TableHead>
-                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Base</TableHead>
-                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Aliq.</TableHead>
-                                <TableHead className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Status</TableHead>
-                                <TableHead className="text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Liquido</TableHead>
+                                <TableHead className="w-75 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresa</TableHead>
+                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vigencia</TableHead>
+                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Base</TableHead>
+                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aliq.</TableHead>
+                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+                                <TableHead className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Liquido</TableHead>
                                 <TableHead className="w-12.5" />
                             </TableRow>
                         </TableHeader>
@@ -516,12 +516,12 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                     return (
                                         <TableRow
                                             key={contract.id}
-                                            className="group/row border-border/40 hover:bg-muted/30 transition-colors"
+                                            className="group/row border-border/40 transition-colors hover:bg-muted/10"
                                             style={{ animationDelay: `${index * 50}ms` }}
                                         >
-                                            <TableCell className="py-3">
+                                            <TableCell className="px-3 py-3.5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground">
                                                         <Building2 className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5">
@@ -535,26 +535,26 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                                 </div>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="px-3 py-3.5">
                                                 <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
                                                     <CalendarClock className="h-3.5 w-3.5 opacity-70" />
                                                     {formatDate(contract.startDate)}
                                                 </div>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="px-3 py-3.5">
                                                 <span className="font-mono text-xs text-muted-foreground tabular-nums">
                                                     {formatCurrency(minimumWage)}
                                                 </span>
                                             </TableCell>
 
-                                            <TableCell>
-                                                <Badge variant="outline" className="h-5 border-border/60 bg-background px-1.5 font-mono text-[10px] font-normal">
+                                            <TableCell className="px-3 py-3.5">
+                                                <Badge variant="outline" className="h-5 border-border/60 bg-background px-1.5 font-mono text-[10px] font-normal shadow-none">
                                                     {percentage.toFixed(4)}%
                                                 </Badge>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="px-3 py-3.5">
                                                 <Badge
                                                     variant={isActive ? "success" : "muted"}
                                                     className="h-5 gap-1.5 rounded-full px-2 py-0 text-[10px] font-medium"
@@ -564,7 +564,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                                 </Badge>
                                             </TableCell>
 
-                                            <TableCell className="text-right">
+                                            <TableCell className="px-3 py-3.5 text-right">
                                                 <div className="flex flex-col items-end gap-0.5">
                                                     <span className={cn(
                                                         "font-semibold font-mono text-sm tracking-tight tabular-nums",
@@ -579,7 +579,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                                 </div>
                                             </TableCell>
 
-                                            <TableCell>
+                                            <TableCell className="px-3 py-3.5">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover/row:opacity-100 transition-opacity data-[state=open]:opacity-100">
