@@ -37,7 +37,7 @@ function StatCard({
 }: StatCardProps) {
     return (
         <Card className="border-border/60 bg-card shadow-sm">
-            <CardContent className="flex items-start justify-between gap-4 p-4">
+            <CardContent className="flex items-start justify-between gap-3 p-4">
                 <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         {title}
@@ -52,9 +52,9 @@ function StatCard({
                             />
                         </div>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
                 </div>
-                <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", bgClass)}>
+                <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md border", bgClass)}>
                     <Icon className={cn("h-4 w-4", colorClass)} />
                 </div>
             </CardContent>

@@ -120,10 +120,10 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
 
     return (
         <div className="w-full rounded-2xl border border-border/50 bg-background">
-            <div className="flex items-center justify-between gap-4 border-b border-border/50 px-6 py-4">
+            <div className="flex items-center justify-between gap-4 border-b border-border/50 px-5 py-4 lg:px-6">
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight">Cadastro de Contrato</h2>
-                    <p className="text-sm text-muted-foreground">Defina empresa, vigencia e regra financeira do contrato.</p>
+                    <p className="text-sm text-muted-foreground">Defina empresa, vigencia e calculo mensal.</p>
                 </div>
                 <Button variant="outline" className="gap-2" onClick={() => router.replace("/portal/contratos")}>
                     <ArrowLeft className="h-4 w-4" />
@@ -131,13 +131,13 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                 </Button>
             </div>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 p-6 lg:grid-cols-3">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 p-4 lg:grid-cols-3 lg:p-6">
                 <div className="space-y-6 lg:col-span-2">
-                    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-4">
+                    <section className="space-y-3.5 rounded-xl border border-border/60 bg-card p-4">
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresa</Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs">Numero do contrato</Label>
+                                <Label className="text-xs">CNPJ do contrato</Label>
                                 <Input type="text" className="h-10" value={selectedCompany?.cnpj ?? ""} readOnly />
                             </div>
                             <div className="space-y-1.5">
@@ -156,7 +156,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         </div>
                     </section>
 
-                    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-4">
+                    <section className="space-y-3.5 rounded-xl border border-border/60 bg-card p-4">
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Vigencia</Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
@@ -170,7 +170,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         </div>
                     </section>
 
-                    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-4">
+                    <section className="space-y-3.5 rounded-xl border border-border/60 bg-card p-4">
                         <div className="flex items-center justify-between">
                             <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Regra Financeira</Label>
                             {isPending && (
@@ -180,7 +180,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                             )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
                             <div className="space-y-1.5">
                                 <Label className="text-xs">Base de calculo</Label>
                                 <div className="relative">
@@ -202,7 +202,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 md:col-span-2">
                                 <Label className="text-xs">Valor negociado (bruto)</Label>
                                 <div className="relative">
                                     <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -222,17 +222,17 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                                     />
                                 </div>
                                 <p className="text-[10px] text-muted-foreground">
-                                    Preencha valor ou percentual. O outro campo e calculado automaticamente.
+                                    Valor e percentual ficam sincronizados automaticamente.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 rounded-lg border border-border/50 bg-muted/10 p-3 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3.5 rounded-lg border border-border/50 bg-muted/10 p-3 md:grid-cols-2">
                             <div className="space-y-1.5">
                                 <div className="flex items-center justify-between">
                                     <Label className="text-xs">Impostos (%)</Label>
                                     <div className="flex items-center gap-2">
-                                        <Label htmlFor="allowTaxOverride" className="text-[10px] text-muted-foreground">Override admin</Label>
+                                        <Label htmlFor="allowTaxOverride" className="text-[10px] text-muted-foreground">Override</Label>
                                         <Switch
                                             id="allowTaxOverride"
                                             checked={allowTaxOverride}
@@ -247,7 +247,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label className="text-xs">Repasse parceiro (%)</Label>
+                                <Label className="text-xs">Repasse (%)</Label>
                                 <Input type="number" step="0.1" className="h-9 font-mono" {...form.register("programmerRate")} />
                                 <div className="flex items-center gap-1.5 pt-0.5">
                                     {REPASSE_PRESETS.map((value) => (
@@ -270,9 +270,9 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         </div>
                     </section>
 
-                    <section className="rounded-xl border border-border/60 bg-card p-4 space-y-2">
+                    <section className="space-y-2 rounded-xl border border-border/60 bg-card p-4">
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Observacoes Internas</Label>
-                        <Textarea rows={4} placeholder="Condicoes comerciais e observacoes operacionais." {...form.register("notes")} />
+                        <Textarea rows={3} placeholder="Condicoes comerciais e observacoes operacionais." {...form.register("notes")} />
                     </section>
                 </div>
 
@@ -282,7 +282,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                             <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resumo Mensal</span>
                         </div>
-                        <div className="p-4 space-y-2.5 text-sm">
+                        <div className="space-y-2 p-4 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Bruto ({percentage}%)</span>
                                 <span className="font-mono">{formatCurrency(grossValue)}</span>
@@ -296,9 +296,9 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                                 <span className="font-mono text-destructive">- {formatCurrency(partnerDeduction)}</span>
                             </div>
                             <Separator className="my-1" />
-                            <div className="flex justify-between items-center">
+                            <div className="flex items-center justify-between">
                                 <span className="font-semibold text-foreground">Liquido estimado</span>
-                                <span className="text-lg font-bold font-mono text-primary">{formatCurrency(netValue)}</span>
+                                <span className="text-lg font-semibold font-mono text-primary">{formatCurrency(netValue)}</span>
                             </div>
                         </div>
 

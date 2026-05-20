@@ -276,14 +276,21 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         <DialogTitle>Suspender contrato</DialogTitle>
                         <DialogDescription>
                             {isImpactLoading
-                                ? "Calculando impacto da suspensao..."
+                                ? "Calculando impacto operacional..."
                                 : suspendImpact?.willBlockCompany
-                                    ? `${suspendImpact.blockedUsersCount} usuarios serao bloqueados${suspendImpact.companyName ? ` em ${suspendImpact.companyName}` : ""} ao suspender este contrato.`
-                                    : "Este contrato nao vai bloquear usuarios agora porque ainda existe outro contrato ativo na empresa."}
+                                    ? `${suspendImpact.blockedUsersCount} usuarios serao bloqueados${suspendImpact.companyName ? ` em ${suspendImpact.companyName}` : ""}.`
+                                    : "Ainda existe outro contrato ativo para esta empresa."}
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
+                        <div className="space-y-3.5">
+                            {suspendTarget ? (
+                                <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
+                                    <p className="font-medium text-foreground">{suspendTarget.company.razaoSocial}</p>
+                                <p className="text-xs text-muted-foreground">CNPJ: {suspendTarget.company.cnpj}</p>
+                            </div>
+                        ) : null}
+
                         <div className="space-y-2">
                             <Label htmlFor="blockReason">Motivo do bloqueio</Label>
                             <Select value={blockReason} onValueChange={(value) => setBlockReason(value as ContractBlockReason)}>
@@ -329,13 +336,20 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                     <DialogHeader>
                         <DialogTitle>Editar contrato</DialogTitle>
                         <DialogDescription>
-                            Atualize os termos financeiros e dados de controle interno do contrato.
+                            Atualize vigencia, calculo e observacoes internas.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    {editTarget ? (
+                        <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
+                            <p className="font-medium text-foreground">{editTarget.company.razaoSocial}</p>
+                            <p className="text-xs text-muted-foreground">CNPJ: {editTarget.company.cnpj}</p>
+                        </div>
+                    ) : null}
+
+                    <div className="grid gap-3.5 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label>Numero do contrato</Label>
+                            <Label>CNPJ do contrato</Label>
                             <Input
                                 value={editForm.contractNumber}
                                 readOnly
@@ -379,7 +393,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             <div className="flex items-center justify-between">
                                 <Label>Impostos (%)</Label>
                                 <div className="flex items-center gap-2">
-                                    <Label htmlFor="editAllowTaxOverride" className="text-xs text-muted-foreground">Override admin</Label>
+                                    <Label htmlFor="editAllowTaxOverride" className="text-xs text-muted-foreground">Override</Label>
                                     <Switch
                                         id="editAllowTaxOverride"
                                         checked={allowTaxOverride}
@@ -401,7 +415,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Repasse parceiro (%)</Label>
+                            <Label>Repasse (%)</Label>
                             <Input
                                 type="number"
                                 step="0.1"
@@ -414,7 +428,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                     <div className="space-y-2">
                         <Label>Observacoes</Label>
                         <Textarea
-                            rows={3}
+                            rows={2}
                             value={editForm.notes}
                             onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))}
                         />
@@ -437,13 +451,13 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         <DialogTitle>Excluir contrato</DialogTitle>
                         <DialogDescription>
                             {deleteTarget?.status === "ACTIVE"
-                                ? "A exclusao e definitiva. Se este for o ultimo contrato ativo da empresa, a empresa e os usuarios cliente vinculados serao bloqueados."
-                                : "A exclusao e definitiva e remove este contrato da base."}
+                                ? "A exclusao e definitiva. Se este for o ultimo contrato ativo, a empresa e os usuarios cliente vinculados serao bloqueados."
+                                : "A exclusao remove este contrato da base de forma definitiva."}
                         </DialogDescription>
                     </DialogHeader>
 
                     {deleteTarget ? (
-                        <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                        <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
                             <p className="font-medium text-foreground">{deleteTarget.company.razaoSocial}</p>
                             <p className="text-xs text-muted-foreground">CNPJ: {deleteTarget.company.cnpj}</p>
                         </div>
@@ -505,13 +519,13 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                             className="group/row border-border/40 hover:bg-muted/30 transition-colors"
                                             style={{ animationDelay: `${index * 50}ms` }}
                                         >
-                                            <TableCell className="py-3.5">
+                                            <TableCell className="py-3">
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex h-8 w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
                                                         <Building2 className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="font-medium text-sm text-foreground truncate max-w-50">
+                                                        <span className="max-w-50 truncate text-sm font-medium text-foreground">
                                                             {contract.company.razaoSocial}
                                                         </span>
                                                         <span className="text-[10px] text-muted-foreground font-mono tracking-tight">
@@ -535,7 +549,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                             </TableCell>
 
                                             <TableCell>
-                                                <Badge variant="outline" className="h-5 border-border/60 bg-background font-mono text-[10px] font-normal">
+                                                <Badge variant="outline" className="h-5 border-border/60 bg-background px-1.5 font-mono text-[10px] font-normal">
                                                     {percentage.toFixed(4)}%
                                                 </Badge>
                                             </TableCell>
@@ -558,7 +572,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                                     )}>
                                                         {formatCurrency(net)}
                                                     </span>
-                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70">
+                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground/65">
                                                         <Wallet className="h-3 w-3" />
                                                         <span>Bruto: {formatCurrency(gross)}</span>
                                                     </div>
