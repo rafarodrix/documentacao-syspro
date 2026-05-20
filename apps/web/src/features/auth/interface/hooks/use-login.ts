@@ -20,7 +20,7 @@ export function useLogin() {
     setIsLoading(true)
     setError(null)
 
-    const result = await authGateway.login(email, password, urlCallback || "")
+    const result = await authGateway.login(email, password, urlCallback ?? undefined)
 
     if (!result.success) {
       setError(result.error ?? "Erro desconhecido.")

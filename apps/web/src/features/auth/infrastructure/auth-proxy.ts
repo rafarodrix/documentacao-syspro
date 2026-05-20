@@ -27,6 +27,12 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
   const upstreamHeaders = new Headers(request.headers);
   upstreamHeaders.delete("host");
   upstreamHeaders.delete("content-length");
+  // Remove browser origin/referer: este é um proxy server-to-server, não uma
+  // requisição de browser direto. Sem o cabeçalho origin o Better Auth trata como
+  // chamada server-side e ignora a verificação CSRF de origem, evitando falha
+  // quando EXTRA_TRUSTED_ORIGINS não inclui o domínio do frontend.
+  upstreamHeaders.delete("origin");
+  upstreamHeaders.delete("referer");
   upstreamHeaders.set("x-correlation-id", correlationId);
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
