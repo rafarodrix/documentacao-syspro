@@ -15,6 +15,7 @@ import type { ContractCompanyOption } from "@/features/contracts/domain/contract
 import { toast } from "sonner";
 
 import { Button, Input, Label, Textarea, Switch, Separator } from "@dosc-syspro/ui";
+import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
 import {
     PlusCircle, Loader2, DollarSign, RefreshCw, CalendarDays, Percent, Calculator, ArrowLeft,
 } from "lucide-react";
@@ -74,6 +75,16 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
 
     const selectedCompanyId = form.watch("companyId");
     const selectedCompany = useMemo(() => companies.find((company) => company.id === selectedCompanyId) ?? null, [companies, selectedCompanyId]);
+    const companyPickerOptions = useMemo<TicketCompanyPickerOption[]>(
+        () => companies.map((company) => ({
+            id: company.id,
+            label: company.razaoSocial,
+            description: company.cnpj,
+            meta: null,
+            kind: "company",
+        })),
+        [companies],
+    );
 
     const grossValue = wage * (percentage / 100);
     const taxDeduction = grossValue * (taxRate / 100);
@@ -120,11 +131,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
 
     return (
         <div className="w-full space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                    <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Novo contrato</h2>
-                    <p className="mt-1 text-sm text-muted-foreground md:text-base">Defina empresa, vigencia e calculo mensal.</p>
-                </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-end">
                 <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={() => router.replace("/portal/contratos")}>
                     <ArrowLeft className="h-4 w-4" />
                     Voltar para contratos
@@ -142,16 +149,15 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs">Empresa contratante</Label>
-                                <select
-                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                                    onChange={(event) => form.setValue("companyId", event.target.value, { shouldValidate: true })}
-                                    value={form.watch("companyId")}
-                                >
-                                    <option value="">Selecione a empresa...</option>
-                                    {companies.map((company) => (
-                                        <option key={company.id} value={company.id}>{company.razaoSocial}</option>
-                                    ))}
-                                </select>
+                                <TicketCompanyPicker
+                                    value={selectedCompanyId}
+                                    options={companyPickerOptions}
+                                    onChange={(value) => form.setValue("companyId", value, { shouldDirty: true, shouldValidate: true })}
+                                    placeholder="Pesquisar empresa"
+                                    searchPlaceholder="Buscar empresa, nome fantasia ou CNPJ..."
+                                    emptyMessage="Nenhuma empresa encontrada."
+                                    className="h-10 bg-background"
+                                />
                             </div>
                         </div>
                     </section>
