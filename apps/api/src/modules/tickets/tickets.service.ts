@@ -1024,11 +1024,15 @@ export class TicketsService {
         const hasDevelopmentOwner =
           typeof currentMetadata.developmentOwnerUserId === 'string' && currentMetadata.developmentOwnerUserId.trim().length > 0;
 
-        if (ticketCapabilities.canOwnDevelopmentQueue && !hasDevelopmentOwner && !shouldResetDevelopmentWorkflow) {
+        if (
+          currentTeam === 'DESENVOLVIMENTO' &&
+          ticketCapabilities.canOwnDevelopmentQueue &&
+          !hasDevelopmentOwner &&
+          !shouldResetDevelopmentWorkflow
+        ) {
           const developerName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
           currentMetadata.developmentOwnerUserId = requester.userId;
           currentMetadata.developmentOwnerName = developerName;
-          currentMetadata.currentTeam = 'DESENVOLVIMENTO';
           if (!hasCurrentOwner && !input.assignedUserId && !exists.assignedUserId) {
             currentMetadata.currentOwnerUserId = requester.userId;
             currentMetadata.currentOwnerName = developerName;
@@ -1037,7 +1041,12 @@ export class TicketsService {
           }
         }
 
-        if (ticketCapabilities.canOwnSupportQueue && !hasSupportOwner && !shouldResetDevelopmentWorkflow) {
+        if (
+          currentTeam === 'SUPORTE' &&
+          ticketCapabilities.canOwnSupportQueue &&
+          !hasSupportOwner &&
+          !shouldResetDevelopmentWorkflow
+        ) {
           const supportName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
           currentMetadata.supportOwnerUserId = requester.userId;
           currentMetadata.supportOwnerName = supportName;
