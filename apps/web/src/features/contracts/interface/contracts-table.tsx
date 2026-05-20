@@ -14,6 +14,9 @@ import {
     Trash2,
     ArrowRightLeft,
     Wallet,
+    CircleOff,
+    SquarePen,
+    TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { deleteContractAction, updateContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
@@ -273,7 +276,10 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Suspender contrato</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CircleOff className="h-4 w-4 text-primary" />
+                            Suspender contrato
+                        </DialogTitle>
                         <DialogDescription>
                             {isImpactLoading
                                 ? "Calculando impacto operacional..."
@@ -320,7 +326,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         )}
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="border-t border-border/50 pt-4">
                         <Button variant="outline" onClick={() => setSuspendTarget(null)} disabled={isPending || isImpactLoading}>
                             Cancelar
                         </Button>
@@ -334,7 +340,10 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Editar contrato</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                            <SquarePen className="h-4 w-4 text-primary" />
+                            Editar contrato
+                        </DialogTitle>
                         <DialogDescription>
                             Atualize vigencia, calculo e observacoes internas.
                         </DialogDescription>
@@ -434,7 +443,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         />
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="border-t border-border/50 pt-4">
                         <Button variant="outline" onClick={() => setEditTarget(null)} disabled={isPending}>
                             Cancelar
                         </Button>
@@ -448,7 +457,10 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Excluir contrato</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                            <TriangleAlert className="h-4 w-4 text-primary" />
+                            Excluir contrato
+                        </DialogTitle>
                         <DialogDescription>
                             {deleteTarget?.status === "ACTIVE"
                                 ? "A exclusao e definitiva. Se este for o ultimo contrato ativo, a empresa e os usuarios cliente vinculados serao bloqueados."
@@ -463,7 +475,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         </div>
                     ) : null}
 
-                    <DialogFooter>
+                    <DialogFooter className="border-t border-border/50 pt-4">
                         <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isPending}>
                             Cancelar
                         </Button>

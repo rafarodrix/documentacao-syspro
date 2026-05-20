@@ -119,19 +119,19 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
     }
 
     return (
-        <div className="w-full rounded-2xl border border-border/50 bg-background">
-            <div className="flex items-center justify-between gap-4 border-b border-border/50 px-5 py-4 lg:px-6">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">Cadastro de Contrato</h2>
-                    <p className="text-sm text-muted-foreground">Defina empresa, vigencia e calculo mensal.</p>
+        <div className="w-full space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <h2 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Novo contrato</h2>
+                    <p className="mt-1 text-sm text-muted-foreground md:text-base">Defina empresa, vigencia e calculo mensal.</p>
                 </div>
-                <Button variant="outline" className="gap-2" onClick={() => router.replace("/portal/contratos")}>
+                <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={() => router.replace("/portal/contratos")}>
                     <ArrowLeft className="h-4 w-4" />
-                    Voltar
+                    Voltar para contratos
                 </Button>
             </div>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 p-4 lg:grid-cols-3 lg:p-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
                     <section className="space-y-3.5 rounded-xl border border-border/60 bg-card p-4">
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Empresa</Label>
@@ -277,7 +277,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                 </div>
 
                 <div className="space-y-6">
-                    <div className="sticky top-6 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+                    <div className="sticky top-6 overflow-hidden rounded-xl border border-border/60 bg-card">
                         <div className="flex items-center gap-2 border-b border-border/40 px-4 py-2.5">
                             <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resumo Mensal</span>
@@ -305,7 +305,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         <div className="border-t border-border/50 p-4">
                             <Button type="submit" disabled={isPending} className="w-full gap-2">
                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                Salvar Contrato
+                                Salvar contrato
                             </Button>
                         </div>
                     </div>
