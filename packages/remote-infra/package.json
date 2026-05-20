@@ -18,7 +18,7 @@
   "dependencies": {
     "@dosc-syspro/database": "0.0.0",
     "@dosc-syspro/remote-domain": "0.0.0",
-    "@prisma/client": "^7.8.0"
+    "@prisma/client": "^5.22.0"
   },
   "devDependencies": {
     "typescript": "^5.8.2"
