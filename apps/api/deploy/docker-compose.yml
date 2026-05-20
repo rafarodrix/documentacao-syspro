@@ -104,11 +104,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 45s
-
-    # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
-    # networks:
-    #   dokploy-network:
-    #     external: true
+    networks:
+      - dokploy-network
 
 volumes:
   postgres_data:
+
+networks:
+  dokploy-network:
+    external: true
