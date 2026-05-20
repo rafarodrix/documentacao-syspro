@@ -1,8 +1,10 @@
 import { Controller, All, Req, Res, Post, Get, Body } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { toNodeHandler } from 'better-auth/node';
 
+@SkipThrottle()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -20,8 +22,9 @@ export class AuthController {
     return this.authService.getProtectedSession(req.headers);
   }
 
-  // Captura qualquer requisicao em /api/auth/* e repassa para o engine do better-auth
-  @All('*path')
+  // Captura qualquer requisicao em /api/auth/* e repassa para o engine do better-auth.
+  // Usar @All('*') em vez de @All('*path') para compatibilidade com NestJS 11+
+  @All('*')
   handleAuth(@Req() req: Request, @Res() res: Response) {
     return toNodeHandler(this.authService.auth)(req, res);
   }
