@@ -53,7 +53,7 @@ export function DashboardMetricCard({
 }: {
   title: string;
   value: number | string;
-  helper: string;
+  helper?: string;
   icon: typeof Target;
   tone: keyof typeof toneClasses;
   trend?: Trend;
@@ -73,9 +73,9 @@ export function DashboardMetricCard({
         {trend ? (
           <TrendIndicator {...trend} />
         ) : (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{helper}</p>
+          helper ? <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{helper}</p> : null
         )}
-        {trend ? <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{helper}</p> : null}
+        {trend && helper ? <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{helper}</p> : null}
       </CardContent>
     </Card>
   );

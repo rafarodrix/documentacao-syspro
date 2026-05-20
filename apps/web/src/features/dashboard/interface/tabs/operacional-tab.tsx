@@ -66,7 +66,6 @@ export async function OperacionalTab() {
           <DashboardMetricCard
             title="Contratos ativos"
             value={contracts.activeContracts}
-            helper={formatCurrency(contracts.totalValue)}
             icon={FileText as any}
             tone="emerald"
           />
