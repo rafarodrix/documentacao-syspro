@@ -7,4 +7,6 @@ export {
   formatCNPJ,
   formatCEP,
   formatPhone,
+  isValidCNPJ,
+  isValidCnpj,
 } from "@dosc-syspro/shared";

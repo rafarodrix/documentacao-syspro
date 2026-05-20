@@ -1,18 +1,17 @@
 import "server-only";
 
+import { trpc } from "@/lib/api/trpc-client";
 import type { CrmLead } from "@dosc-syspro/contracts/crm";
 import type { LeadDashboardData } from "@/features/crm/domain/crm.types";
-import { fetchCrmLeadByIdGateway, fetchCrmLeadsGateway } from "@/features/crm/infrastructure/gateways/crm.gateway";
 
 export async function getCrmLeadsData(): Promise<LeadDashboardData> {
   try {
-    const params = new URLSearchParams({
+    const response = await trpc.crm.list.query({
       page: "1",
       pageSize: "100",
     });
-    const response = await fetchCrmLeadsGateway(params);
     return {
-      leads: response.success ? response.data : [],
+      leads: response.success && response.data ? response.data : [],
       pagination: response.success ? (response.pagination ?? null) : null,
     };
   } catch (error) {
@@ -23,7 +22,8 @@ export async function getCrmLeadsData(): Promise<LeadDashboardData> {
 
 export async function getCrmLeadById(id: string): Promise<CrmLead | null> {
   try {
-    return await fetchCrmLeadByIdGateway(id);
+    const response = await trpc.crm.getById.query({ id });
+    return response.success ? response.data ?? null : null;
   } catch (error) {
     console.error("Erro ao carregar lead do CRM:", error);
     return null;

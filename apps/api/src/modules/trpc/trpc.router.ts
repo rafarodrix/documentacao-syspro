@@ -8,6 +8,7 @@ import { DocsRouter } from '../docs/docs.router';
 import { TicketsRouter } from '../tickets/tickets.router';
 import { RemoteAdminRouter } from '../remote-admin/remote-admin.router';
 import { TarefasRouter } from '../tarefas/tarefas.router';
+import { CrmRouter } from '../crm/crm.router';
 
 @Injectable()
 export class TrpcRouter {
@@ -22,6 +23,7 @@ export class TrpcRouter {
     private readonly ticketsRouter: TicketsRouter,
     private readonly tarefasRouter: TarefasRouter,
     private readonly remoteAdminRouter: RemoteAdminRouter,
+    private readonly crmRouter: CrmRouter,
   ) {
     this.appRouter = this.createRouter();
   }
@@ -38,6 +40,7 @@ export class TrpcRouter {
       tickets: this.ticketsRouter.router,
       tarefas: this.tarefasRouter.router,
       remote: this.remoteAdminRouter.router,
+      crm: this.crmRouter.router,
     });
   }
 }

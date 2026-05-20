@@ -36,8 +36,8 @@ interface ContractsTableProps {
     canDelete: boolean;
 }
 
-const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+import { formatCurrency } from "@/lib/formatters";
+import { calculateContractFinancials } from "@dosc-syspro/shared";
 
 const formatDate = (dateStr: string | Date) =>
     new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
@@ -354,10 +354,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                     const taxRate = toNumber(contract.taxRate);
                                     const programmerRate = toNumber(contract.programmerRate);
 
-                                    const gross = minimumWage * (percentage / 100);
-                                    const taxDed = gross * (taxRate / 100);
-                                    const progDed = gross * ((programmerRate || 0) / 100);
-                                    const net = gross - taxDed - progDed;
+                                    const { grossValue: gross, taxDeduction: taxDed, partnerDeduction: progDed, netValue: net } = calculateContractFinancials(minimumWage, percentage, taxRate, programmerRate);
                                     const isActive = contract.status === "ACTIVE";
 
                                     return (

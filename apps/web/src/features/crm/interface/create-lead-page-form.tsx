@@ -11,8 +11,9 @@ import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/crm.t
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Badge } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-import { formatCNPJ } from "@/lib/formatters";
+import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
 import { PageHeader } from "@/components/patterns";
+import { trpc } from "@/lib/api/trpc-client";
 
 type LeadFormState = {
   title: string;
@@ -67,24 +68,6 @@ const EMPTY_CONTACT: CrmLeadManualContact = {
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
-}
-
-function isValidCnpj(value: string) {
-  const digits = onlyDigits(value);
-  if (digits.length !== 14 || /^(\d)\1+$/.test(digits)) return false;
-
-  const calcDigit = (base: string, factors: number[]) => {
-    const total = base
-      .split("")
-      .reduce((sum, digit, index) => sum + Number(digit) * factors[index], 0);
-    const mod = total % 11;
-    return mod < 2 ? 0 : 11 - mod;
-  };
-
-  const base = digits.slice(0, 12);
-  const firstDigit = calcDigit(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
-  const secondDigit = calcDigit(`${base}${firstDigit}`, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
-  return digits === `${base}${firstDigit}${secondDigit}`;
 }
 
 function parseNullableNumber(value: string) {
@@ -286,38 +269,34 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(isEdit && leadId ? `/api/crm/leads/${leadId}` : "/api/crm/leads", {
-        method: isEdit ? "PATCH" : "POST",
-        credentials: "include",
-        body: JSON.stringify({
-          title: form.title.trim(),
-          stage: form.stage,
-          source: form.source,
-          companyName: form.companyName.trim(),
-          tradeName: form.tradeName.trim() || null,
-          document: onlyDigits(form.document) || null,
-          contacts: normalizedContacts,
-          industry: form.industry.trim() || null,
-          companySize: form.companySize.trim() || null,
-          city: form.city.trim() || null,
-          state: form.state.trim() || null,
-          estimatedValue: parseNullableNumber(form.estimatedValue),
-          licenseValue: parseNullableNumber(form.licenseValue),
-          monthlyFee: parseNullableNumber(form.monthlyFee),
-          minimumWagePercentage: parseNullableNumber(form.minimumWagePercentage),
-          expectedCloseAt: form.expectedCloseAt || null,
-          nextStep: form.nextStep.trim() || null,
-          qualificationNotes: form.qualificationNotes.trim() || null,
-          lostReason: form.lostReason.trim() || null,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const data = {
+        title: form.title.trim(),
+        stage: form.stage as any,
+        source: form.source as any,
+        companyName: form.companyName.trim(),
+        tradeName: form.tradeName.trim() || null,
+        document: onlyDigits(form.document) || null,
+        contacts: normalizedContacts,
+        industry: form.industry.trim() || null,
+        companySize: form.companySize.trim() || null,
+        city: form.city.trim() || null,
+        state: form.state.trim() || null,
+        estimatedValue: parseNullableNumber(form.estimatedValue),
+        licenseValue: parseNullableNumber(form.licenseValue),
+        monthlyFee: parseNullableNumber(form.monthlyFee),
+        minimumWagePercentage: parseNullableNumber(form.minimumWagePercentage),
+        expectedCloseAt: form.expectedCloseAt || null,
+        nextStep: form.nextStep.trim() || null,
+        qualificationNotes: form.qualificationNotes.trim() || null,
+        lostReason: form.lostReason.trim() || null,
+      };
 
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || payload?.success === false) {
-        toast.error(payload?.error || payload?.message || (isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead."));
+      const result = isEdit && leadId
+        ? await trpc.crm.update.mutate({ id: leadId, data })
+        : await trpc.crm.create.mutate(data);
+
+      if (!result?.success) {
+        toast.error(result?.error || result?.message || (isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead."));
         return;
       }
 

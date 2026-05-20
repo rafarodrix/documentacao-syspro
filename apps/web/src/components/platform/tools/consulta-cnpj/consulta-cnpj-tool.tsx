@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Separator, Badge } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-import { formatCNPJ, formatPhone } from "@/lib/formatters";
+import { formatCNPJ, formatPhone, isValidCnpj } from "@/lib/formatters";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import type { CompanyRegistryLookupResponse } from "@/features/company/application/company-view.types";
 
@@ -20,24 +20,6 @@ type LookupProfile = NonNullable<CompanyRegistryLookupResponse["profile"]>;
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
-}
-
-function isValidCnpj(value: string) {
-  const digits = onlyDigits(value);
-  if (digits.length !== 14 || /^(\d)\1+$/.test(digits)) return false;
-
-  const calcDigit = (base: string, factors: number[]) => {
-    const total = base
-      .split("")
-      .reduce((sum, digit, index) => sum + Number(digit) * factors[index], 0);
-    const mod = total % 11;
-    return mod < 2 ? 0 : 11 - mod;
-  };
-
-  const base = digits.slice(0, 12);
-  const firstDigit = calcDigit(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
-  const secondDigit = calcDigit(`${base}${firstDigit}`, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
-  return digits === `${base}${firstDigit}${secondDigit}`;
 }
 
 function formatDate(value?: string) {

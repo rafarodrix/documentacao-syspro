@@ -9,7 +9,11 @@ export {
   formatCNPJ,
   formatCEP,
   formatPhone,
+  isValidCNPJ,
+  isValidCnpj,
 } from "./formatters";
+export { calculateContractFinancials } from "./financials";
+export type { ContractFinancialBreakdown } from "./financials";
 export { formatRecency } from "./date";
 export { buildSearchText, includesNormalizedSearch, normalizeSearchText } from "./search";
 export type { NormalizeSearchTextOptions } from "./search";

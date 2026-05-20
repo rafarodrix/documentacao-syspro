@@ -30,6 +30,7 @@ import {
   type LeadDashboardData,
 } from "@/features/crm/domain/crm.types";
 import { cn, formatDateSafe } from "@/lib/utils";
+import { trpc } from "@/lib/api/trpc-client";
 
 type LeadStatusFilter = "ACTIVE" | "WON" | "LOST";
 type LeadAttentionFilter = "ALL" | "OVERDUE" | "NO_NEXT_STEP" | "DUE_SOON";
@@ -286,17 +287,12 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
     }
 
     try {
-      const response = await fetch(`/api/crm/leads/${leadId}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      const result = await trpc.crm.update.mutate({
+        id: leadId,
+        data: payload,
       });
 
-      const result = await response.json().catch(() => null);
-      if (!response.ok || result?.success === false || !result?.data) {
+      if (!result?.success || !result?.data) {
         setLeads(previousLeads);
         toast.error(result?.error || result?.message || "Falha ao atualizar lead.");
         return;

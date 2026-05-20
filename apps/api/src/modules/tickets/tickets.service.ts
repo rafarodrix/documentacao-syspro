@@ -85,7 +85,7 @@ export class TicketsService {
     private readonly automationSettingsService: AutomationSettingsService,
     private readonly automationWhatsappService: AutomationWhatsappService,
     private readonly r2StorageService: R2StorageService,
-    @Optional() private readonly tarefasService: TarefasService | null = null,
+    @Optional() private readonly tarefasService: TarefasService | null,
   ) {}
 
   async create(

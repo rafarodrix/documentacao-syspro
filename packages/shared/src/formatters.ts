@@ -51,3 +51,23 @@ export function formatPhone(value: string) {
   }
   return normalized.replace(/^(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
 }
+
+export function isValidCNPJ(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 14 || /^(\d)\1+$/.test(digits)) return false;
+
+  const calcDigit = (base: string, factors: number[]) => {
+    const total = base
+      .split("")
+      .reduce((sum, digit, index) => sum + Number(digit) * factors[index], 0);
+    const mod = total % 11;
+    return mod < 2 ? 0 : 11 - mod;
+  };
+
+  const base = digits.slice(0, 12);
+  const firstDigit = calcDigit(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const secondDigit = calcDigit(`${base}${firstDigit}`, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return digits === `${base}${firstDigit}${secondDigit}`;
+}
+
+export const isValidCnpj = isValidCNPJ;

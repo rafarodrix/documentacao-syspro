@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "experimentalDecorators": true,
     "paths": {
       "@/*": ["./src/*"],
       "@dosc-syspro/shared": ["../../packages/shared/src/index.ts"],

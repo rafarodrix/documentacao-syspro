@@ -31,8 +31,8 @@ interface ContractSheetProps {
 const REPASSE_PRESETS = [25, 35, 50] as const;
 const DEFAULT_TAX_RATE = 6;
 
-const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+import { formatCurrency } from "@/lib/formatters";
+import { calculateContractFinancials } from "@dosc-syspro/shared";
 
 const defaultValues: CreateContractInput = {
     companyId: "",
@@ -112,10 +112,7 @@ export function ContractSheet({ companies, mode = "button", contract = null }: C
         [companies],
     );
 
-    const grossValue = wage * (percentage / 100);
-    const taxDeduction = grossValue * (taxRate / 100);
-    const partnerDeduction = grossValue * (partnerRate / 100);
-    const netValue = grossValue - taxDeduction - partnerDeduction;
+    const { grossValue, taxDeduction, partnerDeduction, netValue } = calculateContractFinancials(wage, percentage, taxRate, partnerRate);
 
     useEffect(() => {
         if (calcMode !== "PERCENT") return;

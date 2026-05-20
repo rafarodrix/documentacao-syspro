@@ -6,6 +6,7 @@ import { Card, CardContent } from "@dosc-syspro/ui";
 import { DollarSign, Users, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NumberTicker } from "@/components/magicui/number-ticker";
+import { calculateContractFinancials } from "@dosc-syspro/shared";
 
 type ContractLike = {
     status: string;
@@ -72,10 +73,8 @@ export function ContractStats({ contracts }: { contracts: ContractLike[] }) {
         const taxRate = toNumber(contract.taxRate);
         const partnerRate = toNumber(contract.programmerRate);
 
-        const gross = minimumWage * (percentage / 100);
-        const taxDeduction = gross * (taxRate / 100);
-        const partnerDeduction = gross * ((partnerRate || 0) / 100);
-        return acc + (gross - taxDeduction - partnerDeduction);
+        const { netValue } = calculateContractFinancials(minimumWage, percentage, taxRate, partnerRate);
+        return acc + netValue;
     }, 0);
 
     const avgPercentage = activeContracts.length > 0
