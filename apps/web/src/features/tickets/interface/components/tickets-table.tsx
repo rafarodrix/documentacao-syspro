@@ -31,7 +31,7 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
     : isClosedView || isOpenView ? 7 : 8;
 
   return (
-    <Card className="overflow-hidden border-border/60 bg-card shadow-sm animate-in fade-in duration-700">
+    <Card className="overflow-hidden border-border/60 bg-card animate-in fade-in duration-700">
       <div className="md:hidden divide-y divide-border/60">
         {tickets.length === 0 ? (
           <EmptyState
@@ -44,7 +44,7 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
           tickets.map((ticket) => (
             <div 
               key={ticket.id} 
-              className="p-4 space-y-3 cursor-pointer hover:bg-muted/20 transition-colors"
+              className="cursor-pointer space-y-3 p-4 transition-colors hover:bg-muted/10"
               onClick={() => router.push(`/portal/tickets/${ticket.id}`)}
             >
               <div className="flex items-start justify-between gap-3">
@@ -97,20 +97,20 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
 
       <div className="hidden overflow-x-auto md:block">
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-muted/40 backdrop-blur">
+          <TableHeader className="sticky top-0 z-10 bg-muted/20 backdrop-blur">
             <TableRow className="hover:bg-transparent border-b border-border/60">
-              <TableHead className="w-28 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
-              <TableHead className="min-w-90 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <TableHead className="w-28 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
+              <TableHead className="min-w-90 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <SortButton label="Assunto" active={sortBy === "subject"} direction={sortOrder} onClick={() => toggleSort("subject", sortBy, sortOrder, onSortChange)} />
               </TableHead>
-              {canManageTickets && <TableHead className="min-w-56 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></TableHead>}
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
-              {!isClosedView && !isOpenView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
-              {!isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>}
-              {isClosedView && <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Resolvido por</TableHead>}
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></TableHead>
-              <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
+              {canManageTickets && <TableHead className="min-w-56 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></TableHead>}
+              <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
+              <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
+              {!isClosedView && !isOpenView && <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
+              {!isClosedView && <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>}
+              {isClosedView && <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resolvido por</TableHead>}
+              <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></TableHead>
+              <TableHead className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -129,16 +129,16 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
               tickets.map((ticket, index) => (
                 <TableRow
                   key={ticket.id}
-                  className="group/row cursor-pointer border-border/50 transition-colors hover:bg-muted/30"
+                  className="group/row cursor-pointer border-border/50 transition-colors hover:bg-muted/10"
                   style={{ animationDelay: `${index * 40}ms` }}
                   onClick={() => router.push(`/portal/tickets/${ticket.id}`)}
                 >
-                  <TableCell className="py-3">
-                    <span className="rounded-md border border-border/50 bg-muted/30 px-2 py-1 font-mono text-[11px] font-medium text-muted-foreground">
+                  <TableCell className="px-3 py-3.5">
+                    <span className="rounded-md border border-border/50 bg-background px-2 py-1 font-mono text-[11px] font-medium text-muted-foreground">
                       #{ticket.number}
                     </span>
                   </TableCell>
-                  <TableCell className="py-3">
+                  <TableCell className="px-3 py-3.5">
                     <div className="flex flex-col gap-0.5">
                       <span className="max-w-96 truncate text-sm font-medium text-foreground">{ticket.title}</span>
                       <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
@@ -148,9 +148,9 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                   </TableCell>
 
                   {canManageTickets && (
-                    <TableCell>
+                    <TableCell className="px-3 py-3.5">
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground ring-1 ring-border/60 transition-colors group-hover/row:text-primary">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground transition-colors">
                           <Building2 className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex min-w-0 flex-col gap-0.5">
@@ -167,32 +167,32 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                     </TableCell>
                   )}
 
-                  <TableCell>
+                  <TableCell className="px-3 py-3.5">
                     <span className="text-xs text-muted-foreground">
                       {resolveCategoryLabel(ticketSettings.categories, ticket.category)}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-3 py-3.5">
                     <TeamBadge team={ticket.team} />
                   </TableCell>
                   {!isClosedView && !isOpenView && (
-                    <TableCell>
+                    <TableCell className="px-3 py-3.5">
                       <StatusBadge status={ticket.statusLabel} rawStatus={ticket.status} />
                     </TableCell>
                   )}
                   {!isClosedView && (
-                    <TableCell>
+                    <TableCell className="px-3 py-3.5">
                       <PriorityBadge priority={ticket.priority} />
                     </TableCell>
                   )}
                   {isClosedView && (
-                    <TableCell>
+                    <TableCell className="px-3 py-3.5">
                       <span className="text-xs text-muted-foreground">
                         {ticket.resolvedByName || "Nao informado"}
                       </span>
                     </TableCell>
                   )}
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  <TableCell className="px-3 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-default">
@@ -204,7 +204,7 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="px-3 py-3.5 text-right">
                     <div className="flex justify-end gap-1.5">
                       <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 hover:bg-primary/10 hover:text-primary">
                         <Link href={`/portal/tickets/${ticket.id}`} onClick={(e) => e.stopPropagation()}>
@@ -275,16 +275,15 @@ function toggleSort(
 function TeamBadge({ team }: { team?: TicketListItem["team"] }) {
   if (team === "DESENVOLVIMENTO") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[10px] font-semibold text-violet-700 dark:text-violet-300">
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground">
         <Code2 className="h-3 w-3" /> Dev
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] font-semibold text-foreground">
       <Headphones className="h-3 w-3" /> Suporte
     </span>
   );
 }
-

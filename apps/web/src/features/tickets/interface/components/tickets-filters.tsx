@@ -112,7 +112,7 @@ export function TicketsFilters({
                                 type="button"
                                 variant={showFilters ? "secondary" : "outline"}
                                 size="icon"
-                                className="h-10 w-10"
+                                className="h-9 w-9"
                                 onClick={() => setShowFilters((current) => !current)}
                                 aria-label={`Filtros avancados${activeFilterCount > 0 ? ` (${activeFilterCount} ativos)` : ""}`}
                             >
@@ -129,7 +129,7 @@ export function TicketsFilters({
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="h-10 px-3 text-muted-foreground hover:text-foreground"
+                                    className="h-9 px-3 text-muted-foreground hover:text-foreground"
                                     onClick={() => {
                                         setTeamFilter("all");
                                         setQueueFilter("all");
@@ -148,7 +148,7 @@ export function TicketsFilters({
             </div>
 
             {canManageTickets && showFilters && (
-                <div className="rounded-lg border border-border/40 bg-muted/5 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-lg border border-border/40 bg-background p-3.5">
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="space-y-1.5">
                             <Label className="text-[10px] uppercase font-bold text-muted-foreground">Equipe</Label>
