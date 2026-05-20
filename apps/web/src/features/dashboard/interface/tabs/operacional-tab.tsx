@@ -1,6 +1,6 @@
 import { FileText, Headset, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
-import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
+import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
 import { TrustReleaseCard } from "../components/trust-release-card";
 import { DocsInsightsPanel } from "../components/docs-insights-panel";
@@ -48,7 +48,6 @@ export async function OperacionalTab() {
               <div className="rounded-lg border border-border/50 bg-background/80 px-3 py-2 text-center font-mono text-lg font-semibold tracking-[0.16em]">
                 {dailyPassword.password}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">Uso operacional interno.</p>
             </CardContent>
           </Card>
         ) : null}

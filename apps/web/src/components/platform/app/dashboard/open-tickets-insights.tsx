@@ -58,9 +58,9 @@ function getDefaultAreaFilter(scopeMode: TicketScopeMode): TicketArea {
 }
 
 function getScopeTitle(scopeMode: TicketScopeMode) {
-  if (scopeMode === "own") return "Distribuicao dos seus tickets";
-  if (scopeMode === "development") return "Distribuicao da fila de desenvolvimento";
-  return "Distribuicao operacional de tickets";
+  if (scopeMode === "own") return "Seus tickets";
+  if (scopeMode === "development") return "Fila de desenvolvimento";
+  return "Tickets em aberto";
 }
 
 function groupRecords(records: DashboardOpenTicketRecord[], key: BreakdownKind): GroupedItem[] {
@@ -320,7 +320,7 @@ export function OpenTicketsInsights({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <BreakdownCard
-          title="Tickets abertos por modulo"
+          title="Por modulo"
           filterLabel={filterLabel}
           items={moduleBreakdown}
           selectedLabel={selectedModuleLabel}
@@ -328,7 +328,7 @@ export function OpenTicketsInsights({
         />
 
         <BreakdownCard
-          title="Tickets abertos por categoria"
+          title="Por categoria"
           filterLabel={filterLabel}
           items={categoryBreakdown}
           selectedLabel={selectedCategoryLabel}
@@ -356,23 +356,16 @@ function BreakdownCard({
   const topItem = items[0];
 
   return (
-    <Card className="border-border/60 bg-card shadow-sm">
+    <Card className="border-border/60 bg-card shadow-none">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
+          <div>
             <CardTitle className="text-sm">{title}</CardTitle>
-            <p className="text-[11px] text-muted-foreground">
-              {selectedLabel
-                ? `Filtro ativo: ${selectedLabel}`
-                : topItem
-                  ? `Maior concentracao atual em ${topItem.label}`
-                  : "Selecione um recorte para detalhar a fila."}
-            </p>
           </div>
           <div className="flex items-center gap-2">
-            {hasData ? (
-              <Badge variant="outline" className="border-border/60 bg-background/70 text-muted-foreground">
-                Top {items.length}
+            {selectedLabel ? (
+              <Badge variant="outline" className="border-border/60 bg-background/70">
+                {selectedLabel}
               </Badge>
             ) : null}
             <Badge variant="outline" className="border-border/60 bg-background/70">
