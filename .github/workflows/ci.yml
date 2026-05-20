@@ -42,6 +42,9 @@ jobs:
       - name: Generated JS check (src/tests)
         run: npm run check:generated-js
 
+      - name: API deploy config check
+        run: npm run check:api-deploy
+
       - name: Prisma schema validate
         run: npm run db:validate
         env:

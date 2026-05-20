@@ -45,6 +45,7 @@
     "tickets:normalize-history": "node scripts/normalize-ticket-history.mjs",
     "check:utf8": "node scripts/check-utf8.mjs",
     "check:generated-js": "node scripts/check-generated-js.mjs",
+    "check:api-deploy": "node scripts/check-api-deploy.mjs",
     "postinstall": "npm run postinstall -w @dosc-syspro/web"
   },
   "devDependencies": {
