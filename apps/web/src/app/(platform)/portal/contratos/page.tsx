@@ -28,7 +28,7 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
   const contractsView = await getSettingsContractsAdminViewData();
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex w-full flex-col gap-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Contratos</h1>
