@@ -143,6 +143,20 @@ export class TicketsRouter {
         .mutation(({ input, ctx }) => {
           return this.ticketsService.triageTicket(input.id, input.data, ctx.headers);
         }),
+
+      customerEmails: this.trpc.publicProcedure
+        .input(
+          z.object({
+            q: z.string().trim().optional(),
+            limit: z.number().int().min(1).max(30).optional(),
+          }),
+        )
+        .query(({ input, ctx }) => {
+          return this.ticketsService.findCustomerOptions(
+            { q: input.q, limit: input.limit !== undefined ? String(input.limit) : undefined },
+            ctx.headers,
+          );
+        }),
     });
   }
 }
