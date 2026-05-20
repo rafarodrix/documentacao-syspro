@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Clock3, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@dosc-syspro/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@dosc-syspro/ui';
 import { trpc } from '@/lib/api/trpc-client';
 import { formatDateMedium, formatDateTime } from '@/lib/docs-utils';
 import type { DocsPopularItem } from '@dosc-syspro/contracts/docs';
@@ -44,14 +44,11 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <Card className="border-border/50 bg-card">
-        <CardHeader className="space-y-1 pb-3">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <TrendingUp className="h-4 w-4" />
             <CardTitle className="text-base font-semibold text-foreground">Mais acessados da documentacao</CardTitle>
           </div>
-          <CardDescription>
-            Conteudos com maior volume de consulta na base de documentacao.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
           {popular.length > 0 ? popular.map((item) => (
@@ -69,14 +66,11 @@ export function DocsInsightsPanel({ latestUpdates }: DocsInsightsPanelProps) {
       </Card>
 
       <Card className="border-border/50 bg-card">
-        <CardHeader className="space-y-1 pb-3">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock3 className="h-4 w-4" />
             <CardTitle className="text-base font-semibold text-foreground">Ultimas atualizacoes da documentacao</CardTitle>
           </div>
-          <CardDescription>
-            Conteudos publicados ou revisados recentemente na base de documentacao.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
           {latestUpdates.length > 0 ? latestUpdates.map((item) => (

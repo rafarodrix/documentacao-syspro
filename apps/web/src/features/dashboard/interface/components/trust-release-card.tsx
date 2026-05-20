@@ -24,7 +24,6 @@ export function TrustReleaseCard() {
           <ExternalLink className="h-3.5 w-3.5" />
           Abrir formulario
         </a>
-        <p className="mt-2 text-xs text-muted-foreground">5 dias · 1 liberacao por vencimento.</p>
       </CardContent>
     </Card>
   );
