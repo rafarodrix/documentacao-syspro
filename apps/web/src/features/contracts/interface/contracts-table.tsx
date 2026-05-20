@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, Badge, Button, Input, Label, Textarea, Switch, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { EmptyState } from "@/components/patterns";
 import {
     Building2,
@@ -15,11 +16,10 @@ import {
     ArrowRightLeft,
     Wallet,
     CircleOff,
-    SquarePen,
     TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { deleteContractAction, updateContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
+import { deleteContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
 import { getContractSuspendImpactAction } from "@/features/contracts/application/contract-read.queries";
 import {
     ContractBlockReason,
@@ -28,7 +28,6 @@ import {
     DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
     type ContractBlockReasonOption,
 } from "@dosc-syspro/contracts/settings";
-import { DEFAULT_CONTRACT_TAX_RATE } from "@/features/contracts/application/contract-schema";
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences";
 
 interface ContractsTableProps {
@@ -49,8 +48,10 @@ const toNumber = (value: number | string) => {
 };
 
 export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTableProps) {
+    const router = useRouter();
     const fallbackContractReason = DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS[0]?.key ?? "EMPRESA_FECHOU";
     const [items, setItems] = useState<ContractListItem[]>(contracts);
+    const [search, setSearch] = useState("");
     const [isPending, startTransition] = useTransition();
     const [suspendTarget, setSuspendTarget] = useState<ContractListItem | null>(null);
     const [blockReason, setBlockReason] = useState<ContractBlockReason>(fallbackContractReason);
@@ -60,19 +61,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
     );
     const [suspendImpact, setSuspendImpact] = useState<ContractSuspendImpact | null>(null);
     const [isImpactLoading, setIsImpactLoading] = useState(false);
-    const [editTarget, setEditTarget] = useState<ContractListItem | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<ContractListItem | null>(null);
-    const [allowTaxOverride, setAllowTaxOverride] = useState(false);
-    const [editForm, setEditForm] = useState({
-        contractNumber: "",
-        minimumWage: "",
-        percentage: "",
-        taxRate: String(DEFAULT_CONTRACT_TAX_RATE),
-        programmerRate: "",
-        startDate: "",
-        endDate: "",
-        notes: "",
-    });
 
     useEffect(() => {
         setItems(contracts);
@@ -202,66 +191,21 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
         });
     };
 
-    const openEditDialog = (contract: ContractListItem) => {
-        const currentTax = toNumber(contract.taxRate);
-        setAllowTaxOverride(currentTax !== DEFAULT_CONTRACT_TAX_RATE);
-        setEditTarget(contract);
-        setEditForm({
-            contractNumber: contract.company.cnpj,
-            minimumWage: String(toNumber(contract.minimumWage)),
-            percentage: String(toNumber(contract.percentage)),
-            taxRate: String(currentTax),
-            programmerRate: String(toNumber(contract.programmerRate)),
-            startDate: new Date(contract.startDate).toISOString().slice(0, 10),
-            endDate: contract.endDate ? new Date(contract.endDate).toISOString().slice(0, 10) : "",
-            notes: contract.notes ?? "",
-        });
-    };
+    const filteredItems = useMemo(() => {
+        const normalized = search.trim().toLowerCase();
+        if (!normalized) return items;
 
-    const handleEditSave = () => {
-        if (!editTarget) return;
-
-        startTransition(async () => {
-            const payload = {
-                id: editTarget.id,
-                companyId: editTarget.companyId,
-                status: editTarget.status,
-                contractNumber: editForm.contractNumber || undefined,
-                notes: editForm.notes || undefined,
-                minimumWage: Number(editForm.minimumWage),
-                percentage: Number(editForm.percentage),
-                taxRate: Number(editForm.taxRate),
-                programmerRate: Number(editForm.programmerRate),
-                startDate: editForm.startDate,
-                endDate: editForm.endDate || undefined,
-                allowTaxOverride,
-            };
-
-            const result = await updateContractAction(payload);
-            if (result.success) {
-                toast.success(result.message ?? "Contrato atualizado com sucesso.");
-                setItems((prev) => prev.map((contract) => (
-                    contract.id === editTarget.id
-                        ? {
-                            ...contract,
-                            contractNumber: editForm.contractNumber || null,
-                            notes: editForm.notes || null,
-                            minimumWage: Number(editForm.minimumWage),
-                            percentage: Number(editForm.percentage),
-                            taxRate: allowTaxOverride ? Number(editForm.taxRate) : DEFAULT_CONTRACT_TAX_RATE,
-                            programmerRate: Number(editForm.programmerRate),
-                            startDate: editForm.startDate,
-                            endDate: editForm.endDate || null,
-                        }
-                        : contract
-                )));
-                setEditTarget(null);
-                return;
-            }
-
-            toast.error(result.error);
-        });
-    };
+        return items.filter((contract) =>
+            [
+                contract.company.razaoSocial,
+                contract.company.cnpj,
+                contract.status,
+                String(contract.percentage),
+            ]
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(normalized)),
+        );
+    }, [items, search]);
 
     return (
         <>
@@ -337,123 +281,6 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <SquarePen className="h-4 w-4 text-primary" />
-                            Editar contrato
-                        </DialogTitle>
-                        <DialogDescription>
-                            Atualize vigencia, calculo e observacoes internas.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {editTarget ? (
-                        <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
-                            <p className="font-medium text-foreground">{editTarget.company.razaoSocial}</p>
-                            <p className="text-xs text-muted-foreground">CNPJ: {editTarget.company.cnpj}</p>
-                        </div>
-                    ) : null}
-
-                    <div className="grid gap-3.5 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label>CNPJ do contrato</Label>
-                            <Input
-                                value={editForm.contractNumber}
-                                readOnly
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Inicio</Label>
-                            <Input
-                                type="date"
-                                value={editForm.startDate}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, startDate: event.target.value }))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Fim (opcional)</Label>
-                            <Input
-                                type="date"
-                                value={editForm.endDate}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, endDate: event.target.value }))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Base de calculo</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={editForm.minimumWage}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, minimumWage: event.target.value }))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>% cobrado do cliente</Label>
-                            <Input
-                                type="number"
-                                step="0.0001"
-                                value={editForm.percentage}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, percentage: event.target.value }))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Impostos (%)</Label>
-                                <div className="flex items-center gap-2">
-                                    <Label htmlFor="editAllowTaxOverride" className="text-xs text-muted-foreground">Override</Label>
-                                    <Switch
-                                        id="editAllowTaxOverride"
-                                        checked={allowTaxOverride}
-                                        onCheckedChange={(checked) => {
-                                            setAllowTaxOverride(checked);
-                                            if (!checked) {
-                                                setEditForm((prev) => ({ ...prev, taxRate: String(DEFAULT_CONTRACT_TAX_RATE) }));
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                disabled={!allowTaxOverride}
-                                value={editForm.taxRate}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, taxRate: event.target.value }))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Repasse (%)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={editForm.programmerRate}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, programmerRate: event.target.value }))}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Observacoes</Label>
-                        <Textarea
-                            rows={2}
-                            value={editForm.notes}
-                            onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))}
-                        />
-                    </div>
-
-                    <DialogFooter className="border-t border-border/50 pt-4">
-                        <Button variant="outline" onClick={() => setEditTarget(null)} disabled={isPending}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleEditSave} disabled={isPending}>
-                            Salvar alteracoes
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
             <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <DialogContent>
                     <DialogHeader>
@@ -487,6 +314,14 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             </Dialog>
 
             <Card className="border-border/60 bg-card">
+                <div className="border-b border-border/60 p-3">
+                    <Input
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Buscar por empresa, CNPJ ou status..."
+                        className="h-10 border-border/60 bg-background"
+                    />
+                </div>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader className="bg-muted/20">
@@ -501,19 +336,19 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.length === 0 ? (
+                            {filteredItems.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="h-64 text-center">
                                         <EmptyState
                                             icon={FileText}
                                             title="Nenhum contrato encontrado"
-                                            description="Cadastre um novo contrato para comecar a gestao."
+                                            description={search.trim() ? "Ajuste os filtros e tente novamente." : "Cadastre um novo contrato para comecar a gestao."}
                                             compact
                                         />
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                items.map((contract, index) => {
+                                filteredItems.map((contract, index) => {
                                     const minimumWage = toNumber(contract.minimumWage);
                                     const percentage = toNumber(contract.percentage);
                                     const taxRate = toNumber(contract.taxRate);
@@ -528,8 +363,9 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                     return (
                                         <TableRow
                                             key={contract.id}
-                                            className="group/row border-border/40 transition-colors hover:bg-muted/10"
+                                            className="group/row cursor-pointer border-border/40 transition-colors hover:bg-muted/10"
                                             style={{ animationDelay: `${index * 50}ms` }}
+                                            onDoubleClick={() => canEdit && router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
                                         >
                                             <TableCell className="px-3 py-3.5">
                                                 <div className="flex items-center gap-3">
@@ -603,7 +439,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                                         <DropdownMenuSeparator />
 
                                                         {canEdit ? (
-                                                            <DropdownMenuItem onClick={() => openEditDialog(contract)} className="cursor-pointer gap-2">
+                                                            <DropdownMenuItem onClick={() => router.push(`/portal/contratos?mode=edit&id=${contract.id}`)} className="cursor-pointer gap-2">
                                                                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                                                                 Editar Termos
                                                             </DropdownMenuItem>

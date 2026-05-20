@@ -11,8 +11,9 @@ import {
 } from "@/features/contracts/application/contract-schema";
 import { createContractAction } from "@/features/contracts/application/contract-write.actions";
 import { getSystemParamsAction } from "@/features/contracts/application/contract-read.queries";
-import type { ContractCompanyOption } from "@/features/contracts/domain/contract.types";
+import type { ContractCompanyOption, ContractListItem } from "@/features/contracts/domain/contract.types";
 import { toast } from "sonner";
+import { updateContractAction } from "@/features/contracts/application/contract-write.actions";
 
 import { Button, Input, Label, Textarea, Switch, Separator } from "@dosc-syspro/ui";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 interface ContractSheetProps {
     companies: ContractCompanyOption[];
     mode?: "button" | "full";
+    contract?: ContractListItem | null;
 }
 
 const REPASSE_PRESETS = [25, 35, 50] as const;
@@ -46,11 +48,12 @@ const defaultValues: CreateContractInput = {
     allowTaxOverride: false,
 };
 
-export function ContractSheet({ companies, mode = "button" }: ContractSheetProps) {
+export function ContractSheet({ companies, mode = "button", contract = null }: ContractSheetProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [calcMode, setCalcMode] = useState<"PERCENT" | "VALUE">("PERCENT");
     const [negotiatedValueInput, setNegotiatedValueInput] = useState("0");
+    const isEditMode = Boolean(contract);
 
     const form = useForm<CreateContractInput, undefined, CreateContractOutput>({
         resolver: zodResolver(createContractSchema),
@@ -66,6 +69,29 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
             }
         });
     }, [mode, form]);
+
+    useEffect(() => {
+        if (!contract) {
+            form.reset(defaultValues);
+            return;
+        }
+
+        const currentTax = Number(contract.taxRate) || DEFAULT_TAX_RATE;
+        form.reset({
+            companyId: contract.companyId,
+            percentage: Number(contract.percentage),
+            minimumWage: Number(contract.minimumWage),
+            taxRate: currentTax,
+            programmerRate: Number(contract.programmerRate),
+            status: contract.status,
+            startDate: new Date(contract.startDate).toISOString().slice(0, 10),
+            endDate: contract.endDate ? new Date(contract.endDate).toISOString().slice(0, 10) : "",
+            contractNumber: contract.company.cnpj,
+            notes: contract.notes ?? "",
+            allowTaxOverride: currentTax !== DEFAULT_TAX_RATE,
+        });
+        setCalcMode("PERCENT");
+    }, [contract, form]);
 
     const wage = Number(form.watch("minimumWage")) || 0;
     const percentage = Number(form.watch("percentage")) || 0;
@@ -110,9 +136,24 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
 
     const onSubmit: SubmitHandler<CreateContractOutput> = async (data) => {
         startTransition(async () => {
-            const result = await createContractAction(data);
+            const result = contract
+                ? await updateContractAction({
+                    id: contract.id,
+                    companyId: contract.companyId,
+                    status: contract.status,
+                    contractNumber: data.contractNumber || undefined,
+                    notes: data.notes || undefined,
+                    minimumWage: data.minimumWage,
+                    percentage: data.percentage,
+                    taxRate: data.taxRate,
+                    programmerRate: data.programmerRate,
+                    startDate: data.startDate,
+                    endDate: data.endDate || undefined,
+                    allowTaxOverride: data.allowTaxOverride,
+                })
+                : await createContractAction(data);
             if (result.success) {
-                toast.success("Contrato criado com sucesso.");
+                toast.success(contract ? "Contrato atualizado com sucesso." : "Contrato criado com sucesso.");
                 router.replace("/portal/contratos");
                 return;
             }
@@ -157,6 +198,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                                     searchPlaceholder="Buscar empresa, nome fantasia ou CNPJ..."
                                     emptyMessage="Nenhuma empresa encontrada."
                                     className="h-10 bg-background"
+                                    disabled={isEditMode}
                                 />
                             </div>
                         </div>
@@ -311,7 +353,7 @@ export function ContractSheet({ companies, mode = "button" }: ContractSheetProps
                         <div className="border-t border-border/50 p-4">
                             <Button type="submit" disabled={isPending} className="w-full gap-2">
                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                Salvar contrato
+                                {isEditMode ? "Salvar alteracoes" : "Salvar contrato"}
                             </Button>
                         </div>
                     </div>

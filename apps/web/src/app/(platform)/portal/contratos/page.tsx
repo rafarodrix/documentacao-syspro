@@ -16,16 +16,23 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
 
   const params = searchParams ? await searchParams : undefined;
   const mode = typeof params?.mode === "string" ? params.mode : "";
+  const contractId = typeof params?.id === "string" ? params.id : "";
   const isCreateMode = mode === "create";
+  const isEditMode = mode === "edit" && !!contractId;
   const canCreateContracts = await currentUserHasAnyPermission(["contracts:create", "contracts:edit"], {
     acceptCompanyScope: true,
   });
   const canEditContracts = await currentUserHasPermission("contracts:edit");
   const canDeleteContracts = await currentUserHasPermission("contracts:delete");
-  if (isCreateMode && !canCreateContracts) {
+  if ((isCreateMode || isEditMode) && !canCreateContracts) {
     redirect("/portal/contratos");
   }
   const contractsView = await getSettingsContractsAdminViewData();
+  const editContract = isEditMode ? contractsView.contracts.find((item) => item.id === contractId) ?? null : null;
+
+  if (isEditMode && !editContract) {
+    redirect("/portal/contratos");
+  }
 
   return (
     <div className="flex w-full flex-col gap-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -37,7 +44,7 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
           </p>
         </div>
 
-        {!isCreateMode ? (
+        {!isCreateMode && !isEditMode ? (
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <BulkReadjustDialog />
             {canCreateContracts ? <ContractSheet companies={contractsView.companies} mode="button" /> : null}
@@ -45,8 +52,8 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
         ) : null}
       </div>
 
-      {isCreateMode ? (
-        <ContractSheet companies={contractsView.companies} mode="full" />
+      {isCreateMode || isEditMode ? (
+        <ContractSheet companies={contractsView.companies} mode="full" contract={editContract} />
       ) : (
         <ContractsTable
           contracts={contractsView.contracts}
