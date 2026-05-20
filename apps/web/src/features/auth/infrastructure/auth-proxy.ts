@@ -41,7 +41,7 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
   const timeoutId = setTimeout(() => controller.abort("AUTH_PROXY_TIMEOUT"), AUTH_PROXY_TIMEOUT_MS);
 
   try {
-    return await fetch(upstreamUrl, {
+    const upstream = await fetch(upstreamUrl, {
       method: request.method,
       headers: upstreamHeaders,
       ...(hasBody ? { body: bodyText } : {}),
@@ -49,6 +49,20 @@ export async function proxyAuthRequest(request: NextRequest, context: AuthProxyC
       cache: "no-store",
       signal: controller.signal,
     });
+
+    // Log sempre — essencial para diagnosticar 404/502 vindos do backend
+    console.log(
+      JSON.stringify({
+        event: "auth.proxy.upstream.response",
+        correlationId,
+        method: request.method,
+        path: request.nextUrl.pathname,
+        upstreamUrl,
+        upstreamStatus: upstream.status,
+      }),
+    );
+
+    return upstream;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown proxy error";
     const isTimeout =
