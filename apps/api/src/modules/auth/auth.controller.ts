@@ -23,8 +23,9 @@ export class AuthController {
   }
 
   // Captura qualquer requisicao em /api/auth/* e repassa para o engine do better-auth.
-  // Usar @All('*') em vez de @All('*path') para compatibilidade com NestJS 11+
-  @All('*')
+  // *path é o wildcard multi-segmento correto para NestJS 11 + path-to-regexp v8.
+  // @All('*') só captura um segmento (ex: /sign-in mas não /sign-in/email).
+  @All('*path')
   handleAuth(@Req() req: Request, @Res() res: Response) {
     return toNodeHandler(this.authService.auth)(req, res);
   }
