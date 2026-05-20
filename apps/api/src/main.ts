@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { json, urlencoded } from 'express';
 import { validateChatwootRuntimeConfigOrThrow } from './modules/integrations/chatwoot/chatwoot-config';
 import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
@@ -48,7 +49,8 @@ async function bootstrap() {
       'Bootstrap',
     );
   }
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, { rawBody: true, bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
   app.use(json({ limit: '50mb', verify: captureRawBody }));
   app.use(urlencoded({ extended: true, limit: '50mb', verify: captureRawBody }));
 

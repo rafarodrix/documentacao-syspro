@@ -1,4 +1,57 @@
 services:
+  # ─── Banco de dados (perfil opcional para ambientes self-hosted) ───────────
+  postgres:
+    image: postgres:16-alpine
+    profiles: [postgres]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-syspro}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-syspro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── PgBouncer (perfil opcional — recomendado em produção) ────────────────
+  #
+  # Ative com: docker compose --profile pgbouncer up
+  #
+  # Quando ativo, o backend deve usar:
+  #   DATABASE_URL=postgresql://user:pass@pgbouncer:5432/syspro?pgbouncer=true
+  #   DIRECT_URL=postgresql://user:pass@postgres:5432/syspro   (para migrations)
+  #
+  # Em ambientes gerenciados (Dokploy, Supabase, Neon), configure o pooler
+  # externamente e ajuste DATABASE_URL/DIRECT_URL no painel.
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22
+    profiles: [pgbouncer]
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-syspro}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 25
+      SERVER_RESET_QUERY: DISCARD ALL
+    ports:
+      - "5432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend NestJS ──────────────────────────────────────────────────────
   backend:
     build:
       context: ../../..
@@ -40,9 +93,22 @@ services:
       INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS: ${INTEGRATION_WEBHOOK_DEDUP_TTL_SECONDS:-86400}
       INTEGRATION_CONFIG_ENCRYPTION_KEY: ${INTEGRATION_CONFIG_ENCRYPTION_KEY:-}
     expose:
-      - "3000"
+      - "${PORT:-3000}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:${PORT:-3000}/api/health/live || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
     # Habilite apenas se sua instância Dokploy exigir rede externa explícita.
     # networks:
     #   dokploy-network:
     #     external: true
+
+volumes:
+  postgres_data:
