@@ -249,7 +249,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
     >
       <DialogTrigger asChild>
         <Button
-          className="h-10 w-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all bg-linear-to-r from-primary to-primary/90 gap-2 sm:w-auto"
+          className="h-10 w-full gap-2 sm:w-auto"
           onClick={() => logInfo("dialog.trigger_click", { openBeforeClick: open })}
         >
           <PlusCircle className="h-4 w-4" />
@@ -258,20 +258,18 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="w-[98vw] sm:max-w-6xl p-0 flex flex-col max-h-[90vh] h-[85vh] overflow-hidden gap-0 shadow-2xl border-primary/20">
-        <div className="p-6 border-b border-border/40 bg-muted/10 shrink-0">
+      <DialogContent className="w-[98vw] sm:max-w-6xl p-0 flex flex-col max-h-[90vh] h-[85vh] overflow-hidden gap-0 border-border/60">
+        <div className="p-6 border-b border-border/40 bg-background shrink-0">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 text-xl">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/10 shadow-sm">
-                <MessageSquare className="h-5 w-5" />
-              </div>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <MessageSquare className="h-5 w-5" />
               Nova Solicitacao
             </DialogTitle>
-            <DialogDescription>Descreva seu problema ou duvida detalhadamente.</DialogDescription>
+            <DialogDescription>Descreva o chamado e defina o roteamento inicial.</DialogDescription>
           </DialogHeader>
         </div>
 
-        <ScrollArea className="flex-1 w-full bg-background/50">
+        <ScrollArea className="flex-1 w-full bg-background">
           <div className="p-0">
             <Form {...form}>
               <form
@@ -294,10 +292,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
               >
                 <div className="p-6 lg:p-8 space-y-6 lg:border-r border-border/40">
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-md w-fit border border-primary/20">
-                        <FileText className="h-4 w-4" />
-                        <span>Resumo do chamado</span>
-                      </div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resumo do chamado</div>
                       <div className="hidden lg:block text-xs text-muted-foreground mr-2 opacity-70">Passo 1 de 2</div>
                   </div>
 
@@ -308,7 +303,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                       <FormItem>
                         <FormLabel className="text-base font-semibold">Qual o problema ou solicitação?</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Erro ao emitir Nota Fiscal na empresa matriz..." className="h-12 bg-white dark:bg-muted/30 focus:bg-background text-base shadow-sm" {...field} />
+                          <Input placeholder="Ex: Erro ao emitir Nota Fiscal na empresa matriz..." className="h-12 bg-background focus:bg-background text-base shadow-none" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -333,7 +328,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                               onChange={setDescriptionMarkdown}
                               onPaste={handleDescriptionPaste}
                               placeholder="Descreva o passo a passo, resultado esperado, mensagens de erro, impacto e evidencias relevantes."
-                              className="bg-white dark:bg-muted/30"
+                              className="bg-background"
                               minHeightClassName="min-h-[280px]"
                             />
                           </FormControl>
@@ -367,14 +362,14 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                   />
                   
                   {source === "chatwoot" && (
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm mt-4 space-y-3">
+                    <div className="rounded-xl border border-border/60 bg-muted/10 p-4 text-sm mt-4 space-y-3">
                       <div className="flex items-center gap-2 font-medium text-foreground">
-                        <Headphones className="h-4 w-4 text-primary" />
+                        <Headphones className="h-4 w-4 text-muted-foreground" />
                         Recebido via Omnichannel
                       </div>
                       <p className="text-muted-foreground">O chamado sera vinculado automaticamente a conversa atual do Chatwoot.</p>
                       {(customerName || customerWhatsapp || customerPhone) ? (
-                        <div className="grid gap-2 rounded-lg border border-primary/10 bg-background/70 px-3 py-2 text-xs">
+                        <div className="grid gap-2 rounded-lg border border-border/60 bg-background px-3 py-2 text-xs">
                           {customerName ? (
                             <p className="flex items-center gap-2">
                               <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -400,15 +395,12 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
 
                 <div className="p-6 lg:p-8 space-y-6 bg-muted/5 sm:bg-transparent flex flex-col h-full">
                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider bg-muted p-2 rounded-md w-fit border border-border/40">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        <span>Atribuição e SLA</span>
-                      </div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Atribuicao e SLA</div>
                       <div className="hidden lg:block text-xs text-muted-foreground opacity-70">Passo 2 de 2</div>
                   </div>
 
                   {hasInternalTicketAccess && (
-                    <FormItem className="space-y-3 bg-white dark:bg-background rounded-xl p-4 shadow-sm border border-border/60">
+                    <FormItem className="space-y-3 bg-background rounded-xl p-4 shadow-none border border-border/60">
                       <Label className="flex justify-between items-center text-[13px] font-semibold">
                           Cliente Solicitante <span className="p-1 bg-yellow-500/10 text-yellow-600 rounded text-[10px]">Restrito a Agentes</span>
                       </Label>
@@ -426,10 +418,10 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                         loading={isCustomerOptionsLoading}
                         placeholder="Pesquisar por Contatos ou Empresa..."
                         emptyMessage={customerOptionsError || "Nenhum resultado encontrado."}
-                        className="bg-muted/10 h-10 border-border/60 hover:bg-muted/20 hover:border-primary/40 focus:border-primary transition-all shadow-none"
+                        className="h-10 border-border/60 bg-background shadow-none"
                       />
                       {(customerCompany || customerEmail || selectedCompanyId) ? (
-                        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs animate-in slide-in-from-top-1">
+                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2.5 text-xs animate-in slide-in-from-top-1">
                           <p className="font-semibold text-foreground text-[13px]">{customerCompany || "Empresa selecionada"}</p>
                           {selectedInternalCompanyOption?.legalName ? (
                             <p className="text-muted-foreground mt-0.5">{selectedInternalCompanyOption.legalName}</p>
@@ -448,7 +440,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                         options={clientCompanyOptions}
                         onChange={setSelectedCompanyId}
                         placeholder="Selecione a empresa associada..."
-                        className="bg-white dark:bg-muted/30 shadow-sm"
+                        className="h-10 border-border/60 bg-background shadow-none"
                       />
                     </FormItem>
                   )}
@@ -462,7 +454,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                         render={({ field }) => (
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
+                              <SelectTrigger className="bg-background shadow-none h-10 border-border/60">
                                 <SelectValue placeholder="Selecione..." />
                               </SelectTrigger>
                             </FormControl>
@@ -491,7 +483,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                         }}
                       >
                         <FormControl>
-                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60">
+                          <SelectTrigger className="bg-background shadow-none h-10 border-border/60">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
@@ -521,7 +513,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                           }
                       }} disabled={!hasInternalTicketAccess}>
                         <FormControl>
-                          <SelectTrigger className="bg-white dark:bg-muted/30 shadow-sm h-10 border-border/60 disabled:opacity-70 disabled:bg-muted">
+                          <SelectTrigger className="bg-background shadow-none h-10 border-border/60 disabled:opacity-70 disabled:bg-muted">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
@@ -554,7 +546,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                       <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
                         <Code2 className="w-3 h-3" /> Contexto tecnico
                       </div>
-                      <div className="rounded-xl border border-border/60 bg-white p-4 shadow-sm dark:bg-background">
+                      <div className="rounded-xl border border-border/60 bg-background p-4 shadow-none">
                         <div className="mb-3 flex items-center gap-2">
                           <Code2 className="h-4 w-4 text-muted-foreground" />
                           <p className="text-sm font-semibold text-foreground">Recursos operacionais</p>
@@ -594,7 +586,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-6 border-t border-border/40 bg-muted/10 shrink-0">
+        <DialogFooter className="p-6 border-t border-border/40 bg-background shrink-0">
           <div className="flex flex-col sm:flex-row w-full items-center justify-between gap-4">
             <Button variant="link" className="text-xs text-muted-foreground h-auto p-0 hidden sm:flex gap-1" asChild>
               <a href="/portal/docs/cliente/documentacao" target="_blank">
@@ -605,7 +597,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
               <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending} className="flex-1 sm:flex-none">
                 Cancelar
               </Button>
-              <Button type="submit" form="ticket-form" disabled={isPending} className="flex-1 sm:flex-none shadow-md min-w-[140px]">
+              <Button type="submit" form="ticket-form" disabled={isPending} className="flex-1 sm:flex-none min-w-[140px]">
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...
