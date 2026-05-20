@@ -42,7 +42,8 @@
       "@dosc-syspro/config": ["../../packages/config/src/index.ts"],
       "@dosc-syspro/config/*": ["../../packages/config/src/*"]
     },
-    "plugins": [{ "name": "next" }]
+    "plugins": [{ "name": "next" }],
+    "experimentalDecorators": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,9 +26,30 @@ import { DocumentosModule } from './modules/documentos/documentos.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { TarefasModule } from './modules/tarefas/tarefas.module';
 import { TrpcApiModule } from './modules/trpc/trpc-api.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { colorize: true, translateTime: 'SYS:standard' } }
+            : undefined,
+        customProps: () => ({ service: 'syspro-api' }),
+        redact: ['req.headers.authorization', 'req.headers["x-internal-api-key"]'],
+        autoLogging: {
+          ignore: (req) => req.url?.startsWith('/api/health') ?? false,
+        },
+      },
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        { name: 'short', ttl: 1_000, limit: 30 },
+        { name: 'medium', ttl: 60_000, limit: 300 },
+      ],
+    }),
+    HealthModule,
     PrismaModule,
     EvolutionModule,
     ChatwootModule,
@@ -50,6 +74,9 @@ import { TrpcApiModule } from './modules/trpc/trpc-api.module';
     TrpcApiModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
