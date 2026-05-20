@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge } from "@dosc-syspro/ui";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -32,17 +32,12 @@ function formatDate(iso: string): string {
 }
 
 export function TicketsSummary({ tickets }: TicketsSummaryProps) {
-  const visibleCount = tickets.length;
-
   return (
     <Card className="h-full w-full border-border/60 bg-card/70 shadow-sm">
       <CardHeader className="px-5 pb-3 pt-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
+          <div>
             <CardTitle className="text-base font-semibold">Chamados recentes</CardTitle>
-            {visibleCount > 0 ? (
-              <CardDescription className="text-sm">Mostrando os {visibleCount} registros mais recentes.</CardDescription>
-            ) : null}
           </div>
           <Link
             href="/portal/tickets"
@@ -58,7 +53,7 @@ export function TicketsSummary({ tickets }: TicketsSummaryProps) {
         {tickets.length === 0 ? (
           <EmptyState icon={Headset} title="Sem chamados abertos" description="Tudo resolvido por aqui" className="min-h-[320px]" />
         ) : (
-          <div className="space-y-1.5 min-h-[336px]">
+          <div className="min-h-[336px] space-y-1.5">
             {tickets.map((ticket) => {
               const statusCfg = STATUS_CONFIG[ticket.status];
               const priorityCfg = PRIORITY_CONFIG[ticket.priority];
@@ -71,12 +66,12 @@ export function TicketsSummary({ tickets }: TicketsSummaryProps) {
                   href={`/portal/tickets/${ticket.id}`}
                   className="group flex items-center gap-3 rounded-xl border border-border/40 bg-background/35 px-3 py-3 transition-colors hover:border-border/70 hover:bg-muted/40"
                 >
-                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", statusCfg.bg)}>
+                  <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", statusCfg.bg)}>
                     <StatusIcon className={cn("h-4 w-4", statusCfg.color)} />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate leading-tight">{ticket.subject}</span>
+                      <span className="truncate text-sm font-medium leading-tight">{ticket.subject}</span>
                       {isLatest ? (
                         <Badge
                           variant="outline"
@@ -85,17 +80,17 @@ export function TicketsSummary({ tickets }: TicketsSummaryProps) {
                           Mais recente
                         </Badge>
                       ) : null}
-                      <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 shrink-0 border", priorityCfg.class)}>
+                      <Badge variant="outline" className={cn("h-4 shrink-0 border px-1.5 text-[10px]", priorityCfg.class)}>
                         {ticket.priority}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] text-muted-foreground font-mono">#{ticket.number}</span>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <span className="font-mono text-[11px] text-muted-foreground">#{ticket.number}</span>
                       <span className="text-muted-foreground/30">.</span>
                       <span className={cn("text-[11px]", statusCfg.color)}>{statusCfg.label}</span>
                     </div>
                   </div>
-                  <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(ticket.lastUpdate)}</span>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">{formatDate(ticket.lastUpdate)}</span>
                 </Link>
               );
             })}

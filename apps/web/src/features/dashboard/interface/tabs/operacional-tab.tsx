@@ -22,18 +22,17 @@ export async function OperacionalTab() {
   const activityDelta = todayActivity - yesterdayActivity;
   const latestDocs = source
     .getPages()
-    .filter((page) => !['/portal/docs/cliente', '/portal/docs/suporte', '/portal/docs/admin'].includes(page.url))
+    .filter((page) => !["/portal/docs/cliente", "/portal/docs/suporte", "/portal/docs/admin"].includes(page.url))
     .map((page) => ({
       href: page.url,
-      title: String(page.data.title ?? 'Sem título'),
-      lastUpdated: typeof page.data.lastUpdated === 'string' ? page.data.lastUpdated : undefined,
+      title: String(page.data.title ?? "Sem titulo"),
+      lastUpdated: typeof page.data.lastUpdated === "string" ? page.data.lastUpdated : undefined,
     }))
-    .sort((a, b) => (Date.parse(b.lastUpdated ?? '') || 0) - (Date.parse(a.lastUpdated ?? '') || 0))
+    .sort((a, b) => (Date.parse(b.lastUpdated ?? "") || 0) - (Date.parse(a.lastUpdated ?? "") || 0))
     .slice(0, 5);
 
   return (
     <div className="space-y-4">
-
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {dailyPassword ? (
           <Card className="border-border/50 bg-card shadow-none">
@@ -57,7 +56,7 @@ export async function OperacionalTab() {
         <DashboardMetricCard
           title="Total em aberto"
           value={ticketCounts.total}
-          helper={`${ticketCounts.waiting} aguardando · ${ticketCounts.inProgress} em andamento`}
+          helper="Tickets ativos no momento"
           icon={Headset as any}
           tone="blue"
           trend={{ delta: activityDelta, label: "movimentos vs ontem", downIsGood: true }}
@@ -67,7 +66,7 @@ export async function OperacionalTab() {
           <DashboardMetricCard
             title="Contratos ativos"
             value={contracts.activeContracts}
-            helper={formatCurrency(contracts.totalValue) + " MRR estimado"}
+            helper={formatCurrency(contracts.totalValue)}
             icon={FileText as any}
             tone="emerald"
           />
