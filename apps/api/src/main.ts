@@ -58,8 +58,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   
 
-  // Porta configurada no Dokploy
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3000;
   
   // O host 0.0.0.0 é OBRIGATÓRIO em contêineres Docker para receber tráfego externo
   await app.listen(port, '0.0.0.0');
