@@ -19,7 +19,6 @@ import {
     ExternalLink,
     Loader2,
     Search,
-    Sparkles,
     Timer,
     UserRound,
     Zap,
@@ -222,25 +221,20 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
                 <aside className="min-w-0 space-y-4 lg:col-span-4">
                     <button
-                        className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-muted/20 p-3 text-sm font-medium lg:hidden"
+                        className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-muted/10 p-3 text-sm font-medium lg:hidden"
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                         type="button"
                     >
-                        <span className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-primary/70" />
-                            Detalhes do chamado
-                        </span>
+                        <span>Detalhes do chamado</span>
                         {sidebarCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                     </button>
 
                     <div className={cn("space-y-4", sidebarCollapsed && "hidden lg:block")}>
                         <CustomerContextCard ticket={ticket} />
 
-                        <Card className="relative overflow-hidden border-border/60 bg-card/95">
-                            <div className="absolute left-0 top-0 h-0.5 w-full bg-linear-to-r from-transparent via-primary/40 to-transparent" />
+                        <Card className="border-border/60 bg-card/95 shadow-none">
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                                    <Sparkles className="h-3.5 w-3.5 text-primary/70" />
                                     Informacoes
                                     {classificationDirty && (
                                         <Badge variant="outline" className="ml-auto rounded-full border-amber-500/30 bg-amber-500/10 px-2 text-[10px] text-amber-600 dark:text-amber-400">
@@ -303,20 +297,18 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                             <Textarea
                                                 value={transferNote}
                                                 onChange={(event) => setTransferNote(event.target.value)}
-                                                placeholder={
-                                                    "Descreva o que ja foi validado, comportamento esperado, comportamento atual e impacto no cliente."
-                                                }
+                                                placeholder="Contexto para transferir ao desenvolvimento."
                                                 className="min-h-24 resize-none border-border/70 bg-background text-sm"
                                                 disabled={isPending}
                                             />
                                             <p className="mt-1 text-[10px] text-muted-foreground">
-                                                Minimo 20 caracteres. O ticket vai entrar em Desenvolvimento como Novo e sem desenvolvedor assumido.
+                                                Minimo 20 caracteres.
                                             </p>
                                         </EditableSidebarField>
                                     )}
                                     {requiresTestingReturnNote && (
                                         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-muted-foreground">
-                                            Ao voltar de <span className="font-medium text-foreground">Em teste</span> para <span className="font-medium text-foreground">Em desenvolvimento</span>, o sistema abre uma tela para registrar o motivo como nota interna e disparar a automacao.
+                                            Ao voltar de <span className="font-medium text-foreground">Em teste</span> para <span className="font-medium text-foreground">Em desenvolvimento</span>, informe o motivo na nota interna.
                                         </div>
                                     )}
                                     {canManageTickets && classificationDirty && (
@@ -357,7 +349,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                className="h-9 w-full justify-start border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                                                className="h-9 w-full justify-start text-xs"
                                                 onClick={() => setFinalizeOpen(true)}
                                             >
                                                 {ticket.publishToReleases ? "Atualizar publicacao" : "Publicar em Releases"}
@@ -389,7 +381,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                         <Separator />
                                         <section className="space-y-2">
                                             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Acoes</p>
-                                            <p className="text-xs text-muted-foreground">Este ticket esta fechado e nao pode ser modificado.</p>
+                                            <p className="text-xs text-muted-foreground">Ticket fechado.</p>
                                         </section>
                                     </>
                                 )}
@@ -403,17 +395,15 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                 <Button
                                                     type="button"
                                                     variant="outline"
-                                                    className="h-9 w-full justify-start border-red-500/30 text-xs text-red-600 hover:bg-red-500/10 hover:text-red-700"
+                                                    className="h-9 w-full justify-start text-xs"
                                                     onClick={() => setArchiveDialogOpen(true)}
                                                 >
                                                     Arquivar ticket
                                                 </Button>
                                             ) : (
-                                                <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 space-y-3">
-                                                    <p className="text-xs font-medium text-red-700 dark:text-red-400">Confirmar arquivamento?</p>
-                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                        O ticket sera movido para arquivados e removido da fila ativa.
-                                                    </p>
+                                                <div className="space-y-3 rounded-md border border-border/60 bg-background p-3">
+                                                    <p className="text-xs font-medium text-foreground">Confirmar arquivamento?</p>
+                                                    <p className="text-[11px] leading-relaxed text-muted-foreground">O ticket sai da fila ativa.</p>
                                                     <div className="flex gap-2">
                                                         <Button
                                                             type="button"
@@ -428,7 +418,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                                                         <Button
                                                             type="button"
                                                             size="sm"
-                                                            className="flex-1 bg-red-600 text-xs text-white hover:bg-red-700"
+                                                            className="flex-1 text-xs"
                                                             onClick={handleArchiveTicket}
                                                             disabled={isArchiving}
                                                         >
@@ -444,7 +434,7 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
                         </Card>
 
                         {(ticket.origin?.source || ticket.origin?.contactName || ticket.origin?.contactPhone || ticket.origin?.contactWhatsapp || ticket.origin?.chatwootConversationUrl) && (
-                            <Card className="border-border/60 bg-card/95">
+                            <Card className="border-border/60 bg-card/95 shadow-none">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                                         <Zap className="h-3.5 w-3.5 text-amber-500" />
@@ -615,10 +605,10 @@ function CustomerContextCard({ ticket }: { ticket: TicketDetailsItem }) {
     const href = ticket.companyId ? `/portal/cadastros/empresa/${ticket.companyId}/editar` : null;
 
     return (
-        <Card className="border-border/60 bg-card/95">
+        <Card className="border-border/60 bg-card/95 shadow-none">
             <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/20 text-muted-foreground">
                         <Building2 className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1076,7 +1066,7 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
                 value={progress}
                 className={cn(
                     "h-2",
-                    tone === "danger" && "bg-rose-200 *:animate-pulse *:bg-rose-500",
+                    tone === "danger" && "bg-rose-200 *:bg-rose-500",
                     tone === "warning" && "bg-amber-200 *:bg-amber-500",
                     tone === "paused" && "bg-orange-100 *:bg-orange-500",
                     tone === "ok" && "bg-emerald-100 *:bg-emerald-500",

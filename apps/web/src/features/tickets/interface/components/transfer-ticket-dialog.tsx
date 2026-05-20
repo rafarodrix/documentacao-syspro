@@ -66,16 +66,16 @@ export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger, on
     >
       <PopoverTrigger asChild>
         {trigger || (
-          <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 border-primary/20 bg-primary/5 text-xs text-primary transition-colors hover:bg-primary/10">
+          <Button id="transfer-ticket-btn" size="sm" variant="outline" className="h-8 gap-1 text-xs">
             <ArrowRightLeft className="h-3 w-3" /> Setor
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2" align="end" sideOffset={8}>
-        <div className="space-y-2">
+      <PopoverContent className="w-80 p-3" align="end" sideOffset={8}>
+        <div className="space-y-3">
           <div className="space-y-1">
-            <h4 className="px-2 pt-1 text-sm font-medium leading-none">Trocar setor</h4>
-            <p className="px-2 text-xs text-muted-foreground">Selecione o setor de destino.</p>
+            <h4 className="text-sm font-medium leading-none">Trocar setor</h4>
+            <p className="text-xs text-muted-foreground">Selecione o destino.</p>
           </div>
           <div className="space-y-1">
             {teamOptions.map((team) => {
@@ -86,7 +86,7 @@ export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger, on
                   key={team.value}
                   type="button"
                   className={cn(
-                    "flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm hover:bg-muted",
+                    "flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm hover:bg-muted",
                     (active || selected) && "bg-muted font-medium",
                   )}
                   onClick={() => {
@@ -102,7 +102,7 @@ export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger, on
             })}
           </div>
           {selectedTeamIsDevelopment && (currentTeam || "SUPORTE").toLowerCase() !== "desenvolvimento" && (
-            <div className="space-y-2 rounded-md border border-border/60 bg-muted/10 p-2">
+            <div className="space-y-2 rounded-md border border-border/60 bg-background p-3">
               <label htmlFor="ticket-handoff-note" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Contexto para o dev
               </label>
@@ -115,7 +115,7 @@ export function TransferTicketDialog({ ticketId, currentTeam, teams, trigger, on
                 className="resize-none text-xs"
               />
               <p className="text-[10px] text-muted-foreground">
-                Minimo 20 caracteres para transferencia ao desenvolvimento.
+                Minimo 20 caracteres.
               </p>
               <Button
                 type="button"

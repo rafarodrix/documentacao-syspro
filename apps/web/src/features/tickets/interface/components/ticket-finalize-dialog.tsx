@@ -208,19 +208,19 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
         <DialogTrigger asChild>{trigger}</DialogTrigger>
       ) : controlledOpen === undefined ? (
         <DialogTrigger asChild>
-          <Button size="sm" variant="outline" className="h-8 gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 transition-colors text-xs">
+          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs">
             <Flag className="h-3 w-3" /> Finalizar Ticket
           </Button>
         </DialogTrigger>
       ) : null}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-primary">
+          <DialogTitle className="flex items-center gap-2">
             <Flag className="h-5 w-5" />
             Fechamento e Release
           </DialogTitle>
           <DialogDescription>
-            Documente a solucao aplicada para fechar este chamado.
+            Registre o fechamento do ticket.
           </DialogDescription>
         </DialogHeader>
 
@@ -259,13 +259,13 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             </div>
           </div>
 
-          <div className="space-y-3 rounded-md border border-border/60 bg-muted/15 p-3">
+          <div className="space-y-3 rounded-md border border-border/60 bg-background p-3">
             <div className="space-y-1">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Acompanhamento pos-fechamento
+                Tarefa de acompanhamento
               </Label>
               <p className="text-xs text-muted-foreground">
-                Gere uma tarefa avulsa para tratar ajustes, atualizacoes ou pendencias identificadas no fechamento.
+                Gere uma tarefa se ainda houver pendencia apos o fechamento.
               </p>
             </div>
 
@@ -277,7 +277,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
                 className="mt-0.5"
               />
               <span>
-                Gerar tarefa de atualizacao ao concluir este ticket
+                Gerar tarefa ao concluir este ticket
               </span>
             </label>
 
@@ -289,7 +289,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             ) : null}
 
             {createFollowUpTask ? (
-              <div className="grid gap-3 rounded-md border border-border/50 bg-background/80 p-3 md:grid-cols-2">
+              <div className="grid gap-3 rounded-md border border-border/60 bg-muted/10 p-3 md:grid-cols-2">
                 <div className="space-y-1 md:col-span-2">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Titulo da tarefa *</Label>
                   <Input
@@ -351,7 +351,7 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
                   className="h-4 w-4 rounded border-border accent-primary"
                   disabled={isPending}
                 />
-                Publicar no painel de Releases ao cliente
+                Publicar em Releases
               </label>
 
               {publishToReleases && (
@@ -398,16 +398,16 @@ export function TicketFinalizeDialog({ ticket, trigger, open: controlledOpen, on
             </>
           ) : (
             <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-              Tickets do setor de suporte sao concluidos sem publicacao em Releases.
+              Tickets de suporte nao publicam em Releases.
             </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t border-border/60 pt-4">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
             Cancelar
           </Button>
-          <Button onClick={runFinalizeAction} disabled={isPending || !canFinalize} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={runFinalizeAction} disabled={isPending || !canFinalize} className="gap-2">
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {ticket.resolvedAt ? "Atualizar Fechamento" : "Concluir Ticket"}
           </Button>
