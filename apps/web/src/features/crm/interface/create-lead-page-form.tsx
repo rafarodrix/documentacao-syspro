@@ -103,33 +103,6 @@ function hasCommercialQualification(form: LeadFormState) {
   );
 }
 
-function normalizeLeadContacts(rawValue: unknown): CrmLeadManualContact[] {
-  let parsedValue = rawValue;
-  if (typeof parsedValue === "string") {
-    try {
-      parsedValue = JSON.parse(parsedValue);
-    } catch {
-      return [];
-    }
-  }
-
-  const entries = Array.isArray(parsedValue)
-    ? parsedValue
-    : parsedValue && typeof parsedValue === "object"
-      ? [parsedValue]
-      : [];
-
-  return entries.map((contact: any) => ({
-    name: contact?.name || "",
-    role: contact?.role || "",
-    email: contact?.email || "",
-    phone: contact?.phone || "",
-    whatsapp: contact?.whatsapp || "",
-    isPrimary: Boolean(contact?.isPrimary),
-    notes: contact?.notes || "",
-  }));
-}
-
 type CreateLeadPageFormProps = {
   mode?: "create" | "edit";
   leadId?: string;
@@ -181,8 +154,7 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [form, setForm] = useState<LeadFormState>(() => mapLeadToFormState(initialData));
   const [contacts, setContacts] = useState<CrmLeadManualContact[]>(() => {
-    const normalizedContacts = normalizeLeadContacts(initialData?.contacts);
-    return normalizedContacts.length > 0 ? normalizedContacts : [{ ...EMPTY_CONTACT }];
+    return initialData?.contacts && initialData.contacts.length > 0 ? initialData.contacts : [{ ...EMPTY_CONTACT }];
   });
 
   const essentialReady = Boolean(form.title.trim() && form.companyName.trim());
@@ -695,4 +667,3 @@ function Field({
     </div>
   );
 }
-

@@ -71,7 +71,6 @@ export class CrmService {
         { city: { contains: filters.q, mode: 'insensitive' } },
         { nextStep: { contains: filters.q, mode: 'insensitive' } },
         { lostReason: { contains: filters.q, mode: 'insensitive' } },
-        { contactName: { contains: filters.q, mode: 'insensitive' } },
         { ownerUser: { name: { contains: filters.q, mode: 'insensitive' } } },
       ];
     }
@@ -694,7 +693,7 @@ export class CrmService {
       tradeName: lead.tradeName ?? null,
       document: lead.document ?? null,
       contacts,
-      primaryContactName: primaryContact?.name ?? lead.contactName ?? null,
+      primaryContactName: primaryContact?.name ?? null,
       industry: lead.industry ?? null,
       companySize: lead.companySize ?? null,
       city: lead.city ?? null,
