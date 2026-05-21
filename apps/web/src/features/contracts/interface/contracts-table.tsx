@@ -29,6 +29,7 @@ import {
     type ContractBlockReasonOption,
 } from "@dosc-syspro/contracts/settings";
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences";
+import { formatDateShort } from "@/lib/date";
 
 interface ContractsTableProps {
     contracts: ContractListItem[];
@@ -39,8 +40,7 @@ interface ContractsTableProps {
 import { formatCurrency } from "@/lib/formatters";
 import { calculateContractFinancials } from "@dosc-syspro/shared";
 
-const formatDate = (dateStr: string | Date) =>
-    new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
+const formatDate = (dateStr: string | Date) => formatDateShort(dateStr);
 
 const toNumber = (value: number | string) => {
     if (typeof value === "number") return value;

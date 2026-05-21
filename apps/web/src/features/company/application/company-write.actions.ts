@@ -8,6 +8,7 @@ import type {
 } from "@dosc-syspro/contracts/company";
 import { trpc } from "@/lib/api/trpc-client";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
+import { onlyDigits } from "@/lib/utils";
 import type {
   CompanyActionResponse as ActionResponse,
   CompanyRegistryLookupResponse,
@@ -16,7 +17,7 @@ import type {
 export async function lookupCompanyProfileByCnpjAction(
   cnpj: string,
 ): Promise<ActionResponse<CompanyRegistryLookupResponse>> {
-  const normalizedCnpj = String(cnpj || "").replace(/\D/g, "");
+  const normalizedCnpj = onlyDigits(cnpj);
   if (normalizedCnpj.length !== 14) {
     return { success: false, message: "Informe um CNPJ completo para consulta." };
   }

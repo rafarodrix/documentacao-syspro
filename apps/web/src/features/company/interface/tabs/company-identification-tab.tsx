@@ -6,7 +6,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage, Input, Select
 import { ClipboardList, Loader2, Search, Sparkles, Building2 } from "lucide-react";
 import { COMPANY_SEGMENT_LABELS } from "@/features/company/domain/company-segments";
 import { formatCNPJ } from "@/lib/formatters";
-import { cn } from "@/lib/utils";
+import { cn, onlyDigits } from "@/lib/utils";
 
 interface CompanyIdentificationTabProps {
   canEditCnpj: boolean;
@@ -73,12 +73,12 @@ export function CompanyIdentificationTab({
                       className={cn(justImported && "ring-1 ring-primary/30")}
                       onChange={(e) => {
                         const formatted = formatCNPJ(e.target.value);
-                        const digits = formatted.replace(/\D/g, "");
+                        const digits = onlyDigits(formatted);
                         if (digits !== lastImportedCnpj) setLastImportedCnpj(null);
                         field.onChange(formatted);
                       }}
                       onBlur={() => {
-                        const digits = String(field.value ?? "").replace(/\D/g, "");
+                        const digits = onlyDigits(field.value);
                         if (digits.length === 14 && digits !== lastImportedCnpj && !isImportingCnpj) {
                           void onImportCnpj();
                         }

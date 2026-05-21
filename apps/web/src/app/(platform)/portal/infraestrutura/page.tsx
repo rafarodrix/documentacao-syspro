@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Activity, Cpu, Monitor } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
+import { PageHeader } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
 import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
@@ -228,14 +229,10 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-5 pb-8 duration-700">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Infraestrutura</h1>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Centralize hosts, operação remota e agentes em uma única visão.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Infraestrutura"
+        description="Centralize hosts, operacao remota e agentes em uma unica visao."
+      />
 
       <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
         <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

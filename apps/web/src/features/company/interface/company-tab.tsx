@@ -35,6 +35,7 @@ import {
 import { deleteCompanyAction, updateCompanyStatusAction } from "@/features/company/application/company-write.actions"
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences"
 import { trpc } from "@/lib/api/trpc-client"
+import { formatCNPJ } from "@/lib/formatters"
 
 interface CompanyTabProps {
   data: CompanyListItem[]
@@ -47,7 +48,6 @@ interface CompanyTabProps {
   canDelete: boolean
 }
 
-const formatCNPJ = (cnpj: string) => cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
 const COMPANY_NAME_COLLATOR = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true })
 const COMPANIES_PAGE_SIZE = 50
 const DEFAULT_INACTIVATION_REASON: CompanyInactivationReasonValue =

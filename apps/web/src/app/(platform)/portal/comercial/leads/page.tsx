@@ -11,13 +11,7 @@ export default async function ComercialLeadsPage() {
   }
   const data = await getCrmLeadsData();
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">CRM Comercial</h1>
-        <p className="mt-1 text-sm text-muted-foreground md:text-base">
-          Gerencie leads, acompanhe o funil e conclua oportunidades com mais clareza.
-        </p>
-      </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <LeadManagementPage data={data} />
     </div>
   );

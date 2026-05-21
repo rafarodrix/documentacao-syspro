@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/patterns";
 import { getSettingsContractsAdminViewData } from "@/features/settings/application/settings-read.queries";
 import { BulkReadjustDialog, ContractSheet, ContractsTable } from "@/features/contracts/interface";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -36,21 +37,18 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
 
   return (
     <div className="flex w-full flex-col gap-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Contratos</h1>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Gerencie vigencia, calculo e bloqueio operacional dos contratos.
-          </p>
-        </div>
-
-        {!isCreateMode && !isEditMode ? (
-          <div className="flex w-full items-center gap-2 sm:w-auto">
+      <PageHeader
+        title="Contratos"
+        description="Gerencie vigencia, calculo e bloqueio operacional dos contratos."
+        actions={
+          !isCreateMode && !isEditMode ? (
+            <div className="flex w-full items-center gap-2 sm:w-auto">
             <BulkReadjustDialog />
             {canCreateContracts ? <ContractSheet companies={contractsView.companies} mode="button" /> : null}
-          </div>
-        ) : null}
-      </div>
+            </div>
+          ) : null
+        }
+      />
 
       {isCreateMode || isEditMode ? (
         <ContractSheet companies={contractsView.companies} mode="full" contract={editContract} />

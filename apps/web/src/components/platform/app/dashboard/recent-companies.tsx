@@ -1,9 +1,9 @@
 import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
 import { Building2, ArrowUpRight, MapPin } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatRelativeDate } from "@/lib/utils"
 import { EmptyState, SectionCard } from "@/components/patterns";
-import { formatDateShort } from "@/lib/date"
+import { formatCNPJ } from "@/lib/formatters";
 
 type CompanyStatusValue = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_DOCS"
 
@@ -34,29 +34,6 @@ const STATUS_CONFIG: Record<CompanyStatusValue, { label: string; class: string }
 const FALLBACK_STATUS = {
   label: "Status",
   class: "bg-muted text-muted-foreground border-border",
-}
-
-function formatCNPJ(cnpj: string) {
-  const clean = cnpj.replace(/\D/g, "")
-  return clean.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
-}
-
-function formatRelativeDate(date: Date | string | null | undefined): string {
-  if (!date) return "Data indisponivel"
-
-  const normalized = date instanceof Date ? date : new Date(date)
-  if (Number.isNaN(normalized.getTime())) return "Data invalida"
-
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - normalized.getTime()) / 1000 / 60 / 60)
-  if (diff < 1) return "Agora mesmo"
-  if (diff < 24) return `Ha ${diff}h`
-
-  const days = Math.floor(diff / 24)
-  if (days === 1) return "Ontem"
-  if (days < 7) return `Ha ${days} dias`
-
-  return formatDateShort(normalized)
 }
 
 function getInitials(name: string): string {

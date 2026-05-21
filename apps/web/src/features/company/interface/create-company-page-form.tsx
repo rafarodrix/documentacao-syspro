@@ -26,6 +26,7 @@ import { createCompanyAction, updateCompanyAction, lookupCompanyProfileByCnpjAct
 import { trpc } from "@/lib/api/trpc-client";
 import { useAddressLookup } from "@/features/company/interface";
 import { formatCNPJ, formatPhone } from "@/lib/formatters";
+import { onlyDigits } from "@/lib/utils";
 import { Form, Badge, Button } from "@dosc-syspro/ui";
 import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
 import { AnimatePresence, motion } from "framer-motion";
@@ -252,7 +253,7 @@ export function CreateCompanyPageForm({
   async function importCompanyByCnpj(options?: { force?: boolean }) {
     const force = options?.force === true;
     const cnpj = typeof currentCnpj === "string" ? currentCnpj : "";
-    const normalizedCnpj = cnpj.replace(/\D/g, "");
+    const normalizedCnpj = onlyDigits(cnpj);
     if (normalizedCnpj.length !== 14) {
       toast.error("Informe um CNPJ completo antes de importar.");
       return;

@@ -6,6 +6,7 @@ import { PlusCircle } from "lucide-react";
 import { TicketsFilters } from "@/features/tickets/interface/components/tickets-filters";
 import { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
 import { Button, Alert, AlertDescription, AlertTitle } from "@dosc-syspro/ui";
+import { PageHeader } from "@/components/patterns";
 import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
@@ -81,14 +82,12 @@ export function TicketsContainer({
         </Alert>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{canManageTickets ? "Tickets" : "Meus chamados"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            {canManageTickets ? "Gerencie a fila de suporte e desenvolvimento." : "Acompanhe o status das suas solicitacoes."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      <PageHeader
+        title={canManageTickets ? "Tickets" : "Meus chamados"}
+        description={
+          canManageTickets ? "Gerencie a fila de suporte e desenvolvimento." : "Acompanhe o status das suas solicitacoes."
+        }
+        actions={
           <Link href="/portal/tickets/novo" className="w-full sm:w-auto">
             <Button className="h-10 w-full gap-2 sm:w-auto">
               <PlusCircle className="h-4 w-4" />
@@ -96,8 +95,8 @@ export function TicketsContainer({
               <span className="sm:hidden">Novo</span>
             </Button>
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       <section className="rounded-lg border border-border/60 bg-card p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">

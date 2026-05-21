@@ -36,7 +36,7 @@ import {
   RegistryToolbar,
   type RegistryPaginationState,
 } from "@/components/platform/shared/registry-list-scaffold";
-import { cn } from "@/lib/utils";
+import { cn, onlyDigits } from "@/lib/utils";
 import { deleteContactAction, syncContactsAction, unlinkContactCompaniesAction } from "@/features/contact/application/contact-write.actions";
 
 type ContactItem = ContactListItem;
@@ -81,7 +81,7 @@ function getPrimaryPhone(contact: ContactItem) {
 }
 
 function formatCpf(value?: string | null) {
-  const digits = String(value ?? "").replace(/\D/g, "");
+  const digits = onlyDigits(value);
   if (digits.length !== 11) return value || null;
   return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 }

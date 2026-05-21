@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { UseFormSetValue } from "react-hook-form";
 import type { CreateCompanyInput } from "@dosc-syspro/contracts/company";
+import { onlyDigits } from "@/lib/utils";
 
 interface BrasilApiCepResponse {
   state?: string;
@@ -55,7 +56,7 @@ export function useAddressLookup(setValue: UseFormSetValue<CreateCompanyInput>) 
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const handleCepChange = async (value: string) => {
-    const cleanCep = value.replace(/\D/g, "");
+    const cleanCep = onlyDigits(value);
     const formatted = cleanCep.replace(/^(\d{5})(\d)/, "$1-$2").substring(0, 9);
 
     setValue("address.cep", formatted, { shouldValidate: true });

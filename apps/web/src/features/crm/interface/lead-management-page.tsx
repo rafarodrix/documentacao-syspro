@@ -79,7 +79,7 @@ import {
   formatLeadCurrency,
   type LeadDashboardData,
 } from "@/features/crm/domain/crm.types";
-import { cn, formatDateSafe } from "@/lib/utils";
+import { cn, formatDateSafe, onlyDigits } from "@/lib/utils";
 import { trpc } from "@/lib/api/trpc-client";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
@@ -135,10 +135,6 @@ const EMPTY_CONTACT: CrmLeadManualContact = {
   isPrimary: false,
   notes: "",
 };
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
 
 function parseNullableNumber(value: string) {
   const normalized = value.trim().replace(",", ".");

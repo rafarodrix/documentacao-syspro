@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
 import { ArrowUpRight, UserRound, Users } from "lucide-react"
 import { EmptyState, SectionCard } from "@/components/patterns";
-import { formatDateShort } from "@/lib/date";
+import { formatRelativeDate } from "@/lib/utils";
 
 export interface RecentRecordItem {
   id: string
@@ -23,24 +23,6 @@ interface RecentRecordsProps {
   createLabel?: string
   items: RecentRecordItem[]
   icon?: "contact" | "user"
-}
-
-function formatRelativeDate(date: Date | string | null | undefined): string {
-  if (!date) return "Data indisponivel"
-
-  const normalized = date instanceof Date ? date : new Date(date)
-  if (Number.isNaN(normalized.getTime())) return "Data invalida"
-
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - normalized.getTime()) / 1000 / 60 / 60)
-  if (diff < 1) return "Agora mesmo"
-  if (diff < 24) return `Ha ${diff}h`
-
-  const days = Math.floor(diff / 24)
-  if (days === 1) return "Ontem"
-  if (days < 7) return `Ha ${days} dias`
-
-  return formatDateShort(normalized)
 }
 
 function getInitials(value: string) {

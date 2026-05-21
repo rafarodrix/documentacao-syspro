@@ -5,6 +5,10 @@ export function cn(...inputs: Parameters<typeof cnUi>) {
   return cnUi(...inputs);
 }
 
+export function onlyDigits(value: string | number | null | undefined) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
 /**
  * Formata uma data de forma segura para PT-BR.
  * Retorna fallback se a data for invalida ou nula.

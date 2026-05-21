@@ -10,7 +10,7 @@ import { CRM_LEAD_SOURCE_VALUES, CRM_LEAD_STAGE_VALUES, type CrmLead, type CrmLe
 import { CRM_SOURCE_LABELS, CRM_STAGE_LABELS } from "@/features/crm/domain/crm.types";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Badge } from "@dosc-syspro/ui";
-import { cn } from "@/lib/utils";
+import { cn, onlyDigits } from "@/lib/utils";
 import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
 import { PageHeader } from "@/components/patterns";
 import { trpc } from "@/lib/api/trpc-client";
@@ -67,10 +67,6 @@ const EMPTY_CONTACT: CrmLeadManualContact = {
   isPrimary: true,
   notes: "",
 };
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
 
 function parseNullableNumber(value: string) {
   const normalized = value.trim().replace(",", ".");

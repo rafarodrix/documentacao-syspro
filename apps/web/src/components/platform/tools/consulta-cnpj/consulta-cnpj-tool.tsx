@@ -11,17 +11,13 @@ import {
 import { toast } from "sonner";
 
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Separator, Badge } from "@dosc-syspro/ui";
-import { cn } from "@/lib/utils";
+import { cn, onlyDigits } from "@/lib/utils";
 import { formatDateShort } from "@/lib/date";
 import { formatCNPJ, formatPhone, isValidCnpj } from "@/lib/formatters";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import type { CompanyRegistryLookupResponse } from "@/features/company/application/company-view.types";
 
 type LookupProfile = NonNullable<CompanyRegistryLookupResponse["profile"]>;
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
 
 function formatDate(value?: string) {
   if (!value) return "Nao informado";

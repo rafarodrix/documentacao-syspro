@@ -35,6 +35,7 @@ import {
   TicketCompanyPicker,
   type TicketCompanyPickerOption,
 } from "@/features/tickets/interface/components/ticket-company-picker";
+import { PageHeader } from "@/components/patterns";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/ticket-attachment-field";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import {
@@ -414,18 +415,16 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-3 space-y-5 pb-8 duration-500">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2 h-8 gap-2 text-muted-foreground" onClick={() => router.push("/portal/tickets")}>
+      <PageHeader
+        title="Novo chamado"
+        description="Registre uma solicitacao com classificacao, contexto tecnico e evidencias."
+        actions={
+          <Button type="button" variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground" onClick={() => router.push("/portal/tickets")}>
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Novo chamado</h1>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Registre uma solicitacao com classificacao, contexto tecnico e evidencias.
-          </p>
-        </div>
-      </div>
+        }
+      />
 
       <Form {...form}>
         <form
