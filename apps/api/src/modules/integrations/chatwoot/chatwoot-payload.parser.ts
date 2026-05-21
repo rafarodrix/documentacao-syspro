@@ -1,6 +1,7 @@
 import type { ChatwootConnectionConfig } from './chatwoot.client';
 import type { ResolvedIntegrationContext } from '../../settings/integration-context.service';
 import type { ChatwootBehaviorSettings } from '@dosc-syspro/contracts/chatwoot';
+import { onlyDigits } from '@dosc-syspro/shared';
 
 export type MessageContext = {
   message: any | null;
@@ -188,7 +189,7 @@ export class ChatwootPayloadParser {
       payload?.additional_attributes?.phone_number ??
       payload?.contact?.additional_attributes?.phone_number,
     );
-    const digits = String(value ?? '').replace(/\D/g, '');
+    const digits = onlyDigits(value);
     return digits || undefined;
   }
 

@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { onlyDigits } from '@dosc-syspro/shared';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type {
   MonthlyRoutineCompanyConfigUpsertInput,
@@ -1100,8 +1101,7 @@ export class RotinasMensaisService {
   }
 
   private normalizePhone(value: string | null | undefined) {
-    const digits = String(value ?? '').replace(/\D/g, '');
-    return digits || null;
+    return onlyDigits(value) || null;
   }
 
   private buildDefaultManualRequestMessage(input: {

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { onlyDigits } from '@dosc-syspro/shared';
 import { EvolutionClient, EvolutionOutboundError } from '../../evolution/evolution.client';
 import { ChatwootClient } from '../../chatwoot/chatwoot.client';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -509,7 +510,7 @@ export class ProcessOutgoingMessageUseCase {
     ];
 
     for (const candidate of candidates) {
-      const digits = String(candidate ?? '').replace(/\D/g, '');
+      const digits = onlyDigits(candidate);
       if (digits.length >= 10) {
         return digits;
       }
@@ -554,7 +555,7 @@ export class ProcessOutgoingMessageUseCase {
       ];
 
       for (const candidate of candidates) {
-        const digits = String(candidate ?? '').replace(/\D/g, '');
+        const digits = onlyDigits(candidate);
         if (digits.length >= 10) {
           this.logger.warn(JSON.stringify({
             flow: 'chatwoot_to_evolution',
@@ -578,7 +579,7 @@ export class ProcessOutgoingMessageUseCase {
   }
 
   private buildLegacyBrazilianNumberVariant(number: string): string | null {
-    const digits = String(number ?? '').replace(/\D/g, '');
+    const digits = onlyDigits(number);
     if (!/^55\d{2}9\d{8}$/.test(digits)) {
       return null;
     }

@@ -19,6 +19,7 @@ import { ChatwootPayloadParser } from './chatwoot-payload.parser';
 import { ChatwootSettingsService } from './chatwoot-settings.service';
 import { ChatwootBehaviorService } from './chatwoot-behavior.service';
 import { ChatwootCsatService } from './chatwoot-csat.service';
+import { onlyDigits } from '@dosc-syspro/shared';
 
 @Controller('webhooks/chatwoot')
 export class ChatwootWebhookController {
@@ -182,7 +183,7 @@ export class ChatwootWebhookController {
 
   private async handleContactCreated(payload: any): Promise<void> {
     if (!payload?.phone_number || !payload?.name) return;
-    const phone = payload.phone_number.replace(/\D/g, '');
+    const phone = onlyDigits(payload.phone_number);
     const exists = await this.prisma.companyContact.findFirst({ where: { whatsapp: phone } });
     if (!exists) {
       await this.prisma.companyContact.create({ data: { name: payload.name, whatsapp: phone } });

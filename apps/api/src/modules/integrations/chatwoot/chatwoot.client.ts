@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { onlyDigits } from '@dosc-syspro/shared';
 import { ChatwootAttachmentResolver } from './chatwoot-attachment.resolver';
 import { ChatwootPlatformClient } from './chatwoot-platform.client';
 
@@ -777,8 +778,7 @@ export class ChatwootClient {
     contactIdentifier: string,
     phoneNumber?: string,
   ): Promise<string | undefined> {
-    const normalizePhone = (v?: string | null) => String(v ?? '').replace(/\D/g, '');
-    const queries = [phoneNumber, normalizePhone(phoneNumber), contactIdentifier]
+    const queries = [phoneNumber, onlyDigits(phoneNumber), contactIdentifier]
       .map((v) => String(v ?? '').trim())
       .filter(Boolean);
 
@@ -791,7 +791,7 @@ export class ChatwootClient {
         1,
       );
       const contacts = Array.isArray(response?.payload) ? response.payload : Array.isArray(response) ? response : [];
-      const normalizedPhone = normalizePhone(phoneNumber);
+      const normalizedPhone = onlyDigits(phoneNumber);
       const match = contacts.find((contact: any) => {
         const contactId = contact?.id?.toString?.();
         if (!contactId) return false;
@@ -799,7 +799,7 @@ export class ChatwootClient {
           contact?.source_id?.toString?.() === contactIdentifier ||
           contact?.identifier?.toString?.() === contactIdentifier ||
           contact?.contact_inboxes?.some?.((item: any) => item?.source_id?.toString?.() === contactIdentifier) ||
-          (normalizedPhone && normalizePhone(contact?.phone_number) === normalizedPhone)
+          (normalizedPhone && onlyDigits(contact?.phone_number) === normalizedPhone)
         );
       });
       const id = match?.id?.toString?.();

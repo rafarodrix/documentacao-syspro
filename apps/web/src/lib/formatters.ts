@@ -1,5 +1,6 @@
 export {
   formatCurrency,
+  formatNumber,
   parseCurrency,
   formatarMoedaInput,
   formatPercent,

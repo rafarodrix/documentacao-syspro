@@ -21,7 +21,7 @@ import type {
   CreateTaskInput,
   CreateTaskResult,
 } from '@dosc-syspro/contracts/tarefas';
-import { normalizePhone } from '@dosc-syspro/shared';
+import { normalizePhone, formatDateShort } from '@dosc-syspro/shared';
 import {
   CompanyStatus,
   Prisma,
@@ -1301,7 +1301,7 @@ export class TarefasService {
           companyName: record.company?.nomeFantasia || record.company?.razaoSocial || 'Empresa',
           routineTitle: record.config?.title || record.title || 'Rotina mensal',
           competencyLabel: record.year && record.month ? `${String(record.month).padStart(2, '0')}/${record.year}` : 'Tarefa',
-          dueDate: record.dueDate.toLocaleDateString('pt-BR'),
+          dueDate: formatDateShort(record.dueDate),
           clientContactName: record.config?.clientContact?.name ?? null,
           timeoutHours: waitingCustomerTimeoutHours,
         });

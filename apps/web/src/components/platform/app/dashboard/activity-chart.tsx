@@ -7,6 +7,7 @@ import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 import { Activity } from "lucide-react";
+import { formatNumber } from "@/lib/formatters";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -115,7 +116,7 @@ export function ActivityChart({
         tickAmount: peakValue > 0 ? Math.min(4, peakValue + 1) : 3,
         forceNiceScale: true,
         labels: {
-          formatter: (value) => Math.round(value).toLocaleString("pt-BR"),
+          formatter: (value) => formatNumber(Math.round(value)),
           style: {
             colors: [palette.foreground],
             fontSize: "11px",
@@ -134,7 +135,7 @@ export function ActivityChart({
         theme: palette.tooltipTheme,
         x: { show: true },
         y: {
-          formatter: (value) => `${Math.round(value).toLocaleString("pt-BR")} ${Math.round(value) !== 1 ? "atualizacoes" : "atualizacao"}`,
+          formatter: (value) => `${formatNumber(Math.round(value))} ${Math.round(value) !== 1 ? "atualizacoes" : "atualizacao"}`,
         },
       },
       legend: { show: false },

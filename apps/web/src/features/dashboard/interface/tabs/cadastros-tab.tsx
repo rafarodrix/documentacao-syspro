@@ -1,4 +1,5 @@
 import { Building2, UserRound, Users } from "lucide-react";
+import { formatNumber } from "@/lib/formatters";
 import { RecentCompanies } from "@/components/platform/app/dashboard/recent-companies";
 import { RecentRecords } from "@/components/platform/app/dashboard/recent-records";
 import { SectionCard } from "@/components/patterns";
@@ -46,7 +47,7 @@ export async function CadastrosTab() {
         {canViewCompanies ? (
           <DashboardMetricCard
             title="Empresas ativas"
-            value={(cadastros?.companies.total ?? companiesCount).toLocaleString("pt-BR")}
+            value={formatNumber(cadastros?.companies.total ?? companiesCount)}
             helper={`${cadastros?.companies.registeredThisMonth ?? 0} novas no mes · ${cadastros?.companies.inactivatedThisMonth ?? 0} inativadas`}
             icon={Building2 as any}
             tone="blue"
@@ -56,7 +57,7 @@ export async function CadastrosTab() {
         {canViewContacts ? (
           <DashboardMetricCard
             title="Contatos vinculados"
-            value={(cadastros?.contacts.total ?? contactsCount).toLocaleString("pt-BR")}
+            value={formatNumber(cadastros?.contacts.total ?? contactsCount)}
             helper={`${cadastros?.contacts.registeredThisMonth ?? 0} novos no mes · ${cadastros?.contacts.inactivatedThisMonth ?? 0} inativados`}
             icon={Users as any}
             tone="amber"
@@ -66,7 +67,7 @@ export async function CadastrosTab() {
         {canViewUsers ? (
           <DashboardMetricCard
             title="Usuarios ativos"
-            value={(cadastros?.users.total ?? usersCount).toLocaleString("pt-BR")}
+            value={formatNumber(cadastros?.users.total ?? usersCount)}
             helper={`${cadastros?.users.registeredThisMonth ?? 0} novos no mes · ${cadastros?.users.inactivatedThisMonth ?? 0} inativados`}
             icon={UserRound as any}
             tone="emerald"
