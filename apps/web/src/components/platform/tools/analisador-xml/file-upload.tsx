@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, DragEvent, useState } from 'react';
 import { X, FileArchive, FolderUp, UploadCloud } from 'lucide-react';
+import { onlyDigits } from '@dosc-syspro/shared';
 
 type FileUploadProps = {
   fileInputKey: string | number;
@@ -64,7 +65,7 @@ export function FileUpload({
   // --- Logica de M?scara de CNPJ ---
   const handleCnpjChangeLocal = (e: ChangeEvent<HTMLInputElement>) => {
     // Remove tudo que nao ? d?gito
-    let value = e.target.value.replace(/\D/g, '');
+    let value = onlyDigits(e.target.value);
 
     // Limita a 14 d?gitos
     if (value.length > 14) value = value.slice(0, 14);

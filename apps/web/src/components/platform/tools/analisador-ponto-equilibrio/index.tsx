@@ -2,26 +2,10 @@
 
 import { useState, useMemo, ChangeEvent } from 'react';
 import { Target, X, HelpCircle, ChevronDown, TrendingUp, TrendingDown, DollarSign, Package, Coins } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-const formatNumber = (value: number) => isNaN(value) ? '0' : Math.ceil(value).toLocaleString('pt-BR');
-const parseCurrency = (value: string): number => {
-    if (!value) return 0;
-    const cleanedValue = value.replace(/\./g, '').replace(',', '.');
-    return parseFloat(cleanedValue) || 0;
-};
-const formatarMoedaInput = (value: string): string => {
-    if (!value) return '';
-    const digitsOnly = value.replace(/\D/g, '');
-    if (digitsOnly === '') return '';
-    const numberValue = parseFloat(digitsOnly) / 100;
-    return numberValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-const formatNumberToInput = (value: number): string => {
-    if (isNaN(value)) return '';
-    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const round = (value: number) => Math.round(value * 100) / 100;
+import { formatCurrency, parseCurrency, formatarMoedaInput, round, formatNumber as sharedFormatNumber } from '@dosc-syspro/shared';
+const formatNumber = (value: number) => sharedFormatNumber(Math.ceil(value));
+const formatNumberToInput = (value: number): string =>
+  Number.isNaN(value) ? '' : sharedFormatNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // --- Componente Principal ---
 export function AnalisadorPontoEquilibrio() {

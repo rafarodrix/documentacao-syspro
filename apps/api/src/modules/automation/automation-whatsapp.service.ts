@@ -17,6 +17,7 @@ import {
   ConversationStatus as TicketStatus,
 } from '@prisma/client';
 import { normalizeReleaseType } from '@dosc-syspro/core';
+import { onlyDigits, formatDurationBetween } from '@dosc-syspro/shared';
 import { AutomationSettingsService } from './automation-settings.service';
 
 type TicketNotificationTeam = 'SUPORTE' | 'DESENVOLVIMENTO';
@@ -462,7 +463,7 @@ export class AutomationWhatsappService {
     const link = this.buildPortalSefazRoutesUrl(input.rawHeaders);
     const durationLabel =
       input.notificationType === 'recovered'
-        ? this.formatDurationBetween(input.openedAt, input.recoveredAt)
+        ? formatDurationBetween(input.openedAt, input.recoveredAt)
         : null;
     const message = [
       input.notificationType === 'down' ? '`SEFAZ indisponivel`' : '`SEFAZ normalizada`',
@@ -548,7 +549,7 @@ export class AutomationWhatsappService {
     const routeLines = sortedRoutes.map((route) => {
       const duration =
         input.notificationType === 'recovered'
-          ? this.formatDurationBetween(route.openedAt, route.recoveredAt)
+          ? formatDurationBetween(route.openedAt, route.recoveredAt)
           : null;
 
       return input.notificationType === 'recovered' && duration
@@ -966,12 +967,12 @@ export class AutomationWhatsappService {
       return candidate;
     }
 
-    const digits = candidate.replace(/\D/g, '');
+    const digits = onlyDigits(candidate);
     return digits ? `${digits}@g.us` : null;
   }
 
   private formatCnpj(value?: string | null): string | null {
-    const digits = String(value ?? '').replace(/\D/g, '');
+    const digits = onlyDigits(value);
     if (digits.length !== 14) return null;
     return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   }
@@ -1111,23 +1112,6 @@ export class AutomationWhatsappService {
 
   private formatSefazServiceLabel(value: 'NFE' | 'NFCE'): string {
     return value === 'NFCE' ? 'NFCe' : 'NFe';
-  }
-
-  private formatDurationBetween(start?: Date | string | null, end?: Date | string | null): string | null {
-    if (!start || !end) return null;
-
-    const startedAt = new Date(start);
-    const endedAt = new Date(end);
-    if (Number.isNaN(startedAt.getTime()) || Number.isNaN(endedAt.getTime())) return null;
-
-    const diffMs = Math.max(0, endedAt.getTime() - startedAt.getTime());
-    const totalMinutes = Math.max(1, Math.round(diffMs / 60000));
-
-    if (totalMinutes < 60) return `${totalMinutes} min`;
-
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return minutes ? `${hours}h ${minutes}min` : `${hours}h`;
   }
 
   private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {

@@ -17,6 +17,7 @@
     "./remote": "./src/remote/index.ts",
     "./remote-module-settings": "./src/remote/remote-module-settings.types.ts",
     "./tarefas": "./src/tarefas/index.ts",
+    "./rotinas-mensais": "./src/rotinas-mensais/index.ts",
     "./platform-notifications": "./src/shared/platform-notifications.types.ts",
     "./settings": "./src/settings/index.ts",
     "./sefaz-routes": "./src/sefaz/sefaz-routes.types.ts",

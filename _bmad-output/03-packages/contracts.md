@@ -1,0 +1,143 @@
+# Package: @dosc-syspro/contracts
+
+> Zod schemas e tipos TypeScript para todos os domínios do monorepo.
+> Atualizado em: 2026-05-08
+
+---
+
+## Responsabilidade
+
+`@dosc-syspro/contracts` é a **porta de domínio** do monorepo. Define schemas Zod e tipos TypeScript que:
+- Validam dados em runtime nos boundaries de integração
+- Garantem type safety entre apps (API ↔ Web)
+- Servem como documentação viva dos contratos de dados
+
+**Não contém lógica de negócio** — apenas schemas de validação e tipos.
+
+---
+
+## Subpaths exportados
+
+O package usa exports condicionais (subpath imports):
+
+| Subpath                        | Conteúdo                                              |
+|--------------------------------|-------------------------------------------------------|
+| `@dosc-syspro/contracts`       | Re-exporta tudo (barrel)                              |
+| `@dosc-syspro/contracts/company`        | Schemas de empresa (list, create, update, status) |
+| `@dosc-syspro/contracts/contact`        | Schemas de contatos (create, update, list, stats) |
+| `@dosc-syspro/contracts/ticket`         | Schemas de tickets (status, priority, history) |
+| `@dosc-syspro/contracts/user`           | Schemas de usuários e perfis                  |
+| `@dosc-syspro/contracts/agent`          | Schemas de agentes/dispositivos               |
+| `@dosc-syspro/contracts/chatwoot`       | Tipos de integração Chatwoot                  |
+| `@dosc-syspro/contracts/evolution`      | Tipos de integração Evolution/WhatsApp        |
+| `@dosc-syspro/contracts/evolution-webhook` | Payloads de webhooks Evolution            |
+| `@dosc-syspro/contracts/remote`         | Contratos RustDesk (heartbeat, bootstrap, sync, ack, discover) |
+| `@dosc-syspro/contracts/remote-module-settings` | Configurações do módulo remoto       |
+| `@dosc-syspro/contracts/crm`            | Tipos de CRM (leads, atividades, tarefas)     |
+| `@dosc-syspro/contracts/automation`     | Tipos de automação e triggers                 |
+| `@dosc-syspro/contracts/dashboard`      | Tipos de métricas e KPIs                      |
+| `@dosc-syspro/contracts/sefaz-routes`   | Rotas SEFAZ por UF e tipo de nota             |
+| `@dosc-syspro/contracts/platform-notifications` | Notificações do portal              |
+| `@dosc-syspro/contracts/settings`       | Schemas de configurações gerais               |
+
+---
+
+## Domínio remote — detalhamento
+
+Por ser o mais crítico para a comunicação agent ↔ portal:
+
+```typescript
+// @dosc-syspro/contracts/remote
+
+// Discovery (primeiro contato da máquina)
+export const DiscoverPayloadV1Schema = z.object({ ... })
+export type DiscoverPayloadV1 = z.infer<typeof DiscoverPayloadV1Schema>
+
+// Bootstrap (registro e obtenção de agentToken)
+export const BootstrapPayloadV1Schema = z.object({ ... })
+
+// Heartbeat (ciclo periódico)
+export const HeartbeatPayloadV1Schema = z.object({
+  agentToken: z.string(),
+  rustdeskId: z.string(),
+  // ... stats de hardware
+})
+
+// Sync (relatório de atualizações)
+export const SyncPayloadV1Schema = z.object({
+  agentToken: z.string(),
+  sysproUpdates: z.array(SysproUpdateSchema),
+  // ...
+})
+
+// ACK (confirmação de comandos)
+export const AckPayloadV1Schema = z.object({
+  agentToken: z.string(),
+  commandId: z.string(),
+  result: z.enum(['SUCCESS', 'FAILURE']),
+  message: z.string().optional(),
+})
+```
+
+Versão dos payloads: sufixo `.v1` permite versionamento sem breaking change.
+
+---
+
+## Uso no código
+
+```typescript
+// Na API (validação de entrada REST — controllers legados)
+import { HeartbeatPayloadV1Schema } from '@dosc-syspro/contracts/remote'
+
+const parsed = HeartbeatPayloadV1Schema.safeParse(body)
+if (!parsed.success) throw new BadRequestException(parsed.error)
+
+// Na API (input de tRPC router — validação automática)
+import { createContactSchema, updateContactSchema } from '@dosc-syspro/contracts/contact'
+
+create: this.trpc.publicProcedure
+  .input(createContactSchema)
+  .mutation(({ input, ctx }) => this.contactsService.createContact(input, ctx.headers))
+
+// No Web (tipagem de formulários)
+import type { CreateContactInput } from '@dosc-syspro/contracts/contact'
+const form: CreateContactInput = { ... }
+```
+
+---
+
+## Padrão create vs update
+
+Domínios com tRPC usam **dois schemas distintos** para criar e atualizar:
+
+| Schema            | Campos opcionais | Campos nullable | Quando usar                        |
+|-------------------|-----------------|-----------------|-------------------------------------|
+| `create<X>Schema` | Sim (`.optional()`) | Não          | Criar novo registro                 |
+| `update<X>Schema` | Sim (`.optional()`) | Sim (`.nullable()`) | Atualizar — permite limpar campos |
+
+**Por quê dois schemas?**
+
+No create, campos vazios podem ser simplesmente omitidos (`undefined`). No update, o usuário pode querer **limpar** um campo que tinha valor (ex.: remover o email de um contato) — isso requer `null` explícito para que o Prisma execute `SET NULL` no banco.
+
+```typescript
+// create: undefined para campos não informados
+await trpc.contacts.create.mutate({ name: "João", companyIds: [] })
+
+// update: null para limpar campos, undefined para não alterar
+await trpc.contacts.update.mutate({
+  id: contactId,
+  data: { email: null }  // limpa o email no banco
+})
+```
+
+**Atenção no service:** quando o método de update recebe o input do tRPC, usar `z.output<typeof updateSchema>` (não `z.input`) como tipo do parâmetro — o tRPC entrega o tipo pós-transform. Usar o tipo de input pode causar inferência `unknown` em campos com `.transform()` na schema.
+
+---
+
+## Convenções
+
+- Schemas nomeados como `<Ação><Entidade>Schema` (ex: `createContactSchema`, `updateContactSchema`)
+- Tipos de input inferidos via `z.input<typeof schema>` (antes dos transforms Zod)
+- Tipos de output inferidos via `z.output<typeof schema>` (após os transforms Zod)
+- Payloads REST externos versionados como `<Ação>PayloadV1` para futura evolução
+- Schemas de listagem incluem paginação e filtros padronizados via `paginationQuerySchema`

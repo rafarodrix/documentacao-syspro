@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { readEvolutionRuntimeConfig } from '@dosc-syspro/config';
 import { randomUUID } from 'crypto';
+import { onlyDigits } from '@dosc-syspro/shared';
 
 export type EvolutionConnectionConfig = {
   apiUrl: string;
@@ -644,7 +645,7 @@ export class EvolutionClient {
           : recipient;
       }
 
-      const normalizedLocalPart = rawLocalPart.replace(/\D/g, '');
+      const normalizedLocalPart = onlyDigits(rawLocalPart);
       if (!normalizedLocalPart) {
         return recipient;
       }
@@ -657,7 +658,7 @@ export class EvolutionClient {
         : normalizedDigits;
     }
 
-    const digits = recipient.replace(/\D/g, '');
+    const digits = onlyDigits(recipient);
     if (!digits) return digits;
     return digits.startsWith('55') ? digits : `55${digits}`;
   }
@@ -683,7 +684,7 @@ export class EvolutionClient {
     if (!localPart) return null;
     if (domain?.trim().toLowerCase() === 'g.us') return null;
 
-    const digits = localPart.replace(/\D/g, '');
+    const digits = onlyDigits(localPart);
     if (!(digits.startsWith('55') && digits.length === 13 && digits[4] === '9')) {
       return null;
     }
@@ -798,7 +799,7 @@ export class EvolutionClient {
     const raw = String(value ?? '').trim();
     if (!raw) return '';
     const jidCandidate = raw.includes('@') ? raw.split('@')[0] : raw;
-    return jidCandidate.replace(/\D/g, '');
+    return onlyDigits(jidCandidate);
   }
 
   private buildAuthHeaders(apiKey: string): Record<string, string> {
