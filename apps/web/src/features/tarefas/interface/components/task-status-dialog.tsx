@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
 import type { TaskItem, TaskStatus } from "@dosc-syspro/contracts/tarefas";
+import { formatDateTime } from "@/lib/date";
 import {
   Badge,
   Button,
@@ -135,7 +136,7 @@ export function TaskStatusDialog({ item, open, onOpenChange, onSaved }: TaskStat
                         <div>
                           <div className="text-sm font-medium text-foreground">{entry.title}</div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(entry.occurredAt).toLocaleString("pt-BR")}
+                            {formatDateTime(entry.occurredAt)}
                             {entry.authorUserName ? ` - ${entry.authorUserName}` : ""}
                           </div>
                         </div>

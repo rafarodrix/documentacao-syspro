@@ -7,6 +7,7 @@ import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@dosc-s
 import { ArrowUpRight, CalendarClock, CircleCheckBig, ClipboardPlus, Loader2, MessageSquareShare, RefreshCw, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/api/trpc-client";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 import { TaskManualRequestDialog } from "@/features/tarefas/interface/components/task-manual-request-dialog";
 import { TaskCreateDialog } from "@/features/tarefas/interface/components/task-create-dialog";
 import { TaskStatusDialog } from "@/features/tarefas/interface/components/task-status-dialog";
@@ -217,7 +218,7 @@ export function ChatwootTarefasTab() {
                           {getTaskStatusLabel(item.status)}
                         </ContextBadge>
                         <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px]">
-                          Vence em {new Date(item.dueDate).toLocaleDateString("pt-BR")}
+                          Vence em {formatDateShort(item.dueDate)}
                         </Badge>
                         {item.ticketId ? (
                           <Badge variant="outline" className="h-5 gap-1 rounded-full px-2 text-[10px]">
@@ -269,10 +270,10 @@ export function ChatwootTarefasTab() {
                           <p className="mt-1 text-xs font-medium text-foreground">
                             {item.type === "ROTINA_MENSAL"
                               ? item.lastManualRequestAt
-                                ? new Date(item.lastManualRequestAt).toLocaleString("pt-BR")
+                                ? formatDateTime(item.lastManualRequestAt)
                                 : "Sem envio"
                               : item.history[0]?.occurredAt
-                                ? new Date(item.history[0].occurredAt).toLocaleString("pt-BR")
+                                ? formatDateTime(item.history[0].occurredAt)
                                 : "Sem historico"}
                           </p>
                         </div>

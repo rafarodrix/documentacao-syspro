@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Building2, Clock, ExternalLink, Monitor, WifiOff } from "lucide-react";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import { formatDateTime } from "@/lib/date";
 
 function relativeTime(lagSeconds: number | null): string {
   if (lagSeconds === null) return "nunca";
@@ -13,7 +14,8 @@ function relativeTime(lagSeconds: number | null): string {
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const res = formatDateTime(iso);
+  return res === "-" ? "—" : res;
 }
 
 export function AgentDeviceDetailPanel({ device }: { device: AgentDeviceSummary }) {

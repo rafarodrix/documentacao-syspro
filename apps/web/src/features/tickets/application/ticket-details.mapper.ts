@@ -5,6 +5,7 @@ import type {
 } from "@dosc-syspro/contracts/ticket";
 import type { PaginationMeta } from "@dosc-syspro/contracts";
 import type { TicketArticleItem, TicketDetailsResponse, TicketMessagePagination } from "@/features/tickets/domain/ticket-model";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 
 function mapPriorityToLevel(priority: TicketModulePriority | string | null | undefined): number {
   if (priority === "LOW") return 1;
@@ -87,7 +88,7 @@ function mapTicketMessage(message: NonNullable<TicketModuleRecord["messages"]>[n
       message.authorContact?.name ||
       "Sistema",
     body: message.body || "",
-    createdAt: new Date(message.createdAt).toLocaleString("pt-BR"),
+    createdAt: formatDateTime(message.createdAt),
     sender: message.direction === "INBOUND" ? "Customer" : "Agent",
     isInternal: message.direction === "INTERNAL",
     messageType: message.type,
@@ -182,7 +183,7 @@ export function mapTicketModuleDetailsResponse(response: TicketModuleDetailsResp
         developmentOwnerUserId: readNullableMetadata(ticket.metadata, "developmentOwnerUserId"),
         developmentOwnerName: readNullableMetadata(ticket.metadata, "developmentOwnerName"),
       },
-      createdAt: new Date(ticket.createdAt).toLocaleDateString("pt-BR"),
+      createdAt: formatDateShort(ticket.createdAt),
     },
     articles,
     messagePagination: mapMessagePagination(response.messagePagination, articles.length),

@@ -140,9 +140,28 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [form, setForm] = useState<LeadFormState>(() => mapLeadToFormState(initialData));
-  const [contacts, setContacts] = useState<CrmLeadManualContact[]>(() =>
-    initialData?.contacts?.length ? initialData.contacts.map((contact) => ({ ...contact })) : [{ ...EMPTY_CONTACT }],
-  );
+  const [contacts, setContacts] = useState<CrmLeadManualContact[]>(() => {
+    let rawContacts: any = initialData?.contacts;
+    if (typeof rawContacts === "string") {
+      try {
+        rawContacts = JSON.parse(rawContacts);
+      } catch (e) {
+        rawContacts = [];
+      }
+    }
+    if (rawContacts && Array.isArray(rawContacts) && rawContacts.length > 0) {
+      return rawContacts.map((contact: any) => ({
+        name: contact?.name || "",
+        role: contact?.role || "",
+        email: contact?.email || "",
+        phone: contact?.phone || "",
+        whatsapp: contact?.whatsapp || "",
+        isPrimary: Boolean(contact?.isPrimary),
+        notes: contact?.notes || "",
+      }));
+    }
+    return [{ ...EMPTY_CONTACT }];
+  });
 
   const essentialReady = Boolean(form.title.trim() && form.companyName.trim());
   const companyReady = hasCompanyContext(form);

@@ -13,6 +13,7 @@ import {
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { formatDateShort } from "@/lib/date";
 
 function formatDuration(seconds: number | null) {
   if (seconds === null) return "N/A";
@@ -93,7 +94,7 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-foreground">#{session.ticketNumber || "N/A"}</span>
                         <span className="text-[10px] text-muted-foreground">
-                          {new Date(session.createdAt).toLocaleDateString("pt-BR")}
+                          {formatDateShort(session.createdAt)}
                         </span>
                       </div>
                     </td>

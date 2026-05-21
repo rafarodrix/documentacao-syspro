@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Badge, Button, Input, Label, Checkbox, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import { Loader2, Save, RefreshCw, CircleHelp, QrCode } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/date";
 import {
   type EvolutionInstanceStatus,
   type EvolutionQrCodeResult,
@@ -189,7 +190,7 @@ export default function EvolutionSettingsTab() {
           <InfoTile label="Ultimo evento" value={instanceStatus?.event || "N/A"} />
           <InfoTile
             label="Recebido em"
-            value={instanceStatus?.receivedAt ? new Date(instanceStatus.receivedAt).toLocaleString("pt-BR") : "N/A"}
+            value={instanceStatus?.receivedAt ? formatDateTime(instanceStatus.receivedAt) : "N/A"}
           />
           <InfoTile label="Configuracao" value={instanceStatus?.configured ? "Contexto ativo" : "Pendente"} />
         </CardContent>
@@ -368,7 +369,7 @@ export default function EvolutionSettingsTab() {
             </CardTitle>
             <CardDescription>
               Instancia {qrCodeResult.instance} via {qrCodeResult.endpoint}
-              {qrCodeResult.receivedAt ? ` - QR recebido em ${new Date(qrCodeResult.receivedAt).toLocaleString("pt-BR")}` : ""}
+              {qrCodeResult.receivedAt ? ` - QR recebido em ${formatDateTime(qrCodeResult.receivedAt)}` : ""}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-[220px_1fr]">

@@ -10,6 +10,7 @@ import {
 
 // 2. IMPORTACAO DO ARQUIVO DE TYPES CENTRALIZADO
 import { DanfeData, ItemData, SugestaoTributaria } from '../types'; // Ajuste o caminho conforme necess?rio
+import { formatDateTime } from '@/lib/date';
 
 // =============================================================
 // 3. FUNCOES AUXILIARES (formatadores centralizados)
@@ -21,9 +22,8 @@ const formatNumber = (v?: number | null, fractionDigits: number = 2) =>
 const formatPercent = (v?: number | null) => (v != null ? `${v.toFixed(2)}%` : '-');
 const formatDate = (iso?: string) => {
   if (!iso) return '-';
-  // Tenta parsear formatos ISO ou o formato NFe
-  const date = new Date(iso);
-  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  const res = formatDateTime(iso);
+  return res === "-" ? "-" : res;
 };
 
 function getErrorMessage(error: unknown): string {

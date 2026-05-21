@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
 import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { formatDateTime, formatTimeShort } from "@/lib/date";
 import { EmptyState } from "@/components/patterns";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
@@ -110,13 +111,15 @@ function getHeartbeatMetaAt(lastHeartbeatAt: string | null, referenceNow: number
 function formatHeartbeatDateTime(value: string | null, hasHydrated: boolean) {
   if (!value) return "";
   if (!hasHydrated) return "Sincronizando horario...";
-  return new Date(value).toLocaleString("pt-BR");
+  const res = formatDateTime(value);
+  return res === "-" ? "" : res;
 }
 
 function formatHeartbeatTime(value: string | null, hasHydrated: boolean) {
   if (!value) return "Offline";
   if (!hasHydrated) return "--:--";
-  return new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const res = formatTimeShort(value);
+  return res === "-" ? "Offline" : res;
 }
 
 function formatHeartbeatRelative(value: string | null, hasHydrated: boolean, referenceNow: number | null) {

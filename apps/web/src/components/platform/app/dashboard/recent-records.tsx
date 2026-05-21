@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Badge, Button } from "@dosc-syspro/ui";
 import { ArrowUpRight, UserRound, Users } from "lucide-react"
 import { EmptyState, SectionCard } from "@/components/patterns";
+import { formatDateShort } from "@/lib/date";
 
 export interface RecentRecordItem {
   id: string
@@ -39,7 +40,7 @@ function formatRelativeDate(date: Date | string | null | undefined): string {
   if (days === 1) return "Ontem"
   if (days < 7) return `Ha ${days} dias`
 
-  return normalized.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+  return formatDateShort(normalized)
 }
 
 function getInitials(value: string) {

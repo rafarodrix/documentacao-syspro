@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateShort } from "@/lib/date";
 import { type DocumentoFormValues } from "@dosc-syspro/contracts/documento";
 import {
   GRUPOS_DOCUMENTO,
@@ -39,7 +40,7 @@ export const PrintableConfig = React.forwardRef<HTMLDivElement, PrintableConfigP
           <p className="text-sm text-gray-600">Configuração de Modelo Fiscal ERP</p>
         </div>
         <div className="text-right text-xs">
-          <p><strong>Emissão:</strong> {new Date().toLocaleDateString()}</p>
+          <p><strong>Emissão:</strong> {formatDateShort(new Date())}</p>
           <p><strong>ID:</strong> {data.id?.substring(0, 8) || "NOVO"}</p>
         </div>
       </div>

@@ -4,10 +4,16 @@ import {
   CircleHelp,
   XCircle,
 } from "lucide-react";
+import {
+  formatDateTime as centralFormatDateTime,
+  formatDateShort as centralFormatDateShort,
+  formatTimeShort as centralFormatTimeShort,
+} from "@/lib/date";
 
 export function formatDateTime(value: string | null) {
   if (!value) return "Sem registro";
-  return new Date(value).toLocaleString("pt-BR");
+  const res = centralFormatDateTime(value);
+  return res === "-" ? "Sem registro" : res;
 }
 
 export function formatRelativeHeartbeat(value: string | null) {
@@ -26,7 +32,8 @@ export function formatRelativeHeartbeat(value: string | null) {
 
 export function formatDateOnly(value: string | null) {
   if (!value) return "Sem registro";
-  return new Date(value).toLocaleDateString("pt-BR");
+  const res = centralFormatDateShort(value);
+  return res === "-" ? "Sem registro" : res;
 }
 
 export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null; lastFileWriteAt: string | null }) {
@@ -243,10 +250,8 @@ export function getCommandStatusMeta(command: {
 
 export function formatHourMinute(value: string | null) {
   if (!value) return "Sem registro";
-  return new Date(value).toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const res = centralFormatTimeShort(value);
+  return res === "-" ? "Sem registro" : res;
 }
 
 export function extractStringFromPayload(

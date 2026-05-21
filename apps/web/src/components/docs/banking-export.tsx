@@ -3,6 +3,7 @@ import React, { useCallback } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Download } from 'lucide-react';
+import { formatDateShort } from '@/lib/date';
 
 const BankingExport = () => {
     const handleDownload = useCallback(() => {
@@ -95,7 +96,7 @@ const BankingExport = () => {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
-        doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, margin, pageHeight - 10);
+        doc.text(`Gerado em: ${formatDateShort(new Date())}`, margin, pageHeight - 10);
         doc.text("Syspro ERP - www.trilinksoftware.com.br", pageWidth - margin, pageHeight - 10, { align: 'right' });
 
         doc.save(`solicitacao_homologacao_${new Date().getTime()}.pdf`);

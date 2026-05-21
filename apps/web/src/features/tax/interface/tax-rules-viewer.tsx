@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Input, Badge, ScrollArea, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { formatDateShort } from "@/lib/date";
 
 interface TaxRulesViewerProps {
     data: TaxRulesGroupItem[];
@@ -113,7 +114,7 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                                                                 <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground/60">
                                                                     <span className="flex items-center gap-1">
                                                                         <Calendar className="h-3 w-3" />
-                                                                        Vigência: {new Date(cls.startDate).toLocaleDateString("pt-BR")}
+                                                                        Vigência: {formatDateShort(cls.startDate)}
                                                                     </span>
                                                                 </div>
                                                             </TableCell>

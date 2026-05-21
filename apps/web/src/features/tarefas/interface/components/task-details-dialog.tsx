@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/api/trpc-client";
 import type { TaskItem, TaskStatus } from "@dosc-syspro/contracts/tarefas";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 import {
   Badge,
   Button,
@@ -126,7 +127,7 @@ export function TaskDetailsDialog({
                   {item.year && item.month ? ` - ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
                 </span>
                 <span className="hidden sm:inline">•</span>
-                <span>Vencimento {new Date(item.dueDate).toLocaleDateString("pt-BR")}</span>
+                <span>Vencimento {formatDateShort(item.dueDate)}</span>
               </div>
             ) : null}
           </DialogHeader>
@@ -182,7 +183,7 @@ export function TaskDetailsDialog({
                     </div>
                     <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vencimento</p>
-                      <p className="mt-1 text-sm font-medium text-foreground">{new Date(item.dueDate).toLocaleDateString("pt-BR")}</p>
+                      <p className="mt-1 text-sm font-medium text-foreground">{formatDateShort(item.dueDate)}</p>
                     </div>
                     <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Solicitacoes</p>
@@ -238,7 +239,7 @@ export function TaskDetailsDialog({
                                 Envio #{request.attemptNumber} - {request.contactName}
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground">
-                                {request.requestedByUserName} - {new Date(request.requestedAt).toLocaleString("pt-BR")}
+                                {request.requestedByUserName} - {formatDateTime(request.requestedAt)}
                               </div>
                             </div>
                             <Badge variant={request.status === "SENT" ? "success" : "destructive"}>
@@ -303,7 +304,7 @@ export function TaskDetailsDialog({
                           <div className="text-sm font-medium text-foreground">{entry.title}</div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {entry.authorUserName ? `${entry.authorUserName} - ` : ""}
-                            {new Date(entry.occurredAt).toLocaleString("pt-BR")}
+                            {formatDateTime(entry.occurredAt)}
                           </div>
                           {entry.description ? (
                             <p className="mt-2 text-xs text-muted-foreground">{entry.description}</p>

@@ -3,6 +3,7 @@ import { Badge, Button } from "@dosc-syspro/ui";
 import { Building2, ArrowUpRight, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { EmptyState, SectionCard } from "@/components/patterns";
+import { formatDateShort } from "@/lib/date"
 
 type CompanyStatusValue = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_DOCS"
 
@@ -55,7 +56,7 @@ function formatRelativeDate(date: Date | string | null | undefined): string {
   if (days === 1) return "Ontem"
   if (days < 7) return `Ha ${days} dias`
 
-  return normalized.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+  return formatDateShort(normalized)
 }
 
 function getInitials(name: string): string {

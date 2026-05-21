@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { formatDateLong } from "@/lib/date";
 import type { AdminOperacionalData } from "@dosc-syspro/contracts/dashboard";
 
 type SefazHealth = "online" | "unstable" | "offline" | "unknown";
@@ -29,12 +30,7 @@ export function AdminStatusBar({
 }: {
   summary: Pick<AdminOperacionalData, "ticketCounts" | "sefazHealth" | "sefazRoutesCount">;
 }) {
-  const today = new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const today = formatDateLong(new Date());
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 bg-card px-4 py-2.5 text-xs">

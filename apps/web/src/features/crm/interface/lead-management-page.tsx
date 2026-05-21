@@ -347,7 +347,40 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
 
   // Drawer States
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [leadDetails, setLeadDetails] = useState<CrmLead | null>(null);
+  const [leadDetailsRaw, setLeadDetailsRaw] = useState<CrmLead | null>(null);
+
+  const setLeadDetails = (lead: CrmLead | null | ((prev: CrmLead | null) => CrmLead | null)) => {
+    setLeadDetailsRaw((prev) => {
+      const resolved = typeof lead === "function" ? lead(prev) : lead;
+      if (!resolved) return null;
+      let parsedContacts = resolved.contacts;
+      if (typeof parsedContacts === "string") {
+        try {
+          parsedContacts = JSON.parse(parsedContacts);
+        } catch (e) {
+          parsedContacts = [];
+        }
+      }
+      if (!Array.isArray(parsedContacts)) {
+        parsedContacts = [];
+      }
+      const contacts = parsedContacts.map((c: any) => ({
+        name: c?.name || "",
+        role: c?.role || "",
+        email: c?.email || "",
+        phone: c?.phone || "",
+        whatsapp: c?.whatsapp || "",
+        isPrimary: Boolean(c?.isPrimary),
+        notes: c?.notes || "",
+      }));
+      return {
+        ...resolved,
+        contacts,
+      };
+    });
+  };
+
+  const leadDetails = leadDetailsRaw;
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [tasks, setTasks] = useState<CrmTask[]>([]);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);

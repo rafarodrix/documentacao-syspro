@@ -1,4 +1,5 @@
 import { cn as cnUi } from "@dosc-syspro/ui";
+import { formatDateShort, formatDateTime } from "./date";
 
 export function cn(...inputs: Parameters<typeof cnUi>) {
   return cnUi(...inputs);
@@ -13,13 +14,8 @@ export function formatDateSafe(
   fallback = "N/D"
 ): string {
   if (!date) return fallback;
-  try {
-    const d = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(d.getTime())) return fallback;
-    return d.toLocaleDateString("pt-BR");
-  } catch {
-    return fallback;
-  }
+  const res = formatDateShort(date);
+  return res === "-" ? fallback : res;
 }
 
 export function formatRelativeDate(date: string | Date | null | undefined): string {
@@ -36,7 +32,8 @@ export function formatRelativeDate(date: string | Date | null | undefined): stri
     if (diffHr < 24) return `${diffHr}h atrás`;
     if (diffDay === 1) return "ontem";
     if (diffDay < 30) return `${diffDay} dias atrás`;
-    return d.toLocaleDateString("pt-BR");
+    const res = formatDateShort(d);
+    return res === "-" ? "N/D" : res;
   } catch {
     return "N/D";
   }
@@ -44,17 +41,6 @@ export function formatRelativeDate(date: string | Date | null | undefined): stri
 
 export function formatAbsoluteDate(date: string | Date | null | undefined): string {
   if (!date) return "N/D";
-  try {
-    const d = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(d.getTime())) return "N/D";
-    return d.toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "N/D";
-  }
+  const res = formatDateTime(date);
+  return res === "-" ? "N/D" : res;
 }

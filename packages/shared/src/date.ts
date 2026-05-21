@@ -52,3 +52,33 @@ export function formatDateShort(date: Date | string | null | undefined): string 
     return "-";
   }
 }
+
+export function formatDateLong(date: Date | string | null | undefined): string {
+  if (!date) return "-";
+  try {
+    const d = typeof date === "string" ? new Date(date) : date;
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "-";
+  }
+}
+
+export function formatTimeShort(date: Date | string | null | undefined): string {
+  if (!date) return "-";
+  try {
+    const d = typeof date === "string" ? new Date(date) : date;
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "-";
+  }
+}

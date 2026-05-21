@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from "@dosc-s
 import { SefazStatusWidget } from "../platform/app/dashboard/sefaz-status-widget";
 import { SefazNationalGrid } from "./sefaz-national-grid";
 import { cn } from "../../lib/utils";
+import { formatTimeShort } from "@/lib/date";
 
 const REFRESH_INTERVAL_MS = 60_000;
 
@@ -158,7 +159,7 @@ export function SefazOperationsPanel({
             </CardTitle>
             {lastUpdated ? (
               <p className="text-[11px] text-muted-foreground">
-                Atualizado em {lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                Atualizado em {formatTimeShort(lastUpdated)}
               </p>
             ) : null}
           </div>

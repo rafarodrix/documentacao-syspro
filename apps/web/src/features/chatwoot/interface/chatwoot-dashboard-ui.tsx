@@ -5,6 +5,7 @@ import { Badge } from "@dosc-syspro/ui";
 import { Loader2 } from "lucide-react";
 import { getRemoteOperationalStatusMeta, getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/date";
 import type { ContactCompanyEntry, RemoteHostEntry } from "./chatwoot-dashboard-types";
 
 export function InlineNotice({ tone, message }: { tone: "success" | "error"; message: string }) {
@@ -181,9 +182,8 @@ export function normalizeDigits(value: string) {
 
 export function formatRelativeDate(value: string | null) {
   if (!value) return "Sem registro";
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) return value;
-  return new Date(parsed).toLocaleString("pt-BR");
+  const res = formatDateTime(value);
+  return res === "-" ? value : res;
 }
 
 export function getCompanyLabel(

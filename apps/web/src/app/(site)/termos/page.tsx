@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { formatDateShort } from "@/lib/date";
 
 export const metadata: Metadata = {
     title: "Termos de Uso | Trilink Software",
@@ -11,7 +12,7 @@ export default function TermosPage() {
             <div className="space-y-4 mb-12 text-center">
                 <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">Termos de Uso</h1>
                 <p className="text-lg text-muted-foreground">
-                    Última atualização: {new Date().toLocaleDateString('pt-BR')}
+                    Última atualização: {formatDateShort(new Date())}
                 </p>
             </div>
 

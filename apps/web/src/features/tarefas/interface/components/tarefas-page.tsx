@@ -23,6 +23,7 @@ import {
 } from "@dosc-syspro/ui";
 import { CircleAlert, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
 import Link from "next/link";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -638,7 +639,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                       </TableCell>
                       <TableCell className="w-[12%] px-3 py-3.5 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
                       <TableCell className="w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
-                        {new Date(item.dueDate).toLocaleDateString("pt-BR")}
+                        {formatDateShort(item.dueDate)}
                       </TableCell>
                       <TableCell className="w-[8%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
                         {item.requiredDocumentsCount} item(ns)
@@ -650,7 +651,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                               {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
                             </Badge>
                             <div className="text-xs text-muted-foreground">
-                              {item.lastManualRequestContactName || "Contato"} - {new Date(item.lastManualRequestAt).toLocaleString("pt-BR")}
+                              {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)}
                             </div>
                             <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
                           </div>

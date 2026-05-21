@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
 import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
+import { formatDateTime } from "@/lib/date";
 import {
   Badge,
   Button,
@@ -231,7 +232,7 @@ export function TaskManualRequestDialog({
                         <div>
                           <div className="text-sm font-medium text-foreground">Envio #{request.attemptNumber} - {request.contactName}</div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(request.requestedAt).toLocaleString("pt-BR")} - {request.requestedByUserName}
+                            {formatDateTime(request.requestedAt)} - {request.requestedByUserName}
                           </div>
                         </div>
                         <Badge variant={getRequestStatusVariant(request.status)}>

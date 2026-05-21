@@ -14,7 +14,7 @@ export {
 } from "./formatters";
 export { calculateContractFinancials } from "./financials";
 export type { ContractFinancialBreakdown } from "./financials";
-export { formatRecency, formatDateTime, formatDateShort } from "./date";
+export { formatRecency, formatDateTime, formatDateShort, formatDateLong, formatTimeShort } from "./date";
 export { buildSearchText, includesNormalizedSearch, normalizeSearchText } from "./search";
 export type { NormalizeSearchTextOptions } from "./search";
 export { createLogger, createRequestLogger, getCorrelationIdFromRequest } from "./logger";

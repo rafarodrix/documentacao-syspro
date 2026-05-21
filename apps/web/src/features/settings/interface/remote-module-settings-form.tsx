@@ -6,6 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { AlertCircle, Copy, KeyRound, Loader2, MonitorCog, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { formatDateTime as centralFormatDateTime } from "@/lib/date";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@dosc-syspro/ui";
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
@@ -267,9 +268,8 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
 
   function formatDateTime(value: string | null) {
     if (!value) return "Sem registro";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Sem registro";
-    return date.toLocaleString("pt-BR");
+    const res = centralFormatDateTime(value);
+    return res === "-" ? "Sem registro" : res;
   }
 
   function resolveExpiryBadge(credential: AddressBookCredentialItem) {

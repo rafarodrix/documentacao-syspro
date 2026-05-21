@@ -4,6 +4,7 @@ import React from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FileDown, Printer } from 'lucide-react';
+import { formatDateShort } from '@/lib/date';
 
 interface jsPDFCustom extends jsPDF {
   lastAutoTable?: {
@@ -92,7 +93,7 @@ export default function GeradorPdfRequisitos() {
     // --- RODAPÉ ---
     doc.setFontSize(8);
     doc.setTextColor(...corSecundaria);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} | Syspro ERP`, 14, doc.internal.pageSize.getHeight() - 10);
+    doc.text(`Gerado em: ${formatDateShort(new Date())} | Syspro ERP`, 14, doc.internal.pageSize.getHeight() - 10);
 
     doc.save('Especificacoes_Tecnicas_Syspro.pdf');
   };
