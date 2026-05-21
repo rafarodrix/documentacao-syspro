@@ -10,6 +10,7 @@ import { MonthlyRoutineManualRequestDialog } from "@/features/rotinas-mensais/in
 import { MonthlyRoutineStatusDialog } from "@/features/rotinas-mensais/interface/components/monthly-routine-status-dialog";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import { ContextBadge, EmptyState, InlineLoading, InlineWarning } from "../chatwoot-dashboard-ui";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 
 function getRoutineStatusLabel(status: MonthlyRoutineCompetencyItem["status"]) {
   switch (status) {
@@ -223,7 +224,7 @@ export function ChatwootMonthlyRoutinesTab() {
                         <ContextBadge tone={getRoutineStatusTone(item.status)}>
                           {getRoutineStatusLabel(item.status)}
                         </ContextBadge>
-                        <Badge variant="outline">Vence em {new Date(item.dueDate).toLocaleDateString("pt-BR")}</Badge>
+                        <Badge variant="outline">Vence em {formatDateShort(item.dueDate)}</Badge>
                       </div>
                       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
@@ -241,7 +242,7 @@ export function ChatwootMonthlyRoutinesTab() {
                         <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Ultimo disparo</p>
                           <p className="mt-1 text-xs font-medium text-foreground">
-                            {item.lastManualRequestAt ? new Date(item.lastManualRequestAt).toLocaleString("pt-BR") : "Sem envio"}
+                            {item.lastManualRequestAt ? formatDateTime(item.lastManualRequestAt) : "Sem envio"}
                           </p>
                         </div>
                       </div>

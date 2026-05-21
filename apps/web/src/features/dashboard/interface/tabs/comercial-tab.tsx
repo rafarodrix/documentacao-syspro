@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@dosc-syspro/ui";
 import { SectionCard } from "@/components/patterns";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { ExecutiveLine } from "../components/executive-line";
 import { CrmStageChart } from "../components/crm-stage-chart";
 import { getComercialData } from "../../application";
@@ -49,7 +49,7 @@ export async function ComercialTab() {
         />
         <DashboardMetricCard
           title="Cobertura do pipeline"
-          value={`${pipelineCoverage.toFixed(1)}x`}
+          value={`${formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`}
           helper="Pipeline bruto sobre o MRR atual"
           icon={Target as any}
           tone="amber"
@@ -101,8 +101,8 @@ export async function ComercialTab() {
           <ExecutiveLine label="Em negociacao" value={`${crm?.negotiationLeads ?? 0}`} />
           <ExecutiveLine label="Ticket medio do pipeline" value={crm ? formatCurrency(averagePipelineTicket) : "Sem dados"} />
           <ExecutiveLine label="Ticket medio ganho" value={crm ? formatCurrency(averageWonTicket) : "Sem dados"} />
-          <ExecutiveLine label="Taxa de ganho" value={`${winRate.toFixed(1)}%`} />
-          <ExecutiveLine label="Cobertura do pipeline" value={`${pipelineCoverage.toFixed(1)}x`} />
+          <ExecutiveLine label="Taxa de ganho" value={`${formatNumber(winRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`} />
+          <ExecutiveLine label="Cobertura do pipeline" value={`${formatNumber(pipelineCoverage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`} />
           <ExecutiveLine label="Perdidos" value={`${crm?.lostLeads ?? 0}`} />
           <ExecutiveLine
             label="Atrasados"

@@ -2,6 +2,7 @@ import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.typ
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Progress } from "@dosc-syspro/ui";
 import { formatDateTime } from "../host-details.helpers";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/formatters";
 import { useAckStream } from "@/features/remote/interface/hooks";
 import { Activity, HardDrive, Cpu } from "lucide-react";
 
@@ -56,8 +57,8 @@ export function HostTechnicalTab({
   const ramUsedPc = readMetricNumber(currentMetrics, "ramUsedPc");
   const diskFree = readMetricNumber(currentMetrics, "diskFree");
   const diskTotal = readMetricNumber(currentMetrics, "diskTotal");
-  const diskFreeGb = diskFree !== null ? (diskFree / (1024 * 1024 * 1024)).toFixed(1) : null;
-  const diskTotalGb = diskTotal !== null ? (diskTotal / (1024 * 1024 * 1024)).toFixed(0) : null;
+  const diskFreeGb = diskFree !== null ? formatNumber(diskFree / (1024 * 1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
+  const diskTotalGb = diskTotal !== null ? formatNumber(diskTotal / (1024 * 1024 * 1024), { maximumFractionDigits: 0 }) : null;
   const diskUsedPc =
     diskFree !== null && diskTotal !== null && diskTotal > 0 ? Math.round((1 - diskFree / diskTotal) * 100) : null;
 

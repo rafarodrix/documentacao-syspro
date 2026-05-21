@@ -1,6 +1,7 @@
 "use server";
 
 import type { CreateContactInput, UpdateContactInput } from "@dosc-syspro/contracts/contact";
+import { handleActionError } from "@dosc-syspro/shared";
 import { trpc } from "@/lib/api/trpc-client";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type { ContactActionResponse } from "@/features/contact/domain/contact.types";
@@ -11,10 +12,7 @@ export async function createContactAction(data: CreateContactInput): Promise<Con
     revalidateCadastrosViews();
     return { success: true, message: "Contato cadastrado com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Erro ao cadastrar contato.",
-    };
+    return handleActionError(error, { defaultMessage: "Erro ao cadastrar contato." });
   }
 }
 
@@ -24,10 +22,7 @@ export async function updateContactAction(id: string, data: UpdateContactInput):
     revalidateCadastrosViews();
     return { success: true, message: "Contato atualizado com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Erro ao atualizar contato.",
-    };
+    return handleActionError(error, { defaultMessage: "Erro ao atualizar contato." });
   }
 }
 
@@ -37,10 +32,7 @@ export async function unlinkContactCompaniesAction(id: string): Promise<ContactA
     revalidateCadastrosViews();
     return { success: true, message: "Empresas desvinculadas com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Falha ao desvincular.",
-    };
+    return handleActionError(error, { defaultMessage: "Falha ao desvincular." });
   }
 }
 
@@ -50,10 +42,7 @@ export async function deleteContactAction(id: string): Promise<ContactActionResp
     revalidateCadastrosViews();
     return { success: true, message: "Contato removido da lista com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Falha ao excluir contato.",
-    };
+    return handleActionError(error, { defaultMessage: "Falha ao excluir contato." });
   }
 }
 
@@ -67,9 +56,6 @@ export async function syncContactsAction(): Promise<ContactActionResponse<{ mess
       data: { message: (payload as { message?: string })?.message },
     };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Falha ao sincronizar contatos.",
-    };
+    return handleActionError(error, { defaultMessage: "Falha ao sincronizar contatos." });
   }
 }

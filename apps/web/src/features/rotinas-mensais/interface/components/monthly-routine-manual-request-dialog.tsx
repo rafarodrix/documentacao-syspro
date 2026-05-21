@@ -22,6 +22,7 @@ import {
 } from "@dosc-syspro/ui";
 import { MessageSquareShare } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/date";
 
 type MessageTemplateValue = "REQUEST_CONFIRMATION" | "FIRST_REMINDER" | "SECOND_REMINDER";
 
@@ -237,7 +238,7 @@ export function MonthlyRoutineManualRequestDialog({
                         <div>
                           <div className="text-sm font-medium text-foreground">Envio #{request.attemptNumber} - {request.contactName}</div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(request.requestedAt).toLocaleString("pt-BR")} - {request.requestedByUserName}
+                            {formatDateTime(request.requestedAt)} - {request.requestedByUserName}
                           </div>
                         </div>
                         <Badge variant={getRequestStatusVariant(request.status)}>

@@ -8,6 +8,7 @@ import { Building2, CalendarRange, CircleAlert, MessageSquareShare, RefreshCw, S
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 import { MonthlyRoutineManualRequestDialog } from "./monthly-routine-manual-request-dialog";
 import { MonthlyRoutineStatusDialog } from "./monthly-routine-status-dialog";
 
@@ -326,7 +327,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                       </td>
                       <td className="px-3 py-4 text-sm text-foreground">{item.clientContactName || "Nao definido"}</td>
                       <td className="px-3 py-4 text-sm text-foreground">
-                        {new Date(item.dueDate).toLocaleDateString("pt-BR")}
+                        {formatDateShort(item.dueDate)}
                       </td>
                       <td className="px-3 py-4 text-sm text-foreground">
                         {item.requiredDocumentsCount} item(ns)
@@ -338,7 +339,7 @@ export function RotinasMensaisPage({ data, competencies, search, canManage }: Ro
                               {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
                             </Badge>
                             <div className="text-xs text-muted-foreground">
-                              {item.lastManualRequestContactName || "Contato"} - {new Date(item.lastManualRequestAt).toLocaleString("pt-BR")}
+                              {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)}
                             </div>
                             <div className="text-xs text-muted-foreground">{item.manualRequestsCount} envio(s)</div>
                           </div>

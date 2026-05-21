@@ -1,6 +1,7 @@
 "use server";
 
 import type { CreateUserInput, UpdateUserInput } from "@dosc-syspro/contracts/user";
+import { handleActionError } from "@dosc-syspro/shared";
 import { trpc } from "@/lib/api/trpc-client";
 import { revalidateCadastrosViews } from "@/lib/cache-invalidation";
 import type { UserAccessActionResponse } from "@/features/user-access/domain/user-access.types";
@@ -11,10 +12,7 @@ export async function createUserAction(data: CreateUserInput): Promise<UserAcces
     revalidateCadastrosViews();
     return { success: true, message: "Usuario cadastrado com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Erro ao cadastrar usuario.",
-    };
+    return handleActionError(error, { defaultMessage: "Erro ao cadastrar usuario." });
   }
 }
 
@@ -24,10 +22,7 @@ export async function updateUserAction(id: string, data: UpdateUserInput): Promi
     revalidateCadastrosViews();
     return { success: true, message: "Usuario atualizado com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Erro ao atualizar usuario.",
-    };
+    return handleActionError(error, { defaultMessage: "Erro ao atualizar usuario." });
   }
 }
 
@@ -37,9 +32,6 @@ export async function updateUserStatusAction(id: string, isActive: boolean): Pro
     revalidateCadastrosViews();
     return { success: true, message: "Status alterado com sucesso." };
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Erro ao alterar status.",
-    };
+    return handleActionError(error, { defaultMessage: "Erro ao alterar status." });
   }
 }

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import { Building2, Minus, TrendingDown, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/formatters";
 
 export interface DashboardStatsProps {
   companiesCount: number;
@@ -51,7 +52,7 @@ export function DashboardStats({
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <div className="text-3xl font-bold tracking-tight tabular-nums">{companiesCount.toLocaleString("pt-BR")}</div>
+          <div className="text-3xl font-bold tracking-tight tabular-nums">{formatNumber(companiesCount)}</div>
           <div className="mt-1">
             <GrowthIndicator value={companiesGrowth} />
           </div>
@@ -69,7 +70,7 @@ export function DashboardStats({
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          <div className="text-3xl font-bold tracking-tight tabular-nums">{usersCount.toLocaleString("pt-BR")}</div>
+          <div className="text-3xl font-bold tracking-tight tabular-nums">{formatNumber(usersCount)}</div>
           <div className="mt-1">
             <span className="text-xs text-muted-foreground">
               <span className="font-medium text-emerald-500">{activeUsersCount}</span> ativos

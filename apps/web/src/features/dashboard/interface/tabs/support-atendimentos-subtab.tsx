@@ -30,6 +30,7 @@ import {
 import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { formatDateTimeSafe } from "@/lib/date";
+import { formatNumber } from "@/lib/formatters";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
 
@@ -55,14 +56,14 @@ function buildRangePreset(preset: "today" | "7d" | "30d") {
 
 function formatMinutes(value: number | null) {
   if (value === null) return "Sem base";
-  if (value < 60) return `${value.toLocaleString("pt-BR")} min`;
-  return `${(value / 60).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h`;
+  if (value < 60) return `${formatNumber(value)} min`;
+  return `${formatNumber(value / 60, { maximumFractionDigits: 1 })} h`;
 }
 
 function formatHours(value: number | null) {
   if (value === null) return "Sem base";
-  if (value < 24) return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h`;
-  return `${(value / 24).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} d`;
+  if (value < 24) return `${formatNumber(value, { maximumFractionDigits: 1 })} h`;
+  return `${formatNumber(value / 24, { maximumFractionDigits: 1 })} d`;
 }
 
 function formatPercent(value: number, base: number) {
@@ -72,7 +73,7 @@ function formatPercent(value: number, base: number) {
 
 function formatScore(value: number | null) {
   if (value === null) return "Sem base";
-  return value.toLocaleString("pt-BR", {
+  return formatNumber(value, {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   });

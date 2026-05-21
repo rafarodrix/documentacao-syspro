@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { onlyDigits } from '@dosc-syspro/shared';
 import { CompanyContactStatus } from '@prisma/client';
 import {
   DEFAULT_CHATWOOT_BEHAVIOR_SETTINGS,
@@ -916,14 +917,14 @@ export class ProcessIncomingMessageUseCase {
     const supportedJidMatch = lower.match(/^([^@]+)@(s\.whatsapp\.net|c\.us)$/);
     if (supportedJidMatch) {
       const jidUser = supportedJidMatch[1].split(':')[0] ?? supportedJidMatch[1];
-      return this.normalizeSupportedPhoneDigits(jidUser.replace(/\D/g, ''));
+      return this.normalizeSupportedPhoneDigits(onlyDigits(jidUser));
     }
 
     if (lower.includes('@')) {
       return null;
     }
 
-    return this.normalizeSupportedPhoneDigits(normalized.replace(/\D/g, ''));
+    return this.normalizeSupportedPhoneDigits(onlyDigits(normalized));
   }
 
   private normalizeSupportedPhoneDigits(digits: string): string | null {

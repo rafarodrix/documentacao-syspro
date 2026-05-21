@@ -22,6 +22,7 @@ import {
 } from "@dosc-syspro/ui";
 import { History, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/date";
 
 interface MonthlyRoutineStatusDialogProps {
   item: MonthlyRoutineCompetencyItem | null;
@@ -142,7 +143,7 @@ export function MonthlyRoutineStatusDialog({ item, open, onOpenChange, onSaved }
                         <div>
                           <div className="text-sm font-medium text-foreground">{entry.title}</div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(entry.occurredAt).toLocaleString("pt-BR")}
+                            {formatDateTime(entry.occurredAt)}
                             {entry.authorUserName ? ` - ${entry.authorUserName}` : ""}
                           </div>
                         </div>

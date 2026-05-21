@@ -9,7 +9,7 @@ import { Activity, Map, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from "@dosc-syspro/ui";
 import { SefazStatusWidget } from "../platform/app/dashboard/sefaz-status-widget";
 import { SefazNationalGrid } from "./sefaz-national-grid";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { formatTimeShort } from "@/lib/date";
 
 const REFRESH_INTERVAL_MS = 60_000;
