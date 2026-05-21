@@ -9,6 +9,7 @@ import { Input, Button, Table, TableBody, TableCell, TableHead, TableHeader, Tab
 import { toast } from "sonner"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+import { formatNumber } from "@/lib/formatters"
 
 interface RecipeItem {
     id: string
@@ -81,7 +82,7 @@ export function ProductionFactorCalculator() {
                 factor.toFixed(4),
                 `${item.productionQty} kg`,
                 prodFactor.toFixed(4),
-                `${draw.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} UN`
+                `${formatNumber(draw, { maximumFractionDigits: 2 })} UN`
             ]
         })
 
@@ -231,7 +232,7 @@ export function ProductionFactorCalculator() {
 
                                             {/* Coluna Baixa (Sutil) */}
                                             <TableCell className="text-center py-2 font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/10">
-                                                {finalStockDraw > 0 ? finalStockDraw.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "-"}
+                                                {finalStockDraw > 0 ? formatNumber(finalStockDraw, { maximumFractionDigits: 2 }) : "-"}
                                             </TableCell>
 
                                             <TableCell className="py-2 text-right pr-2">

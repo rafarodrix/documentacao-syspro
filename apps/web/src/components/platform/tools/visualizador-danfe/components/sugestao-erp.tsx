@@ -11,14 +11,11 @@ import {
 // 2. IMPORTACAO DO ARQUIVO DE TYPES CENTRALIZADO
 import { DanfeData, ItemData, SugestaoTributaria } from '../types'; // Ajuste o caminho conforme necess?rio
 import { formatDateTime } from '@/lib/date';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 
 // =============================================================
 // 3. FUNCOES AUXILIARES (formatadores centralizados)
 // =============================================================
-const formatNumber = (v?: number | null, fractionDigits: number = 2) =>
-  v != null ? v.toLocaleString('pt-BR', { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }) : '0,00';
-const formatPercent = (v?: number | null) => (v != null ? `${v.toFixed(2)}%` : '-');
 const formatDate = (iso?: string) => {
   if (!iso) return '-';
   const res = formatDateTime(iso);
@@ -159,7 +156,7 @@ const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest })
       <div className="grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-2 mt-2 text-muted-foreground text-sm">
         <span><Hash size={12} className="inline mr-1" /> **NCM:** {item.NCM}</span>
         <span><FileText size={12} className="inline mr-1" /> **CFOP:** {item.CFOP}</span>
-        <span><Package size={12} className="inline mr-1" /> **Qtd:** {formatNumber(item.qCom, 4)} {item.uCom}</span>
+        <span><Package size={12} className="inline mr-1" /> **Qtd:** {formatNumber(item.qCom, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} {item.uCom}</span>
         <span><Coins size={12} className="inline mr-1" /> **Unit:** {formatCurrency(item.vUnCom)}</span>
         <span className="font-bold text-foreground"><Calculator size={12} className="inline mr-1" /> **Total:** {formatCurrency(item.vProd)}</span>
       </div>

@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { Search, Link2, FileText, ShieldCheck } from "lucide-react";
 import { Button, Input, Badge } from "@dosc-syspro/ui";
 import { normalizeNcm } from "@/lib/utils";
+import { formatPercent } from "@/lib/formatters";
 
 type LookupResponse = {
   ok: boolean;
@@ -142,8 +143,8 @@ export function TaxNcmLookup() {
                     </div>
                     <p className="mt-2 text-sm">{item.description}</p>
                     <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      <span>Red. IBS: {Number(item.pRedIBS ?? 0).toFixed(2)}%</span>
-                      <span>Red. CBS: {Number(item.pRedCBS ?? 0).toFixed(2)}%</span>
+                      <span>Red. IBS: {formatPercent(Number(item.pRedIBS ?? 0))}</span>
+                      <span>Red. CBS: {formatPercent(Number(item.pRedCBS ?? 0))}</span>
                       {item.tipoAliquota ? <span>Aliquota: {item.tipoAliquota}</span> : null}
                       {item.link ? (
                         <a className="inline-flex items-center gap-1 underline" href={item.link} target="_blank" rel="noreferrer">

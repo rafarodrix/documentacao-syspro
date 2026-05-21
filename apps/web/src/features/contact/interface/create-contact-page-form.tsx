@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
-import { includesNormalizedSearch, normalizeSearchText, formatCpf, isValidCpf } from "@dosc-syspro/shared";
+import { includesNormalizedSearch, normalizeSearchText, formatCpf, isValidCpf, formatPhone } from "@dosc-syspro/shared";
 import { createContactAction, updateContactAction } from "@/features/contact/application/contact-write.actions";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -64,15 +64,6 @@ function formatWhatsapp(value: string) {
   return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
 }
 
-function formatPhone(value: string) {
-  const digits = normalizePhone(value).slice(0, 11);
-
-  if (!digits) return "";
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
 
 function isValidWhatsapp(value: string) {
   const digits = normalizePhone(value);

@@ -7,6 +7,7 @@ import type { ApexOptions } from "apexcharts";
 import { useTheme } from "next-themes";
 import type { DashboardTicketFlow } from "@dosc-syspro/contracts/dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
+import { formatNumber } from "@/lib/formatters";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -86,7 +87,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
         min: 0,
         forceNiceScale: true,
         labels: {
-          formatter: (v) => Math.round(v).toLocaleString("pt-BR"),
+          formatter: (v) => formatNumber(Math.round(v)),
           style: { colors: [palette.foreground], fontSize: "11px" },
         },
       },
@@ -110,7 +111,7 @@ export function TicketFlowChart({ flow }: { flow: DashboardTicketFlow }) {
         shared: true,
         intersect: false,
         y: {
-          formatter: (v) => `${Math.round(v).toLocaleString("pt-BR")} ticket${Math.round(v) !== 1 ? "s" : ""}`,
+          formatter: (v) => `${formatNumber(Math.round(v))} ticket${Math.round(v) !== 1 ? "s" : ""}`,
         },
       },
     }),
