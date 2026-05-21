@@ -221,7 +221,7 @@ export function HostSettingsTab({
             </Button>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            "Forçar inicialização remota" invalida a credencial atual e faz o agente executar novo bootstrap autenticado no próximo ciclo.
+            &ldquo;Forçar inicialização remota&rdquo; invalida a credencial atual e faz o agente executar novo bootstrap autenticado no próximo ciclo.
           </p>
         </CardContent>
       </Card>
