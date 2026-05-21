@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { AlertCircle, Copy, KeyRound, Loader2, MonitorCog, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
-import { formatDateTimeSafe } from "@/lib/date";
+import { formatDateTimeSafe, differenceInHours } from "@/lib/date";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@dosc-syspro/ui";
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
@@ -275,7 +275,7 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
     if (expires.getTime() <= now.getTime()) {
       return { label: "Expirada", className: "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300" };
     }
-    const hoursLeft = (expires.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const hoursLeft = differenceInHours(expires, now);
     if (hoursLeft <= 48) {
       return { label: "Expira em breve", className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300" };
     }

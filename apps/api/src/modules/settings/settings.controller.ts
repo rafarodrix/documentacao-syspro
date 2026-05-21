@@ -63,6 +63,7 @@ import {
   ticketModuleSettingsSchema,
   type TicketModuleSettings,
 } from '@dosc-syspro/contracts/ticket';
+import { differenceInDays, differenceInMinutes } from '@dosc-syspro/shared';
 import {
   automationModuleSettingsSchema,
   type AutomationModuleSettings,
@@ -1453,8 +1454,7 @@ export class SettingsController {
   }
 
   private minutesBetween(now: Date, dateLike: string | Date) {
-    const date = new Date(dateLike);
-    return Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
+    return differenceInMinutes(now, dateLike);
   }
 
   private buildTicketNotifications(tickets: Array<{ id: string; status: string; priority: string; updatedAt: string; ticketNumber: string | null; subject: string | null }>): PlatformNotificationItem[] {
@@ -1547,7 +1547,7 @@ export class SettingsController {
     for (const contract of contracts) {
       if (!contract.endDate) continue;
       const isExpired = contract.endDate < now;
-      const days = Math.ceil((contract.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const days = differenceInDays(contract.endDate, now, 'ceil');
 
       items.push({
         id: `contract-${contract.id}`,

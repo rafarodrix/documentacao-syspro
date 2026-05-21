@@ -3,6 +3,7 @@ import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardSefazStatus } from "@dosc-syspro/contracts/dashboard";
 import { LatencySparkline } from "./latency-sparkline";
+import { differenceInMinutes } from "@/lib/date";
 
 type SefazStatusKey = "ONLINE" | "UNSTABLE" | "OFFLINE";
 
@@ -25,8 +26,7 @@ const NO_READING_STATUS = {
 };
 
 function formatDuration(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  const totalMinutes = Math.floor(diffMs / 60_000);
+  const totalMinutes = differenceInMinutes(new Date(), isoDate);
   if (totalMinutes < 1) return "agora";
   if (totalMinutes < 60) return `${totalMinutes}min`;
   const hours = Math.floor(totalMinutes / 60);

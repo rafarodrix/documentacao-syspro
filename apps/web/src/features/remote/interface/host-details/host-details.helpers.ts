@@ -9,6 +9,7 @@ import {
   formatDateTimeSafe,
   formatRelativeDate,
   formatTimeShort as centralFormatTimeShort,
+  differenceInDays,
 } from "@/lib/date";
 
 export function formatDateTime(value: string | null) {
@@ -41,8 +42,8 @@ export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null;
   }
 
   const days = Math.max(
-    0,
-    Math.floor((Date.now() - new Date(input.lastFileWriteAt).getTime()) / (1000 * 60 * 60 * 24)),
+     0,
+     differenceInDays(new Date(), input.lastFileWriteAt),
   );
 
   if (days > 180) {

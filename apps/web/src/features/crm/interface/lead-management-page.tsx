@@ -83,6 +83,7 @@ import { cn, formatDateSafe, onlyDigits } from "@/lib/utils";
 import { trpc } from "@/lib/api/trpc-client";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
+import { differenceInDays, getStartOfDay } from "@/lib/date";
 
 type LeadFormState = {
   title: string;
@@ -256,18 +257,12 @@ function resolveLeadContactName(lead: CrmLead) {
   return lead.primaryContactName || primaryManualContact || firstManualContact || "Sem contato vinculado";
 }
 
-function getStartOfToday() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
-
 function getLeadAttentionState(lead: CrmLead) {
-  const today = getStartOfToday();
+  const today = getStartOfDay();
   const expectedCloseAt = lead.expectedCloseAt ? new Date(lead.expectedCloseAt) : null;
   const updatedAt = new Date(lead.updatedAt);
-  const daysWithoutUpdate = Math.floor((Date.now() - updatedAt.getTime()) / 86400000);
-  const expectedDiffDays = expectedCloseAt ? Math.ceil((expectedCloseAt.getTime() - today.getTime()) / 86400000) : null;
+  const daysWithoutUpdate = differenceInDays(new Date(), updatedAt, "floor");
+  const expectedDiffDays = expectedCloseAt ? differenceInDays(expectedCloseAt, today, "ceil") : null;
 
   return {
     isClosed: lead.stage === "WON" || lead.stage === "LOST",

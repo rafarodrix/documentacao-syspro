@@ -1,4 +1,9 @@
 import {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInSeconds,
+  getStartOfDay,
   formatRecency as sharedFormatRecency,
   formatDateTime as sharedFormatDateTime,
   formatDateShort as sharedFormatDateShort,
@@ -7,6 +12,11 @@ import {
 } from "@dosc-syspro/shared";
 
 export {
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInSeconds,
+  getStartOfDay,
   sharedFormatRecency as formatRecency,
   sharedFormatDateTime as formatDateTime,
   sharedFormatDateShort as formatDateShort,
@@ -40,10 +50,12 @@ export function formatRelativeDate(value: DateLike, fallback = "N/D") {
   const parsed = parseDateLike(value);
   if (!parsed) return fallback;
 
-  const diffMs = Date.now() - parsed.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
+  const now = new Date();
+  const diffMin = differenceInMinutes(now, parsed);
+  const diffHr = differenceInHours(now, parsed);
+  const diffDay = differenceInDays(now, parsed);
+
+  const diffMs = now.getTime() - parsed.getTime();
 
   if (diffMs < 60_000) return "agora";
   if (diffMin < 60) return `${diffMin}min atras`;

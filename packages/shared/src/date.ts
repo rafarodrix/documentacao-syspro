@@ -1,12 +1,66 @@
+export function differenceInDays(
+  dateLeft: Date | string,
+  dateRight: Date | string,
+  method: "floor" | "ceil" | "round" = "floor"
+): number {
+  const dLeft = typeof dateLeft === "string" ? new Date(dateLeft) : dateLeft;
+  const dRight = typeof dateRight === "string" ? new Date(dateRight) : dateRight;
+  if (isNaN(dLeft.getTime()) || isNaN(dRight.getTime())) return 0;
+  const diffMs = dLeft.getTime() - dRight.getTime();
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  if (method === "ceil") return Math.ceil(diffDays);
+  if (method === "round") return Math.round(diffDays);
+  return Math.floor(diffDays);
+}
+
+export function differenceInHours(
+  dateLeft: Date | string,
+  dateRight: Date | string,
+  method: "floor" | "ceil" | "round" = "floor"
+): number {
+  const dLeft = typeof dateLeft === "string" ? new Date(dateLeft) : dateLeft;
+  const dRight = typeof dateRight === "string" ? new Date(dateRight) : dateRight;
+  if (isNaN(dLeft.getTime()) || isNaN(dRight.getTime())) return 0;
+  const diffMs = dLeft.getTime() - dRight.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (method === "ceil") return Math.ceil(diffHours);
+  if (method === "round") return Math.round(diffHours);
+  return Math.floor(diffHours);
+}
+
+export function differenceInMinutes(
+  dateLeft: Date | string,
+  dateRight: Date | string
+): number {
+  const dLeft = typeof dateLeft === "string" ? new Date(dateLeft) : dateLeft;
+  const dRight = typeof dateRight === "string" ? new Date(dateRight) : dateRight;
+  if (isNaN(dLeft.getTime()) || isNaN(dRight.getTime())) return 0;
+  return Math.floor((dLeft.getTime() - dRight.getTime()) / (1000 * 60));
+}
+
+export function differenceInSeconds(
+  dateLeft: Date | string,
+  dateRight: Date | string
+): number {
+  const dLeft = typeof dateLeft === "string" ? new Date(dateLeft) : dateLeft;
+  const dRight = typeof dateRight === "string" ? new Date(dateRight) : dateRight;
+  if (isNaN(dLeft.getTime()) || isNaN(dRight.getTime())) return 0;
+  return Math.floor((dLeft.getTime() - dRight.getTime()) / 1000);
+}
+
+export function getStartOfDay(date: Date | string = new Date()): Date {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return new Date();
+  const res = new Date(d);
+  res.setHours(0, 0, 0, 0);
+  return res;
+}
+
 export function formatRecency(isoDate: string): string {
-  const now = new Date();
-  const updateDate = new Date(isoDate);
+  const now = getStartOfDay();
+  const updateDate = getStartOfDay(isoDate);
 
-  now.setHours(0, 0, 0, 0);
-  updateDate.setHours(0, 0, 0, 0);
-
-  const diffTime = now.getTime() - updateDate.getTime();
-  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  const diffDays = differenceInDays(now, updateDate);
 
   if (diffDays === 0) return "Atualizado hoje";
   if (diffDays === 1) return "Atualizado ontem";

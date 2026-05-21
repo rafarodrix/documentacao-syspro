@@ -11,6 +11,7 @@ import {
   type AgentFleetStats,
 } from '@dosc-syspro/contracts/agent';
 import { readChatwootRuntimeConfig } from '@dosc-syspro/config';
+import { differenceInSeconds } from '@dosc-syspro/shared';
 import { assertInternalApiKey } from '../../common/auth/internal-api-auth';
 import { getRemoteModuleSettingsSnapshot } from '../../common/system-settings/remote-module-settings-snapshot';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -707,7 +708,7 @@ export class AgentsService {
     const lastHeartbeat = row.lastHeartbeatAt;
     const isOnline = !!lastHeartbeat && lastHeartbeat >= onlineSince;
     const heartbeatLagSeconds = lastHeartbeat
-      ? Math.max(0, Math.floor((Date.now() - lastHeartbeat.getTime()) / 1000))
+      ? Math.max(0, differenceInSeconds(new Date(), lastHeartbeat))
       : null;
 
     const companyName = row.company

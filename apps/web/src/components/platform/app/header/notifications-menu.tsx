@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell, AlertTriangle, Info, ShieldAlert, RefreshCw } from "lucide-react";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { differenceInDays, differenceInHours, differenceInMinutes } from "@/lib/date";
 
 type NotificationLevel = "critical" | "warning" | "info";
 
@@ -37,12 +38,14 @@ function levelClass(level: NotificationLevel): string {
 
 function relativeTime(dateLike: string): string {
   const now = new Date();
-  const date = new Date(dateLike);
-  const diffMinutes = Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
+  const diffMinutes = differenceInMinutes(now, dateLike);
   if (diffMinutes < 1) return "agora";
   if (diffMinutes < 60) return `${diffMinutes}min`;
-  if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h`;
-  return `${Math.floor(diffMinutes / 1440)}d`;
+  
+  const diffHours = differenceInHours(now, dateLike);
+  if (diffHours < 24) return `${diffHours}h`;
+  
+  return `${differenceInDays(now, dateLike)}d`;
 }
 
 export function NotificationsMenu() {
