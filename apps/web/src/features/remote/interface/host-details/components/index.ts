@@ -1,5 +1,9 @@
+export * from './agent-link-section';
 export * from './host-agent-tab';
+export * from './host-backup-tab';
+export * from './host-hero-header';
 export * from './host-installations-tab';
+export * from './host-overview-tab';
+export * from './host-settings-tab';
 export * from './host-technical-tab';
 export * from './searchable-company-picker';
-
