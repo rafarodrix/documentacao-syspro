@@ -158,7 +158,7 @@ export function ChatwootTarefasTab() {
 
   return (
     <>
-      <Card className="border-border/60 shadow-sm">
+      <Card className="border-border/30 bg-background/50 backdrop-blur shadow-sm transition-all duration-300 hover:border-primary/10">
         <CardHeader className="pb-2">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
@@ -171,17 +171,30 @@ export function ChatwootTarefasTab() {
               <Button
                 type="button"
                 size="sm"
-                className="h-8 gap-1.5 px-3 text-xs"
+                className="h-8 gap-1.5 px-3 text-xs shadow-sm shadow-primary/20"
                 onClick={() => setCreateDialogOpen(true)}
                 disabled={!resolved.companyId || needsContextSelection}
               >
                 <ClipboardPlus className="h-3.5 w-3.5" />
                 Nova tarefa
               </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleRefresh}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 text-xs border-border/30 bg-background/40 hover:bg-background/60"
+                onClick={handleRefresh}
+              >
                 Atualizar
               </Button>
-              <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 px-3 text-xs" onClick={handleSync} disabled={!resolved.companyId || isSyncing}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs border-border/30 bg-background/40 hover:bg-background/60"
+                onClick={handleSync}
+                disabled={!resolved.companyId || isSyncing}
+              >
                 {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                 Sincronizar rotinas
               </Button>
@@ -206,9 +219,9 @@ export function ChatwootTarefasTab() {
           {!isLoading && !error && items.length > 0 ? (
             <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.id} className="rounded-xl border border-border/60 bg-card p-3">
+                <div key={item.id} className="rounded-xl border border-border/30 bg-background/40 hover:bg-background/60 hover:border-primary/20 backdrop-blur transition-all duration-300 shadow-sm p-3">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 space-y-2">
+                    <div className="min-w-0 space-y-2 w-full">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-foreground">{item.title}</p>
                         <ContextBadge tone={getTaskTypeTone(item.type)}>
@@ -217,45 +230,45 @@ export function ChatwootTarefasTab() {
                         <ContextBadge tone={getTaskStatusTone(item.status)}>
                           {getTaskStatusLabel(item.status)}
                         </ContextBadge>
-                        <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px]">
+                        <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px] border-border/30 bg-background/30">
                           Vence em {formatDateShort(item.dueDate)}
                         </Badge>
                         {item.ticketId ? (
-                          <Badge variant="outline" className="h-5 gap-1 rounded-full px-2 text-[10px]">
-                            <Ticket className="h-3 w-3" />
+                          <Badge variant="outline" className="h-5 gap-1 rounded-full px-2 text-[10px] border-border/30 bg-background/30">
+                            <Ticket className="h-3 w-3 text-primary" />
                             Com ticket
                           </Badge>
                         ) : null}
                       </div>
                       {item.description ? (
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
                       ) : null}
                       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+                        <div className="rounded-xl border border-border/30 bg-background/30 px-3 py-2 backdrop-blur">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Contato cliente" : "Responsavel"}
                           </p>
-                          <p className="mt-1 text-xs font-medium text-foreground">
+                          <p className="mt-1 text-xs font-semibold text-foreground truncate">
                             {item.type === "ROTINA_MENSAL"
                               ? item.clientContactName || "Nao definido"
                               : item.assignedToName || "Nao definido"}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+                        <div className="rounded-xl border border-border/30 bg-background/30 px-3 py-2 backdrop-blur">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Contabilidade" : "Contato cliente"}
                           </p>
-                          <p className="mt-1 text-xs font-medium text-foreground">
+                          <p className="mt-1 text-xs font-semibold text-foreground truncate">
                             {item.type === "ROTINA_MENSAL"
                               ? item.accountingFirmName || "Nao vinculada"
                               : item.clientContactName || "Nao definido"}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+                        <div className="rounded-xl border border-border/30 bg-background/30 px-3 py-2 backdrop-blur">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Envios" : "Origem"}
                           </p>
-                          <p className="mt-1 text-xs font-medium text-foreground">
+                          <p className="mt-1 text-xs font-semibold text-foreground truncate">
                             {item.type === "ROTINA_MENSAL"
                               ? `${item.manualRequestsCount} registrado(s)`
                               : item.ticketId
@@ -263,11 +276,11 @@ export function ChatwootTarefasTab() {
                                 : "Criacao manual"}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2">
+                        <div className="rounded-xl border border-border/30 bg-background/30 px-3 py-2 backdrop-blur">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                             {item.type === "ROTINA_MENSAL" ? "Ultimo disparo" : "Ultima atualizacao"}
                           </p>
-                          <p className="mt-1 text-xs font-medium text-foreground">
+                          <p className="mt-1 text-xs font-semibold text-foreground truncate">
                             {item.type === "ROTINA_MENSAL"
                               ? item.lastManualRequestAt
                                 ? formatDateTime(item.lastManualRequestAt)
@@ -278,7 +291,7 @@ export function ChatwootTarefasTab() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
                         {item.type === "ROTINA_MENSAL" ? (
                           <span>
                             {getRequestStatusLabel(item.lastManualRequestStatus)}
@@ -294,7 +307,7 @@ export function ChatwootTarefasTab() {
                             href={`/portal/tickets/${item.ticketId}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                            className="inline-flex items-center gap-1 text-primary hover:underline font-semibold"
                           >
                             <ArrowUpRight className="h-3.5 w-3.5" />
                             Abrir ticket vinculado
@@ -303,14 +316,14 @@ export function ChatwootTarefasTab() {
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 flex-wrap gap-2">
+                    <div className="flex shrink-0 flex-wrap gap-2 pt-2 lg:pt-0">
                       {item.type === "ROTINA_MENSAL" ? (
-                        <Button type="button" size="sm" className="h-8 gap-1.5 px-3 text-xs" onClick={() => openManualRequest(item)}>
+                        <Button type="button" size="sm" className="h-8 gap-1.5 px-3 text-xs shadow-sm shadow-primary/20" onClick={() => openManualRequest(item)}>
                           <MessageSquareShare className="h-3.5 w-3.5" />
                           {item.manualRequestsCount > 0 ? "Reenviar" : "Enviar mensagem"}
                         </Button>
                       ) : null}
-                      <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 px-3 text-xs" onClick={() => openStatusDialog(item)}>
+                      <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 px-3 text-xs border-border/30 bg-background/40 hover:bg-background/60" onClick={() => openStatusDialog(item)}>
                         <CircleCheckBig className="h-3.5 w-3.5" />
                         Finalizar / status
                       </Button>

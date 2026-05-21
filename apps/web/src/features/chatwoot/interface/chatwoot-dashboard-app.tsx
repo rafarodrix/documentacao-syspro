@@ -746,7 +746,7 @@ export function ChatwootDashboardApp() {
   }
 
   async function handleBindCompany() {
-    if (!selectedCompanyOption || isBindingCompany || resolved.companyId) return;
+    if (!selectedCompanyOption || isBindingCompany) return;
 
     try {
       setIsBindingCompany(true);
@@ -754,12 +754,15 @@ export function ChatwootDashboardApp() {
 
       let updatedContact: ContactLookupEntry | null = null;
       if (portalContactMatch?.id) {
+        const currentCompanyIds = portalContactMatch.companies?.map((c) => c.id) || portalContactMatch.companyIds || [];
+        const nextCompanyIds = Array.from(
+          new Set([...currentCompanyIds, selectedCompanyOption.id]),
+        );
+
         const result = await trpc.contacts.update.mutate({
           id: portalContactMatch.id,
           data: {
-            companyIds: Array.from(
-              new Set([...(portalContactMatch.companyIds ?? []), selectedCompanyOption.id]),
-            ),
+            companyIds: nextCompanyIds,
           },
         });
         updatedContact = result as unknown as ContactLookupEntry;
@@ -796,28 +799,44 @@ export function ChatwootDashboardApp() {
 
   async function handleSaveContactName() {
     const nextName = contactNameDraft.trim();
-    if (!nextName || isSavingContactName || !portalContactMatch?.id) return;
+    if (!nextName || isSavingContactName) return;
 
     try {
       setIsSavingContactName(true);
       setCompanyBindingFeedback(null);
-      const updated = await trpc.contacts.update.mutate({
-        id: portalContactMatch.id,
-        data: { name: nextName },
-      });
 
-      if (updated?.id) {
-        setPortalContactMatch(updated as unknown as ContactLookupEntry);
+      let updatedContact: ContactLookupEntry | null = null;
+      if (portalContactMatch?.id) {
+        const result = await trpc.contacts.update.mutate({
+          id: portalContactMatch.id,
+          data: { name: nextName },
+        });
+        updatedContact = result as unknown as ContactLookupEntry;
+      } else {
+        const result = await trpc.contacts.create.mutate({
+          name: nextName,
+          email: resolved.customerEmail || undefined,
+          phone: resolved.customerPhone || undefined,
+          whatsapp: resolved.customerPhone || undefined,
+          notes: "Contato criado pelo Dashboard App do Chatwoot ao renomear.",
+        });
+        updatedContact = result as unknown as ContactLookupEntry;
+      }
+
+      if (updatedContact?.id) {
+        setPortalContactMatch(updatedContact);
       }
       setCompanyBindingFeedback({
         tone: "success",
-        message: "Nome do contato atualizado no portal e sincronizado com o Chatwoot.",
+        message: portalContactMatch?.id
+          ? "Nome do contato atualizado no portal e sincronizado com o Chatwoot."
+          : "Contato registrado no portal e sincronizado com o Chatwoot.",
       });
       requestChatwootContext();
     } catch {
       setCompanyBindingFeedback({
         tone: "error",
-        message: "Nao foi possivel atualizar o nome do contato.",
+        message: "Nao foi possivel salvar o nome do contato.",
       });
     } finally {
       setIsSavingContactName(false);

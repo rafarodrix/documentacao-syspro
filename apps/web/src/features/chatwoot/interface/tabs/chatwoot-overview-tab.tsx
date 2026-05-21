@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Building2, Headphones, Loader2 } from "lucide-react";
+import { ArrowUpRight, Building2, Headphones, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@dosc-syspro/ui";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import {
@@ -46,12 +47,22 @@ export function ChatwootOverviewTab() {
     handleSaveContactName,
   } = useChatwootDashboard();
 
-  const shouldShowBindingWizard = !resolved.companyId && linkedCompanies.length === 0;
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [forceShowBinding, setForceShowBinding] = useState(false);
+
+  const shouldShowBindingWizard = linkedCompanies.length === 0 || forceShowBinding;
+
+  // Auto-collapse binding wizard when a primary company is successfully set
+  useEffect(() => {
+    if (primaryCompany) {
+      setForceShowBinding(false);
+    }
+  }, [primaryCompany]);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
-        <Card className="border-border/60 shadow-sm">
+        <Card className="border-border/30 bg-background/50 backdrop-blur shadow-sm transition-all duration-300 hover:border-primary/10">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Headphones className="h-4 w-4 text-primary" />
@@ -60,11 +71,67 @@ export function ChatwootOverviewTab() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-              <DetailItem
-                label="Contato"
-                value={effectiveContactName || "Nao identificado"}
-                helper={portalContactMatch?.id ? `ID ${portalContactMatch.id} no portal` : "Ainda nao localizado no portal"}
-              />
+              {isEditingName ? (
+                <div className="group rounded-xl border border-primary/20 bg-background/50 backdrop-blur px-3 py-2 transition-all duration-300 shadow-sm">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-primary">Contato</p>
+                  <div className="flex gap-2 items-center mt-1">
+                    <Input
+                      value={contactNameDraft}
+                      onChange={(e) => setContactNameDraft(e.target.value)}
+                      className="h-8 text-xs bg-background/50 border-border/30"
+                      placeholder="Nome do contato"
+                      disabled={isSavingContactName}
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 p-0 shrink-0 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-600"
+                      onClick={async () => {
+                        await handleSaveContactName();
+                        setIsEditingName(false);
+                      }}
+                      disabled={isSavingContactName || !contactNameDraft.trim()}
+                    >
+                      {isSavingContactName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 shrink-0"
+                      onClick={() => {
+                        setContactNameDraft(portalContactMatch?.name || resolved.contactName || "");
+                        setIsEditingName(false);
+                      }}
+                      disabled={isSavingContactName}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground/80">
+                    {portalContactMatch?.id ? `ID ${portalContactMatch.id} no portal` : "Ainda nao localizado"}
+                  </p>
+                </div>
+              ) : (
+                <div className="relative group">
+                  <DetailItem
+                    label="Contato"
+                    value={effectiveContactName || "Nao identificado"}
+                    helper={portalContactMatch?.id ? `ID ${portalContactMatch.id} no portal` : "Ainda nao localizado no portal"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactNameDraft(effectiveContactName || "");
+                      setIsEditingName(true);
+                    }}
+                    className="absolute right-2 top-2 p-1 rounded-md text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-all opacity-0 group-hover:opacity-100 duration-200"
+                    title="Editar nome"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               <DetailItem
                 label="Portal"
                 value={portalContactMatch ? "Correspondencia encontrada" : "Sem correspondencia"}
@@ -90,22 +157,35 @@ export function ChatwootOverviewTab() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 shadow-sm">
+        <Card className="border-border/30 bg-background/50 backdrop-blur shadow-sm transition-all duration-300 hover:border-primary/10">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Building2 className="h-4 w-4 text-primary" />
-              Empresa ativa
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Building2 className="h-4 w-4 text-primary" />
+                Empresa ativa
+              </CardTitle>
+              {linkedCompanies.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1 px-2 text-[10px] uppercase font-bold text-primary hover:bg-primary/5 hover:text-primary transition-colors"
+                  onClick={() => setForceShowBinding((current) => !current)}
+                >
+                  {shouldShowBindingWizard ? "Cancelar vinculo" : "+ Vincular outra empresa"}
+                </Button>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {primaryCompany ? (
               <>
-                <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
+                <div className="rounded-2xl border border-border/30 bg-background/30 backdrop-blur px-3 py-3 shadow-md transition-all duration-300 hover:border-primary/10">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{getCompanyLabel(primaryCompany)}</p>
+                      <p className="text-sm font-bold text-foreground tracking-tight">{getCompanyLabel(primaryCompany)}</p>
                       {primaryCompany.razaoSocial !== getCompanyLabel(primaryCompany) ? (
-                        <p className="mt-0.5 text-xs text-muted-foreground">{primaryCompany.razaoSocial}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground/80">{primaryCompany.razaoSocial}</p>
                       ) : null}
                     </div>
                     <div className="min-w-[11rem] max-w-full">
@@ -114,11 +194,11 @@ export function ChatwootOverviewTab() {
                   </div>
 
                   {recommendedHost ? (
-                    <div className="mt-3 rounded-lg border border-border/60 bg-background px-3 py-2.5">
+                    <div className="mt-3 rounded-xl border border-border/30 bg-background/40 hover:bg-background/60 hover:border-primary/20 backdrop-blur px-3 py-2.5 transition-all duration-300 shadow-sm">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{recommendedHost.name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">Host recomendado neste contexto.</p>
+                          <p className="text-xs font-semibold text-foreground">{recommendedHost.name}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground/90">Host recomendado neste contexto.</p>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           <RemoteHostStatusBadges host={recommendedHost} />

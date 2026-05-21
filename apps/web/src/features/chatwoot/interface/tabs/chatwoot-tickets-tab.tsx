@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Clock3, Loader2, MessageSquare, Ticket, Waypoints } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@dosc-syspro/ui";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { getSuggestedCategoryForTeam } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
@@ -49,7 +50,7 @@ export function ChatwootTicketsTab() {
   const canUseTickets = canCreateTicket && !needsContextSelection;
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/30 bg-background/50 backdrop-blur shadow-sm transition-all duration-300 hover:border-primary/10">
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -261,7 +262,7 @@ export function ChatwootTicketsTab() {
 
         {/* Priority ticket highlight */}
         {priorityTicket ? (
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+          <div className="rounded-xl border border-primary/20 bg-background/40 hover:bg-background/60 hover:border-primary/30 backdrop-blur transition-all duration-300 shadow-md p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -325,32 +326,52 @@ export function ChatwootTicketsTab() {
         {/* Remaining tickets (priority excluded) */}
         {!isLoadingTickets && !ticketError && canUseTickets && latestTickets.length > 0 ? (
           <div className="space-y-1.5">
-            {latestTickets.filter((ticket) => ticket.id !== priorityTicket?.id).map((ticket) => (
-              <div key={ticket.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    #{ticket.number} - {ticket.title}
-                  </p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <ContextBadge tone={ticket.number === resolved.ticketNumber ? "good" : "neutral"}>
-                      {ticket.statusLabel}
-                    </ContextBadge>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock3 className="h-3 w-3" />
-                      {formatRelativeDate(ticket.createdAt)}
-                    </span>
+            {latestTickets.filter((ticket) => ticket.id !== priorityTicket?.id).map((ticket) => {
+              const statusLower = (ticket.status || "").toLowerCase();
+              let hoverBorderClass = "hover:border-primary/20 hover:shadow-[0_0_8px_rgba(var(--primary),0.08)]";
+              if (statusLower.includes("aberto") || statusLower.includes("novo") || statusLower.includes("open")) {
+                hoverBorderClass = "hover:border-emerald-500/30 hover:shadow-[0_0_8px_rgba(16,185,129,0.08)]";
+              } else if (statusLower.includes("atendimento") || statusLower.includes("execucao") || statusLower.includes("progresso")) {
+                hoverBorderClass = "hover:border-blue-500/30 hover:shadow-[0_0_8px_rgba(59,130,246,0.08)]";
+              } else if (statusLower.includes("aguardando") || statusLower.includes("pendente")) {
+                hoverBorderClass = "hover:border-amber-500/30 hover:shadow-[0_0_8px_rgba(245,158,11,0.08)]";
+              } else if (statusLower.includes("resolvido") || statusLower.includes("concluido") || statusLower.includes("fechado")) {
+                hoverBorderClass = "hover:border-border/65 hover:shadow-none";
+              }
+
+              return (
+                <div
+                  key={ticket.id}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-background/40 px-3 py-2 backdrop-blur transition-all duration-300 shadow-sm",
+                    hoverBorderClass
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      #{ticket.number} - {ticket.title}
+                    </p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <ContextBadge tone={ticket.number === resolved.ticketNumber ? "good" : "neutral"}>
+                        {ticket.statusLabel}
+                      </ContextBadge>
+                      <span className="inline-flex items-center gap-1 text-[10px]">
+                        <Clock3 className="h-3 w-3" />
+                        {formatRelativeDate(ticket.createdAt)}
+                      </span>
+                    </div>
                   </div>
+                  <Button asChild variant="ghost" size="sm" className="h-8 shrink-0 px-2.5 text-xs">
+                    <Link href={`/portal/tickets/${ticket.id}`} target="_blank" rel="noreferrer">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                        Abrir
+                      </span>
+                    </Link>
+                  </Button>
                 </div>
-                <Button asChild variant="ghost" size="sm" className="h-8 shrink-0 px-2.5 text-xs">
-                  <Link href={`/portal/tickets/${ticket.id}`} target="_blank" rel="noreferrer">
-                    <span className="inline-flex items-center gap-1.5">
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                      Abrir
-                    </span>
-                  </Link>
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
       </CardContent>
