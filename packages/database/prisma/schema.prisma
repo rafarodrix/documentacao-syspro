@@ -407,7 +407,6 @@ model CompanyContact {
   userLinks                    UserContactLink[]
   users                        User[]
   companyLinks                 CompanyContactCompanyLink[]
-  crmLeads                     CrmLead[]
   taskClientConfigs               TaskConfig[] @relation("TaskClientContact")
   taskAccountingConfigs           TaskConfig[] @relation("TaskAccountingContact")
   taskRequests                    TaskRequest[]
