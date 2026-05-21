@@ -6,7 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Badge, Button, Card, CardContent, CardHeader, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { Activity, BarChart3, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
-import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
+import { RegistryDataTable } from "@/components/platform/shared/registry-list-scaffold";
 import { EmptyState } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
@@ -297,27 +297,27 @@ export function RemoteSessionsPanel({
                 </div>
               </div>
 
-              <Card className="border-border/50">
-                <CardContent className="p-0">
+              <RegistryDataTable
+                isEmpty={pastSessions.length === 0}
+                emptyState={{
+                  icon: History,
+                  title: "Nenhum histórico de sessões encontrado.",
+                  description: "Ajuste os filtros para localizar sessões anteriores.",
+                }}
+                desktopColSpan={1}
+                content={
                   <div className="divide-y divide-border/40">
-                    {pastSessions.length > 0 ? (
-                      pastSessions.map((session) => <SessionListRow key={session.id} session={session} />)
-                    ) : (
-                      <EmptyState title="Nenhum histórico de sessões encontrado." compact />
-                    )}
+                    {pastSessions.map((session) => <SessionListRow key={session.id} session={session} />)}
                   </div>
-                </CardContent>
-              </Card>
+                }
+                pagination={{
+                  pagination,
+                  itemLabel: { singular: "sessão", plural: "sessões" },
+                  isLoading: isPending,
+                  onPageChange: goToPage,
+                }}
+              />
             </section>
-          )}
-
-          {(view === "todas" || view === "historico") && (
-            <RegistryPagination
-              pagination={pagination}
-              itemLabel={{ singular: "sessão", plural: "sessões" }}
-              isLoading={isPending}
-              onPageChange={goToPage}
-            />
           )}
         </>
       )}
@@ -485,3 +485,4 @@ function SessionListRow({ session }: { session: SessionItem }) {
     </div>
   );
 }
+

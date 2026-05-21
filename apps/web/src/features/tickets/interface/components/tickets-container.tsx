@@ -7,7 +7,7 @@ import { TicketsFilters } from "@/features/tickets/interface/components/tickets-
 import { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
 import { Button } from "@dosc-syspro/ui";
 import { PageHeader, PageShell, StaleState } from "@/components/patterns";
-import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
+import { RegistryDataTable } from "@/components/platform/shared/registry-list-scaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import type { ClosedTicketsWindow, TicketListItem, TicketSortBy, TicketSortOrder, TicketStatusCounts, TicketsPagination, TicketTeamFilter } from "./ticket-view.types";
@@ -131,27 +131,42 @@ export function TicketsContainer({
         </p>
       )}
 
-      <TicketsTable
-        tickets={tickets}
-        canManageTickets={canManageTickets}
-        statusGroup={statusGroup}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSortChange={setSort}
+      <RegistryDataTable
+        wrapInCard={false}
+        isEmpty={false}
+        emptyState={{
+          icon: PlusCircle,
+          title: "Nenhum ticket encontrado",
+          description: "Ajuste os filtros para refinar a listagem.",
+        }}
+        desktopColSpan={1}
+        content={
+          <TicketsTable
+            tickets={tickets}
+            canManageTickets={canManageTickets}
+            statusGroup={statusGroup}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={setSort}
+          />
+        }
+        pagination={
+          pagination.total !== null
+            ? {
+                pagination: { ...pagination, total: pagination.total },
+                itemLabel: { singular: "ticket", plural: "tickets" },
+                onPageChange: goToPage,
+              }
+            : undefined
+        }
       />
 
-      {pagination.total !== null ? (
-        <RegistryPagination
-          pagination={{ ...pagination, total: pagination.total }}
-          itemLabel={{ singular: "ticket", plural: "tickets" }}
-          onPageChange={goToPage}
-        />
-      ) : (
+      {pagination.total === null ? (
         <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>Total filtrado indisponivel</span>
           <span>Itens nesta pagina: {tickets.length}</span>
         </div>
-      )}
+      ) : null}
     </PageShell>
   );
 }

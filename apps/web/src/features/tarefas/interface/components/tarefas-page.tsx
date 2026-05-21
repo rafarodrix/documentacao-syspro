@@ -2,10 +2,8 @@
 
 import { trpc } from "@/lib/api/trpc-client";
 import {
-  RegistryEmptyState,
+  RegistryDataTable,
   RegistryFilterGroup,
-  RegistryPagination,
-  RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
 import { PageHeader } from "@/components/patterns";
@@ -555,20 +553,22 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
             </div>
           ) : null}
 
-          {tasks.items.length === 0 ? (
-            <RegistryEmptyState
-              icon={CircleAlert}
-              title="Nenhuma tarefa encontrada"
-              description={
-                hasActiveFilters
-                  ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
-                  : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila."
-              }
-              searchTerm={search.trim() || undefined}
-              onClear={hasActiveFilters ? clearFilters : undefined}
-            />
-          ) : (
-            <RegistryTableCard>
+          <RegistryDataTable
+            wrapInCard={false}
+            loading={isPending}
+            loadingLabel="Carregando tarefas..."
+            isEmpty={tasks.items.length === 0}
+            emptyState={{
+              icon: CircleAlert,
+              title: "Nenhuma tarefa encontrada",
+              description: hasActiveFilters
+                ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
+                : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila.",
+              searchTerm: search.trim() || undefined,
+              onClear: hasActiveFilters ? clearFilters : undefined,
+            }}
+            desktopColSpan={canManage ? 8 : 7}
+            content={
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-muted/20">
@@ -584,127 +584,128 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                  {tasks.items.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className={cn(
-                        "align-top cursor-pointer transition-colors hover:bg-muted/10",
-                        selectedRowTaskId === item.id && "bg-primary/5 hover:bg-primary/10",
-                      )}
-                      onClick={() => setSelectedRowTaskId(item.id)}
-                      onDoubleClick={() => setSelectedDetailsTaskId(item.id)}
-                      title="Duplo clique para ver detalhes"
-                    >
-                      <TableCell className="w-[18%] px-3 py-3.5">
-                        <div className="space-y-1">
-                          <div className="font-medium text-foreground">{item.companyName}</div>
-                          <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-[24%] px-3 py-3.5">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-sm font-medium text-foreground">{item.title}</div>
-                            <Badge variant={getTaskTypeVariant(item.type)} className="gap-1">
-                              {item.type === "ROTINA_MENSAL" ? <Repeat className="h-3 w-3" /> : <ListTodo className="h-3 w-3" />}
-                              {getTaskTypeLabel(item.type)}
-                            </Badge>
-                          </div>
-                          {item.year && item.month ? (
-                            <div className="text-xs text-muted-foreground">
-                              {String(item.month).padStart(2, "0")}/{item.year}
-                            </div>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">Sem rotina mensal vinculada</div>
-                          )}
-                          {item.ticketId ? (
-                            <Link
-                              href={`/portal/tickets/${item.ticketId}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                            >
-                              Ticket de origem
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Link>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-[12%] px-3 py-3.5 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
-                      <TableCell className="w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
-                        {formatDateShort(item.dueDate)}
-                      </TableCell>
-                      <TableCell className="w-[8%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
-                        {item.requiredDocumentsCount} item(ns)
-                      </TableCell>
-                      <TableCell className="w-[15%] px-3 py-3.5">
-                        {item.lastManualRequestAt ? (
-                          <div className="space-y-1">
-                            <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
-                              {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
-                            </Badge>
-                            <div className="text-xs text-muted-foreground">
-                              {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
+                    {tasks.items.map((item) => (
+                      <TableRow
+                        key={item.id}
+                        className={cn(
+                          "align-top cursor-pointer transition-colors hover:bg-muted/10",
+                          selectedRowTaskId === item.id && "bg-primary/5 hover:bg-primary/10",
                         )}
-                      </TableCell>
-                      <TableCell className="w-[8%] px-3 py-3.5">
-                        <Badge variant={getTaskStatusVariant(item.status)}>
-                          {getTaskStatusLabel(item.status)}
-                        </Badge>
-                      </TableCell>
-                      {canManage ? (
-                        <TableCell className="w-[16%] px-3 py-3.5 text-right" onDoubleClick={(event) => event.stopPropagation()}>
-                          <div className="flex flex-col items-end gap-2 xl:flex-row xl:justify-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8"
-                            onClick={() => setSelectedStatusTask(item)}
-                          >
-                            Atualizar status
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8"
-                            onClick={() => setSelectedTask(item)}
-                            disabled={item.availableContacts.length === 0}
-                          >
-                            <MessageSquareShare className="mr-2 h-4 w-4" />
-                            {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
-                          </Button>
+                        onClick={() => setSelectedRowTaskId(item.id)}
+                        onDoubleClick={() => setSelectedDetailsTaskId(item.id)}
+                        title="Duplo clique para ver detalhes"
+                      >
+                        <TableCell className="w-[18%] px-3 py-3.5">
+                          <div className="space-y-1">
+                            <div className="font-medium text-foreground">{item.companyName}</div>
+                            <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
                           </div>
                         </TableCell>
-                      ) : null}
-                    </TableRow>
-                  ))}
+                        <TableCell className="w-[24%] px-3 py-3.5">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-medium text-foreground">{item.title}</div>
+                              <Badge variant={getTaskTypeVariant(item.type)} className="gap-1">
+                                {item.type === "ROTINA_MENSAL" ? <Repeat className="h-3 w-3" /> : <ListTodo className="h-3 w-3" />}
+                                {getTaskTypeLabel(item.type)}
+                              </Badge>
+                            </div>
+                            {item.year && item.month ? (
+                              <div className="text-xs text-muted-foreground">
+                                {String(item.month).padStart(2, "0")}/{item.year}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">Sem rotina mensal vinculada</div>
+                            )}
+                            {item.ticketId ? (
+                              <Link
+                                href={`/portal/tickets/${item.ticketId}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                              >
+                                Ticket de origem
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </Link>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-[12%] px-3 py-3.5 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
+                        <TableCell className="w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
+                          {formatDateShort(item.dueDate)}
+                        </TableCell>
+                        <TableCell className="w-[8%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
+                          {item.requiredDocumentsCount} item(ns)
+                        </TableCell>
+                        <TableCell className="w-[15%] px-3 py-3.5">
+                          {item.lastManualRequestAt ? (
+                            <div className="space-y-1">
+                              <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
+                                {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
+                              </Badge>
+                              <div className="text-xs text-muted-foreground">
+                                {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="w-[8%] px-3 py-3.5">
+                          <Badge variant={getTaskStatusVariant(item.status)}>
+                            {getTaskStatusLabel(item.status)}
+                          </Badge>
+                        </TableCell>
+                        {canManage ? (
+                          <TableCell className="w-[16%] px-3 py-3.5 text-right" onDoubleClick={(event) => event.stopPropagation()}>
+                            <div className="flex flex-col items-end gap-2 xl:flex-row xl:justify-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => setSelectedStatusTask(item)}
+                              >
+                                Atualizar status
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => setSelectedTask(item)}
+                                disabled={item.availableContacts.length === 0}
+                              >
+                                <MessageSquareShare className="mr-2 h-4 w-4" />
+                                {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        ) : null}
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
-            </RegistryTableCard>
-          )}
-
-          {tasks.pagination.total > 0 ? (
-            <RegistryPagination
-              pagination={{
-                page: tasks.pagination.page,
-                pageSize: tasks.pagination.pageSize,
-                total: tasks.pagination.total,
-                hasPreviousPage: tasks.pagination.hasPreviousPage,
-                hasNextPage: tasks.pagination.hasNextPage,
-              }}
-              itemLabel={{ singular: "tarefa", plural: "tarefas" }}
-              isLoading={isPending}
-              onPageChange={setPage}
-            />
-          ) : null}
+            }
+            pagination={
+              tasks.pagination.total > 0
+                ? {
+                    pagination: {
+                      page: tasks.pagination.page,
+                      pageSize: tasks.pagination.pageSize,
+                      total: tasks.pagination.total,
+                      hasPreviousPage: tasks.pagination.hasPreviousPage,
+                      hasNextPage: tasks.pagination.hasNextPage,
+                    },
+                    itemLabel: { singular: "tarefa", plural: "tarefas" },
+                    isLoading: isPending,
+                    onPageChange: setPage,
+                  }
+                : undefined
+            }
+          />
         </CardContent>
       </Card>
 

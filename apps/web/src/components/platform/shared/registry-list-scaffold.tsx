@@ -3,9 +3,21 @@
 import type { ElementType, ReactNode } from "react";
 import { ChevronLeft, ChevronRight, X, type LucideIcon } from "lucide-react";
 
-import { Button, Card, CardContent } from "@dosc-syspro/ui";
+import { Button, Card } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-import { EmptyState, MetricCard, SearchToolbar, FilterTabs } from "@/components/patterns";
+import {
+  EmptyState,
+  LoadingState,
+  MetricCard,
+  PortalTable,
+  PortalTableBody,
+  PortalTableEmptyRow,
+  PortalTableHeader,
+  PortalTableLoadingRow,
+  PortalTableViewport,
+  SearchToolbar,
+  FilterTabs,
+} from "@/components/patterns";
 
 export function RegistryFeedback({
   type,
@@ -114,6 +126,141 @@ export type RegistryPaginationState = {
   hasPreviousPage?: boolean;
   hasNextPage?: boolean;
 };
+
+type RegistryEmptyStateConfig = {
+  icon: ElementType;
+  title: string;
+  description: string;
+  searchTerm?: string;
+  onClear?: () => void;
+};
+
+type RegistryPaginationConfig = {
+  pagination: RegistryPaginationState;
+  itemLabel: { singular: string; plural: string };
+  isLoading?: boolean;
+  onPageChange: (page: number) => void;
+  footer?: ReactNode;
+};
+
+function getRegistryEmptyTitle(config: RegistryEmptyStateConfig) {
+  return config.searchTerm ? `Sem resultados para "${config.searchTerm}"` : config.title;
+}
+
+export function RegistryDataTable({
+  toolbar,
+  content,
+  mobileContent,
+  desktopHeader,
+  desktopContent,
+  loading = false,
+  loadingLabel = "Carregando...",
+  isEmpty,
+  emptyState,
+  desktopColSpan,
+  minWidthClassName,
+  pagination,
+  className,
+  cardClassName,
+  mobileClassName,
+  desktopClassName,
+  desktopHeaderClassName,
+  wrapInCard = true,
+}: {
+  toolbar?: ReactNode;
+  content?: ReactNode;
+  mobileContent?: ReactNode;
+  desktopHeader?: ReactNode;
+  desktopContent?: ReactNode;
+  loading?: boolean;
+  loadingLabel?: string;
+  isEmpty: boolean;
+  emptyState: RegistryEmptyStateConfig;
+  desktopColSpan: number;
+  minWidthClassName?: string;
+  pagination?: RegistryPaginationConfig;
+  className?: string;
+  cardClassName?: string;
+  mobileClassName?: string;
+  desktopClassName?: string;
+  desktopHeaderClassName?: string;
+  wrapInCard?: boolean;
+}) {
+  const emptyTitle = getRegistryEmptyTitle(emptyState);
+  const body = content ? (
+    loading ? (
+      <LoadingState label={loadingLabel} compact={false} className="p-6" />
+    ) : isEmpty ? (
+      <RegistryEmptyState
+        icon={emptyState.icon}
+        title={emptyState.title}
+        description={emptyState.description}
+        searchTerm={emptyState.searchTerm}
+        onClear={emptyState.onClear}
+      />
+    ) : (
+      content
+    )
+  ) : (
+    <>
+      <div className={cn("divide-y divide-border/60 md:hidden", mobileClassName)}>
+        {loading ? (
+          <LoadingState label={loadingLabel} compact={false} className="p-6" />
+        ) : isEmpty ? (
+          <RegistryEmptyState
+            icon={emptyState.icon}
+            title={emptyState.title}
+            description={emptyState.description}
+            searchTerm={emptyState.searchTerm}
+            onClear={emptyState.onClear}
+          />
+        ) : (
+          mobileContent
+        )}
+      </div>
+
+      <PortalTableViewport className={cn("hidden md:block", desktopClassName)} minWidthClassName={minWidthClassName}>
+        <PortalTable>
+          <PortalTableHeader className={desktopHeaderClassName}>{desktopHeader}</PortalTableHeader>
+          <PortalTableBody>
+            {loading ? (
+              <PortalTableLoadingRow colSpan={desktopColSpan} label={loadingLabel} />
+            ) : isEmpty ? (
+              <PortalTableEmptyRow
+                colSpan={desktopColSpan}
+                icon={emptyState.icon as LucideIcon}
+                title={emptyTitle}
+                description={emptyState.description}
+              />
+            ) : (
+              desktopContent
+            )}
+          </PortalTableBody>
+        </PortalTable>
+      </PortalTableViewport>
+    </>
+  );
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      {toolbar}
+
+      {wrapInCard ? <RegistryTableCard>{body}</RegistryTableCard> : body}
+
+      {pagination ? (
+        <div className={cn("flex flex-col gap-2", cardClassName)}>
+          <RegistryPagination
+            pagination={pagination.pagination}
+            itemLabel={pagination.itemLabel}
+            isLoading={pagination.isLoading}
+            onPageChange={pagination.onPageChange}
+          />
+          {pagination.footer}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function RegistryPagination({
   pagination,

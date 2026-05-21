@@ -67,8 +67,8 @@ import {
   TabsTrigger,
 } from "@dosc-syspro/ui";
 import {
+  RegistryDataTable,
   RegistryFilterGroup,
-  RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
 import { PageHeader } from "@/components/patterns";
@@ -908,92 +908,101 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
           }
         />
 
-        <RegistryTableCard>
-          <CardContent className="pt-6">
-            {leads.length === 0 ? (
-              <EmptyPipelineState />
-            ) : statusFilter === "ACTIVE" ? (
-              <div className="space-y-4">
-                {filteredLeads.filter((lead) => CRM_ACTIVE_STAGE_ORDER.includes(lead.stage)).length === 0 ? (
-                  <FilteredEmptyState search={search} statusLabel="pipeline ativo" />
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
-                    {PIPELINE_COLUMNS.map((column) => {
-                      const stageLeads = getPipelineColumnLeads(filteredGrouped, column);
-                      return (
-                        <section
-                          key={column.id}
-                          className={cn(
-                            "min-w-0 rounded-2xl border border-border/60 bg-muted/20 p-3 transition-colors",
-                            hoveredStage === column.dropStage && "border-primary/50 bg-primary/5",
-                          )}
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                            if (draggedLeadId) setHoveredStage(column.dropStage);
-                          }}
-                          onDragLeave={() => setHoveredStage((current) => (current === column.dropStage ? null : current))}
-                          onDrop={async (event) => {
-                            event.preventDefault();
-                            await handleDrop(column.dropStage);
-                          }}
-                        >
-                          <div className="mb-3 flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-foreground">{column.label}</p>
-                              <p className="mt-1 text-[11px] text-muted-foreground">{column.description}</p>
-                            </div>
-                            <Badge variant="secondary" className="shrink-0 rounded-full px-2.5">
-                              {stageLeads.length}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-3">
-                            {stageLeads.length === 0 ? (
-                              <div className="rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-8 text-center text-xs text-muted-foreground">
-                                Nenhum lead nesta etapa.
-                              </div>
-                            ) : (
-                              stageLeads.map((lead) => (
-                                <LeadCard
-                                  key={lead.id}
-                                  lead={lead}
-                                  isSaving={savingLeadId === lead.id || isRefreshing}
-                                  onEdit={() => openEditor(lead.id)}
-                                  onStageChange={(nextStage) => handleStageChange(lead, nextStage)}
-                                  onDragStart={handleDragStart}
-                                  onDragEnd={handleDragEnd}
-                                />
-                              ))
+        <RegistryDataTable
+          isEmpty={false}
+          emptyState={{
+            icon: KanbanSquare,
+            title: "Nenhum lead encontrado",
+            description: "Ajuste os filtros para exibir outros leads.",
+          }}
+          desktopColSpan={1}
+          content={
+            <CardContent className="pt-6">
+              {leads.length === 0 ? (
+                <EmptyPipelineState />
+              ) : statusFilter === "ACTIVE" ? (
+                <div className="space-y-4">
+                  {filteredLeads.filter((lead) => CRM_ACTIVE_STAGE_ORDER.includes(lead.stage)).length === 0 ? (
+                    <FilteredEmptyState search={search} statusLabel="pipeline ativo" />
+                  ) : (
+                    <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+                      {PIPELINE_COLUMNS.map((column) => {
+                        const stageLeads = getPipelineColumnLeads(filteredGrouped, column);
+                        return (
+                          <section
+                            key={column.id}
+                            className={cn(
+                              "min-w-0 rounded-2xl border border-border/60 bg-muted/20 p-3 transition-colors",
+                              hoveredStage === column.dropStage && "border-primary/50 bg-primary/5",
                             )}
-                          </div>
-                        </section>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : closedFilteredLeads.length === 0 ? (
-              <FilteredEmptyState
-                search={search}
-                statusLabel={
-                  statusFilter === "WON" ? "ganhos" : statusFilter === "LOST" ? "perdidos" : "encerrados"
-                }
-              />
-            ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
-                {closedFilteredLeads.map((lead) => (
-                  <ClosedLeadCard
-                    key={lead.id}
-                    lead={lead}
-                    isSaving={savingLeadId === lead.id || isRefreshing}
-                    onEdit={() => openEditor(lead.id)}
-                    onStageChange={(nextStage) => handleStageChange(lead, nextStage)}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </RegistryTableCard>
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              if (draggedLeadId) setHoveredStage(column.dropStage);
+                            }}
+                            onDragLeave={() => setHoveredStage((current) => (current === column.dropStage ? null : current))}
+                            onDrop={async (event) => {
+                              event.preventDefault();
+                              await handleDrop(column.dropStage);
+                            }}
+                          >
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground">{column.label}</p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">{column.description}</p>
+                              </div>
+                              <Badge variant="secondary" className="shrink-0 rounded-full px-2.5">
+                                {stageLeads.length}
+                              </Badge>
+                            </div>
+
+                            <div className="space-y-3">
+                              {stageLeads.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-border/60 bg-background/70 px-3 py-8 text-center text-xs text-muted-foreground">
+                                  Nenhum lead nesta etapa.
+                                </div>
+                              ) : (
+                                stageLeads.map((lead) => (
+                                  <LeadCard
+                                    key={lead.id}
+                                    lead={lead}
+                                    isSaving={savingLeadId === lead.id || isRefreshing}
+                                    onEdit={() => openEditor(lead.id)}
+                                    onStageChange={(nextStage) => handleStageChange(lead, nextStage)}
+                                    onDragStart={handleDragStart}
+                                    onDragEnd={handleDragEnd}
+                                  />
+                                ))
+                              )}
+                            </div>
+                          </section>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : closedFilteredLeads.length === 0 ? (
+                <FilteredEmptyState
+                  search={search}
+                  statusLabel={
+                    statusFilter === "WON" ? "ganhos" : statusFilter === "LOST" ? "perdidos" : "encerrados"
+                  }
+                />
+              ) : (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {closedFilteredLeads.map((lead) => (
+                    <ClosedLeadCard
+                      key={lead.id}
+                      lead={lead}
+                      isSaving={savingLeadId === lead.id || isRefreshing}
+                      onEdit={() => openEditor(lead.id)}
+                      onStageChange={(nextStage) => handleStageChange(lead, nextStage)}
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          }
+        />
       </div>
 
       <Sheet open={!!selectedLeadId} onOpenChange={(open) => !open && setSelectedLeadId(null)}>

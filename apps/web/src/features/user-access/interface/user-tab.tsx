@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator, Badge } from "@dosc-syspro/ui";
+import { TableCell, TableRow, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator, Badge } from "@dosc-syspro/ui";
 import {
   MoreHorizontal,
   Shield,
@@ -22,13 +22,12 @@ import {
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
-  RegistryEmptyState,
+  RegistryDataTable,
   RegistryFeedback,
   RegistryFilterGroup,
-  RegistryPagination,
-  RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
+import { PortalTableHead } from "@/components/patterns";
 import { updateUserStatusAction } from "@/features/user-access/application/user-access-write.actions";
 
 type UserWithRelations = UserAccessListItem;
@@ -353,180 +352,155 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
           }
         />
 
-        <RegistryTableCard>
-          <div className="md:hidden divide-y">
-            {paginatedData.length === 0 ? (
-              <RegistryEmptyState
-                icon={Users}
-                title="Nenhum usuario cadastrado"
-                description="Ajuste os filtros ou cadastre um novo usuario."
-                searchTerm={searchTerm}
-                onClear={() => setSearchTerm("")}
-              />
-            ) : (
-              paginatedData.map((user) => (
-                <ClickableCard
-                  key={user.id}
-                  enabled={canManage}
-                  onOpen={() => openEdit(user)}
-                  className="p-4 space-y-3"
-                  title="Clique para editar"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0">
-                        <AvatarImage src={user.image ?? undefined} />
-                        <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{getInitials(user.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{user.name || "Sem nome"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+        <RegistryDataTable
+          isEmpty={paginatedData.length === 0}
+          emptyState={{
+            icon: Users,
+            title: "Nenhum usuario cadastrado",
+            description: "Ajuste os filtros ou cadastre um novo usuario.",
+            searchTerm,
+            onClear: () => setSearchTerm(""),
+          }}
+          desktopColSpan={5}
+          minWidthClassName="min-w-[1020px]"
+          desktopHeaderClassName="bg-muted/20"
+          desktopHeader={
+            <TableRow className="hover:bg-transparent border-b border-border/60">
+              <PortalTableHead className="py-3.5 px-6">Identificacao</PortalTableHead>
+              <PortalTableHead>Contato vinculado</PortalTableHead>
+              <PortalTableHead>Acesso / Empresa</PortalTableHead>
+              <PortalTableHead>Status</PortalTableHead>
+              <PortalTableHead className="text-right px-6">Acoes</PortalTableHead>
+            </TableRow>
+          }
+          mobileContent={paginatedData.map((user) => (
+            <ClickableCard
+              key={user.id}
+              enabled={canManage}
+              onOpen={() => openEdit(user)}
+              className="p-4 space-y-3"
+              title="Clique para editar"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0">
+                    <AvatarImage src={user.image ?? undefined} />
+                    <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{getInitials(user.name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{user.name || "Sem nome"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+                <UserActions
+                  user={user}
+                  isLoading={loadingId === user.id}
+                  canManage={canManage}
+                  onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <RoleBadge role={user.role} />
+                <StatusBadge isActive={user.isActive} />
+              </div>
+              <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
+            </ClickableCard>
+          ))}
+          desktopContent={paginatedData.map((user, index) => (
+            <ClickableTableRow
+              key={user.id}
+              enabled={canManage}
+              onOpen={() => openEdit(user)}
+              className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+              style={{ animationDelay: `${index * 40}ms` }}
+              title="Clique para editar"
+            >
+              <TableCell className="py-4 px-6">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0 transition-all group-hover/row:scale-105">
+                    <AvatarImage src={user.image ?? undefined} />
+                    <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{getInitials(user.name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-45">
+                      {user.name ?? <span className="italic text-muted-foreground/60 font-normal">Sem nome</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-45">{user.email}</p>
+                  </div>
+                </div>
+              </TableCell>
+
+              <TableCell>
+                <div className="flex flex-col gap-1.5">
+                  {user.contact ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Link2 className="w-3 h-3 shrink-0 opacity-60" />
+                        <span className="truncate max-w-40">{user.contact.name}</span>
                       </div>
+                      <div className="text-[11px] text-muted-foreground/70">
+                        {user.contact.whatsapp || user.contact.phone || user.contact.email || "Sem telefone/email"}
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/50 italic">Sem contato vinculado</span>
+                  )}
+                </div>
+              </TableCell>
+
+              <TableCell>
+                <div className="flex flex-col gap-1.5">
+                  <RoleBadge role={user.role} />
+                  {(companyChipsByUser.get(user.id)?.length ?? 0) > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {(companyChipsByUser.get(user.id) ?? []).map((company) => (
+                        <span
+                          key={company.key}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-muted border border-border/40 text-muted-foreground"
+                        >
+                          <Building className="w-2.5 h-2.5 shrink-0 opacity-60" />
+                          <span className="truncate max-w-25">{company.label}</span>
+                        </span>
+                      ))}
                     </div>
-                    <UserActions
-                      user={user}
-                      isLoading={loadingId === user.id}
-                      canManage={canManage}
-                      onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <RoleBadge role={user.role} />
-                    <StatusBadge isActive={user.isActive} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
-                </ClickableCard>
-              ))
-            )}
-          </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground/50 italic">Sem vinculos</span>
+                  )}
+                </div>
+              </TableCell>
 
-          <div className="hidden md:block w-full overflow-x-auto">
-            <Table>
-            <TableHeader className="bg-muted/20">
-              <TableRow className="hover:bg-transparent border-b border-border/60">
-                <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificacao</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato vinculado</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acesso / Empresa</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                <TableHead className="text-right px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acoes</TableHead>
-              </TableRow>
-            </TableHeader>
+              <TableCell>
+                <StatusBadge isActive={user.isActive} />
+              </TableCell>
 
-            <TableBody>
-              {paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5}>
-                    <RegistryEmptyState
-                      icon={Users}
-                      title="Nenhum usuario cadastrado"
-                      description="Ajuste os filtros ou cadastre um novo usuario."
-                      searchTerm={searchTerm}
-                      onClear={() => setSearchTerm("")}
-                      compact
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((user, index) => (
-                  <ClickableTableRow
-                    key={user.id}
-                    enabled={canManage}
-                    onOpen={() => openEdit(user)}
-                    className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
-                    style={{ animationDelay: `${index * 40}ms` }}
-                    title="Clique para editar"
-                  >
-                    <TableCell className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0 transition-all group-hover/row:scale-105">
-                          <AvatarImage src={user.image ?? undefined} />
-                          <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{getInitials(user.name)}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-45">
-                            {user.name ?? <span className="italic text-muted-foreground/60 font-normal">Sem nome</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-45">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col gap-1.5">
-                        {user.contact ? (
-                          <>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Link2 className="w-3 h-3 shrink-0 opacity-60" />
-                              <span className="truncate max-w-40">{user.contact.name}</span>
-                            </div>
-                            <div className="text-[11px] text-muted-foreground/70">
-                              {user.contact.whatsapp || user.contact.phone || user.contact.email || "Sem telefone/email"}
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground/50 italic">Sem contato vinculado</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col gap-1.5">
-                        <RoleBadge role={user.role} />
-                        {(companyChipsByUser.get(user.id)?.length ?? 0) > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {(companyChipsByUser.get(user.id) ?? []).map((company) => (
-                              <span
-                                key={company.key}
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-muted border border-border/40 text-muted-foreground"
-                              >
-                                <Building className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                                <span className="truncate max-w-25">{company.label}</span>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground/50 italic">Sem vinculos</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <StatusBadge isActive={user.isActive} />
-                    </TableCell>
-
-                    <TableCell className="text-right px-6">
-                      <UserActions
-                        user={user}
-                        isLoading={loadingId === user.id}
-                        canManage={canManage}
-                        onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
-                      />
-                    </TableCell>
-                  </ClickableTableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-          </div>
-        </RegistryTableCard>
-
-        <div className="flex flex-col gap-2">
-          <RegistryPagination
-            pagination={{
+              <TableCell className="text-right px-6">
+                <UserActions
+                  user={user}
+                  isLoading={loadingId === user.id}
+                  canManage={canManage}
+                  onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
+                />
+              </TableCell>
+            </ClickableTableRow>
+          ))}
+          pagination={{
+            pagination: {
               page: currentPage,
               pageSize: USERS_PAGE_SIZE,
               total: filteredData.length,
               totalPages,
               hasPreviousPage: currentPage > 1,
               hasNextPage: currentPage < totalPages,
-            }}
-            itemLabel={{ singular: "usuario", plural: "usuarios" }}
-            onPageChange={setPage}
-          />
-          <div className="px-1 text-xs text-muted-foreground">
-            Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
-          </div>
-        </div>
+            },
+            itemLabel: { singular: "usuario", plural: "usuarios" },
+            onPageChange: setPage,
+            footer: (
+              <div className="px-1 text-xs text-muted-foreground">
+                Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
+              </div>
+            ),
+          }}
+        />
       </div>
     </>
   );

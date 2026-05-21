@@ -21,13 +21,11 @@ import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/conf
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
-import { LoadingState, PageHeader, PortalTable, PortalTableBody, PortalTableEmptyRow, PortalTableHead, PortalTableHeader, PortalTableLoadingRow, PortalTableViewport } from "@/components/patterns"
+import { PageHeader, PortalTableHead } from "@/components/patterns"
 import {
-  RegistryEmptyState,
+  RegistryDataTable,
   RegistryFeedback,
   RegistryFilterGroup,
-  RegistryPagination,
-  RegistryTableCard,
   RegistryToolbar,
   type RegistryPaginationState,
 } from "@/components/platform/shared/registry-list-scaffold"
@@ -634,220 +632,199 @@ export function CompanyTab({
           }
         />
 
-        <RegistryTableCard>
-          <div className="md:hidden divide-y">
-            {loadingList ? (
-              <LoadingState label="Carregando empresas..." />
-            ) : paginatedData.length === 0 ? (
-              <RegistryEmptyState
-                icon={Building2}
-                title="Nenhuma empresa encontrada"
-                description="Ajuste os filtros ou cadastre uma nova empresa."
-                searchTerm={searchTerm}
-                onClear={() => setSearchTerm("")}
-              />
-            ) : (
-              paginatedData.map((company) => {
-                const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
-                return (
-                  <ClickableCard
-                    key={company.id}
-                    enabled={canEdit}
-                    onOpen={() => openEdit(company)}
-                    className="p-4 space-y-3"
-                    title="Clique para editar"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{company.nomeFantasia || company.razaoSocial}</p>
-                        <p className="text-xs text-muted-foreground truncate">{company.razaoSocial}</p>
-                      </div>
-                      <CompanyActionsMenu
-                        company={company}
-                        canEdit={canEdit}
-                        canToggleStatus={canToggleStatus}
-                        canDelete={canDelete && !companyHasKnownLinks(company)}
-                        isLoading={loadingId === company.id}
-                        returnHref={currentListHref}
-                        onToggleStatus={() => {
-                          setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
-                          setInactivationDetails("")
-                          setConfirmDialog({ type: "status", company })
-                        }}
-                        onDelete={() => setConfirmDialog({ type: "delete", company })}
-                      />
+        <RegistryDataTable
+          loading={loadingList}
+          loadingLabel="Carregando empresas..."
+          isEmpty={paginatedData.length === 0}
+          emptyState={{
+            icon: Building2,
+            title: "Nenhuma empresa encontrada",
+            description: "Ajuste os filtros ou cadastre uma nova empresa.",
+            searchTerm,
+            onClear: () => setSearchTerm(""),
+          }}
+          desktopColSpan={6}
+          minWidthClassName="min-w-[1120px]"
+          desktopHeader={
+            <TableRow className="hover:bg-transparent border-b border-border/60">
+              <PortalTableHead className="py-3.5 px-6">Organizacao</PortalTableHead>
+              <PortalTableHead>CNPJ</PortalTableHead>
+              <PortalTableHead>Segmento</PortalTableHead>
+              <PortalTableHead>Status</PortalTableHead>
+              <PortalTableHead>Membros</PortalTableHead>
+              <PortalTableHead className="text-right px-6">Acoes</PortalTableHead>
+            </TableRow>
+          }
+          mobileContent={paginatedData.map((company) => {
+            const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
+            return (
+              <ClickableCard
+                key={company.id}
+                enabled={canEdit}
+                onOpen={() => openEdit(company)}
+                className="p-4 space-y-3"
+                title="Clique para editar"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{company.nomeFantasia || company.razaoSocial}</p>
+                    <p className="text-xs text-muted-foreground truncate">{company.razaoSocial}</p>
+                  </div>
+                  <CompanyActionsMenu
+                    company={company}
+                    canEdit={canEdit}
+                    canToggleStatus={canToggleStatus}
+                    canDelete={canDelete && !companyHasKnownLinks(company)}
+                    isLoading={loadingId === company.id}
+                    returnHref={currentListHref}
+                    onToggleStatus={() => {
+                      setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+                      setInactivationDetails("")
+                      setConfirmDialog({ type: "status", company })
+                    }}
+                    onDelete={() => setConfirmDialog({ type: "delete", company })}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <code className="text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-md text-muted-foreground border border-border/30">
+                    {formatCNPJ(company.cnpj)}
+                  </code>
+                  <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {getCompanySegmentLabel(company.segment)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <StatusBadge status={company.status} />
+                  <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Users className="w-3.5 h-3.5" />
+                    <span className="font-medium tabular-nums">{memberCount}</span>
+                  </div>
+                </div>
+                {company.isBlockedByContract && (
+                  <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+                    Bloqueada por contrato
+                  </span>
+                )}
+              </ClickableCard>
+            )
+          })}
+          desktopContent={paginatedData.map((company, index) => {
+            const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
+
+            return (
+              <ClickableTableRow
+                key={company.id}
+                enabled={canEdit}
+                onOpen={() => openEdit(company)}
+                className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
+                style={{ animationDelay: `${index * 40}ms` }}
+                title="Clique para editar"
+              >
+                <TableCell className="py-4 px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-primary/8 dark:bg-primary/10 flex items-center justify-center shrink-0 transition-all group-hover/row:scale-105">
+                      <Building2 className="h-4 w-4 text-primary/70" />
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <code className="text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-md text-muted-foreground border border-border/30">
-                        {formatCNPJ(company.cnpj)}
-                      </code>
-                      <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        {getCompanySegmentLabel(company.segment)}
-                      </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-55">{company.razaoSocial}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-55">
+                        {company.nomeFantasia || <span className="italic opacity-50">Nome fantasia nao informado</span>}
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <StatusBadge status={company.status} />
-                      <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Users className="w-3.5 h-3.5" />
-                        <span className="font-medium tabular-nums">{memberCount}</span>
-                      </div>
-                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <code className="text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-md text-muted-foreground border border-border/30 whitespace-nowrap">
+                    {formatCNPJ(company.cnpj)}
+                  </code>
+                </TableCell>
+
+                <TableCell>
+                  <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {getCompanySegmentLabel(company.segment)}
+                  </span>
+                </TableCell>
+
+                <TableCell>
+                  <div className="space-y-1">
+                    <StatusBadge status={company.status} />
                     {company.isBlockedByContract && (
                       <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
                         Bloqueada por contrato
                       </span>
                     )}
-                  </ClickableCard>
-                )
-              })
-            )}
-          </div>
-
-          <PortalTableViewport className="hidden md:block" minWidthClassName="min-w-[1120px]">
-            <PortalTable>
-            <PortalTableHeader>
-              <TableRow className="hover:bg-transparent border-b border-border/60">
-                <PortalTableHead className="py-3.5 px-6">Organizacao</PortalTableHead>
-                <PortalTableHead>CNPJ</PortalTableHead>
-                <PortalTableHead>Segmento</PortalTableHead>
-                <PortalTableHead>Status</PortalTableHead>
-                <PortalTableHead>Membros</PortalTableHead>
-                <PortalTableHead className="text-right px-6">Acoes</PortalTableHead>
-              </TableRow>
-            </PortalTableHeader>
-
-            <PortalTableBody>
-              {loadingList ? (
-                <PortalTableLoadingRow colSpan={6} label="Carregando empresas..." />
-              ) : paginatedData.length === 0 ? (
-                <PortalTableEmptyRow
-                  colSpan={6}
-                  icon={Building2}
-                  title={searchTerm ? `Sem resultados para "${searchTerm}"` : "Nenhuma empresa encontrada"}
-                  description="Ajuste os filtros ou cadastre uma nova empresa."
-                />
-              ) : (
-                paginatedData.map((company, index) => {
-                  const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
-
-                  return (
-                    <ClickableTableRow
-                      key={company.id}
-                      enabled={canEdit}
-                      onOpen={() => openEdit(company)}
-                      className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
-                      style={{ animationDelay: `${index * 40}ms` }}
-                      title="Clique para editar"
-                    >
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-primary/8 dark:bg-primary/10 flex items-center justify-center shrink-0 transition-all group-hover/row:scale-105">
-                            <Building2 className="h-4 w-4 text-primary/70" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-55">{company.razaoSocial}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-55">
-                              {company.nomeFantasia || <span className="italic opacity-50">Nome fantasia nao informado</span>}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <code className="text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-md text-muted-foreground border border-border/30 whitespace-nowrap">
-                          {formatCNPJ(company.cnpj)}
-                        </code>
-                      </TableCell>
-
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {getCompanySegmentLabel(company.segment)}
-                        </span>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="space-y-1">
-                          <StatusBadge status={company.status} />
-                          {company.isBlockedByContract && (
-                            <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
-                              Bloqueada por contrato
-                            </span>
-                          )}
-                          {company.contractBlockReasonLabel && (
-                            <div className="space-y-1">
-                              <div className="hidden md:flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <span className="max-w-47.5 truncate">{company.contractBlockReasonLabel}</span>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        type="button"
-                                        className="inline-flex items-center justify-center rounded text-muted-foreground/80 hover:text-foreground"
-                                        aria-label="Ver motivo completo do bloqueio"
-                                        onClick={stopRecordClick}
-                                      >
-                                        <CircleAlert className="h-3.5 w-3.5" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-70 whitespace-normal text-left">
-                                      {company.contractBlockReasonLabel}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                              <p className="md:hidden text-[10px] text-muted-foreground leading-4">
+                    {company.contractBlockReasonLabel && (
+                      <div className="space-y-1">
+                        <div className="hidden md:flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="max-w-47.5 truncate">{company.contractBlockReasonLabel}</span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center rounded text-muted-foreground/80 hover:text-foreground"
+                                  aria-label="Ver motivo completo do bloqueio"
+                                  onClick={stopRecordClick}
+                                >
+                                  <CircleAlert className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-70 whitespace-normal text-left">
                                 {company.contractBlockReasonLabel}
-                              </p>
-                            </div>
-                          )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
-                      </TableCell>
+                        <p className="md:hidden text-[10px] text-muted-foreground leading-4">
+                          {company.contractBlockReasonLabel}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
 
-                      <TableCell>
-                        <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Users className="w-3.5 h-3.5" />
-                          <span className="font-medium tabular-nums">{memberCount}</span>
-                        </div>
-                      </TableCell>
+                <TableCell>
+                  <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Users className="w-3.5 h-3.5" />
+                    <span className="font-medium tabular-nums">{memberCount}</span>
+                  </div>
+                </TableCell>
 
-                      <TableCell className="text-right px-6">
-                      <CompanyActionsMenu
-                          company={company}
-                          canEdit={canEdit}
-                          canToggleStatus={canToggleStatus}
-                          canDelete={canDelete && !companyHasKnownLinks(company)}
-                          isLoading={loadingId === company.id}
-                          returnHref={currentListHref}
-                          onToggleStatus={() => {
-                            setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
-                            setInactivationDetails("")
-                            setConfirmDialog({ type: "status", company })
-                          }}
-                          onDelete={() => setConfirmDialog({ type: "delete", company })}
-                        />
-                      </TableCell>
-                    </ClickableTableRow>
-                  )
-                })
-              )}
-            </PortalTableBody>
-            </PortalTable>
-          </PortalTableViewport>
-        </RegistryTableCard>
-
-        <div className="flex flex-col gap-2">
-          <RegistryPagination
-            pagination={{
+                <TableCell className="text-right px-6">
+                  <CompanyActionsMenu
+                    company={company}
+                    canEdit={canEdit}
+                    canToggleStatus={canToggleStatus}
+                    canDelete={canDelete && !companyHasKnownLinks(company)}
+                    isLoading={loadingId === company.id}
+                    returnHref={currentListHref}
+                    onToggleStatus={() => {
+                      setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+                      setInactivationDetails("")
+                      setConfirmDialog({ type: "status", company })
+                    }}
+                    onDelete={() => setConfirmDialog({ type: "delete", company })}
+                  />
+                </TableCell>
+              </ClickableTableRow>
+            )
+          })}
+          pagination={{
+            pagination: {
               page: currentPage,
               pageSize: COMPANIES_PAGE_SIZE,
               total: pagination.total,
               totalPages,
               hasPreviousPage: pagination.hasPreviousPage,
               hasNextPage: pagination.hasNextPage,
-            }}
-            itemLabel={{ singular: "empresa", plural: "empresas" }}
-            onPageChange={setPage}
-          />
+            },
+            itemLabel: { singular: "empresa", plural: "empresas" },
+            onPageChange: setPage,
+          }}
+        />
+
+        <div className="flex flex-col gap-2">
           <div className="px-1 text-xs text-muted-foreground">
             Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
           </div>

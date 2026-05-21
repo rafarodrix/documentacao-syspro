@@ -28,12 +28,10 @@ import {
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
-import { LoadingState, PortalTable, PortalTableBody, PortalTableEmptyRow, PortalTableHead, PortalTableHeader, PortalTableLoadingRow, PortalTableViewport } from "@/components/patterns";
+import { PortalTableHead } from "@/components/patterns";
 import {
-  RegistryEmptyState,
+  RegistryDataTable,
   RegistryFilterGroup,
-  RegistryPagination,
-  RegistryTableCard,
   RegistryToolbar,
   type RegistryPaginationState,
 } from "@/components/platform/shared/registry-list-scaffold";
@@ -341,83 +339,61 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
           }
         />
 
-        <RegistryTableCard>
-          <div className="divide-y divide-border/60 md:hidden">
-            {loadingList ? (
-              <LoadingBlock label="Carregando contatos..." />
-            ) : filteredData.length === 0 ? (
-              <RegistryEmptyState
-                icon={Users}
-                title="Nenhum contato encontrado"
-                description={emptyStateDescription}
-                searchTerm={searchTerm}
-                onClear={() => handleSearchChange("")}
-              />
-            ) : (
-              filteredData.map((contact) => (
-                <MobileContactCard
-                  key={contact.id}
-                  contact={contact}
-                  canEdit={canEdit}
-                  canDelete={canDelete}
-                  isLoading={loadingId === contact.id}
-                  onEdit={() => openEdit(contact)}
-                  onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
-                  onDelete={() => setConfirmDialog({ type: "delete", contact })}
-                />
-              ))
-            )}
-          </div>
-
-          <PortalTableViewport className="hidden md:block" minWidthClassName="min-w-[920px]">
-            <PortalTable>
-              <PortalTableHeader className="bg-muted/40">
-                <TableRow className="border-b border-border/60 hover:bg-transparent">
-                  <PortalTableHead className="w-[30%]">Contato</PortalTableHead>
-                  <PortalTableHead>Telefone</PortalTableHead>
-                  <PortalTableHead>Email</PortalTableHead>
-                  <PortalTableHead>Empresas</PortalTableHead>
-                  <PortalTableHead className="w-24 text-right">Acoes</PortalTableHead>
-                </TableRow>
-              </PortalTableHeader>
-              <PortalTableBody>
-                {loadingList ? (
-                  <PortalTableLoadingRow colSpan={5} label="Carregando contatos..." />
-                ) : filteredData.length === 0 ? (
-                  <PortalTableEmptyRow
-                    colSpan={5}
-                    icon={Users}
-                    title={searchTerm ? `Sem resultados para "${searchTerm}"` : "Nenhum contato encontrado"}
-                    description={emptyStateDescription}
-                  />
-                ) : (
-                  filteredData.map((contact, index) => (
-                    <ContactRow
-                      key={contact.id}
-                      contact={contact}
-                      canEdit={canEdit}
-                      canDelete={canDelete}
-                      isLoading={loadingId === contact.id}
-                      animationDelay={index * 25}
-                      onEdit={() => openEdit(contact)}
-                      onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
-                      onDelete={() => setConfirmDialog({ type: "delete", contact })}
-                    />
-                  ))
-                )}
-              </PortalTableBody>
-            </PortalTable>
-          </PortalTableViewport>
-        </RegistryTableCard>
-
-        <div className="flex flex-col gap-2">
-          <RegistryPagination
-            pagination={pagination}
-            itemLabel={{ singular: "contato", plural: "contatos" }}
-            isLoading={loadingList}
-            onPageChange={setPage}
-          />
-        </div>
+        <RegistryDataTable
+          loading={loadingList}
+          loadingLabel="Carregando contatos..."
+          isEmpty={filteredData.length === 0}
+          emptyState={{
+            icon: Users,
+            title: "Nenhum contato encontrado",
+            description: emptyStateDescription,
+            searchTerm,
+            onClear: () => handleSearchChange(""),
+          }}
+          desktopColSpan={5}
+          minWidthClassName="min-w-[920px]"
+          desktopHeaderClassName="bg-muted/40"
+          desktopHeader={
+            <TableRow className="border-b border-border/60 hover:bg-transparent">
+              <PortalTableHead className="w-[30%]">Contato</PortalTableHead>
+              <PortalTableHead>Telefone</PortalTableHead>
+              <PortalTableHead>Email</PortalTableHead>
+              <PortalTableHead>Empresas</PortalTableHead>
+              <PortalTableHead className="w-24 text-right">Acoes</PortalTableHead>
+            </TableRow>
+          }
+          mobileContent={filteredData.map((contact) => (
+            <MobileContactCard
+              key={contact.id}
+              contact={contact}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              isLoading={loadingId === contact.id}
+              onEdit={() => openEdit(contact)}
+              onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
+              onDelete={() => setConfirmDialog({ type: "delete", contact })}
+            />
+          ))}
+          desktopContent={filteredData.map((contact, index) => (
+            <ContactRow
+              key={contact.id}
+              contact={contact}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              isLoading={loadingId === contact.id}
+              animationDelay={index * 25}
+              onEdit={() => openEdit(contact)}
+              onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
+              onDelete={() => setConfirmDialog({ type: "delete", contact })}
+            />
+          ))}
+          pagination={{
+            pagination,
+            itemLabel: { singular: "contato", plural: "contatos" },
+            isLoading: loadingList,
+            onPageChange: setPage,
+          }}
+        />
       </div>
     </>
   );
@@ -689,8 +665,4 @@ function ContactValue({ icon: Icon, value, fallback }: { icon: LucideIcon; value
       <span className="truncate">{value || fallback}</span>
     </span>
   );
-}
-
-function LoadingBlock({ label, compact = false }: { label: string; compact?: boolean }) {
-  return <LoadingState label={label} compact={compact} />;
 }
