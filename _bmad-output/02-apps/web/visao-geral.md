@@ -1,0 +1,182 @@
+# app/web — Frontend Next.js
+
+> Stack: Next.js 15 (App Router) · React 19 · TypeScript 5.8 · Tailwind CSS · tRPC Client · Fumadocs
+> Atualizado em: 2026-05-05
+
+---
+
+## Responsabilidade
+
+O `apps/web` é o frontend do portal Trilink. Combina:
+- **Portal de gestão**: empresas, contatos, tickets, CRM, releases, documentos
+- **Base de documentação**: manuais técnicos e guias para clientes (Fumadocs/MDX)
+- **Infraestrutura remota**: UI para gerenciar hosts RustDesk, sessões e agentes
+- **Configurações**: integrações, permissões, SEFAZ, automações
+
+---
+
+## Estrutura principal
+
+```
+apps/web/
+├── src/
+│   ├── app/                         ← Next.js App Router
+│   │   ├── (autenticacao)/          ← pages de login, registro, reset
+│   │   ├── (platform)/portal/       ← portal principal (requer autenticação)
+│   │   ├── (site)/                  ← landing page, termos, privacidade
+│   │   ├── api/                     ← API Routes (proxy para backend)
+│   │   └── chatwoot/app/            ← page Chatwoot integrada
+│   │
+│   ├── features/                    ← features organizadas por domínio
+│   ├── components/                  ← componentes compartilhados
+│   └── ...
+│
+├── content/docs/                    ← conteúdo MDX da base de docs
+│   ├── manual/                      ← manuais do sistema Syspro
+│   ├── duvidas/                     ← FAQ e resolução de problemas
+│   ├── suporte/                     ← scripts e infraestrutura de suporte
+│   └── treinamento/                 ← guias de treinamento
+│
+├── public/                          ← assets estáticos
+├── source.config.ts                 ← configuração Fumadocs
+└── next.config.mjs
+```
+
+---
+
+## Rotas do portal (`/portal/*`)
+
+| Rota                                      | Feature         | Descrição                              |
+|-------------------------------------------|-----------------|----------------------------------------|
+| `/portal`                                 | dashboard       | Painel inicial com KPIs                |
+| `/portal/cadastros/empresa`               | company         | Listagem e cadastro de empresas        |
+| `/portal/cadastros/empresa/:id/editar`    | company         | Editar empresa                         |
+| `/portal/cadastros/sistema`               | company         | Cadastro de sistemas/contratos         |
+| `/portal/cadastros/usuarios`              | user-access     | Gestão de usuários                     |
+| `/portal/chamados`                        | tickets         | Conversas (legacy tickets)             |
+| `/portal/tickets`                         | tickets         | Tickets internos                       |
+| `/portal/tickets/:id`                     | tickets         | Detalhe de ticket com chat Markdown    |
+| `/portal/tickets/novo`                    | tickets         | Criar novo ticket                      |
+| `/portal/comercial/leads`                 | crm             | Pipeline de leads CRM                  |
+| `/portal/contatos`                        | contacts        | Contatos por empresa                   |
+| `/portal/contratos`                       | contracts       | Contratos de serviço                   |
+| `/portal/atendimento`                     | chatwoot        | Embedded Chatwoot                      |
+| `/portal/configuracoes`                   | settings        | Configurações globais                  |
+| `/portal/docs`                            | docs            | Documentação interna (Fumadocs)        |
+| `/portal/infraestrutura`                  | remote          | Painel de hosts remotos                |
+| `/portal/infraestrutura/agentes/:id`      | agents          | Detalhe de agente/dispositivo          |
+| `/portal/infraestrutura/hosts/:id`        | remote          | Detalhe de host remoto                 |
+| `/portal/releases`                        | releases        | Releases e changelogs                  |
+| `/portal/tools/*`                         | tools           | Ferramentas fiscais e operacionais     |
+
+---
+
+## Features (`src/features/`)
+
+Cada feature é um módulo isolado com sua própria camada:
+
+| Feature         | Descrição                                              |
+|-----------------|--------------------------------------------------------|
+| `agents`        | Inventário de dispositivos registrados                 |
+| `auth`          | Login, registro, perfil, logout                        |
+| `chatwoot`      | Embedded Chatwoot, configuração de integração          |
+| `company`       | CRUD de empresas, segmentação, status, contratos       |
+| `contracts`     | Contratos de serviço por empresa                       |
+| `crm`           | Leads, atividades, tarefas (pipeline Kanban)           |
+| `dashboard`     | KPIs, gráficos, métricas de suporte                    |
+| `docs`          | Feedback de docs, visualizações, busca                 |
+| `documentos`    | Upload e listagem de documentos de empresa             |
+| `evolution`     | Configuração de instância WhatsApp, QR code            |
+| `releases`      | Timeline de releases por mês/ano                       |
+| `remote`        | Hosts remotos, sessões, address book, fleet stats      |
+| `settings`      | Permissões, SEFAZ, integrações, automações             |
+| `sql-scripts`   | Biblioteca de scripts SQL para suporte                 |
+| `tax`           | NCM lookup, CST, ICMS, sync de tributação              |
+| `tickets`       | Tickets com workflow, chat Markdown, anexos            |
+| `user-access`   | Usuários, perfis de acesso, permissões                 |
+
+---
+
+## Ferramentas (`/portal/tools/*`)
+
+Calculadoras e utilitários fiscais disponíveis no portal:
+
+| Rota                              | Ferramenta                              |
+|-----------------------------------|-----------------------------------------|
+| `/tools/analisador-xml`           | Analisador de XML de NFe/NFCe           |
+| `/tools/calculadora-difal`        | Cálculo de DIFAL (ICMS interestadual)   |
+| `/tools/calculadora-precificacao` | Precificação de produtos                |
+| `/tools/configuracao-documento`   | Configuração de tipos de documento      |
+| `/tools/consulta-cnpj`            | Consulta CNPJ na Receita Federal        |
+| `/tools/custos-departamento`      | Rateio de custos por departamento       |
+| `/tools/fator-producao`           | Cálculo de fator de produção            |
+| `/tools/visualizador-danfe`       | Visualizador de DANFE em PDF            |
+
+---
+
+## Documentação interna (Fumadocs)
+
+Rota: `/portal/docs/[[...slug]]`
+
+O conteúdo fica em `content/docs/` como arquivos MDX:
+
+```
+content/docs/
+├── manual/          ← manuais operacionais do Syspro (cadastro, estoque, fiscal, financeiro...)
+├── duvidas/         ← FAQ: rejeições SEFAZ, hardware, configurações
+├── suporte/         ← scripts SQL, parametrizações, infraestrutura
+└── treinamento/     ← guias passo a passo por segmento
+```
+
+Configurado em `source.config.ts` com Fumadocs MDX.
+
+Componentes customizados disponíveis nos MDX:
+- `docs/docs-feature-badge.tsx` — badge de feature
+- `docs/docs-page-feedback.tsx` — feedback de página
+- `docs/docs-reading-progress.tsx` — barra de progresso de leitura
+- `docs/docs-section-links.tsx` — links de seção
+
+---
+
+## API Routes (proxy backend)
+
+As API Routes em `src/app/api/` fazem proxy para o NestJS usando `backend-proxy.ts`.
+
+Grupos de rotas (proxy REST):
+- `/api/contacts/**` — contatos
+- `/api/tickets/**` — tickets
+- `/api/remote/**` — acesso remoto (hosts, sessões, RustDesk)
+- `/api/remote-admin/**` — procedimentos administrativos remotos
+- `/api/platform/**` — configurações, permissões, integrações
+- `/api/tax/**` — tributação
+- `/api/crm/**` — CRM
+- `/api/search` — busca full-text
+- `/api/sefaz/**` — consulta status SEFAZ
+
+> **Domínios migrados para tRPC** (sem rota proxy REST):
+> - `companies` → `trpc.companies.*`
+> - `users` → `trpc.users.*`
+> - `contacts` → `trpc.contacts.*`
+
+---
+
+## Configuração e ambiente
+
+```env
+# apps/web/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:3001    # URL base da API (NestJS)
+BETTER_AUTH_SECRET=...                       # mesmo secret da API
+BETTER_AUTH_URL=http://localhost:3000
+```
+
+```bash
+# Desenvolvimento
+npm run dev --workspace=web
+
+# Build
+npm run build --workspace=web
+
+# Testes
+npx turbo test:web
+npx turbo test:web:e2e   # Playwright E2E
+```

@@ -1,0 +1,119 @@
+# Integração: SEFAZ (NFe / NFCe / MDF-e)
+
+> Integração com serviços da Receita Federal para documentos fiscais eletrônicos.
+> Atualizado em: 2026-05-05
+
+---
+
+## O que é
+
+O portal Trilink integra com a SEFAZ (Secretaria de Fazenda) para:
+- Monitorar status de serviços de NFe, NFCe e MDF-e por UF
+- Gerenciar tabelas tributárias (NCM, CST, CFOP, ICMS)
+- Sugerir configurações de tributação por produto/NCM
+- Configurar rotas SEFAZ por empresa (homologação vs produção)
+
+---
+
+## Arquivos relevantes
+
+| Arquivo (apps/api)                                    | Responsabilidade                        |
+|-------------------------------------------------------|-----------------------------------------|
+| `modules/tax/tax.service.ts`                          | Lógica de tributação e sincronização    |
+| `modules/tax/tax.controller.ts`                       | REST endpoints                          |
+| `modules/settings/sefaz-monitor.service.ts`           | Monitor periódico de status SEFAZ       |
+
+| Arquivo (packages/database)                           | Responsabilidade                        |
+|-------------------------------------------------------|-----------------------------------------|
+| `prisma/schema.prisma` → `TaxNcm`, `TaxCST`, `SefazStatus` | Modelos de tributação            |
+
+---
+
+## Tabelas tributárias
+
+### NCM (Nomenclatura Comum do Mercosul)
+- Código de 8 dígitos que classifica mercadorias
+- Sincronizado periodicamente via `TaxSyncJob`
+- `GET /api/tax/ncm-lookup` — busca NCM por código ou descrição
+
+### CST (Código de Situação Tributária)
+- Define a tributação de ICMS, IPI, PIS, COFINS
+- Tabelas mantidas no banco e sincronizadas com regras fiscais vigentes
+
+### CFOP (Código Fiscal de Operações)
+- Identifica a natureza da operação fiscal
+- Configurável por empresa e tipo de operação
+
+---
+
+## Monitor de status SEFAZ
+
+O `sefaz-monitor.service.ts` verifica periodicamente a disponibilidade dos webservices da SEFAZ:
+
+```typescript
+// Status possíveis
+type SefazServiceStatus = 'ONLINE' | 'UNSTABLE' | 'OFFLINE'
+
+// Modelo no banco
+model SefazStatus {
+  uf          String        // ex: "SP", "MG", "RJ"
+  serviceType SefazServiceType  // NFe, NFCe, MDF-e
+  status      SefazServiceStatus
+  checkedAt   DateTime
+}
+```
+
+**Endpoint de consulta:**
+- `GET /api/sefaz/check` — status atual de todos os serviços
+- `GET /api/platform/settings/sefaz-routes` — rotas configuradas por empresa
+- `POST /api/platform/settings/sefaz/check/internal` — verificação interna
+
+---
+
+## Rotas SEFAZ (homologação vs produção)
+
+Cada empresa pode ter rotas diferentes configuradas:
+
+```typescript
+// Configurado em /portal/configuracoes?tab=sefaz
+{
+  companyId: '...',
+  nfe:  { ambiente: 'PRODUCAO',    uf: 'SP' },
+  nfce: { ambiente: 'HOMOLOGACAO', uf: 'SP' },
+  mdfe: { ambiente: 'PRODUCAO',    uf: 'SP' },
+}
+```
+
+---
+
+## Sugestão de tributação
+
+**Endpoint:** `POST /api/sugerir-tributacao`
+
+Dado um NCM, o portal sugere:
+- CST de ICMS recomendado
+- Alíquota de ICMS padrão
+- Regime de tributação (Simples Nacional, Lucro Presumido, etc.)
+
+---
+
+## Sincronização de tabelas (TaxSyncJob)
+
+```typescript
+// Endpoints de sync
+POST /api/tax/sync-jobs        ← inicia job de sincronização
+GET  /api/tax/sync-jobs        ← lista jobs em andamento/histórico
+POST /api/tax/sync-chunk       ← processa chunk de dados
+
+// ICMS interestadual
+GET /api/platform/settings/tax/interstate-icms  ← tabela de alíquotas por UF
+```
+
+---
+
+## DIFAL (Diferencial de Alíquota)
+
+Ferramenta disponível em `/portal/tools/calculadora-difal`:
+- Calcula o DIFAL para operações interestaduais
+- Considera protocolo ICMS por par de estados
+- Usa tabela `interstate-icms` mantida no banco

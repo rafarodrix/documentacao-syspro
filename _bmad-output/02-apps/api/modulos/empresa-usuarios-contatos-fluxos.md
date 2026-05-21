@@ -1,0 +1,236 @@
+# Fluxos — Empresa, Usuários e Contatos
+
+> Módulos correlacionados do portal. Atualizado em: 2026-05-08
+
+---
+
+## Visão Geral
+
+Os módulos `companies`, `contacts` e `users` formam um fluxo único de cadastro e autorização.
+
+O relacionamento real não é:
+
+```text
+User -> Company
+```
+
+O relacionamento real é:
+
+```text
+User
+ └── contactId
+     └── CompanyContact
+         └── CompanyContactCompanyLink[]
+             └── Company
+```
+
+Depois disso, o backend deriva vínculos operacionais:
+
+```text
+UserContactAccessService
+ ├── Membership[]      (escopo/autorização por empresa)
+ └── UserContactLink[] (espelho do contato do usuário por empresa)
+```
+
+---
+
+## Fluxo 1: Cadastro de Empresa
+
+### Entrada
+
+- Web: `trpc.companies.create`
+- API: `CompaniesRouter.create`
+- Serviço: `CompaniesService.createCompany`
+
+### Responsabilidades
+
+- validar dados fiscais e cadastrais com `createCompanySchema`
+- persistir dados principais da empresa
+- persistir endereço principal
+- manter `searchText` para busca textual
+
+### Observações importantes
+
+- `status` operacional não deve ser alterado pelo update comum
+- mudança de status usa fluxo específico de ativação/inativação
+- empresa pode ter hierarquia via `parentCompanyId`
+- empresa pode concentrar múltiplos contatos, usuários, contratos e hosts
+
+---
+
+## Fluxo 2: Inativação de Empresa
+
+### Entrada
+
+- Web: `trpc.companies.updateStatus`
+- API: `CompaniesRouter.updateStatus`
+- Serviço: `CompaniesService.updateCompanyStatus`
+
+### Cascata de negócio
+
+Quando uma empresa é inativada:
+
+1. a empresa recebe `status = INACTIVE`
+2. contratos ativos da empresa são suspensos
+3. contatos vinculados exclusivamente a ela podem ser marcados com metadata de inativação
+4. vínculos derivados usados por usuários passam a refletir o novo estado conforme os company links restantes
+5. a apresentação dos contatos da empresa é resincronizada com Chatwoot
+
+### Motivo da cascata
+
+Esse fluxo evita que:
+
+- contratos permaneçam ativos para empresa inativa
+- contatos continuem aparentando contexto operacional válido
+- integrações externas exibam dados incoerentes
+
+---
+
+## Fluxo 3: Cadastro de Contato
+
+### Entrada
+
+- Web: `trpc.contacts.create`
+- API: `ContactsRouter.create`
+- Serviço: `ContactsService.createContact`
+
+### Responsabilidades
+
+- validar nome, CPF e canais
+- normalizar telefone e WhatsApp
+- vincular o contato a zero, uma ou várias empresas
+- marcar status do contato:
+  - `PENDING_LINK` quando não há empresa vinculada
+  - `LINKED` quando há ao menos um vínculo
+- atualizar `searchText`
+- sincronizar apresentação no Chatwoot quando aplicável
+
+### Modelo real
+
+O contato não pertence diretamente a uma única empresa.
+
+Ele usa a tabela pivô:
+
+```text
+CompanyContactCompanyLink
+ ├── contactId
+ ├── companyId
+ └── isPrimary
+```
+
+Isso permite:
+
+- múltiplas empresas por contato
+- empresa principal ordenada por `isPrimary`
+- reaproveitamento do mesmo contato em unidades relacionadas
+
+---
+
+## Fluxo 4: Cadastro de Usuário
+
+### Entrada
+
+- Web: `trpc.users.create`
+- API: `UsersRouter.create`
+- Serviço: `UsersService.create`
+
+### Regra principal
+
+Usuário cliente não escolhe empresa diretamente no contrato de criação.
+
+O escopo da empresa é herdado do contato:
+
+```text
+CreateUserInput.contactId
+ -> CompanyContact
+ -> companyLinks
+ -> Membership + UserContactLink
+```
+
+### Passos
+
+1. valida e-mail no banco local e no provedor de autenticação
+2. exige `contactId`
+3. valida se o contato está dentro do escopo permitido ao gestor
+4. cria usuário no provider de auth
+5. persiste `role`, `contactId` e flags locais
+6. executa `UserContactAccessService.syncAccessFromContact`
+7. sincroniza provisionamento necessário no Chatwoot
+
+### Resultado
+
+O usuário passa a ter:
+
+- `contactId` como origem de vínculo funcional
+- `Membership[]` como escopo de autorização
+- `UserContactLink[]` como espelho operacional por empresa
+
+---
+
+## Fluxo 5: Atualização de Usuário
+
+### Entrada
+
+- Web: `trpc.users.update`
+- API: `UsersRouter.update`
+- Serviço: `UsersService.update`
+
+### Regras
+
+- contato continua obrigatório para usuários cliente
+- mudança de role recalcula o tipo de membership
+- mudança de contato recalcula escopo e vínculos derivados
+- perfis internos (`ADMIN`, `SUPORTE`, `DEVELOPER`) não dependem do escopo do contato da mesma forma que perfis cliente
+
+### Efeito colateral importante
+
+`syncAccessFromContact` remove memberships obsoletos e recria apenas os compatíveis com o contato atual.
+
+---
+
+## Fluxo 6: Perfil do Usuário e Dados da Empresa
+
+### Entrada
+
+- Web: `trpc.users.updateCurrentProfile`
+- Serviço: `UsersService.updateCurrentProfile`
+
+### O que esse fluxo faz
+
+- atualiza dados pessoais do usuário logado
+- permite editar dados da empresa associada ao seu perfil quando a permissão existe
+- usa a empresa selecionada entre as empresas disponíveis ao usuário
+- ao final, dispara resincronização de contatos dessa empresa para o Chatwoot
+
+### Atenção
+
+Esse fluxo acopla perfil do usuário com dados cadastrais da empresa. Ele não substitui o módulo `companies`, mas oferece edição limitada em contexto de autoatendimento.
+
+---
+
+## Fluxo 7: Autorização e Escopo
+
+### Origem do escopo
+
+O escopo efetivo é resolvido por:
+
+1. role global do usuário
+2. permissões atribuídas
+3. `Membership[]`
+4. assignments específicos em `UserAccessProfile`
+
+### Implicação prática
+
+- gestor de unidade só manipula usuários e contatos pertencentes às empresas do seu escopo
+- usuário cliente só enxerga empresas e contatos compatíveis com seus vínculos
+- admin global ignora restrição por empresa quando a permissão assim permite
+
+---
+
+## Convenções Recomendadas
+
+- `features/*` no web devem ser a origem oficial de interface, actions e queries
+- `components/platform/*` deve existir apenas como compatibilidade ou UI compartilhada
+- contratos públicos em `packages/contracts` não devem aceitar campos ignorados pelo backend
+- services da API devem consumir tipos compartilhados quando o shape já existe em `contracts`
+- fluxos de sincronização externa devem ser documentados como side effects explícitos
