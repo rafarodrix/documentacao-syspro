@@ -126,3 +126,13 @@ export function isValidCPF(value: string | null | undefined): boolean {
 }
 
 export const isValidCpf = isValidCPF;
+
+export function formatNumber(
+  value: number | null | undefined,
+  opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number; fallback?: string }
+): string {
+  if (value == null || Number.isNaN(value)) return opts?.fallback ?? "0";
+  const min = opts?.minimumFractionDigits ?? 0;
+  const max = opts?.maximumFractionDigits ?? min;
+  return value.toLocaleString("pt-BR", { minimumFractionDigits: min, maximumFractionDigits: max });
+}

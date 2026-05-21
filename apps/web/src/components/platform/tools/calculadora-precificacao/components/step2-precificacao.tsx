@@ -1,7 +1,7 @@
 import { ChangeEvent } from 'react';
 import { Tag, X } from 'lucide-react';
 import { PricingResult, PricingState, ModoCalculo } from '../types';
-import { formatarMoedaInput } from '@/lib/formatters';
+import { formatarMoedaInput, formatNumber } from '@dosc-syspro/shared';
 
 interface Step2Props {
     valores: PricingState;
@@ -91,7 +91,7 @@ export function Step2Precificacao({
                             placeholder="R$ 0,00"
                             // Se não estiver editando o preço, mostra o valor calculado (preview)
                             value={modoCalculo !== 'venda' && resultados
-                                ? (resultados.venda ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                ? formatNumber(resultados.venda ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                 : valores.precoVenda
                             }
                             onChange={onPrecoVendaChange}
@@ -119,7 +119,7 @@ export function Step2Precificacao({
                             inputMode="decimal"
                             placeholder="R$ 0,00"
                             value={modoCalculo !== 'lucro_valor' && resultados
-                                ? (resultados.lucroLiquido ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                ? formatNumber(resultados.lucroLiquido ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                 : valores.lucroLiquidoDesejado
                             }
                             onChange={onLucroValorChange}
@@ -138,7 +138,7 @@ export function Step2Precificacao({
                                 inputMode="decimal"
                                 placeholder="0,00"
                                 value={modoCalculo !== 'lucro_percentual' && resultados
-                                    ? (resultados.margemLiquidaPercent ?? 0).toFixed(2).replace('.', ',')
+                                    ? formatNumber(resultados.margemLiquidaPercent ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                     : valores.margemLiquidaDesejada
                                 }
                                 onChange={onMargemPercentualChange}

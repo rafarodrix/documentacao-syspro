@@ -20,6 +20,7 @@ export {
   formatCpf,
   isValidCPF,
   isValidCpf,
+  formatNumber,
 } from "./formatters";
 export { calculateContractFinancials } from "./financials";
 export type { ContractFinancialBreakdown } from "./financials";
@@ -34,6 +35,8 @@ export {
   formatDateShort,
   formatDateLong,
   formatTimeShort,
+  formatRelativeDate,
+  formatDurationBetween,
 } from "./date";
 export { buildSearchText, includesNormalizedSearch, normalizeSearchText } from "./search";
 export type { NormalizeSearchTextOptions } from "./search";

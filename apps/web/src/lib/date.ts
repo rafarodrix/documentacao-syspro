@@ -9,6 +9,7 @@ import {
   formatDateShort as sharedFormatDateShort,
   formatDateLong as sharedFormatDateLong,
   formatTimeShort as sharedFormatTimeShort,
+  formatRelativeDate as sharedFormatRelativeDate,
 } from "@dosc-syspro/shared";
 
 export {
@@ -47,21 +48,5 @@ export function formatDateTimeSafe(value: DateLike, fallback = "N/D") {
 }
 
 export function formatRelativeDate(value: DateLike, fallback = "N/D") {
-  const parsed = parseDateLike(value);
-  if (!parsed) return fallback;
-
-  const now = new Date();
-  const diffMin = differenceInMinutes(now, parsed);
-  const diffHr = differenceInHours(now, parsed);
-  const diffDay = differenceInDays(now, parsed);
-
-  const diffMs = now.getTime() - parsed.getTime();
-
-  if (diffMs < 60_000) return "agora";
-  if (diffMin < 60) return `${diffMin}min atras`;
-  if (diffHr < 24) return `${diffHr}h atras`;
-  if (diffDay === 1) return "ontem";
-  if (diffDay < 30) return `${diffDay} dias atras`;
-
-  return formatDate(parsed, fallback);
+  return sharedFormatRelativeDate(value, fallback);
 }

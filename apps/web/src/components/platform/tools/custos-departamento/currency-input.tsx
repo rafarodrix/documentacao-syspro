@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, onlyDigits } from '@dosc-syspro/shared';
 
 interface FormattedCurrencyInputProps {
   value: number;
@@ -8,11 +8,10 @@ interface FormattedCurrencyInputProps {
   id?: string;
 }
 
-// Funcao para remover a formatacao e obter o numero
 const parse = (value: string): number => {
-  const digitsOnly = value.replace(/\D/g, '');
-  if (!digitsOnly) return 0;
-  return Number(digitsOnly) / 100;
+  const digits = onlyDigits(value);
+  if (!digits) return 0;
+  return Number(digits) / 100;
 };
 
 export const FormattedCurrencyInput = ({

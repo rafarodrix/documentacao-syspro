@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { onlyDigits, normalizeNcm } from '@dosc-syspro/shared';
 
 type TaxSyncMode = 'classTrib' | 'anexos' | 'credPresumido' | 'ncm';
 
@@ -198,7 +199,7 @@ const getPayloadHash = (value: unknown): string => {
 
 const normalizeNcmDigits = (value: string | null): string | null => {
   if (!value) return null;
-  const digits = value.replace(/\D/g, '');
+  const digits = normalizeNcm(value);
   return digits.length === 8 ? digits : null;
 };
 
@@ -298,7 +299,7 @@ const getNcmExternalKey = (item: Record<string, unknown>, index: number): string
 
   for (const key of possibleKeys) {
     const value = asString(key);
-    if (value) return value.replace(/\D/g, '');
+    if (value) return onlyDigits(value);
   }
 
   const hash = createHash('sha1').update(JSON.stringify(item)).digest('hex').slice(0, 16);
@@ -1159,7 +1160,7 @@ export class TaxService {
           asString(item.code) ??
           asString(item.Code) ??
           externalKey;
-        const code = codeRaw.replace(/\D/g, '').slice(0, 8);
+        const code = normalizeNcm(codeRaw);
         if (!code) continue;
 
         const description =
@@ -1181,17 +1182,14 @@ export class TaxService {
         const actType = asString(item.tipo_ato) ?? asString(item.tipoAto) ?? asString(item.tipo_legal);
         const actNumber = asString(item.numero_ato) ?? asString(item.numeroAto) ?? asString(item.num_ato);
         const actYear = asString(item.ano_ato) ?? asString(item.anoAto);
-        const replacedByCode =
-          (
-            asString(item.substituido_por) ??
-            asString(item.substituidoPor) ??
-            asString(item.replaced_by) ??
-            asString(item.replacedBy) ??
-            asString(item.ncmSubstituto) ??
-            ''
-          )
-            .replace(/\D/g, '')
-            .slice(0, 8) || null;
+        const replacedByRaw =
+          asString(item.substituido_por) ??
+          asString(item.substituidoPor) ??
+          asString(item.replaced_by) ??
+          asString(item.replacedBy) ??
+          asString(item.ncmSubstituto) ??
+          '';
+        const replacedByCode = normalizeNcm(replacedByRaw) || null;
 
         const payloadHash = getPayloadHash(item);
         const existing = await this.prisma.taxNcm.findUnique({
