@@ -16,6 +16,7 @@ import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 // =============================================================
 // 3. FUNCOES AUXILIARES (formatadores centralizados)
 // =============================================================
+const fmtPct = (v: number | null | undefined) => v != null ? formatPercent(v) : '-';
 const formatDate = (iso?: string) => {
   if (!iso) return '-';
   const res = formatDateTime(iso);
@@ -171,25 +172,25 @@ const DanfeItemCard: FC<{ item: ItemData; ufDest: string }> = ({ item, ufDest })
           {/* ICMS */}
           <div className="border-l-4 border-amber-500 pl-3">
             <p className="font-bold text-sm flex items-center gap-1"><Percent size={14} /> ICMS</p>
-            <p className="text-xs text-muted-foreground">CST: {ICMS.CST} | Orig: {ICMS.orig} | Base: {formatCurrency(ICMS.vBC)} | Al?q: {formatPercent(ICMS.pICMS)} | **Valor:** {formatCurrency(ICMS.vICMS)}</p>
+            <p className="text-xs text-muted-foreground">CST: {ICMS.CST} | Orig: {ICMS.orig} | Base: {formatCurrency(ICMS.vBC)} | Al?q: {fmtPct(ICMS.pICMS)} | **Valor:** {formatCurrency(ICMS.vICMS)}</p>
             {ICMS.vICMSST && <p className="text-xs text-muted-foreground font-mono">ST: Base {formatCurrency(ICMS.vBCST)} / Valor {formatCurrency(ICMS.vICMSST)}</p>}
           </div>
 
           {/* IPI */}
           <div className="border-l-4 border-blue-500 pl-3">
             <p className="font-bold text-sm flex items-center gap-1"><Package size={14} /> IPI</p>
-            <p className="text-xs text-muted-foreground">CST: {IPI.CST} | Al?q: {formatPercent(IPI.pIPI)} | **Valor:** {formatCurrency(IPI.vIPI)}</p>
+            <p className="text-xs text-muted-foreground">CST: {IPI.CST} | Al?q: {fmtPct(IPI.pIPI)} | **Valor:** {formatCurrency(IPI.vIPI)}</p>
           </div>
 
           {/* PIS/COFINS */}
           <div className="grid grid-cols-2 gap-3">
             <div className="border-l-4 border-green-500 pl-3">
               <p className="font-bold text-sm flex items-center gap-1"><Landmark size={14} /> PIS</p>
-              <p className="text-xs text-muted-foreground">CST: {PIS.CST} | Base: {formatCurrency(PIS.vBC)} | Al?q: {formatPercent(PIS.pPIS)} | **Valor:** {formatCurrency(PIS.vPIS)}</p>
+              <p className="text-xs text-muted-foreground">CST: {PIS.CST} | Base: {formatCurrency(PIS.vBC)} | Al?q: {fmtPct(PIS.pPIS)} | **Valor:** {formatCurrency(PIS.vPIS)}</p>
             </div>
             <div className="border-l-4 border-purple-500 pl-3">
               <p className="font-bold text-sm flex items-center gap-1"><Landmark size={14} /> COFINS</p>
-              <p className="text-xs text-muted-foreground">CST: {COFINS.CST} | Base: {formatCurrency(COFINS.vBC)} | Al?q: {formatPercent(COFINS.pCOFINS)} | **Valor:** {formatCurrency(COFINS.vCOFINS)}</p>
+              <p className="text-xs text-muted-foreground">CST: {COFINS.CST} | Base: {formatCurrency(COFINS.vBC)} | Al?q: {fmtPct(COFINS.pCOFINS)} | **Valor:** {formatCurrency(COFINS.vCOFINS)}</p>
             </div>
           </div>
         </div>
