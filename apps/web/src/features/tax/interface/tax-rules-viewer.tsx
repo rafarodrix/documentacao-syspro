@@ -13,6 +13,7 @@ import {
 import { Input, Badge, ScrollArea, Accordion, AccordionContent, AccordionItem, AccordionTrigger, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/date";
+import { formatPercent } from "@/lib/formatters";
 
 interface TaxRulesViewerProps {
     data: TaxRulesGroupItem[];
@@ -35,11 +36,6 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
 
         return matchesCst || matchesChildren;
     });
-
-    const formatPercent = (val: unknown) => {
-        const num = Number(val);
-        return Number.isNaN(num) ? "0%" : `${num.toFixed(2)}%`;
-    };
 
     const StatusIcon = ({ active }: { active: boolean }) =>
         active ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-muted-foreground/30" />;
@@ -124,10 +120,10 @@ export function TaxRulesViewer({ data }: TaxRulesViewerProps) {
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell className="text-right font-mono text-xs tabular-nums">
-                                                                {formatPercent(cls.pRedIBS)}
+                                                                {formatPercent(Number(cls.pRedIBS))}
                                                             </TableCell>
                                                             <TableCell className="pr-6 text-right font-mono text-xs tabular-nums">
-                                                                {formatPercent(cls.pRedCBS)}
+                                                                {formatPercent(Number(cls.pRedCBS))}
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}

@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
+import { formatNumber } from "@/lib/formatters";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { SearchableCompanyPicker } from "./searchable-company-picker";
 import { formatDateTime, getSysproUpdateHealthMeta } from "../host-details.helpers";
@@ -603,7 +604,7 @@ export function HostInstallationsTab({
                             ) : (
                               <span className="text-xs text-muted-foreground">Executável não encontrado</span>
                             )}
-                            {exeSizeMB && <span className="text-[10px] text-muted-foreground">({exeSizeMB.toFixed(1)} MB)</span>}
+                            {exeSizeMB && <span className="text-[10px] text-muted-foreground">({formatNumber(exeSizeMB, { maximumFractionDigits: 1 })} MB)</span>}
                             {exeExists && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-green-500" />}
                           </div>
                         </div>
