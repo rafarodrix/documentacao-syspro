@@ -28,6 +28,7 @@ import {
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
+import { LoadingState } from "@/components/patterns";
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
@@ -701,10 +702,5 @@ function ContactValue({ icon: Icon, value, fallback }: { icon: LucideIcon; value
 }
 
 function LoadingBlock({ label, compact = false }: { label: string; compact?: boolean }) {
-  return (
-    <div className={cn("flex flex-col items-center justify-center gap-3 text-muted-foreground", compact ? "" : "p-12")}>
-      <Loader2 className="h-6 w-6 animate-spin opacity-40" />
-      <p className="text-sm">{label}</p>
-    </div>
-  );
+  return <LoadingState label={label} compact={compact} />;
 }

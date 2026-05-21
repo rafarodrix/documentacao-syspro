@@ -21,7 +21,7 @@ import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/conf
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
-import { PageHeader } from "@/components/patterns"
+import { LoadingState, PageHeader } from "@/components/patterns"
 import {
   RegistryEmptyState,
   RegistryFeedback,
@@ -637,7 +637,7 @@ export function CompanyTab({
         <RegistryTableCard>
           <div className="md:hidden divide-y">
             {loadingList ? (
-              <div className="p-6 text-sm text-muted-foreground">Carregando empresas...</div>
+              <LoadingState label="Carregando empresas..." />
             ) : paginatedData.length === 0 ? (
               <RegistryEmptyState
                 icon={Building2}
@@ -719,8 +719,8 @@ export function CompanyTab({
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-sm text-muted-foreground">
-                    Carregando empresas...
+                  <TableCell colSpan={6} className="h-32 text-center">
+                    <LoadingState label="Carregando empresas..." compact />
                   </TableCell>
                 </TableRow>
               ) : paginatedData.length === 0 ? (

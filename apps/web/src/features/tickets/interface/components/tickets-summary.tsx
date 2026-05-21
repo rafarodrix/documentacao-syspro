@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui
 import { Headset, ArrowUpRight, Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatDateShort } from "@/lib/date";
+import { formatRelativeDate } from "@/lib/date";
 import { EmptyState } from "@/components/patterns";
 import type { TicketSummaryItem } from "@/features/tickets/domain/ticket-model";
 
@@ -24,12 +24,7 @@ const PRIORITY_CONFIG = {
 } as const;
 
 function formatDate(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
-  if (diff < 60) return `${diff}min atras`;
-  if (diff < 1440) return `${Math.floor(diff / 60)}h atras`;
-  return formatDateShort(date);
+  return formatRelativeDate(iso, "N/D");
 }
 
 export function TicketsSummary({ tickets }: TicketsSummaryProps) {

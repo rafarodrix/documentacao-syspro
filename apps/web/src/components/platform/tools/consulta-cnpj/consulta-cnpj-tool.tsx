@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Separator, Badge } from "@dosc-syspro/ui";
 import { cn, onlyDigits } from "@/lib/utils";
-import { formatDateShort } from "@/lib/date";
+import { formatDate as formatPortalDate } from "@/lib/date";
 import { formatCNPJ, formatPhone, isValidCnpj } from "@/lib/formatters";
 import { lookupCompanyProfileByCnpjAction } from "@/features/company/application/company-write.actions";
 import type { CompanyRegistryLookupResponse } from "@/features/company/application/company-view.types";
@@ -21,9 +21,7 @@ type LookupProfile = NonNullable<CompanyRegistryLookupResponse["profile"]>;
 
 function formatDate(value?: string) {
   if (!value) return "Nao informado";
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
-  return formatDateShort(date);
+  return formatPortalDate(`${value}T00:00:00`, value);
 }
 
 function formatAddress(profile: LookupProfile) {

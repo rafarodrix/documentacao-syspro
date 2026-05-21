@@ -5,35 +5,22 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  formatDateTime as centralFormatDateTime,
-  formatDateShort as centralFormatDateShort,
+  formatDate,
+  formatDateTimeSafe,
+  formatRelativeDate,
   formatTimeShort as centralFormatTimeShort,
 } from "@/lib/date";
 
 export function formatDateTime(value: string | null) {
-  if (!value) return "Sem registro";
-  const res = centralFormatDateTime(value);
-  return res === "-" ? "Sem registro" : res;
+  return formatDateTimeSafe(value, "Sem registro");
 }
 
 export function formatRelativeHeartbeat(value: string | null) {
-  if (!value) return "Sem contato";
-
-  const diffMinutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
-  if (diffMinutes < 1) return "Agora";
-  if (diffMinutes < 60) return `${diffMinutes} min atras`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h atras`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d atras`;
+  return formatRelativeDate(value, "Sem contato");
 }
 
 export function formatDateOnly(value: string | null) {
-  if (!value) return "Sem registro";
-  const res = centralFormatDateShort(value);
-  return res === "-" ? "Sem registro" : res;
+  return formatDate(value, "Sem registro");
 }
 
 export function getSysproUpdateHealthMeta(input: { isServerHost: boolean | null; lastFileWriteAt: string | null }) {

@@ -5,8 +5,8 @@ import { PlusCircle } from "lucide-react";
 
 import { TicketsFilters } from "@/features/tickets/interface/components/tickets-filters";
 import { TicketsTable } from "@/features/tickets/interface/components/tickets-table";
-import { Button, Alert, AlertDescription, AlertTitle } from "@dosc-syspro/ui";
-import { PageHeader, PageShell } from "@/components/patterns";
+import { Button } from "@dosc-syspro/ui";
+import { PageHeader, PageShell, StaleState } from "@/components/patterns";
 import { RegistryPagination } from "@/components/platform/shared/registry-list-scaffold";
 import { useTicketFilters } from "@/features/tickets/interface/hooks/use-ticket-filters";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
@@ -75,12 +75,7 @@ export function TicketsContainer({
 
   return (
     <PageShell>
-      {staleWarning && (
-        <Alert className="border-amber-500/30 bg-amber-500/10">
-          <AlertTitle>Dados em modo contingencia</AlertTitle>
-          <AlertDescription>{staleWarning}</AlertDescription>
-        </Alert>
-      )}
+      {staleWarning ? <StaleState message={staleWarning} /> : null}
 
       <PageHeader
         title={canManageTickets ? "Tickets" : "Meus chamados"}

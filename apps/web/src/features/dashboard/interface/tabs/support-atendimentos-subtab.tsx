@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@dosc-syspro/ui";
 import {
-  AlertTriangle,
   Clock3,
   Inbox,
   Loader2,
@@ -28,7 +27,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { SectionCard } from "@/components/patterns";
+import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { formatDateTimeSafe } from "@/lib/date";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
@@ -285,18 +284,9 @@ export function SupportAtendimentosSubtab() {
         </CardContent>
       </Card>
 
-      {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      {error ? <ErrorState title="Falha ao carregar atendimentos" description={error} /> : null}
 
-      {data?.warning ? (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{data.warning}</span>
-        </div>
-      ) : null}
+      {data?.warning ? <StaleState message={data.warning} /> : null}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Atendimentos no periodo" icon={Inbox as any} tone="blue" />

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ticketModuleDetailsResponseSchema } from "@dosc-syspro/contracts/ticket";
 import {
-    AlertCircle,
     ArrowLeft,
     Building2,
     Calendar,
@@ -35,6 +34,7 @@ import { useTicketClassification } from "@/features/tickets/interface/hooks/use-
 import { useTicketOwners } from "@/features/tickets/interface/hooks/use-ticket-owners";
 import { useInternalUsers, type InternalUserOption } from "@/features/tickets/interface/hooks/use-internal-users";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
+import { ErrorState } from "@/components/patterns";
 import { formatDate, formatDateTimeSafe } from "@/lib/date";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
@@ -119,16 +119,12 @@ export function TicketDetails({ ticket, articles, messagePagination, canManageTi
 
     if (error || !ticket) {
         return (
-            <div className="flex h-[60vh] flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-500">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-500">
-                    <AlertCircle className="h-8 w-8" />
-                </div>
-                <h1 className="mb-2 text-2xl font-bold text-foreground">Nao foi possivel carregar o chamado</h1>
-                <p className="mb-6 max-w-md text-muted-foreground">{error || "O ticket pode nao existir ou voce nao tem permissao."}</p>
-                <Button variant="outline" className="gap-2" onClick={() => router.back()}>
-                    <ArrowLeft className="h-4 w-4" /> Voltar para lista
-                </Button>
-            </div>
+            <ErrorState
+                className="h-[60vh] animate-in fade-in zoom-in duration-500"
+                title="Nao foi possivel carregar o chamado"
+                description={error || "O ticket pode nao existir ou voce nao tem permissao."}
+                action={{ label: "Voltar para lista", onClick: () => router.back() }}
+            />
         );
     }
 
