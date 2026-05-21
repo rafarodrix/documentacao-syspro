@@ -12,10 +12,17 @@ import {
   crmLeadUpdateSchema,
   type CrmLeadCreateInput,
   type CrmLeadUpdateInput,
+  crmActivityCreateSchema,
+  crmTaskCreateSchema,
+  crmTaskUpdateSchema,
+  type CrmActivityCreateInput,
+  type CrmTaskCreateInput,
+  type CrmTaskUpdateInput,
 } from '@dosc-syspro/contracts/crm';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
+import { CompaniesService } from '../companies/companies.service';
 
 type NormalizedLeadPayload = {
   title: string;
@@ -45,6 +52,7 @@ export class CrmService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
+    private readonly companiesService: CompaniesService,
   ) {}
 
   async listLeads(input: Record<string, unknown>, rawHeaders?: IncomingHttpHeaders) {
@@ -273,7 +281,17 @@ export class CrmService {
 
     const existing = await (this.prisma as any).crmLead.findUnique({
       where: { id },
-      select: { id: true },
+      select: { 
+        id: true, 
+        stage: true, 
+        document: true, 
+        companyName: true, 
+        tradeName: true, 
+        contacts: true, 
+        city: true, 
+        state: true, 
+        convertedCompanyId: true 
+      },
     });
 
     if (!existing) {
@@ -287,16 +305,355 @@ export class CrmService {
 
     await this.assertOwnerExists(payload.ownerUserId);
 
+    let convertedCompanyId = existing.convertedCompanyId;
+
+    const currentStage = payload.stage ?? existing.stage;
+    const isNewWon = currentStage === 'WON' && existing.stage !== 'WON';
+    const document = payload.document !== undefined ? payload.document : existing.document;
+    
+    if (currentStage === 'WON' && !convertedCompanyId && document) {
+      const cleanCnpj = document.replace(/\D/g, '');
+      if (cleanCnpj.length === 14) {
+        let existingCompany = await this.prisma.company.findUnique({
+          where: { cnpj: cleanCnpj },
+          select: { id: true }
+        });
+        
+        if (!existingCompany) {
+          const companyName = payload.companyName ?? existing.companyName;
+          const tradeName = payload.tradeName ?? existing.tradeName;
+          const city = payload.city ?? existing.city;
+          const state = payload.state ?? existing.state;
+          const contactsRaw = payload.contacts !== undefined ? payload.contacts : existing.contacts;
+          const contactsList = this.normalizeContactsArray(contactsRaw);
+          const primaryContact = contactsList.find(c => c.isPrimary) || contactsList[0];
+
+          const createResult = await this.companiesService.createCompany({
+            data: {
+              cnpj: cleanCnpj,
+              razaoSocial: companyName,
+              nomeFantasia: tradeName || companyName,
+              telefone: primaryContact?.phone || primaryContact?.whatsapp || undefined,
+              emailContato: primaryContact?.email || undefined,
+              status: 'ACTIVE',
+              address: city && state && state.length === 2 ? {
+                description: 'Sede',
+                cep: '00000000',
+                logradouro: 'A definir',
+                numero: 'S/N',
+                bairro: 'Centro',
+                cidade: city,
+                estado: state.toUpperCase().slice(0, 2),
+                pais: 'BR'
+              } : undefined
+            } as any
+          }, rawHeaders);
+
+          if (createResult.success) {
+            existingCompany = await this.prisma.company.findUnique({
+              where: { cnpj: cleanCnpj },
+              select: { id: true }
+            });
+          }
+        }
+
+        if (existingCompany) {
+          convertedCompanyId = existingCompany.id;
+          
+          const contactsRaw = payload.contacts !== undefined ? payload.contacts : existing.contacts;
+          const contactsList = this.normalizeContactsArray(contactsRaw);
+          for (const leadContact of contactsList) {
+            let contact = await this.prisma.companyContact.findFirst({
+              where: {
+                OR: [
+                  leadContact.email ? { email: leadContact.email } : undefined,
+                  leadContact.whatsapp ? { whatsapp: leadContact.whatsapp } : undefined,
+                  leadContact.phone ? { phone: leadContact.phone } : undefined,
+                ].filter(Boolean) as any
+              }
+            });
+
+            if (!contact) {
+              contact = await this.prisma.companyContact.create({
+                data: {
+                  name: leadContact.name,
+                  email: leadContact.email || null,
+                  phone: leadContact.phone || null,
+                  whatsapp: leadContact.whatsapp || null,
+                  jobTitle: leadContact.role || null,
+                  notes: leadContact.notes || "Criado automaticamente via conversão de Lead no CRM",
+                  status: "LINKED",
+                  isPrimary: leadContact.isPrimary,
+                }
+              });
+            }
+
+            await this.prisma.companyContactCompanyLink.upsert({
+              where: {
+                contactId_companyId: {
+                  contactId: contact.id,
+                  companyId: existingCompany.id
+                }
+              },
+              create: {
+                contactId: contact.id,
+                companyId: existingCompany.id,
+                isPrimary: leadContact.isPrimary
+              },
+              update: {
+                isPrimary: leadContact.isPrimary
+              }
+            });
+          }
+        }
+      }
+    }
+
+    const finalPayload = {
+      ...payload,
+      convertedCompanyId: convertedCompanyId !== existing.convertedCompanyId ? convertedCompanyId : undefined
+    };
+
     const lead = await (this.prisma as any).crmLead.update({
       where: { id },
-      data: payload,
+      data: finalPayload,
       include: this.leadInclude(),
     });
+
+    if (isNewWon || (payload.stage && payload.stage !== existing.stage)) {
+      await this.prisma.crmActivity.create({
+        data: {
+          leadId: id,
+          type: 'SYSTEM_EVENT',
+          title: 'Alteração de Estágio',
+          body: `O lead foi movido do estágio "${existing.stage}" para "${currentStage}".`,
+        }
+      });
+    }
 
     return {
       success: true,
       data: this.serializeLead(lead),
       message: 'Lead atualizado com sucesso.',
+    };
+  }
+
+  async listActivities(leadId: string, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+    const activities = await this.prisma.crmActivity.findMany({
+      where: { leadId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        authorUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    return {
+      success: true,
+      data: activities.map(act => ({
+        id: act.id,
+        leadId: act.leadId,
+        type: act.type,
+        title: act.title,
+        body: act.body,
+        authorUserId: act.authorUserId,
+        authorName: act.authorUser?.name || act.authorUser?.email || null,
+        createdAt: act.createdAt.toISOString(),
+        updatedAt: act.updatedAt.toISOString(),
+      })),
+    };
+  }
+
+  async createActivity(input: CrmActivityCreateInput, rawHeaders?: IncomingHttpHeaders) {
+    const requester = await this.assertSystemAccess(rawHeaders);
+    const valid = crmActivityCreateSchema.parse(input);
+
+    const activity = await this.prisma.crmActivity.create({
+      data: {
+        leadId: valid.leadId,
+        type: valid.type,
+        title: valid.title,
+        body: valid.body,
+        authorUserId: requester.userId,
+      },
+      include: {
+        authorUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        id: activity.id,
+        leadId: activity.leadId,
+        type: activity.type,
+        title: activity.title,
+        body: activity.body,
+        authorUserId: activity.authorUserId,
+        authorName: activity.authorUser?.name || activity.authorUser?.email || null,
+        createdAt: activity.createdAt.toISOString(),
+        updatedAt: activity.updatedAt.toISOString(),
+      },
+      message: 'Nota registrada com sucesso.',
+    };
+  }
+
+  async listTasks(leadId: string, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+    const tasks = await this.prisma.crmTask.findMany({
+      where: { leadId },
+      orderBy: [
+        { status: 'asc' },
+        { dueDate: 'asc' },
+      ],
+      include: {
+        assigneeUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    return {
+      success: true,
+      data: tasks.map(task => ({
+        id: task.id,
+        leadId: task.leadId,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        dueDate: task.dueDate.toISOString(),
+        assigneeUserId: task.assigneeUserId,
+        assigneeName: task.assigneeUser?.name || task.assigneeUser?.email || null,
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+      })),
+    };
+  }
+
+  async createTask(input: CrmTaskCreateInput, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+    const valid = crmTaskCreateSchema.parse(input);
+
+    const task = await this.prisma.crmTask.create({
+      data: {
+        leadId: valid.leadId,
+        title: valid.title,
+        description: valid.description,
+        status: valid.status,
+        dueDate: new Date(valid.dueDate),
+        assigneeUserId: valid.assigneeUserId || null,
+      },
+      include: {
+        assigneeUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        id: task.id,
+        leadId: task.leadId,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        dueDate: task.dueDate.toISOString(),
+        assigneeUserId: task.assigneeUserId,
+        assigneeName: task.assigneeUser?.name || task.assigneeUser?.email || null,
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+      },
+      message: 'Tarefa criada com sucesso.',
+    };
+  }
+
+  async updateTask(id: string, input: CrmTaskUpdateInput, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+    const valid = crmTaskUpdateSchema.parse(input);
+
+    const existing = await this.prisma.crmTask.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('Tarefa não encontrada.');
+    }
+
+    const task = await this.prisma.crmTask.update({
+      where: { id },
+      data: {
+        title: valid.title !== undefined ? valid.title : undefined,
+        description: valid.description !== undefined ? valid.description : undefined,
+        status: valid.status !== undefined ? valid.status : undefined,
+        dueDate: valid.dueDate !== undefined ? new Date(valid.dueDate) : undefined,
+        assigneeUserId: valid.assigneeUserId !== undefined ? valid.assigneeUserId : undefined,
+      },
+      include: {
+        assigneeUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        id: task.id,
+        leadId: task.leadId,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        dueDate: task.dueDate.toISOString(),
+        assigneeUserId: task.assigneeUserId,
+        assigneeName: task.assigneeUser?.name || task.assigneeUser?.email || null,
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+      },
+      message: 'Tarefa atualizada com sucesso.',
+    };
+  }
+
+  async deleteTask(id: string, rawHeaders?: IncomingHttpHeaders) {
+    await this.assertSystemAccess(rawHeaders);
+
+    const existing = await this.prisma.crmTask.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('Tarefa não encontrada.');
+    }
+
+    await this.prisma.crmTask.delete({
+      where: { id },
+    });
+
+    return {
+      success: true,
+      message: 'Tarefa excluída com sucesso.',
     };
   }
 
@@ -451,6 +808,7 @@ export class CrmService {
         phone: this.normalizeString(contact.phone),
         whatsapp: this.normalizeString(contact.whatsapp),
         isPrimary: Boolean(contact.isPrimary),
+        notes: this.normalizeString(contact.notes),
       }))
       .filter((contact) => contact.name);
   }
@@ -470,6 +828,7 @@ export class CrmService {
           phone: this.normalizeString(record.phone as string | null | undefined),
           whatsapp: this.normalizeString(record.whatsapp as string | null | undefined),
           isPrimary: Boolean(record.isPrimary),
+          notes: this.normalizeString(record.notes as string | null | undefined),
         };
       })
       .filter(Boolean) as CrmLeadManualContact[];

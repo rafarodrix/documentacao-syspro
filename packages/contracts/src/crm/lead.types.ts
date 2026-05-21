@@ -78,6 +78,7 @@ export const crmLeadManualContactSchema = z.object({
   phone: nullableTrimmedString(40),
   whatsapp: nullableTrimmedString(40),
   isPrimary: z.boolean().optional().default(false),
+  notes: nullableTrimmedString(1000),
 });
 
 const crmLeadMutableFieldsSchema = z.object({
@@ -187,6 +188,30 @@ export const crmSupportDataResponseSchema = z.object({
   message: z.string().optional(),
 });
 
+export const crmActivityCreateSchema = z.object({
+  leadId: z.string(),
+  type: crmActivityTypeSchema.default("NOTE"),
+  title: z.string().trim().max(160).nullable().optional(),
+  body: z.string().trim().min(1, "O corpo da atividade é obrigatório").max(4000),
+});
+
+export const crmTaskCreateSchema = z.object({
+  leadId: z.string(),
+  title: z.string().trim().min(3, "Título deve ter no mínimo 3 caracteres").max(160),
+  description: z.string().trim().max(2000).nullable().optional(),
+  status: crmTaskStatusSchema.default("PENDING"),
+  dueDate: z.string(),
+  assigneeUserId: z.string().trim().nullable().optional(),
+});
+
+export const crmTaskUpdateSchema = z.object({
+  title: z.string().trim().min(3).max(160).optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
+  status: crmTaskStatusSchema.optional(),
+  dueDate: z.string().optional(),
+  assigneeUserId: z.string().trim().nullable().optional(),
+});
+
 export type CrmLeadStage = z.output<typeof crmLeadStageSchema>;
 export type CrmLeadSource = z.output<typeof crmLeadSourceSchema>;
 export type CrmLead = z.output<typeof crmLeadSchema>;
@@ -201,5 +226,8 @@ export type CrmSupportData = z.output<typeof crmSupportDataSchema>;
 export type CrmSupportDataResponse = z.output<typeof crmSupportDataResponseSchema>;
 export type CrmActivityType = z.output<typeof crmActivityTypeSchema>;
 export type CrmActivity = z.output<typeof crmActivitySchema>;
+export type CrmActivityCreateInput = z.output<typeof crmActivityCreateSchema>;
 export type CrmTaskStatus = z.output<typeof crmTaskStatusSchema>;
 export type CrmTask = z.output<typeof crmTaskSchema>;
+export type CrmTaskCreateInput = z.output<typeof crmTaskCreateSchema>;
+export type CrmTaskUpdateInput = z.output<typeof crmTaskUpdateSchema>;

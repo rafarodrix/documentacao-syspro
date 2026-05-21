@@ -6,6 +6,9 @@ import {
   crmLeadCreateSchema,
   crmLeadUpdateSchema,
   crmLeadListFiltersSchema,
+  crmActivityCreateSchema,
+  crmTaskCreateSchema,
+  crmTaskUpdateSchema,
 } from '@dosc-syspro/contracts/crm';
 
 @Injectable()
@@ -59,6 +62,42 @@ export class CrmRouter {
         .input(z.object({ id: z.string(), data: crmLeadUpdateSchema }))
         .mutation(({ input, ctx }) =>
           this.crmService.updateLead(input.id, input.data, ctx.headers),
+        ),
+
+      listActivities: this.trpc.publicProcedure
+        .input(z.object({ leadId: z.string() }))
+        .query(({ input, ctx }) =>
+          this.crmService.listActivities(input.leadId, ctx.headers),
+        ),
+
+      createActivity: this.trpc.publicProcedure
+        .input(crmActivityCreateSchema)
+        .mutation(({ input, ctx }) =>
+          this.crmService.createActivity(input, ctx.headers),
+        ),
+
+      listTasks: this.trpc.publicProcedure
+        .input(z.object({ leadId: z.string() }))
+        .query(({ input, ctx }) =>
+          this.crmService.listTasks(input.leadId, ctx.headers),
+        ),
+
+      createTask: this.trpc.publicProcedure
+        .input(crmTaskCreateSchema)
+        .mutation(({ input, ctx }) =>
+          this.crmService.createTask(input, ctx.headers),
+        ),
+
+      updateTask: this.trpc.publicProcedure
+        .input(z.object({ id: z.string(), data: crmTaskUpdateSchema }))
+        .mutation(({ input, ctx }) =>
+          this.crmService.updateTask(input.id, input.data, ctx.headers),
+        ),
+
+      deleteTask: this.trpc.publicProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(({ input, ctx }) =>
+          this.crmService.deleteTask(input.id, ctx.headers),
         ),
     });
   }

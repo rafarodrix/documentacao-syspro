@@ -64,6 +64,7 @@ const EMPTY_CONTACT: CrmLeadManualContact = {
   phone: "",
   whatsapp: "",
   isPrimary: true,
+  notes: "",
 };
 
 function onlyDigits(value: string) {
@@ -328,12 +329,7 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <FlowCard title="Essenciais" description="Entrada no funil" ready={essentialReady} icon={Target} />
-        <FlowCard title="Empresa" description="Dados do prospect" ready={companyReady} icon={Building2} />
-        <FlowCard title="Contatos" description="Socios e decisores" ready={contactsReady} icon={UsersRound} />
-        <FlowCard title="Qualificacao" description="Licenca e mensalidade" ready={qualificationReady} icon={CircleDollarSign} />
-      </div>
+
 
       <Card className="border-border/60">
         <CardHeader className="gap-4">
@@ -546,6 +542,18 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
                           placeholder="+55 (00) 00000-0000"
                         />
                       </Field>
+
+                      <div className="md:col-span-2">
+                        <Field label="Observações / histórico de contatos efetuados" htmlFor={`lead-contact-notes-${index}`}>
+                          <Textarea
+                            id={`lead-contact-notes-${index}`}
+                            value={contact.notes || ""}
+                            onChange={(event) => updateContact(index, "notes", event.target.value)}
+                            placeholder="Anote informações importantes sobre o contato, observações de conversas, etc."
+                            rows={3}
+                          />
+                        </Field>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -666,29 +674,4 @@ function Field({
   );
 }
 
-function FlowCard({
-  title,
-  description,
-  ready,
-  icon: Icon,
-}: {
-  title: string;
-  description: string;
-  ready: boolean;
-  icon: typeof Target;
-}) {
-  return (
-    <Card className="border-border/60">
-      <CardContent className="flex items-start justify-between gap-3 p-4">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <Badge variant={ready ? "default" : "outline"} className="gap-1">
-          <Icon className="h-3.5 w-3.5" />
-          {ready ? "Pronto" : "Pendente"}
-        </Badge>
-      </CardContent>
-    </Card>
-  );
-}
+
