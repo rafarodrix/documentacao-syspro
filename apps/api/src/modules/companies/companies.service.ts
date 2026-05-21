@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { CompanySegment, CompanyStatus, Role } from '@prisma/client';
+import { onlyDigits } from '@dosc-syspro/shared';
 import type { IncomingHttpHeaders } from 'node:http';
 import {
   companyStatusUpdateSchema,
@@ -40,9 +41,6 @@ type NormalizedCompanyPartner = {
   entryDate?: string;
 };
 
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, '');
-}
 
 function findEntityInactivationMarker(
   value: string | null | undefined,

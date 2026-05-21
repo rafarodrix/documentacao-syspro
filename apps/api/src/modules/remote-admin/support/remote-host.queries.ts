@@ -1,5 +1,6 @@
 import { prisma } from "@dosc-syspro/database";
 import { hashRustDeskPublicKey } from "@dosc-syspro/remote-infra/rustdesk-helpers";
+import { normalizeSearchText } from "@dosc-syspro/shared";
 import type { RemoteTenantScope } from "./remote-admin.types";
 import { getRemoteModuleSettingsSnapshot } from "../../../common/system-settings/remote-module-settings-snapshot";
 import { resolveRemoteOperationalStatus } from "./operational-status";
@@ -379,21 +380,12 @@ function mapCompanyRemoteConnections(input: {
   return [];
 }
 
-function normalizeCompanyIdentity(value: string | null | undefined) {
-  if (!value) return "";
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
 function buildCompanyOptionLabel(input: { nomeFantasia: string | null; razaoSocial: string }) {
   const nomeFantasia = input.nomeFantasia?.trim() ?? "";
   const razaoSocial = input.razaoSocial.trim();
 
   if (!nomeFantasia) return razaoSocial;
-  if (normalizeCompanyIdentity(nomeFantasia) === normalizeCompanyIdentity(razaoSocial)) return nomeFantasia;
+  if (normalizeSearchText(nomeFantasia) === normalizeSearchText(razaoSocial)) return nomeFantasia;
 
   return `${nomeFantasia} | ${razaoSocial}`;
 }
@@ -1285,7 +1277,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
 
   for (const context of companyContexts) {
     const identities = [context.nomeFantasia, context.razaoSocial]
-      .map((entry) => normalizeCompanyIdentity(entry))
+      .map((entry) => normalizeSearchText(entry))
       .filter((entry) => !!entry);
     for (const identity of identities) {
       if (!companyContextByIdentity.has(identity)) {
@@ -1300,7 +1292,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
   }
   const primaryCompanyLabels = new Set(
     [host.company.nomeFantasia, host.company.razaoSocial]
-      .map((entry) => normalizeCompanyIdentity(entry))
+      .map((entry) => normalizeSearchText(entry))
       .filter((entry) => !!entry)
   );
   const agentCommands = await prisma.remoteAgentCommand.findMany({
@@ -1440,7 +1432,7 @@ export async function getRemoteHostDetails(tenantScope: RemoteTenantScope, hostI
       }
 
       const updateLabels = [update.resolvedCompanyName, update.companyLabel]
-        .map((entry) => normalizeCompanyIdentity(entry))
+        .map((entry) => normalizeSearchText(entry))
         .filter((entry) => !!entry);
       const guessedByLabel = updateLabels
         .map((label) => companyContextByIdentity.get(label) ?? null)

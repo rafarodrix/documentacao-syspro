@@ -23,6 +23,7 @@ import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { CompaniesService } from '../companies/companies.service';
+import { onlyDigits } from '@dosc-syspro/shared';
 
 type NormalizedLeadPayload = {
   title: string;
@@ -311,7 +312,7 @@ export class CrmService {
     const document = payload.document !== undefined ? payload.document : existing.document;
     
     if (currentStage === 'WON' && !convertedCompanyId && document) {
-      const cleanCnpj = document.replace(/\D/g, '');
+      const cleanCnpj = onlyDigits(document);
       if (cleanCnpj.length === 14) {
         let existingCompany = await this.prisma.company.findUnique({
           where: { cnpj: cleanCnpj },
@@ -779,7 +780,7 @@ export class CrmService {
   }
 
   private normalizeDocument(value?: string | null) {
-    const digits = String(value ?? '').replace(/\D/g, '');
+    const digits = onlyDigits(value);
     return digits || null;
   }
 

@@ -1,16 +1,12 @@
 import { TicketPriority, TicketStatus } from "@dosc-syspro/core";
 import { getTicketStateMatrix } from "@dosc-syspro/core";
+import { normalizeSearchText } from "@dosc-syspro/shared";
 
 const matrix = getTicketStateMatrix();
 const ACTIVE_WORKFLOW_STATE_IDS = new Set(matrix.activeWorkflowStateIds);
 
 function normalizeStateName(value?: string | null): string {
-  if (!value) return "";
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
+  return normalizeSearchText(value);
 }
 
 export function mapTicketStatusFromStateName(stateName: string): TicketStatus {

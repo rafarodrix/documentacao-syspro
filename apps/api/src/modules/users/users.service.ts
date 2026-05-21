@@ -31,6 +31,7 @@ import {
 } from '@dosc-syspro/contracts/user';
 import { buildCompanySearchText } from '../shared/search/search-index';
 import { SYSTEM_ROLES, CLIENT_ROLES, ROLE_LABELS } from '@dosc-syspro/core';
+import { normalizeCep } from '@dosc-syspro/shared';
 
 type Requester = {
   userId: string;
@@ -1338,7 +1339,7 @@ export class UsersService {
   private normalizeProfileCompanyAddress(address: CurrentUserProfile['companies'][number]['address']) {
     if (!address) return null;
 
-    const cep = String(address.cep ?? '').replace(/\D/g, '').trim();
+    const cep = normalizeCep(address.cep);
     const logradouro = String(address.logradouro ?? '').trim();
     const numero = String(address.numero ?? '').trim();
     const bairro = String(address.bairro ?? '').trim();

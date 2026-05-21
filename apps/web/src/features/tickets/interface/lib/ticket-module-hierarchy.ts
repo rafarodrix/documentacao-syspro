@@ -1,4 +1,5 @@
 import type { TicketModuleSettingsOption } from "@dosc-syspro/contracts/ticket";
+import { normalizeSearchText } from "@dosc-syspro/shared";
 
 const MODULE_LABEL_SEPARATOR = " > ";
 const MODULE_ROOT_ORDER = [
@@ -22,10 +23,7 @@ function splitModuleSegments(value?: string | null) {
 }
 
 function slugifySegment(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
+  return normalizeSearchText(value, { preserveSeparators: false })
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }

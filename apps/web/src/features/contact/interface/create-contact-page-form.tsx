@@ -54,14 +54,6 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
   },
 ];
 
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
 function formatWhatsapp(value: string) {
   const digits = normalizePhone(value).slice(0, 13);
 

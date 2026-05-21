@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { normalizeSearchText } from '@dosc-syspro/shared';
+import { normalizeSearchText, onlyDigits } from '@dosc-syspro/shared';
 
 export type PreparedSearchTerm = {
   raw: string;
@@ -19,7 +19,7 @@ export function prepareSearchTerm(query: string | null | undefined): PreparedSea
   const normalized = normalizeSearchText(raw, { preserveSeparators: false });
   return {
     raw: normalized,
-    digits: raw.replace(/\D/g, ''),
+    digits: onlyDigits(raw),
     hasValue: normalized.length > 0,
   };
 }

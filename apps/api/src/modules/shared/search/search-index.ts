@@ -1,8 +1,4 @@
-import { buildSearchText } from '@dosc-syspro/shared';
-
-function cleanDigits(value: string | null | undefined) {
-  return String(value ?? '').replace(/\D/g, '').trim();
-}
+import { buildSearchText, onlyDigits } from '@dosc-syspro/shared';
 
 export function buildCompanySearchText(input: {
   razaoSocial?: string | null;
@@ -15,10 +11,10 @@ export function buildCompanySearchText(input: {
   return buildSearchText([
     input.razaoSocial,
     input.nomeFantasia,
-    cleanDigits(input.cnpj),
+    onlyDigits(input.cnpj),
     input.emailContato,
-    cleanDigits(input.telefone),
-    cleanDigits(input.whatsapp),
+    onlyDigits(input.telefone),
+    onlyDigits(input.whatsapp),
   ], { preserveSeparators: false });
 }
 
@@ -33,9 +29,9 @@ export function buildContactSearchText(input: {
   return buildSearchText([
     input.name,
     input.email,
-    cleanDigits(input.phone),
-    cleanDigits(input.whatsapp),
-    cleanDigits(input.cpf),
+    onlyDigits(input.phone),
+    onlyDigits(input.whatsapp),
+    onlyDigits(input.cpf),
     input.jobTitle,
   ], { preserveSeparators: false });
 }
@@ -52,8 +48,8 @@ export function buildConversationSearchText(input: {
     input.subject,
     input.ticketNumber,
     input.contactNameSnapshot,
-    cleanDigits(input.contactPhoneSnapshot),
-    cleanDigits(input.contactWhatsappSnapshot),
+    onlyDigits(input.contactPhoneSnapshot),
+    onlyDigits(input.contactWhatsappSnapshot),
     input.externalThreadId,
   ], { preserveSeparators: false });
 }
