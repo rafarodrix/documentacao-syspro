@@ -80,7 +80,7 @@ function parseNullableNumber(value: string) {
 
 function hasContactContent(contact: CrmLeadManualContact) {
   return Boolean(
-    contact.name.trim() ||
+    contact.name?.trim() ||
     contact.role?.trim() ||
     contact.email?.trim() ||
     contact.phone?.trim() ||
@@ -126,7 +126,7 @@ function mapLeadToFormState(lead?: CrmLead | null): LeadFormState {
     licenseValue: typeof lead.licenseValue === "number" ? String(lead.licenseValue) : "",
     monthlyFee: typeof lead.monthlyFee === "number" ? String(lead.monthlyFee) : "",
     minimumWagePercentage: typeof lead.minimumWagePercentage === "number" ? String(lead.minimumWagePercentage) : "",
-    expectedCloseAt: lead.expectedCloseAt ?? "",
+    expectedCloseAt: lead.expectedCloseAt ? lead.expectedCloseAt.slice(0, 10) : "",
     nextStep: lead.nextStep ?? "",
     qualificationNotes: lead.qualificationNotes ?? "",
     lostReason: lead.lostReason ?? "",
@@ -146,19 +146,20 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
 
   const essentialReady = Boolean(form.title.trim() && form.companyName.trim());
   const companyReady = hasCompanyContext(form);
-  const contactsReady = contacts.some((contact) => contact.name.trim());
+  const contactsReady = contacts.some((contact) => contact.name?.trim());
   const qualificationReady = hasCommercialQualification(form);
 
   const normalizedContacts = useMemo(
     () =>
       contacts
         .map((contact, index) => ({
-          name: contact.name.trim(),
+          name: contact.name?.trim() ?? "",
           role: contact.role?.trim() || "",
           email: contact.email?.trim() || "",
           phone: contact.phone?.trim() || "",
           whatsapp: contact.whatsapp?.trim() || "",
           isPrimary: index === 0 ? true : Boolean(contact.isPrimary),
+          notes: contact.notes?.trim() || "",
         }))
         .filter((contact) => contact.name),
     [contacts],
@@ -166,7 +167,7 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
   const incompleteContactIndex = useMemo(
     () =>
       contacts.findIndex(
-        (contact) => hasContactContent(contact) && !contact.name.trim(),
+        (contact) => hasContactContent(contact) && !contact.name?.trim(),
       ),
     [contacts],
   );

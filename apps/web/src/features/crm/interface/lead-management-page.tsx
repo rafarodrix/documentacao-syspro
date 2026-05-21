@@ -164,7 +164,7 @@ function mapLeadToFormState(lead?: CrmLead | null): LeadFormState {
     licenseValue: typeof lead.licenseValue === "number" ? String(lead.licenseValue) : "",
     monthlyFee: typeof lead.monthlyFee === "number" ? String(lead.monthlyFee) : "",
     minimumWagePercentage: typeof lead.minimumWagePercentage === "number" ? String(lead.minimumWagePercentage) : "",
-    expectedCloseAt: lead.expectedCloseAt ?? "",
+    expectedCloseAt: lead.expectedCloseAt ? lead.expectedCloseAt.slice(0, 10) : "",
     nextStep: lead.nextStep ?? "",
     qualificationNotes: lead.qualificationNotes ?? "",
     lostReason: lead.lostReason ?? "",
@@ -253,8 +253,9 @@ function normalizeStageForSelect(stage: CrmLeadStage) {
 }
 
 function resolveLeadContactName(lead: CrmLead) {
-  const primaryManualContact = lead.contacts.find((contact) => contact.isPrimary)?.name?.trim();
-  const firstManualContact = lead.contacts.find((contact) => contact.name.trim())?.name.trim();
+  const contacts = lead.contacts || [];
+  const primaryManualContact = contacts.find((contact) => contact.isPrimary)?.name?.trim();
+  const firstManualContact = contacts.find((contact) => contact.name?.trim())?.name?.trim();
   return lead.primaryContactName || primaryManualContact || firstManualContact || "Sem contato vinculado";
 }
 
@@ -1705,39 +1706,6 @@ function EmptyPipelineState() {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
-      </div>
-    </div>
-  );
-}
-
-function CompactMetricCard({
-  title,
-  value,
-  icon: Icon,
-  tone,
-}: {
-  title: string;
-  value: number | string;
-  icon: typeof Target;
-  tone: "info" | "success" | "neutral" | "warning";
-}) {
-  const toneClass = {
-    info: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-    neutral: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
-    warning: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  }[tone];
-
-  return (
-    <div className="rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl font-semibold leading-none text-foreground">{value}</p>
-        </div>
-        <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md", toneClass)}>
-          <Icon className="h-4 w-4" />
-        </div>
       </div>
     </div>
   );
