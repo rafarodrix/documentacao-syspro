@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { type ContactListItem, type ContactStats as ContactStatsContract } from "@dosc-syspro/contracts/contact";
+import { formatCpf } from "@dosc-syspro/shared";
 import { trpc } from "@/lib/api/trpc-client";
 import {
   Building2,
@@ -35,7 +36,7 @@ import {
   RegistryToolbar,
   type RegistryPaginationState,
 } from "@/components/platform/shared/registry-list-scaffold";
-import { cn, onlyDigits } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { deleteContactAction, syncContactsAction, unlinkContactCompaniesAction } from "@/features/contact/application/contact-write.actions";
 
 type ContactItem = ContactListItem;
@@ -77,12 +78,6 @@ function getLinkedCount(contact: ContactItem) {
 
 function getPrimaryPhone(contact: ContactItem) {
   return contact.whatsapp || contact.phone || null;
-}
-
-function formatCpf(value?: string | null) {
-  const digits = onlyDigits(value);
-  if (digits.length !== 11) return value || null;
-  return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 }
 
 export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: ContactsTabProps) {

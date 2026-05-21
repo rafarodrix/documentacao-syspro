@@ -27,6 +27,7 @@ import {
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Response } from 'express';
 import { createHash } from 'node:crypto';
+import { normalizePhone } from '@dosc-syspro/shared';
 import {
   normalizeReleaseType,
   readReleaseMetadataString,
@@ -111,12 +112,12 @@ export class TicketsService {
 
     if (isSystemAdmin && (data.customerEmail || data.contactWhatsappSnapshot || data.contactPhoneSnapshot)) {
       const normalizedEmail = data.customerEmail?.trim().toLowerCase();
-      const normalizedWhatsapp = data.contactWhatsappSnapshot?.replace(/\D/g, '') || undefined;
-      const normalizedPhone = data.contactPhoneSnapshot?.replace(/\D/g, '') || undefined;
+      const normalizedWhatsapp = normalizePhone(data.contactWhatsappSnapshot) || undefined;
+      const normalizedPhoneSnapshot = normalizePhone(data.contactPhoneSnapshot) || undefined;
       const contactLookupConditions: Prisma.CompanyContactWhereInput[] = [
         ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
         ...(normalizedWhatsapp ? [{ whatsapp: normalizedWhatsapp }] : []),
-        ...(normalizedPhone ? [{ whatsapp: normalizedPhone }] : []),
+        ...(normalizedPhoneSnapshot ? [{ whatsapp: normalizedPhoneSnapshot }] : []),
       ];
       const contact = contactLookupConditions.length === 0
         ? null

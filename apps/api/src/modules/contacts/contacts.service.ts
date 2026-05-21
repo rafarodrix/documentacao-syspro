@@ -6,6 +6,7 @@ import type {
   CreateContactInput,
   UpdateContactInput,
 } from '@dosc-syspro/contracts/contact';
+import { normalizeCpf, normalizePhone } from '@dosc-syspro/shared';
 import { CompanyContactSource, CompanyContactStatus, Role } from '@prisma/client';
 import type { IncomingHttpHeaders } from 'node:http';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -208,9 +209,9 @@ export class ContactsService {
       throw new BadRequestException('Nome do contato obrigatorio');
     }
 
-    const whatsapp = this.normalizePhone(input.whatsapp);
-    const phone = this.normalizePhone(input.phone);
-    const cpf = this.normalizeCpf(input.cpf);
+    const whatsapp = normalizePhone(input.whatsapp) || null;
+    const phone = normalizePhone(input.phone) || null;
+    const cpf = normalizeCpf(input.cpf) || null;
     if (cpf && cpf.length !== 11) {
       throw new BadRequestException('CPF deve conter 11 digitos.');
     }
@@ -324,16 +325,16 @@ export class ContactsService {
     if (input.name !== undefined) data.name = String(input.name).trim() || existing.name;
     if (input.email !== undefined) data.email = input.email?.trim() || null;
     if (input.notes !== undefined) data.notes = input.notes?.trim() || null;
-    if (input.phone !== undefined) data.phone = this.normalizePhone(input.phone);
+    if (input.phone !== undefined) data.phone = normalizePhone(input.phone) || null;
     if (input.cpf !== undefined) {
-      const cpf = this.normalizeCpf(input.cpf);
+      const cpf = normalizeCpf(input.cpf) || null;
       if (cpf && cpf.length !== 11) {
         throw new BadRequestException('CPF deve conter 11 digitos.');
       }
       data.cpf = cpf;
     }
     if (input.jobTitle !== undefined) data.jobTitle = input.jobTitle?.trim() || null;
-    if (input.whatsapp !== undefined) data.whatsapp = this.normalizePhone(input.whatsapp);
+    if (input.whatsapp !== undefined) data.whatsapp = normalizePhone(input.whatsapp) || null;
     if (input.companyIds !== undefined) {
       data.status = nextCompanyIds.length ? CompanyContactStatus.LINKED : CompanyContactStatus.PENDING_LINK;
     }
@@ -888,11 +889,6 @@ export class ContactsService {
     return this.integrationContext.resolveByConnectionKey(connection.id);
   }
 
-  private normalizePhone(value?: string | null): string | null {
-    const digits = String(value ?? '').replace(/\D/g, '');
-    return digits || null;
-  }
-
   private shouldPermanentlyDeleteInvalidContact(contact: any): boolean {
     const source = String(contact?.source ?? '').toUpperCase();
     if (source !== CompanyContactSource.WHATSAPP) return false;
@@ -912,7 +908,7 @@ export class ContactsService {
   }
 
   private isInvalidIntegrationPhone(value?: string | null): boolean {
-    const digits = this.normalizePhone(value);
+    const digits = normalizePhone(value) || null;
     if (!digits) return true;
 
     if (digits.startsWith('55')) {
@@ -927,7 +923,7 @@ export class ContactsService {
   }
 
   private formatChatwootPhoneNumber(value?: string | null): string | undefined {
-    const digits = this.normalizePhone(value);
+    const digits = normalizePhone(value) || null;
     return digits ? `+${digits}` : undefined;
   }
 
@@ -1010,11 +1006,6 @@ export class ContactsService {
       remoteConnections: this.normalizeRemoteConnections(record.remoteConnections),
       addresses,
     };
-  }
-
-  private normalizeCpf(value?: string | null): string | null {
-    const digits = String(value ?? '').replace(/\D/g, '');
-    return digits || null;
   }
 
   private async assertCanViewContacts(rawHeaders?: IncomingHttpHeaders) {

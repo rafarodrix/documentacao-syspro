@@ -21,6 +21,7 @@ import type {
   CreateTaskInput,
   CreateTaskResult,
 } from '@dosc-syspro/contracts/tarefas';
+import { normalizePhone } from '@dosc-syspro/shared';
 import {
   CompanyStatus,
   Prisma,
@@ -1509,12 +1510,7 @@ export class TarefasService {
   }
 
   private resolveContactOutboundPhone(contact: TaskContactOption) {
-    return this.normalizePhone(contact.whatsapp) || this.normalizePhone(contact.phone);
-  }
-
-  private normalizePhone(value: string | null | undefined) {
-    const digits = String(value ?? '').replace(/\D/g, '');
-    return digits || null;
+    return normalizePhone(contact.whatsapp) || normalizePhone(contact.phone) || null;
   }
 
   private buildDefaultManualRequestMessage(input: {

@@ -50,7 +50,7 @@ export function differenceInSeconds(
 
 export function getStartOfDay(date: Date | string = new Date()): Date {
   const d = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(d.getTime())) return new Date();
+  if (isNaN(d.getTime())) return new Date(Number.NaN);
   const res = new Date(d);
   res.setHours(0, 0, 0, 0);
   return res;
@@ -59,6 +59,8 @@ export function getStartOfDay(date: Date | string = new Date()): Date {
 export function formatRecency(isoDate: string): string {
   const now = getStartOfDay();
   const updateDate = getStartOfDay(isoDate);
+
+  if (isNaN(updateDate.getTime())) return "Atualizacao indisponivel";
 
   const diffDays = differenceInDays(now, updateDate);
 
