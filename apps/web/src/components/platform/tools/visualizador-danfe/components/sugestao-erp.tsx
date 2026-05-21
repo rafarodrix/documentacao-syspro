@@ -11,12 +11,11 @@ import {
 // 2. IMPORTACAO DO ARQUIVO DE TYPES CENTRALIZADO
 import { DanfeData, ItemData, SugestaoTributaria } from '../types'; // Ajuste o caminho conforme necess?rio
 import { formatDateTime } from '@/lib/date';
+import { formatCurrency } from '@/lib/formatters';
 
 // =============================================================
 // 3. FUNCOES AUXILIARES (formatadores centralizados)
 // =============================================================
-const formatCurrency = (v?: number | null) =>
-  v != null ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
 const formatNumber = (v?: number | null, fractionDigits: number = 2) =>
   v != null ? v.toLocaleString('pt-BR', { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }) : '0,00';
 const formatPercent = (v?: number | null) => (v != null ? `${v.toFixed(2)}%` : '-');

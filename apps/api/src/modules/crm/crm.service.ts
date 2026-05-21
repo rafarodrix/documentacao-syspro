@@ -814,8 +814,22 @@ export class CrmService {
   }
 
   private normalizeContactsArray(value: unknown): CrmLeadManualContact[] {
-    if (!Array.isArray(value)) return [];
-    return value
+    let rawValue = value;
+    if (typeof rawValue === 'string') {
+      try {
+        rawValue = JSON.parse(rawValue);
+      } catch {
+        return [];
+      }
+    }
+
+    const entries = Array.isArray(rawValue)
+      ? rawValue
+      : rawValue && typeof rawValue === 'object'
+        ? [rawValue]
+        : [];
+
+    return entries
       .map((contact) => {
         if (!contact || typeof contact !== 'object') return null;
         const record = contact as Record<string, unknown>;

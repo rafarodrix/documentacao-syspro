@@ -2,7 +2,8 @@ import { ArrowUpRight, DollarSign, FileText, Sparkles, Target, TrendingDown, Tre
 import Link from "next/link";
 import { Button } from "@dosc-syspro/ui";
 import { SectionCard } from "@/components/patterns";
-import { DashboardMetricCard, formatCurrency } from "../components/dashboard-metric-card";
+import { DashboardMetricCard } from "../components/dashboard-metric-card";
+import { formatCurrency } from "@/lib/formatters";
 import { ExecutiveLine } from "../components/executive-line";
 import { CrmStageChart } from "../components/crm-stage-chart";
 import { getComercialData } from "../../application";

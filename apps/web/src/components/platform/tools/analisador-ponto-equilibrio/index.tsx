@@ -2,9 +2,7 @@
 
 import { useState, useMemo, ChangeEvent } from 'react';
 import { Target, X, HelpCircle, ChevronDown, TrendingUp, TrendingDown, DollarSign, Package, Coins } from 'lucide-react';
-
-// --- Funções Auxiliares (reutilizadas) ---
-const formatCurrency = (value: number) => isNaN(value) ? 'R$ 0,00' : value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+import { formatCurrency } from '@/lib/formatters';
 const formatNumber = (value: number) => isNaN(value) ? '0' : Math.ceil(value).toLocaleString('pt-BR');
 const parseCurrency = (value: string): number => {
     if (!value) return 0;

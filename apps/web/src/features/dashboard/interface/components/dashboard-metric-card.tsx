@@ -3,10 +3,6 @@ import { cn } from "@/lib/utils";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import type { Target } from "lucide-react";
 
-export function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 const toneClasses = {
   blue: "bg-sky-500/10 text-sky-500",
   amber: "bg-amber-500/10 text-amber-500",

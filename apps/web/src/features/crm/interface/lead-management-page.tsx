@@ -326,6 +326,19 @@ function groupLeadsByStageLocal(leads: CrmLead[]) {
   };
 }
 
+function unwrapCollectionResponse<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response;
+  if (
+    response &&
+    typeof response === "object" &&
+    "data" in response &&
+    Array.isArray((response as { data?: unknown }).data)
+  ) {
+    return (response as { data: T[] }).data;
+  }
+  return [];
+}
+
 function getPipelineColumnLeads(
   grouped: ReturnType<typeof groupLeadsByStageLocal>,
   column: (typeof PIPELINE_COLUMNS)[number],
@@ -430,10 +443,10 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
         }
 
         const activitiesRes = await trpc.crm.listActivities.query({ leadId: selectedLeadId! });
-        setActivities(activitiesRes);
+        setActivities(unwrapCollectionResponse<CrmActivity>(activitiesRes));
 
         const tasksRes = await trpc.crm.listTasks.query({ leadId: selectedLeadId! });
-        setTasks(tasksRes);
+        setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } catch (err) {
         console.error(err);
         toast.error("Erro ao carregar dados do lead.");
@@ -685,7 +698,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
         setNewActivityBody("");
         toast.success("Anotação adicionada!");
         const activitiesRes = await trpc.crm.listActivities.query({ leadId: leadDetails.id });
-        setActivities(activitiesRes);
+        setActivities(unwrapCollectionResponse<CrmActivity>(activitiesRes));
         startTransition(() => {
           router.refresh();
         });
@@ -711,7 +724,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
       if (res.success) {
         toast.success(`Tarefa marcada como ${newStatus === "COMPLETED" ? "concluída" : "pendente"}.`);
         const tasksRes = await trpc.crm.listTasks.query({ leadId: leadDetails.id });
-        setTasks(tasksRes);
+        setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } else {
         toast.error(res.error || "Falha ao atualizar tarefa.");
       }
@@ -738,7 +751,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
         setNewTaskTitle("");
         toast.success("Tarefa criada!");
         const tasksRes = await trpc.crm.listTasks.query({ leadId: leadDetails.id });
-        setTasks(tasksRes);
+        setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } else {
         toast.error(res.error || "Falha ao criar tarefa.");
       }
@@ -757,7 +770,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
       if (res.success) {
         toast.success("Tarefa excluída.");
         const tasksRes = await trpc.crm.listTasks.query({ leadId: leadDetails.id });
-        setTasks(tasksRes);
+        setTasks(unwrapCollectionResponse<CrmTask>(tasksRes));
       } else {
         toast.error(res.error || "Falha ao excluir tarefa.");
       }

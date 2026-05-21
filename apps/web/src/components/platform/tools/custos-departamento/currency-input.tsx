@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { formatCurrency } from '@/lib/formatters';
 
 interface FormattedCurrencyInputProps {
   value: number;
@@ -7,15 +8,7 @@ interface FormattedCurrencyInputProps {
   id?: string;
 }
 
-// Função para formatar o número como R$
-const format = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
-
-// Função para remover a formatação e obter o número
+// Funcao para remover a formatacao e obter o numero
 const parse = (value: string): number => {
   const digitsOnly = value.replace(/\D/g, '');
   if (!digitsOnly) return 0;
@@ -27,18 +20,18 @@ export const FormattedCurrencyInput = ({
   onValueChange,
   ...props
 }: FormattedCurrencyInputProps) => {
-  const [displayValue, setDisplayValue] = useState(format(value));
+  const [displayValue, setDisplayValue] = useState(formatCurrency(value));
 
   useEffect(() => {
-    // Atualiza o valor exibido se o 'value' externo mudar
-    setDisplayValue(format(value));
+    // Atualiza o valor exibido se o `value` externo mudar
+    setDisplayValue(formatCurrency(value));
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const parsedValue = parse(e.target.value);
-    setDisplayValue(format(parsedValue));
-    
-    // Chama a função do pai com o valor numérico em formato de string
+    setDisplayValue(formatCurrency(parsedValue));
+
+    // Chama a funcao do pai com o valor numerico em formato de string
     onValueChange(String(parsedValue));
   };
 

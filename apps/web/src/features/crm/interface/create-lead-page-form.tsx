@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatCNPJ, isValidCnpj } from "@/lib/formatters";
 import { PageHeader } from "@/components/patterns";
 import { trpc } from "@/lib/api/trpc-client";
+import { useSafeMutation } from "@/hooks/use-safe-mutation";
 
 type LeadFormState = {
   title: string;
@@ -102,6 +103,33 @@ function hasCommercialQualification(form: LeadFormState) {
   );
 }
 
+function normalizeLeadContacts(rawValue: unknown): CrmLeadManualContact[] {
+  let parsedValue = rawValue;
+  if (typeof parsedValue === "string") {
+    try {
+      parsedValue = JSON.parse(parsedValue);
+    } catch {
+      return [];
+    }
+  }
+
+  const entries = Array.isArray(parsedValue)
+    ? parsedValue
+    : parsedValue && typeof parsedValue === "object"
+      ? [parsedValue]
+      : [];
+
+  return entries.map((contact: any) => ({
+    name: contact?.name || "",
+    role: contact?.role || "",
+    email: contact?.email || "",
+    phone: contact?.phone || "",
+    whatsapp: contact?.whatsapp || "",
+    isPrimary: Boolean(contact?.isPrimary),
+    notes: contact?.notes || "",
+  }));
+}
+
 type CreateLeadPageFormProps = {
   mode?: "create" | "edit";
   leadId?: string;
@@ -137,30 +165,24 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
   const router = useRouter();
   const isEdit = mode === "edit";
   const [activeTab, setActiveTab] = useState("essentials");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { mutate: handleMutation, isSubmitting } = useSafeMutation(
+    async (dataPayload: any) => {
+      return isEdit && leadId
+        ? await trpc.crm.update.mutate({ id: leadId, data: dataPayload })
+        : await trpc.crm.create.mutate(dataPayload);
+    },
+    {
+      successMessage: isEdit ? "Lead atualizado com sucesso." : "Lead criado com sucesso.",
+      errorMessage: isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead.",
+      redirect: "/portal/comercial/leads",
+      refresh: true,
+    }
+  );
   const [isLookupLoading, setIsLookupLoading] = useState(false);
   const [form, setForm] = useState<LeadFormState>(() => mapLeadToFormState(initialData));
   const [contacts, setContacts] = useState<CrmLeadManualContact[]>(() => {
-    let rawContacts: any = initialData?.contacts;
-    if (typeof rawContacts === "string") {
-      try {
-        rawContacts = JSON.parse(rawContacts);
-      } catch (e) {
-        rawContacts = [];
-      }
-    }
-    if (rawContacts && Array.isArray(rawContacts) && rawContacts.length > 0) {
-      return rawContacts.map((contact: any) => ({
-        name: contact?.name || "",
-        role: contact?.role || "",
-        email: contact?.email || "",
-        phone: contact?.phone || "",
-        whatsapp: contact?.whatsapp || "",
-        isPrimary: Boolean(contact?.isPrimary),
-        notes: contact?.notes || "",
-      }));
-    }
-    return [{ ...EMPTY_CONTACT }];
+    const normalizedContacts = normalizeLeadContacts(initialData?.contacts);
+    return normalizedContacts.length > 0 ? normalizedContacts : [{ ...EMPTY_CONTACT }];
   });
 
   const essentialReady = Boolean(form.title.trim() && form.companyName.trim());
@@ -287,49 +309,29 @@ export function CreateLeadPageForm({ mode = "create", leadId, initialData = null
       return;
     }
 
-    setIsSubmitting(true);
+    const data = {
+      title: form.title.trim(),
+      stage: form.stage as any,
+      source: form.source as any,
+      companyName: form.companyName.trim(),
+      tradeName: form.tradeName.trim() || null,
+      document: onlyDigits(form.document) || null,
+      contacts: normalizedContacts,
+      industry: form.industry.trim() || null,
+      companySize: form.companySize.trim() || null,
+      city: form.city.trim() || null,
+      state: form.state.trim() || null,
+      estimatedValue: parseNullableNumber(form.estimatedValue),
+      licenseValue: parseNullableNumber(form.licenseValue),
+      monthlyFee: parseNullableNumber(form.monthlyFee),
+      minimumWagePercentage: parseNullableNumber(form.minimumWagePercentage),
+      expectedCloseAt: form.expectedCloseAt || null,
+      nextStep: form.nextStep.trim() || null,
+      qualificationNotes: form.qualificationNotes.trim() || null,
+      lostReason: form.lostReason.trim() || null,
+    };
 
-    try {
-      const data = {
-        title: form.title.trim(),
-        stage: form.stage as any,
-        source: form.source as any,
-        companyName: form.companyName.trim(),
-        tradeName: form.tradeName.trim() || null,
-        document: onlyDigits(form.document) || null,
-        contacts: normalizedContacts,
-        industry: form.industry.trim() || null,
-        companySize: form.companySize.trim() || null,
-        city: form.city.trim() || null,
-        state: form.state.trim() || null,
-        estimatedValue: parseNullableNumber(form.estimatedValue),
-        licenseValue: parseNullableNumber(form.licenseValue),
-        monthlyFee: parseNullableNumber(form.monthlyFee),
-        minimumWagePercentage: parseNullableNumber(form.minimumWagePercentage),
-        expectedCloseAt: form.expectedCloseAt || null,
-        nextStep: form.nextStep.trim() || null,
-        qualificationNotes: form.qualificationNotes.trim() || null,
-        lostReason: form.lostReason.trim() || null,
-      };
-
-      const result = isEdit && leadId
-        ? await trpc.crm.update.mutate({ id: leadId, data })
-        : await trpc.crm.create.mutate(data);
-
-      if (!result?.success) {
-        toast.error(result?.error || result?.message || (isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead."));
-        return;
-      }
-
-      toast.success(isEdit ? "Lead atualizado com sucesso." : "Lead criado com sucesso.");
-      router.push("/portal/comercial/leads");
-      router.refresh();
-    } catch (error) {
-      console.error(`Erro ao ${isEdit ? "atualizar" : "criar"} lead:`, error);
-      toast.error(isEdit ? "Falha ao atualizar lead." : "Falha ao criar lead.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await handleMutation(data);
   }
 
   return (
@@ -693,5 +695,4 @@ function Field({
     </div>
   );
 }
-
 

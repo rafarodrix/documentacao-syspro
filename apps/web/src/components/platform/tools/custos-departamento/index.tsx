@@ -21,6 +21,7 @@ import {
 import { BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { FormattedCurrencyInput } from '@/components/platform/tools/custos-departamento/currency-input';
+import { formatCurrency } from '@/lib/formatters';
 
 // ============================================================================
 // 1. TYPSS & CONSTANTS
@@ -42,9 +43,6 @@ const INITIAL_DEPARTMENTS: Department[] = [
   { id: 2, name: 'FILTRO COMBUSTÍVSL', totalRevenue: 41007, strategicTargetPercent: 0 },
   { id: 3, name: 'LUBRIFICANTS', totalRevenue: 146620.1, strategicTargetPercent: 0 },
 ];
-
-const formatCurrency = (val: number) =>
-  isNaN(val) ? 'R$ 0,00' : val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const formatPercent = (val: number) =>
   isNaN(val) ? '0,00%' : val.toLocaleString('pt-BR', { style: 'percent', minimumFractionDigits: 2 });

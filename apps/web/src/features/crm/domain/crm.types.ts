@@ -41,7 +41,9 @@ export const CRM_SOURCE_LABELS: Record<CrmLeadSource, string> = {
   OTHER: "Outro",
 };
 
+import { formatCurrency } from "@/lib/formatters";
+
 export function formatLeadCurrency(value?: number | null) {
   if (typeof value !== "number") return "Nao estimado";
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return formatCurrency(value);
 }
