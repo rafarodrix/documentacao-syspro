@@ -3,6 +3,8 @@ import { AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle, Button } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
+/* eslint-disable trilink-tokens/no-raw-tailwind-palette -- async states intentionally use danger/warning tones; no equivalent semantic warning surface tokens yet */
+
 export function LoadingState({
   label = "Carregando...",
   compact = false,

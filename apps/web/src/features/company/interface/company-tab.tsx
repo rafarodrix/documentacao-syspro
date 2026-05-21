@@ -14,14 +14,14 @@ import {
   type CompanyInactivationReasonOption,
 } from "@dosc-syspro/contracts/settings"
 import { toast } from "sonner"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui";
+import { TableCell, TableRow, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui";
 import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
-import { LoadingState, PageHeader, ResponsiveTableViewport } from "@/components/patterns"
+import { LoadingState, PageHeader, PortalTable, PortalTableBody, PortalTableEmptyRow, PortalTableHead, PortalTableHeader, PortalTableLoadingRow, PortalTableViewport } from "@/components/patterns"
 import {
   RegistryEmptyState,
   RegistryFeedback,
@@ -703,39 +703,29 @@ export function CompanyTab({
             )}
           </div>
 
-          <ResponsiveTableViewport className="hidden md:block" innerClassName="min-w-[1120px]">
-            <Table>
-            <TableHeader className="bg-muted/20">
+          <PortalTableViewport className="hidden md:block" minWidthClassName="min-w-[1120px]">
+            <PortalTable>
+            <PortalTableHeader>
               <TableRow className="hover:bg-transparent border-b border-border/60">
-                <TableHead className="py-3.5 px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Organizacao</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">CNPJ</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Segmento</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Membros</TableHead>
-                <TableHead className="text-right px-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acoes</TableHead>
+                <PortalTableHead className="py-3.5 px-6">Organizacao</PortalTableHead>
+                <PortalTableHead>CNPJ</PortalTableHead>
+                <PortalTableHead>Segmento</PortalTableHead>
+                <PortalTableHead>Status</PortalTableHead>
+                <PortalTableHead>Membros</PortalTableHead>
+                <PortalTableHead className="text-right px-6">Acoes</PortalTableHead>
               </TableRow>
-            </TableHeader>
+            </PortalTableHeader>
 
-            <TableBody>
+            <PortalTableBody>
               {loadingList ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
-                    <LoadingState label="Carregando empresas..." compact />
-                  </TableCell>
-                </TableRow>
+                <PortalTableLoadingRow colSpan={6} label="Carregando empresas..." />
               ) : paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-64 text-center">
-                    <RegistryEmptyState
-                      icon={Building2}
-                      title="Nenhuma empresa encontrada"
-                      description="Ajuste os filtros ou cadastre uma nova empresa."
-                      searchTerm={searchTerm}
-                      onClear={() => setSearchTerm("")}
-                      compact
-                    />
-                  </TableCell>
-                </TableRow>
+                <PortalTableEmptyRow
+                  colSpan={6}
+                  icon={Building2}
+                  title={searchTerm ? `Sem resultados para "${searchTerm}"` : "Nenhuma empresa encontrada"}
+                  description="Ajuste os filtros ou cadastre uma nova empresa."
+                />
               ) : (
                 paginatedData.map((company, index) => {
                   const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
@@ -840,9 +830,9 @@ export function CompanyTab({
                   )
                 })
               )}
-            </TableBody>
-            </Table>
-          </ResponsiveTableViewport>
+            </PortalTableBody>
+            </PortalTable>
+          </PortalTableViewport>
         </RegistryTableCard>
 
         <div className="flex flex-col gap-2">

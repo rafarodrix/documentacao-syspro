@@ -3,9 +3,17 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
-import { EmptyState, ResponsiveTableViewport } from "@/components/patterns";
+import {
+  EmptyState,
+  PortalTable,
+  PortalTableBody,
+  PortalTableEmptyRow,
+  PortalTableHead,
+  PortalTableHeader,
+  PortalTableViewport,
+} from "@/components/patterns";
 import { formatRelativeDate, formatAbsoluteDate } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Card, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
+import { TableCell, TableRow, Button, Card, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge } from "./ticket-badges";
@@ -95,39 +103,35 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
         )}
       </div>
 
-      <ResponsiveTableViewport
+      <PortalTableViewport
         className="hidden md:block"
-        innerClassName={canManageTickets ? "min-w-[1180px]" : "min-w-[980px]"}
+        minWidthClassName={canManageTickets ? "min-w-[1180px]" : "min-w-[980px]"}
       >
-        <Table>
-          <TableHeader className="sticky top-0 z-10 bg-muted/20 backdrop-blur">
+        <PortalTable>
+          <PortalTableHeader>
             <TableRow className="hover:bg-transparent border-b border-border/60">
-              <TableHead className="w-28 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket</TableHead>
-              <TableHead className="min-w-90 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <PortalTableHead className="w-28 px-3 py-3">Ticket</PortalTableHead>
+              <PortalTableHead className="min-w-90 px-3 py-3">
                 <SortButton label="Assunto" active={sortBy === "subject"} direction={sortOrder} onClick={() => toggleSort("subject", sortBy, sortOrder, onSortChange)} />
-              </TableHead>
-              {canManageTickets && <TableHead className="min-w-56 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></TableHead>}
-              <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Categoria</TableHead>
-              <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Equipe</TableHead>
-              {!isClosedView && !isOpenView && <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>}
-              {!isClosedView && <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prioridade</TableHead>}
-              {isClosedView && <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resolvido por</TableHead>}
-              <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></TableHead>
-              <TableHead className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
+              </PortalTableHead>
+              {canManageTickets && <PortalTableHead className="min-w-56 px-3 py-3"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></PortalTableHead>}
+              <PortalTableHead className="px-3 py-3">Categoria</PortalTableHead>
+              <PortalTableHead className="px-3 py-3">Equipe</PortalTableHead>
+              {!isClosedView && !isOpenView && <PortalTableHead className="px-3 py-3">Status</PortalTableHead>}
+              {!isClosedView && <PortalTableHead className="px-3 py-3">Prioridade</PortalTableHead>}
+              {isClosedView && <PortalTableHead className="px-3 py-3">Resolvido por</PortalTableHead>}
+              <PortalTableHead className="px-3 py-3"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></PortalTableHead>
+              <PortalTableHead className="px-3 py-3 text-right">Acoes</PortalTableHead>
             </TableRow>
-          </TableHeader>
-          <TableBody>
+          </PortalTableHeader>
+          <PortalTableBody>
             {tickets.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={emptyStateColSpan} className="h-64 text-center">
-                  <EmptyState
-                    icon={SearchX}
-                    title="Nenhum chamado encontrado"
-                    description="Tente ajustar os filtros ou busque por outro termo."
-                    compact
-                  />
-                </TableCell>
-              </TableRow>
+              <PortalTableEmptyRow
+                colSpan={emptyStateColSpan}
+                icon={SearchX}
+                title="Nenhum chamado encontrado"
+                description="Tente ajustar os filtros ou busque por outro termo."
+              />
             ) : (
               tickets.map((ticket, index) => (
                 <TableRow
@@ -220,9 +224,9 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                 </TableRow>
               ))
             )}
-          </TableBody>
-        </Table>
-      </ResponsiveTableViewport>
+          </PortalTableBody>
+        </PortalTable>
+      </PortalTableViewport>
     </Card>
   );
 }

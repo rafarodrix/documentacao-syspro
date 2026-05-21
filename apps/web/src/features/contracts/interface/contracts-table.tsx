@@ -4,8 +4,15 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { EmptyState, ResponsiveTableViewport } from "@/components/patterns";
+import { TableCell, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import {
+    PortalTable,
+    PortalTableBody,
+    PortalTableEmptyRow,
+    PortalTableHead,
+    PortalTableHeader,
+    PortalTableViewport,
+} from "@/components/patterns";
 import {
     Building2,
     CalendarClock,
@@ -322,31 +329,27 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         className="h-10 border-border/60 bg-background"
                     />
                 </div>
-                <ResponsiveTableViewport innerClassName="min-w-[980px]">
-                    <Table>
-                        <TableHeader className="bg-muted/20">
+                <PortalTableViewport minWidthClassName="min-w-[980px]">
+                    <PortalTable>
+                        <PortalTableHeader>
                             <TableRow className="hover:bg-transparent border-b border-border/60">
-                                <TableHead className="w-75 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresa</TableHead>
-                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vigencia</TableHead>
-                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Base</TableHead>
-                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aliq.</TableHead>
-                                <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                                <TableHead className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Liquido</TableHead>
-                                <TableHead className="w-12.5" />
+                                <PortalTableHead className="w-75 px-3 py-3">Empresa</PortalTableHead>
+                                <PortalTableHead className="px-3 py-3">Vigencia</PortalTableHead>
+                                <PortalTableHead className="px-3 py-3">Base</PortalTableHead>
+                                <PortalTableHead className="px-3 py-3">Aliq.</PortalTableHead>
+                                <PortalTableHead className="px-3 py-3">Status</PortalTableHead>
+                                <PortalTableHead className="px-3 py-3 text-right">Liquido</PortalTableHead>
+                                <PortalTableHead className="w-12.5" />
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                        </PortalTableHeader>
+                        <PortalTableBody>
                             {filteredItems.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="h-64 text-center">
-                                        <EmptyState
-                                            icon={FileText}
-                                            title="Nenhum contrato encontrado"
-                                            description={search.trim() ? "Ajuste os filtros e tente novamente." : "Cadastre um novo contrato para comecar a gestao."}
-                                            compact
-                                        />
-                                    </TableCell>
-                                </TableRow>
+                                <PortalTableEmptyRow
+                                    colSpan={7}
+                                    icon={FileText}
+                                    title="Nenhum contrato encontrado"
+                                    description={search.trim() ? "Ajuste os filtros e tente novamente." : "Cadastre um novo contrato para comecar a gestao."}
+                                />
                             ) : (
                                 filteredItems.map((contract, index) => {
                                     const minimumWage = toNumber(contract.minimumWage);
@@ -491,9 +494,9 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                                     );
                                 })
                             )}
-                        </TableBody>
-                    </Table>
-                </ResponsiveTableViewport>
+                        </PortalTableBody>
+                    </PortalTable>
+                </PortalTableViewport>
             </Card>
         </>
     );

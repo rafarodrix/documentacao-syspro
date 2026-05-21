@@ -25,10 +25,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
-import { LoadingState, ResponsiveTableViewport } from "@/components/patterns";
+import { LoadingState, PortalTable, PortalTableBody, PortalTableEmptyRow, PortalTableHead, PortalTableHeader, PortalTableLoadingRow, PortalTableViewport } from "@/components/patterns";
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
@@ -369,37 +369,27 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
             )}
           </div>
 
-          <ResponsiveTableViewport className="hidden md:block" innerClassName="min-w-[920px]">
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-muted/40 backdrop-blur">
+          <PortalTableViewport className="hidden md:block" minWidthClassName="min-w-[920px]">
+            <PortalTable>
+              <PortalTableHeader className="bg-muted/40">
                 <TableRow className="border-b border-border/60 hover:bg-transparent">
-                  <TableHead className="w-[30%] text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Contato</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Telefone</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Email</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Empresas</TableHead>
-                  <TableHead className="w-24 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead>
+                  <PortalTableHead className="w-[30%]">Contato</PortalTableHead>
+                  <PortalTableHead>Telefone</PortalTableHead>
+                  <PortalTableHead>Email</PortalTableHead>
+                  <PortalTableHead>Empresas</PortalTableHead>
+                  <PortalTableHead className="w-24 text-right">Acoes</PortalTableHead>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
+              </PortalTableHeader>
+              <PortalTableBody>
                 {loadingList ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-64 text-center">
-                      <LoadingBlock label="Carregando contatos..." compact />
-                    </TableCell>
-                  </TableRow>
+                  <PortalTableLoadingRow colSpan={5} label="Carregando contatos..." />
                 ) : filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-64 text-center">
-                      <RegistryEmptyState
-                        icon={Users}
-                        title="Nenhum contato encontrado"
-                        description={emptyStateDescription}
-                        searchTerm={searchTerm}
-                        onClear={() => handleSearchChange("")}
-                        compact
-                      />
-                    </TableCell>
-                  </TableRow>
+                  <PortalTableEmptyRow
+                    colSpan={5}
+                    icon={Users}
+                    title={searchTerm ? `Sem resultados para "${searchTerm}"` : "Nenhum contato encontrado"}
+                    description={emptyStateDescription}
+                  />
                 ) : (
                   filteredData.map((contact, index) => (
                     <ContactRow
@@ -415,9 +405,9 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
                     />
                   ))
                 )}
-              </TableBody>
-            </Table>
-          </ResponsiveTableViewport>
+              </PortalTableBody>
+            </PortalTable>
+          </PortalTableViewport>
         </RegistryTableCard>
 
         <div className="flex flex-col gap-2">
