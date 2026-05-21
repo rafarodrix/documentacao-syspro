@@ -171,6 +171,42 @@ function mapLeadToFormState(lead?: CrmLead | null): LeadFormState {
   };
 }
 
+function normalizeLeadContacts(rawValue: unknown): CrmLeadManualContact[] {
+  let parsedValue = rawValue;
+  if (typeof parsedValue === "string") {
+    try {
+      parsedValue = JSON.parse(parsedValue);
+    } catch {
+      return [];
+    }
+  }
+
+  const entries = Array.isArray(parsedValue)
+    ? parsedValue
+    : parsedValue && typeof parsedValue === "object"
+      ? [parsedValue]
+      : [];
+
+  return entries.map((contact: any) => ({
+    name: contact?.name || "",
+    role: contact?.role || "",
+    email: contact?.email || "",
+    phone: contact?.phone || "",
+    whatsapp: contact?.whatsapp || "",
+    isPrimary: Boolean(contact?.isPrimary),
+    notes: contact?.notes || "",
+  }));
+}
+
+function normalizeLeadForUi(lead: CrmLead): CrmLead {
+  return {
+    ...lead,
+    contacts: normalizeLeadContacts((lead as any)?.contacts),
+    activities: Array.isArray((lead as any)?.activities) ? (lead as any).activities : [],
+    tasks: Array.isArray((lead as any)?.tasks) ? (lead as any).tasks : [],
+  };
+}
+
 
 type LeadStatusFilter = "ACTIVE" | "WON" | "LOST";
 type LeadAttentionFilter = "ALL" | "OVERDUE" | "NO_NEXT_STEP" | "DUE_SOON";
@@ -253,7 +289,7 @@ function normalizeStageForSelect(stage: CrmLeadStage) {
 }
 
 function resolveLeadContactName(lead: CrmLead) {
-  const contacts = lead.contacts || [];
+  const contacts = Array.isArray(lead.contacts) ? lead.contacts : normalizeLeadContacts((lead as any)?.contacts);
   const primaryManualContact = contacts.find((contact) => contact.isPrimary)?.name?.trim();
   const firstManualContact = contacts.find((contact) => contact.name?.trim())?.name?.trim();
   return lead.primaryContactName || primaryManualContact || firstManualContact || "Sem contato vinculado";
@@ -349,7 +385,7 @@ function getPipelineColumnLeads(
 export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   const router = useRouter();
   const [isRefreshing, startTransition] = useTransition();
-  const [leads, setLeads] = useState<CrmLead[]>(data.leads);
+  const [leads, setLeads] = useState<CrmLead[]>(() => (Array.isArray(data.leads) ? data.leads.map(normalizeLeadForUi) : []));
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatusFilter>("ACTIVE");
   const [attentionFilter, setAttentionFilter] = useState<LeadAttentionFilter>("ALL");
@@ -366,30 +402,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
     setLeadDetailsRaw((prev) => {
       const resolved = typeof lead === "function" ? lead(prev) : lead;
       if (!resolved) return null;
-      let parsedContacts = resolved.contacts;
-      if (typeof parsedContacts === "string") {
-        try {
-          parsedContacts = JSON.parse(parsedContacts);
-        } catch (e) {
-          parsedContacts = [];
-        }
-      }
-      if (!Array.isArray(parsedContacts)) {
-        parsedContacts = [];
-      }
-      const contacts = parsedContacts.map((c: any) => ({
-        name: c?.name || "",
-        role: c?.role || "",
-        email: c?.email || "",
-        phone: c?.phone || "",
-        whatsapp: c?.whatsapp || "",
-        isPrimary: Boolean(c?.isPrimary),
-        notes: c?.notes || "",
-      }));
-      return {
-        ...resolved,
-        contacts,
-      };
+      return normalizeLeadForUi(resolved);
     });
   };
 
@@ -418,7 +431,7 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   const [editingContact, setEditingContact] = useState<CrmLeadManualContact | null>(null);
 
   useEffect(() => {
-    setLeads(data.leads);
+    setLeads(Array.isArray(data.leads) ? data.leads.map(normalizeLeadForUi) : []);
   }, [data.leads]);
 
   // Fetch lead details on selection
