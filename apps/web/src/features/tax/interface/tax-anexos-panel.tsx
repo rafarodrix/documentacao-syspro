@@ -4,13 +4,13 @@ import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { Input, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { EmptyState } from "@/components/patterns";
+import { formatDate } from "@/lib/date";
 import type { TaxAnexoListItem } from "@/features/tax/domain/tax.types";
 
 type VigenciaFilter = "all" | "active" | "future" | "expired";
 
 function fmtDate(value: Date | null) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(value));
+  return formatDate(value, "-");
 }
 
 function getVigencia(startDate: Date | null, endDate: Date | null): Exclude<VigenciaFilter, "all"> {

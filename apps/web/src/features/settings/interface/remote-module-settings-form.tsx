@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { AlertCircle, Copy, KeyRound, Loader2, MonitorCog, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
-import { formatDateTime as centralFormatDateTime } from "@/lib/date";
+import { formatDateTimeSafe } from "@/lib/date";
 import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@dosc-syspro/ui";
 import {
   DEFAULT_REMOTE_MODULE_SETTINGS,
@@ -264,12 +264,6 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
         toast.error(getRemoteApiErrorMessage(error));
       }
     });
-  }
-
-  function formatDateTime(value: string | null) {
-    if (!value) return "Sem registro";
-    const res = centralFormatDateTime(value);
-    return res === "-" ? "Sem registro" : res;
   }
 
   function resolveExpiryBadge(credential: AddressBookCredentialItem) {
@@ -782,12 +776,12 @@ export function RemoteModuleSettingsForm({ companyOptions }: { companyOptions: C
                           ) : null}
                           <div>
                             <dt className="text-muted-foreground">Último uso</dt>
-                            <dd className="text-foreground">{formatDateTime(credential.lastUsedAt)}</dd>
+                            <dd className="text-foreground">{formatDateTimeSafe(credential.lastUsedAt, "Sem registro")}</dd>
                           </div>
                           {credential.expiresAt ? (
                             <div>
                               <dt className="text-muted-foreground">Expira em</dt>
-                              <dd className="text-foreground">{formatDateTime(credential.expiresAt)}</dd>
+                              <dd className="text-foreground">{formatDateTimeSafe(credential.expiresAt, "Sem registro")}</dd>
                             </div>
                           ) : null}
                           <div>

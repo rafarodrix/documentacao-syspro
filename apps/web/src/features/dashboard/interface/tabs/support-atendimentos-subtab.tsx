@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { SectionCard } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
+import { formatDateTimeSafe } from "@/lib/date";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
 
@@ -75,19 +76,6 @@ function formatScore(value: number | null) {
   return value.toLocaleString("pt-BR", {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
-  });
-}
-
-function formatDateTime(value?: string) {
-  if (!value) return "Sem historico";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Sem historico";
-  return parsed.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
   });
 }
 
@@ -211,7 +199,7 @@ export function SupportAtendimentosSubtab() {
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/70 px-2.5 py-1">
               <Clock3 className="h-3.5 w-3.5" />
-              Atualizado em {formatDateTime(data?.refreshedAt)}
+              Atualizado em {formatDateTimeSafe(data?.refreshedAt, "Sem historico")}
             </span>
             <span className="rounded-md border border-border/60 bg-background/70 px-2.5 py-1">
               Cache {data?.cacheTtlSeconds ?? 45}s

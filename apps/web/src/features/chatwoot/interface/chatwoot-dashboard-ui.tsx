@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import { Badge } from "@dosc-syspro/ui";
 import { Loader2 } from "lucide-react";
 import { getRemoteOperationalStatusMeta, getRemoteProductStatusMeta } from "@/features/remote/domain";
-import { cn } from "@/lib/utils";
-import { formatDateTime } from "@/lib/date";
+import { cn, onlyDigits } from "@/lib/utils";
+import { formatRelativeDate as formatRelativeDateShared } from "@/lib/date";
 import type { ContactCompanyEntry, RemoteHostEntry } from "./chatwoot-dashboard-types";
 
 export function InlineNotice({ tone, message }: { tone: "success" | "error"; message: string }) {
@@ -177,13 +177,11 @@ export function readString(value: unknown) {
 }
 
 export function normalizeDigits(value: string) {
-  return value.replace(/\D/g, "");
+  return onlyDigits(value);
 }
 
 export function formatRelativeDate(value: string | null) {
-  if (!value) return "Sem registro";
-  const res = formatDateTime(value);
-  return res === "-" ? value : res;
+  return formatRelativeDateShared(value, "Sem registro");
 }
 
 export function getCompanyLabel(

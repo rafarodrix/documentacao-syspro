@@ -35,6 +35,7 @@ import { useTicketClassification } from "@/features/tickets/interface/hooks/use-
 import { useTicketOwners } from "@/features/tickets/interface/hooks/use-ticket-owners";
 import { useInternalUsers, type InternalUserOption } from "@/features/tickets/interface/hooks/use-internal-users";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Popover, PopoverContent, PopoverTrigger, Progress, ScrollArea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, Separator } from "@dosc-syspro/ui";
+import { formatDate, formatDateTimeSafe } from "@/lib/date";
 import { formatModuleOptionLabel, humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
@@ -1077,36 +1078,12 @@ function SlaCompact({ ticket, isClosedTicket }: { ticket: TicketDetailsItem; isC
     );
 }
 
-const ticketDateFormatter = new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "America/Sao_Paulo",
-});
-
-const ticketDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: "America/Sao_Paulo",
-});
-
 function formatTicketDate(value?: string | null, fallback = "N/D") {
-    if (!value) return fallback;
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return fallback;
-    return ticketDateFormatter.format(parsed);
+    return formatDate(value, fallback);
 }
 
 function formatTicketDateTime(value?: string | null, fallback = "N/D") {
-    if (!value) return fallback;
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return fallback;
-    return ticketDateTimeFormatter.format(parsed);
+    return formatDateTimeSafe(value, fallback);
 }
 
 function formatSlaDelta(minutes?: number) {

@@ -25,7 +25,7 @@ import { toast } from "sonner";
 
 import { Badge, Button, Input, Popover, PopoverContent, PopoverTrigger, Textarea, Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@dosc-syspro/ui";
 import { RegistryFormScaffold, type RegistryFormSection } from "@/components/platform/shared/registry-form-scaffold";
-import { cn } from "@/lib/utils";
+import { cn, normalizeCpf, normalizePhone } from "@/lib/utils";
 
 type Props = {
   companies: CompanyOption[];
@@ -54,10 +54,6 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
   },
 ];
 
-function normalizeDigits(value: string) {
-  return value.replace(/\D+/g, "");
-}
-
 function normalizeSearch(value: string) {
   return value
     .normalize("NFD")
@@ -67,7 +63,7 @@ function normalizeSearch(value: string) {
 }
 
 function formatWhatsapp(value: string) {
-  const digits = normalizeDigits(value).slice(0, 13);
+  const digits = normalizePhone(value).slice(0, 13);
 
   if (!digits) return "";
   if (digits.length <= 2) return `+${digits}`;
@@ -77,7 +73,7 @@ function formatWhatsapp(value: string) {
 }
 
 function formatPhone(value: string) {
-  const digits = normalizeDigits(value).slice(0, 11);
+  const digits = normalizePhone(value).slice(0, 11);
 
   if (!digits) return "";
   if (digits.length <= 2) return `(${digits}`;
@@ -87,7 +83,7 @@ function formatPhone(value: string) {
 }
 
 function formatCpf(value: string) {
-  const digits = normalizeDigits(value).slice(0, 11);
+  const digits = normalizeCpf(value);
 
   if (!digits) return "";
   if (digits.length <= 3) return digits;
@@ -97,17 +93,17 @@ function formatCpf(value: string) {
 }
 
 function isValidWhatsapp(value: string) {
-  const digits = normalizeDigits(value);
+  const digits = normalizePhone(value);
   return digits.length === 12 || digits.length === 13;
 }
 
 function isValidPhone(value: string) {
-  const digits = normalizeDigits(value);
+  const digits = normalizePhone(value);
   return digits.length === 10 || digits.length === 11;
 }
 
 function isValidCpf(value: string) {
-  return normalizeDigits(value).length === 11;
+  return normalizeCpf(value).length === 11;
 }
 
 function getCompanyLabel(company: CompanyOption) {
@@ -224,7 +220,7 @@ export function CreateContactPageForm({
       name: data.name.trim(),
       email: isEdit ? data.email?.trim() || null : data.email?.trim() || undefined,
       phone: isEdit ? phone || null : phone || undefined,
-      cpf: isEdit ? normalizeDigits(cpf) || null : normalizeDigits(cpf) || undefined,
+      cpf: isEdit ? normalizeCpf(cpf) || null : normalizeCpf(cpf) || undefined,
       jobTitle: isEdit ? data.jobTitle?.trim() || null : data.jobTitle?.trim() || undefined,
       whatsapp: isEdit ? whatsapp || null : whatsapp || undefined,
       notes: isEdit ? data.notes?.trim() || null : data.notes?.trim() || undefined,

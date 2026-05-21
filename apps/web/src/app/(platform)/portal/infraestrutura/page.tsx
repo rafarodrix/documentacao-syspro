@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Activity, Cpu, Monitor } from "lucide-react";
 import { requireSession } from "@/lib/auth-helpers";
-import { PageHeader } from "@/components/patterns";
+import { PageHeader, PageShell } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { fetchAgentDeviceList, fetchAgentFleetStats } from "@/features/agents/application/agent.queries";
 import { AgentDevicesPanel } from "@/features/agents/interface/devices-panel";
@@ -228,7 +228,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 space-y-5 pb-8 duration-700">
+    <PageShell>
       <PageHeader
         title="Infraestrutura"
         description="Centralize hosts, operacao remota e agentes em uma unica visao."
@@ -266,6 +266,6 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
       </section>
 
       {content}
-    </div>
+    </PageShell>
   );
 }

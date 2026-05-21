@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { Search, Link2, FileText, ShieldCheck } from "lucide-react";
 import { Button, Input, Badge } from "@dosc-syspro/ui";
-import { onlyDigits } from "@/lib/utils";
+import { normalizeNcm } from "@/lib/utils";
 
 type LookupResponse = {
   ok: boolean;
@@ -24,7 +24,7 @@ type LookupResponse = {
 };
 
 function normalizeNcmInput(value: string) {
-  return onlyDigits(value).slice(0, 8);
+  return normalizeNcm(value);
 }
 
 export function TaxNcmLookup() {

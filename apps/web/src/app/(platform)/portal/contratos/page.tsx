@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/patterns";
+import { PageHeader, PageShell } from "@/components/patterns";
 import { getSettingsContractsAdminViewData } from "@/features/settings/application/settings-read.queries";
 import { BulkReadjustDialog, ContractSheet, ContractsTable } from "@/features/contracts/interface";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -36,7 +36,7 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <PageShell className="flex w-full flex-col gap-6 pb-20">
       <PageHeader
         title="Contratos"
         description="Gerencie vigencia, calculo e bloqueio operacional dos contratos."
@@ -59,6 +59,6 @@ export default async function ContratosPage({ searchParams }: ContratosPageProps
           canDelete={canDeleteContracts}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
