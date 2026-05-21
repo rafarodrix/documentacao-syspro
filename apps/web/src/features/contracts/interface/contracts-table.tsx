@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, ResponsiveTableViewport } from "@/components/patterns";
 import {
     Building2,
     CalendarClock,
@@ -322,7 +322,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         className="h-10 border-border/60 bg-background"
                     />
                 </div>
-                <div className="overflow-x-auto">
+                <ResponsiveTableViewport innerClassName="min-w-[980px]">
                     <Table>
                         <TableHeader className="bg-muted/20">
                             <TableRow className="hover:bg-transparent border-b border-border/60">
@@ -493,7 +493,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             )}
                         </TableBody>
                     </Table>
-                </div>
+                </ResponsiveTableViewport>
             </Card>
         </>
     );

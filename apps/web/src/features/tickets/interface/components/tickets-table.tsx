@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, ResponsiveTableViewport } from "@/components/patterns";
 import { formatRelativeDate, formatAbsoluteDate } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Button, Card, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
 import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
@@ -95,7 +95,10 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
         )}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
+      <ResponsiveTableViewport
+        className="hidden md:block"
+        innerClassName={canManageTickets ? "min-w-[1180px]" : "min-w-[980px]"}
+      >
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-muted/20 backdrop-blur">
             <TableRow className="hover:bg-transparent border-b border-border/60">
@@ -219,7 +222,7 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
             )}
           </TableBody>
         </Table>
-      </div>
+      </ResponsiveTableViewport>
     </Card>
   );
 }

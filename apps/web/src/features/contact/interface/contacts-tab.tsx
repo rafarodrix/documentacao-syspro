@@ -28,7 +28,7 @@ import {
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
-import { LoadingState } from "@/components/patterns";
+import { LoadingState, ResponsiveTableViewport } from "@/components/patterns";
 import {
   RegistryEmptyState,
   RegistryFilterGroup,
@@ -369,7 +369,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
             )}
           </div>
 
-          <div className="hidden overflow-x-auto md:block">
+          <ResponsiveTableViewport className="hidden md:block" innerClassName="min-w-[920px]">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-muted/40 backdrop-blur">
                 <TableRow className="border-b border-border/60 hover:bg-transparent">
@@ -417,7 +417,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
                 )}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTableViewport>
         </RegistryTableCard>
 
         <div className="flex flex-col gap-2">

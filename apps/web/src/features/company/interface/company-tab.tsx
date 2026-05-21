@@ -21,7 +21,7 @@ import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/conf
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
-import { LoadingState, PageHeader } from "@/components/patterns"
+import { LoadingState, PageHeader, ResponsiveTableViewport } from "@/components/patterns"
 import {
   RegistryEmptyState,
   RegistryFeedback,
@@ -703,7 +703,7 @@ export function CompanyTab({
             )}
           </div>
 
-          <div className="hidden md:block w-full overflow-x-auto">
+          <ResponsiveTableViewport className="hidden md:block" innerClassName="min-w-[1120px]">
             <Table>
             <TableHeader className="bg-muted/20">
               <TableRow className="hover:bg-transparent border-b border-border/60">
@@ -841,8 +841,8 @@ export function CompanyTab({
                 })
               )}
             </TableBody>
-          </Table>
-          </div>
+            </Table>
+          </ResponsiveTableViewport>
         </RegistryTableCard>
 
         <div className="flex flex-col gap-2">
