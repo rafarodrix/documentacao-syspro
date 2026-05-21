@@ -21,10 +21,11 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
-import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@dosc-syspro/ui";
+import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, TableCell, TableRow } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatTimeShort } from "@/lib/date";
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, PortalTableHead } from "@/components/patterns";
+import { RegistryDataTable, RegistryFooter } from "@/components/platform/shared/registry-list-scaffold";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
 import { requestRemoteSessionAction } from "@/features/remote/application/session-actions";
@@ -688,21 +689,29 @@ export function RemotePlatformDirectoryPanel({
 
       {/* ── Host table ── */}
       {displayedItems.length ? (
-        <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/70 shadow-sm">
-          {/* Table header */}
-          <div className="hidden lg:grid grid-cols-[16px_minmax(0,2.2fr)_minmax(0,1.3fr)_136px_96px_80px_88px_188px] items-center gap-3 border-b border-border/40 bg-muted/5 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            <span />
-            <span>Host</span>
-            <span>Empresa / Instalações</span>
-            <span>ID remoto</span>
-            <span>Sinais</span>
-            <span>Métricas</span>
-            <span>Heartbeat</span>
-            <span className="text-right">Ações</span>
-          </div>
-
-          <div className="divide-y divide-border/30">
-            {displayedItems.map((item) => {
+        <div className="space-y-4">
+          <RegistryDataTable
+            isEmpty={false}
+            emptyState={{
+              icon: Monitor,
+              title: "Nenhum host encontrado",
+              description: searchTerm ? `Nenhum resultado para "${searchTerm}".` : "Nenhum host remoto configurado no seu escopo.",
+            }}
+            desktopColSpan={8}
+            flexible={true}
+            desktopHeader={
+              <TableRow className="border-b border-border/40 hover:bg-transparent">
+                <PortalTableHead className="w-4" />
+                <PortalTableHead className="min-w-0">Host</PortalTableHead>
+                <PortalTableHead className="min-w-0">Empresa / Instalações</PortalTableHead>
+                <PortalTableHead className="w-[136px]">ID remoto</PortalTableHead>
+                <PortalTableHead className="w-24">Sinais</PortalTableHead>
+                <PortalTableHead className="w-20">Métricas</PortalTableHead>
+                <PortalTableHead className="w-24">Heartbeat</PortalTableHead>
+                <PortalTableHead className="w-[188px] text-right">Ações</PortalTableHead>
+              </TableRow>
+            }
+            desktopContent={displayedItems.map((item) => {
               const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
               const productStatus = getRemoteProductStatusMeta(item.productStatus);
               const installationNames = item.installationCompanies.length ? item.installationCompanies : item.companyName ? [item.companyName] : [];
@@ -711,51 +720,52 @@ export function RemotePlatformDirectoryPanel({
               const hasRam = item.lastAgentMetrics?.ramUsedPc != null;
 
               return (
-                <div key={item.id} className="group px-4 py-2.5 transition-colors hover:bg-muted/10">
-                  {/* Desktop: grid layout */}
-                  <div className="hidden lg:grid grid-cols-[16px_minmax(0,2.2fr)_minmax(0,1.3fr)_136px_96px_80px_88px_188px] items-center gap-3">
-                    {/* Status dot */}
+                <TableRow key={item.id} className="group/row transition-colors hover:bg-muted/10">
+                  {/* Status dot */}
+                  <TableCell className="w-4 py-2.5">
                     <div className={cn("h-2 w-2 rounded-full shrink-0", heartbeat.dotClass)} />
+                  </TableCell>
 
-                    {/* Host */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <Monitor className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                        <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-5">
-                        {item.agent.machineName && (
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{item.agent.machineName}</span>
-                        )}
-                        {item.agent.lastKnownIp && (
-                          <span className="font-mono text-[10px] text-muted-foreground/60">{item.agent.lastKnownIp}</span>
-                        )}
-                        <Badge variant="outline" className={cn("h-4 px-1.5 text-[9px] font-medium", productStatus.className)}>
-                          {productStatus.label}
-                        </Badge>
-                      </div>
+                  {/* Host */}
+                  <TableCell className="min-w-0 py-2.5">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <Monitor className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                      <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
                     </div>
-
-                    {/* Company / tags */}
-                    <div className="min-w-0">
-                      {installationNames.length > 0 ? (
-                        <>
-                          <p className="truncate text-sm text-foreground">{installationNames[0]}</p>
-                          {installationNames.length > 1 && (
-                            <p className="text-[10px] text-muted-foreground">+{installationNames.length - 1} empresa(s)</p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-sm text-muted-foreground/50">—</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-5">
+                      {item.agent.machineName && (
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{item.agent.machineName}</span>
                       )}
-                      {item.lastTicketNumber && (
-                        <span className="flex items-center gap-1 text-[10px] text-primary/80 mt-0.5">
-                          <Ticket className="h-2.5 w-2.5" />#{item.lastTicketNumber}
-                        </span>
+                      {item.agent.lastKnownIp && (
+                        <span className="font-mono text-[10px] text-muted-foreground/60">{item.agent.lastKnownIp}</span>
                       )}
+                      <Badge variant="outline" className={cn("h-4 px-1.5 text-[9px] font-medium", productStatus.className)}>
+                        {productStatus.label}
+                      </Badge>
                     </div>
+                  </TableCell>
 
-                    {/* ID remoto */}
+                  {/* Company / tags */}
+                  <TableCell className="min-w-0 py-2.5">
+                    {installationNames.length > 0 ? (
+                      <>
+                        <p className="truncate text-sm text-foreground">{installationNames[0]}</p>
+                        {installationNames.length > 1 && (
+                          <p className="text-[10px] text-muted-foreground">+{installationNames.length - 1} empresa(s)</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/50">—</p>
+                    )}
+                    {item.lastTicketNumber && (
+                      <span className="flex items-center gap-1 text-[10px] text-primary/80 mt-0.5">
+                        <Ticket className="h-2.5 w-2.5" />#{item.lastTicketNumber}
+                      </span>
+                    )}
+                  </TableCell>
+
+                  {/* ID remoto */}
+                  <TableCell className="w-[136px] py-2.5">
                     <div className="flex items-center gap-1">
                       <code className="min-w-0 truncate rounded-md border border-border/30 bg-muted/20 px-2 py-1 text-xs font-mono text-foreground/80">
                         {item.agent.rustdeskId ?? "---"}
@@ -764,7 +774,7 @@ export function RemotePlatformDirectoryPanel({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-7 w-7 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity"
                         onClick={() => handleCopyRustDeskId(item.agent.rustdeskId)}
                         disabled={!item.agent.rustdeskId}
                         title="Copiar ID"
@@ -772,8 +782,10 @@ export function RemotePlatformDirectoryPanel({
                         <Copy className="h-3 w-3" />
                       </Button>
                     </div>
+                  </TableCell>
 
-                    {/* Sinais */}
+                  {/* Sinais */}
+                  <TableCell className="w-24 py-2.5">
                     <div className="flex flex-wrap gap-1">
                       {item.inventorySignals.rebootPending && (
                         <span title="Reboot pendente" className="inline-flex h-5 w-5 items-center justify-center rounded border border-rose-500/20 bg-rose-500/10 text-rose-600">
@@ -797,8 +809,10 @@ export function RemotePlatformDirectoryPanel({
                       )}
                       {!hasSignals && <span className="text-[10px] text-muted-foreground/40">—</span>}
                     </div>
+                  </TableCell>
 
-                    {/* Métricas */}
+                  {/* Métricas */}
+                  <TableCell className="w-20 py-2.5">
                     <div className="space-y-0.5">
                       {hasCpu && (
                         <div className="flex items-center gap-1">
@@ -814,22 +828,24 @@ export function RemotePlatformDirectoryPanel({
                       )}
                       {!hasCpu && !hasRam && <span className="text-[10px] text-muted-foreground/40">—</span>}
                     </div>
+                  </TableCell>
 
-                    {/* Heartbeat */}
-                    <div>
-                      <Badge variant="outline" className={cn("h-5 px-1.5 text-[9px]", heartbeat.className)}>
-                        {heartbeat.shortLabel}
-                      </Badge>
-                      <p
-                        className="mt-0.5 text-[10px] text-muted-foreground"
-                        title={formatHeartbeatDateTime(item.agent.lastHeartbeatAt, hasHydrated)}
-                      >
-                        {formatHeartbeatRelative(item.agent.lastHeartbeatAt, hasHydrated, referenceNow) ??
-                          formatHeartbeatTime(item.agent.lastHeartbeatAt, hasHydrated)}
-                      </p>
-                    </div>
+                  {/* Heartbeat */}
+                  <TableCell className="w-24 py-2.5">
+                    <Badge variant="outline" className={cn("h-5 px-1.5 text-[9px]", heartbeat.className)}>
+                      {heartbeat.shortLabel}
+                    </Badge>
+                    <p
+                      className="mt-0.5 text-[10px] text-muted-foreground"
+                      title={formatHeartbeatDateTime(item.agent.lastHeartbeatAt, hasHydrated)}
+                    >
+                      {formatHeartbeatRelative(item.agent.lastHeartbeatAt, hasHydrated, referenceNow) ??
+                        formatHeartbeatTime(item.agent.lastHeartbeatAt, hasHydrated)}
+                    </p>
+                  </TableCell>
 
-                    {/* Ações */}
+                  {/* Ações */}
+                  <TableCell className="w-[188px] py-2.5 text-right">
                     <div className="flex items-center gap-1.5 justify-end">
                       <Button
                         type="button"
@@ -851,10 +867,19 @@ export function RemotePlatformDirectoryPanel({
                         </Link>
                       </Button>
                     </div>
-                  </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            mobileContent={displayedItems.map((item) => {
+              const heartbeat = getHeartbeatMetaAt(item.agent.lastHeartbeatAt, referenceNow);
+              const productStatus = getRemoteProductStatusMeta(item.productStatus);
+              const installationNames = item.installationCompanies.length ? item.installationCompanies : item.companyName ? [item.companyName] : [];
+              const hasSignals = item.inventorySignals.rebootPending || item.inventorySignals.diskLow || item.inventorySignals.sysproProcessDown || !!item.contractErrorCode;
 
-                  {/* Mobile: stacked layout */}
-                  <div className="lg:hidden space-y-3">
+              return (
+                <div key={item.id} className="px-4 py-4 transition-colors hover:bg-muted/10">
+                  <div className="space-y-3">
                     <div className="flex items-start gap-3">
                       <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", heartbeat.dotClass)} />
                       <div className="min-w-0 flex-1">
@@ -902,12 +927,16 @@ export function RemotePlatformDirectoryPanel({
                 </div>
               );
             })}
-          </div>
+          />
 
-          {/* Table footer count */}
-          <div className="border-t border-border/30 bg-muted/5 px-4 py-2.5 text-right text-[11px] text-muted-foreground">
-            {displayedItems.length} de {directory.items.length} host(s)
-          </div>
+          <RegistryFooter
+            filtered={displayedItems.length}
+            total={directory.items.length}
+            singular="host"
+            plural="hosts"
+            searchTerm={searchTerm}
+            onClearSearch={() => setSearchTerm("")}
+          />
         </div>
       ) : !shouldShowPendingItems ? (
         <EmptyState

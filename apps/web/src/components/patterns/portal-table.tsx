@@ -17,13 +17,19 @@ export function PortalTableViewport({
   children,
   className,
   minWidthClassName,
+  flexible = false,
 }: {
   children: ReactNode;
   className?: string;
   minWidthClassName?: string;
+  flexible?: boolean;
 }) {
   return (
-    <ResponsiveTableViewport className={className} innerClassName={cn("min-w-max", minWidthClassName)}>
+    <ResponsiveTableViewport
+      className={className}
+      innerClassName={cn(flexible ? "w-full" : "min-w-max", minWidthClassName)}
+      flexible={flexible}
+    >
       {children}
     </ResponsiveTableViewport>
   );

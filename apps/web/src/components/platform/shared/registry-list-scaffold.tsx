@@ -166,6 +166,7 @@ export function RegistryDataTable({
   desktopClassName,
   desktopHeaderClassName,
   wrapInCard = true,
+  flexible = false,
 }: {
   toolbar?: ReactNode;
   content?: ReactNode;
@@ -185,6 +186,7 @@ export function RegistryDataTable({
   desktopClassName?: string;
   desktopHeaderClassName?: string;
   wrapInCard?: boolean;
+  flexible?: boolean;
 }) {
   const emptyTitle = getRegistryEmptyTitle(emptyState);
   const body = content ? (
@@ -219,7 +221,7 @@ export function RegistryDataTable({
         )}
       </div>
 
-      <PortalTableViewport className={cn("hidden md:block", desktopClassName)} minWidthClassName={minWidthClassName}>
+      <PortalTableViewport className={cn("hidden md:block", desktopClassName)} minWidthClassName={minWidthClassName} flexible={flexible}>
         <PortalTable>
           <PortalTableHeader className={desktopHeaderClassName}>{desktopHeader}</PortalTableHeader>
           <PortalTableBody>
