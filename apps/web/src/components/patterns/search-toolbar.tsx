@@ -33,9 +33,9 @@ export function SearchToolbar({
         className,
       )}
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="group relative w-full lg:w-96">
+      <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="group relative min-w-0 flex-1 lg:max-w-md xl:max-w-lg">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
               placeholder={searchPlaceholder}
@@ -55,13 +55,13 @@ export function SearchToolbar({
             ) : null}
           </div>
           {filters ? (
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               {filters}
             </div>
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center xl:justify-end">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto xl:max-w-full xl:justify-end">
           {resultLabel ? (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground sm:mr-1">
               <Search className="h-3.5 w-3.5" />

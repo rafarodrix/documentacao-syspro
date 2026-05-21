@@ -71,6 +71,7 @@ import {
   RegistryTableCard,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
+import { PageHeader } from "@/components/patterns";
 import {
   CRM_ACTIVE_STAGE_ORDER,
   CRM_SOURCE_LABELS,
@@ -878,19 +879,9 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
   return (
     <>
       <div className="space-y-5 pb-20">
-        <RegistryToolbar
-          searchValue={search}
-          searchPlaceholder="Buscar empresa, titulo, contato ou proximo passo..."
-          onSearchChange={setSearch}
-          onClearSearch={() => setSearch("")}
-          resultLabel={paginationSummary}
-          filters={
-
-            <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
-              <RegistryFilterGroup value={statusFilter} onChange={setStatusFilter} options={stageSummaryFilters} />
-              <RegistryFilterGroup value={attentionFilter} onChange={setAttentionFilter} options={attentionSummaryFilters} />
-            </div>
-          }
+        <PageHeader
+          title="Leads"
+          description="Gerencie o pipeline comercial, acompanhe proximos passos e mova oportunidades entre etapas."
           actions={
             <>
               <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => setIsStageGuideOpen(true)}>
@@ -904,6 +895,20 @@ export function LeadManagementPage({ data }: { data: LeadDashboardData }) {
                 </Link>
               </Button>
             </>
+          }
+        />
+
+        <RegistryToolbar
+          searchValue={search}
+          searchPlaceholder="Buscar empresa, titulo, contato ou proximo passo..."
+          onSearchChange={setSearch}
+          onClearSearch={() => setSearch("")}
+          resultLabel={paginationSummary}
+          filters={
+            <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
+              <RegistryFilterGroup value={statusFilter} onChange={setStatusFilter} options={stageSummaryFilters} />
+              <RegistryFilterGroup value={attentionFilter} onChange={setAttentionFilter} options={attentionSummaryFilters} />
+            </div>
           }
         />
 

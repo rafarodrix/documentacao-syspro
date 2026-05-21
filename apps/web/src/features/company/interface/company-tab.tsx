@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   COMPANY_STATUS_VALUES,
-  companyListResponseSchema,
   type CompanyInactivationReasonValue,
   type CompanyListResponse,
   type CompanyStatusValue,
@@ -22,6 +21,7 @@ import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/conf
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
+import { PageHeader } from "@/components/patterns"
 import {
   RegistryEmptyState,
   RegistryFeedback,
@@ -585,6 +585,21 @@ export function CompanyTab({
       <div className="space-y-4">
         {feedback ? <RegistryFeedback type={feedback.type} message={feedback.message} /> : null}
 
+        <PageHeader
+          title="Empresas"
+          description="Consulte cadastros, filtre por status e gerencie o ciclo de vida das empresas do portal."
+          actions={
+            canCreate ? (
+              <Button asChild size="sm" className="h-9 gap-2">
+                <Link href={`/portal/cadastros/empresa/novo?returnTo=${encodeURIComponent(currentListHref)}`}>
+                  <Plus className="h-4 w-4" />
+                  Nova empresa
+                </Link>
+              </Button>
+            ) : null
+          }
+        />
+
         <RegistryToolbar
           searchValue={searchTerm}
           searchPlaceholder="Razao social, fantasia ou CNPJ..."
@@ -616,16 +631,6 @@ export function CompanyTab({
                 ]}
               />
             </>
-          }
-          actions={
-            canCreate ? (
-              <Button asChild size="sm" className="h-9 gap-2">
-                <Link href={`/portal/cadastros/empresa/novo?returnTo=${encodeURIComponent(currentListHref)}`}>
-                  <Plus className="h-4 w-4" />
-                  Nova empresa
-                </Link>
-              </Button>
-            ) : null
           }
         />
 

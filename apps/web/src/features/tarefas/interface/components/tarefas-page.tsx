@@ -1,7 +1,14 @@
 "use client";
 
 import { trpc } from "@/lib/api/trpc-client";
-import { RegistryEmptyState, RegistryPagination, RegistryTableCard } from "@/components/platform/shared/registry-list-scaffold";
+import {
+  RegistryEmptyState,
+  RegistryFilterGroup,
+  RegistryPagination,
+  RegistryTableCard,
+  RegistryToolbar,
+} from "@/components/platform/shared/registry-list-scaffold";
+import { PageHeader } from "@/components/patterns";
 import type { TaskItem, TaskItemListResponse } from "@dosc-syspro/contracts/tarefas";
 import {
   Badge,
@@ -348,66 +355,52 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
   const isManualBacklogView = type === "TAREFA";
   const shouldUseCompetenceFilter = origin === "MONTHLY" || (origin === "ALL" && type !== "TAREFA");
   const shouldUseOperationalDueFilter = origin === "MANUAL" || origin === "TICKET" || type === "TAREFA";
+
+  const statusFilterOptions = STATUS_FILTER_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+    count: tasks.summary[option.countKey],
+  }));
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">Tarefas</h1>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">
-            Gerencie rotinas mensais por competencia e tarefas avulsas como backlog operacional continuo.
-          </p>
-        </div>
-        {canManage ? (
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button type="button" onClick={() => setIsCreateDialogOpen(true)} className="h-10 w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova tarefa
-            </Button>
-            {!isManualBacklogView ? (
-              <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full sm:w-auto">
-                <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-                {isSyncing ? "Sincronizando..." : "Sincronizar rotinas do mes"}
+      <PageHeader
+        title="Tarefas"
+        description="Gerencie rotinas mensais por competencia e tarefas avulsas como backlog operacional continuo."
+        actions={
+          canManage ? (
+            <>
+              <Button type="button" onClick={() => setIsCreateDialogOpen(true)} className="h-10 w-full gap-2 sm:w-auto">
+                <Plus className="h-4 w-4" />
+                Nova tarefa
               </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+              {!isManualBacklogView ? (
+                <Button type="button" variant="outline" onClick={handleSyncMonth} disabled={isSyncing} className="h-10 w-full gap-2 sm:w-auto">
+                  <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                  {isSyncing ? "Sincronizando..." : "Sincronizar rotinas do mes"}
+                </Button>
+              ) : null}
+            </>
+          ) : null
+        }
+      />
 
-      <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
-        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center">
-          <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-auto">
-            <div className="flex min-w-max rounded-md bg-muted/40 p-1">
-              {STATUS_FILTER_OPTIONS.map((option) => {
-                const count = tasks.summary[option.countKey];
-                const isActive = status === option.value || (status === "" && option.value === "OPEN");
-
-                return (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    variant={isActive ? "secondary" : "ghost"}
-                    size="sm"
-                    className={`h-8 px-4 ${isActive ? "bg-background shadow-sm" : ""}`}
-                    onClick={() => setStatusFilter(option.value)}
-                  >
-                    {option.label} ({count})
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex flex-1 items-center gap-3 w-full xl:w-auto">
-            <div className="group relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-              <Input
-                value={searchDraft}
-                onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Buscar por empresa, tarefa, contato ou contador..."
-                className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50 w-full"
-              />
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
+      <section className="space-y-3 rounded-lg border border-border/60 bg-card p-3 shadow-sm">
+        <RegistryToolbar
+          searchValue={searchDraft}
+          searchPlaceholder="Buscar por empresa, tarefa, contato ou contador..."
+          onSearchChange={setSearchDraft}
+          onClearSearch={() => setSearchDraft("")}
+          resultLabel={`${tasks.pagination.total} filtradas`}
+          filters={
+            <RegistryFilterGroup
+              value={status || "OPEN"}
+              onChange={setStatusFilter}
+              options={statusFilterOptions}
+            />
+          }
+          actions={
+            <>
               {hasActiveFilters ? (
                 <Button
                   type="button"
@@ -430,12 +423,12 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
               >
                 <Filter className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {showFilters ? (
-          <div className="mt-3 rounded-lg border border-border/40 bg-background p-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="rounded-lg border border-border/40 bg-background p-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)]">
               <div className="space-y-1.5">
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>

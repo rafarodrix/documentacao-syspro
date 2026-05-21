@@ -60,7 +60,7 @@ export function AppShell({
       ) : null}
 
       <div
-        className={`flex-1 flex flex-col h-full transition-[padding-left] duration-200 ${
+        className={`flex min-w-0 flex-1 flex-col h-full transition-[padding-left] duration-200 ${
           showPortalSidebar ? (collapsed ? "md:pl-16" : "md:pl-64") : "md:pl-0"
         }`}
       >
@@ -75,9 +75,9 @@ export function AppShell({
           navigationAccess={navigationAccess}
         />
 
-        <main className={`flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 ${contentClassName ?? ""}`.trim()}>
+        <main className={`flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 ${contentClassName ?? ""}`.trim()}>
           <div
-            className={`max-w-400 mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500 ${contentContainerClassName ?? ""}`.trim()}
+            className={`mx-auto min-w-0 w-full max-w-400 animate-in fade-in slide-in-from-bottom-2 duration-500 ${contentContainerClassName ?? ""}`.trim()}
           >
             {children}
           </div>
@@ -86,4 +86,3 @@ export function AppShell({
     </div>
   )
 }
-

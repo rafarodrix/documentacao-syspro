@@ -36,7 +36,7 @@ export function PageHeader({
   const badgeStyle = BADGE_STYLES[badge?.variant ?? "default"];
 
   return (
-    <header className={cn("flex items-start justify-between gap-4", className)}>
+    <header className={cn("flex flex-col gap-3 md:flex-row md:items-start md:justify-between", className)}>
       <div className="min-w-0">
         <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">
           {title}
@@ -46,7 +46,7 @@ export function PageHeader({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:justify-end">
         {badge && (
           <span
             className={cn(

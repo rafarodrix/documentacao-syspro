@@ -89,7 +89,7 @@ export function TicketsContainer({
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Link href="/portal/tickets/novo">
+          <Link href="/portal/tickets/novo" className="w-full sm:w-auto">
             <Button className="h-10 w-full gap-2 sm:w-auto">
               <PlusCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Novo chamado</span>
