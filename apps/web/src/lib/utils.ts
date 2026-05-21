@@ -1,36 +1,29 @@
 import { cn as cnUi } from "@dosc-syspro/ui";
 import {
+  onlyDigits,
+  normalizeCpf,
+  normalizeCnpj,
+  normalizeCep,
+  normalizeNcm,
+  normalizePhone,
+} from "@dosc-syspro/shared";
+import {
   formatDate,
   formatDateTimeSafe,
   formatRelativeDate as formatRelativeDateShared,
 } from "./date";
 
+export {
+  onlyDigits,
+  normalizeCpf,
+  normalizeCnpj,
+  normalizeCep,
+  normalizeNcm,
+  normalizePhone,
+};
+
 export function cn(...inputs: Parameters<typeof cnUi>) {
   return cnUi(...inputs);
-}
-
-export function onlyDigits(value: string | number | null | undefined) {
-  return String(value ?? "").replace(/\D/g, "");
-}
-
-export function normalizeCpf(value: string | number | null | undefined) {
-  return onlyDigits(value).slice(0, 11);
-}
-
-export function normalizeCnpj(value: string | number | null | undefined) {
-  return onlyDigits(value).slice(0, 14);
-}
-
-export function normalizeCep(value: string | number | null | undefined) {
-  return onlyDigits(value).slice(0, 8);
-}
-
-export function normalizeNcm(value: string | number | null | undefined) {
-  return onlyDigits(value).slice(0, 8);
-}
-
-export function normalizePhone(value: string | number | null | undefined) {
-  return onlyDigits(value);
 }
 
 export function formatDateSafe(

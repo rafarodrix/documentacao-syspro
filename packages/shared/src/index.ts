@@ -11,6 +11,15 @@ export {
   formatPhone,
   isValidCNPJ,
   isValidCnpj,
+  onlyDigits,
+  normalizeCpf,
+  normalizeCnpj,
+  normalizeCep,
+  normalizeNcm,
+  normalizePhone,
+  formatCpf,
+  isValidCPF,
+  isValidCpf,
 } from "./formatters";
 export { calculateContractFinancials } from "./financials";
 export type { ContractFinancialBreakdown } from "./financials";

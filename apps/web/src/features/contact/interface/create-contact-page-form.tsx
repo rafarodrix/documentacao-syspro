@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createContactSchema, type CreateContactInput } from "@dosc-syspro/contracts/contact";
 import type { CompanyOption } from "@dosc-syspro/contracts/company";
-import { includesNormalizedSearch, normalizeSearchText } from "@dosc-syspro/shared";
+import { includesNormalizedSearch, normalizeSearchText, formatCpf, isValidCpf } from "@dosc-syspro/shared";
 import { createContactAction, updateContactAction } from "@/features/contact/application/contact-write.actions";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -82,16 +82,6 @@ function formatPhone(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-function formatCpf(value: string) {
-  const digits = normalizeCpf(value);
-
-  if (!digits) return "";
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-}
-
 function isValidWhatsapp(value: string) {
   const digits = normalizePhone(value);
   return digits.length === 12 || digits.length === 13;
@@ -100,10 +90,6 @@ function isValidWhatsapp(value: string) {
 function isValidPhone(value: string) {
   const digits = normalizePhone(value);
   return digits.length === 10 || digits.length === 11;
-}
-
-function isValidCpf(value: string) {
-  return normalizeCpf(value).length === 11;
 }
 
 function getCompanyLabel(company: CompanyOption) {

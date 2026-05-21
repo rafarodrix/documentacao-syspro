@@ -71,3 +71,58 @@ export function isValidCNPJ(value: string) {
 }
 
 export const isValidCnpj = isValidCNPJ;
+
+export function onlyDigits(value: string | number | null | undefined): string {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+export function normalizeCpf(value: string | number | null | undefined): string {
+  return onlyDigits(value).slice(0, 11);
+}
+
+export function normalizeCnpj(value: string | number | null | undefined): string {
+  return onlyDigits(value).slice(0, 14);
+}
+
+export function normalizeCep(value: string | number | null | undefined): string {
+  return onlyDigits(value).slice(0, 8);
+}
+
+export function normalizeNcm(value: string | number | null | undefined): string {
+  return onlyDigits(value).slice(0, 8);
+}
+
+export function normalizePhone(value: string | number | null | undefined): string {
+  return onlyDigits(value);
+}
+
+export function formatCpf(value: string): string {
+  const digits = onlyDigits(value);
+  if (!digits) return "";
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+}
+
+export function isValidCPF(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const digits = onlyDigits(value);
+  if (digits.length !== 11 || /^(\d)\1+$/.test(digits)) return false;
+
+  const calcDigit = (base: string, factorStart: number) => {
+    let sum = 0;
+    for (let i = 0; i < base.length; i++) {
+      sum += Number(base[i]) * (factorStart - i);
+    }
+    const mod = sum % 11;
+    return mod < 2 ? 0 : 11 - mod;
+  };
+
+  const base = digits.slice(0, 9);
+  const firstDigit = calcDigit(base, 10);
+  const secondDigit = calcDigit(`${base}${firstDigit}`, 11);
+  return digits === `${base}${firstDigit}${secondDigit}`;
+}
+
+export const isValidCpf = isValidCPF;
