@@ -125,7 +125,7 @@ export function ChatwootOverviewTab() {
                       setContactNameDraft(effectiveContactName || "");
                       setIsEditingName(true);
                     }}
-                    className="absolute right-2 top-2 p-1 rounded-md text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-all opacity-0 group-hover:opacity-100 duration-200"
+                    className="absolute right-2 top-2 p-1 rounded-md text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-all duration-200 opacity-100"
                     title="Editar nome"
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -179,37 +179,7 @@ export function ChatwootOverviewTab() {
           </CardHeader>
           <CardContent className="space-y-3">
             {primaryCompany ? (
-              <>
-                <div className="rounded-2xl border border-border/30 bg-background/30 backdrop-blur px-3 py-3 shadow-md transition-all duration-300 hover:border-primary/10">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground tracking-tight">{getCompanyLabel(primaryCompany)}</p>
-                      {primaryCompany.razaoSocial !== getCompanyLabel(primaryCompany) ? (
-                        <p className="mt-0.5 text-xs text-muted-foreground/80">{primaryCompany.razaoSocial}</p>
-                      ) : null}
-                    </div>
-                    <div className="min-w-[11rem] max-w-full">
-                      <DetailItem label="ID" value={primaryCompany.id} helper="Ativa nesta conversa" breakAll />
-                    </div>
-                  </div>
-
-                  {recommendedHost ? (
-                    <div className="mt-3 rounded-xl border border-border/30 bg-background/40 hover:bg-background/60 hover:border-primary/20 backdrop-blur px-3 py-2.5 transition-all duration-300 shadow-sm">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-foreground">{recommendedHost.name}</p>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground/90">Host recomendado neste contexto.</p>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <RemoteHostStatusBadges host={recommendedHost} />
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                <CompanyOperationalSettingsCard company={primaryCompany} isActive />
-              </>
+              <CompanyOperationalSettingsCard company={primaryCompany} isActive recommendedHost={recommendedHost} />
             ) : (
               <EmptyState label="Selecione uma empresa no topo do painel para carregar os dados operacionais desta conversa." />
             )}

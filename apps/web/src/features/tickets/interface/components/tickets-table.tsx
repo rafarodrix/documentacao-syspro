@@ -105,7 +105,7 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
 
       <PortalTableViewport
         className="hidden md:block"
-        minWidthClassName={canManageTickets ? "min-w-[1180px]" : "min-w-[980px]"}
+        flexible={true}
       >
         <PortalTable>
           <PortalTableHeader>
@@ -115,12 +115,12 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                 <SortButton label="Assunto" active={sortBy === "subject"} direction={sortOrder} onClick={() => toggleSort("subject", sortBy, sortOrder, onSortChange)} />
               </PortalTableHead>
               {canManageTickets && <PortalTableHead className="min-w-56 px-3 py-3"><SortButton label="Cliente" active={sortBy === "customer"} direction={sortOrder} onClick={() => toggleSort("customer", sortBy, sortOrder, onSortChange)} /></PortalTableHead>}
-              <PortalTableHead className="px-3 py-3">Categoria</PortalTableHead>
-              <PortalTableHead className="px-3 py-3">Equipe</PortalTableHead>
+              <PortalTableHead className="px-3 py-3 hidden xl:table-cell">Categoria</PortalTableHead>
+              <PortalTableHead className="px-3 py-3 hidden lg:table-cell">Equipe</PortalTableHead>
               {!isClosedView && !isOpenView && <PortalTableHead className="px-3 py-3">Status</PortalTableHead>}
-              {!isClosedView && <PortalTableHead className="px-3 py-3">Prioridade</PortalTableHead>}
-              {isClosedView && <PortalTableHead className="px-3 py-3">Resolvido por</PortalTableHead>}
-              <PortalTableHead className="px-3 py-3"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></PortalTableHead>
+              {!isClosedView && <PortalTableHead className="px-3 py-3 hidden xl:table-cell">Prioridade</PortalTableHead>}
+              {isClosedView && <PortalTableHead className="px-3 py-3 hidden xl:table-cell">Resolvido por</PortalTableHead>}
+              <PortalTableHead className="px-3 py-3 hidden lg:table-cell"><SortButton label={isClosedView ? "Resolvido em" : "Atualizacao"} active={sortBy === "updatedAt"} direction={sortOrder} onClick={() => toggleSort("updatedAt", sortBy, sortOrder, onSortChange)} /></PortalTableHead>
               <PortalTableHead className="px-3 py-3 text-right">Acoes</PortalTableHead>
             </TableRow>
           </PortalTableHeader>
@@ -174,12 +174,12 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                     </TableCell>
                   )}
 
-                  <TableCell className="px-3 py-3.5">
+                  <TableCell className="px-3 py-3.5 hidden xl:table-cell">
                     <span className="text-xs text-muted-foreground">
                       {resolveCategoryLabel(ticketSettings.categories, ticket.category)}
                     </span>
                   </TableCell>
-                  <TableCell className="px-3 py-3.5">
+                  <TableCell className="px-3 py-3.5 hidden lg:table-cell">
                     <TeamBadge team={ticket.team} />
                   </TableCell>
                   {!isClosedView && !isOpenView && (
@@ -188,18 +188,18 @@ export function TicketsTable({ tickets, canManageTickets, statusGroup, sortBy, s
                     </TableCell>
                   )}
                   {!isClosedView && (
-                    <TableCell className="px-3 py-3.5">
+                    <TableCell className="px-3 py-3.5 hidden xl:table-cell">
                       <PriorityBadge priority={ticket.priority} />
                     </TableCell>
                   )}
                   {isClosedView && (
-                    <TableCell className="px-3 py-3.5">
+                    <TableCell className="px-3 py-3.5 hidden xl:table-cell">
                       <span className="text-xs text-muted-foreground">
                         {ticket.resolvedByName || "Nao informado"}
                       </span>
                     </TableCell>
                   )}
-                  <TableCell className="px-3 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                  <TableCell className="px-3 py-3.5 text-xs text-muted-foreground whitespace-nowrap hidden lg:table-cell">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-default">
