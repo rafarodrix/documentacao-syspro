@@ -1,6 +1,6 @@
 ---
-title: "Guia: Padrão de Nomenclatura"
-description: Convenções de nomes adotadas no monorepo — TypeScript, Go, banco de dados Prisma, rotas REST e packages internos.
+title: "Guia: PadrÃ£o de Nomenclatura"
+description: ConvenÃ§Ãµes de nomes adotadas no monorepo â€” TypeScript, Go, banco de dados Prisma, rotas REST e packages internos.
 lastUpdated: 2026-05-18
 owner: Engenharia de Plataforma
 status: published
@@ -9,21 +9,21 @@ tags:
   - documentacao
 ---
 
-# Guia: Padrão de Nomenclatura
+# Guia: PadrÃ£o de Nomenclatura
 
-> Convenções de nomes adotadas no monorepo. Atualizado em: 2026-05-05
+> ConvenÃ§Ãµes de nomes adotadas no monorepo. Atualizado em: 2026-05-05
 
 ---
 
 ## TypeScript / Node.js
 
-| Item                  | Convenção         | Exemplo                              |
+| Item                  | ConvenÃ§Ã£o         | Exemplo                              |
 |-----------------------|-------------------|--------------------------------------|
 | Arquivos              | `kebab-case`      | `remote-host-admin.port.ts`          |
 | Classes               | `PascalCase`      | `RemoteHostAdminPort`                |
 | Interfaces e tipos    | `PascalCase`      | `ProcessHeartbeatInput`              |
-| Funções e métodos     | `camelCase`       | `createRemoteHostAdminPort`          |
-| Variáveis e consts    | `camelCase`       | `agentToken`, `lastHeartbeatAt`      |
+| FunÃ§Ãµes e mÃ©todos     | `camelCase`       | `createRemoteHostAdminPort`          |
+| VariÃ¡veis e consts    | `camelCase`       | `agentToken`, `lastHeartbeatAt`      |
 | Enums (nome)          | `PascalCase`      | `RemoteHostStatus`                   |
 | Enums (valores)       | `SCREAMING_SNAKE` | `ROTATE_TOKEN_REQUIRED`              |
 | Schemas Zod           | `<Nome>Schema`    | `HeartbeatPayloadV1Schema`           |
@@ -33,54 +33,54 @@ tags:
 
 ## Go
 
-| Item                  | Convenção          | Exemplo                        |
+| Item                  | ConvenÃ§Ã£o          | Exemplo                        |
 |-----------------------|--------------------|--------------------------------|
 | Arquivos              | `snake_case`       | `portal_client.go`             |
 | Tipos e structs       | `PascalCase`       | `BootstrapInput`               |
-| Funções exportadas    | `PascalCase`       | `ProcessHeartbeat`             |
-| Funções internas      | `camelCase`        | `buildConfig`                  |
-| Variáveis             | `camelCase`        | `agentToken`                   |
+| FunÃ§Ãµes exportadas    | `PascalCase`       | `ProcessHeartbeat`             |
+| FunÃ§Ãµes internas      | `camelCase`        | `buildConfig`                  |
+| VariÃ¡veis             | `camelCase`        | `agentToken`                   |
 | Sufixos de plataforma | `_windows.go`      | `rustdesk_windows.go`          |
-| Sufixos de plataforma | `_other.go`        | `rustdesk_other.go` (não-Win)  |
+| Sufixos de plataforma | `_other.go`        | `rustdesk_other.go` (nÃ£o-Win)  |
 
 ---
 
 ## Banco de dados (Prisma)
 
-| Item               | Convenção          | Exemplo                        |
+| Item               | ConvenÃ§Ã£o          | Exemplo                        |
 |--------------------|--------------------|--------------------------------|
 | Modelos            | `PascalCase`       | `RemoteHost`, `CompanyContact` |
 | Campos             | `camelCase`        | `lastHeartbeatAt`, `rustdeskId`|
 | Enums (nome)       | `PascalCase`       | `RemoteHostStatus`             |
 | Enums (valores)    | `SCREAMING_SNAKE`  | `ACTIVE`, `SESSION_BUSY`       |
-| Tabelas geradas    | `snake_case`       | `remote_host`, `company_contact` (automático) |
+| Tabelas geradas    | `snake_case`       | `remote_host`, `company_contact` (automÃ¡tico) |
 
 ---
 
 ## API REST (NestJS)
 
-| Item                  | Convenção       | Exemplo                        |
+| Item                  | ConvenÃ§Ã£o       | Exemplo                        |
 |-----------------------|-----------------|--------------------------------|
 | Prefixo de rota       | `kebab-case`    | `/remote-admin/`, `/companies/`|
-| Parâmetros de rota    | `camelCase`     | `/:hostId`, `/:companyId`      |
+| ParÃ¢metros de rota    | `camelCase`     | `/:hostId`, `/:companyId`      |
 | Query params          | `camelCase`     | `?pageSize=10&companyId=...`   |
 
 ---
 
 ## Packages do monorepo
 
-| Item                  | Convenção              | Exemplo                          |
+| Item                  | ConvenÃ§Ã£o              | Exemplo                          |
 |-----------------------|------------------------|----------------------------------|
 | Nome de package       | `@dosc-syspro/<nome>`  | `@dosc-syspro/remote-domain`     |
-| Nome de diretório     | `kebab-case`           | `packages/remote-domain/`        |
+| Nome de diretÃ³rio     | `kebab-case`           | `packages/features/remote/domain/`        |
 
 ---
 
 ## Features do Web (Next.js)
 
-| Item                  | Convenção       | Exemplo                        |
+| Item                  | ConvenÃ§Ã£o       | Exemplo                        |
 |-----------------------|-----------------|--------------------------------|
-| Diretório de feature  | `kebab-case`    | `src/features/remote/`         |
+| DiretÃ³rio de feature  | `kebab-case`    | `src/features/remote/`         |
 | Componentes React     | `PascalCase`    | `RemoteHostCard.tsx`           |
 | Hooks                 | `use` prefix    | `useRemoteHosts.ts`            |
 | Server actions        | `camelCase`     | `createTicketAction.ts`        |
@@ -91,7 +91,7 @@ tags:
 ## Regras de bom senso
 
 1. **Seja descritivo**: `createRemoteHostAdminPort` > `createPort`
-2. **Evite abreviações**: `company` > `co`, `authentication` > `auth` é OK porque é universal
-3. **Verbos para funções**: `processHeartbeat`, `buildToken`, `resolveScope`
+2. **Evite abreviaÃ§Ãµes**: `company` > `co`, `authentication` > `auth` Ã© OK porque Ã© universal
+3. **Verbos para funÃ§Ãµes**: `processHeartbeat`, `buildToken`, `resolveScope`
 4. **Substantivos para tipos**: `RemoteHost`, `AgentToken`, `SessionStatus`
 5. **Sufixo de papel para arquivos**: `.service.ts`, `.controller.ts`, `.port.ts`, `.module.ts`

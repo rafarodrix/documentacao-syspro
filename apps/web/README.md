@@ -51,7 +51,7 @@ Ver [`src/components/patterns/README.md`](src/components/patterns/README.md) par
   - `request-auth`
   - `action-rate-limit`
   - `action-error-handler`
-- adapters remotos passaram a ser consumidos via `packages/remote-infra`, e não mais direto de `packages/application`
+- adapters remotos passaram a ser consumidos via `packages/features/remote/infra`, e não mais direto de `packages/application`
 - tela de `Perfis de Acesso` passou a permitir:
   - edição de perfis existentes
   - edição de perfis de sistema
@@ -73,7 +73,7 @@ Hoje a separação desejada é:
 
 - `packages/contracts`: payloads, schemas e tipos compartilhados
 - `packages/shared`: utilitários transversais neutros
-- `packages/remote-infra`: adapters remotos compartilhados
+- `packages/features/remote/infra`: adapters remotos compartilhados
 - `packages/application`: routers e superfície de aplicação/backend
 - `apps/web`: composição de UI, rotas Next e consumo dos pacotes acima
 

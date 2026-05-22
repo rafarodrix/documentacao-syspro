@@ -168,5 +168,5 @@ Persistência local usada no fluxo atual:
 ## Limites atuais
 
 - `apps/api` ainda está em migração progressiva
-- a superfície de aplicação compartilhada fica em `packages/application`, enquanto os adapters concretos do remoto agora vivem em `packages/remote-infra`
+- a superfície de aplicação compartilhada fica em `packages/application`, enquanto os adapters concretos do remoto agora vivem em `packages/features/remote/infra`
 - ainda existem fluxos no `web` com fallback por role legado; a direção correta é reduzir isso e depender cada vez mais do contexto central de autorização do backend

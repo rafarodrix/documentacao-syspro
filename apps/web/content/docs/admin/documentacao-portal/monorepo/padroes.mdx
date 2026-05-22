@@ -1,6 +1,6 @@
 ---
-title: Padrões Arquiteturais
-description: Hexagonal (Ports & Adapters) — módulo remote
+title: Padroes Arquiteturais
+description: Hexagonal (Ports & Adapters) para o modulo remote.
 lastUpdated: 2026-05-18
 owner: Engenharia de Plataforma
 status: published
@@ -9,63 +9,62 @@ tags:
   - padroes
 ---
 
-# Padrões Arquiteturais
+# Padroes Arquiteturais
 
-> Decisões arquiteturais consolidadas do monorepo. Atualizado em: 2026-05-05
+> Decisoes arquiteturais consolidadas do monorepo. Atualizado em: 2026-05-05
 
 ---
 
-## Hexagonal (Ports & Adapters) — módulo remote
+## Hexagonal (Ports & Adapters) - modulo remote
 
-O domínio de acesso remoto segue arquitetura hexagonal pura:
+O dominio de acesso remoto segue arquitetura hexagonal pura:
 
-```
-packages/remote-domain/   ← núcleo de domínio (zero deps externas)
+```text
+packages/features/remote/domain/   <- nucleo de dominio (zero deps externas)
   src/
-    remote-domain.port.ts        ← interfaces das ports (contratos)
-    remote-domain.contracts.ts   ← tipos de entrada/saída dos use cases
-    agent-token.ts               ← lógica de token de agente
-    errors.ts                    ← erros de domínio tipados
-    index.ts                     ← factory: createTrilinkRemote(ports)
+    remote-domain.port.ts        <- interfaces das ports (contratos)
+    remote-domain.contracts.ts   <- tipos de entrada/saida dos use cases
+    agent-token.ts               <- logica de token de agente
+    errors.ts                    <- erros de dominio tipados
+    index.ts                     <- factory: createTrilinkRemote(ports)
 
-packages/remote-infra/    ← implementação das ports (adapters)
+packages/features/remote/infra/  <- implementacao das ports (adapters)
   src/
     ports/
-      remote-session.port.ts     ← persiste sessões no Prisma
-      remote-host-admin.port.ts  ← CRUD de hosts no Prisma
-      remote-bootstrap.port.ts   ← lógica de bootstrap do agente
-      remote-sync.port.ts        ← processamento de sync reports
+      remote-session.port.ts     <- persiste sessoes no Prisma
+      remote-host-admin.port.ts  <- CRUD de hosts no Prisma
+      remote-bootstrap.port.ts   <- logica de bootstrap do agente
+      remote-sync.port.ts        <- processamento de sync reports
       ...
 
 apps/api/
-  src/modules/remote-admin/     ← controllers HTTP que orquestram os use cases
+  src/modules/remote-admin/      <- controllers HTTP que orquestram os use cases
 ```
 
-**Regra:** `remote-domain` não importa nada de `remote-infra`, `database`, ou qualquer framework. Apenas recebe ports injetadas via factory.
+**Regra:** `remote-domain` nao importa nada de `remote-infra`, `database` ou qualquer framework. Apenas recebe ports injetadas via factory.
 
 ---
 
-## CQRS — módulo de mensageria
+## CQRS - modulo de mensageria
 
-O processamento de mensagens segue separação command/query:
+O processamento de mensagens segue separacao command/query:
 
-```
+```text
 apps/api/src/modules/integrations/messaging/application/
-  process-incoming-message.usecase.ts  ← recebe mensagem (command)
-  process-outgoing-message.usecase.ts  ← envia mensagem (command)
-  integration-webhook-dedup.service.ts ← deduplicação de webhooks
+  process-incoming-message.usecase.ts  <- recebe mensagem (command)
+  process-outgoing-message.usecase.ts  <- envia mensagem (command)
+  integration-webhook-dedup.service.ts <- deduplicacao de webhooks
 ```
 
-Não há event bus dedicado — os use cases são chamados diretamente pelos controllers de webhook.
+Nao ha event bus dedicado. Os use cases sao chamados diretamente pelos controllers de webhook.
 
 ---
 
-## Injeção de dependências (NestJS)
+## Injecao de dependencias (NestJS)
 
 Toda a API usa o sistema de DI do NestJS:
 
 ```typescript
-// Módulo declara providers e exporta o que outros módulos precisam
 @Module({
   imports: [PrismaModule],
   providers: [CompaniesService],
@@ -76,52 +75,52 @@ export class CompaniesModule {}
 ```
 
 **Regras:**
-- Cada feature é um `Module` NestJS
-- Services são injetados por constructor (não property injection)
-- `PrismaModule` é global — disponível em toda a aplicação
-- Módulos compartilhados (Authorization, Settings) são importados onde necessário
+- Cada feature e um `Module` NestJS.
+- Services sao injetados por constructor.
+- `PrismaModule` e global.
+- Modulos compartilhados, como Authorization e Settings, sao importados onde necessario.
 
 ---
 
 ## Type safety ponta a ponta
 
-O projeto usa três camadas para garantir type safety:
+O projeto usa tres camadas para garantir type safety:
 
-1. **Zod** (runtime): valida payloads em controllers e boundaries de integração
-   - `@dosc-syspro/contracts` define os schemas
-   - Controllers usam `@Body()` com pipes de validação Zod
+1. **Zod** (runtime): valida payloads em controllers e boundaries de integracao.
+   - `@dosc-syspro/contracts` define os schemas.
+   - Controllers usam `@Body()` com pipes de validacao Zod.
 
-2. **TypeScript strict** (compile time): todos os workspaces com strict mode
-   - `tsconfig.base.json` na raiz com configuração base compartilhada
-   - Cada workspace estende com suas particularidades
+2. **TypeScript strict** (compile time): todos os workspaces com strict mode.
+   - `tsconfig.base.json` na raiz com configuracao base compartilhada.
+   - Cada workspace estende com suas particularidades.
 
-3. **tRPC** (ponta a ponta): o tipo do procedimento no servidor é inferido automaticamente no cliente
-   - Sem geração de código — inferência nativa do TypeScript
-   - Mudanças no servidor quebram o cliente em compile time
+3. **tRPC** (ponta a ponta): o tipo do procedimento no servidor e inferido automaticamente no cliente.
+   - Sem geracao de codigo.
+   - Mudancas no servidor quebram o cliente em compile time.
 
 ---
 
-## RBAC — controle de acesso
+## RBAC - controle de acesso
 
-Modelo de permissões em três camadas:
+Modelo de permissoes em tres camadas:
 
-```
+```text
 User
- └── Membership (user + company + role)
-      └── role: ADMIN | SUPORTE | CLIENTE_ADMIN | CLIENTE_USER | DEVELOPER
+  `- Membership (user + company + role)
+      `- role: ADMIN | SUPORTE | CLIENTE_ADMIN | CLIENTE_USER | DEVELOPER
 
 AccessProfile
- └── Permission[] (permissões granulares)
+  `- Permission[] (permissoes granulares)
       ex: companies:view_own, companies:view_all, tickets:create, remote:manage
 ```
 
 **Escopo de acesso:**
-- Usuários `ADMIN` / `SUPORTE` / `DEVELOPER`: escopo global (todas as empresas)
-- Usuários `CLIENTE_ADMIN` / `CLIENTE_USER`: escopo restrito à(s) empresa(s) do vínculo
+- Usuarios `ADMIN`, `SUPORTE` e `DEVELOPER`: escopo global.
+- Usuarios `CLIENTE_ADMIN` e `CLIENTE_USER`: escopo restrito as empresas do vinculo.
 
-`AuthorizationService` resolve o escopo antes de qualquer operação e injeta no contexto da request.
+`AuthorizationService` resolve o escopo antes de qualquer operacao e injeta no contexto da request.
 
-Para o módulo remoto, `resolveScopedCompanyContext` (em `remote-infra`) garante que um usuário de empresa X não acessa hosts da empresa Y.
+Para o modulo remoto, `resolveScopedCompanyContext` em `remote-infra` garante que um usuario de empresa X nao acessa hosts da empresa Y.
 
 ---
 
@@ -129,13 +128,13 @@ Para o módulo remoto, `resolveScopedCompanyContext` (em `remote-infra`) garante
 
 Cada feature do `apps/web` segue a estrutura:
 
-```
+```text
 src/features/<feature>/
-  ├── application/    use cases, DTOs, server actions
-  ├── domain/         entidades, regras de negócio locais
-  ├── infrastructure/ adapters: tRPC client, fetch wrappers
-  ├── interface/      componentes, pages, hooks React
-  └── index.ts        exports públicos da feature
+  |- application/    use cases, DTOs, server actions
+  |- domain/         entidades, regras de negocio locais
+  |- infrastructure/ adapters: tRPC client, fetch wrappers
+  |- interface/      componentes, pages, hooks React
+  `- index.ts        exports publicos da feature
 ```
 
 **Features existentes:**
@@ -143,21 +142,21 @@ src/features/<feature>/
 
 ---
 
-## Convenções de nomenclatura
+## Convencoes de nomenclatura
 
 ### Arquivos TypeScript
 - `kebab-case` para nomes de arquivo: `remote-host-admin.port.ts`
 - `PascalCase` para classes e interfaces: `RemoteHostAdminPort`
-- `camelCase` para funções e variáveis: `createRemoteHostAdminPort`
+- `camelCase` para funcoes e variaveis: `createRemoteHostAdminPort`
 
 ### Arquivos Go
 - `snake_case` para nomes de arquivo: `portal_client.go`
-- `PascalCase` para tipos e funções exportadas: `BootstrapInput`
-- Sufixos de plataforma: `_windows.go`, `_other.go` para código condicional
+- `PascalCase` para tipos e funcoes exportadas: `BootstrapInput`
+- Sufixos de plataforma: `_windows.go`, `_other.go` para codigo condicional
 
 ### Rotas da API (NestJS)
 - `kebab-case` nos paths: `/remote-admin/`, `/companies/`
-- Versionamento via path prefix quando necessário
+- Versionamento via path prefix quando necessario
 
 ### Banco de dados (Prisma)
 - Modelos em `PascalCase`: `RemoteHost`, `CompanyContact`
@@ -166,16 +165,16 @@ src/features/<feature>/
 
 ---
 
-## Padrão de erros
+## Padrao de erros
 
-### Domínio (remote-domain)
-Erros tipados retornados como `Result<T, DomainError>` — sem throw.
+### Dominio (remote-domain)
+Erros tipados retornados como `Result<T, DomainError>`, sem throw.
 `mapRemoteDomainError()` converte para HTTP exceptions no controller.
 
 ### NestJS (API)
 - Usa `HttpException` e variantes (`NotFoundException`, `BadRequestException`, etc.)
-- Erros de validação Zod são interceptados por global exception filter
+- Erros de validacao Zod sao interceptados por global exception filter
 
 ### Agente (Go)
-- Erros explícitos na assinatura de retorno: `func doSomething() (Result, error)`
+- Erros explicitos na assinatura de retorno: `func doSomething() (Result, error)`
 - Retry com backoff exponencial em chamadas HTTP ao portal
