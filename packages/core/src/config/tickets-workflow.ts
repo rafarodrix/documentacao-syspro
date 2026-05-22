@@ -30,8 +30,25 @@ function matchesBucket(value: string, bucket: TicketStatusGroup): boolean {
       normalized.includes("andamento")
     );
   }
-  if (bucket === "closed") return normalized.includes("resolvido") || normalized.includes("fechado") || normalized.includes("closed") || normalized.includes("finalizado");
-  return normalized.includes("anal") || normalized.includes("triag") || normalized.includes("pend") || normalized.includes("aguard") || normalized.includes("test");
+  if (bucket === "closed") {
+    return (
+      normalized.includes("resolvido") ||
+      normalized.includes("fechado") ||
+      normalized.includes("closed") ||
+      normalized.includes("finalizado") ||
+      normalized.includes("resolved") ||
+      normalized.includes("archived")
+    );
+  }
+  return (
+    normalized.includes("anal") ||
+    normalized.includes("triag") ||
+    normalized.includes("pend") ||
+    normalized.includes("aguard") ||
+    normalized.includes("test") ||
+    normalized.includes("waiting") ||
+    normalized.includes("waiting_customer")
+  );
 }
 
 function getStateIdsByBucket(bucket: TicketStatusGroup): number[] {

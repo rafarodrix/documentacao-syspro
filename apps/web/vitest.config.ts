@@ -22,7 +22,6 @@ export default defineConfig({
       "@dosc-syspro/core/config/contract-blocking": path.resolve(__dirname, "../../packages/core/src/config/contract-blocking.ts"),
       "@dosc-syspro/core/config/ticket-state-matrix": path.resolve(__dirname, "../../packages/core/src/config/ticket-state-matrix.ts"),
       "@dosc-syspro/core/config/tickets-workflow": path.resolve(__dirname, "../../packages/core/src/config/tickets-workflow.ts"),
-      "@dosc-syspro/core/entities/ticket": path.resolve(__dirname, "../../packages/core/src/entities/ticket.entity.ts"),
       "@dosc-syspro/core/entities/release": path.resolve(__dirname, "../../packages/core/src/entities/release.entity.ts"),
       "@dosc-syspro/core/services/ticket-sla": path.resolve(__dirname, "../../packages/core/src/services/ticket-sla.service.ts"),
       "@dosc-syspro/core": path.resolve(__dirname, "../../packages/core/src/index.ts"),

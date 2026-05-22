@@ -1,4 +1,3 @@
-export type { Ticket, TicketPriority, TicketStatus } from "./entities/ticket.entity";
 export type { Release } from "./entities/release.entity";
 export {
   CONTRACT_BLOCK_MARKER,

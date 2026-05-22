@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./entities/ticket": "./src/entities/ticket.entity.ts",
     "./entities/release": "./src/entities/release.entity.ts",
     "./config/contract-blocking": "./src/config/contract-blocking.ts",
     "./config/route-access": "./src/config/route-access.ts",
@@ -16,5 +15,8 @@
     "./services/release-projection": "./src/services/release-projection.service.ts",
     "./services/ticket-sla": "./src/services/ticket-sla.service.ts",
     "./services/ticket-provider-sla": "./src/services/ticket-provider-sla.service.ts"
+  },
+  "dependencies": {
+    "@dosc-syspro/contracts": "*"
   }
 }

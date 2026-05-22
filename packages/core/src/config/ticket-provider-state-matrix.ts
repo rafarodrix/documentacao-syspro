@@ -1,4 +1,6 @@
-import type { TicketStatus } from "../entities/ticket.entity";
+import { TicketModuleStatus, TICKET_MODULE_STATUS_VALUES } from "@dosc-syspro/contracts";
+
+export type TicketStatus = TicketModuleStatus;
 
 type StatusRule = {
   status: TicketStatus;
@@ -14,24 +16,24 @@ type ParsedStateMatrix = {
 const DEFAULT_MATRIX: ParsedStateMatrix = {
   activeWorkflowStateIds: [2, 6, 7],
   statusByStateId: {
-    1: "Aberto",
-    2: "Em Análise",
-    3: "Pendente",
-    4: "Resolvido",
-    5: "Resolvido",
-    6: "Em Análise",
-    7: "Pendente",
+    1: "NEW",
+    2: "IN_PROGRESS",
+    3: "WAITING_CUSTOMER",
+    4: "RESOLVED",
+    5: "RESOLVED",
+    6: "IN_PROGRESS",
+    7: "WAITING_CUSTOMER",
   },
   statusRules: [
-    { status: "Resolvido", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado", "finalizado"] },
-    { status: "Pendente", keywords: ["pendente", "pending", "aguardando", "teste", "testes", "reminder"] },
-    { status: "Em Análise", keywords: ["analise", "analysis", "desenvolvimento", "development"] },
-    { status: "Aberto", keywords: ["novo", "new", "open", "aberto"] },
+    { status: "RESOLVED", keywords: ["closed", "fechado", "resolvido", "merged", "mesclado", "finalizado", "resolved"] },
+    { status: "WAITING_CUSTOMER", keywords: ["pendente", "pending", "aguardando", "teste", "testes", "reminder", "waiting_customer"] },
+    { status: "IN_PROGRESS", keywords: ["analise", "analysis", "desenvolvimento", "development", "in_progress", "in progress"] },
+    { status: "NEW", keywords: ["novo", "new", "open", "aberto"] },
   ],
 };
 
 function isTicketStatus(value: unknown): value is TicketStatus {
-  return value === "Aberto" || value === "Em Analise" || value === "Pendente" || value === "Resolvido";
+  return typeof value === "string" && TICKET_MODULE_STATUS_VALUES.includes(value as TicketModuleStatus);
 }
 
 function parseStateMatrixFromEnv(): ParsedStateMatrix | null {

@@ -1,5 +1,15 @@
-import type { Ticket, Release } from "@dosc-syspro/core";
+import type { TicketModuleStatus, TicketModulePriority } from "@dosc-syspro/contracts";
+import type { Release } from "@dosc-syspro/core";
 import { formatRecency } from "@dosc-syspro/shared";
+
+export type Ticket = {
+  id: string | number;
+  number: string;
+  subject: string;
+  status: TicketModuleStatus;
+  priority: TicketModulePriority;
+  lastUpdate: string;
+};
 
 export type MobileTicketListItem = Pick<Ticket, "id" | "subject" | "status" | "priority" | "number"> & {
   updatedLabel: string;
