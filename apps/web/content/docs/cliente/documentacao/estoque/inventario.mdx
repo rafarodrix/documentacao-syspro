@@ -1,19 +1,583 @@
 ---
-title:  Inventário
-description: Tudo o que você precisa saber sobre o módulo de Inventário do Syspro ERP.
-lastUpdated: 2026-03-22
-owner: Equipe de Documentacao
+title: Cadastro de Inventário
+description: Guia operacional para cadastrar, importar e controlar inventários de estoque no Syspro ERP.
+lastUpdated: 2026-05-22
+owner: Equipe de Documentação
 status: published
 tags:
   - manual
   - estoque
   - inventario
+  - produto
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+import SuporteSection from '@/components/docs/SuporteSection';
 
-  Gerencie departamentos de estoque, organizando produtos por áreas ou setores da empresa.
+# Cadastro de Inventário
 
-<Callout type="info" title="Dica">
-  Certifique-se de ter permissões adequadas para acessar todas as funcionalidades do módulo. Contate o administrador, se necessário.
+## Introdução
+
+A tela de **Cadastro de Inventário** é utilizada para registrar e controlar a contagem física dos produtos em estoque no Syspro ERP.
+
+Neste cadastro, a empresa define uma descrição para o inventário, informa a **data base** da contagem, seleciona o **grupo de estoque** quando aplicável e define o **tipo de produto** que será considerado na geração do inventário.
+
+Após preencher os dados principais, o botão **Importar** carrega os produtos e quantidades do estoque conforme a **data base informada**.
+
+<Callout type="info" title="Objetivo do módulo">
+  Permitir a criação de inventários de estoque para conferência física, ajuste operacional e validação das quantidades registradas no sistema.
+</Callout>
+
+<InlineTOC items={toc}>Nesta página</InlineTOC>
+
+---
+
+## Visão geral
+
+<Cards>
+  <Card title="Onde acessar">
+    Acesse **Estoque > Inventário**.
+  </Card>
+
+  <Card title="Quando utilizar">
+    Use quando for necessário realizar contagem física, conferência de estoque ou fechamento de inventário.
+  </Card>
+
+  <Card title="Impacto no sistema">
+    Pode impactar saldos de estoque, relatórios de posição de produtos e processos de conferência interna.
+  </Card>
+
+  <Card title="Perfil recomendado">
+    Indicado para usuários responsáveis pelo estoque, administradores e suporte.
+  </Card>
+</Cards>
+
+---
+
+## Quando utilizar
+
+| Situação | Como o módulo ajuda |
+|---|---|
+| Contagem física periódica | Permite registrar a posição do estoque em uma data base específica. |
+| Fechamento de estoque | Ajuda a comparar o estoque físico com o saldo registrado no sistema. |
+| Conferência por grupo de estoque | Permite gerar inventário filtrando produtos por grupo, quando aplicável. |
+| Conferência por tipo de produto | Permite selecionar quais tipos de produtos farão parte do inventário. |
+| Ajuste operacional | Pode apoiar a identificação de divergências entre estoque físico e sistema. |
+
+<Callout type="success" title="Exemplo prático">
+  A empresa pode criar o inventário **INVENTÁRIO 2025**, informar a data base **31/12/2025** e importar os produtos para realizar a conferência física de encerramento do período.
+</Callout>
+
+---
+
+## Dicionário de campos
+
+<TypeTable
+  type={{
+    descricao: {
+      description: 'Nome ou identificação do inventário. Exemplo: INVENTÁRIO 2025.',
+      type: 'Texto',
+      required: true,
+    },
+    tipoCusto: {
+      description: 'Define o tipo de custo que será utilizado como referência no inventário, conforme configuração da empresa.',
+      type: 'Seleção',
+      required: true,
+    },
+    dataCadastro: {
+      description: 'Data em que o inventário foi cadastrado no sistema.',
+      type: 'Data',
+      required: false,
+    },
+    dataImpressao: {
+      description: 'Data utilizada para controle ou emissão/impressão do inventário, quando aplicável.',
+      type: 'Data',
+      required: false,
+    },
+    tipoProduto: {
+      description: 'Define quais tipos de produtos serão considerados na geração do inventário.',
+      type: 'Seleção',
+      required: true,
+    },
+    importarEstoqueZero: {
+      description: 'Define se produtos com estoque zerado também serão importados para o inventário.',
+      type: 'Sim | Não',
+      required: true,
+      default: 'Não',
+    },
+    grupoEstoque: {
+      description: 'Define qual grupo de estoque será considerado no inventário. Quando informado, o sistema gera o inventário apenas para os produtos vinculados a esse grupo.',
+      type: 'Pesquisa / Seleção',
+      required: false,
+    },
+    inventarioReferenciaCusto: {
+      description: 'Inventário utilizado como referência de custo, quando aplicável conforme regra da empresa.',
+      type: 'Pesquisa / Seleção',
+      required: false,
+    },
+    horaCadastro: {
+      description: 'Hora de cadastro do inventário no sistema.',
+      type: 'Hora',
+      required: false,
+    },
+    dataBase: {
+      description: 'Data base utilizada para o sistema buscar as quantidades de estoque no momento da importação.',
+      type: 'Data',
+      required: true,
+    },
+    codigoAuxiliar: {
+      description: 'Código auxiliar do produto importado para o inventário.',
+      type: 'Texto',
+      required: false,
+    },
+    produtoDescricao: {
+      description: 'Descrição do produto importado para conferência.',
+      type: 'Texto',
+      required: false,
+    },
+    unidade: {
+      description: 'Unidade de medida do produto, como KG, UN, CX ou outra unidade cadastrada.',
+      type: 'Texto',
+      required: false,
+    },
+  }}
+/>
+
+---
+
+## Estrutura da tela
+
+<Tabs items={['Consulta', 'Inclusão/Edição', 'Importação']}>
+  <Tab value="Consulta">
+    A tela de consulta apresenta os inventários já cadastrados, permitindo localizar registros pela **descrição** e pela **empresa**.
+
+    As principais ações disponíveis são:
+
+    - **Incluir**: cria um novo inventário;
+    - **Editar**: altera um inventário existente;
+    - **Excluir**: remove um inventário, conforme permissões e regras internas;
+    - **Clonar**: copia informações de um inventário existente;
+    - **Filtrar**: aplica filtros na listagem;
+    - **Consultar**: atualiza ou busca os registros cadastrados.
+  </Tab>
+
+  <Tab value="Inclusão/Edição">
+    Na inclusão ou edição do inventário, o usuário deve preencher os campos principais, como **Descrição**, **Tipo Custo**, **Tipo Produto** e **Data Base**.
+
+    Também é possível informar **Grupo de Estoque** para limitar o inventário a um grupo específico de produtos.
+  </Tab>
+
+  <Tab value="Importação">
+    Após preencher os dados principais, clique em **Importar**.
+
+    O sistema carrega os produtos e suas quantidades de estoque conforme a **data base informada**.
+
+    <Callout type="info" title="Importação pela data base">
+      Ao clicar em **Importar**, o sistema utiliza a **Data Base** para buscar a posição do estoque naquela data. Essa informação é essencial para que o inventário represente corretamente o período desejado.
+    </Callout>
+  </Tab>
+</Tabs>
+
+---
+
+# Campos principais
+
+## Descrição
+
+A **Descrição** identifica o inventário dentro do sistema.
+
+Use nomes claros, que facilitem a localização futura.
+
+Exemplos:
+
+- INVENTÁRIO 2025;
+- INVENTÁRIO LOJA 01;
+- INVENTÁRIO DEPÓSITO CENTRAL;
+- INVENTÁRIO FINAL DE ANO.
+
+<Callout type="success" title="Boa prática">
+  Utilize uma descrição que indique o período, filial, depósito ou objetivo do inventário.
+</Callout>
+
+---
+
+## Tipo Custo
+
+O campo **Tipo Custo** define qual custo será utilizado como referência no inventário, conforme configuração da empresa.
+
+Esse campo pode influenciar relatórios, análises de valorização de estoque e conferências gerenciais.
+
+<Callout type="warning" title="Atenção">
+  Antes de salvar ou importar o inventário, confirme com o responsável administrativo qual tipo de custo deve ser utilizado.
+</Callout>
+
+---
+
+## Tipo Produto
+
+O campo **Tipo Produto** define quais tipos de produtos serão considerados na geração do inventário.
+
+Use este campo para limitar a importação conforme a necessidade da contagem.
+
+Exemplos de uso:
+
+- inventariar apenas produtos de venda;
+- inventariar apenas matéria-prima;
+- inventariar produtos de determinado tipo operacional;
+- separar inventários por classificação interna.
+
+<Callout type="info" title="Filtro por tipo de produto">
+  O **Tipo Produto** deve ser selecionado conforme os tipos que a empresa deseja gerar no inventário.
+</Callout>
+
+---
+
+## Grupo de Estoque
+
+O campo **Grupo de Estoque** define qual grupo será considerado no inventário.
+
+Quando preenchido, o sistema tende a gerar o inventário apenas para produtos vinculados ao grupo selecionado, conforme configuração da empresa.
+
+<Callout type="info" title="Uso do grupo de estoque">
+  O **Grupo de Estoque** é utilizado para direcionar o inventário para um conjunto específico de produtos.
+</Callout>
+
+---
+
+## Data Base
+
+A **Data Base** é uma das informações mais importantes do inventário.
+
+Ela define a data em que o sistema deve considerar a posição do estoque para importar os produtos e quantidades.
+
+Exemplo:
+
+Se a data base for **31/12/2025**, o sistema buscará as quantidades de estoque conforme essa data.
+
+<Callout type="warning" title="Atenção à data base">
+  Revise a **Data Base** antes de clicar em **Importar**. Uma data incorreta pode gerar uma posição de estoque diferente da esperada.
+</Callout>
+
+---
+
+## Importar Estoque Zero
+
+O campo **Importar Estoque Zero** define se produtos com saldo zerado também serão incluídos no inventário.
+
+| Opção | Comportamento esperado |
+|---|---|
+| Sim | Inclui produtos mesmo sem saldo em estoque, quando aplicável. |
+| Não | Importa apenas produtos com saldo ou movimentação relevante, conforme regra do sistema. |
+
+<Callout type="info" title="Quando usar estoque zero">
+  Marque essa opção quando a empresa deseja conferir também produtos sem saldo, por exemplo, para validar ausência física no estoque.
+</Callout>
+
+---
+
+# Relações com outros cadastros
+
+O inventário possui relação direta com os cadastros e movimentações de estoque.
+
+| Cadastro relacionado | Impacto |
+|---|---|
+| Produto | Define quais itens podem ser importados para o inventário. |
+| Grupo de Estoque | Permite filtrar o inventário por agrupamento de produtos. |
+| Tipo de Produto | Permite selecionar quais classificações de produto serão consideradas. |
+| Estoque | Fornece a quantidade base para conferência. |
+| Empresa | Define em qual empresa o inventário será realizado. |
+| Relatórios de Estoque | Podem utilizar os dados do inventário para análise e conferência. |
+
+<Callout type="warning" title="Impacto operacional">
+  Alterações ou importações incorretas no inventário podem afetar a conferência de estoque e gerar divergências nos relatórios.
+</Callout>
+
+---
+
+# Cenários práticos
+
+<Tabs items={['Inventário geral', 'Inventário por grupo', 'Inventário por tipo de produto']}>
+  <Tab value="Inventário geral">
+    Use este cenário quando a empresa deseja realizar a contagem completa do estoque.
+
+    Configuração sugerida:
+
+    - informe uma descrição clara;
+    - selecione o tipo de custo;
+    - informe a data base;
+    - deixe o grupo de estoque em branco, quando a intenção for considerar todos os grupos;
+    - clique em **Importar**.
+
+    Resultado esperado:
+
+    O sistema importa os produtos conforme os filtros e a data base informada.
+  </Tab>
+
+  <Tab value="Inventário por grupo">
+    Use este cenário quando a contagem será feita por setor, departamento, família ou grupo de produtos.
+
+    Configuração sugerida:
+
+    - preencha a descrição;
+    - informe o grupo de estoque desejado;
+    - selecione o tipo de produto;
+    - informe a data base;
+    - clique em **Importar**.
+
+    Resultado esperado:
+
+    O sistema gera o inventário apenas para os produtos vinculados ao grupo selecionado, conforme configuração do cadastro.
+  </Tab>
+
+  <Tab value="Inventário por tipo de produto">
+    Use este cenário quando a empresa deseja inventariar somente determinados tipos de produto.
+
+    Exemplos:
+
+    - produtos acabados;
+    - matéria-prima;
+    - produtos de revenda;
+    - embalagens;
+    - produtos de consumo interno.
+
+    Resultado esperado:
+
+    O sistema importa apenas os itens compatíveis com o **Tipo Produto** selecionado.
+  </Tab>
+</Tabs>
+
+---
+
+# Como cadastrar
+
+<Steps>
+  <Step>Acesse **Estoque > Inventário**.</Step>
+  <Step>Clique em **Incluir**.</Step>
+  <Step>Informe a **Descrição** do inventário.</Step>
+  <Step>Selecione o **Tipo Custo**.</Step>
+  <Step>Informe a **Data Base** que será usada para buscar a posição do estoque.</Step>
+  <Step>Selecione o **Tipo Produto** conforme os produtos que deseja gerar no inventário.</Step>
+  <Step>Informe o **Grupo de Estoque**, quando o inventário for limitado a um grupo específico.</Step>
+  <Step>Defina se deseja **Importar Estoque Zero**.</Step>
+  <Step>Clique em **Salvar** para gravar o cadastro inicial.</Step>
+  <Step>Clique em **Importar** para carregar os produtos e quantidades conforme a data base.</Step>
+  <Step>Revise os produtos importados na grade.</Step>
+</Steps>
+
+<Callout type="success" title="Resultado esperado">
+  Após a importação, a grade do inventário deve apresentar os produtos encontrados conforme os filtros selecionados e a posição de estoque da data base.
+</Callout>
+
+---
+
+# Validação por perfil
+
+<Tabs items={['Usuário', 'Administrador', 'Suporte']}>
+  <Tab value="Usuário">
+    O usuário responsável pela contagem deve conferir:
+
+    - se o inventário correto foi selecionado;
+    - se a descrição corresponde ao período da contagem;
+    - se os produtos importados pertencem ao grupo ou tipo esperado;
+    - se a data base está correta;
+    - se os itens conferidos fisicamente estão presentes na grade.
+  </Tab>
+
+  <Tab value="Administrador">
+    O administrador deve validar:
+
+    - permissões de acesso ao cadastro de inventário;
+    - tipo de custo utilizado;
+    - regra de importação de estoque zero;
+    - grupo de estoque selecionado;
+    - tipo de produto selecionado;
+    - impacto da importação nos relatórios e processos internos;
+    - orientação da equipe antes da contagem física.
+  </Tab>
+
+  <Tab value="Suporte">
+    O suporte deve diagnosticar:
+
+    - se a empresa correta foi selecionada;
+    - se a data base possui movimentações de estoque;
+    - se os produtos possuem vínculo com grupo de estoque;
+    - se o tipo de produto está preenchido corretamente no cadastro do produto;
+    - se existem filtros aplicados na tela;
+    - se o usuário possui permissão para incluir, editar, importar ou ajustar o inventário.
+  </Tab>
+</Tabs>
+
+---
+
+# Boas práticas
+
+- Crie inventários com descrições padronizadas.
+- Revise a data base antes de importar.
+- Utilize grupo de estoque quando a contagem for segmentada.
+- Utilize tipo de produto para evitar importação de itens desnecessários.
+- Evite alterar o inventário sem orientação do responsável pelo estoque.
+- Faça a conferência física antes de qualquer ajuste definitivo.
+- Mantenha apenas usuários autorizados com permissão de edição.
+- Documente divergências encontradas durante a contagem.
+
+<Callout type="success" title="Boa prática">
+  Sempre valide a importação em uma pequena amostra de produtos antes de liberar o inventário para conferência completa.
+</Callout>
+
+---
+
+# Impactos no sistema
+
+| Área | Impacto |
+|---|---|
+| Estoque | Permite comparar saldo físico com saldo registrado no sistema. |
+| Produto | Utiliza dados do cadastro de produto, grupo e tipo para compor o inventário. |
+| Relatórios | Pode impactar análises de posição de estoque e conferência gerencial. |
+| Administrativo | Ajuda no fechamento de períodos e validação de divergências. |
+| Suporte | Facilita diagnóstico de inconsistências de saldo, cadastro ou filtro. |
+| Fiscal | Pode apoiar conferências internas, quando aplicável conforme processo da empresa. |
+
+<Callout type="warning" title="Atenção">
+  O inventário deve ser tratado como um processo controlado. Antes de realizar ajustes ou finalizar conferências, valide as regras internas da empresa.
+</Callout>
+
+---
+
+# Checklist antes de salvar
+
+- descrição do inventário preenchida corretamente;
+- tipo de custo selecionado;
+- data base revisada;
+- tipo de produto selecionado;
+- grupo de estoque informado, quando aplicável;
+- opção de estoque zero conferida;
+- empresa correta selecionada;
+- usuário com permissão adequada;
+- impacto operacional validado com o responsável pelo estoque.
+
+---
+
+# Exemplos de configuração
+
+<Tabs items={['Inventário anual', 'Inventário por grupo', 'Inventário com estoque zero']}>
+  <Tab value="Inventário anual">
+    Exemplo:
+
+    - **Descrição:** INVENTÁRIO 2025;
+    - **Data Base:** 31/12/2025;
+    - **Tipo Produto:** conforme produtos que devem entrar no fechamento;
+    - **Grupo de Estoque:** em branco ou conforme necessidade;
+    - **Importar Estoque Zero:** Não, salvo orientação da empresa.
+
+    Indicado para fechamento de período ou conferência geral.
+  </Tab>
+
+  <Tab value="Inventário por grupo">
+    Exemplo:
+
+    - **Descrição:** INVENTÁRIO BEBIDAS 2025;
+    - **Grupo de Estoque:** BEBIDAS;
+    - **Tipo Produto:** produto de venda;
+    - **Data Base:** data da contagem;
+    - **Importar Estoque Zero:** conforme necessidade.
+
+    Indicado para contagens parciais ou por setor.
+  </Tab>
+
+  <Tab value="Inventário com estoque zero">
+    Exemplo:
+
+    - **Descrição:** CONFERÊNCIA PRODUTOS ZERADOS;
+    - **Importar Estoque Zero:** Sim;
+    - **Data Base:** data da conferência;
+    - **Tipo Produto:** conforme necessidade.
+
+    Indicado quando a empresa deseja validar produtos que constam sem saldo no sistema.
+  </Tab>
+</Tabs>
+
+---
+
+# Problemas comuns
+
+<Accordions type="single">
+  <Accordion title="Os produtos não aparecem após importar" id="produtos-nao-aparecem">
+    Verifique se a **Data Base** foi preenchida corretamente, se o **Tipo Produto** foi selecionado e se o **Grupo de Estoque** informado possui produtos vinculados.
+
+    Também confira se os produtos possuem saldo na data informada ou se a opção **Importar Estoque Zero** precisa ser marcada.
+  </Accordion>
+
+  <Accordion title="O inventário importou produtos errados" id="inventario-importou-produtos-errados">
+    Revise o **Tipo Produto** e o **Grupo de Estoque** selecionados.
+
+    Se o grupo de estoque estiver em branco, o sistema pode considerar uma abrangência maior de produtos, conforme configuração da empresa.
+  </Accordion>
+
+  <Accordion title="A quantidade importada não confere com o físico" id="quantidade-nao-confere">
+    Confira se a **Data Base** corresponde à data real da contagem.
+
+    Movimentações feitas antes ou depois da data base podem alterar a posição esperada do estoque.
+  </Accordion>
+
+  <Accordion title="O botão Importar não gera registros" id="botao-importar-nao-gera-registros">
+    Verifique permissões do usuário, filtros preenchidos, vínculo dos produtos com grupo/tipo e se existem saldos ou movimentações na data base informada.
+  </Accordion>
+
+  <Accordion title="O usuário não consegue editar o inventário" id="usuario-nao-consegue-editar">
+    Confirme se o usuário possui permissão para editar inventários.
+
+    Também valide se o inventário já foi utilizado em algum processo que bloqueia alterações, conforme configuração da empresa.
+  </Accordion>
+</Accordions>
+
+---
+
+# Perguntas frequentes
+
+<Accordions type="single">
+  <Accordion title="Para que serve o Cadastro de Inventário?" id="para-que-serve">
+    Serve para criar inventários de estoque, importar produtos e apoiar a conferência física das quantidades registradas no sistema.
+  </Accordion>
+
+  <Accordion title="Onde acesso esse cadastro?" id="onde-acessar">
+    Acesse **Estoque > Inventário**.
+  </Accordion>
+
+  <Accordion title="O que acontece ao clicar em Importar?" id="o-que-acontece-ao-importar">
+    O sistema importa os produtos e quantidades de estoque conforme a **Data Base** informada e os filtros selecionados, como **Grupo de Estoque** e **Tipo Produto**.
+  </Accordion>
+
+  <Accordion title="Para que serve o Grupo de Estoque?" id="para-que-serve-grupo-estoque">
+    O **Grupo de Estoque** define qual grupo será considerado no inventário. Quando preenchido, ajuda a limitar a importação aos produtos daquele grupo.
+  </Accordion>
+
+  <Accordion title="Para que serve o Tipo Produto?" id="para-que-serve-tipo-produto">
+    O **Tipo Produto** define quais tipos de produtos serão considerados na geração do inventário.
+  </Accordion>
+
+  <Accordion title="Posso importar produtos com estoque zero?" id="posso-importar-estoque-zero">
+    Sim, desde que a opção **Importar Estoque Zero** esteja habilitada e conforme a regra de geração do sistema.
+  </Accordion>
+
+  <Accordion title="A data base muda o resultado do inventário?" id="data-base-muda-resultado">
+    Sim. A data base define a posição de estoque que será considerada na importação. Por isso, deve ser revisada antes de importar.
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+O **Cadastro de Inventário** permite controlar a contagem física dos produtos no Syspro ERP, utilizando filtros como **Grupo de Estoque**, **Tipo Produto** e **Data Base**.
+
+A principal ação da tela é a **Importação**, que carrega os produtos e quantidades conforme a posição de estoque da data base informada.
+
+<Callout type="success" title="Resumo">
+  Para um inventário confiável, revise a data base, selecione corretamente o tipo de produto, utilize grupo de estoque quando necessário e valide os produtos importados antes de iniciar a conferência física.
 </Callout>

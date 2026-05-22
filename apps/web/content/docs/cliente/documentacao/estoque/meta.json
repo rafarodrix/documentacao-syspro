@@ -1,15 +1,14 @@
 {
   "title": "Estoque",
-  "description": "O módulo de Estoque gerencia todas as informações relativas ao estoque, incluindo quantidades, localizações e movimentações de produtos.",
+  "description": "Rotinas do modulo de estoque, incluindo cadastros, inventario, produtos, promocoes e tabelas auxiliares.",
   "root": false,
   "pages": [
     "departamento",
     "estoques",
-    "---grupo---",
-    "grupo/grupo-estoque",
-    "grupo/grupo-grade",
-    "grupo/grupo-preco-especial",
-    "grupo/grupo-preco",
-    "grupo/grupo-servico"
+    "grupo",
+    "inventario",
+    "produto",
+    "promocao",
+    "tabela"
   ]
 }
