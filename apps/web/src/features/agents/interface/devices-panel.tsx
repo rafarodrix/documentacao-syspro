@@ -21,7 +21,19 @@ import type {
   AgentDeviceSummary,
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
-import { Card, CardContent, Button, Input, Badge } from "@dosc-syspro/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@dosc-syspro/ui";
 import { EmptyState } from "@/components/patterns";
 
 type StatusFilter = "all" | "online" | "offline";
@@ -79,7 +91,7 @@ export function AgentDevicesPanel(props: {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<Cpu className="w-4 h-4" />}
           label="Total de dispositivos"
@@ -111,15 +123,15 @@ export function AgentDevicesPanel(props: {
 
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex flex-1 items-center gap-2 max-w-xl">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex max-w-xl flex-1 items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
                   placeholder="Buscar por hostname, deviceId ou SO..."
-                  className="pl-9 h-9"
+                  className="h-9 pl-9"
                 />
               </div>
               {(searchInput || initialSearch) && (
@@ -175,7 +187,7 @@ export function AgentDevicesPanel(props: {
 
           <DevicesTable items={list.items} />
 
-          <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center justify-between border-t pt-2">
             <span className="text-xs text-muted-foreground">
               {pagination.total === 0
                 ? "Nenhum dispositivo"
@@ -192,7 +204,7 @@ export function AgentDevicesPanel(props: {
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-xs text-muted-foreground px-2 tabular-nums">
+              <span className="px-2 text-xs tabular-nums text-muted-foreground">
                 {page} / {pagination.totalPages}
               </span>
               <Button
@@ -265,7 +277,7 @@ function FilterPill(props: {
       type="button"
       onClick={props.onClick}
       className={
-        "inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold border transition-colors " +
+        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors " +
         (props.active
           ? activeClass
           : "bg-background text-muted-foreground border-border hover:bg-muted")
@@ -291,74 +303,72 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground border-b">
-            <th className="py-2 pr-3 font-semibold">Status</th>
-            <th className="py-2 pr-3 font-semibold">Hostname</th>
-            <th className="py-2 pr-3 font-semibold">SO</th>
-            <th className="py-2 pr-3 font-semibold">Empresa</th>
-            <th className="py-2 pr-3 font-semibold">Host remoto</th>
-            <th className="py-2 pr-3 font-semibold">Versao</th>
-            <th className="py-2 pr-3 font-semibold">Ultimo heartbeat</th>
-            <th className="py-2 pl-3 font-semibold text-right">Device ID</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {items.map((item) => (
-            <tr key={item.id} className="hover:bg-muted/40">
-              <td className="py-2.5 pr-3">
-                <StatusDot online={item.isOnline} />
-              </td>
-              <td className="py-2.5 pr-3 font-medium">
+    <Table className="w-full text-sm">
+      <TableHeader className="bg-muted/20 backdrop-blur border-b border-border/60">
+        <TableRow className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
+          <TableHead className="py-2 pr-3 font-semibold">Status</TableHead>
+          <TableHead className="py-2 pr-3 font-semibold">Hostname</TableHead>
+          <TableHead className="py-2 pr-3 font-semibold">SO</TableHead>
+          <TableHead className="py-2 pr-3 font-semibold">Empresa</TableHead>
+          <TableHead className="py-2 pr-3 font-semibold">Host remoto</TableHead>
+          <TableHead className="py-2 pr-3 font-semibold">Versao</TableHead>
+          <TableHead className="py-2 pr-3 font-semibold">Ultimo heartbeat</TableHead>
+          <TableHead className="py-2 pl-3 text-right font-semibold">Device ID</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody className="divide-y">
+        {items.map((item) => (
+          <TableRow key={item.id} className="hover:bg-muted/40">
+            <TableCell className="py-2.5 pr-3">
+              <StatusDot online={item.isOnline} />
+            </TableCell>
+            <TableCell className="py-2.5 pr-3 font-medium">
+              <Link
+                href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
+                className="hover:text-primary hover:underline transition-colors"
+              >
+                {item.hostname ?? <span className="text-muted-foreground font-normal">—</span>}
+              </Link>
+            </TableCell>
+            <TableCell className="py-2.5 pr-3 text-muted-foreground">{item.os ?? "—"}</TableCell>
+            <TableCell className="py-2.5 pr-3">
+              {item.companyName ? (
+                <span className="inline-flex items-center gap-1.5 text-xs">
+                  <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span className="max-w-[140px] truncate">{item.companyName}</span>
+                </span>
+              ) : (
+                <Badge variant="outline" className="text-[10px]">
+                  sem vinculo
+                </Badge>
+              )}
+            </TableCell>
+            <TableCell className="py-2.5 pr-3">
+              {item.remoteHostId && item.remoteHostName ? (
                 <Link
-                  href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
-                  className="hover:text-primary hover:underline transition-colors"
+                  href={`/portal/infraestrutura/hosts/${item.remoteHostId}`}
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 >
-                  {item.hostname ?? <span className="text-muted-foreground font-normal">—</span>}
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                  <span className="max-w-[140px] truncate">{item.remoteHostName}</span>
                 </Link>
-              </td>
-              <td className="py-2.5 pr-3 text-muted-foreground">{item.os ?? "—"}</td>
-              <td className="py-2.5 pr-3">
-                {item.companyName ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs">
-                    <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
-                    <span className="truncate max-w-[140px]">{item.companyName}</span>
-                  </span>
-                ) : (
-                  <Badge variant="outline" className="text-[10px]">
-                    sem vinculo
-                  </Badge>
-                )}
-              </td>
-              <td className="py-2.5 pr-3">
-                {item.remoteHostId && item.remoteHostName ? (
-                  <Link
-                    href={`/portal/infraestrutura/hosts/${item.remoteHostId}`}
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <ExternalLink className="w-3 h-3 shrink-0" />
-                    <span className="truncate max-w-[140px]">{item.remoteHostName}</span>
-                  </Link>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </td>
-              <td className="py-2.5 pr-3 text-xs font-mono text-muted-foreground">
-                {item.agentVersion ?? "—"}
-              </td>
-              <td className="py-2.5 pr-3 text-xs text-muted-foreground">
-                {formatRelativeTime(item.lastHeartbeatAt, item.heartbeatLagSeconds)}
-              </td>
-              <td className="py-2.5 pl-3 text-right font-mono text-[11px] text-muted-foreground">
-                {item.deviceId.slice(0, 12)}…
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </TableCell>
+            <TableCell className="py-2.5 pr-3 font-mono text-xs text-muted-foreground">
+              {item.agentVersion ?? "—"}
+            </TableCell>
+            <TableCell className="py-2.5 pr-3 text-xs text-muted-foreground">
+              {formatRelativeTime(item.lastHeartbeatAt, item.heartbeatLagSeconds)}
+            </TableCell>
+            <TableCell className="py-2.5 pl-3 text-right font-mono text-[11px] text-muted-foreground">
+              {item.deviceId.slice(0, 12)}…
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

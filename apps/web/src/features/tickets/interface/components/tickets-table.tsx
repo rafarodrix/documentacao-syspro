@@ -3,9 +3,21 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, Code2, Headphones, SearchX, SlidersHorizontal } from "lucide-react";
 import { formatRelativeDate, formatAbsoluteDate } from "@/lib/utils";
-import { Button, Tooltip, TooltipContent, TooltipTrigger, DataTable } from "@dosc-syspro/ui";
+import {
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  DataTable,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+} from "@dosc-syspro/ui";
 import { type ColumnDef } from "@tanstack/react-table";
 import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
@@ -34,6 +46,17 @@ export function TicketsTable({
   const ticketSettings = useTicketModuleSettings();
   const isClosedView = statusGroup === "closed";
   const isOpenView = statusGroup === "open";
+
+  // Estado para controlar quais colunas secundárias estão visíveis
+  const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({
+    customer: true,
+    category: true,
+    team: true,
+    status: true,
+    priority: true,
+    resolvedBy: true,
+    updatedAt: true,
+  });
 
   // Configuração das Colunas usando ColumnDef do TanStack Table
   const columns = React.useMemo<ColumnDef<TicketListItem>[]>(() => {
@@ -272,19 +295,121 @@ export function TicketsTable({
   );
 
   return (
-    <DataTable
-      columns={columns}
-      data={tickets}
-      flexible={true}
-      sorting={{
-        sortBy,
-        sortOrder,
-        onSortChange,
-      }}
-      onRowClick={(ticket) => router.push(`/portal/tickets/${ticket.id}`)}
-      emptyState={emptyStateConfig}
-      renderMobileItem={renderMobileItem}
-    />
+    <div className="space-y-2.5">
+      {/* Barra de Ferramentas da Tabela (Visível apenas em Desktop/Tablet) */}
+      <div className="hidden md:flex items-center justify-between">
+        <div className="text-[11px] font-medium text-muted-foreground">
+          {/* Espaço reservado ou contadores futuros */}
+        </div>
+        <div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-2 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+                <span>Colunas</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
+                Exibir Colunas
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border/40 mx-1" />
+              {canManageTickets && (
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.customer}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, customer: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Cliente
+                </DropdownMenuCheckboxItem>
+              )}
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.category}
+                onCheckedChange={(checked) =>
+                  setColumnVisibility((prev) => ({ ...prev, category: !!checked }))
+                }
+                className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+              >
+                Categoria
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.team}
+                onCheckedChange={(checked) =>
+                  setColumnVisibility((prev) => ({ ...prev, team: !!checked }))
+                }
+                className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+              >
+                Equipe
+              </DropdownMenuCheckboxItem>
+              {!isClosedView && !isOpenView && (
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.status}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, status: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Status
+                </DropdownMenuCheckboxItem>
+              )}
+              {!isClosedView && (
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.priority}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, priority: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Prioridade
+                </DropdownMenuCheckboxItem>
+              )}
+              {isClosedView && (
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.resolvedBy}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, resolvedBy: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Resolvido por
+                </DropdownMenuCheckboxItem>
+              )}
+              <DropdownMenuCheckboxItem
+                checked={columnVisibility.updatedAt}
+                onCheckedChange={(checked) =>
+                  setColumnVisibility((prev) => ({ ...prev, updatedAt: !!checked }))
+                }
+                className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+              >
+                {isClosedView ? "Resolvido em" : "Atualização"}
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={tickets}
+        flexible={true}
+        sorting={{
+          sortBy,
+          sortOrder,
+          onSortChange,
+        }}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={setColumnVisibility}
+        onRowClick={(ticket) => router.push(`/portal/tickets/${ticket.id}`)}
+        emptyState={emptyStateConfig}
+        renderMobileItem={renderMobileItem}
+      />
+    </div>
   );
 }
 

@@ -11,7 +11,20 @@ import {
   Users,
 } from "lucide-react";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
-import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dosc-syspro/ui";
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/date";
 
@@ -75,39 +88,38 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
           <CardDescription>Detalhamento por chamado com foco no tempo de resposta.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ticket</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Host / Empresa</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tecnico</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo ate remoto</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duracao</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acao</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
-                {metrics.sessions.map((session) => (
-                  <tr key={session.sessionId} className="group transition-colors hover:bg-muted/20">
-                    <td className="px-6 py-4">
+          <Table className="w-full border-collapse text-left">
+            <TableHeader className="bg-muted/20 backdrop-blur border-b border-border/60">
+              <TableRow className="border-b border-border/40 bg-muted/30 hover:bg-transparent">
+                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ticket</TableHead>
+                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Host / Empresa</TableHead>
+                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tecnico</TableHead>
+                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo ate remoto</TableHead>
+                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duracao</TableHead>
+                <TableHead className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acao</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border/30">
+              {metrics.sessions.map((session) => (
+                <TableRow key={session.sessionId} className="group transition-colors hover:bg-muted/20">
+                    <TableCell className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-foreground">#{session.ticketNumber || "N/A"}</span>
                         <span className="text-[10px] text-muted-foreground">
                           {formatDateShort(session.createdAt)}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-foreground">{session.hostName}</span>
                         <span className="text-xs text-muted-foreground">{session.companyName}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
                       <span className="text-sm font-medium text-foreground">{session.requestedByName}</span>
-                    </td>
-                    <td className="px-6 py-4">
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
                       {session.timeToRemoteSeconds !== null ? (
                         <Badge
                           variant="outline"
@@ -123,11 +135,11 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
                       ) : (
                         <span className="text-xs italic text-muted-foreground">Nao calculado</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
                       <span className="text-sm font-medium text-foreground">{formatDuration(session.durationSeconds)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-right">
                       {session.hostId ? (
                         <Link
                           href={`/portal/infraestrutura/hosts/${session.hostId}`}
@@ -137,12 +149,11 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
                           <ChevronRight className="h-3 w-3" />
                         </Link>
                       ) : null}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

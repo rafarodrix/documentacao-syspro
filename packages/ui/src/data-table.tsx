@@ -39,6 +39,14 @@ export interface DataTableProps<TData, TValue> {
   loading?: boolean;
   loadingLabel?: string;
 
+  // Seleção de Linhas (TanStack)
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+
+  // Visibilidade de Colunas (TanStack)
+  columnVisibility?: Record<string, boolean>;
+  onColumnVisibilityChange?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+
   // Customizações de Estado Vazio
   emptyState?: {
     title: string;
@@ -65,6 +73,10 @@ export function DataTable<TData, TValue>({
   loadingLabel = "Carregando...",
   emptyState,
   renderMobileItem,
+  rowSelection,
+  onRowSelectionChange,
+  columnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps<TData, TValue>) {
   // Traduz a ordenação controlada para o estado do TanStack
   const tableSorting = React.useMemo<SortingState | undefined>(() => {
@@ -90,8 +102,12 @@ export function DataTable<TData, TValue>({
     columns,
     state: {
       sorting: tableSorting,
+      rowSelection,
+      columnVisibility,
     },
     onSortingChange: handleSortingChange,
+    onRowSelectionChange,
+    onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
     manualSorting: true, // A ordenação é controlada externamente no portal
   });

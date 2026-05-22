@@ -8,7 +8,7 @@ import {
 import { DocumentoForm } from './documento-form';
 import { type DocumentoFormValues } from '@dosc-syspro/contracts/documento';
 import type { DocumentoItem } from '@/features/documentos/domain/documento.types';
-import { Button } from "@dosc-syspro/ui";
+import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { GRUPOS_DOCUMENTO } from "@dosc-syspro/contracts/documento-config";
 import { getDocumentos, saveDocumento, deleteDocumento } from '@/features/documentos/application/documento-write.actions';
 
@@ -171,17 +171,16 @@ export default function DocumentosContainer() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/30 text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="p-4 font-semibold w-[35%] pl-6">Identificação do Modelo</th>
-                  <th className="p-4 font-semibold w-[20%]">Configuração</th>
-                  <th className="p-4 font-semibold w-[30%]">Resumo Fiscal (CFOP)</th>
-                  <th className="p-4 font-semibold text-right pr-6">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+          <Table className="w-full text-left text-sm">
+              <TableHeader className="bg-muted/20 text-muted-foreground border-b border-border/60">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[35%] p-4 pl-6 font-semibold">Identificação do Modelo</TableHead>
+                  <TableHead className="w-[20%] p-4 font-semibold">Configuração</TableHead>
+                  <TableHead className="w-[30%] p-4 font-semibold">Resumo Fiscal (CFOP)</TableHead>
+                  <TableHead className="p-4 pr-6 text-right font-semibold">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border">
                 {documents.map((doc) => {
                   const grupoLabel = GRUPOS_DOCUMENTO.find(g => g.value === doc.grupoDocumento)?.label;
                   const hasST = doc.cfopEstadualST || doc.cfopInterestadualST;
@@ -189,8 +188,8 @@ export default function DocumentosContainer() {
                   const hasExterior = doc.cfopInternacional;
 
                   return (
-                    <tr key={doc.id} className="hover:bg-muted/20 transition-colors group">
-                      <td className="p-4 pl-6 align-top">
+                    <TableRow key={doc.id} className="hover:bg-muted/20 transition-colors group">
+                      <TableCell className="p-4 pl-6 align-top">
                         <div className="flex gap-4">
                           <div className="mt-1 p-2.5 h-fit bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-900/50">
                             <ScrollText size={20} strokeWidth={1.5} />
@@ -210,9 +209,9 @@ export default function DocumentosContainer() {
                             </div>
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
 
-                      <td className="p-4 align-top">
+                      <TableCell className="p-4 align-top">
                         <div className="flex flex-col gap-2 items-start">
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-0.5 bg-muted rounded border border-border text-xs font-mono font-medium text-muted-foreground" title="Modelo">
@@ -224,9 +223,9 @@ export default function DocumentosContainer() {
                           </div>
                           {renderEstoqueBadge(doc.movimentaEstoque)}
                         </div>
-                      </td>
+                      </TableCell>
 
-                      <td className="p-4 align-top">
+                      <TableCell className="p-4 align-top">
                         <div className="space-y-2">
                           <div className="flex gap-4 text-xs font-mono text-muted-foreground">
                             <div className="flex flex-col">
@@ -258,9 +257,9 @@ export default function DocumentosContainer() {
                             )}
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
 
-                      <td className="p-4 pr-6 align-middle text-right">
+                      <TableCell className="p-4 pr-6 align-middle text-right">
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -281,13 +280,12 @@ export default function DocumentosContainer() {
                             <Trash2 size={16} />
                           </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
         )}
       </div>
     </div>
