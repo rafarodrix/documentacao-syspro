@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TableCell, TableRow, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator, Badge } from "@dosc-syspro/ui";
+import { TableCell, TableRow, TableHead, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator, Badge } from "@dosc-syspro/ui";
 import {
   MoreHorizontal,
   Shield,
@@ -27,7 +27,6 @@ import {
   RegistryFilterGroup,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
-import { PortalTableHead } from "@/components/patterns";
 import { updateUserStatusAction } from "@/features/user-access/application/user-access-write.actions";
 
 type UserWithRelations = UserAccessListItem;
@@ -366,11 +365,11 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
           desktopHeaderClassName="bg-muted/20"
           desktopHeader={
             <TableRow className="hover:bg-transparent border-b border-border/60">
-              <PortalTableHead className="py-3.5 px-6">Identificacao</PortalTableHead>
-              <PortalTableHead>Contato vinculado</PortalTableHead>
-              <PortalTableHead>Acesso / Empresa</PortalTableHead>
-              <PortalTableHead>Status</PortalTableHead>
-              <PortalTableHead className="text-right px-6">Acoes</PortalTableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground py-3.5 px-6">Identificacao</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato vinculado</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acesso / Empresa</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-right px-6">Acoes</TableHead>
             </TableRow>
           }
           mobileContent={paginatedData.map((user) => (

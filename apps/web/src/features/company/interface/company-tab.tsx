@@ -14,14 +14,14 @@ import {
   type CompanyInactivationReasonOption,
 } from "@dosc-syspro/contracts/settings"
 import { toast } from "sonner"
-import { TableCell, TableRow, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui";
+import { TableCell, TableRow, TableHead, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@dosc-syspro/ui";
 import { MoreHorizontal, Building2, Users, X, CircleAlert, Plus, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog"
 import { getCompanySegmentLabel } from "@/features/company/domain/company-segments"
 import type { CompanyListItem } from "@/features/company/application/company-view.types"
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record"
-import { PageHeader, PortalTableHead } from "@/components/patterns"
+import { PageHeader } from "@/components/patterns"
 import {
   RegistryDataTable,
   RegistryFeedback,
@@ -647,12 +647,12 @@ export function CompanyTab({
           minWidthClassName="min-w-[1120px]"
           desktopHeader={
             <TableRow className="hover:bg-transparent border-b border-border/60">
-              <PortalTableHead className="py-3.5 px-6">Organizacao</PortalTableHead>
-              <PortalTableHead>CNPJ</PortalTableHead>
-              <PortalTableHead>Segmento</PortalTableHead>
-              <PortalTableHead>Status</PortalTableHead>
-              <PortalTableHead>Membros</PortalTableHead>
-              <PortalTableHead className="text-right px-6">Acoes</PortalTableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground py-3.5 px-6">Organizacao</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">CNPJ</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Segmento</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Membros</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-right px-6">Acoes</TableHead>
             </TableRow>
           }
           mobileContent={paginatedData.map((company) => {

@@ -21,10 +21,10 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
-import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, TableCell, TableRow } from "@dosc-syspro/ui";
+import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatTimeShort } from "@/lib/date";
-import { EmptyState, PortalTableHead } from "@/components/patterns";
+import { EmptyState } from "@/components/patterns";
 import { RegistryDataTable, RegistryFooter } from "@/components/platform/shared/registry-list-scaffold";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
@@ -701,14 +701,14 @@ export function RemotePlatformDirectoryPanel({
             flexible={true}
             desktopHeader={
               <TableRow className="border-b border-border/40 hover:bg-transparent">
-                <PortalTableHead className="w-4" />
-                <PortalTableHead className="min-w-0">Host</PortalTableHead>
-                <PortalTableHead className="min-w-0">Empresa / Instalações</PortalTableHead>
-                <PortalTableHead className="w-[136px]">ID remoto</PortalTableHead>
-                <PortalTableHead className="w-24">Sinais</PortalTableHead>
-                <PortalTableHead className="w-20">Métricas</PortalTableHead>
-                <PortalTableHead className="w-24">Heartbeat</PortalTableHead>
-                <PortalTableHead className="w-[188px] text-right">Ações</PortalTableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-4" />
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Host</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Empresa / Instalações</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[136px]">ID remoto</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-24">Sinais</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-20">Métricas</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-24">Heartbeat</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[188px] text-right">Ações</TableHead>
               </TableRow>
             }
             desktopContent={displayedItems.map((item) => {

@@ -3,18 +3,12 @@
 import type { ElementType, ReactNode } from "react";
 import { ChevronLeft, ChevronRight, X, type LucideIcon } from "lucide-react";
 
-import { Button, Card } from "@dosc-syspro/ui";
+import { Button, Card, Table, TableBody, TableCell, TableHeader, TableRow } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import {
   EmptyState,
   LoadingState,
   MetricCard,
-  PortalTable,
-  PortalTableBody,
-  PortalTableEmptyRow,
-  PortalTableHeader,
-  PortalTableLoadingRow,
-  PortalTableViewport,
   SearchToolbar,
   FilterTabs,
 } from "@/components/patterns";
@@ -221,25 +215,37 @@ export function RegistryDataTable({
         )}
       </div>
 
-      <PortalTableViewport className={cn("hidden md:block", desktopClassName)} minWidthClassName={minWidthClassName} flexible={flexible}>
-        <PortalTable>
-          <PortalTableHeader className={desktopHeaderClassName}>{desktopHeader}</PortalTableHeader>
-          <PortalTableBody>
-            {loading ? (
-              <PortalTableLoadingRow colSpan={desktopColSpan} label={loadingLabel} />
-            ) : isEmpty ? (
-              <PortalTableEmptyRow
-                colSpan={desktopColSpan}
-                icon={emptyState.icon as LucideIcon}
-                title={emptyTitle}
-                description={emptyState.description}
-              />
-            ) : (
-              desktopContent
-            )}
-          </PortalTableBody>
-        </PortalTable>
-      </PortalTableViewport>
+      <div className={cn(flexible ? "w-full min-w-0" : "w-full min-w-0 overflow-x-auto", "hidden md:block", desktopClassName)}>
+        <div className={cn(flexible ? "w-full" : "min-w-max", minWidthClassName)}>
+          <Table>
+            <TableHeader className={cn("sticky top-0 z-10 bg-muted/20 backdrop-blur border-b border-border/60", desktopHeaderClassName)}>
+              {desktopHeader}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={desktopColSpan} className="text-center h-32">
+                    <LoadingState label={loadingLabel} compact={true} />
+                  </TableCell>
+                </TableRow>
+              ) : isEmpty ? (
+                <TableRow>
+                  <TableCell colSpan={desktopColSpan} className="h-64 text-center">
+                    <EmptyState
+                      icon={emptyState.icon}
+                      title={emptyTitle}
+                      description={emptyState.description}
+                      compact={true}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                desktopContent
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </>
   );
 

@@ -4,15 +4,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
-import { TableCell, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import {
-    PortalTable,
-    PortalTableBody,
-    PortalTableEmptyRow,
-    PortalTableHead,
-    PortalTableHeader,
-    PortalTableViewport,
-} from "@/components/patterns";
+import { TableCell, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, DataTable } from "@dosc-syspro/ui";
+import { type ColumnDef } from "@tanstack/react-table";
 import {
     Building2,
     CalendarClock,
@@ -37,13 +30,6 @@ import {
 } from "@dosc-syspro/contracts/settings";
 import { fetchSettingsPreferences } from "@/features/settings/application/preferences";
 import { formatDateShort } from "@/lib/date";
-
-interface ContractsTableProps {
-    contracts: ContractListItem[];
-    canEdit: boolean;
-    canDelete: boolean;
-}
-
 import { formatCurrency } from "@/lib/formatters";
 import { calculateContractFinancials } from "@dosc-syspro/shared";
 
@@ -53,6 +39,12 @@ const toNumber = (value: number | string) => {
     if (typeof value === "number") return value;
     return Number(value);
 };
+
+interface ContractsTableProps {
+    contracts: ContractListItem[];
+    canEdit: boolean;
+    canDelete: boolean;
+}
 
 export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTableProps) {
     const router = useRouter();
@@ -127,7 +119,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 setSuspendImpact(result.data);
             } else {
                 setSuspendImpact(null);
-                toast.error("Nao foi possivel calcular o impacto da suspensao.");
+                toast.error("Não foi possível calcular o impacto da suspensão.");
             }
             setIsImpactLoading(false);
         };
@@ -141,7 +133,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
     const handleSuspend = () => {
         if (!suspendTarget) return;
         if (requiresDetails && !blockReasonDetails.trim()) {
-            toast.error("Informe o motivo detalhado para a opcao Outros.");
+            toast.error("Informe o motivo detalhado para a opção Outros.");
             return;
         }
 
@@ -188,7 +180,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
         startTransition(async () => {
             const result = await deleteContractAction(deleteTarget.id);
             if (result.success) {
-                toast.success(result.message ?? "Contrato excluido com sucesso.");
+                toast.success(result.message ?? "Contrato excluído com sucesso.");
                 setItems((prev) => prev.filter((contract) => contract.id !== deleteTarget.id));
                 setDeleteTarget(null);
                 return;
@@ -214,6 +206,178 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
         );
     }, [items, search]);
 
+    // Definição das Colunas com ColumnDef do TanStack
+    const columns = useMemo<ColumnDef<ContractListItem>[]>(() => {
+        return [
+            {
+                id: "company",
+                header: "Empresa",
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground">
+                            <Building2 className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="max-w-50 truncate text-sm font-medium text-foreground">
+                                {row.original.company.razaoSocial}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono tracking-tight">
+                                CNPJ: {row.original.company.cnpj}
+                            </span>
+                        </div>
+                    </div>
+                ),
+            },
+            {
+                id: "startDate",
+                header: "Vigência",
+                cell: ({ row }) => (
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
+                        <CalendarClock className="h-3.5 w-3.5 opacity-70" />
+                        {formatDate(row.original.startDate)}
+                    </div>
+                ),
+            },
+            {
+                id: "minimumWage",
+                header: "Base",
+                cell: ({ row }) => (
+                    <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                        {formatCurrency(toNumber(row.original.minimumWage))}
+                    </span>
+                ),
+            },
+            {
+                id: "percentage",
+                header: "Aliq.",
+                cell: ({ row }) => (
+                    <Badge variant="outline" className="h-5 border-border/60 bg-background px-1.5 font-mono text-[10px] font-normal shadow-none">
+                        {toNumber(row.original.percentage).toFixed(4)}%
+                    </Badge>
+                ),
+            },
+            {
+                id: "status",
+                header: "Status",
+                cell: ({ row }) => {
+                    const isActive = row.original.status === "ACTIVE";
+                    return (
+                        <Badge
+                            variant={isActive ? "success" : "muted"}
+                            className="h-5 gap-1.5 rounded-full px-2 py-0 text-[10px] font-medium"
+                        >
+                            <span className={cn("h-1.5 w-1.5 rounded-full bg-current", isActive ? "animate-pulse" : "opacity-60")} />
+                            {isActive ? "Ativo" : "Inativo"}
+                        </Badge>
+                    );
+                },
+            },
+            {
+                id: "net",
+                header: () => <div className="text-right">Líquido</div>,
+                cell: ({ row }) => {
+                    const minimumWage = toNumber(row.original.minimumWage);
+                    const percentage = toNumber(row.original.percentage);
+                    const taxRate = toNumber(row.original.taxRate);
+                    const programmerRate = toNumber(row.original.programmerRate);
+
+                    const { grossValue: gross, netValue: net } = calculateContractFinancials(minimumWage, percentage, taxRate, programmerRate);
+                    const isActive = row.original.status === "ACTIVE";
+
+                    return (
+                        <div className="flex flex-col items-end gap-0.5">
+                            <span className={cn(
+                                "font-semibold font-mono text-sm tracking-tight tabular-nums",
+                                isActive ? "text-primary" : "text-muted-foreground",
+                            )}>
+                                {formatCurrency(net)}
+                            </span>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground/65">
+                                <Wallet className="h-3 w-3" />
+                                <span>Bruto: {formatCurrency(gross)}</span>
+                            </div>
+                        </div>
+                    );
+                },
+            },
+            {
+                id: "actions",
+                header: "",
+                cell: ({ row }) => {
+                    const contract = row.original;
+                    const isActive = contract.status === "ACTIVE";
+
+                    return (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover/row:opacity-100 transition-opacity data-[state=open]:opacity-100" onClick={(e) => e.stopPropagation()}>
+                                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">Gerenciar Contrato</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+
+                                {canEdit ? (
+                                    <DropdownMenuItem onClick={() => router.push(`/portal/contratos?mode=edit&id=${contract.id}`)} className="cursor-pointer gap-2">
+                                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                        Editar Termos
+                                    </DropdownMenuItem>
+                                ) : null}
+
+                                <DropdownMenuItem onClick={() => toast.info("Em breve: Histórico")} className="cursor-pointer gap-2">
+                                    <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Ver Repasses
+                                </DropdownMenuItem>
+
+                                {canEdit || canDelete ? <DropdownMenuSeparator /> : null}
+
+                                {canEdit ? (
+                                    isActive ? (
+                                        <DropdownMenuItem
+                                            disabled={isPending}
+                                            onClick={() => setSuspendTarget(contract)}
+                                            className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Suspender
+                                        </DropdownMenuItem>
+                                    ) : (
+                                        <DropdownMenuItem
+                                            disabled={isPending}
+                                            onClick={() => handleActivate(contract.id)}
+                                            className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 cursor-pointer gap-2"
+                                        >
+                                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                                            Reativar
+                                        </DropdownMenuItem>
+                                    )
+                                ) : null}
+
+                                {canDelete ? (
+                                    <DropdownMenuItem
+                                        disabled={isPending}
+                                        onClick={() => setDeleteTarget(contract)}
+                                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Excluir
+                                    </DropdownMenuItem>
+                                ) : null}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    );
+                },
+            },
+        ];
+    }, [canEdit, canDelete, isPending, router]);
+
+    const emptyStateConfig = useMemo(() => ({
+        title: "Nenhum contrato encontrado",
+        description: search.trim() ? "Ajuste os filtros e tente novamente." : "Cadastre um novo contrato para começar a gestão.",
+        icon: FileText,
+    }), [search]);
+
     return (
         <>
             <Dialog
@@ -235,15 +399,15 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             {isImpactLoading
                                 ? "Calculando impacto operacional..."
                                 : suspendImpact?.willBlockCompany
-                                    ? `${suspendImpact.blockedUsersCount} usuarios serao bloqueados${suspendImpact.companyName ? ` em ${suspendImpact.companyName}` : ""}.`
+                                    ? `${suspendImpact.blockedUsersCount} usuários serão bloqueados${suspendImpact.companyName ? ` em ${suspendImpact.companyName}` : ""}.`
                                     : "Ainda existe outro contrato ativo para esta empresa."}
                         </DialogDescription>
                     </DialogHeader>
 
-                        <div className="space-y-3.5">
-                            {suspendTarget ? (
-                                <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
-                                    <p className="font-medium text-foreground">{suspendTarget.company.razaoSocial}</p>
+                    <div className="space-y-3.5">
+                        {suspendTarget ? (
+                            <div className="rounded-lg border border-border/60 bg-muted/10 p-3 text-sm">
+                                <p className="font-medium text-foreground">{suspendTarget.company.razaoSocial}</p>
                                 <p className="text-xs text-muted-foreground">CNPJ: {suspendTarget.company.cnpj}</p>
                             </div>
                         ) : null}
@@ -282,7 +446,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                             Cancelar
                         </Button>
                         <Button variant="destructive" onClick={handleSuspend} disabled={isPending || isImpactLoading}>
-                            Confirmar suspensao
+                            Confirmar suspensão
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -297,8 +461,8 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         </DialogTitle>
                         <DialogDescription>
                             {deleteTarget?.status === "ACTIVE"
-                                ? "A exclusao e definitiva. Se este for o ultimo contrato ativo, a empresa e os usuarios cliente vinculados serao bloqueados."
-                                : "A exclusao remove este contrato da base de forma definitiva."}
+                                ? "A exclusão é definitiva. Se este for o último contrato ativo, a empresa e os usuários cliente vinculados serão bloqueados."
+                                : "A exclusão remove este contrato da base de forma definitiva."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -329,174 +493,14 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         className="h-10 border-border/60 bg-background"
                     />
                 </div>
-                <PortalTableViewport minWidthClassName="min-w-[980px]">
-                    <PortalTable>
-                        <PortalTableHeader>
-                            <TableRow className="hover:bg-transparent border-b border-border/60">
-                                <PortalTableHead className="w-75 px-3 py-3">Empresa</PortalTableHead>
-                                <PortalTableHead className="px-3 py-3">Vigencia</PortalTableHead>
-                                <PortalTableHead className="px-3 py-3">Base</PortalTableHead>
-                                <PortalTableHead className="px-3 py-3">Aliq.</PortalTableHead>
-                                <PortalTableHead className="px-3 py-3">Status</PortalTableHead>
-                                <PortalTableHead className="px-3 py-3 text-right">Liquido</PortalTableHead>
-                                <PortalTableHead className="w-12.5" />
-                            </TableRow>
-                        </PortalTableHeader>
-                        <PortalTableBody>
-                            {filteredItems.length === 0 ? (
-                                <PortalTableEmptyRow
-                                    colSpan={7}
-                                    icon={FileText}
-                                    title="Nenhum contrato encontrado"
-                                    description={search.trim() ? "Ajuste os filtros e tente novamente." : "Cadastre um novo contrato para comecar a gestao."}
-                                />
-                            ) : (
-                                filteredItems.map((contract, index) => {
-                                    const minimumWage = toNumber(contract.minimumWage);
-                                    const percentage = toNumber(contract.percentage);
-                                    const taxRate = toNumber(contract.taxRate);
-                                    const programmerRate = toNumber(contract.programmerRate);
-
-                                    const { grossValue: gross, taxDeduction: taxDed, partnerDeduction: progDed, netValue: net } = calculateContractFinancials(minimumWage, percentage, taxRate, programmerRate);
-                                    const isActive = contract.status === "ACTIVE";
-
-                                    return (
-                                        <TableRow
-                                            key={contract.id}
-                                            className="group/row cursor-pointer border-border/40 transition-colors hover:bg-muted/10"
-                                            style={{ animationDelay: `${index * 50}ms` }}
-                                            onDoubleClick={() => canEdit && router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
-                                        >
-                                            <TableCell className="px-3 py-3.5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground">
-                                                        <Building2 className="h-4 w-4" />
-                                                    </div>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="max-w-50 truncate text-sm font-medium text-foreground">
-                                                            {contract.company.razaoSocial}
-                                                        </span>
-                                                        <span className="text-[10px] text-muted-foreground font-mono tracking-tight">
-                                                            CNPJ: {contract.company.cnpj}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-3.5">
-                                                <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
-                                                    <CalendarClock className="h-3.5 w-3.5 opacity-70" />
-                                                    {formatDate(contract.startDate)}
-                                                </div>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-3.5">
-                                                <span className="font-mono text-xs text-muted-foreground tabular-nums">
-                                                    {formatCurrency(minimumWage)}
-                                                </span>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-3.5">
-                                                <Badge variant="outline" className="h-5 border-border/60 bg-background px-1.5 font-mono text-[10px] font-normal shadow-none">
-                                                    {percentage.toFixed(4)}%
-                                                </Badge>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-3.5">
-                                                <Badge
-                                                    variant={isActive ? "success" : "muted"}
-                                                    className="h-5 gap-1.5 rounded-full px-2 py-0 text-[10px] font-medium"
-                                                >
-                                                    <span className={cn("h-1.5 w-1.5 rounded-full bg-current", isActive ? "animate-pulse" : "opacity-60")} />
-                                                    {isActive ? "Ativo" : "Inativo"}
-                                                </Badge>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-3.5 text-right">
-                                                <div className="flex flex-col items-end gap-0.5">
-                                                    <span className={cn(
-                                                        "font-semibold font-mono text-sm tracking-tight tabular-nums",
-                                                        isActive ? "text-primary" : "text-muted-foreground",
-                                                    )}>
-                                                        {formatCurrency(net)}
-                                                    </span>
-                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground/65">
-                                                        <Wallet className="h-3 w-3" />
-                                                        <span>Bruto: {formatCurrency(gross)}</span>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-
-                                            <TableCell className="px-3 py-3.5">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover/row:opacity-100 transition-opacity data-[state=open]:opacity-100">
-                                                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuLabel className="text-xs text-muted-foreground">Gerenciar Contrato</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-
-                                                        {canEdit ? (
-                                                            <DropdownMenuItem onClick={() => router.push(`/portal/contratos?mode=edit&id=${contract.id}`)} className="cursor-pointer gap-2">
-                                                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                Editar Termos
-                                                            </DropdownMenuItem>
-                                                        ) : null}
-
-                                                        <DropdownMenuItem onClick={() => toast.info("Em breve: Historico")} className="cursor-pointer gap-2">
-                                                            <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
-                                                            Ver Repasses
-                                                        </DropdownMenuItem>
-
-                                                        {canEdit || canDelete ? <DropdownMenuSeparator /> : null}
-
-                                                        {canEdit ? (
-                                                            isActive ? (
-                                                                // ds-allow: status
-                                                                <DropdownMenuItem
-                                                                    disabled={isPending}
-                                                                    onClick={() => setSuspendTarget(contract)}
-                                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                    Suspender
-                                                                </DropdownMenuItem>
-                                                            ) : (
-                                                                // ds-allow: status
-                                                                <DropdownMenuItem
-                                                                    disabled={isPending}
-                                                                    onClick={() => handleActivate(contract.id)}
-                                                                    className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 cursor-pointer gap-2"
-                                                                >
-                                                                    <ArrowRightLeft className="h-3.5 w-3.5" />
-                                                                    Reativar
-                                                                </DropdownMenuItem>
-                                                            )
-                                                        ) : null}
-
-                                                        {canDelete ? (
-                                                            // ds-allow: status
-                                                            <DropdownMenuItem
-                                                                disabled={isPending}
-                                                                onClick={() => setDeleteTarget(contract)}
-                                                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2"
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                Excluir
-                                                            </DropdownMenuItem>
-                                                        ) : null}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            )}
-                        </PortalTableBody>
-                    </PortalTable>
-                </PortalTableViewport>
+                <DataTable
+                    columns={columns}
+                    data={filteredItems}
+                    minWidthClassName="min-w-[980px]"
+                    cardClassName="border-none bg-transparent shadow-none p-0 overflow-visible rounded-none animate-none"
+                    onRowDoubleClick={(contract) => canEdit && router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
+                    emptyState={emptyStateConfig}
+                />
             </Card>
         </>
     );

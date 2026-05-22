@@ -26,10 +26,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow } from "@dosc-syspro/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
-import { PortalTableHead } from "@/components/patterns";
 import {
   RegistryDataTable,
   RegistryFilterGroup,
@@ -350,11 +349,11 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
           desktopHeaderClassName="bg-muted/40"
           desktopHeader={
             <TableRow className="border-b border-border/60 hover:bg-transparent">
-              <PortalTableHead className="w-[30%]">Contato</PortalTableHead>
-              <PortalTableHead>Telefone</PortalTableHead>
-              <PortalTableHead>Email</PortalTableHead>
-              <PortalTableHead>Empresas</PortalTableHead>
-              <PortalTableHead className="w-24 text-right">Acoes</PortalTableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[30%]">Contato</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Telefone</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresas</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-24 text-right">Acoes</TableHead>
             </TableRow>
           }
           mobileContent={filteredData.map((contact) => (

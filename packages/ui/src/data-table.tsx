@@ -35,6 +35,7 @@ export interface DataTableProps<TData, TValue> {
 
   // Ações & Estados
   onRowClick?: (row: TData) => void;
+  onRowDoubleClick?: (row: TData) => void;
   loading?: boolean;
   loadingLabel?: string;
 
@@ -59,6 +60,7 @@ export function DataTable<TData, TValue>({
   cardClassName,
   rowClassName,
   onRowClick,
+  onRowDoubleClick,
   loading = false,
   loadingLabel = "Carregando...",
   emptyState,
@@ -204,11 +206,12 @@ export function DataTable<TData, TValue>({
                       key={row.id}
                       className={cn(
                         "group/row border-border/50 transition-colors hover:bg-muted/10",
-                        onRowClick ? "cursor-pointer" : "",
+                        (onRowClick || onRowDoubleClick) ? "cursor-pointer" : "",
                         resolvedRowClassName
                       )}
                       style={{ animationDelay: `${index * 40}ms` } as React.CSSProperties}
                       onClick={() => onRowClick?.(row.original)}
+                      onDoubleClick={() => onRowDoubleClick?.(row.original)}
                     >
                       {row.getVisibleCells().map((cell) => {
                         const meta = cell.column.columnDef.meta as { className?: string } | undefined;
