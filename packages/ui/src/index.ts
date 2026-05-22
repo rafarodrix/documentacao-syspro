@@ -72,6 +72,8 @@ export {
   TableCell,
   TableCaption,
 } from "./table";
+export { DataTable } from "./data-table";
+export type { DataTableProps } from "./data-table";
 export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { Switch } from "./switch";
