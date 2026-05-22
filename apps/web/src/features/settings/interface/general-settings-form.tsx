@@ -123,7 +123,8 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
 
         <TabsContent value="general" className="space-y-6">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Card className="overflow-hidden border-border/60 bg-background/50 shadow-sm backdrop-blur-sm">
+            <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
               <CardHeader className="border-b border-border/40 bg-muted/10 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-600">
@@ -163,7 +164,8 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-border/60 bg-background/50 shadow-sm backdrop-blur-sm">
+            <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
               <CardHeader className="border-b border-border/40 bg-muted/10 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-2 text-blue-600">
@@ -211,8 +213,9 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-rose-200 bg-rose-50/30 shadow-sm dark:border-rose-900/50 dark:bg-rose-950/10">
-              <CardHeader className="border-b border-rose-200 bg-rose-100/30 pb-4 dark:border-rose-900/50 dark:bg-rose-900/20">
+            <Card className="relative overflow-hidden border-rose-500/25 bg-rose-500/5 shadow-sm backdrop-blur-md dark:bg-rose-950/10">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-transparent" />
+              <CardHeader className="border-b border-rose-500/20 bg-rose-500/10 pb-4 dark:border-rose-950/20">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-2 text-rose-600">
                     <ShieldAlert className="h-5 w-5" />
@@ -245,7 +248,8 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
               </CardContent>
             </Card>
 
-            <Card className="overflow-hidden border-border/60 bg-background/50 shadow-sm backdrop-blur-sm">
+            <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
               <CardHeader className="border-b border-border/40 bg-muted/10 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border border-violet-500/20 bg-violet-500/10 p-2 text-violet-600">
