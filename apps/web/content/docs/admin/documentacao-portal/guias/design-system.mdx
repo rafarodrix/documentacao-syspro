@@ -1,0 +1,211 @@
+---
+title: "Guia: design system do portal"
+description: Resumo do sistema visual atual do portal, com principios de cores, tipografia, espacamento e uso de componentes.
+lastUpdated: 2026-05-22
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - guias
+  - design-system
+  - ui
+  - tokens
+---
+
+# Guia: design system do portal
+
+Este documento resume o sistema visual atual do portal de forma legivel para pessoas e agentes de codigo.
+
+Ele deve permanecer alinhado com:
+
+- `packages/ui/src/tokens.css`
+- `apps/web/src/app/globals.css`
+
+Se houver conflito entre esta pagina e os tokens reais, os tokens vencem e a documentacao deve ser atualizada.
+
+---
+
+## Visao geral
+
+O portal usa uma interface intencionalmente contida, baseada em contraste neutro, boa legibilidade e baixa saturacao visual.
+
+O objetivo nao e parecer promocional. O produto deve transmitir:
+
+- operacao
+- estabilidade
+- clareza
+- densidade adequada para uso diario
+
+Evite interfaces espalhafatosas, excesso de cor ou tratamentos visuais que prejudiquem leitura e previsibilidade.
+
+---
+
+## Cores
+
+A paleta principal e essencialmente acromatica.
+
+| Token | Valor |
+|---|---|
+| `background` | `#FFFFFF` |
+| `foreground` | `#171717` |
+| `primary` | `#262626` |
+| `primary-foreground` | `#FAFAFA` |
+| `secondary` | `#F5F5F5` |
+| `secondary-foreground` | `#262626` |
+| `muted` | `#F5F5F5` |
+| `muted-foreground` | `#737373` |
+| `accent` | `#F5F5F5` |
+| `accent-foreground` | `#262626` |
+| `destructive` | `#D84A4A` |
+| `border` | `#E5E5E5` |
+| `ring` | `#A3A3A3` |
+
+### Direcao de uso
+
+- Acoes primarias usam contraste alto, com tons quase pretos sobre fundos claros.
+- Neutros claros sustentam paineis, divisores e acoes secundarias.
+- Cores de destaque devem ser locais e funcionais.
+
+### O que evitar
+
+- usar cor vibrante como identidade dominante da tela
+- transformar grandes areas interativas em blocos muito saturados
+- depender de cor forte para criar hierarquia basica de layout
+
+---
+
+## Tipografia
+
+Inter e a fonte padrao do portal.
+
+| Estilo | Font family | Tamanho | Peso | Line height | Letter spacing |
+|---|---|---|---|---|---|
+| `display-1` | `Inter` | `4.5rem` | `700` | `1.1` | `-0.02em` |
+| `h1` | `Inter` | `3rem` | `700` | `1.15` | `-0.02em` |
+| `h2` | `Inter` | `2.25rem` | `700` | `1.2` | `normal` |
+| `h3` | `Inter` | `1.5rem` | `700` | `1.3` | `normal` |
+| `body` | `Inter` | `1rem` | `400` | `1.6` | `normal` |
+| `body-sm` | `Inter` | `0.875rem` | `400` | `1.55` | `normal` |
+| `caption` | `Inter` | `0.75rem` | `500` | `1.4` | `normal` |
+
+### Direcao de uso
+
+- Titulos devem ser compactos, fortes e limpos.
+- Texto corrido deve priorizar ritmo estavel e leitura.
+- Legendas e microcopy devem continuar discretas, sem perder contraste.
+
+### O que evitar
+
+- introduzir fontes display novas sem revisao do design system
+- exagerar em pesos diferentes dentro da mesma secao
+- usar tipografia como ornamento
+
+---
+
+## Forma e espacamento
+
+Os cantos sao suaves, mas nao ludicos.
+
+| Token | Valor |
+|---|---|
+| `rounded.sm` | `0.375rem` |
+| `rounded.md` | `0.5rem` |
+| `rounded.lg` | `0.625rem` |
+| `rounded.xl` | `0.875rem` |
+| `rounded.pill` | `9999px` |
+
+Escala principal de espacamento:
+
+| Token | Valor |
+|---|---|
+| `1` | `0.25rem` |
+| `2` | `0.5rem` |
+| `3` | `0.75rem` |
+| `4` | `1rem` |
+| `6` | `1.5rem` |
+| `8` | `2rem` |
+| `12` | `3rem` |
+| `16` | `4rem` |
+
+### Direcao de uso
+
+- Controles comuns giram em torno do raio medio.
+- Superficies maiores podem usar raio maior.
+- O layout deve respeitar a escala existente e evitar valores arbitrarios.
+
+---
+
+## Componentes
+
+### Shell da aplicacao
+
+- fundo principal baseado em `background`
+- texto em `foreground`
+- atmosfera limpa e operacional
+
+### Botoes primarios
+
+- fundo em `primary`
+- texto em `primary-foreground`
+- raio em `rounded.md`
+- leitura imediata e contraste alto
+
+### Botoes secundarios
+
+- fundo em `secondary`
+- texto em `secondary-foreground`
+- raio em `rounded.md`
+
+### Cards
+
+- fundo em `background`
+- texto em `foreground`
+- borda em `border`
+- raio em `rounded.xl`
+
+### Sidebar de documentacao
+
+- fundo em `background`
+- texto em `foreground`
+- borda em `border`
+- raio em `rounded.xl`
+
+### Direcao visual geral
+
+Cards, shells e superficies de documentacao devem parecer em camadas por:
+
+- contraste
+- blur
+- sombra
+
+e nao por excesso de cor.
+
+---
+
+## Regras praticas para novas interfaces
+
+Ao criar telas, secoes ou variacoes de componentes:
+
+1. preserve a base neutra da interface
+2. use contraste antes de usar cor
+3. mantenha Inter como tipografia principal
+4. respeite a escala de espacamento existente
+5. reutilize tokens e componentes antes de criar excecoes
+
+---
+
+## Como usar esta documentacao
+
+Use esta pagina para:
+
+- orientar agentes antes de gerar UI nova
+- revisar se uma proposta visual segue o portal atual
+- alinhar discussoes de design e implementacao
+- explicar o tom visual do produto para novas contribuicoes
+
+---
+
+## Arquivos relacionados
+
+- Guia de UI: `/portal/docs/admin/documentacao-portal/guias/padronizacao-ui`
+- Tokens reais: `packages/ui/src/tokens.css`
+- Estilos globais do app: `apps/web/src/app/globals.css`
