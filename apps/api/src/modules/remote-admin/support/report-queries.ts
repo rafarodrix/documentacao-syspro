@@ -54,7 +54,7 @@ export async function getRemoteEfficiencyMetrics(tenantScope: RemoteTenantScope)
 
       try {
         if (session.ticketNumber) {
-          const ticket = await prisma.conversation.findFirst({
+          const ticket = await prisma.ticket.findFirst({
             where: {
               OR: [{ id: session.ticketNumber }, { ticketNumber: session.ticketNumber }],
             },

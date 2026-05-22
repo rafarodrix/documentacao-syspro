@@ -347,10 +347,10 @@ model Company {
   whatsapp        String?
   website         String?
 
-  // ENDEREÃƒâ€¡O
+  // ENDERECOS
   addresses Address[]
 
-  // RELAÃƒâ€¡Ãƒâ€¢ES
+  // RELACIONAMENTOS
   accountingFirmId             String?
   accountingFirm               Company?                      @relation("AccountantClient", fields: [accountingFirmId], references: [id])
   accountingClients            Company[]                     @relation("AccountantClient")
@@ -358,7 +358,7 @@ model Company {
   memberships                  Membership[]
   contactLinks                 CompanyContactCompanyLink[]
   userContactLinks             UserContactLink[]
-  conversations                Conversation[]
+  tickets                      Ticket[]
   remoteHosts                  RemoteHost[]
   remoteHostSysproUpdates      RemoteHostSysproUpdate[]
   remoteSessions               RemoteSession[]
@@ -402,7 +402,7 @@ model CompanyContact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  conversations                Conversation[]
+  tickets                      Ticket[]
   authoredConversationMessages ConversationMessage[]       @relation("ConversationMessageAuthorContact")
   userLinks                    UserContactLink[]
   users                        User[]
@@ -500,8 +500,8 @@ model User {
   contactLinks                        UserContactLink[]
   sessions                            Session[]
   accounts                            Account[]
-  assignedConversations               Conversation[]                @relation("ConversationAssignedUser")
-  resolvedConversations               Conversation[]                @relation("ConversationResolvedByUser")
+  assignedTickets                     Ticket[]                      @relation("TicketAssignedUser")
+  resolvedTickets                     Ticket[]                      @relation("TicketResolvedByUser")
   authoredConversationMessages        ConversationMessage[]         @relation("ConversationMessageAuthorUser")
   conversationAssignments             ConversationAssignment[]      @relation("ConversationAssignmentAssignedUser")
   assignedConversationTransfers       ConversationAssignment[]      @relation("ConversationAssignmentAssignedByUser")
@@ -962,7 +962,7 @@ model RemoteSession {
   @@map("remote_session")
 }
 
-model Conversation {
+model Ticket {
   id String @id @default(cuid())
 
   channel    ConversationChannel
@@ -977,10 +977,10 @@ model Conversation {
   companyContact   CompanyContact? @relation(fields: [companyContactId], references: [id], onDelete: SetNull)
 
   assignedUserId String?
-  assignedUser   User?   @relation("ConversationAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedUser   User?   @relation("TicketAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
 
   resolvedByUserId String?
-  resolvedByUser   User?   @relation("ConversationResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolvedByUser   User?   @relation("TicketResolvedByUser", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
 
   ticketId           String?
   ticketNumber       String?
@@ -1045,7 +1045,7 @@ model TicketCategory {
   // Roteamento
   defaultTeam String? // "SUPORTE" | "DESENVOLVIMENTO"
 
-  conversations Conversation[]
+  tickets Ticket[]
 
   @@map("ticket_category")
 }
@@ -1054,7 +1054,7 @@ model ConversationMessage {
   id String @id @default(cuid())
 
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  ticket         Ticket @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   direction  ConversationMessageDirection
   type       ConversationMessageType
@@ -1132,7 +1132,7 @@ model ConversationAssignment {
   id String @id @default(cuid())
 
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  ticket         Ticket @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   assignedUserId String
   assignedUser   User   @relation("ConversationAssignmentAssignedUser", fields: [assignedUserId], references: [id], onDelete: Restrict)
@@ -1341,7 +1341,7 @@ model Task {
   metadata    Json?
 
   ticketId String?
-  ticket   Conversation? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  ticket   Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
 
   assignedToId String?
   assignedTo   User? @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)

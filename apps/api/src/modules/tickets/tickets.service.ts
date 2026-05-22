@@ -177,7 +177,7 @@ export class TicketsService {
     );
 
     const createdTicket = await this.prisma.$transaction(async (tx) => {
-      const conversation = await tx.conversation.create({
+      const conversation = await tx.ticket.create({
         data: {
           channel: data.channel ?? TicketChannel.PORTAL,
           entryPoint: this.toConversationEntryPoint(data.entryPoint),
@@ -454,7 +454,7 @@ export class TicketsService {
     const page = Math.max(1, Number.parseInt(input.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(1, Number.parseInt(input.pageSize || '50', 10) || 50));
 
-    const baseWhere: Prisma.ConversationWhereInput = {};
+    const baseWhere: Prisma.TicketWhereInput = {};
 
     if (!accessScope.isGlobal) {
       baseWhere.companyId = { in: accessScope.companyIds };
@@ -472,7 +472,7 @@ export class TicketsService {
       Object.assign(baseWhere, buildTicketSearchWhere(input.search));
     }
 
-    const where: Prisma.ConversationWhereInput = { ...baseWhere };
+    const where: Prisma.TicketWhereInput = { ...baseWhere };
     const teamScopeWhere = input.team ? withTicketTeam(baseWhere, input.team) : baseWhere;
     if (input.team) {
       Object.assign(where, teamScopeWhere);
@@ -531,13 +531,13 @@ export class TicketsService {
       }
     }
 
-    const openStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.NEW, TicketStatus.UNASSIGNED] } };
-    const developmentStatusWhere: Prisma.ConversationWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.IN_PROGRESS] } };
-    const testingStatusWhere: Prisma.ConversationWhereInput = {
+    const openStatusWhere: Prisma.TicketWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.NEW, TicketStatus.UNASSIGNED] } };
+    const developmentStatusWhere: Prisma.TicketWhereInput = { ...teamScopeWhere, status: { in: [TicketStatus.IN_PROGRESS] } };
+    const testingStatusWhere: Prisma.TicketWhereInput = {
       ...teamScopeWhere,
       status: { in: [TicketStatus.TRIAGE, TicketStatus.TESTING, TicketStatus.WAITING_CUSTOMER, TicketStatus.WAITING_INTERNAL] },
     };
-    const closedStatusWhere: Prisma.ConversationWhereInput = {
+    const closedStatusWhere: Prisma.TicketWhereInput = {
       ...teamScopeWhere,
       status: { in: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
     };
@@ -550,7 +550,7 @@ export class TicketsService {
     const queueBaseWhere = teamScopeWhere;
     const sortBy = input.sortBy || 'updatedAt';
     const sortOrder: Prisma.SortOrder = input.sortOrder === 'asc' ? 'asc' : 'desc';
-    const orderBy: Prisma.ConversationOrderByWithRelationInput[] =
+    const orderBy: Prisma.TicketOrderByWithRelationInput[] =
       sortBy === 'subject'
         ? [{ subject: sortOrder }, { updatedAt: 'desc' }]
         : sortBy === 'customer'
@@ -631,7 +631,7 @@ export class TicketsService {
       throw new BadRequestException(`Limite de ${TICKET_REPLY_MAX_ATTACHMENTS} anexos por mensagem.`);
     }
 
-    const ticket = await this.prisma.conversation.findUnique({
+    const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       select: { id: true, companyId: true, slaResponseHitAt: true },
     });
@@ -667,7 +667,7 @@ export class TicketsService {
 
     const preview = buildReplyPreview(message, normalizedAttachments);
 
-    await this.prisma.conversation.update({
+    await this.prisma.ticket.update({
       where: { id },
       data: {
         lastMessagePreview: preview,
@@ -687,7 +687,7 @@ export class TicketsService {
     const settings = await this.getTicketModuleSettings();
     const isArchiveFlow = input.status === TicketStatus.ARCHIVED;
 
-    const exists = await this.prisma.conversation.findUnique({
+    const exists = await this.prisma.ticket.findUnique({
       where: { id },
       select: {
         id: true,
@@ -1068,9 +1068,9 @@ export class TicketsService {
       }
       data.metadata = currentMetadata as Prisma.InputJsonValue;
 
-      await tx.conversation.update({
+      await tx.ticket.update({
         where: { id },
-        data: data as Prisma.ConversationUncheckedUpdateInput,
+        data: data as Prisma.TicketUncheckedUpdateInput,
       });
 
       if (isArchiveFlow) {
@@ -1301,7 +1301,7 @@ export class TicketsService {
     }
 
     if (isArchiveFlow) {
-      const persistedTicket = await this.prisma.conversation.findUnique({
+      const persistedTicket = await this.prisma.ticket.findUnique({
         where: { id },
         select: {
           id: true,
@@ -1355,7 +1355,7 @@ export class TicketsService {
         message: {
           select: {
             conversationId: true,
-            conversation: {
+            ticket: {
               select: { companyId: true },
             },
           },
@@ -1367,7 +1367,7 @@ export class TicketsService {
       throw new NotFoundException('Anexo nao encontrado.');
     }
 
-    this.assertTicketAccess(attachment.message.conversation.companyId, accessScope);
+    this.assertTicketAccess(attachment.message.ticket.companyId, accessScope);
 
     if (attachment.storageBackend === 'R2') {
       if (!attachment.storageKey) {
@@ -1398,7 +1398,7 @@ export class TicketsService {
     const accessScope = await this.getTicketAccessScope(requester);
     await this.assertCanManageTickets(requester);
 
-    const ticket = await this.prisma.conversation.findUnique({
+    const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       select: { id: true, companyId: true, metadata: true, assignedUserId: true },
     });
@@ -1442,7 +1442,7 @@ export class TicketsService {
     });
 
     await this.prisma.$transaction([
-      this.prisma.conversation.update({
+      this.prisma.ticket.update({
         where: { id },
         data: {
           assignedUserId: requester.userId,
@@ -1484,7 +1484,7 @@ export class TicketsService {
     const accessScope = await this.getTicketAccessScope(requester);
     await this.assertCanManageTickets(requester);
 
-    const ticket = await this.prisma.conversation.findUnique({
+    const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       select: { id: true, companyId: true, metadata: true },
     });
@@ -1518,7 +1518,7 @@ export class TicketsService {
     if (resolvedTeam) currentMetadata.currentTeam = resolvedTeam;
 
     await this.prisma.$transaction([
-      this.prisma.conversation.update({
+      this.prisma.ticket.update({
         where: { id },
         data: {
           status: TicketStatus.TRIAGE,

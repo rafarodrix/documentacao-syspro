@@ -53,25 +53,25 @@ export function buildContactSearchWhere(query: string | null | undefined): Prism
   } as Prisma.CompanyContactWhereInput;
 }
 
-export function buildTicketSearchWhere(query: string | null | undefined): Prisma.ConversationWhereInput {
+export function buildTicketSearchWhere(query: string | null | undefined): Prisma.TicketWhereInput {
   const term = prepareSearchTerm(query);
   if (!term.hasValue) return {};
 
   return {
     OR: [
-      { searchText: searchTextContains(term.raw) } as Prisma.ConversationWhereInput,
+      { searchText: searchTextContains(term.raw) } as Prisma.TicketWhereInput,
       {
         companyContact: {
           searchText: searchTextContains(term.raw),
         } as Prisma.CompanyContactWhereInput,
-      } as Prisma.ConversationWhereInput,
+      } as Prisma.TicketWhereInput,
       {
         company: {
           searchText: searchTextContains(term.raw),
         } as Prisma.CompanyWhereInput,
-      } as Prisma.ConversationWhereInput,
+      } as Prisma.TicketWhereInput,
     ],
-  } as Prisma.ConversationWhereInput;
+  } as Prisma.TicketWhereInput;
 }
 
 export function buildTicketCustomerOptionCompanySearchWhere(query: string | null | undefined): Prisma.CompanyWhereInput {

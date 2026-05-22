@@ -1279,7 +1279,7 @@ export class CompaniesService {
       ] = await Promise.all([
         this.prisma.userAccessProfile.count({ where: { companyId } }),
         this.prisma.remoteSession.count({ where: { companyId } }),
-        this.prisma.conversation.count({ where: { companyId } }),
+        this.prisma.ticket.count({ where: { companyId } }),
         this.prisma.conversationLink.count({ where: { companyId } }),
         this.prisma.messageLink.count({ where: { companyId } }),
         this.prisma.integrationConnection.count({ where: { companyId } }),

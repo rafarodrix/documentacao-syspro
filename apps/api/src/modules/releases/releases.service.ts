@@ -10,7 +10,7 @@ export class ReleasesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<{ success: true; data: Release[] }> {
-    const tickets = await this.prisma.conversation.findMany({
+    const tickets = await this.prisma.ticket.findMany({
       where: {
         status: TicketStatus.RESOLVED,
       },

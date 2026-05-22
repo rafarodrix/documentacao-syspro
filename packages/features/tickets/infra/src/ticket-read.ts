@@ -1,11 +1,11 @@
 import type { PrismaClient, Prisma } from '@prisma/client';
 
-type PrismaLike = Pick<PrismaClient, 'conversation' | 'conversationMessage'>;
+type PrismaLike = Pick<PrismaClient, 'ticket' | 'conversationMessage'>;
 
 export function withTicketTeam(
-  where: Prisma.ConversationWhereInput,
+  where: Prisma.TicketWhereInput,
   team: 'SUPORTE' | 'DESENVOLVIMENTO',
-): Prisma.ConversationWhereInput {
+): Prisma.TicketWhereInput {
   return {
     ...where,
     AND: [
@@ -23,7 +23,7 @@ export async function findTicketDetail(
 ) {
   const skip = (page - 1) * pageSize;
   return (prisma as PrismaClient).$transaction([
-    prisma.conversation.findUnique({
+    prisma.ticket.findUnique({
       where: { id },
       include: {
         company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
@@ -48,12 +48,12 @@ export async function findTicketDetail(
 
 export async function listTicketPage(
   prisma: PrismaLike,
-  where: Prisma.ConversationWhereInput,
+  where: Prisma.TicketWhereInput,
   skip: number,
   take: number,
-  orderBy: Prisma.ConversationOrderByWithRelationInput[],
+  orderBy: Prisma.TicketOrderByWithRelationInput[],
 ) {
-  return prisma.conversation.findMany({
+  return prisma.ticket.findMany({
     where,
     orderBy,
     skip,
@@ -69,28 +69,28 @@ export async function listTicketPage(
 export async function countTicketQueues(
   prisma: PrismaLike,
   params: {
-    where: Prisma.ConversationWhereInput;
-    queueBaseWhere: Prisma.ConversationWhereInput;
-    openStatusWhere: Prisma.ConversationWhereInput;
-    developmentStatusWhere: Prisma.ConversationWhereInput;
-    testingStatusWhere: Prisma.ConversationWhereInput;
-    closedStatusWhere: Prisma.ConversationWhereInput;
+    where: Prisma.TicketWhereInput;
+    queueBaseWhere: Prisma.TicketWhereInput;
+    openStatusWhere: Prisma.TicketWhereInput;
+    developmentStatusWhere: Prisma.TicketWhereInput;
+    testingStatusWhere: Prisma.TicketWhereInput;
+    closedStatusWhere: Prisma.TicketWhereInput;
     requesterUserId: string;
   },
 ) {
   const { where, queueBaseWhere, openStatusWhere, developmentStatusWhere, testingStatusWhere, closedStatusWhere, requesterUserId } = params;
   const [total, baseTotal, openCount, developmentCount, testingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount] =
     await Promise.all([
-      prisma.conversation.count({ where }),
-      prisma.conversation.count({ where: queueBaseWhere }),
-      prisma.conversation.count({ where: openStatusWhere }),
-      prisma.conversation.count({ where: developmentStatusWhere }),
-      prisma.conversation.count({ where: testingStatusWhere }),
-      prisma.conversation.count({ where: closedStatusWhere }),
-      prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: requesterUserId } }),
-      prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: null } }),
-      prisma.conversation.count({ where: { ...queueBaseWhere, priority: 'CRITICAL' } }),
-      prisma.conversation.count({
+      prisma.ticket.count({ where }),
+      prisma.ticket.count({ where: queueBaseWhere }),
+      prisma.ticket.count({ where: openStatusWhere }),
+      prisma.ticket.count({ where: developmentStatusWhere }),
+      prisma.ticket.count({ where: testingStatusWhere }),
+      prisma.ticket.count({ where: closedStatusWhere }),
+      prisma.ticket.count({ where: { ...queueBaseWhere, assignedUserId: requesterUserId } }),
+      prisma.ticket.count({ where: { ...queueBaseWhere, assignedUserId: null } }),
+      prisma.ticket.count({ where: { ...queueBaseWhere, priority: 'CRITICAL' } }),
+      prisma.ticket.count({
         where: { ...queueBaseWhere, slaResponseHitAt: null, status: { notIn: ['RESOLVED', 'ARCHIVED'] } },
       }),
     ]);

@@ -280,11 +280,7 @@ function SidebarFooter({
 export function AppSidebar({ user, mobile = false, onClose, collapsed = false, navigationAccess }: AppSidebarProps) {
   const pathname = usePathname()
   const isSidebarCollapsed = !mobile && collapsed
-  const supportNavItems = NAV_SUPPORT.map((item) =>
-    item.href === "/portal/tickets"
-      ? { ...item, title: navigationAccess?.tickets ? "Chamados" : item.title }
-      : item,
-  )
+  const supportNavItems = NAV_SUPPORT
   const mainItems = filterByAccess(NAV_MAIN, {
     "/portal": navigationAccess?.dashboard,
   })
