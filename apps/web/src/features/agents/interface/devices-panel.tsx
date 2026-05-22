@@ -21,20 +21,15 @@ import type {
   AgentDeviceSummary,
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
+import { type ColumnDef } from "@tanstack/react-table";
 import {
   Badge,
   Button,
   Card,
   CardContent,
+  DataTable,
   Input,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@dosc-syspro/ui";
-import { EmptyState } from "@/components/patterns";
 
 type StatusFilter = "all" | "online" | "offline";
 
@@ -44,7 +39,7 @@ export function AgentDevicesPanel(props: {
   initialSearch: string;
   initialStatus: StatusFilter;
 }) {
-  const { initialStats, initialList, initialSearch, initialStatus } = props;
+  const { initialStats, initialList, initialSearch } = props;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isRefreshing, startRefresh] = useTransition();
@@ -93,36 +88,36 @@ export function AgentDevicesPanel(props: {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          icon={<Cpu className="w-4 h-4" />}
+          icon={<Cpu className="h-4 w-4" />}
           label="Total de dispositivos"
           value={stats.total}
           accent="slate"
         />
         <StatCard
-          icon={<MonitorCheck className="w-4 h-4" />}
+          icon={<MonitorCheck className="h-4 w-4" />}
           label="Online"
           value={stats.online}
           hint={`${onlinePct}% do parque`}
           accent="emerald"
         />
         <StatCard
-          icon={<WifiOff className="w-4 h-4" />}
+          icon={<WifiOff className="h-4 w-4" />}
           label="Offline"
           value={stats.offline}
           hint={`janela de ${Math.round(stats.onlineThresholdSeconds / 60)} min`}
           accent="amber"
         />
         <StatCard
-          icon={<Building2 className="w-4 h-4" />}
+          icon={<Building2 className="h-4 w-4" />}
           label="Vinculados a empresa"
           value={stats.withCompany}
-          hint={`${linkedPct}% — ${stats.withoutCompany} sem vinculo`}
+          hint={`${linkedPct}% - ${stats.withoutCompany} sem vinculo`}
           accent="violet"
         />
       </div>
 
       <Card>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="space-y-4 p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex max-w-xl flex-1 items-center gap-2">
               <div className="relative flex-1">
@@ -177,9 +172,9 @@ export function AgentDevicesPanel(props: {
                 disabled={isRefreshing}
               >
                 {isRefreshing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="h-4 w-4" />
                 )}
               </Button>
             </div>
@@ -191,7 +186,7 @@ export function AgentDevicesPanel(props: {
             <span className="text-xs text-muted-foreground">
               {pagination.total === 0
                 ? "Nenhum dispositivo"
-                : `${(page - 1) * pagination.pageSize + 1}–${Math.min(page * pagination.pageSize, pagination.total)} de ${pagination.total} dispositivos`}
+                : `${(page - 1) * pagination.pageSize + 1}-${Math.min(page * pagination.pageSize, pagination.total)} de ${pagination.total} dispositivos`}
             </span>
 
             <div className="flex items-center gap-1">
@@ -202,7 +197,7 @@ export function AgentDevicesPanel(props: {
                 disabled={page <= 1 || isRefreshing}
                 onClick={() => changePage(page - 1)}
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="px-2 text-xs tabular-nums text-muted-foreground">
                 {page} / {pagination.totalPages}
@@ -214,7 +209,7 @@ export function AgentDevicesPanel(props: {
                 disabled={page >= pagination.totalPages || isRefreshing}
                 onClick={() => changePage(page + 1)}
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -248,10 +243,10 @@ function StatCard(props: {
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {props.label}
           </span>
-          <span className={`p-1.5 rounded-md ${accentClass[props.accent]}`}>{props.icon}</span>
+          <span className={`rounded-md p-1.5 ${accentClass[props.accent]}`}>{props.icon}</span>
         </div>
         <div className="mt-2 text-2xl font-bold tabular-nums leading-none">{props.value}</div>
-        {props.hint && <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div>}
+        {props.hint ? <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div> : null}
       </CardContent>
     </Card>
   );
@@ -267,10 +262,10 @@ function FilterPill(props: {
   const tone = props.tone ?? "default";
   const activeClass =
     tone === "emerald"
-      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
       : tone === "amber"
-        ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-        : "bg-foreground text-background border-foreground";
+        ? "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400"
+        : "border-foreground bg-foreground text-background";
 
   return (
     <button
@@ -278,9 +273,7 @@ function FilterPill(props: {
       onClick={props.onClick}
       className={
         "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors " +
-        (props.active
-          ? activeClass
-          : "bg-background text-muted-foreground border-border hover:bg-muted")
+        (props.active ? activeClass : "border-border bg-background text-muted-foreground hover:bg-muted")
       }
     >
       <span>{props.label}</span>
@@ -290,85 +283,132 @@ function FilterPill(props: {
 }
 
 function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        icon={ServerOff}
-        title="Nenhum dispositivo encontrado"
-        description="Ajuste filtros ou aguarde o proximo heartbeat dos agentes."
-        dashed
-        compact
-      />
-    );
-  }
+  const columns = useMemo<ColumnDef<AgentDeviceSummary>[]>(() => [
+    {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusDot online={row.original.isOnline} />,
+    },
+    {
+      id: "hostname",
+      header: "Hostname",
+      cell: ({ row }) => (
+        <Link
+          href={`/portal/infraestrutura/agentes/${encodeURIComponent(row.original.deviceId)}`}
+          className="text-sm font-medium transition-colors hover:text-primary hover:underline"
+        >
+          {row.original.hostname ?? <span className="font-normal text-muted-foreground">-</span>}
+        </Link>
+      ),
+    },
+    {
+      id: "os",
+      header: "SO",
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.os ?? "-"}</span>,
+    },
+    {
+      id: "company",
+      header: "Empresa",
+      cell: ({ row }) =>
+        row.original.companyName ? (
+          <span className="inline-flex items-center gap-1.5 text-xs">
+            <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="max-w-[140px] truncate">{row.original.companyName}</span>
+          </span>
+        ) : (
+          <Badge variant="outline" className="text-[10px]">
+            sem vinculo
+          </Badge>
+        ),
+    },
+    {
+      id: "remoteHost",
+      header: "Host remoto",
+      cell: ({ row }) =>
+        row.original.remoteHostId && row.original.remoteHostName ? (
+          <Link
+            href={`/portal/infraestrutura/hosts/${row.original.remoteHostId}`}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ExternalLink className="h-3 w-3 shrink-0" />
+            <span className="max-w-[140px] truncate">{row.original.remoteHostName}</span>
+          </Link>
+        ) : (
+          <span className="text-xs text-muted-foreground">-</span>
+        ),
+    },
+    {
+      id: "version",
+      header: "Versao",
+      cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.agentVersion ?? "-"}</span>,
+    },
+    {
+      id: "heartbeat",
+      header: "Ultimo heartbeat",
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{formatRelativeTime(row.original.lastHeartbeatAt, row.original.heartbeatLagSeconds)}</span>,
+    },
+    {
+      id: "deviceId",
+      header: () => <div className="text-right">Device ID</div>,
+      meta: { className: "text-right" },
+      cell: ({ row }) => (
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {row.original.deviceId.slice(0, 12)}...
+        </span>
+      ),
+    },
+  ], []);
+
+  const renderMobileItem = (item: AgentDeviceSummary) => (
+    <Link
+      href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
+      className="block space-y-3 p-4 transition-colors hover:bg-muted/10"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{item.hostname ?? "Sem hostname"}</p>
+          <p className="mt-1 truncate text-[11px] text-muted-foreground">{item.os ?? "SO nao informado"}</p>
+        </div>
+        <StatusDot online={item.isOnline} />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {item.companyName ? (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[11px] text-muted-foreground">
+            <Building2 className="h-3 w-3" />
+            <span className="max-w-[180px] truncate">{item.companyName}</span>
+          </span>
+        ) : (
+          <Badge variant="outline" className="text-[10px]">
+            sem vinculo
+          </Badge>
+        )}
+        <span className="rounded-md border border-border/60 bg-background px-2 py-1 font-mono text-[10px] text-muted-foreground">
+          {item.agentVersion ?? "-"}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+        <span>{formatRelativeTime(item.lastHeartbeatAt, item.heartbeatLagSeconds)}</span>
+        <span className="font-mono">{item.deviceId.slice(0, 12)}...</span>
+      </div>
+    </Link>
+  );
 
   return (
-    <Table className="w-full text-sm">
-      <TableHeader className="bg-muted/20 backdrop-blur border-b border-border/60">
-        <TableRow className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground hover:bg-transparent">
-          <TableHead className="py-2 pr-3 font-semibold">Status</TableHead>
-          <TableHead className="py-2 pr-3 font-semibold">Hostname</TableHead>
-          <TableHead className="py-2 pr-3 font-semibold">SO</TableHead>
-          <TableHead className="py-2 pr-3 font-semibold">Empresa</TableHead>
-          <TableHead className="py-2 pr-3 font-semibold">Host remoto</TableHead>
-          <TableHead className="py-2 pr-3 font-semibold">Versao</TableHead>
-          <TableHead className="py-2 pr-3 font-semibold">Ultimo heartbeat</TableHead>
-          <TableHead className="py-2 pl-3 text-right font-semibold">Device ID</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody className="divide-y">
-        {items.map((item) => (
-          <TableRow key={item.id} className="hover:bg-muted/40">
-            <TableCell className="py-2.5 pr-3">
-              <StatusDot online={item.isOnline} />
-            </TableCell>
-            <TableCell className="py-2.5 pr-3 font-medium">
-              <Link
-                href={`/portal/infraestrutura/agentes/${encodeURIComponent(item.deviceId)}`}
-                className="hover:text-primary hover:underline transition-colors"
-              >
-                {item.hostname ?? <span className="text-muted-foreground font-normal">—</span>}
-              </Link>
-            </TableCell>
-            <TableCell className="py-2.5 pr-3 text-muted-foreground">{item.os ?? "—"}</TableCell>
-            <TableCell className="py-2.5 pr-3">
-              {item.companyName ? (
-                <span className="inline-flex items-center gap-1.5 text-xs">
-                  <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  <span className="max-w-[140px] truncate">{item.companyName}</span>
-                </span>
-              ) : (
-                <Badge variant="outline" className="text-[10px]">
-                  sem vinculo
-                </Badge>
-              )}
-            </TableCell>
-            <TableCell className="py-2.5 pr-3">
-              {item.remoteHostId && item.remoteHostName ? (
-                <Link
-                  href={`/portal/infraestrutura/hosts/${item.remoteHostId}`}
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3 w-3 shrink-0" />
-                  <span className="max-w-[140px] truncate">{item.remoteHostName}</span>
-                </Link>
-              ) : (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
-            </TableCell>
-            <TableCell className="py-2.5 pr-3 font-mono text-xs text-muted-foreground">
-              {item.agentVersion ?? "—"}
-            </TableCell>
-            <TableCell className="py-2.5 pr-3 text-xs text-muted-foreground">
-              {formatRelativeTime(item.lastHeartbeatAt, item.heartbeatLagSeconds)}
-            </TableCell>
-            <TableCell className="py-2.5 pl-3 text-right font-mono text-[11px] text-muted-foreground">
-              {item.deviceId.slice(0, 12)}…
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable
+      columns={columns}
+      data={items}
+      flexible={true}
+      minWidthClassName="min-w-[1040px]"
+      cardClassName="border-none bg-transparent shadow-none rounded-none animate-none"
+      emptyState={{
+        title: "Nenhum dispositivo encontrado",
+        description: "Ajuste filtros ou aguarde o proximo heartbeat dos agentes.",
+        icon: ServerOff,
+      }}
+      rowClassName="hover:bg-muted/40"
+      renderMobileItem={renderMobileItem}
+    />
   );
 }
 
@@ -377,7 +417,7 @@ function StatusDot({ online }: { online: boolean }) {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
         </span>
         Online
@@ -394,8 +434,8 @@ function StatusDot({ online }: { online: boolean }) {
 
 function formatRelativeTime(iso: string | null, lagSeconds: number | null): string {
   if (!iso || lagSeconds === null) return "nunca";
-  if (lagSeconds < 60) return `há ${lagSeconds}s`;
-  if (lagSeconds < 3600) return `há ${Math.floor(lagSeconds / 60)}min`;
-  if (lagSeconds < 86400) return `há ${Math.floor(lagSeconds / 3600)}h`;
-  return `há ${Math.floor(lagSeconds / 86400)}d`;
+  if (lagSeconds < 60) return `ha ${lagSeconds}s`;
+  if (lagSeconds < 3600) return `ha ${Math.floor(lagSeconds / 60)}min`;
+  if (lagSeconds < 86400) return `ha ${Math.floor(lagSeconds / 3600)}h`;
+  return `ha ${Math.floor(lagSeconds / 86400)}d`;
 }

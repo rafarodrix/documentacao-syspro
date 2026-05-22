@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -11,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
+import { type ColumnDef } from "@tanstack/react-table";
 import {
   Badge,
   Card,
@@ -18,12 +20,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  DataTable,
 } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/date";
@@ -39,6 +36,119 @@ function formatDuration(seconds: number | null) {
 }
 
 export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyMetrics }) {
+  const columns = React.useMemo<ColumnDef<EfficiencyMetrics["sessions"][number]>[]>(() => [
+    {
+      id: "ticket",
+      header: "Ticket",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-foreground">#{row.original.ticketNumber || "N/A"}</span>
+          <span className="text-[10px] text-muted-foreground">{formatDateShort(row.original.createdAt)}</span>
+        </div>
+      ),
+    },
+    {
+      id: "hostCompany",
+      header: "Host / Empresa",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-foreground">{row.original.hostName}</span>
+          <span className="text-xs text-muted-foreground">{row.original.companyName}</span>
+        </div>
+      ),
+    },
+    {
+      id: "technician",
+      header: "Tecnico",
+      cell: ({ row }) => <span className="text-sm font-medium text-foreground">{row.original.requestedByName}</span>,
+    },
+    {
+      id: "timeToRemote",
+      header: "Tempo ate remoto",
+      cell: ({ row }) =>
+        row.original.timeToRemoteSeconds !== null ? (
+          <Badge
+            variant="outline"
+            className={cn(
+              "font-mono",
+              row.original.timeToRemoteSeconds > 3600
+                ? "border-rose-500/50 bg-rose-500/5 text-rose-600"
+                : "border-emerald-500/50 bg-emerald-500/5 text-emerald-600",
+            )}
+          >
+            {formatDuration(row.original.timeToRemoteSeconds)}
+          </Badge>
+        ) : (
+          <span className="text-xs italic text-muted-foreground">Nao calculado</span>
+        ),
+    },
+    {
+      id: "duration",
+      header: "Duracao",
+      cell: ({ row }) => <span className="text-sm font-medium text-foreground">{formatDuration(row.original.durationSeconds)}</span>,
+    },
+    {
+      id: "action",
+      header: () => <div className="text-right">Acao</div>,
+      meta: { className: "text-right" },
+      cell: ({ row }) =>
+        row.original.hostId ? (
+          <Link
+            href={`/portal/infraestrutura/hosts/${row.original.hostId}`}
+            className="inline-flex translate-x-2 items-center gap-1 text-xs font-semibold text-primary/80 opacity-0 transition-all group-hover/row:translate-x-0 group-hover/row:opacity-100 hover:text-primary"
+            onClick={(event) => event.stopPropagation()}
+          >
+            Ver host
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+        ) : null,
+    },
+  ], []);
+
+  const renderMobileItem = React.useCallback(
+    (session: EfficiencyMetrics["sessions"][number]) => (
+      <div className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">#{session.ticketNumber || "N/A"}</p>
+            <p className="mt-1 truncate text-xs text-muted-foreground">
+              {session.hostName}
+              {session.companyName ? ` - ${session.companyName}` : ""}
+            </p>
+          </div>
+          <span className="text-[10px] text-muted-foreground">{formatDateShort(session.createdAt)}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="text-[10px] font-mono">
+            {formatDuration(session.durationSeconds)}
+          </Badge>
+          {session.timeToRemoteSeconds !== null ? (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] font-mono",
+                session.timeToRemoteSeconds > 3600
+                  ? "border-rose-500/50 bg-rose-500/5 text-rose-600"
+                  : "border-emerald-500/50 bg-emerald-500/5 text-emerald-600",
+              )}
+            >
+              {formatDuration(session.timeToRemoteSeconds)}
+            </Badge>
+          ) : null}
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate text-xs text-muted-foreground">{session.requestedByName}</span>
+          {session.hostId ? (
+            <Link href={`/portal/infraestrutura/hosts/${session.hostId}`} className="text-xs font-semibold text-primary">
+              Ver host
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    ),
+    [],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -88,72 +198,19 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
           <CardDescription>Detalhamento por chamado com foco no tempo de resposta.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <Table className="w-full border-collapse text-left">
-            <TableHeader className="bg-muted/20 backdrop-blur border-b border-border/60">
-              <TableRow className="border-b border-border/40 bg-muted/30 hover:bg-transparent">
-                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ticket</TableHead>
-                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Host / Empresa</TableHead>
-                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tecnico</TableHead>
-                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo ate remoto</TableHead>
-                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duracao</TableHead>
-                <TableHead className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Acao</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-border/30">
-              {metrics.sessions.map((session) => (
-                <TableRow key={session.sessionId} className="group transition-colors hover:bg-muted/20">
-                    <TableCell className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-foreground">#{session.ticketNumber || "N/A"}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDateShort(session.createdAt)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">{session.hostName}</span>
-                        <span className="text-xs text-muted-foreground">{session.companyName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <span className="text-sm font-medium text-foreground">{session.requestedByName}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      {session.timeToRemoteSeconds !== null ? (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "font-mono",
-                            session.timeToRemoteSeconds > 3600
-                              ? "border-rose-500/50 bg-rose-500/5 text-rose-600"
-                              : "border-emerald-500/50 bg-emerald-500/5 text-emerald-600",
-                          )}
-                        >
-                          {formatDuration(session.timeToRemoteSeconds)}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs italic text-muted-foreground">Nao calculado</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-6 py-4">
-                      <span className="text-sm font-medium text-foreground">{formatDuration(session.durationSeconds)}</span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-right">
-                      {session.hostId ? (
-                        <Link
-                          href={`/portal/infraestrutura/hosts/${session.hostId}`}
-                          className="inline-flex translate-x-2 items-center gap-1 text-xs font-semibold text-primary/80 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 hover:text-primary"
-                        >
-                          Ver host
-                          <ChevronRight className="h-3 w-3" />
-                        </Link>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <DataTable
+            columns={columns}
+            data={metrics.sessions}
+            flexible={true}
+            minWidthClassName="min-w-[920px]"
+            cardClassName="border-none bg-transparent shadow-none rounded-none animate-none"
+            emptyState={{
+              title: "Nenhum atendimento remoto encontrado",
+              description: "Novos atendimentos aparecerão aqui quando houver sessoes finalizadas.",
+            }}
+            rowClassName="border-border/30 hover:bg-muted/20"
+            renderMobileItem={renderMobileItem}
+          />
         </CardContent>
       </Card>
     </div>

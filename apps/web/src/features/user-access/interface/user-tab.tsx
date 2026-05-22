@@ -375,8 +375,8 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
     },
   ], [canManage, handleToggleStatus, loadingId]);
 
-  const renderMobileItem = useMemo(
-    () => (user: UserWithRelations) => (
+  const renderMobileItem = useCallback(
+    (user: UserWithRelations) => (
       <div
         className={cn("space-y-3 p-4 transition-colors", canManage ? "cursor-pointer hover:bg-muted/10" : "")}
         onClick={() => openEdit(user)}

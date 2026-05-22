@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -202,10 +202,10 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     setSearchTerm(value);
   };
 
-  const openEdit = (contact: ContactItem) => {
+  const openEdit = useCallback((contact: ContactItem) => {
     if (!canEdit) return;
     router.push(`/portal/contatos/${contact.id}/editar`);
-  };
+  }, [canEdit, router]);
 
   const columns = useMemo<ColumnDef<ContactItem>[]>(() => [
     {
@@ -284,8 +284,8 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     },
   ], [canDelete, canEdit, loadingId]);
 
-  const renderMobileItem = useMemo(
-    () => (contact: ContactItem) => (
+  const renderMobileItem = useCallback(
+    (contact: ContactItem) => (
       <MobileContactCard
         contact={contact}
         canEdit={canEdit}

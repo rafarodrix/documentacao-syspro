@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
@@ -439,10 +439,10 @@ export function CompanyTab({
     }
   }
 
-  const openEdit = (company: CompanyListItem) => {
+  const openEdit = useCallback((company: CompanyListItem) => {
     if (!canEdit) return
     router.push(`/portal/cadastros/empresa/${company.id}/editar?returnTo=${encodeURIComponent(currentListHref)}`)
-  }
+  }, [canEdit, currentListHref, router])
 
   const columns = useMemo<ColumnDef<CompanyListItem>[]>(() => [
     {
@@ -560,59 +560,56 @@ export function CompanyTab({
     },
   ], [canDelete, canEdit, canToggleStatus, companyReasonOptions, currentListHref, loadingId])
 
-  const renderMobileItem = useMemo(
-    () => (company: CompanyListItem) => {
-      const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
-      return (
-        <div
-          className={cn("space-y-3 p-4 transition-colors", canEdit ? "cursor-pointer hover:bg-muted/10" : "")}
-          onClick={() => openEdit(company)}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{company.nomeFantasia || company.razaoSocial}</p>
-              <p className="truncate text-xs text-muted-foreground">{company.razaoSocial}</p>
-            </div>
-            <CompanyActionsMenu
-              company={company}
-              canEdit={canEdit}
-              canToggleStatus={canToggleStatus}
-              canDelete={canDelete && !companyHasKnownLinks(company)}
-              isLoading={loadingId === company.id}
-              returnHref={currentListHref}
-              onToggleStatus={() => {
-                setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
-                setInactivationDetails("")
-                setConfirmDialog({ type: "status", company })
-              }}
-              onDelete={() => setConfirmDialog({ type: "delete", company })}
-            />
+  const renderMobileItem = useCallback((company: CompanyListItem) => {
+    const memberCount = company._count?.contactLinks ?? company.contactsCount ?? 0
+    return (
+      <div
+        className={cn("space-y-3 p-4 transition-colors", canEdit ? "cursor-pointer hover:bg-muted/10" : "")}
+        onClick={() => openEdit(company)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{company.nomeFantasia || company.razaoSocial}</p>
+            <p className="truncate text-xs text-muted-foreground">{company.razaoSocial}</p>
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <code className="rounded-md border border-border/30 bg-muted/50 px-2 py-1 text-[11px] font-mono text-muted-foreground">
-              {formatCNPJ(company.cnpj)}
-            </code>
-            <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {getCompanySegmentLabel(company.segment)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <StatusBadge status={company.status} />
-            <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              <span className="font-medium tabular-nums">{memberCount}</span>
-            </div>
-          </div>
-          {company.isBlockedByContract && (
-            <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
-              Bloqueada por contrato
-            </span>
-          )}
+          <CompanyActionsMenu
+            company={company}
+            canEdit={canEdit}
+            canToggleStatus={canToggleStatus}
+            canDelete={canDelete && !companyHasKnownLinks(company)}
+            isLoading={loadingId === company.id}
+            returnHref={currentListHref}
+            onToggleStatus={() => {
+              setInactivationReason(companyReasonOptions[0]?.key ?? DEFAULT_INACTIVATION_REASON)
+              setInactivationDetails("")
+              setConfirmDialog({ type: "status", company })
+            }}
+            onDelete={() => setConfirmDialog({ type: "delete", company })}
+          />
         </div>
-      )
-    },
-    [canDelete, canEdit, canToggleStatus, companyReasonOptions, currentListHref, loadingId, openEdit],
-  )
+        <div className="flex items-center justify-between gap-2">
+          <code className="rounded-md border border-border/30 bg-muted/50 px-2 py-1 text-[11px] font-mono text-muted-foreground">
+            {formatCNPJ(company.cnpj)}
+          </code>
+          <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {getCompanySegmentLabel(company.segment)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <StatusBadge status={company.status} />
+          <div className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            <span className="font-medium tabular-nums">{memberCount}</span>
+          </div>
+        </div>
+        {company.isBlockedByContract && (
+          <span className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+            Bloqueada por contrato
+          </span>
+        )}
+      </div>
+    )
+  }, [canDelete, canEdit, canToggleStatus, companyReasonOptions, currentListHref, loadingId, openEdit])
 
   const selectedInactivationReason = companyReasonOptions.find((item) => item.key === inactivationReason) ?? null
   const requiresInactivationDetails = selectedInactivationReason?.requiresDetails ?? false
