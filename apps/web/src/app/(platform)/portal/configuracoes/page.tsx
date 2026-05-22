@@ -112,9 +112,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         description="Centralize preferencias, integracoes e modulos operacionais em uma unica area. A governanca global do Agente Trilink fica aqui; a operacao diaria de hosts, sessoes, relatorios e dispositivos continua em Infraestrutura."
       />
 
-      <Tabs defaultValue={defaultTab} className="w-full min-w-0 space-y-6">
-        <div className="flex items-center">
-          <SettingsTabsRail className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-7">
+      <Tabs defaultValue={defaultTab} className="flex flex-col gap-6 lg:flex-row lg:gap-10 items-start w-full min-w-0">
+        <div className="w-full shrink-0 lg:w-64">
+          <SettingsTabsRail className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 lg:flex lg:flex-col lg:gap-1.5 lg:bg-transparent lg:p-0 lg:border-none lg:h-auto lg:w-full lg:shadow-none lg:grid-cols-none lg:grid-flow-row">
             <SettingsTabsRailTrigger
               value="general"
               icon={Settings}
@@ -159,193 +159,194 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </SettingsTabsRail>
         </div>
 
-        <TabsContent
-          value="general"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            <GeneralSettingsForm adminView={settingsView.permissionsAdminView} />
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="agent"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            {remoteAdminView ? (
-              <RemoteAccessSettingsTab companyOptions={remoteAdminView.companyOptions} />
-            ) : (
-              <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-6 text-sm text-muted-foreground">
-                Nao foi possivel carregar as configuracoes globais do modulo remoto.
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="integrations"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            <IntegrationsSettingsTab />
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="automations"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            <AutomationSettingsTab />
-          </div>
-        </TabsContent>
-
-        <TabsContent
-          value="modules"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            <Tabs defaultValue={defaultModulesTab} className="space-y-4">
-              <SettingsTabsRail className="sm:grid-cols-2 xl:grid-cols-2">
-                <SettingsTabsRailTrigger
-                  value="tickets"
-                  icon={MessageSquare}
-                  title="Tickets"
-                />
-                <SettingsTabsRailTrigger
-                  value="tarefas"
-                  icon={CalendarRange}
-                  title="Tarefas"
-                />
-              </SettingsTabsRail>
-
-              <TabsContent value="tickets" className="space-y-4">
-                <TicketSettingsTab />
-              </TabsContent>
-
-              <TabsContent value="tarefas" className="space-y-4">
-                <TarefasModuleSettingsTab />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tax" className="min-w-0 space-y-4 overflow-x-hidden outline-none focus-visible:ring-0">
-          <div className="max-w-6xl">
-            <div className="mb-4 space-y-1">
-              <h3 className="text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
-              <p className="text-sm text-muted-foreground">
-                Subabas padronizadas por rota fiscal para acelerar manutencao e leitura.
-              </p>
+        <div className="flex-1 w-full min-w-0">
+          <TabsContent
+            value="general"
+            className="mt-0 min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          >
+            <div className="max-w-6xl">
+              <GeneralSettingsForm adminView={settingsView.permissionsAdminView} />
             </div>
-            <TaxSyncStatusBar />
+          </TabsContent>
 
-            <Tabs defaultValue="class-trib" className="space-y-4">
-              <SettingsTabsRail className="sm:grid-cols-2 xl:grid-cols-5">
-                <SettingsTabsRailTrigger
-                  value="class-trib"
-                  icon={Landmark}
-                  title="Rota classTrib"
-                />
-                <SettingsTabsRailTrigger
-                  value="anexos"
-                  icon={Files}
-                  title="Rota anexos"
-                />
-                <SettingsTabsRailTrigger
-                  value="cred-presumido"
-                  icon={Wallet}
-                  title="Rota credPresumido"
-                />
-                <SettingsTabsRailTrigger
-                  value="ncm"
-                  icon={Boxes}
-                  title="Rota NCM"
-                />
-                <SettingsTabsRailTrigger
-                  value="interestadual"
-                  icon={Landmark}
-                  title="Interestadual"
-                />
-              </SettingsTabsRail>
-
-              <TabsContent value="class-trib" className="space-y-4">
-                <SyncTaxClassTribButton />
-                <div className="mt-6">
-                  <Suspense
-                    fallback={
-                      <div className="p-4 text-sm text-muted-foreground">
-                        Carregando classTrib...
-                      </div>
-                    }
-                  >
-                    <TaxClassificationList />
-                  </Suspense>
+          <TabsContent
+            value="agent"
+            className="mt-0 min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          >
+            <div className="max-w-6xl">
+              {remoteAdminView ? (
+                <RemoteAccessSettingsTab companyOptions={remoteAdminView.companyOptions} />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-6 text-sm text-muted-foreground">
+                  Nao foi possivel carregar as configuracoes globais do modulo remoto.
                 </div>
-              </TabsContent>
+              )}
+            </div>
+          </TabsContent>
 
-              <TabsContent value="anexos" className="space-y-4">
-                <SyncTaxAnexosButton />
-                <div className="mt-6">
-                  <Suspense
-                    fallback={
-                      <div className="p-4 text-sm text-muted-foreground">
-                        Carregando anexos...
-                      </div>
-                    }
-                  >
-                    <TaxAnexosContainer />
-                  </Suspense>
-                </div>
-              </TabsContent>
+          <TabsContent
+            value="integrations"
+            className="mt-0 min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          >
+            <div className="max-w-6xl">
+              <IntegrationsSettingsTab />
+            </div>
+          </TabsContent>
 
-              <TabsContent value="cred-presumido" className="space-y-4">
-                <SyncTaxCredPresumidoButton />
-                <div className="mt-6">
-                  <Suspense
-                    fallback={
-                      <div className="p-4 text-sm text-muted-foreground">
-                        Carregando credito presumido...
-                      </div>
-                    }
-                  >
-                    <TaxCredPresumidoContainer />
-                  </Suspense>
-                </div>
-              </TabsContent>
+          <TabsContent
+            value="automations"
+            className="mt-0 min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          >
+            <div className="max-w-6xl">
+              <AutomationSettingsTab />
+            </div>
+          </TabsContent>
 
-              <TabsContent value="ncm" className="space-y-4">
-                <SyncTaxNcmButton />
-                <div className="mt-6">
-                  <Suspense
-                    fallback={
-                      <div className="p-4 text-sm text-muted-foreground">
-                        Carregando NCM...
-                      </div>
-                    }
-                  >
-                    <TaxNcmContainer />
-                  </Suspense>
-                </div>
-              </TabsContent>
+          <TabsContent
+            value="modules"
+            className="mt-0 min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          >
+            <div className="max-w-6xl">
+              <Tabs defaultValue={defaultModulesTab} className="space-y-4">
+                <SettingsTabsRail className="sm:grid-cols-2 xl:grid-cols-2">
+                  <SettingsTabsRailTrigger
+                    value="tickets"
+                    icon={MessageSquare}
+                    title="Tickets"
+                  />
+                  <SettingsTabsRailTrigger
+                    value="tarefas"
+                    icon={CalendarRange}
+                    title="Tarefas"
+                  />
+                </SettingsTabsRail>
 
-              <TabsContent value="interestadual" className="space-y-4">
-                <TaxInterstateRatesTab initialRows={interstateIcmsSettings} />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </TabsContent>
+                <TabsContent value="tickets" className="space-y-4">
+                  <TicketSettingsTab />
+                </TabsContent>
 
-        <TabsContent
-          value="sefaz"
-          className="min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
-        >
-          <div className="max-w-6xl">
-            <SefazRoutesTab initialRoutes={sefazRoutes} />
-          </div>
-        </TabsContent>
+                <TabsContent value="tarefas" className="space-y-4">
+                  <TarefasModuleSettingsTab />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
 
+          <TabsContent value="tax" className="mt-0 min-w-0 space-y-4 overflow-x-hidden outline-none focus-visible:ring-0">
+            <div className="max-w-6xl">
+              <div className="mb-4 space-y-1">
+                <h3 className="text-lg font-medium">Sincronizacao de Tabelas Fiscais</h3>
+                <p className="text-sm text-muted-foreground">
+                  Subabas padronizadas por rota fiscal para acelerar manutencao e leitura.
+                </p>
+              </div>
+              <TaxSyncStatusBar />
+
+              <Tabs defaultValue="class-trib" className="space-y-4">
+                <SettingsTabsRail className="sm:grid-cols-2 xl:grid-cols-5">
+                  <SettingsTabsRailTrigger
+                    value="class-trib"
+                    icon={Landmark}
+                    title="Rota classTrib"
+                  />
+                  <SettingsTabsRailTrigger
+                    value="anexos"
+                    icon={Files}
+                    title="Rota anexos"
+                  />
+                  <SettingsTabsRailTrigger
+                    value="cred-presumido"
+                    icon={Wallet}
+                    title="Rota credPresumido"
+                  />
+                  <SettingsTabsRailTrigger
+                    value="ncm"
+                    icon={Boxes}
+                    title="Rota NCM"
+                  />
+                  <SettingsTabsRailTrigger
+                    value="interestadual"
+                    icon={Landmark}
+                    title="Interestadual"
+                  />
+                </SettingsTabsRail>
+
+                <TabsContent value="class-trib" className="space-y-4">
+                  <SyncTaxClassTribButton />
+                  <div className="mt-6">
+                    <Suspense
+                      fallback={
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Carregando classTrib...
+                        </div>
+                      }
+                    >
+                      <TaxClassificationList />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="anexos" className="space-y-4">
+                  <SyncTaxAnexosButton />
+                  <div className="mt-6">
+                    <Suspense
+                      fallback={
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Carregando anexos...
+                        </div>
+                      }
+                    >
+                      <TaxAnexosContainer />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="cred-presumido" className="space-y-4">
+                  <SyncTaxCredPresumidoButton />
+                  <div className="mt-6">
+                    <Suspense
+                      fallback={
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Carregando credito presumido...
+                        </div>
+                      }
+                    >
+                      <TaxCredPresumidoContainer />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ncm" className="space-y-4">
+                  <SyncTaxNcmButton />
+                  <div className="mt-6">
+                    <Suspense
+                      fallback={
+                        <div className="p-4 text-sm text-muted-foreground">
+                          Carregando NCM...
+                        </div>
+                      }
+                    >
+                      <TaxNcmContainer />
+                    </Suspense>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="interestadual" className="space-y-4">
+                  <TaxInterstateRatesTab initialRows={interstateIcmsSettings} />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
+
+          <TabsContent
+            value="sefaz"
+            className="mt-0 min-w-0 space-y-4 overflow-x-hidden animate-in fade-in zoom-in-95 duration-300 outline-none focus-visible:ring-0"
+          >
+            <div className="max-w-6xl">
+              <SefazRoutesTab initialRoutes={sefazRoutes} />
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
