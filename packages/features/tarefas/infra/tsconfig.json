@@ -1,0 +1,20 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "types": ["node"],
+    "allowJs": false,
+    "noEmit": true,
+    "paths": {
+      "@dosc-syspro/database": ["../../../database/src/index.ts"],
+      "@dosc-syspro/database/*": ["../../../database/src/*"],
+      "@dosc-syspro/tarefas-domain": ["../domain/src/index.ts"],
+      "@dosc-syspro/tarefas-domain/*": ["../domain/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
