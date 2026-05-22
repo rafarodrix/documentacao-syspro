@@ -46,6 +46,16 @@ import {
   buildTicketSearchWhere,
 } from '../shared/search/domain-search';
 import { buildConversationSearchText } from '../shared/search/search-index';
+import {
+  generateTicketNumber,
+  resolveTicketTeam,
+  resolveCategoryType,
+  resolveTicketSlaPolicy,
+  resolveAttachmentType,
+  resolveMessageType,
+  buildReplyPreview,
+} from '@dosc-syspro/tickets-domain';
+import { withTicketTeam, findTicketDetail, listTicketPage, countTicketQueues } from '@dosc-syspro/tickets-infra';
 import { TicketHistoryService } from './ticket-history.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
@@ -95,7 +105,7 @@ export class TicketsService {
     attachments: TicketReplyAttachmentInput[] = [],
   ) {
     const requester = await this.authorizationService.getRequester(rawHeaders);
-    const ticketNumber = this.generateTicketNumber();
+    const ticketNumber = generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
     const settings = await this.getTicketModuleSettings();
     const metadataSource =
@@ -208,14 +218,14 @@ export class TicketsService {
 
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
-    const normalizedTeam = this.resolveTicketTeam(
+    const normalizedTeam = resolveTicketTeam(
       data.team,
       settings,
       normalizedCategory,
       ticketCapabilities.canRouteDevelopment,
       ticketCapabilities.canOwnDevelopmentQueue,
     );
-    const normalizedCategoryType = this.resolveCategoryType(settings, normalizedCategory, normalizedTeam);
+    const normalizedCategoryType = resolveCategoryType(settings, normalizedCategory, normalizedTeam);
     const databaseUrl = data.databaseUrl?.trim() || null;
     const developmentVideoUrl = data.developmentVideoUrl?.trim() || null;
     const openedByName = await this.resolveRequesterDisplayName(requester.userId, requester.email);
@@ -225,7 +235,7 @@ export class TicketsService {
         : null;
     const now = new Date();
     const priority = data.priority ?? TicketPriority.NORMAL;
-    const slaPolicy = this.resolveTicketSlaPolicy(priority, settings);
+    const slaPolicy = resolveTicketSlaPolicy(priority, settings);
     const slaResponseDueAt = new Date(now.getTime() + slaPolicy.firstResponseMinutes * 60000);
     const slaResolutionDueAt = new Date(now.getTime() + slaPolicy.resolutionMinutes * 60000);
     const metadata = {
@@ -296,7 +306,7 @@ export class TicketsService {
         data: {
           conversationId: conversation.id,
           direction: TicketMessageDirection.INBOUND,
-          type: this.resolveMessageType(data.description, normalizedAttachments),
+          type: resolveMessageType(data.description, normalizedAttachments) as TicketMessageType,
           authorKind: TicketParticipantKind.USER,
           authorUserId: requester.userId,
           body: data.description,
@@ -555,7 +565,7 @@ export class TicketsService {
     }
 
     const where: Prisma.ConversationWhereInput = { ...baseWhere };
-    const teamScopeWhere = input.team ? this.withTicketTeam(baseWhere, input.team) : baseWhere;
+    const teamScopeWhere = input.team ? withTicketTeam(baseWhere, input.team) : baseWhere;
     if (input.team) {
       Object.assign(where, teamScopeWhere);
     }
@@ -639,35 +649,19 @@ export class TicketsService {
           ? [{ company: { nomeFantasia: sortOrder } }, { company: { razaoSocial: sortOrder } }, { updatedAt: 'desc' }]
           : [{ updatedAt: sortOrder }];
 
-    const [items, total, baseTotal, openCount, developmentCount, testingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount] = await Promise.all([
-      this.prisma.conversation.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: {
-          company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
-          companyContact: { select: { id: true, name: true, email: true, whatsapp: true } },
-          assignedUser: { select: { id: true, name: true, email: true } },
-        },
-      }),
-      this.prisma.conversation.count({ where }),
-      this.prisma.conversation.count({ where: queueBaseWhere }),
-      this.prisma.conversation.count({ where: openStatusWhere }),
-      this.prisma.conversation.count({ where: developmentStatusWhere }),
-      this.prisma.conversation.count({ where: testingStatusWhere }),
-      this.prisma.conversation.count({ where: closedStatusWhere }),
-      this.prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: requester.userId } }),
-      this.prisma.conversation.count({ where: { ...queueBaseWhere, assignedUserId: null } }),
-      this.prisma.conversation.count({ where: { ...queueBaseWhere, priority: TicketPriority.CRITICAL } }),
-      this.prisma.conversation.count({
-        where: {
-          ...queueBaseWhere,
-          slaResponseHitAt: null,
-          status: { notIn: [TicketStatus.RESOLVED, TicketStatus.ARCHIVED] },
-        },
-      }),
-    ]);
+    const [items, { total, baseTotal, openCount, developmentCount, testingCount, closedCount, myQueueCount, unassignedCount, criticalCount, noResponseCount }] =
+      await Promise.all([
+        listTicketPage(this.prisma, where, (page - 1) * pageSize, pageSize, orderBy),
+        countTicketQueues(this.prisma, {
+          where,
+          queueBaseWhere,
+          openStatusWhere,
+          developmentStatusWhere,
+          testingStatusWhere,
+          closedStatusWhere,
+          requesterUserId: requester.userId,
+        }),
+      ]);
 
     return serializeTicketListResponse({
       items,
@@ -696,34 +690,7 @@ export class TicketsService {
     const accessScope = await this.getTicketAccessScope(requester);
     const page = Math.max(1, Number.parseInt(input?.page || '1', 10) || 1);
     const pageSize = Math.min(100, Math.max(10, Number.parseInt(input?.pageSize || '50', 10) || 50));
-    const skip = (page - 1) * pageSize;
-
-    const [ticket, totalMessages] = await this.prisma.$transaction([
-      this.prisma.conversation.findUnique({
-        where: { id },
-        include: {
-          company: { select: { id: true, razaoSocial: true, nomeFantasia: true } },
-          companyContact: { select: { id: true, name: true, email: true, whatsapp: true } },
-          assignedUser: { select: { id: true, name: true, email: true } },
-          resolvedByUser: { select: { id: true, name: true, email: true } },
-          messages: {
-            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-            skip,
-            take: pageSize,
-            include: {
-              attachments: {
-                orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-              },
-              authorUser: { select: { id: true, name: true, email: true } },
-              authorContact: { select: { id: true, name: true } },
-            },
-          },
-        },
-      }),
-      this.prisma.conversationMessage.count({
-        where: { conversationId: id },
-      }),
-    ]);
+    const [ticket, totalMessages] = await findTicketDetail(this.prisma, id, page, pageSize);
 
     if (!ticket) throw new NotFoundException('Ticket nao encontrado.');
     this.assertTicketAccess(ticket.companyId, accessScope);
@@ -771,7 +738,7 @@ export class TicketsService {
       data: {
         conversationId: id,
         direction: visibility === 'PUBLIC' ? TicketMessageDirection.OUTBOUND : TicketMessageDirection.INTERNAL,
-        type: this.resolveMessageType(message, normalizedAttachments),
+        type: resolveMessageType(message, normalizedAttachments) as TicketMessageType,
         authorKind: TicketParticipantKind.USER,
         authorUserId: requester.userId,
         body: message || null,
@@ -790,7 +757,7 @@ export class TicketsService {
       }
     }
 
-    const preview = this.buildReplyPreview(message, normalizedAttachments);
+    const preview = buildReplyPreview(message, normalizedAttachments);
 
     await this.prisma.conversation.update({
       where: { id },
@@ -867,7 +834,7 @@ export class TicketsService {
     const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
     const requestedTeam =
       input.team !== undefined
-        ? this.resolveTicketTeam(
+        ? resolveTicketTeam(
             input.team,
             settings,
             undefined,
@@ -891,7 +858,7 @@ export class TicketsService {
         : typeof existingMetadata.category === 'string'
           ? existingMetadata.category
           : null;
-    const nextCategoryType = this.resolveCategoryType(settings, nextCategory, currentTeam);
+    const nextCategoryType = resolveCategoryType(settings, nextCategory, currentTeam);
     const effectiveReleaseType =
       normalizeReleaseType(releaseType) || normalizeReleaseType(exists.releaseType) || normalizeReleaseType(nextCategoryType);
     const effectiveReleaseTitle =
@@ -1632,7 +1599,7 @@ export class TicketsService {
     const settings = await this.getTicketModuleSettings();
     const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
     const resolvedTeam = input.team
-      ? this.resolveTicketTeam(
+      ? resolveTicketTeam(
           input.team,
           settings,
           input.category,
@@ -1677,12 +1644,6 @@ export class TicketsService {
     return serializeMutationResponse('Triagem realizada com sucesso.');
   }
 
-  private generateTicketNumber() {
-    const timestamp = Date.now().toString().slice(-8);
-    const random = Math.floor(Math.random() * 900 + 100);
-    return `TK-${timestamp}${random}`;
-  }
-
   private async normalizeReplyAttachment(
     attachment: TicketReplyAttachmentInput,
   ) {
@@ -1710,39 +1671,8 @@ export class TicketsService {
       buffer,
       fileSize: buffer.length,
       checksum: createHash('sha256').update(buffer).digest('hex'),
-      type: this.resolveAttachmentType(mimeType),
+      type: resolveAttachmentType(mimeType),
     };
-  }
-
-  private resolveAttachmentType(mimeType: string): TicketMessageType {
-    if (mimeType.startsWith('image/')) return TicketMessageType.IMAGE;
-    if (mimeType.startsWith('audio/')) return TicketMessageType.AUDIO;
-    if (mimeType.startsWith('video/')) return TicketMessageType.VIDEO;
-    return TicketMessageType.DOCUMENT;
-  }
-
-  private resolveMessageType(
-    body: string | undefined,
-    attachments: Array<{ type: TicketMessageType }>,
-  ): TicketMessageType {
-    if (body) return TicketMessageType.TEXT;
-    if (attachments.length === 1) return attachments[0].type;
-    return TicketMessageType.TEXT;
-  }
-
-  private buildReplyPreview(
-    body: string | undefined,
-    attachments: Array<{ filename: string }>,
-  ) {
-    if (body) {
-      return body.slice(0, 500);
-    }
-
-    if (attachments.length === 1) {
-      return `Anexo: ${attachments[0].filename}`.slice(0, 500);
-    }
-
-    return `${attachments.length} anexos enviados`.slice(0, 500);
   }
 
   private async persistMessageAttachments(
@@ -1825,79 +1755,6 @@ export class TicketsService {
       });
   }
 
-
-  private resolveTicketTeam(
-    requestedTeam: string | undefined,
-    settings: TicketModuleSettings,
-    category?: string | null,
-    allowDevelopment = true,
-    preferDevelopment = false,
-  ): 'SUPORTE' | 'DESENVOLVIMENTO' {
-    const normalizedRequestedTeam = requestedTeam?.trim().toUpperCase();
-    if (normalizedRequestedTeam === 'SUPORTE' || normalizedRequestedTeam === 'DESENVOLVIMENTO') {
-      return normalizedRequestedTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : normalizedRequestedTeam;
-    }
-
-    const categoryDefaultTeam = settings.categories.find((item) => item.value === category)?.defaultTeam;
-    if (categoryDefaultTeam === 'SUPORTE' || categoryDefaultTeam === 'DESENVOLVIMENTO') {
-      return categoryDefaultTeam === 'DESENVOLVIMENTO' && !allowDevelopment ? 'SUPORTE' : categoryDefaultTeam;
-    }
-
-    if (preferDevelopment && allowDevelopment) {
-      return 'DESENVOLVIMENTO';
-    }
-
-    return settings.defaultTeam === 'DESENVOLVIMENTO' && allowDevelopment ? 'DESENVOLVIMENTO' : 'SUPORTE';
-  }
-
-  private resolveCategoryType(
-    settings: TicketModuleSettings,
-    category?: string | null,
-    team?: string | null,
-  ): 'SUPORTE' | 'BUG' | 'MELHORIA' | 'NOVA_FUNCIONALIDADE' | null {
-    const normalizedCategory = category?.trim();
-    const configuredType = settings.categories.find((item) => item.value === normalizedCategory)?.type;
-    if (configuredType === 'SUPORTE' || configuredType === 'BUG' || configuredType === 'MELHORIA' || configuredType === 'NOVA_FUNCIONALIDADE') {
-      return configuredType;
-    }
-
-    return team === 'SUPORTE' ? 'SUPORTE' : null;
-  }
-
-  private resolveTicketSlaPolicy(priority: TicketPriority, settings: TicketModuleSettings) {
-    const fallbackByPriority: Record<TicketPriority, { firstResponseMinutes: number; resolutionMinutes: number }> = {
-      [TicketPriority.LOW]: { firstResponseMinutes: 240, resolutionMinutes: 4320 },
-      [TicketPriority.NORMAL]: { firstResponseMinutes: 60, resolutionMinutes: 1440 },
-      [TicketPriority.HIGH]: { firstResponseMinutes: 15, resolutionMinutes: 240 },
-      [TicketPriority.CRITICAL]: { firstResponseMinutes: 15, resolutionMinutes: 240 },
-    };
-    const configured = settings.priorities.find((item) => {
-      const value = `${item.id} ${item.value} ${item.label}`.toLowerCase();
-      if (priority === TicketPriority.CRITICAL) {
-        return value.includes('critical') || value.includes('urgent') || value.includes('alta') || value.includes('high') || item.id === '3';
-      }
-      if (priority === TicketPriority.HIGH) return value.includes('high') || value.includes('alta') || item.id === '3';
-      if (priority === TicketPriority.LOW) return value.includes('low') || value.includes('baixa') || item.id === '1';
-      return value.includes('normal') || item.id === '2';
-    });
-    const fallback = fallbackByPriority[priority] ?? fallbackByPriority[TicketPriority.NORMAL];
-
-    return {
-      name: configured?.label ?? priority,
-      firstResponseMinutes: configured?.firstResponseMinutes ?? fallback.firstResponseMinutes,
-      resolutionMinutes: configured?.resolutionMinutes ?? (configured?.slaHours ? configured.slaHours * 60 : fallback.resolutionMinutes),
-    };
-  }
-
-  private withTicketTeam(where: Prisma.ConversationWhereInput, team: 'SUPORTE' | 'DESENVOLVIMENTO'): Prisma.ConversationWhereInput {
-    return {
-      ...where,
-      AND: [
-        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
-        { metadata: { path: ['currentTeam'], equals: team } },
-      ],
-    };
-  }
 
   private async resolveRequesterDisplayName(userId: string, email: string) {
     const user = await this.prisma.user.findUnique({
