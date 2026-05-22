@@ -8,8 +8,9 @@ import { useIntegrationDiagnostics } from "../hooks/use-integration-diagnostics"
 import { useChatwootIntegrationSettings } from "../hooks/use-chatwoot-integration-settings";
 import { useChatwootBehaviorSettings } from "../hooks/use-chatwoot-behavior-settings";
 import { formatRuntimeKey } from "../integrations.helpers";
+import { SectionCard } from "@/components/patterns";
 import { LoadingState, InfoTile, StatusTile, StatusLine } from "../integrations-primitives";
-import { BehaviorToggle, CopyInfoCard, FormField, SectionShell, SettingsGroup } from "../integration-form-primitives";
+import { BehaviorToggle, CopyInfoCard, FormField, SettingsGroup } from "../integration-form-primitives";
 import { ChatwootConnectionForm } from "./chatwoot-connection-form";
 import { ChatwootCsatSection } from "./chatwoot-csat-section";
 
@@ -116,7 +117,7 @@ export function ChatwootDiagnosticsTab() {
                 <InfoTile label="Conexoes ativas" value={String(chatwoot?.activeConnections ?? 0)} />
               </div>
 
-              <SectionShell
+              <SectionCard
                 title="Leitura rapida do ambiente"
                 description="Resumo tecnico do runtime e validacoes minimas do contexto ativo."
               >
@@ -132,10 +133,10 @@ export function ChatwootDiagnosticsTab() {
                     {JSON.stringify(chatwoot?.diagnostics ?? { info: "Nenhum contexto ativo resolvido." }, null, 2)}
                   </pre>
                 </details>
-              </SectionShell>
+              </SectionCard>
             </div>
 
-            <SectionShell
+            <SectionCard
               title="Conexao principal"
               description="Dados persistidos para URL, inbox, credenciais e webhook do ambiente principal."
               action={
@@ -153,9 +154,9 @@ export function ChatwootDiagnosticsTab() {
                   setIntegrationSettings={setIntegrationSettings}
                 />
               )}
-            </SectionShell>
+            </SectionCard>
 
-            <SectionShell
+            <SectionCard
               title="Automacoes do webhook"
               description="Regras aplicadas quando o Chatwoot envia eventos para o backend."
               action={
@@ -295,7 +296,7 @@ export function ChatwootDiagnosticsTab() {
                   </SettingsGroup>
                 </>
               )}
-            </SectionShell>
+            </SectionCard>
           </>
         )}
       </CardContent>

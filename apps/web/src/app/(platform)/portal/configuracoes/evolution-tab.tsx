@@ -21,6 +21,7 @@ import {
   updateEvolutionSettingsAction,
 } from "@/features/evolution/application/evolution-actions";
 import { SettingsPageIntro } from "./settings-shell";
+import { InfoTile } from "./integrations/integrations-primitives";
 
 function LabelWithHelp({ htmlFor, label, help }: { htmlFor?: string; label: string; help: string }) {
   return (
@@ -179,8 +180,9 @@ export default function EvolutionSettingsTab() {
           </Button>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Status</p>
+          <div className="rounded-xl border border-border/50 bg-card p-4 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
+            {/* ds-allow */}
             <Badge variant="outline" className={`mt-2 ${statusBadgeClass(instanceStatus?.status)}`}>
               {formatEvolutionStatus(instanceStatus?.status)}
             </Badge>
@@ -455,15 +457,6 @@ function normalizeQrCodeImage(value?: string | null) {
   return null;
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-muted/20 p-4">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-2 break-all text-sm font-medium text-foreground">{value}</p>
-    </div>
-  );
-}
-
 function formatEvolutionStatus(value?: string | null) {
   switch (String(value ?? "").toUpperCase()) {
     case "CONNECTED":
@@ -485,18 +478,19 @@ function formatEvolutionStatus(value?: string | null) {
   }
 }
 
+// ds-allow: status
 function statusBadgeClass(value?: string | null) {
   switch (String(value ?? "").toUpperCase()) {
     case "CONNECTED":
     case "PAIRED":
-      return "border-emerald-500/40 text-emerald-600";
+      return "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/10";
     case "QR_CODE":
     case "CONNECT_REQUESTED":
-      return "border-sky-500/40 text-sky-600";
+      return "border-sky-500/20 bg-sky-500/5 text-sky-600 dark:text-sky-400 dark:bg-sky-500/10";
     case "QR_TIMEOUT":
     case "LOGGED_OUT":
-      return "border-destructive/40 text-destructive";
+      return "border-destructive/20 bg-destructive/5 text-destructive dark:text-red-400 dark:bg-destructive/10";
     default:
-      return "border-amber-500/40 text-amber-600";
+      return "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400 dark:bg-amber-500/10";
   }
 }

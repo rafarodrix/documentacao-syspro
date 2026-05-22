@@ -4,30 +4,6 @@ import type { ReactNode } from "react";
 import { Button, Checkbox, Label, Textarea } from "@dosc-syspro/ui";
 import type { ChatwootBehaviorSettings } from "@dosc-syspro/contracts/chatwoot";
 
-export function SectionShell({
-  title,
-  description,
-  action,
-  children,
-}: {
-  title: string;
-  description: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-4 md:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold">{title}</h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export function SettingsGroup({
   title,
