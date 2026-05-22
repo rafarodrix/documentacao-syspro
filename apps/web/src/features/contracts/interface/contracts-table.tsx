@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
@@ -394,8 +394,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
         ];
     }, [canEdit, canDelete, isPending, router]);
 
-    const renderMobileItem = useMemo(() => {
-        return (contract: ContractListItem) => {
+    const renderMobileItem = useCallback((contract: ContractListItem) => {
             const isActive = contract.status === "ACTIVE";
             const minimumWage = toNumber(contract.minimumWage);
             const percentage = toNumber(contract.percentage);
@@ -510,7 +509,6 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                     </div>
                 </div>
             );
-        };
     }, [canEdit, canDelete, router]);
 
     const emptyStateConfig = useMemo(() => ({
