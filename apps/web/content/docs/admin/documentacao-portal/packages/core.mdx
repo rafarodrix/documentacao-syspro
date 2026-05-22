@@ -1,143 +1,90 @@
 ---
 title: "Package: @dosc-syspro/core"
-description: Entidades de negócio e lógica de domínio transversal — workflow de tickets, SLA, RBAC e releases compartilhados entre API e Web.
-lastUpdated: 2026-05-18
+description: Entidades transversais globais de negócio, RBAC, labels de UI, regras de bloqueio de contratos e controle corporativo.
+lastUpdated: 2026-05-22
 owner: Engenharia de Plataforma
 status: published
 tags:
   - packages
-  - entidades
   - rbac
+  - core
 ---
 
 # Package: @dosc-syspro/core
 
-> Entidades de negócio, configurações e lógica de domínio transversal.
-> Atualizado em: 2026-05-05
+> Configurações globais de negócio e lógica de domínio transversal compartilhada entre API e Web.
+> Atualizado em: 2026-05-22
 
 ---
 
 ## Responsabilidade
 
-`@dosc-syspro/core` contém regras de negócio e entidades que são compartilhadas entre `apps/api` e `apps/web`:
-- Workflow de tickets
-- Configuração de roles e labels
-- Lógica de releases
-- Cálculo de SLA
-- Regras de bloqueio de contratos
+`@dosc-syspro/core` contém lógicas transversais de configuração que precisam ser compartilhadas diretamente entre o backend (`apps/api`) e o frontend (`apps/web`):
+
+- **Controle RBAC**: Definição de roles e seus respectivos labels de UI legíveis para o usuário.
+- **Bloqueio de Contratos**: Regras e motivos globais para bloqueio preventivo de clientes.
+- **Configurações Globais**: Regras organizacionais estáticas.
+
+> 💡 **Nota Importante sobre Arquitetura**: Anteriormente, este pacote gerenciava de forma centralizada entidades legadas como `ticket.entity.ts`. Como parte da modularização e do alinhamento terminológico de **Tickets**, todas as lógicas ativas de tickets, matrizes de transição de estado e cálculos dinâmicos de SLA foram totalmente extraídos e encapsulados nos pacotes modulares de feature **`@dosc-syspro/tickets-domain`** e **`@dosc-syspro/tickets-infra`**, garantindo um core mais limpo e livre de acoplamento técnico.
 
 ---
 
-## Estrutura
+## Estrutura Física Real
+
+A pasta física do pacote `@dosc-syspro/core` está organizada da seguinte forma:
 
 ```
 packages/core/src/
-├── tickets/
-│   ├── ticket.entity.ts         ← entidade Ticket com regras
-│   ├── ticket-state-matrix.ts   ← matriz de transições de estado
-│   ├── tickets-workflow.ts      ← workflow permitido por role
-│   └── compute-ticket-sla.ts   ← cálculo de SLA por prioridade
+├── config/                      ← Configurações transversais de roles e sistemas
+│   └── index.ts
 │
-├── releases/
-│   ├── release.entity.ts        ← entidade Release
-│   └── build-release.ts         ← buildReleaseFromTicket()
+├── entities/                    ← Entidades remanescentes globais e utilitárias
+│   └── index.ts
 │
-├── rbac/
-│   ├── role-labels.ts           ← labels de roles para UI
-│   └── contract-blocking.ts     ← razões de bloqueio de contratos
+├── services/                    ← Serviços transversais de suporte
+│   ├── rbac.ts                        ← Serviços e validadores de escopo de Role
+│   └── index.ts
 │
-└── index.ts
+└── index.ts                     ← Ponto central de exportação do pacote
 ```
 
 ---
 
-## Tickets — workflow e estados
+## Recursos Disponíveis em `@dosc-syspro/core`
 
-> **Atenção:** Este package tem dois sistemas de status/prioridade que estão desalinhados com o contrato real de tickets. O **source of truth** para status e prioridade é `@dosc-syspro/contracts/ticket/ticket-module-api.types.ts`. Os tipos abaixo representam o sistema legado que está sendo mantido por compatibilidade mas não é importado pelo módulo de tickets em produção.
+### 1. RBAC — Labels de Roles de Usuário
 
-### Sistema legado (não usar para novos desenvolvimentos)
-
-```typescript
-// ⚠️ LEGADO — usar @dosc-syspro/contracts em vez disto
-type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING_CLIENT' | 'RESOLVED' | 'CLOSED'
-type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-```
-
-### Sistema real (contracts package)
+Mapeamento centralizado de roles internas do banco de dados para exibições amigáveis no frontend (utilizado em cabeçalhos, formulários de perfil e listas de usuários):
 
 ```typescript
-// ✅ Source of truth em @dosc-syspro/contracts
-const TICKET_MODULE_STATUS_VALUES = [
-  'NEW', 'UNASSIGNED', 'TRIAGE', 'IN_PROGRESS',
-  'WAITING_CUSTOMER', 'WAITING_INTERNAL', 'TESTING', 'RESOLVED', 'ARCHIVED'
-] as const
+import { Role } from "@prisma/client"
 
-const TICKET_MODULE_PRIORITY_VALUES = ['LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const
-```
-
-### O que é válido usar de @dosc-syspro/core/tickets
-
-```typescript
-// Filas de visualização (usado na UI)
-type QueueKey = 'all' | 'my_queue' | 'unassigned' | 'critical' | 'no_response'
-
-// Grupos de status para filtros da UI
-type TicketStatusGroup = 'open' | 'development' | 'testing' | 'closed'
-
-// Matriz de transições de estado (state machine)
-// packages/core/src/config/ticket-provider-state-matrix.ts
-
-// Cálculo de SLA por prioridade
-// packages/core/src/services/ticket-provider-sla.service.ts
-```
-
----
-
-## SLA por prioridade
-
-```typescript
-// ticket-provider-sla.service.ts
-const SLA_HOURS = {
-  LOW:      { response: 72, resolution: 120 },
-  NORMAL:   { response: 24, resolution: 48  },
-  HIGH:     { response:  8, resolution: 16  },
-  CRITICAL: { response:  2, resolution:  4  },
+export const roleLabels: Record<Role, string> = {
+  ADMIN:         "Administrador",
+  SUPORTE:       "Suporte Técnico",
+  CLIENTE_ADMIN: "Administrador do Cliente",
+  CLIENTE_USER:  "Usuário do Cliente",
+  DEVELOPER:     "Desenvolvedor",
 }
 ```
 
----
+### 2. Bloqueio de Contratos
 
-## RBAC — labels de roles
-
-```typescript
-const roleLabels: Record<Role, string> = {
-  ADMIN:        'Administrador',
-  SUPORTE:      'Suporte Técnico',
-  CLIENTE_ADMIN:'Administrador do Cliente',
-  CLIENTE_USER: 'Usuário do Cliente',
-  DEVELOPER:    'Desenvolvedor',
-}
-```
-
----
-
-## Releases
+Estrutura de tipagem que define os motivos técnicos que geram a suspensão ou bloqueio preventivo de contratos ativos de empresas:
 
 ```typescript
-// Cria estrutura de release a partir de um ticket resolvido
-const release = buildReleaseFromTicket(ticket, { version, date })
-```
-
----
-
-## Bloqueio de contratos
-
-Define as razões pelas quais um contrato pode ser bloqueado/suspenso:
-
-```typescript
-type ContractBlockReason =
+export type ContractBlockReason =
   | 'PAYMENT_OVERDUE'
   | 'MANUAL_SUSPENSION'
   | 'TRIAL_EXPIRED'
   | 'VIOLATION'
 ```
+
+---
+
+## Relação com Pacotes de Features
+
+Ao refatorar regras de negócio específicas para o core, prefira as diretivas da **Arquitetura Hexagonal**:
+*   Lógica exclusiva de **Tickets** ➔ deve viver sob `@dosc-syspro/tickets-domain`.
+*   Lógica exclusiva de **Leads/Vendas** ➔ deve viver sob `@dosc-syspro/crm-domain`.
+*   Lógica exclusiva de **Tarefas de Equipe** ➔ deve viver sob `@dosc-syspro/tarefas-domain`.

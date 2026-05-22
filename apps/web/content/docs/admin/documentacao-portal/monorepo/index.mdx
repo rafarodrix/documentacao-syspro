@@ -1,18 +1,19 @@
 ---
 title: Visão Geral do Monorepo
-description: Stack tecnológica, estrutura de diretórios, packages e scripts do workspace do monorepo Trilink Portal.
-lastUpdated: 2026-05-18
+description: Stack tecnológica, estrutura de diretórios, packages e scripts do workspace do monorepo Trilink Portal utilizando Turborepo.
+lastUpdated: 2026-05-22
 owner: Engenharia de Plataforma
 status: published
 tags:
   - monorepo
   - arquitetura
+  - turborepo
   - npm-workspaces
 ---
 
 # Visão Geral do Monorepo
 
-> Stack: **npm workspaces** · Atualizado em: 2026-05-05
+> Stack: **npm workspaces + Turborepo** · Atualizado em: 2026-05-22
 
 ---
 
@@ -32,23 +33,28 @@ O **Trilink Portal** é uma plataforma de gestão integrada para empresas que ut
 ```
 /
 ├── apps/
-│   ├── api/        NestJS — backend principal (REST + tRPC)
-│   ├── web/        Next.js 15 — frontend do portal
+│   ├── api/        NestJS — backend principal (@dosc-syspro/app-api)
+│   ├── web/        Next.js 15 — frontend do portal (@dosc-syspro/web)
 │   ├── agent/      Go + Wails — agente desktop Windows
-│   └── mobile/     TypeScript — placeholder (não implementado)
+│   └── mobile/     TypeScript/Expo — aplicativo mobile (@dosc-syspro/app-mobile)
 │
 ├── packages/
-│   ├── contracts/      Zod schemas e tipos TypeScript compartilhados
-│   ├── remote-domain/  Lógica de domínio do módulo remoto (ports & adapters)
-│   ├── remote-infra/   Implementações das ports do remote-domain
-│   ├── database/       Prisma ORM (schema PostgreSQL + client)
-│   ├── shared/         Utilitários: formatadores, logger, auth helpers
-│   ├── core/           Entidades de negócio: tickets, releases, RBAC config
-│   ├── ui/             Componentes React (Radix UI)
-│   └── config/         Leitura de variáveis de ambiente com validação Zod
+│   ├── contracts/  Zod schemas e tipos TypeScript compartilhados (@dosc-syspro/contracts)
+│   ├── database/   Prisma ORM (schema PostgreSQL + client) (@dosc-syspro/database)
+│   ├── shared/     Utilitários: formatadores, logger, auth helpers (@dosc-syspro/shared)
+│   ├── core/       Entidades de negócio e helpers transversais (@dosc-syspro/core)
+│   ├── ui/         Design System e componentes React compartilhados (@dosc-syspro/ui)
+│   ├── config/     Leitura de variáveis de ambiente com validação Zod (@dosc-syspro/config)
+│   │
+│   └── features/   Módulos de negócio com arquitetura hexagonal desacoplada
+│       ├── crm/          Domínio e Infraestrutura de CRM (leads/oportunidades)
+│       ├── remote/       Domínio e Infraestrutura de infra remota (RustDesk/Hosts)
+│       ├── tarefas/      Domínio e Infraestrutura de gerenciamento de tarefas/SLA
+│       └── tickets/      Domínio e Infraestrutura de suporte e tickets administrativos
 │
-├── scripts/            Scripts de manutenção e verificação
-└── package.json        Workspace root
+├── scripts/        Scripts de manutenção, auditoria e verificação
+├── turbo.json      Configurações do Turborepo (pipelines e cache)
+└── package.json    Workspace root
 ```
 
 ---
@@ -67,7 +73,7 @@ O **Trilink Portal** é uma plataforma de gestão integrada para empresas que ut
 | Object Storage | AWS SDK S3 → Cloudflare R2    |
 | Email          | Nodemailer 8                  |
 | Testes         | Vitest                        |
-| Build          | Webpack (custom config)       |
+| Build          | Nest CLI + Webpack            |
 
 ### `apps/web` — Frontend Next.js
 
@@ -82,81 +88,54 @@ O **Trilink Portal** é uma plataforma de gestão integrada para empresas que ut
 | Testes unit.   | Vitest                        |
 | Testes E2E     | Playwright                    |
 
-### `apps/agent` — Agente Windows (Go)
-
-| Camada         | Tecnologia                    |
-|----------------|-------------------------------|
-| Linguagem      | Go 1.26                       |
-| UI desktop     | Wails v2 (WebView2 + React)   |
-| Acesso remoto  | RustDesk (integração interna) |
-| Build          | wails build (Windows)         |
-| IPC local      | Named pipe (Windows) / Unix socket |
-
-### `apps/mobile` — Placeholder
-
-Arquivo TypeScript estático. Estrutura preparada para Expo/React Native no futuro. Não implementado.
-
 ---
 
 ## Packages — mapa de responsabilidades
 
 | Package             | Escopo                                                        | Consumido por                |
 |---------------------|---------------------------------------------------------------|------------------------------|
-| `@dosc-syspro/contracts`     | Schemas Zod + tipos para todos os domínios             | api, web, agent (via HTTP)   |
-| `@dosc-syspro/remote-domain` | Casos de uso do módulo remoto (puro, sem deps externas)| api (via remote-infra)       |
-| `@dosc-syspro/remote-infra`  | Adapters/ports do remote-domain (Prisma, HTTP)         | api                          |
-| `@dosc-syspro/database`      | PrismaClient gerado + schema                           | api, remote-infra            |
+| `@dosc-syspro/contracts`     | Schemas Zod + tipos para todos os domínios             | api, web, pacotes locais     |
+| `@dosc-syspro/database`      | PrismaClient gerado + schema                           | api, pacotes de infra        |
 | `@dosc-syspro/shared`        | Formatadores, logger, HMAC, rate limit                 | api, web                     |
-| `@dosc-syspro/core`          | Entidades: Ticket, Release, RBAC, SLA                  | api, web                     |
-| `@dosc-syspro/ui`            | Componentes React base (Button, Card, Input...)        | web                          |
-| `@dosc-syspro/config`        | Leitura de env vars com Zod                            | api, remote-infra            |
+| `@dosc-syspro/core`          | RBAC, labels de UI, regras globais de negócios         | api, web                     |
+| `@dosc-syspro/ui`            | Componentes React base (Design System e shadcn)        | web                          |
+| `@dosc-syspro/config`        | Leitura de env vars com Zod                            | api, pacotes de infra        |
+
+> **Nota sobre Modularização Hexagonal**: Toda a lógica de casos de uso, interfaces e infraestrutura específica dos módulos administrativos principais (CRM, Remote Admin, Tarefas, Tickets) vive encapsulada em seus respectivos subpacotes em `packages/features/` (ex: `@dosc-syspro/tickets-domain` e `@dosc-syspro/tickets-infra`).
 
 ---
 
-## Scripts npm workspaces
+## Scripts do Turborepo
 
-O projeto usa **npm workspaces** diretamente — sem Turborepo. Os comandos seguem o padrão:
+O projeto utiliza o **Turborepo** para orquestrar tarefas de build, typecheck, lint e testes de maneira paralela e eficiente, aproveitando cache local e remoto.
 
 ```bash
-# Rodar um script em um workspace específico
-npm run dev -w web
-npm run dev -w api
-npm run build -w web
-npm run build -w api
+# Executar typecheck em todo o monorepo de forma otimizada
+npm run typecheck       # Roda "turbo run typecheck"
 
-# Rodar testes
-npm run test -w web
-npm run test:e2e -w web   # Playwright E2E
+# Compilar todos os pacotes e aplicações locais
+npm run build           # Roda "turbo run build"
+
+# Rodar o servidor de desenvolvimento do frontend
+npm run dev             # Filtra e executa o frontend web no Turbo
+
+# Executar testes da API backend
+npm run test:api        # Roda a suíte Vitest em @dosc-syspro/app-api
+
+# Executar testes do frontend web
+npm run test:web        # Roda a suíte Vitest em @dosc-syspro/web
 ```
-
----
-
-## Variáveis de ambiente
-
-Cada app tem seu próprio `.env.local`. As principais:
-
-| Variável              | Usada por       | Descrição                            |
-|-----------------------|-----------------|--------------------------------------|
-| `DATABASE_URL`        | api, database   | PostgreSQL connection string          |
-| `DIRECT_URL`          | database        | Direct URL sem PgBouncer (migrations) |
-| `BETTER_AUTH_SECRET`  | api             | Secret do Better Auth                 |
-| `R2_BUCKET_NAME`      | api             | Nome do bucket Cloudflare R2          |
-| `R2_ENDPOINT`         | api             | Endpoint S3-compat do R2              |
-| `CHATWOOT_API_KEY`    | api             | Token da API Chatwoot                 |
-| `EVOLUTION_API_URL`   | api             | URL da Evolution API (WhatsApp)       |
-| `NEXT_PUBLIC_API_URL` | web             | URL base da API para o frontend       |
 
 ---
 
 ## Convenção de nomes de packages
 
-Todos os packages internos usam o escopo `@dosc-syspro/`:
+Todos os packages e aplicações no monorepo usam a nomenclatura oficial corporativa com escopo `@dosc-syspro/`:
 
+```json
+// Exemplos de package.json
+{ "name": "@dosc-syspro/web" }
+{ "name": "@dosc-syspro/app-api" }
+{ "name": "@dosc-syspro/app-mobile" }
+{ "name": "@dosc-syspro/tickets-domain" }
 ```
-@dosc-syspro/contracts
-@dosc-syspro/database
-@dosc-syspro/shared
-...
-```
-
-Os apps **não** usam escopo — são referenciados pelo workspace name simples (`api`, `web`, `agent`).

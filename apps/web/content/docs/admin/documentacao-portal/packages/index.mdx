@@ -1,7 +1,7 @@
 ---
 title: Packages — Visão Geral e Mapa de Dependências
 description: Os packages internos do monorepo fornecem contratos, domínio, infraestrutura, banco de dados, utilitários, entidades de negócio e componentes UI compartilhados.
-lastUpdated: 2026-05-18
+lastUpdated: 2026-05-22
 owner: Engenharia de Plataforma
 status: published
 tags:
@@ -10,68 +10,80 @@ tags:
   - dependencias
 ---
 
-> Atualizado em: 2026-05-05
+# Packages — Visão Geral e Mapa de Dependências
+
+> Atualizado em: 2026-05-22
 
 ---
 
 ## Lista de packages
 
-| Package                      | Versão | Linguagem       | Propósito                                         |
-|------------------------------|--------|-----------------|---------------------------------------------------|
-| `@dosc-syspro/contracts`     | —      | TypeScript/Zod  | Schemas e tipos compartilhados (porta de domínio) |
-| `@dosc-syspro/remote-domain` | —      | TypeScript      | Lógica de domínio do módulo remoto (pura)         |
-| `@dosc-syspro/remote-infra`  | —      | TypeScript      | Implementações das ports do remote-domain         |
-| `@dosc-syspro/database`      | —      | TypeScript      | PrismaClient + tipos gerados                      |
-| `@dosc-syspro/shared`        | —      | TypeScript      | Utilitários: formatadores, logger, auth helpers   |
-| `@dosc-syspro/core`          | —      | TypeScript      | Entidades de negócio: tickets, releases, RBAC     |
-| `@dosc-syspro/ui`            | —      | TypeScript/React| Componentes UI base (Radix UI)                    |
-| `@dosc-syspro/config`        | —      | TypeScript      | Leitura de env vars com validação Zod             |
+O monorepo está estruturado de forma que os pacotes de utilitários globais residam na pasta raiz `/packages/`, enquanto os pacotes de regras de negócio altamente modulares e independentes estejam aninhados sob `/packages/features/`.
+
+### Utilitários Globais e Compartilhados
+
+| Package                      | Linguagem       | Propósito                                                  |
+|------------------------------|-----------------|------------------------------------------------------------|
+| `@dosc-syspro/contracts`     | TypeScript/Zod  | Schemas e tipos de record compartilhados (Porta de entrada)|
+| `@dosc-syspro/database`      | TypeScript      | PrismaClient gerado + schema do banco PostgreSQL           |
+| `@dosc-syspro/shared`        | TypeScript      | Utilitários transversais: formatadores, logger, auth helpers|
+| `@dosc-syspro/core`          | TypeScript      | Configurações de RBAC, labels e lógicas corporativas globais|
+| `@dosc-syspro/ui`            | TypeScript/React| Design System e componentes UI base (shadcn/Radix UI)      |
+| `@dosc-syspro/config`        | TypeScript      | Leitor centralizado de variáveis de ambiente com Zod       |
+
+### Módulos de Features (Arquitetura Hexagonal)
+
+Cada feature em `/packages/features/<feature>/` é subdividida em dois subpacotes:
+1.  **`domain`**: Contém entidades de domínio puras, regras de negócio isoladas, validadores e declaração de portas (interfaces), sem acoplamento com frameworks ou ORMs.
+2.  **`infra`**: Contém a implementação prática das portas de domínio (adapters), como repositórios Prisma, controladores de requisição e serviços de integração de APIs.
+
+| Feature / Módulo             | Package de Domínio                   | Package de Infraestrutura               |
+|------------------------------|--------------------------------------|-----------------------------------------|
+| **Remote Admin**             | `@dosc-syspro/remote-domain`         | `@dosc-syspro/remote-infra`             |
+| **Tickets / Suporte**        | `@dosc-syspro/tickets-domain`        | `@dosc-syspro/tickets-infra`            |
+| **CRM / Leads**              | `@dosc-syspro/crm-domain`            | `@dosc-syspro/crm-infra`                |
+| **Tarefas / SLA**            | `@dosc-syspro/tarefas-domain`        | `@dosc-syspro/tarefas-infra`            |
 
 ---
 
-## Mapa de dependências
+## Mapa de dependências técnicas
 
 ```
-                    ┌──────────────┐
-                    │  contracts   │ ← tipos Zod, sem deps internas
-                    └──────┬───────┘
-                           │ importado por
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-    ┌──────────┐    ┌──────────────┐  ┌──────────┐
-    │  shared  │    │ remote-domain│  │   core   │
-    └────┬─────┘    └──────┬───────┘  └────┬─────┘
-         │                │               │
-         │         ┌──────▼───────┐       │
-         │         │ remote-infra │       │
-         │         └──────┬───────┘       │
-         │                │               │
-         │         ┌──────▼───────┐       │
-         │         │   database   │◄──────┤
-         │         └──────────────┘       │
-         │                                │
-         └──────────────┬─────────────────┘
-                        │ consumido por
-              ┌─────────┴────────┐
-              ▼                  ▼
-           apps/api           apps/web
+                   ┌──────────────┐
+                   │  contracts   │ ← schemas Zod, tipos estáticos (sem dependências)
+                   └──────┬───────┘
+                          │ importado por
+         ┌────────────────┼────────────────┐
+         ▼                ▼                ▼
+   ┌──────────┐    ┌──────────────┐  ┌──────────┐
+   │  shared  │    │ feature-dom  │  │   core   │
+   └────┬─────┘    └──────┬───────┘  └────┬─────┘
+        │                 │ (portas)      │
+        │          ┌──────▼───────┐       │
+        │          │ feature-inf  │       │
+        │          └──────┬───────┘       │
+        │                 │ (adapters)    │
+        │          ┌──────▼───────┐       │
+        │          │   database   │◄──────┤
+        │          └──────────────┘       │
+        │                                 │
+        └──────────────┬──────────────────┘
+                       │ consumido por
+             ┌─────────┴────────┐
+             ▼                  ▼
+          apps/api           apps/web
 ```
 
-**Regras:**
-- `contracts` não importa nenhum package interno
-- `remote-domain` não importa `database`, `remote-infra` ou frameworks externos
-- `remote-infra` implementa as interfaces de `remote-domain` usando `database`
-- `database` exporta apenas o Prisma client — sem lógica de negócio
-- `ui` é exclusivo do `apps/web` (dependências React)
+### Regras Estritas de Arquitetura:
+*   **Isolamento de Domínio**: Um pacote `domain` **nunca** pode importar `@dosc-syspro/database`, `@dosc-syspro/remote-infra` ou qualquer biblioteca de persistência/framework. Ele deve conter apenas lógica pura de TypeScript e dependência direta de `@dosc-syspro/contracts`.
+*   **Injeção de Dependências**: O NestJS (`apps/api`) consome os serviços de `infra` e injeta os repositórios correspondentes, satisfazendo as portas declaradas no `domain`.
+*   **Pacote de UI**: O `@dosc-syspro/ui` é consumido exclusivamente pelo `@dosc-syspro/web` (Next.js) e possui dependências estritas do React 19.
 
 ---
 
-## Como adicionar um novo package
+## Como adicionar uma nova Feature modular
 
-1. Crie a pasta em `packages/<nome>/`
-2. Adicione `package.json` com nome `@dosc-syspro/<nome>` e `"main": "./src/index.ts"`
-3. Adicione `tsconfig.json` estendendo `../../tsconfig.base.json`
-4. Registre no workspace root `package.json` se necessário
-5. Importe nos apps/packages que precisam com `@dosc-syspro/<nome>`
-
-> Ver [novo-package](/portal/docs/admin/documentacao-portal/guias/novo-package) para passo a passo detalhado.
+1.  Crie as pastas correspondentes em `packages/features/<nova-feature>/domain/` e `packages/features/<nova-feature>/infra/`.
+2.  Inicialize o `package.json` em ambas, nomeando-as como `@dosc-syspro/<nova-feature>-domain` e `@dosc-syspro/<nova-feature>-infra`.
+3.  Adicione as dependências correspondentes em ambos e estenda `../../tsconfig.base.json` no `tsconfig.json`.
+4.  No `tsconfig.json` das aplicações consumidoras (como `apps/api` e `apps/web`), mapeie o caminho local no bloco `paths` do TypeScript para resolução local instantânea em tempo de desenvolvimento.
