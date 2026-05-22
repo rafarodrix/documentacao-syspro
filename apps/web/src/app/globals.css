@@ -9,6 +9,7 @@
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @source './**/*.{ts,tsx,md,mdx}';
 @source '../content/**/*.{md,mdx}';
+@source '../../../../packages/ui/src/**/*.{ts,tsx}';
 
 @theme inline {
 

@@ -25,7 +25,6 @@ export default async function ContatosRootPage() {
       <CadastrosPageHeader
         title="Central de Contatos"
         description="Gerencie pessoas, canais de contato e vinculos com empresas."
-        isGlobalView={adminView.isGlobalView}
       />
       <ContactsTab
         canCreate={canCreate}

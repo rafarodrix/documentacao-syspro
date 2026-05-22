@@ -64,7 +64,6 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
       <CadastrosPageHeader
         title="Cadastro de Empresa"
         description="Gerencie os dados cadastrais e fiscais das organizacoes."
-        isGlobalView={result.isGlobalView}
       />
       <CompanyTab
         data={result.list.items}

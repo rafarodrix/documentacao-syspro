@@ -29,7 +29,6 @@ export default async function CadastrosUsuariosPage() {
       <CadastrosPageHeader
         title="Usuarios"
         description="Cadastre e gerencie usuarios da plataforma e da equipe interna em uma unica tela."
-        isGlobalView={isGlobalView || result.isGlobalView}
       />
       <UserTab
         data={result.users}
