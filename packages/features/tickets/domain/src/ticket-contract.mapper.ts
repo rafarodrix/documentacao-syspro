@@ -12,7 +12,7 @@ import type {
 } from '@dosc-syspro/contracts/ticket';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type { PaginationMeta } from '@dosc-syspro/contracts';
-import { readMetadataString } from './ticket-metadata.js';
+import { readMetadataString } from './ticket-metadata';
 
 type NullableRecord = Record<string, unknown> | null;
 

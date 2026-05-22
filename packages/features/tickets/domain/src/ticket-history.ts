@@ -1,6 +1,6 @@
 import type { TicketModuleSettings, TicketModuleTriageRequest } from '@dosc-syspro/contracts/ticket';
-import { mapStatusLabel, formatTeamLabel } from './ticket-status.js';
-import { resolveCategoryLabel, formatPriorityLabel } from './ticket-settings.js';
+import { mapStatusLabel, formatTeamLabel } from './ticket-status';
+import { resolveCategoryLabel, formatPriorityLabel } from './ticket-settings';
 
 export function buildAssignmentBody(input: {
   requesterName: string;
