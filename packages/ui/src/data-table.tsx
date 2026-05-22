@@ -9,11 +9,12 @@ import {
   getCoreRowModel,
   useReactTable,
   SortingState,
+  getSortedRowModel,
 } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
 import { Card } from "./card";
 import { cn } from "./utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -78,15 +79,21 @@ export function DataTable<TData, TValue>({
   columnVisibility,
   onColumnVisibilityChange,
 }: DataTableProps<TData, TValue>) {
+  // Estado local para ordenação in-memory
+  const [localSorting, setLocalSorting] = React.useState<SortingState>([]);
+
   // Traduz a ordenação controlada para o estado do TanStack
-  const tableSorting = React.useMemo<SortingState | undefined>(() => {
-    if (!sorting) return undefined;
+  const tableSorting = React.useMemo<SortingState>(() => {
+    if (!sorting) return localSorting;
     return [{ id: sorting.sortBy, desc: sorting.sortOrder === "desc" }];
-  }, [sorting]);
+  }, [sorting, localSorting]);
 
   const handleSortingChange = React.useCallback(
     (updater: any) => {
-      if (!sorting) return;
+      if (!sorting) {
+        setLocalSorting(updater);
+        return;
+      }
       const current = [{ id: sorting.sortBy, desc: sorting.sortOrder === "desc" }];
       const nextState = typeof updater === "function" ? updater(current) : updater;
       const first = nextState[0];
@@ -109,7 +116,8 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange,
     onColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
-    manualSorting: true, // A ordenação é controlada externamente no portal
+    getSortedRowModel: getSortedRowModel(),
+    manualSorting: !!sorting, // A ordenação é controlada externamente apenas quando prop sorting existe
   });
 
   const hasMobileLayout = !!renderMobileItem;
@@ -166,17 +174,35 @@ export function DataTable<TData, TValue>({
                 <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-border/60">
                   {headerGroup.headers.map((header) => {
                     const meta = header.column.columnDef.meta as { className?: string } | undefined;
+                    const canSort = header.column.getCanSort();
+                    const sortDirection = header.column.getIsSorted();
+
                     return (
                       <TableHead
                         key={header.id}
                         className={cn(
                           "text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-3",
+                          canSort && "cursor-pointer select-none hover:bg-muted/30 focus-visible:outline-none transition-colors group/head",
                           meta?.className
                         )}
+                        onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                       >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.isPlaceholder ? null : (
+                          <div className="flex items-center gap-1.5">
+                            <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                            {canSort && (
+                              <span className="shrink-0 text-muted-foreground/50 transition-colors group-hover/head:text-foreground">
+                                {sortDirection === "desc" ? (
+                                  <ArrowDown className="h-3.5 w-3.5 text-primary animate-in fade-in zoom-in duration-200" />
+                                ) : sortDirection === "asc" ? (
+                                  <ArrowUp className="h-3.5 w-3.5 text-primary animate-in fade-in zoom-in duration-200" />
+                                ) : (
+                                  <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 group-hover/head:opacity-100" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </TableHead>
                     );
                   })}

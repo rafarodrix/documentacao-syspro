@@ -220,6 +220,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             {
                 id: "company",
                 header: "Empresa",
+                enableSorting: false,
                 cell: ({ row }) => (
                     <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground">
@@ -237,6 +238,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 ),
             },
             {
+                accessorKey: "startDate",
                 id: "startDate",
                 header: "Vigência",
                 cell: ({ row }) => (
@@ -247,6 +249,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 ),
             },
             {
+                accessorKey: "minimumWage",
                 id: "minimumWage",
                 header: "Base",
                 cell: ({ row }) => (
@@ -256,6 +259,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 ),
             },
             {
+                accessorKey: "percentage",
                 id: "percentage",
                 header: "Aliq.",
                 cell: ({ row }) => (
@@ -265,6 +269,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 ),
             },
             {
+                accessorKey: "status",
                 id: "status",
                 header: "Status",
                 cell: ({ row }) => {
@@ -281,6 +286,14 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                 },
             },
             {
+                accessorFn: (row) => {
+                    const minimumWage = toNumber(row.minimumWage);
+                    const percentage = toNumber(row.percentage);
+                    const taxRate = toNumber(row.taxRate);
+                    const programmerRate = toNumber(row.programmerRate);
+                    const { netValue } = calculateContractFinancials(minimumWage, percentage, taxRate, programmerRate);
+                    return netValue;
+                },
                 id: "net",
                 header: () => <div className="text-right">Líquido</div>,
                 cell: ({ row }) => {
@@ -311,6 +324,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             {
                 id: "actions",
                 header: "",
+                enableSorting: false,
                 cell: ({ row }) => {
                     const contract = row.original;
                     const isActive = contract.status === "ACTIVE";
@@ -379,6 +393,125 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
             },
         ];
     }, [canEdit, canDelete, isPending, router]);
+
+    const renderMobileItem = useMemo(() => {
+        return (contract: ContractListItem) => {
+            const isActive = contract.status === "ACTIVE";
+            const minimumWage = toNumber(contract.minimumWage);
+            const percentage = toNumber(contract.percentage);
+            const taxRate = toNumber(contract.taxRate);
+            const programmerRate = toNumber(contract.programmerRate);
+
+            const { grossValue: gross, netValue: net } = calculateContractFinancials(
+                minimumWage,
+                percentage,
+                taxRate,
+                programmerRate
+            );
+
+            return (
+                <div
+                    className="cursor-pointer space-y-3.5 p-4 bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl m-2 transition-colors hover:bg-muted/10"
+                    onClick={() => canEdit && router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
+                >
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate text-foreground">
+                                {contract.company.razaoSocial}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                CNPJ: {contract.company.cnpj}
+                            </p>
+                        </div>
+                        <Badge
+                            variant={isActive ? "success" : "muted"}
+                            className="h-5 gap-1.5 rounded-full px-2 py-0 text-[10px] font-medium shrink-0"
+                        >
+                            <span className={cn("h-1.5 w-1.5 rounded-full bg-current", isActive ? "animate-pulse" : "opacity-60")} />
+                            {isActive ? "Ativo" : "Inativo"}
+                        </Badge>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs bg-muted/20 p-2.5 rounded-xl border border-border/40">
+                        <div className="space-y-0.5">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Líquido</span>
+                            <span className={cn("font-bold font-mono text-sm tracking-tight tabular-nums", isActive ? "text-primary" : "text-muted-foreground")}>
+                                {formatCurrency(net)}
+                            </span>
+                        </div>
+                        <div className="text-right space-y-0.5">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">Bruto</span>
+                            <span className="font-medium font-mono text-xs text-muted-foreground tabular-nums">
+                                {formatCurrency(gross)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                            <CalendarClock className="h-3.5 w-3.5 opacity-70" />
+                            Vigência: {formatDate(contract.startDate)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                            <Wallet className="h-3.5 w-3.5 opacity-70" />
+                            Base: {formatCurrency(minimumWage)}
+                        </span>
+                        <Badge variant="outline" className="h-5 border-border/60 bg-background/50 px-1.5 font-mono text-[10px] font-normal shadow-none">
+                            Aliq: {percentage.toFixed(4)}%
+                        </Badge>
+                    </div>
+
+                    <div className="flex justify-end gap-2 border-t border-border/40 pt-3" onClick={(e) => e.stopPropagation()}>
+                        {canEdit && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-xs py-1 px-3 gap-1.5"
+                                onClick={() => router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
+                            >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                Editar Termos
+                            </Button>
+                        )}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">Gerenciar</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => toast.info("Em breve: Histórico")} className="cursor-pointer gap-2">
+                                    <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Ver Repasses
+                                </DropdownMenuItem>
+                                {canEdit && (
+                                    isActive ? (
+                                        <DropdownMenuItem onClick={() => setSuspendTarget(contract)} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2">
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Suspender
+                                        </DropdownMenuItem>
+                                    ) : (
+                                        <DropdownMenuItem onClick={() => handleActivate(contract.id)} className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 cursor-pointer gap-2">
+                                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                                            Reativar
+                                        </DropdownMenuItem>
+                                    )
+                                )}
+                                {canDelete && (
+                                    <DropdownMenuItem onClick={() => setDeleteTarget(contract)} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer gap-2">
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Excluir
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+            );
+        };
+    }, [canEdit, canDelete, router]);
 
     const emptyStateConfig = useMemo(() => ({
         title: "Nenhum contrato encontrado",
@@ -586,6 +719,7 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                     onColumnVisibilityChange={setColumnVisibility}
                     onRowDoubleClick={(contract) => canEdit && router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
                     emptyState={emptyStateConfig}
+                    renderMobileItem={renderMobileItem}
                 />
             </Card>
         </>

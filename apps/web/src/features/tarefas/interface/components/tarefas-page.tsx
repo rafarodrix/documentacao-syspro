@@ -246,6 +246,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
       {
         id: "requests",
         header: "Solicitações",
+        enableSorting: false,
         meta: { className: "w-[15%] px-3 py-3.5 hidden lg:table-cell" },
         cell: ({ row }) => {
           const item = row.original;
@@ -283,6 +284,7 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
       cols.push({
         id: "actions",
         header: "Ações",
+        enableSorting: false,
         meta: { className: "w-[16%] px-3 py-3.5 text-right" },
         cell: ({ row }) => {
           const item = row.original;

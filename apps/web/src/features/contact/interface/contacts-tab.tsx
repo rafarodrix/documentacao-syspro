@@ -162,8 +162,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
   }, [scope, page, searchTerm]);
 
   const filteredData = useMemo(() => {
-    return contacts
-      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base", numeric: true }));
+    return contacts;
   }, [contacts]);
 
   const counts = useMemo(() => {
@@ -215,6 +214,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
 
   const columns = useMemo<ColumnDef<ContactItem>[]>(() => [
     {
+      accessorKey: "name",
       id: "contact",
       header: "Contato",
       meta: { className: "w-[30%]" },
@@ -245,6 +245,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       ),
     },
     {
+      accessorKey: "phone",
       id: "phone",
       header: "Telefone",
       cell: ({ row }) => (
@@ -252,6 +253,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       ),
     },
     {
+      accessorKey: "email",
       id: "email",
       header: "Email",
       cell: ({ row }) => (
@@ -261,6 +263,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     {
       id: "companies",
       header: "Empresas",
+      enableSorting: false,
       cell: ({ row }) => {
         const linkedCount = getLinkedCount(row.original);
         const companyNames = getCompanyNames(row.original);
@@ -276,6 +279,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
       id: "actions",
       header: () => <div className="text-right">Acoes</div>,
       meta: { className: "w-24 text-right" },
+      enableSorting: false,
       cell: ({ row }) => (
         <ContactActionsMenu
           contact={row.original}
