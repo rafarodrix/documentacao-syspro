@@ -19,7 +19,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@dosc-syspro/ui";
 import { type ColumnDef } from "@tanstack/react-table";
-import type { TicketListItem, TicketSortBy, TicketSortOrder } from "./ticket-view.types";
+import type { TicketListItem, TicketSortBy, TicketSortOrder, TicketsPagination } from "./ticket-view.types";
 import type { TicketStatusGroup } from "@dosc-syspro/core";
 import { StatusBadge, PriorityBadge } from "./ticket-badges";
 import { humanizeModuleHierarchyValue } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
@@ -32,6 +32,7 @@ interface TicketsTableProps {
   sortBy: TicketSortBy;
   sortOrder: TicketSortOrder;
   onSortChange: (sortBy: TicketSortBy, sortOrder: TicketSortOrder) => void;
+  pagination?: TicketsPagination;
 }
 
 export function TicketsTable({
@@ -41,6 +42,7 @@ export function TicketsTable({
   sortBy,
   sortOrder,
   onSortChange,
+  pagination,
 }: TicketsTableProps) {
   const router = useRouter();
   const ticketSettings = useTicketModuleSettings();
@@ -296,12 +298,23 @@ export function TicketsTable({
 
   return (
     <div className="space-y-2.5">
-      {/* Barra de Ferramentas da Tabela (Visível apenas em Desktop/Tablet) */}
-      <div className="hidden md:flex items-center justify-between">
-        <div className="text-[11px] font-medium text-muted-foreground">
-          {/* Espaço reservado ou contadores futuros */}
+      {/* Barra de Ferramentas da Tabela: Exibição & Colunas (Coesão de Layout Premium) */}
+      <div className="flex items-center justify-between px-0.5">
+        <div className="text-xs text-muted-foreground font-medium">
+          {pagination && pagination.total !== null && tickets.length > 0 && (
+            <span>
+              Exibindo{" "}
+              <span className="font-semibold text-foreground">
+                {(pagination.page - 1) * pagination.pageSize + 1}–
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)}
+              </span>{" "}
+              de{" "}
+              <span className="font-semibold text-foreground">{pagination.total}</span>{" "}
+              {pagination.total === 1 ? "ticket" : "tickets"}
+            </span>
+          )}
         </div>
-        <div>
+        <div className="hidden md:block">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

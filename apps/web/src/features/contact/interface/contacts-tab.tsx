@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { type ContactListItem, type ContactStats as ContactStatsContract } from "@dosc-syspro/contracts/contact";
+import { type ColumnDef } from "@tanstack/react-table";
 import { formatCpf } from "@dosc-syspro/shared";
 import { trpc } from "@/lib/api/trpc-client";
 import {
@@ -26,12 +27,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
+import { Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
-  RegistryDataTable,
   RegistryFilterGroup,
+  RegistryPagination,
   RegistryToolbar,
   type RegistryPaginationState,
 } from "@/components/platform/shared/registry-list-scaffold";
@@ -206,6 +207,98 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
     router.push(`/portal/contatos/${contact.id}/editar`);
   };
 
+  const columns = useMemo<ColumnDef<ContactItem>[]>(() => [
+    {
+      id: "contact",
+      header: "Contato",
+      meta: { className: "w-[30%]" },
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-muted-foreground shadow-sm transition-colors group-hover/row:text-foreground">
+            <UserRound className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="max-w-72 truncate text-sm font-semibold text-foreground">{row.original.name || "Sem nome"}</p>
+            <div className="mt-0.5 flex max-w-72 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+              {row.original.jobTitle ? (
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <Briefcase className="h-3 w-3 shrink-0 opacity-60" />
+                  <span className="truncate">{row.original.jobTitle}</span>
+                </span>
+              ) : null}
+              {row.original.cpf ? (
+                <span className="inline-flex items-center gap-1 font-mono">
+                  <Fingerprint className="h-3 w-3 shrink-0 opacity-60" />
+                  {formatCpf(row.original.cpf)}
+                </span>
+              ) : null}
+              {!row.original.jobTitle && !row.original.cpf && row.original.notes ? <span className="truncate">{row.original.notes}</span> : null}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "phone",
+      header: "Telefone",
+      cell: ({ row }) => (
+        <ContactValue icon={Phone} value={getPrimaryPhone(row.original)} fallback="Nao informado" />
+      ),
+    },
+    {
+      id: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <ContactValue icon={Mail} value={row.original.email} fallback="Nao informado" />
+      ),
+    },
+    {
+      id: "companies",
+      header: "Empresas",
+      cell: ({ row }) => {
+        const linkedCount = getLinkedCount(row.original);
+        const companyNames = getCompanyNames(row.original);
+        return (
+          <div className="space-y-1">
+            <LinkedBadge count={linkedCount} />
+            {companyNames ? <p className="max-w-72 truncate text-[11px] text-muted-foreground">{companyNames}</p> : null}
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Acoes</div>,
+      meta: { className: "w-24 text-right" },
+      cell: ({ row }) => (
+        <ContactActionsMenu
+          contact={row.original}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          isLoading={loadingId === row.original.id}
+          onEdit={() => openEdit(row.original)}
+          onUnlink={() => setConfirmDialog({ type: "unlink", contact: row.original })}
+          onDelete={() => setConfirmDialog({ type: "delete", contact: row.original })}
+        />
+      ),
+    },
+  ], [canDelete, canEdit, loadingId]);
+
+  const renderMobileItem = useMemo(
+    () => (contact: ContactItem) => (
+      <MobileContactCard
+        contact={contact}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        isLoading={loadingId === contact.id}
+        onEdit={() => openEdit(contact)}
+        onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
+        onDelete={() => setConfirmDialog({ type: "delete", contact })}
+      />
+    ),
+    [canDelete, canEdit, loadingId, openEdit],
+  );
+
   const handleUnlink = async (contact: ContactItem) => {
     setLoadingId(contact.id);
 
@@ -333,61 +426,31 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
           }
         />
 
-        <RegistryDataTable
-          loading={loadingList}
-          loadingLabel="Carregando contatos..."
-          isEmpty={filteredData.length === 0}
-          emptyState={{
-            icon: Users,
-            title: "Nenhum contato encontrado",
-            description: emptyStateDescription,
-            searchTerm,
-            onClear: () => handleSearchChange(""),
-          }}
-          desktopColSpan={5}
-          minWidthClassName="min-w-[920px]"
-          desktopHeaderClassName="bg-muted/40"
-          desktopHeader={
-            <TableRow className="border-b border-border/60 hover:bg-transparent">
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[30%]">Contato</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Telefone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresas</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-24 text-right">Acoes</TableHead>
-            </TableRow>
-          }
-          mobileContent={filteredData.map((contact) => (
-            <MobileContactCard
-              key={contact.id}
-              contact={contact}
-              canEdit={canEdit}
-              canDelete={canDelete}
-              isLoading={loadingId === contact.id}
-              onEdit={() => openEdit(contact)}
-              onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
-              onDelete={() => setConfirmDialog({ type: "delete", contact })}
-            />
-          ))}
-          desktopContent={filteredData.map((contact, index) => (
-            <ContactRow
-              key={contact.id}
-              contact={contact}
-              canEdit={canEdit}
-              canDelete={canDelete}
-              isLoading={loadingId === contact.id}
-              animationDelay={index * 25}
-              onEdit={() => openEdit(contact)}
-              onUnlink={() => setConfirmDialog({ type: "unlink", contact })}
-              onDelete={() => setConfirmDialog({ type: "delete", contact })}
-            />
-          ))}
-          pagination={{
-            pagination,
-            itemLabel: { singular: "contato", plural: "contatos" },
-            isLoading: loadingList,
-            onPageChange: setPage,
-          }}
-        />
+        <div className="space-y-4">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            flexible={true}
+            loading={loadingList}
+            loadingLabel="Carregando contatos..."
+            minWidthClassName="min-w-[920px]"
+            emptyState={{
+              title: "Nenhum contato encontrado",
+              description: emptyStateDescription,
+              icon: Users,
+            }}
+            rowClassName="border-border/50 hover:bg-muted/20 transition-colors"
+            onRowClick={canEdit ? openEdit : undefined}
+            renderMobileItem={renderMobileItem}
+          />
+
+          <RegistryPagination
+            pagination={pagination}
+            itemLabel={{ singular: "contato", plural: "contatos" }}
+            isLoading={loadingList}
+            onPageChange={setPage}
+          />
+        </div>
       </div>
     </>
   );

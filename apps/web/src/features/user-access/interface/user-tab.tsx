@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/user";
+import { type ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TableCell, TableRow, TableHead, Button, Avatar, AvatarFallback, AvatarImage, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator, Badge } from "@dosc-syspro/ui";
+import { Avatar, AvatarFallback, AvatarImage, Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@dosc-syspro/ui";
 import {
   MoreHorizontal,
   Shield,
@@ -20,11 +21,11 @@ import {
   Link2,
 } from "lucide-react";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
-import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
+import { stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
-  RegistryDataTable,
   RegistryFeedback,
   RegistryFilterGroup,
+  RegistryPagination,
   RegistryToolbar,
 } from "@/components/platform/shared/registry-list-scaffold";
 import { updateUserStatusAction } from "@/features/user-access/application/user-access-write.actions";
@@ -264,11 +265,6 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
     };
   }, [users]);
 
-  const companyChipsByUser = useMemo(
-    () => new Map(users.map((user) => [user.id, getUserCompanyChips(user)])),
-    [users],
-  );
-
   const handleToggleStatus = useCallback(async (userId: string, nextActive: boolean) => {
     setLoadingId(userId);
     try {
@@ -290,6 +286,128 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
     if (!canManage) return;
     router.push(`/portal/cadastros/usuarios/${user.id}/editar`);
   }, [canManage, router]);
+
+  const columns = useMemo<ColumnDef<UserWithRelations>[]>(() => [
+    {
+      id: "identity",
+      header: "Identificacao",
+      meta: { className: "px-6" },
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9 shrink-0 border border-border/40 shadow-sm transition-all group-hover/row:scale-105">
+            <AvatarImage src={row.original.image ?? undefined} />
+            <AvatarFallback className="bg-primary/5 text-xs font-bold text-primary">{getInitials(row.original.name)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="max-w-45 truncate text-sm font-semibold leading-tight text-foreground">
+              {row.original.name ?? <span className="font-normal italic text-muted-foreground/60">Sem nome</span>}
+            </p>
+            <p className="mt-0.5 max-w-45 truncate text-xs text-muted-foreground">{row.original.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "contact",
+      header: "Contato vinculado",
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-1.5">
+          {row.original.contact ? (
+            <>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Link2 className="h-3 w-3 shrink-0 opacity-60" />
+                <span className="max-w-40 truncate">{row.original.contact.name}</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground/70">
+                {row.original.contact.whatsapp || row.original.contact.phone || row.original.contact.email || "Sem telefone/email"}
+              </div>
+            </>
+          ) : (
+            <span className="text-[10px] italic text-muted-foreground/50">Sem contato vinculado</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "access",
+      header: "Acesso / Empresa",
+      cell: ({ row }) => {
+        const companyChips = getUserCompanyChips(row.original);
+        return (
+          <div className="flex flex-col gap-1.5">
+            <RoleBadge role={row.original.role} />
+            {companyChips.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {companyChips.map((company) => (
+                  <span
+                    key={company.key}
+                    className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    <Building className="h-2.5 w-2.5 shrink-0 opacity-60" />
+                    <span className="max-w-25 truncate">{company.label}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[10px] italic text-muted-foreground/50">Sem vinculos</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge isActive={row.original.isActive} />,
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Acoes</div>,
+      meta: { className: "px-6 text-right" },
+      cell: ({ row }) => (
+        <UserActions
+          user={row.original}
+          isLoading={loadingId === row.original.id}
+          canManage={canManage}
+          onToggleStatus={() => (row.original.isActive ? setConfirmSuspend(row.original) : handleToggleStatus(row.original.id, true))}
+        />
+      ),
+    },
+  ], [canManage, handleToggleStatus, loadingId]);
+
+  const renderMobileItem = useMemo(
+    () => (user: UserWithRelations) => (
+      <div
+        className={cn("space-y-3 p-4 transition-colors", canManage ? "cursor-pointer hover:bg-muted/10" : "")}
+        onClick={() => openEdit(user)}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="h-9 w-9 shrink-0 border border-border/40 shadow-sm">
+              <AvatarImage src={user.image ?? undefined} />
+              <AvatarFallback className="bg-primary/5 text-xs font-bold text-primary">{getInitials(user.name)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{user.name || "Sem nome"}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+          <UserActions
+            user={user}
+            isLoading={loadingId === user.id}
+            canManage={canManage}
+            onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <RoleBadge role={user.role} />
+          <StatusBadge isActive={user.isActive} />
+        </div>
+        <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
+      </div>
+    ),
+    [canManage, handleToggleStatus, loadingId, openEdit],
+  );
 
   return (
     <>
@@ -351,155 +469,39 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
           }
         />
 
-        <RegistryDataTable
-          isEmpty={paginatedData.length === 0}
-          emptyState={{
-            icon: Users,
-            title: "Nenhum usuario cadastrado",
-            description: "Ajuste os filtros ou cadastre um novo usuario.",
-            searchTerm,
-            onClear: () => setSearchTerm(""),
-          }}
-          desktopColSpan={5}
-          minWidthClassName="min-w-[1020px]"
-          desktopHeaderClassName="bg-muted/20"
-          desktopHeader={
-            <TableRow className="hover:bg-transparent border-b border-border/60">
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground py-3.5 px-6">Identificacao</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato vinculado</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acesso / Empresa</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-right px-6">Acoes</TableHead>
-            </TableRow>
-          }
-          mobileContent={paginatedData.map((user) => (
-            <ClickableCard
-              key={user.id}
-              enabled={canManage}
-              onOpen={() => openEdit(user)}
-              className="p-4 space-y-3"
-              title="Clique para editar"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0">
-                    <AvatarImage src={user.image ?? undefined} />
-                    <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{getInitials(user.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{user.name || "Sem nome"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                </div>
-                <UserActions
-                  user={user}
-                  isLoading={loadingId === user.id}
-                  canManage={canManage}
-                  onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
-                />
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <RoleBadge role={user.role} />
-                <StatusBadge isActive={user.isActive} />
-              </div>
-              <p className="text-xs text-muted-foreground">{user.contact?.name || "Sem contato vinculado"}</p>
-            </ClickableCard>
-          ))}
-          desktopContent={paginatedData.map((user, index) => (
-            <ClickableTableRow
-              key={user.id}
-              enabled={canManage}
-              onOpen={() => openEdit(user)}
-              className="group/row hover:bg-muted/40 transition-all duration-300 border-border/40"
-              style={{ animationDelay: `${index * 40}ms` }}
-              title="Clique para editar"
-            >
-              <TableCell className="py-4 px-6">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-9 w-9 border border-border/40 shadow-sm shrink-0 transition-all group-hover/row:scale-105">
-                    <AvatarImage src={user.image ?? undefined} />
-                    <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{getInitials(user.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground leading-tight truncate max-w-45">
-                      {user.name ?? <span className="italic text-muted-foreground/60 font-normal">Sem nome</span>}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-45">{user.email}</p>
-                  </div>
-                </div>
-              </TableCell>
+        <div className="space-y-4">
+          <DataTable
+            columns={columns}
+            data={paginatedData}
+            flexible={true}
+            minWidthClassName="min-w-[1020px]"
+            emptyState={{
+              title: "Nenhum usuario cadastrado",
+              description: "Ajuste os filtros ou cadastre um novo usuario.",
+              icon: Users,
+            }}
+            rowClassName="border-border/40 hover:bg-muted/40 transition-all duration-300"
+            onRowClick={canManage ? openEdit : undefined}
+            renderMobileItem={renderMobileItem}
+          />
 
-              <TableCell>
-                <div className="flex flex-col gap-1.5">
-                  {user.contact ? (
-                    <>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Link2 className="w-3 h-3 shrink-0 opacity-60" />
-                        <span className="truncate max-w-40">{user.contact.name}</span>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground/70">
-                        {user.contact.whatsapp || user.contact.phone || user.contact.email || "Sem telefone/email"}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground/50 italic">Sem contato vinculado</span>
-                  )}
-                </div>
-              </TableCell>
-
-              <TableCell>
-                <div className="flex flex-col gap-1.5">
-                  <RoleBadge role={user.role} />
-                  {(companyChipsByUser.get(user.id)?.length ?? 0) > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {(companyChipsByUser.get(user.id) ?? []).map((company) => (
-                        <span
-                          key={company.key}
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] bg-muted border border-border/40 text-muted-foreground"
-                        >
-                          <Building className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                          <span className="truncate max-w-25">{company.label}</span>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground/50 italic">Sem vinculos</span>
-                  )}
-                </div>
-              </TableCell>
-
-              <TableCell>
-                <StatusBadge isActive={user.isActive} />
-              </TableCell>
-
-              <TableCell className="text-right px-6">
-                <UserActions
-                  user={user}
-                  isLoading={loadingId === user.id}
-                  canManage={canManage}
-                  onToggleStatus={() => (user.isActive ? setConfirmSuspend(user) : handleToggleStatus(user.id, true))}
-                />
-              </TableCell>
-            </ClickableTableRow>
-          ))}
-          pagination={{
-            pagination: {
+          <RegistryPagination
+            pagination={{
               page: currentPage,
               pageSize: USERS_PAGE_SIZE,
               total: filteredData.length,
               totalPages,
               hasPreviousPage: currentPage > 1,
               hasNextPage: currentPage < totalPages,
-            },
-            itemLabel: { singular: "usuario", plural: "usuarios" },
-            onPageChange: setPage,
-            footer: (
-              <div className="px-1 text-xs text-muted-foreground">
-                Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
-              </div>
-            ),
-          }}
-        />
+            }}
+            itemLabel={{ singular: "usuario", plural: "usuarios" }}
+            onPageChange={setPage}
+          />
+
+          <div className="px-1 text-xs text-muted-foreground">
+            Itens nesta pagina: <span className="font-medium tabular-nums text-foreground">{paginatedData.length}</span>
+          </div>
+        </div>
       </div>
     </>
   );
