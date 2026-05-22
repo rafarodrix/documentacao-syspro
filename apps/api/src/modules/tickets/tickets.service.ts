@@ -50,7 +50,6 @@ import {
   generateTicketNumber,
   resolveTicketTeam,
   resolveCategoryType,
-  resolveTicketSlaPolicy,
   resolveAttachmentType,
   resolveMessageType,
   buildReplyPreview,
@@ -58,9 +57,11 @@ import {
 import { withTicketTeam, findTicketDetail, listTicketPage, countTicketQueues } from '@dosc-syspro/tickets-infra';
 import { TicketHistoryService } from './ticket-history.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
-import { AutomationWhatsappService } from '../automation/automation-whatsapp.service';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
 import { TarefasService } from '../tarefas/tarefas.service';
+import { TicketSlaService } from './ticket-sla.service';
+import { TicketNotificationService } from './ticket-notification.service';
+import { TicketIntegrationService } from './ticket-integration.service';
 
 type TicketAttachmentInsertRow = {
   messageId: string;
@@ -94,7 +95,9 @@ export class TicketsService {
     private readonly authorizationService: AuthorizationService,
     private readonly ticketHistoryService: TicketHistoryService,
     private readonly automationSettingsService: AutomationSettingsService,
-    private readonly automationWhatsappService: AutomationWhatsappService,
+    private readonly ticketSlaService: TicketSlaService,
+    private readonly ticketNotificationService: TicketNotificationService,
+    private readonly ticketIntegrationService: TicketIntegrationService,
     private readonly r2StorageService: R2StorageService,
     @Optional() private readonly tarefasService: TarefasService | null,
   ) {}
@@ -108,114 +111,15 @@ export class TicketsService {
     const ticketNumber = generateTicketNumber();
     const accessScope = await this.getTicketAccessScope(requester);
     const settings = await this.getTicketModuleSettings();
-    const metadataSource =
-      data.metadata && typeof data.metadata === 'object' && typeof data.metadata.source === 'string'
-        ? data.metadata.source.trim().toLowerCase()
-        : null;
-    const isChatwootTicket = metadataSource === 'chatwoot';
     const ticketCapabilities = await this.getTicketOperatorCapabilities(requester);
 
-    let resolvedCompanyId = data.companyId?.trim() || undefined;
-    let resolvedContactId = data.companyContactId;
+    const { resolvedCompanyId, resolvedContactId } = await this.ticketIntegrationService.resolveAndValidateCustomer(
+      data,
+      requester,
+      accessScope,
+    );
 
     const isSystemAdmin = accessScope.isGlobal;
-
-    if (isSystemAdmin && (data.customerEmail || data.contactWhatsappSnapshot || data.contactPhoneSnapshot)) {
-      const normalizedEmail = data.customerEmail?.trim().toLowerCase();
-      const normalizedWhatsapp = normalizePhone(data.contactWhatsappSnapshot) || undefined;
-      const normalizedPhoneSnapshot = normalizePhone(data.contactPhoneSnapshot) || undefined;
-      const contactLookupConditions: Prisma.CompanyContactWhereInput[] = [
-        ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
-        ...(normalizedWhatsapp ? [{ whatsapp: normalizedWhatsapp }] : []),
-        ...(normalizedPhoneSnapshot ? [{ whatsapp: normalizedPhoneSnapshot }] : []),
-      ];
-      const contact = contactLookupConditions.length === 0
-        ? null
-        : await this.prisma.companyContact.findFirst({
-            where: {
-              OR: contactLookupConditions,
-            },
-            select: {
-              id: true,
-              name: true,
-              companyLinks: {
-                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-                select: { companyId: true },
-              },
-            },
-          });
-      if (contact) {
-        resolvedContactId = contact.id;
-        const linkedCompanyIds = contact.companyLinks.map((link) => link.companyId);
-
-        if (resolvedCompanyId && linkedCompanyIds.length > 0 && !linkedCompanyIds.includes(resolvedCompanyId)) {
-          throw new BadRequestException('A empresa selecionada nao esta vinculada ao contato informado.');
-        }
-
-        if (!resolvedCompanyId) {
-          resolvedCompanyId = this.getPrimaryCompanyId(contact) ?? undefined;
-        }
-
-        if (isChatwootTicket && linkedCompanyIds.length === 0) {
-          throw new BadRequestException('O contato do Chatwoot precisa estar vinculado a uma empresa no portal para abrir ticket.');
-        }
-      } else if (isChatwootTicket) {
-        throw new BadRequestException('O contato do Chatwoot precisa existir no portal e estar vinculado a uma empresa para abrir ticket.');
-      }
-    } else if (!isSystemAdmin) {
-      const selfContact = await this.prisma.companyContact.findFirst({
-        where: { email: requester.email },
-        select: {
-          id: true,
-          companyLinks: {
-            where: { isPrimary: true },
-            select: { companyId: true },
-            take: 1,
-          },
-        },
-      });
-      if (selfContact) {
-        resolvedContactId = selfContact.id;
-      }
-      
-      if (data.userSelectedCompanyId) {
-        resolvedCompanyId = data.userSelectedCompanyId;
-      } else if (selfContact) {
-        resolvedCompanyId = this.getPrimaryCompanyId(selfContact);
-      } else {
-        const membership = await this.prisma.membership.findFirst({
-          where: { userId: requester.userId },
-          select: { companyId: true },
-        });
-        resolvedCompanyId = membership?.companyId;
-      }
-    }
-
-    if (isSystemAdmin && resolvedCompanyId) {
-      const companyExists = await this.prisma.company.findFirst({
-        where: { id: resolvedCompanyId, deletedAt: null },
-        select: { id: true },
-      });
-
-      if (!companyExists) {
-        throw new NotFoundException('Empresa nao encontrada para vincular ao ticket.');
-      }
-    }
-
-    if (isChatwootTicket && (!resolvedCompanyId || !resolvedContactId)) {
-      throw new BadRequestException('Tickets originados do Chatwoot exigem contato vinculado a uma empresa do portal.');
-    }
-
-    if (!accessScope.isGlobal) {
-      if (!resolvedCompanyId) {
-        throw new BadRequestException('Empresa obrigatoria para abrir ticket.');
-      }
-
-      if (!accessScope.companyIds.includes(resolvedCompanyId)) {
-        throw new NotFoundException('Empresa nao encontrada para este usuario.');
-      }
-    }
-
     const normalizedCategory = data.category?.trim() || null;
     const normalizedModule = data.module?.trim() || null;
     const normalizedTeam = resolveTicketTeam(
@@ -235,9 +139,15 @@ export class TicketsService {
         : null;
     const now = new Date();
     const priority = data.priority ?? TicketPriority.NORMAL;
-    const slaPolicy = resolveTicketSlaPolicy(priority, settings);
-    const slaResponseDueAt = new Date(now.getTime() + slaPolicy.firstResponseMinutes * 60000);
-    const slaResolutionDueAt = new Date(now.getTime() + slaPolicy.resolutionMinutes * 60000);
+
+    const {
+      slaResponseDueAt,
+      slaResolutionDueAt,
+      slaPolicyName,
+      slaFirstResponseMinutes,
+      slaResolutionMinutes,
+    } = this.ticketSlaService.calculateSlaDates(priority, settings, now);
+
     const metadata = {
       ...(data.metadata && typeof data.metadata === 'object' ? data.metadata : {}),
       category: normalizedCategory,
@@ -251,9 +161,9 @@ export class TicketsService {
       openedByName,
       openedByEmail: requester.email,
       openedByRole: requester.role,
-      slaPolicyName: slaPolicy.name,
-      slaFirstResponseMinutes: slaPolicy.firstResponseMinutes,
-      slaResolutionMinutes: slaPolicy.resolutionMinutes,
+      slaPolicyName,
+      slaFirstResponseMinutes,
+      slaResolutionMinutes,
       databaseUrl,
       developmentVideoUrl,
       supportOwnerUserId: normalizedTeam === 'SUPORTE' && assignedUserId ? requester.userId : null,
@@ -358,19 +268,17 @@ export class TicketsService {
       return conversation;
     });
 
-    this.runAutomationInBackground('ticket_created_group_notification', createdTicket.id, async () => {
-      await this.automationWhatsappService.sendTicketCreatedGroupNotification({
-        settings,
-        ticketId: createdTicket.id,
-        ticketNumber: createdTicket.ticketNumber || ticketNumber,
-        title: data.title,
-        team: normalizedTeam,
-        category: normalizedCategory,
-        companyId: resolvedCompanyId ?? null,
-        databaseUrl,
-        developmentVideoUrl,
-        rawHeaders,
-      });
+    this.ticketNotificationService.sendTicketCreatedGroupNotification({
+      settings,
+      ticketId: createdTicket.id,
+      ticketNumber: createdTicket.ticketNumber || ticketNumber,
+      title: data.title,
+      team: normalizedTeam,
+      category: normalizedCategory,
+      companyId: resolvedCompanyId,
+      databaseUrl,
+      developmentVideoUrl,
+      rawHeaders,
     });
 
     return serializeMutationResponse('Ticket criado com sucesso.');
@@ -1316,49 +1224,43 @@ export class TicketsService {
       const previousRoutingTeam: 'SUPORTE' | 'DESENVOLVIMENTO' = previousTeam;
       const nextRoutingTeam: 'SUPORTE' | 'DESENVOLVIMENTO' = resolvedNextTeam;
 
-      this.runAutomationInBackground('ticket_team_routing_group_notification', exists.id, async () => {
-        await this.automationWhatsappService.sendTicketTeamRoutingGroupNotifications({
-          settings,
-          ticketId: exists.id,
-          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-          title: exists.subject?.trim() || 'Sem titulo',
-          companyId: exists.companyId,
-          previousTeam: previousRoutingTeam,
-          nextTeam: nextRoutingTeam,
-          note: handoffNote,
-          rawHeaders,
-        });
+      this.ticketNotificationService.sendTicketTeamRoutingGroupNotifications({
+        settings,
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: exists.subject?.trim() || 'Sem titulo',
+        companyId: exists.companyId,
+        previousTeam: previousRoutingTeam,
+        nextTeam: nextRoutingTeam,
+        note: handoffNote,
+        rawHeaders,
       });
     }
 
     if (exists.status !== resolvedNextStatus && resolvedNextStatus === TicketStatus.TESTING) {
-      this.runAutomationInBackground('ticket_status_testing_notification', exists.id, async () => {
-        await this.automationWhatsappService.sendTicketStatusGroupNotification({
-          settings,
-          ticketId: exists.id,
-          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-          title: exists.subject?.trim() || 'Sem titulo',
-          companyId: exists.companyId,
-          status: TicketStatus.TESTING,
-          notificationType: 'testing',
-          rawHeaders,
-        });
+      this.ticketNotificationService.sendTicketStatusGroupNotification({
+        settings,
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: exists.subject?.trim() || 'Sem titulo',
+        companyId: exists.companyId,
+        status: TicketStatus.TESTING,
+        notificationType: 'testing',
+        rawHeaders,
       });
     }
 
     if (isTestingReturn) {
-      this.runAutomationInBackground('ticket_status_testing_failed_notification', exists.id, async () => {
-        await this.automationWhatsappService.sendTicketStatusGroupNotification({
-          settings,
-          ticketId: exists.id,
-          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-          title: exists.subject?.trim() || 'Sem titulo',
-          companyId: exists.companyId,
-          status: TicketStatus.IN_PROGRESS,
-          notificationType: 'testing_failed',
-          note: handoffNote,
-          rawHeaders,
-        });
+      this.ticketNotificationService.sendTicketStatusGroupNotification({
+        settings,
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: exists.subject?.trim() || 'Sem titulo',
+        companyId: exists.companyId,
+        status: TicketStatus.IN_PROGRESS,
+        notificationType: 'testing_failed',
+        note: handoffNote,
+        rawHeaders,
       });
     }
 
@@ -1369,18 +1271,16 @@ export class TicketsService {
       resolvedPublishToReleases &&
       resolvedResolutionSummary
     ) {
-      this.runAutomationInBackground('release_published_notification', exists.id, async () => {
-        await this.automationWhatsappService.sendReleasePublishedNotification({
-          settings,
-          ticketId: exists.id,
-          ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
-          title: resolvedReleaseTitle,
-          summary: resolvedResolutionSummary as string,
-          releaseType: resolvedReleaseType ?? null,
-          companyId: exists.companyId,
-          publishedAt: resolvedClosedAt,
-          rawHeaders,
-        });
+      this.ticketNotificationService.sendReleasePublishedNotification({
+        settings,
+        ticketId: exists.id,
+        ticketNumber: exists.ticketNumber || exists.id.slice(0, 8).toUpperCase(),
+        title: resolvedReleaseTitle,
+        summary: resolvedResolutionSummary as string,
+        releaseType: resolvedReleaseType ?? null,
+        companyId: exists.companyId,
+        publishedAt: resolvedClosedAt,
+        rawHeaders,
       });
     }
 
