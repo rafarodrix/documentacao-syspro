@@ -1,0 +1,244 @@
+---
+title: API - Fluxos empresa, usuarios e contatos
+description: Como os modulos companies, contacts e users formam o fluxo real de cadastro, vinculacao e autorizacao no backend.
+lastUpdated: 2026-05-22
+owner: Engenharia de Plataforma
+status: published
+tags:
+  - api
+  - companies
+  - contacts
+  - users
+  - autorizacao
+---
+
+> Modulos correlacionados do portal. Revisado em 2026-05-22.
+
+---
+
+## Visao geral
+
+Os modulos `companies`, `contacts` e `users` formam um fluxo unico de cadastro e autorizacao.
+
+O relacionamento funcional nao e:
+
+```text
+User -> Company
+```
+
+O fluxo real parte do contato vinculado ao usuario:
+
+```text
+User
+`-- contactId
+    `-- CompanyContact
+        `-- CompanyContactCompanyLink[]
+            `-- Company
+```
+
+Depois disso, o backend deriva os vinculos operacionais:
+
+```text
+UserContactAccessService
+|-- Membership[]      -> escopo e autorizacao por empresa
+`-- UserContactLink[] -> espelho operacional do contato por empresa
+```
+
+---
+
+## Fluxo 1: cadastro de empresa
+
+### Entrada
+
+- Web: `trpc.companies.create`
+- API: `CompaniesRouter.create`
+- Service: `CompaniesService.createCompany`
+
+### Responsabilidades
+
+- validar dados fiscais e cadastrais com `createCompanySchema`
+- persistir dados principais da empresa
+- persistir endereco principal
+- manter `searchText` para busca textual
+
+### Observacoes
+
+- `status` operacional nao deve ser alterado pelo update comum
+- mudanca de status usa fluxo especifico de ativacao ou inativacao
+- a empresa pode ter hierarquia via `parentCompanyId`
+- a empresa pode concentrar multiplos contatos, usuarios, contratos e hosts
+
+---
+
+## Fluxo 2: inativacao de empresa
+
+### Entrada
+
+- Web: `trpc.companies.updateStatus`
+- API: `CompaniesRouter.updateStatus`
+- Service: `CompaniesService.updateCompanyStatus`
+
+### Cascata de negocio
+
+Quando uma empresa e inativada:
+
+1. a empresa recebe `status = INACTIVE`
+2. contratos ativos da empresa sao suspensos
+3. contatos vinculados exclusivamente a ela podem receber metadata de inativacao
+4. vinculos derivados dos usuarios passam a refletir o novo estado
+5. a apresentacao dos contatos da empresa e resincronizada com o Chatwoot
+
+### Motivo da cascata
+
+Esse fluxo evita que:
+
+- contratos permanecam ativos para empresa inativa
+- contatos continuem aparentando contexto operacional valido
+- integracoes externas exibam dados incoerentes
+
+---
+
+## Fluxo 3: cadastro de contato
+
+### Entrada
+
+- Web: `trpc.contacts.create`
+- API: `ContactsRouter.create`
+- Service: `ContactsService.createContact`
+
+### Responsabilidades
+
+- validar nome, CPF e canais
+- normalizar telefone e WhatsApp
+- vincular o contato a zero, uma ou varias empresas
+- marcar status:
+  - `PENDING_LINK` quando nao ha empresa vinculada
+  - `LINKED` quando ha ao menos um vinculo
+- atualizar `searchText`
+- sincronizar apresentacao no Chatwoot quando aplicavel
+
+### Modelo real
+
+O contato nao pertence diretamente a uma unica empresa. Ele usa a tabela pivo:
+
+```text
+CompanyContactCompanyLink
+|-- contactId
+|-- companyId
+`-- isPrimary
+```
+
+Isso permite:
+
+- multiplas empresas por contato
+- empresa principal ordenada por `isPrimary`
+- reaproveitamento do mesmo contato em unidades relacionadas
+
+---
+
+## Fluxo 4: cadastro de usuario
+
+### Entrada
+
+- Web: `trpc.users.create`
+- API: `UsersRouter.create`
+- Service: `UsersService.create`
+
+### Regra principal
+
+Usuario cliente nao escolhe empresa diretamente no contrato de criacao. O escopo e herdado do contato:
+
+```text
+CreateUserInput.contactId
+-> CompanyContact
+-> companyLinks
+-> Membership + UserContactLink
+```
+
+### Passos
+
+1. validar e-mail no banco local e no provedor de autenticacao
+2. exigir `contactId`
+3. validar se o contato esta dentro do escopo permitido ao gestor
+4. criar usuario no provider de auth
+5. persistir `role`, `contactId` e flags locais
+6. executar `UserContactAccessService.syncAccessFromContact`
+7. sincronizar provisionamento necessario no Chatwoot
+
+### Resultado
+
+O usuario passa a ter:
+
+- `contactId` como origem do vinculo funcional
+- `Membership[]` como escopo de autorizacao
+- `UserContactLink[]` como espelho operacional por empresa
+
+---
+
+## Fluxo 5: atualizacao de usuario
+
+### Entrada
+
+- Web: `trpc.users.update`
+- API: `UsersRouter.update`
+- Service: `UsersService.update`
+
+### Regras
+
+- contato continua obrigatorio para usuarios cliente
+- mudanca de role recalcula o tipo de membership
+- mudanca de contato recalcula escopo e vinculos derivados
+- perfis internos como `ADMIN`, `SUPORTE` e `DEVELOPER` nao dependem do contato do mesmo modo que perfis cliente
+
+### Efeito colateral importante
+
+`syncAccessFromContact` remove memberships obsoletos e recria apenas os compativeis com o contato atual.
+
+---
+
+## Fluxo 6: perfil do usuario e dados da empresa
+
+### Entrada
+
+- Web: `trpc.users.updateCurrentProfile`
+- Service: `UsersService.updateCurrentProfile`
+
+### O que esse fluxo faz
+
+- atualiza dados pessoais do usuario logado
+- permite editar dados da empresa associada ao seu perfil quando a permissao existe
+- usa a empresa selecionada entre as empresas disponiveis ao usuario
+- ao final, dispara resincronizacao de contatos dessa empresa para o Chatwoot
+
+### Atencao
+
+Esse fluxo acopla perfil do usuario com dados cadastrais da empresa. Ele nao substitui o modulo `companies`, mas oferece edicao limitada em contexto de autoatendimento.
+
+---
+
+## Fluxo 7: autorizacao e escopo
+
+### Origem do escopo
+
+O escopo efetivo e resolvido por:
+
+1. role global do usuario
+2. permissoes atribuidas
+3. `Membership[]`
+4. assignments especificos em `UserAccessProfile`
+
+### Implicacao pratica
+
+- gestor de unidade so manipula usuarios e contatos pertencentes as empresas do seu escopo
+- usuario cliente so enxerga empresas e contatos compativeis com seus vinculos
+- admin global ignora a restricao por empresa quando a permissao assim permite
+
+---
+
+## Convencoes recomendadas
+
+- `features/*` no web devem ser a origem oficial de interface, actions e queries
+- `components/platform/*` deve existir apenas como compatibilidade ou UI compartilhada
+- contratos publicos em `packages/contracts` nao devem aceitar campos ignorados pelo backend
+- services da API devem consumir tipos compartilhados quando o shape ja existe em `contracts`
+- fluxos de sincronizacao externa devem ser documentados como side effects explicitos
