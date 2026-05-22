@@ -3,25 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  BarChart3,
   Calendar,
   ChevronRight,
-  Clock,
-  Monitor,
   TrendingUp,
-  Users,
 } from "lucide-react";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { type ColumnDef } from "@tanstack/react-table";
-import {
-  Badge,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  DataTable,
-} from "@dosc-syspro/ui";
+import { Badge, DataTable } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/date";
 
@@ -158,99 +146,28 @@ export function RemoteEfficiencyReportsPanel({ metrics }: { metrics: EfficiencyM
         </Badge>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <ReportStatCard
-          icon={<Clock className="h-4 w-4" />}
-          label="Tempo ate o remoto"
-          value={formatDuration(metrics.averageTimeToRemoteSeconds)}
-          hint="Media entre abertura do ticket e primeiro acesso."
-          accent="slate"
-        />
-        <ReportStatCard
-          icon={<Monitor className="h-4 w-4" />}
-          label="Duracao media"
-          value={formatDuration(metrics.averageSessionDurationSeconds)}
-          hint="Tempo medio conectado nas maquinas."
-          accent="indigo"
-        />
-        <ReportStatCard
-          icon={<Users className="h-4 w-4" />}
-          label="Total de sessoes"
-          value={String(metrics.totalSessionsCount)}
-          hint="Sessoes remotas finalizadas."
-          accent="emerald"
-        />
-        <ReportStatCard
-          icon={<BarChart3 className="h-4 w-4" />}
-          label="Tickets impactados"
-          value={String(metrics.totalTicketsWithRemote)}
-          hint="Chamados que precisaram de acesso remoto."
-          accent="violet"
-        />
-      </div>
-
-      <Card className="overflow-hidden border-border/40 bg-background/50 shadow-sm">
-        <CardHeader className="border-b border-border/40 bg-muted/10">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <CardTitle>Historico de eficiencia</CardTitle>
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          <div>
+            <h2 className="text-xl font-semibold">Historico de eficiencia</h2>
+            <p className="text-sm text-muted-foreground">Detalhamento por chamado com foco no tempo de resposta.</p>
           </div>
-          <CardDescription>Detalhamento por chamado com foco no tempo de resposta.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <DataTable
-            columns={columns}
-            data={metrics.sessions}
-            flexible={true}
-            minWidthClassName="min-w-[920px]"
-            cardClassName="border-none bg-transparent shadow-none rounded-none animate-none"
-            emptyState={{
-              title: "Nenhum atendimento remoto encontrado",
-              description: "Novos atendimentos aparecerão aqui quando houver sessoes finalizadas.",
-            }}
-            rowClassName="border-border/30 hover:bg-muted/20"
-            renderMobileItem={renderMobileItem}
-          />
-        </CardContent>
-      </Card>
+        </div>
+
+        <DataTable
+          columns={columns}
+          data={metrics.sessions}
+          flexible={true}
+          minWidthClassName="min-w-[920px]"
+          emptyState={{
+            title: "Nenhum atendimento remoto encontrado",
+            description: "Novos atendimentos aparecerão aqui quando houver sessoes finalizadas.",
+          }}
+          rowClassName="border-border/30 hover:bg-muted/20"
+          renderMobileItem={renderMobileItem}
+        />
+      </section>
     </div>
-  );
-}
-
-function ReportStatCard(props: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  hint: string;
-  accent: "slate" | "indigo" | "emerald" | "violet";
-}) {
-  const accentClass = {
-    slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-    indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
-    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-    violet: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-  } as const;
-  const valueClass = {
-    slate: "text-slate-700 dark:text-slate-300",
-    indigo: "text-indigo-700 dark:text-indigo-400",
-    emerald: "text-emerald-700 dark:text-emerald-400",
-    violet: "text-violet-700 dark:text-violet-400",
-  } as const;
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {props.label}
-          </span>
-          <span className={cn("rounded-md p-1.5", accentClass[props.accent])}>{props.icon}</span>
-        </div>
-        <div className={cn("mt-2 text-2xl font-bold leading-none", valueClass[props.accent])}>
-          {props.value}
-        </div>
-        <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div>
-      </CardContent>
-    </Card>
   );
 }

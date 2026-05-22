@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Badge, Button, Card, CardContent, CardHeader, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
-import { Activity, BarChart3, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
+import { Badge, Button, Card, CardContent, CardHeader, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
+import { Activity, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
 import { RegistryDataTable } from "@/components/platform/shared/registry-list-scaffold";
 import { EmptyState, FilterTabs, SearchToolbar } from "@/components/patterns";
 import { cn } from "@/lib/utils";
@@ -50,13 +50,6 @@ interface RemoteSessionsPanelProps {
   };
 }
 
-const VIEW_LABELS: Array<{ value: OperationsView; label: string; icon: typeof Activity }> = [
-  { value: "todas", label: "Todas", icon: Activity },
-  { value: "ativas", label: "Ativas", icon: Monitor },
-  { value: "historico", label: "Histórico", icon: History },
-  { value: "eficiencia", label: "Eficiência", icon: BarChart3 },
-];
-
 function formatRelativeStart(value: string | null) {
   if (!value) return "Sem início";
 
@@ -90,10 +83,6 @@ export function RemoteSessionsPanel({
 
   const activeSessions = sessions.filter((session) => session.status === "REQUESTED" || session.status === "STARTED");
   const pastSessions = sessions.filter((session) => session.status !== "REQUESTED" && session.status !== "STARTED");
-  const requestedSessions = sessions.filter((session) => session.status === "REQUESTED").length;
-  const startedSessions = sessions.filter((session) => session.status === "STARTED").length;
-  const uniqueHosts = new Set(sessions.map((session) => session.hostId)).size;
-  const linkedTickets = new Set(sessions.map((session) => session.ticketNumber).filter(Boolean)).size;
 
   const updateParams = (mutate: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -179,19 +168,6 @@ export function RemoteSessionsPanel({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SessionStatCard label="Sessões visíveis" value={sessions.length} icon={<Activity className="h-4 w-4" />} accent="slate" />
-        <SessionStatCard label="Solicitadas" value={requestedSessions} icon={<Clock className="h-4 w-4" />} accent="amber" />
-        <SessionStatCard label="Conectadas" value={startedSessions} icon={<Monitor className="h-4 w-4" />} accent="emerald" />
-        <SessionStatCard
-          label="Hosts envolvidos"
-          value={uniqueHosts}
-          hint={`${linkedTickets} tickets com remoto`}
-          icon={<Ticket className="h-4 w-4" />}
-          accent="violet"
-        />
-      </div>
-
       <FilterTabs
         options={[
           { value: "todas", label: "Todas" },
@@ -314,34 +290,6 @@ export function RemoteSessionsPanel({
         </>
       )}
     </div>
-  );
-}
-
-function SessionStatCard(props: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  hint?: string;
-  accent: "slate" | "emerald" | "amber" | "violet";
-}) {
-  const accentClass = {
-    slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-    amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    violet: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-  } as const;
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{props.label}</span>
-          <span className={cn("rounded-md p-1.5", accentClass[props.accent])}>{props.icon}</span>
-        </div>
-        <div className="mt-2 text-2xl font-bold leading-none tabular-nums">{props.value}</div>
-        {props.hint ? <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div> : null}
-      </CardContent>
-    </Card>
   );
 }
 

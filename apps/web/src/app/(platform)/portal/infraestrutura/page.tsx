@@ -235,7 +235,6 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
         initialStats={stats}
         initialList={list}
         initialSearch={search}
-        initialStatus={status}
       />
     );
   }

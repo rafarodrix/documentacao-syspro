@@ -7,14 +7,10 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  Cpu,
   ExternalLink,
   Loader2,
-  MonitorCheck,
   RefreshCw,
-  Search,
   ServerOff,
-  WifiOff,
 } from "lucide-react";
 import type {
   AgentDeviceListResult,
@@ -22,14 +18,7 @@ import type {
   AgentFleetStats,
 } from "@dosc-syspro/contracts/agent";
 import { type ColumnDef } from "@tanstack/react-table";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  DataTable,
-  Input,
-} from "@dosc-syspro/ui";
+import { Badge, Button, DataTable } from "@dosc-syspro/ui";
 import { SearchToolbar } from "@/components/patterns";
 
 type StatusFilter = "all" | "online" | "offline";
@@ -38,7 +27,6 @@ export function AgentDevicesPanel(props: {
   initialStats: AgentFleetStats;
   initialList: AgentDeviceListResult;
   initialSearch: string;
-  initialStatus: StatusFilter;
 }) {
   const { initialStats, initialList, initialSearch } = props;
   const router = useRouter();
@@ -82,41 +70,8 @@ export function AgentDevicesPanel(props: {
   const list = initialList;
   const { pagination } = list;
 
-  const onlinePct = stats.total > 0 ? Math.round((stats.online / stats.total) * 100) : 0;
-  const linkedPct = stats.total > 0 ? Math.round((stats.withCompany / stats.total) * 100) : 0;
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<Cpu className="h-4 w-4" />}
-          label="Total de dispositivos"
-          value={stats.total}
-          accent="slate"
-        />
-        <StatCard
-          icon={<MonitorCheck className="h-4 w-4" />}
-          label="Online"
-          value={stats.online}
-          hint={`${onlinePct}% do parque`}
-          accent="emerald"
-        />
-        <StatCard
-          icon={<WifiOff className="h-4 w-4" />}
-          label="Offline"
-          value={stats.offline}
-          hint={`janela de ${Math.round(stats.onlineThresholdSeconds / 60)} min`}
-          accent="amber"
-        />
-        <StatCard
-          icon={<Building2 className="h-4 w-4" />}
-          label="Vinculados a empresa"
-          value={stats.withCompany}
-          hint={`${linkedPct}% - ${stats.withoutCompany} sem vinculo`}
-          accent="violet"
-        />
-      </div>
-
       <SearchToolbar
         searchValue={searchInput}
         onSearchChange={setSearchInput}
@@ -168,77 +123,40 @@ export function AgentDevicesPanel(props: {
         }
       />
 
-      <Card className="border-border/50 bg-background/50">
-        <CardContent className="space-y-4 p-4">
-          <DevicesTable items={list.items} />
+      <DevicesTable items={list.items} />
 
-          <div className="flex items-center justify-between border-t pt-2">
-            <span className="text-xs text-muted-foreground">
-              {pagination.total === 0
-                ? "Nenhum dispositivo"
-                : `${(page - 1) * pagination.pageSize + 1}-${Math.min(page * pagination.pageSize, pagination.total)} de ${pagination.total} dispositivos`}
-            </span>
+      <div className="flex items-center justify-between border-t border-border/40 pt-4">
+        <span className="text-xs text-muted-foreground">
+          {pagination.total === 0
+            ? "Nenhum dispositivo"
+            : `${(page - 1) * pagination.pageSize + 1}-${Math.min(page * pagination.pageSize, pagination.total)} de ${pagination.total} dispositivos`}
+        </span>
 
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                disabled={page <= 1 || isRefreshing}
-                onClick={() => changePage(page - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="px-2 text-xs tabular-nums text-muted-foreground">
-                {page} / {pagination.totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                disabled={page >= pagination.totalPages || isRefreshing}
-                onClick={() => changePage(page + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function StatCard(props: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  hint?: string;
-  accent: "slate" | "emerald" | "amber" | "violet";
-}) {
-  const accentClass = useMemo(
-    () => ({
-      slate: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-      emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-      amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-      violet: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-    }),
-    [],
-  );
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {props.label}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={page <= 1 || isRefreshing}
+            onClick={() => changePage(page - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="px-2 text-xs tabular-nums text-muted-foreground">
+            {page} / {pagination.totalPages}
           </span>
-          <span className={`rounded-md p-1.5 ${accentClass[props.accent]}`}>{props.icon}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={page >= pagination.totalPages || isRefreshing}
+            onClick={() => changePage(page + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-        <div className="mt-2 text-2xl font-bold tabular-nums leading-none">{props.value}</div>
-        {props.hint ? <div className="mt-1 text-xs text-muted-foreground">{props.hint}</div> : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -390,7 +308,6 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
       data={items}
       flexible={true}
       minWidthClassName="min-w-[1040px]"
-      cardClassName="border-none bg-transparent shadow-none rounded-none animate-none"
       emptyState={{
         title: "Nenhum dispositivo encontrado",
         description: "Ajuste filtros ou aguarde o proximo heartbeat dos agentes.",
