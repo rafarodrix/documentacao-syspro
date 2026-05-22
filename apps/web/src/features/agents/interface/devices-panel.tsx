@@ -221,7 +221,7 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
         row.original.companyName ? (
           <span className="inline-flex items-center gap-1.5 text-xs">
             <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
-            <span className="max-w-[140px] truncate">{row.original.companyName}</span>
+            <span className="max-w-35 truncate">{row.original.companyName}</span>
           </span>
         ) : (
           <Badge variant="outline" className="text-[10px]">
@@ -240,7 +240,7 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
             onClick={(event) => event.stopPropagation()}
           >
             <ExternalLink className="h-3 w-3 shrink-0" />
-            <span className="max-w-[140px] truncate">{row.original.remoteHostName}</span>
+            <span className="max-w-35 truncate">{row.original.remoteHostName}</span>
           </Link>
         ) : (
           <span className="text-xs text-muted-foreground">-</span>
@@ -284,7 +284,7 @@ function DevicesTable({ items }: { items: AgentDeviceSummary[] }) {
         {item.companyName ? (
           <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[11px] text-muted-foreground">
             <Building2 className="h-3 w-3" />
-            <span className="max-w-[180px] truncate">{item.companyName}</span>
+            <span className="max-w-45 truncate">{item.companyName}</span>
           </span>
         ) : (
           <Badge variant="outline" className="text-[10px]">

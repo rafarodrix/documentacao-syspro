@@ -435,7 +435,7 @@ export function RemotePlatformDirectoryPanel({
         filters={
           <>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="h-9 w-[170px] bg-background text-sm">
+              <SelectTrigger className="h-9 w-42.5 bg-background text-sm">
                 <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <SelectValue placeholder="Empresa" />
               </SelectTrigger>
@@ -448,7 +448,7 @@ export function RemotePlatformDirectoryPanel({
             </Select>
 
             <Select value={agentFilter} onValueChange={(v) => setAgentFilter(v as typeof agentFilter)}>
-              <SelectTrigger className="h-9 w-[160px] bg-background text-sm">
+              <SelectTrigger className="h-9 w-40 bg-background text-sm">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -462,7 +462,7 @@ export function RemotePlatformDirectoryPanel({
             </Select>
 
             <Select value={heartbeatFilter} onValueChange={(v) => setHeartbeatFilter(v as typeof heartbeatFilter)}>
-              <SelectTrigger className="h-9 w-[140px] bg-background text-sm">
+              <SelectTrigger className="h-9 w-35 bg-background text-sm">
                 <SelectValue placeholder="Conectividade" />
               </SelectTrigger>
               <SelectContent>
@@ -708,11 +708,11 @@ export function RemotePlatformDirectoryPanel({
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-4" />
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Host</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground min-w-0">Empresa / Instalações</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[136px]">ID remoto</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-34">ID remoto</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-24">Sinais</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-20">Métricas</TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-24">Heartbeat</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-[188px] text-right">Ações</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground w-47 text-right">Ações</TableHead>
               </TableRow>
             }
             desktopContent={displayedItems.map((item) => {
@@ -738,7 +738,7 @@ export function RemotePlatformDirectoryPanel({
                     </div>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-5">
                       {item.agent.machineName && (
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{item.agent.machineName}</span>
+                        <span className="text-[11px] text-muted-foreground truncate max-w-45">{item.agent.machineName}</span>
                       )}
                       {item.agent.lastKnownIp && (
                         <span className="font-mono text-[10px] text-muted-foreground/60">{item.agent.lastKnownIp}</span>
@@ -769,7 +769,7 @@ export function RemotePlatformDirectoryPanel({
                   </TableCell>
 
                   {/* ID remoto */}
-                  <TableCell className="w-[136px] py-2.5">
+                  <TableCell className="w-34 py-2.5">
                     <div className="flex items-center gap-1">
                       <code className="min-w-0 truncate rounded-md border border-border/30 bg-muted/20 px-2 py-1 text-xs font-mono text-foreground/80">
                         {item.agent.rustdeskId ?? "---"}
@@ -849,7 +849,7 @@ export function RemotePlatformDirectoryPanel({
                   </TableCell>
 
                   {/* Ações */}
-                  <TableCell className="w-[188px] py-2.5 text-right">
+                  <TableCell className="w-47 py-2.5 text-right">
                     <div className="flex items-center gap-1.5 justify-end">
                       <Button
                         type="button"

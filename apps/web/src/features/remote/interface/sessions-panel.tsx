@@ -188,7 +188,7 @@ export function RemoteSessionsPanel({
           resultLabel={`${sessions.length} sess${sessions.length === 1 ? "ão" : "ões"}`}
           filters={
             <Select value={hostDraft || "ALL"} onValueChange={(value) => setHostDraft(value === "ALL" ? "" : value)}>
-              <SelectTrigger className="h-9 w-[220px] bg-background text-sm">
+              <SelectTrigger className="h-9 w-55 bg-background text-sm">
                 <Monitor className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <SelectValue placeholder="Todos os hosts" />
               </SelectTrigger>
