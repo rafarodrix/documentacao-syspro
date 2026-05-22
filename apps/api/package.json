@@ -28,6 +28,7 @@
     "@dosc-syspro/remote-infra": "file:../../packages/features/remote/infra",
     "@dosc-syspro/crm-domain": "file:../../packages/features/crm/domain",
     "@dosc-syspro/tickets-domain": "file:../../packages/features/tickets/domain",
+    "@dosc-syspro/tickets-infra": "file:../../packages/features/tickets/infra",
     "@dosc-syspro/shared": "file:../../packages/shared",
     "@nestjs/common": "^11.1.18",
     "@nestjs/core": "^11.1.18",

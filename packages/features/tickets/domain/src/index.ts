@@ -5,6 +5,10 @@ export { mapPriorityToLevel } from './ticket-priority';
 export { readMetadataString } from './ticket-metadata';
 export { resolveCategoryLabel, formatPriorityLabel } from './ticket-settings';
 export { buildAssignmentBody, buildTriageBody, buildUpdateBody } from './ticket-history';
+export { generateTicketNumber, resolveTicketTeam, resolveCategoryType } from './ticket-team';
+export { resolveTicketSlaPolicy } from './ticket-sla-policy';
+export { resolveAttachmentType, resolveMessageType, buildReplyPreview } from './ticket-reply';
+export type { TicketAttachmentKind } from './ticket-reply';
 export {
   serializeTicketRecord,
   serializeMutationResponse,

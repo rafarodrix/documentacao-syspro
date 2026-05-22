@@ -45,6 +45,8 @@
       "@dosc-syspro/crm-domain/*": ["../../packages/features/crm/domain/src/*"],
       "@dosc-syspro/tickets-domain": ["../../packages/features/tickets/domain/src/index.ts"],
       "@dosc-syspro/tickets-domain/*": ["../../packages/features/tickets/domain/src/*"],
+      "@dosc-syspro/tickets-infra": ["../../packages/features/tickets/infra/src/index.ts"],
+      "@dosc-syspro/tickets-infra/*": ["../../packages/features/tickets/infra/src/*"],
       "@dosc-syspro/database": ["../../packages/database/src/index.ts"],
       "@dosc-syspro/database/*": ["../../packages/database/src/*"]
     }
