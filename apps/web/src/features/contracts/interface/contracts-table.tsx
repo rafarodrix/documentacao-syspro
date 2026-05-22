@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ContractListItem, ContractSuspendImpact } from "@/features/contracts/domain/contract.types";
-import { TableCell, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, DataTable } from "@dosc-syspro/ui";
+import { TableCell, TableRow, Card, Badge, Button, Input, Label, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, DataTable, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
     Building2,
@@ -17,6 +17,7 @@ import {
     Wallet,
     CircleOff,
     TriangleAlert,
+    SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { deleteContractAction, updateContractStatusAction } from "@/features/contracts/application/contract-write.actions";
@@ -50,6 +51,13 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
     const router = useRouter();
     const fallbackContractReason = DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS[0]?.key ?? "EMPRESA_FECHOU";
     const [items, setItems] = useState<ContractListItem[]>(contracts);
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+        startDate: true,
+        minimumWage: true,
+        percentage: true,
+        status: true,
+        net: true,
+    });
     const [search, setSearch] = useState("");
     const [isPending, startTransition] = useTransition();
     const [suspendTarget, setSuspendTarget] = useState<ContractListItem | null>(null);
@@ -493,11 +501,89 @@ export function ContractsTable({ contracts, canEdit, canDelete }: ContractsTable
                         className="h-10 border-border/60 bg-background"
                     />
                 </div>
+                {/* Barra de Ferramentas da Tabela: Exibição & Colunas (Coesão de Layout Premium) */}
+                <div className="flex items-center justify-between border-b border-border/60 bg-muted/10 px-4 py-2.5">
+                    <div className="text-xs text-muted-foreground font-medium">
+                        {filteredItems.length > 0 && (
+                            <span>
+                                Exibindo <span className="font-semibold text-foreground">{filteredItems.length}</span>{" "}
+                                {filteredItems.length === 1 ? "contrato" : "contratos"}
+                            </span>
+                        )}
+                    </div>
+                    <div className="hidden md:block">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 gap-1.5 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
+                                >
+                                    <SlidersHorizontal className="h-3 w-3 text-muted-foreground" />
+                                    <span>Colunas</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
+                                <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
+                                    Exibir Colunas
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator className="bg-border/40 mx-1" />
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.startDate}
+                                    onCheckedChange={(checked) =>
+                                        setColumnVisibility((prev) => ({ ...prev, startDate: !!checked }))
+                                    }
+                                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                                >
+                                    Vigência
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.minimumWage}
+                                    onCheckedChange={(checked) =>
+                                        setColumnVisibility((prev) => ({ ...prev, minimumWage: !!checked }))
+                                    }
+                                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                                >
+                                    Base
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.percentage}
+                                    onCheckedChange={(checked) =>
+                                        setColumnVisibility((prev) => ({ ...prev, percentage: !!checked }))
+                                    }
+                                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                                >
+                                    Alíquota
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.status}
+                                    onCheckedChange={(checked) =>
+                                        setColumnVisibility((prev) => ({ ...prev, status: !!checked }))
+                                    }
+                                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                                >
+                                    Status
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={columnVisibility.net}
+                                    onCheckedChange={(checked) =>
+                                        setColumnVisibility((prev) => ({ ...prev, net: !!checked }))
+                                    }
+                                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                                >
+                                    Líquido
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
                 <DataTable
                     columns={columns}
                     data={filteredItems}
                     minWidthClassName="min-w-[980px]"
                     cardClassName="border-none bg-transparent shadow-none p-0 overflow-visible rounded-none animate-none"
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
                     onRowDoubleClick={(contract) => canEdit && router.push(`/portal/contratos?mode=edit&id=${contract.id}`)}
                     emptyState={emptyStateConfig}
                 />

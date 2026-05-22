@@ -19,8 +19,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
 } from "@dosc-syspro/ui";
-import { CircleAlert, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
+import { CircleAlert, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { formatDateShort, formatDateTime } from "@/lib/date";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -156,6 +162,14 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
   const [selectedRowTaskId, setSelectedRowTaskId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    clientContactName: true,
+    dueDate: true,
+    requiredDocumentsCount: true,
+    requests: true,
+    status: true,
+  });
 
   const columns = useMemo<ColumnDef<TaskItem>[]>(() => {
     const cols: ColumnDef<TaskItem>[] = [
@@ -776,27 +790,114 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
         ) : null}
       </section>
 
-      <DataTable
-        columns={columns}
-        data={tasks.items}
-        loading={isPending}
-        loadingLabel="Carregando tarefas..."
-        emptyState={{
-          title: "Nenhuma tarefa encontrada",
-          description: hasActiveFilters
-            ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
-            : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila.",
-          icon: CircleAlert,
-        }}
-        flexible={true}
-        onRowClick={(row) => setSelectedRowTaskId(row.id)}
-        onRowDoubleClick={(row) => setSelectedDetailsTaskId(row.id)}
-        rowClassName={(row) => cn(
-          "align-top cursor-pointer",
-          selectedRowTaskId === row.id && "bg-primary/5 hover:bg-primary/10"
-        )}
-        renderMobileItem={renderMobileItem}
-      />
+      <div className="space-y-3">
+        {/* Barra de Ferramentas da Tabela: Exibição & Colunas (Coesão de Layout Premium) */}
+        <div className="flex items-center justify-between px-0.5">
+          <div className="text-xs text-muted-foreground font-medium">
+            {tasks.pagination.total > 0 && tasks.items.length > 0 && (
+              <span>
+                Exibindo{" "}
+                <span className="font-semibold text-foreground">
+                  {(tasks.pagination.page - 1) * tasks.pagination.pageSize + 1}–
+                  {Math.min(tasks.pagination.page * tasks.pagination.pageSize, tasks.pagination.total)}
+                </span>{" "}
+                de{" "}
+                <span className="font-semibold text-foreground">{tasks.pagination.total}</span>{" "}
+                {tasks.pagination.total === 1 ? "tarefa" : "tarefas"}
+              </span>
+            )}
+          </div>
+          <div className="hidden md:block">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
+                  <span>Colunas</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
+                <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
+                  Exibir Colunas
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border/40 mx-1" />
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.clientContactName}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, clientContactName: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Contato cliente
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.dueDate}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, dueDate: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Vencimento
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.requiredDocumentsCount}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, requiredDocumentsCount: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Checklist
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.requests}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, requests: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Solicitações
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={columnVisibility.status}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({ ...prev, status: !!checked }))
+                  }
+                  className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                >
+                  Status
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <DataTable
+          columns={columns}
+          data={tasks.items}
+          loading={isPending}
+          loadingLabel="Carregando tarefas..."
+          emptyState={{
+            title: "Nenhuma tarefa encontrada",
+            description: hasActiveFilters
+              ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
+              : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila.",
+            icon: CircleAlert,
+          }}
+          flexible={true}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          onRowClick={(row) => setSelectedRowTaskId(row.id)}
+          onRowDoubleClick={(row) => setSelectedDetailsTaskId(row.id)}
+          rowClassName={(row) => cn(
+            "align-top cursor-pointer",
+            selectedRowTaskId === row.id && "bg-primary/5 hover:bg-primary/10"
+          )}
+          renderMobileItem={renderMobileItem}
+        />
+      </div>
 
       {tasks.pagination.total > 0 && (
         <div className="mt-4">

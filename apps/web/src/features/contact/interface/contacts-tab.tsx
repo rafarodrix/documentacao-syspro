@@ -24,10 +24,11 @@ import {
   Unlink,
   UserRound,
   Users,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
+import { Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, TableCell, TableRow, TableHead, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { ClickableCard, ClickableTableRow, stopRecordClick } from "@/components/platform/shared/clickable-record";
 import {
@@ -83,6 +84,11 @@ function getPrimaryPhone(contact: ContactItem) {
 export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: ContactsTabProps) {
   const router = useRouter();
   const [contacts, setContacts] = useState<ContactItem[]>([]);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    phone: true,
+    email: true,
+    companies: true,
+  });
   const [contactStats, setContactStats] = useState<ContactStats | null>(null);
   const [pagination, setPagination] = useState<RegistryPaginationState>({
     page: 1,
@@ -427,6 +433,71 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
         />
 
         <div className="space-y-4">
+          {/* Barra de Ferramentas da Tabela: Exibição & Colunas (Coesão de Layout Premium) */}
+          <div className="flex items-center justify-between px-0.5">
+            <div className="text-xs text-muted-foreground font-medium">
+              {pagination.total > 0 && contacts.length > 0 && (
+                <span>
+                  Exibindo{" "}
+                  <span className="font-semibold text-foreground">
+                    {(pagination.page - 1) * pagination.pageSize + 1}–
+                    {Math.min(pagination.page * pagination.pageSize, pagination.total)}
+                  </span>{" "}
+                  de{" "}
+                  <span className="font-semibold text-foreground">{pagination.total}</span>{" "}
+                  {pagination.total === 1 ? "contato" : "contatos"}
+                </span>
+              )}
+            </div>
+            <div className="hidden md:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-2 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Colunas</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
+                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
+                    Exibir Colunas
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-border/40 mx-1" />
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.phone}
+                    onCheckedChange={(checked) =>
+                      setColumnVisibility((prev) => ({ ...prev, phone: !!checked }))
+                    }
+                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                  >
+                    Telefone
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.email}
+                    onCheckedChange={(checked) =>
+                      setColumnVisibility((prev) => ({ ...prev, email: !!checked }))
+                    }
+                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                  >
+                    Email
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.companies}
+                    onCheckedChange={(checked) =>
+                      setColumnVisibility((prev) => ({ ...prev, companies: !!checked }))
+                    }
+                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                  >
+                    Empresas
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
           <DataTable
             columns={columns}
             data={filteredData}
@@ -434,6 +505,8 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
             loading={loadingList}
             loadingLabel="Carregando contatos..."
             minWidthClassName="min-w-[920px]"
+            columnVisibility={columnVisibility}
+            onColumnVisibilityChange={setColumnVisibility}
             emptyState={{
               title: "Nenhum contato encontrado",
               description: emptyStateDescription,

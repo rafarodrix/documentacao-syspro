@@ -7,7 +7,7 @@ import type { UserAccessListItem, UserRoleValue } from "@dosc-syspro/contracts/u
 import { type ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage, Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@dosc-syspro/ui";
+import { Avatar, AvatarFallback, AvatarImage, Badge, Button, DataTable, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@dosc-syspro/ui";
 import {
   MoreHorizontal,
   Shield,
@@ -19,6 +19,7 @@ import {
   UserPlus,
   Pencil,
   Link2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { ConfirmActionDialog } from "@/components/platform/cadastros/shared/confirm-action-dialog";
 import { stopRecordClick } from "@/components/platform/shared/clickable-record";
@@ -187,6 +188,11 @@ function UserActions({ user, isLoading, canManage, onToggleStatus }: UserActions
 export function UserTab({ data, canManage, canViewInternal = true }: UserTabProps) {
   const router = useRouter();
   const [users, setUsers] = useState<UserWithRelations[]>(data);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    contact: true,
+    access: true,
+    status: true,
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [companyFilter, setCompanyFilter] = useState<"all" | "with_company" | "without_company">("all");
   const [roleFilter, setRoleFilter] = useState<"all" | "client" | "system">("all");
@@ -470,11 +476,78 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
         />
 
         <div className="space-y-4">
+          {/* Barra de Ferramentas da Tabela: Exibição & Colunas (Coesão de Layout Premium) */}
+          <div className="flex items-center justify-between px-0.5">
+            <div className="text-xs text-muted-foreground font-medium">
+              {filteredData.length > 0 && paginatedData.length > 0 && (
+                <span>
+                  Exibindo{" "}
+                  <span className="font-semibold text-foreground">
+                    {(currentPage - 1) * USERS_PAGE_SIZE + 1}–
+                    {Math.min(currentPage * USERS_PAGE_SIZE, filteredData.length)}
+                  </span>{" "}
+                  de{" "}
+                  <span className="font-semibold text-foreground">{filteredData.length}</span>{" "}
+                  {filteredData.length === 1 ? "usuário" : "usuários"}
+                </span>
+              )}
+            </div>
+            <div className="hidden md:block">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-2 border-border/60 bg-background/50 hover:bg-muted/50 text-xs shadow-sm transition-all duration-200"
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Colunas</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 bg-card/95 backdrop-blur-md border border-border/40 shadow-xl animate-in fade-in duration-200">
+                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-2.5 py-1.5">
+                    Exibir Colunas
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-border/40 mx-1" />
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.contact}
+                    onCheckedChange={(checked) =>
+                      setColumnVisibility((prev) => ({ ...prev, contact: !!checked }))
+                    }
+                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                  >
+                    Contato vinculado
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.access}
+                    onCheckedChange={(checked) =>
+                      setColumnVisibility((prev) => ({ ...prev, access: !!checked }))
+                    }
+                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                  >
+                    Acesso / Empresa
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={columnVisibility.status}
+                    onCheckedChange={(checked) =>
+                      setColumnVisibility((prev) => ({ ...prev, status: !!checked }))
+                    }
+                    className="text-xs focus:bg-primary/10 focus:text-primary transition-colors cursor-pointer"
+                  >
+                    Status
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
           <DataTable
             columns={columns}
             data={paginatedData}
             flexible={true}
             minWidthClassName="min-w-[1020px]"
+            columnVisibility={columnVisibility}
+            onColumnVisibilityChange={setColumnVisibility}
             emptyState={{
               title: "Nenhum usuario cadastrado",
               description: "Ajuste os filtros ou cadastre um novo usuario.",
