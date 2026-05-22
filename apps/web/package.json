@@ -32,6 +32,7 @@
     "@dosc-syspro/core": "file:../../packages/core",
     "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/shared": "file:../../packages/shared",
+    "@dosc-syspro/tickets-domain": "file:../../packages/features/tickets/domain",
     "@dosc-syspro/ui": "file:../../packages/ui",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.22.0",
