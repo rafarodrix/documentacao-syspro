@@ -32,6 +32,7 @@
     "@dosc-syspro/core": "file:../../packages/core",
     "@dosc-syspro/database": "file:../../packages/database",
     "@dosc-syspro/shared": "file:../../packages/shared",
+    "@dosc-syspro/crm-domain": "file:../../packages/features/crm/domain",
     "@dosc-syspro/tickets-domain": "file:../../packages/features/tickets/domain",
     "@dosc-syspro/ui": "file:../../packages/ui",
     "@hookform/resolvers": "^5.2.2",

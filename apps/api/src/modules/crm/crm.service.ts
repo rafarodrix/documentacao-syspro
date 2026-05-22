@@ -20,6 +20,7 @@ import {
   type CrmTaskUpdateInput,
 } from '@dosc-syspro/contracts/crm';
 import { buildPaginationMeta } from '@dosc-syspro/contracts';
+import { leadInclude, serializeLead, normalizeContactsArray } from '@dosc-syspro/crm-domain';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { CompaniesService } from '../companies/companies.service';
@@ -83,7 +84,7 @@ export class CrmService {
     const [leads, total] = await Promise.all([
       (this.prisma as any).crmLead.findMany({
         where,
-        include: this.leadInclude(),
+        include: leadInclude(),
         orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
         ...(wantsPagination ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
       }),
@@ -92,7 +93,7 @@ export class CrmService {
 
     return {
       success: true,
-      data: leads.map((lead: any) => this.serializeLead(lead)),
+      data: leads.map((lead: any) => serializeLead(lead)),
       ...(wantsPagination ? { pagination: buildPaginationMeta({ page, pageSize, total }) } : {}),
     };
   }
@@ -102,7 +103,7 @@ export class CrmService {
 
     const lead = await (this.prisma as any).crmLead.findUnique({
       where: { id },
-      include: this.leadInclude(),
+      include: leadInclude(),
     });
 
     if (!lead) {
@@ -111,7 +112,7 @@ export class CrmService {
 
     return {
       success: true,
-      data: this.serializeLead(lead),
+      data: serializeLead(lead),
     };
   }
 
@@ -266,12 +267,12 @@ export class CrmService {
         ...payload,
         ownerUserId: payload.ownerUserId ?? requester.userId,
       },
-      include: this.leadInclude(),
+      include: leadInclude(),
     });
 
     return {
       success: true,
-      data: this.serializeLead(lead),
+      data: serializeLead(lead),
       message: 'Lead criado com sucesso.',
     };
   }
@@ -325,7 +326,7 @@ export class CrmService {
           const city = payload.city ?? existing.city;
           const state = payload.state ?? existing.state;
           const contactsRaw = payload.contacts !== undefined ? payload.contacts : existing.contacts;
-          const contactsList = this.normalizeContactsArray(contactsRaw);
+          const contactsList = normalizeContactsArray(contactsRaw);
           const primaryContact = contactsList.find(c => c.isPrimary) || contactsList[0];
 
           const createResult = await this.companiesService.createCompany({
@@ -361,7 +362,7 @@ export class CrmService {
           convertedCompanyId = existingCompany.id;
           
           const contactsRaw = payload.contacts !== undefined ? payload.contacts : existing.contacts;
-          const contactsList = this.normalizeContactsArray(contactsRaw);
+          const contactsList = normalizeContactsArray(contactsRaw);
           for (const leadContact of contactsList) {
             let contact = await this.prisma.companyContact.findFirst({
               where: {
@@ -417,7 +418,7 @@ export class CrmService {
     const lead = await (this.prisma as any).crmLead.update({
       where: { id },
       data: finalPayload,
-      include: this.leadInclude(),
+      include: leadInclude(),
     });
 
     if (isNewWon || (payload.stage && payload.stage !== existing.stage)) {
@@ -433,7 +434,7 @@ export class CrmService {
 
     return {
       success: true,
-      data: this.serializeLead(lead),
+      data: serializeLead(lead),
       message: 'Lead atualizado com sucesso.',
     };
   }
@@ -657,67 +658,6 @@ export class CrmService {
     };
   }
 
-  private leadInclude() {
-    return {
-      ownerUser: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      convertedCompany: {
-        select: {
-          id: true,
-          nomeFantasia: true,
-          razaoSocial: true,
-        },
-      },
-    };
-  }
-
-  private serializeLead(lead: any) {
-    const contacts = this.normalizeContactsArray(lead.contacts);
-    const primaryContact =
-      contacts.find((contact) => contact.isPrimary) ??
-      contacts[0] ??
-      null;
-
-    return {
-      id: lead.id,
-      title: lead.title,
-      stage: lead.stage,
-      source: lead.source,
-      ownerUserId: lead.ownerUserId ?? null,
-      ownerName: lead.ownerUser?.name || lead.ownerUser?.email || null,
-      companyName: lead.companyName,
-      tradeName: lead.tradeName ?? null,
-      document: lead.document ?? null,
-      contacts,
-      primaryContactName: primaryContact?.name ?? null,
-      industry: lead.industry ?? null,
-      companySize: lead.companySize ?? null,
-      city: lead.city ?? null,
-      state: lead.state ?? null,
-      estimatedValue: lead.estimatedValue == null ? null : Number(lead.estimatedValue),
-      licenseValue: lead.licenseValue == null ? null : Number(lead.licenseValue),
-      monthlyFee: lead.monthlyFee == null ? null : Number(lead.monthlyFee),
-      minimumWagePercentage:
-        lead.minimumWagePercentage == null ? null : Number(lead.minimumWagePercentage),
-      expectedCloseAt: lead.expectedCloseAt ? new Date(lead.expectedCloseAt).toISOString() : null,
-      nextStep: lead.nextStep ?? null,
-      qualificationNotes: lead.qualificationNotes ?? null,
-      lostReason: lead.lostReason ?? null,
-      convertedCompanyId: lead.convertedCompanyId ?? null,
-      convertedCompanyName:
-        lead.convertedCompany?.nomeFantasia ||
-        lead.convertedCompany?.razaoSocial ||
-        null,
-      createdAt: new Date(lead.createdAt).toISOString(),
-      updatedAt: new Date(lead.updatedAt).toISOString(),
-    };
-  }
-
   private normalizeCreatePayload(input: CrmLeadCreateInput): NormalizedLeadPayload {
     return {
       title: input.title.trim(),
@@ -811,41 +751,6 @@ export class CrmService {
         notes: this.normalizeString(contact.notes),
       }))
       .filter((contact) => contact.name);
-  }
-
-  private normalizeContactsArray(value: unknown): CrmLeadManualContact[] {
-    let rawValue = value;
-    if (typeof rawValue === 'string') {
-      try {
-        rawValue = JSON.parse(rawValue);
-      } catch {
-        return [];
-      }
-    }
-
-    const entries = Array.isArray(rawValue)
-      ? rawValue
-      : rawValue && typeof rawValue === 'object'
-        ? [rawValue]
-        : [];
-
-    return entries
-      .map((contact) => {
-        if (!contact || typeof contact !== 'object') return null;
-        const record = contact as Record<string, unknown>;
-        const name = String(record.name ?? '').trim();
-        if (!name) return null;
-        return {
-          name,
-          role: this.normalizeString(record.role as string | null | undefined),
-          email: this.normalizeString(record.email as string | null | undefined),
-          phone: this.normalizeString(record.phone as string | null | undefined),
-          whatsapp: this.normalizeString(record.whatsapp as string | null | undefined),
-          isPrimary: Boolean(record.isPrimary),
-          notes: this.normalizeString(record.notes as string | null | undefined),
-        };
-      })
-      .filter(Boolean) as CrmLeadManualContact[];
   }
 
   private normalizeDate(value?: string | null) {
