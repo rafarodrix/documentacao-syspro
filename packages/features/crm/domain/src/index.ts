@@ -1,5 +1,9 @@
-// @dosc-syspro/crm-domain
-// Business logic, use-cases, ports (interfaces) and schemas for the Crm feature.
-// No framework dependencies. No database imports. Testable in isolation.
-//
-// Pattern reference: packages/features/remote/domain
+export {
+  CRM_ACTIVE_STAGE_ORDER,
+  CRM_CLOSED_STAGE_ORDER,
+  CRM_STAGE_ORDER,
+  CRM_STAGE_LABELS,
+  CRM_STAGE_DESCRIPTIONS,
+  CRM_SOURCE_LABELS,
+} from './crm-stage';
+export { leadInclude, serializeLead, normalizeContactsArray } from './crm-contract.mapper';
