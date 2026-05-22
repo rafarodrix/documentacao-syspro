@@ -2,35 +2,29 @@
 
 import { trpc } from "@/lib/api/trpc-client";
 import {
-  RegistryDataTable,
   RegistryFilterGroup,
   RegistryToolbar,
+  RegistryPagination,
 } from "@/components/platform/shared/registry-list-scaffold";
+import { type ColumnDef } from "@tanstack/react-table";
 import { PageHeader } from "@/components/patterns";
 import type { TaskItem, TaskItemListResponse } from "@dosc-syspro/contracts/tarefas";
 import {
   Badge,
   Button,
-  Card,
-  CardContent,
+  DataTable,
   Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@dosc-syspro/ui";
 import { CircleAlert, ExternalLink, Filter, ListTodo, MessageSquareShare, Plus, RefreshCw, Repeat, Search, X } from "lucide-react";
 import Link from "next/link";
 import { formatDateShort, formatDateTime } from "@/lib/date";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useDeferredValue, useEffect, useState, useTransition } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { TaskCreateDialog } from "./task-create-dialog";
 import { TaskDetailsDialog } from "./task-details-dialog";
@@ -162,6 +156,252 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
   const [selectedRowTaskId, setSelectedRowTaskId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  const columns = useMemo<ColumnDef<TaskItem>[]>(() => {
+    const cols: ColumnDef<TaskItem>[] = [
+      {
+        accessorKey: "companyName",
+        header: "Empresa",
+        meta: { className: "w-[18%] px-3 py-3.5" },
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="space-y-1">
+              <div className="font-medium text-foreground">{item.companyName}</div>
+              <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "title",
+        header: "Tarefa",
+        meta: { className: "w-[24%] px-3 py-3.5" },
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-medium text-foreground">{item.title}</div>
+                <Badge variant={getTaskTypeVariant(item.type)} className="gap-1">
+                  {item.type === "ROTINA_MENSAL" ? <Repeat className="h-3 w-3" /> : <ListTodo className="h-3 w-3" />}
+                  {getTaskTypeLabel(item.type)}
+                </Badge>
+              </div>
+              {item.year && item.month ? (
+                <div className="text-xs text-muted-foreground">
+                  {String(item.month).padStart(2, "0")}/{item.year}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">Sem rotina mensal vinculada</div>
+              )}
+              {item.ticketId ? (
+                <Link
+                  href={`/portal/tickets/${item.ticketId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Ticket de origem
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "clientContactName",
+        header: "Contato cliente",
+        meta: { className: "w-[12%] px-3 py-3.5 text-sm text-foreground hidden lg:table-cell" },
+        cell: ({ row }) => row.original.clientContactName || "Não definido",
+      },
+      {
+        accessorKey: "dueDate",
+        header: "Vencimento",
+        meta: { className: "w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap" },
+        cell: ({ row }) => formatDateShort(row.original.dueDate),
+      },
+      {
+        accessorKey: "requiredDocumentsCount",
+        header: "Checklist",
+        meta: { className: "w-[8%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap hidden xl:table-cell" },
+        cell: ({ row }) => `${row.original.requiredDocumentsCount} item(ns)`,
+      },
+      {
+        id: "requests",
+        header: "Solicitações",
+        meta: { className: "w-[15%] px-3 py-3.5 hidden lg:table-cell" },
+        cell: ({ row }) => {
+          const item = row.original;
+          return item.lastManualRequestAt ? (
+            <div className="space-y-1">
+              <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
+                {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
+              </Badge>
+              <div className="text-xs text-muted-foreground">
+                {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)}
+              </div>
+              <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        meta: { className: "w-[8%] px-3 py-3.5" },
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <Badge variant={getTaskStatusVariant(item.status)}>
+              {getTaskStatusLabel(item.status)}
+            </Badge>
+          );
+        },
+      },
+    ];
+
+    if (canManage) {
+      cols.push({
+        id: "actions",
+        header: "Ações",
+        meta: { className: "w-[16%] px-3 py-3.5 text-right" },
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div 
+              className="flex flex-col items-end gap-2 xl:flex-row xl:justify-end"
+              onDoubleClick={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => setSelectedStatusTask(item)}
+              >
+                Atualizar status
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => setSelectedTask(item)}
+                disabled={item.availableContacts.length === 0}
+              >
+                <MessageSquareShare className="mr-2 h-4 w-4" />
+                {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
+              </Button>
+            </div>
+          );
+        },
+      });
+    }
+
+    return cols;
+  }, [canManage, selectedRowTaskId]);
+
+  const renderMobileItem = useCallback(
+    (item: TaskItem) => (
+      <div className="flex flex-col p-4 gap-3 bg-card/40 backdrop-blur-sm border border-border/40 rounded-lg m-2 animate-in fade-in duration-300">
+        <div className="flex justify-between items-start gap-2">
+          <div className="space-y-1">
+            <h4 className="font-medium text-sm text-foreground leading-tight">{item.companyName}</h4>
+            <p className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</p>
+          </div>
+          <Badge variant={getTaskStatusVariant(item.status)} className="shrink-0 text-[10px]">
+            {getTaskStatusLabel(item.status)}
+          </Badge>
+        </div>
+
+        <div className="space-y-1.5 border-t border-border/40 pt-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm font-semibold text-foreground">{item.title}</span>
+            <Badge variant={getTaskTypeVariant(item.type)} className="text-[10px] gap-0.5 px-1.5 py-0">
+              {item.type === "ROTINA_MENSAL" ? <Repeat className="h-2.5 w-2.5" /> : <ListTodo className="h-2.5 w-2.5" />}
+              {getTaskTypeLabel(item.type)}
+            </Badge>
+          </div>
+          {item.year && item.month ? (
+            <span className="text-xs text-muted-foreground block">
+              Competência: {String(item.month).padStart(2, "0")}/{item.year}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground block">Sem rotina mensal vinculada</span>
+          )}
+          {item.ticketId && (
+            <Link
+              href={`/portal/tickets/${item.ticketId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Ticket de origem
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center text-xs text-muted-foreground bg-muted/20 p-2 rounded-md">
+          <div>
+            Vencimento: <span className="font-medium text-foreground">{formatDateShort(item.dueDate)}</span>
+          </div>
+          <div>
+            Checklist: <span className="font-medium text-foreground">{item.requiredDocumentsCount} item(ns)</span>
+          </div>
+        </div>
+
+        {item.lastManualRequestAt ? (
+          <div className="text-[11px] border-t border-border/40 pt-2 text-muted-foreground space-y-1">
+            <div className="flex items-center gap-1">
+              <span>Último disparo:</span>
+              <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")} className="text-[9px] px-1 py-0 h-4">
+                {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
+              </Badge>
+            </div>
+            <p>
+              {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)} ({item.manualRequestsCount} disparos)
+            </p>
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground italic">Sem disparos manuais</p>
+        )}
+
+        {canManage && (
+          <div className="flex justify-end gap-2 border-t border-border/40 pt-3" onClick={(e) => e.stopPropagation()}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs py-1 px-3"
+              onClick={() => setSelectedStatusTask(item)}
+            >
+              Atualizar status
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs py-1 px-3"
+              onClick={() => setSelectedTask(item)}
+              disabled={item.availableContacts.length === 0}
+            >
+              <MessageSquareShare className="mr-1 h-3 w-3" />
+              {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo"}
+            </Button>
+          </div>
+        )}
+      </div>
+    ),
+    [canManage]
+  );
 
   useEffect(() => {
     setSearchDraft(search);
@@ -536,178 +776,44 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
         ) : null}
       </section>
 
-      <Card className="border-border/60">
-        <CardContent className="space-y-4 pt-5">
-          {tasks.pagination.total > 0 ? (
-            <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                Exibindo <span className="font-medium text-foreground">{tasks.items.length}</span> de{" "}
-                <span className="font-medium text-foreground">{tasks.pagination.total}</span> tarefas no filtro atual
-              </span>
-              <span>
-                Pagina <span className="font-medium text-foreground">{tasks.pagination.page}</span> de{" "}
-                <span className="font-medium text-foreground">
-                  {Math.max(1, Math.ceil(tasks.pagination.total / tasks.pagination.pageSize))}
-                </span>
-              </span>
-            </div>
-          ) : null}
+      <DataTable
+        columns={columns}
+        data={tasks.items}
+        loading={isPending}
+        loadingLabel="Carregando tarefas..."
+        emptyState={{
+          title: "Nenhuma tarefa encontrada",
+          description: hasActiveFilters
+            ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
+            : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila.",
+          icon: CircleAlert,
+        }}
+        flexible={true}
+        onRowClick={(row) => setSelectedRowTaskId(row.id)}
+        onRowDoubleClick={(row) => setSelectedDetailsTaskId(row.id)}
+        rowClassName={(row) => cn(
+          "align-top cursor-pointer",
+          selectedRowTaskId === row.id && "bg-primary/5 hover:bg-primary/10"
+        )}
+        renderMobileItem={renderMobileItem}
+      />
 
-          <RegistryDataTable
-            wrapInCard={false}
-            loading={isPending}
-            loadingLabel="Carregando tarefas..."
-            isEmpty={tasks.items.length === 0}
-            emptyState={{
-              icon: CircleAlert,
-              title: "Nenhuma tarefa encontrada",
-              description: hasActiveFilters
-                ? "Ajuste os filtros para ampliar o recorte ou limpe a busca atual."
-                : "Ative empresas na configuracao de rotina mensal ou crie tarefas avulsas para iniciar a fila.",
-              searchTerm: search.trim() || undefined,
-              onClear: hasActiveFilters ? clearFilters : undefined,
+      {tasks.pagination.total > 0 && (
+        <div className="mt-4">
+          <RegistryPagination
+            pagination={{
+              page: tasks.pagination.page,
+              pageSize: tasks.pagination.pageSize,
+              total: tasks.pagination.total,
+              hasPreviousPage: tasks.pagination.hasPreviousPage,
+              hasNextPage: tasks.pagination.hasNextPage,
             }}
-            desktopColSpan={canManage ? 8 : 7}
-            content={
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/20">
-                    <TableRow className="border-b border-border/60 hover:bg-transparent">
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Empresa</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tarefa</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato cliente</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vencimento</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Checklist</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Solicitacoes</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                      {canManage ? <TableHead className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acoes</TableHead> : null}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tasks.items.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className={cn(
-                          "align-top cursor-pointer transition-colors hover:bg-muted/10",
-                          selectedRowTaskId === item.id && "bg-primary/5 hover:bg-primary/10",
-                        )}
-                        onClick={() => setSelectedRowTaskId(item.id)}
-                        onDoubleClick={() => setSelectedDetailsTaskId(item.id)}
-                        title="Duplo clique para ver detalhes"
-                      >
-                        <TableCell className="w-[18%] px-3 py-3.5">
-                          <div className="space-y-1">
-                            <div className="font-medium text-foreground">{item.companyName}</div>
-                            <div className="text-xs text-muted-foreground">{item.accountingFirmName || "Sem contador vinculado"}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[24%] px-3 py-3.5">
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <div className="text-sm font-medium text-foreground">{item.title}</div>
-                              <Badge variant={getTaskTypeVariant(item.type)} className="gap-1">
-                                {item.type === "ROTINA_MENSAL" ? <Repeat className="h-3 w-3" /> : <ListTodo className="h-3 w-3" />}
-                                {getTaskTypeLabel(item.type)}
-                              </Badge>
-                            </div>
-                            {item.year && item.month ? (
-                              <div className="text-xs text-muted-foreground">
-                                {String(item.month).padStart(2, "0")}/{item.year}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-muted-foreground">Sem rotina mensal vinculada</div>
-                            )}
-                            {item.ticketId ? (
-                              <Link
-                                href={`/portal/tickets/${item.ticketId}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                              >
-                                Ticket de origem
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </Link>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[12%] px-3 py-3.5 text-sm text-foreground">{item.clientContactName || "Nao definido"}</TableCell>
-                        <TableCell className="w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
-                          {formatDateShort(item.dueDate)}
-                        </TableCell>
-                        <TableCell className="w-[8%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap">
-                          {item.requiredDocumentsCount} item(ns)
-                        </TableCell>
-                        <TableCell className="w-[15%] px-3 py-3.5">
-                          {item.lastManualRequestAt ? (
-                            <div className="space-y-1">
-                              <Badge variant={getManualRequestStatusVariant(item.lastManualRequestStatus || "FAILED")}>
-                                {getManualRequestStatusLabel(item.lastManualRequestStatus || "FAILED")}
-                              </Badge>
-                              <div className="text-xs text-muted-foreground">
-                                {item.lastManualRequestContactName || "Contato"} - {formatDateTime(item.lastManualRequestAt)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">{item.manualRequestsCount} registro(s)</div>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">Sem disparos manuais</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="w-[8%] px-3 py-3.5">
-                          <Badge variant={getTaskStatusVariant(item.status)}>
-                            {getTaskStatusLabel(item.status)}
-                          </Badge>
-                        </TableCell>
-                        {canManage ? (
-                          <TableCell className="w-[16%] px-3 py-3.5 text-right" onDoubleClick={(event) => event.stopPropagation()}>
-                            <div className="flex flex-col items-end gap-2 xl:flex-row xl:justify-end">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8"
-                                onClick={() => setSelectedStatusTask(item)}
-                              >
-                                Atualizar status
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8"
-                                onClick={() => setSelectedTask(item)}
-                                disabled={item.availableContacts.length === 0}
-                              >
-                                <MessageSquareShare className="mr-2 h-4 w-4" />
-                                {item.manualRequestsCount > 0 ? "Reenviar" : "Disparo manual"}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        ) : null}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            }
-            pagination={
-              tasks.pagination.total > 0
-                ? {
-                    pagination: {
-                      page: tasks.pagination.page,
-                      pageSize: tasks.pagination.pageSize,
-                      total: tasks.pagination.total,
-                      hasPreviousPage: tasks.pagination.hasPreviousPage,
-                      hasNextPage: tasks.pagination.hasNextPage,
-                    },
-                    itemLabel: { singular: "tarefa", plural: "tarefas" },
-                    isLoading: isPending,
-                    onPageChange: setPage,
-                  }
-                : undefined
-            }
+            itemLabel={{ singular: "tarefa", plural: "tarefas" }}
+            isLoading={isPending}
+            onPageChange={setPage}
           />
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       <TaskCreateDialog
         open={isCreateDialogOpen}
