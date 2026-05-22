@@ -39,6 +39,8 @@
       "@dosc-syspro/remote-infra/*": ["../../packages/features/remote/infra/src/*"],
       "@dosc-syspro/remote-domain": ["../../packages/features/remote/domain/src/index.ts"],
       "@dosc-syspro/remote-domain/*": ["../../packages/features/remote/domain/src/*"],
+      "@dosc-syspro/tickets-domain": ["../../packages/features/tickets/domain/src/index.ts"],
+      "@dosc-syspro/tickets-domain/*": ["../../packages/features/tickets/domain/src/*"],
       "@dosc-syspro/config": ["../../packages/config/src/index.ts"],
       "@dosc-syspro/config/*": ["../../packages/config/src/*"]
     },
