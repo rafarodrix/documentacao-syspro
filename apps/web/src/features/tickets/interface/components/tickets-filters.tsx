@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Input, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Label } from "@dosc-syspro/ui";
-import { CalendarDays, Filter, Search, X } from "lucide-react";
+import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Label } from "@dosc-syspro/ui";
+import { CalendarDays, Filter, X } from "lucide-react";
+import { SearchToolbar, FilterTabs } from "@/components/patterns";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { formatModuleOptionLabel } from "@/features/tickets/interface/lib/ticket-module-hierarchy";
 import { type TicketStatusGroup, type QueueKey } from "@dosc-syspro/core";
@@ -62,8 +63,8 @@ export function TicketsFilters({
     const hasAdvancedFilters =
         team !== "all" ||
         queue !== "all" ||
-        Boolean(category.trim()) ||
-        Boolean(module.trim()) ||
+        Boolean(category.trim()) && category !== "all" ||
+        Boolean(module.trim()) && module !== "all" ||
         (statusFilter === "closed" && closedWindow !== "all");
 
     const activeFilterCount = [
@@ -76,54 +77,43 @@ export function TicketsFilters({
 
     return (
         <div className="flex w-full flex-col gap-3">
-            <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
-                <div className="w-full overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:w-auto">
-                    <div className="flex min-w-max rounded-md bg-muted/40 p-1">
-                        <Button type="button" variant={statusFilter === "open" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "open" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("open")}>
-                            Abertos ({counts.open})
-                        </Button>
-                        <Button type="button" variant={statusFilter === "development" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "development" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("development")}>
-                            Em desenvolvimento ({counts.development})
-                        </Button>
-                        <Button type="button" variant={statusFilter === "testing" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "testing" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("testing")}>
-                            Em testes ({counts.testing})
-                        </Button>
-                        <Button type="button" variant={statusFilter === "closed" ? "secondary" : "ghost"} size="sm" className={`h-8 px-4 ${statusFilter === "closed" ? "bg-background shadow-sm" : ""}`} onClick={() => setStatusFilter("closed")}>
-                            Fechados ({counts.closed})
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center w-full xl:w-auto">
-                    <div className="group relative min-w-0 flex-1 sm:min-w-48">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                        <Input
-                            id="global-ticket-search"
-                            placeholder={canManageTickets ? "Buscar por assunto, ID, empresa ou contato..." : "Buscar por assunto ou ID..."}
-                            className="h-10 rounded-md border-border/60 bg-background pl-10 text-sm transition-all focus:border-primary/50 w-full"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    {canManageTickets && (
-                        <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
+            <SearchToolbar
+                searchValue={searchTerm}
+                searchPlaceholder={canManageTickets ? "Buscar por assunto, ID, empresa ou contato..." : "Buscar por assunto ou ID..."}
+                onSearchChange={setSearchTerm}
+                onClearSearch={() => setSearchTerm("")}
+                filters={
+                    <FilterTabs
+                        value={statusFilter}
+                        onChange={setStatusFilter}
+                        options={[
+                            { value: "open", label: "Abertos", count: counts.open },
+                            { value: "development", label: "Em desenvolvimento", count: counts.development },
+                            { value: "testing", label: "Em testes", count: counts.testing },
+                            { value: "closed", label: "Fechados", count: counts.closed },
+                        ]}
+                    />
+                }
+                actions={
+                    canManageTickets ? (
+                        <div className="flex items-center gap-2">
                             <div className="relative shrink-0">
-                            <Button
-                                type="button"
-                                variant={showFilters ? "secondary" : "outline"}
-                                size="icon"
-                                className="h-9 w-9"
-                                onClick={() => setShowFilters((current) => !current)}
-                                aria-label={`Filtros avancados${activeFilterCount > 0 ? ` (${activeFilterCount} ativos)` : ""}`}
-                            >
-                                <Filter className="h-4 w-4" />
-                            </Button>
-                            {activeFilterCount > 0 && (
-                                <span className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
-                                    {activeFilterCount}
-                                </span>
-                            )}
-                        </div>
+                                <Button
+                                    type="button"
+                                    variant={showFilters ? "secondary" : "outline"}
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    onClick={() => setShowFilters((current) => !current)}
+                                    aria-label={`Filtros avançados${activeFilterCount > 0 ? ` (${activeFilterCount} ativos)` : ""}`}
+                                >
+                                    <Filter className="h-4 w-4" />
+                                </Button>
+                                {activeFilterCount > 0 && (
+                                    <span className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                            </div>
                             {hasAdvancedFilters && (
                                 <Button
                                     type="button"
@@ -143,9 +133,9 @@ export function TicketsFilters({
                                 </Button>
                             )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    ) : null
+                }
+            />
 
             {canManageTickets && showFilters && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-200 rounded-lg border border-border/40 bg-background p-3.5">
@@ -236,7 +226,7 @@ export function TicketsFilters({
             )}
 
             {!canManageTickets && statusFilter === "closed" && (
-                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3 px-1">
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3 px-1 mt-1">
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap">
                         <CalendarDays className="h-3.5 w-3.5" /> Periodo dos fechados
                     </span>

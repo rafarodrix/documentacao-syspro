@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Badge, Button, Card, CardContent, CardHeader, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dosc-syspro/ui";
 import { Activity, BarChart3, Clock, Filter, History, Monitor, Ticket, User } from "lucide-react";
 import { RegistryDataTable } from "@/components/platform/shared/registry-list-scaffold";
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, FilterTabs, SearchToolbar } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import type { EfficiencyMetrics } from "@/features/remote/application/report-queries";
 import { RemoteEfficiencyReportsPanel } from "@/features/remote/interface/reports-panel";
@@ -192,63 +192,55 @@ export function RemoteSessionsPanel({
         />
       </div>
 
-      <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
-        <div className="flex flex-wrap gap-2">
-          {VIEW_LABELS.map((entry) => {
-            const Icon = entry.icon;
-            const active = view === entry.value;
-            return (
-              <Button
-                key={entry.value}
-                type="button"
-                variant={active ? "default" : "outline"}
-                className={cn("h-9 gap-2", active ? "" : "bg-background")}
-                onClick={() => setView(entry.value)}
-              >
-                <Icon className="h-4 w-4" />
-                {entry.label}
+      <FilterTabs
+        options={[
+          { value: "todas", label: "Todas" },
+          { value: "ativas", label: "Ativas" },
+          { value: "historico", label: "Histórico" },
+          { value: "eficiencia", label: "Eficiência" },
+        ]}
+        value={view}
+        onChange={setView}
+      />
+
+      {view !== "eficiencia" && (
+        <SearchToolbar
+          searchValue={ticketDraft}
+          onSearchChange={setTicketDraft}
+          onClearSearch={clearFilters}
+          searchPlaceholder="Buscar por número de ticket..."
+          resultLabel={`${sessions.length} sess${sessions.length === 1 ? "ão" : "ões"}`}
+          filters={
+            <Select value={hostDraft || "ALL"} onValueChange={(value) => setHostDraft(value === "ALL" ? "" : value)}>
+              <SelectTrigger className="h-9 w-[220px] bg-background text-sm">
+                <Monitor className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="Todos os hosts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os hosts</SelectItem>
+                {hostOptions.map((host) => (
+                  <SelectItem key={host.id} value={host.id}>
+                    {host.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+          actions={
+            <>
+              <Button type="button" size="sm" onClick={applyFilters} className="h-9 gap-1.5" disabled={isPending}>
+                <Filter className="h-4 w-4" />
+                Filtrar
               </Button>
-            );
-          })}
-        </div>
-      </section>
-
-      {view !== "eficiencia" ? (
-        <Card className="border-border/50 bg-background/70">
-          <CardContent className="grid gap-3 p-4 md:grid-cols-[220px_1fr_auto_auto] md:items-end">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Host</label>
-              <Select value={hostDraft || "ALL"} onValueChange={(value) => setHostDraft(value === "ALL" ? "" : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos</SelectItem>
-                  {hostOptions.map((host) => (
-                    <SelectItem key={host.id} value={host.id}>
-                      {host.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Ticket</label>
-              <Input value={ticketDraft} onChange={(event) => setTicketDraft(event.target.value)} placeholder="Ex.: 12345" />
-            </div>
-
-            <Button type="button" onClick={applyFilters} className="gap-2" disabled={isPending}>
-              <Filter className="h-4 w-4" />
-              Filtrar
-            </Button>
-
-            <Button type="button" variant="outline" onClick={clearFilters} disabled={isPending}>
-              Limpar
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
+              {(hostDraft || ticketDraft) && (
+                <Button type="button" size="sm" variant="ghost" onClick={clearFilters} className="h-9" disabled={isPending}>
+                  Limpar
+                </Button>
+              )}
+            </>
+          }
+        />
+      )}
 
       {view === "eficiencia" ? (
         metrics ? <RemoteEfficiencyReportsPanel metrics={metrics} /> : null

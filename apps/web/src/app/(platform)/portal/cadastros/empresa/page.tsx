@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { getCadastrosCompaniesAdminViewData } from "@/features/company/application/company-read.queries";
 import { CompanyTab } from "@/features/company/interface";
@@ -64,6 +67,16 @@ export default async function CadastrosEmpresaPage({ searchParams }: CadastrosEm
       <CadastrosPageHeader
         title="Cadastro de Empresa"
         description="Gerencie os dados cadastrais e fiscais das organizacoes."
+        actions={
+          canCreateCompanies ? (
+            <Button asChild size="sm" className="h-9 gap-2">
+              <Link href={`/portal/cadastros/empresa/novo?returnTo=${encodeURIComponent("/portal/cadastros/empresa")}`}>
+                <Plus className="h-4 w-4" />
+                Nova empresa
+              </Link>
+            </Button>
+          ) : null
+        }
       />
       <CompanyTab
         data={result.list.items}

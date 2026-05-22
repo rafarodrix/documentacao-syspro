@@ -93,31 +93,25 @@ export function TicketsContainer({
         }
       />
 
-      <section className="rounded-lg border border-border/60 bg-card p-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <TicketsFilters
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            statusFilter={statusGroup}
-            setStatusFilter={setStatusFilter}
-            closedWindow={closedWindow}
-            setClosedWindow={setClosedWindowFilter}
-            canManageTickets={canManageTickets}
-            counts={statusCounts}
-            team={team}
-            setTeamFilter={setTeamFilter}
-            queue={queue}
-            setQueueFilter={setQueueFilter}
-            queueCounts={queueCounts}
-            category={category}
-            setCategoryFilter={setCategoryFilter}
-            module={module}
-            setModuleFilter={setModuleFilter}
-          />
-
-
-        </div>
-      </section>
+      <TicketsFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusGroup}
+        setStatusFilter={setStatusFilter}
+        closedWindow={closedWindow}
+        setClosedWindow={setClosedWindowFilter}
+        canManageTickets={canManageTickets}
+        counts={statusCounts}
+        team={team}
+        setTeamFilter={setTeamFilter}
+        queue={queue}
+        setQueueFilter={setQueueFilter}
+        queueCounts={queueCounts}
+        category={category}
+        setCategoryFilter={setCategoryFilter}
+        module={module}
+        setModuleFilter={setModuleFilter}
+      />
 
       <RegistryDataTable
         wrapInCard={false}

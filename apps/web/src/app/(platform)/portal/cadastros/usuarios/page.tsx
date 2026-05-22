@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { UserPlus } from "lucide-react";
+import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { getUsersAdminViewData } from "@/features/user-access/application/user-access-read.queries";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
@@ -29,6 +32,16 @@ export default async function CadastrosUsuariosPage() {
       <CadastrosPageHeader
         title="Usuarios"
         description="Cadastre e gerencie usuarios da plataforma e da equipe interna em uma unica tela."
+        actions={
+          canManage ? (
+            <Button asChild size="sm" className="h-9 gap-2">
+              <Link href="/portal/cadastros/usuarios/novo">
+                <UserPlus className="h-4 w-4" />
+                Novo usuario
+              </Link>
+            </Button>
+          ) : null
+        }
       />
       <UserTab
         data={result.users}

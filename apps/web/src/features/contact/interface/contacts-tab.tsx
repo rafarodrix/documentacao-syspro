@@ -424,14 +424,7 @@ export function ContactsTab({ canCreate, canEdit, canDelete, canSync }: Contacts
                 {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Sincronizar
               </Button>
-              {canCreate ? (
-                <Button asChild size="sm" className="h-9 gap-2">
-                  <Link href="/portal/contatos/novo">
-                    <Plus className="h-4 w-4" />
-                    Novo contato
-                  </Link>
-                </Button>
-              ) : null}
+
             </>
           }
         />

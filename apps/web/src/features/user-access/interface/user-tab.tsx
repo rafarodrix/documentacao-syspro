@@ -463,16 +463,7 @@ export function UserTab({ data, canManage, canViewInternal = true }: UserTabProp
               />
             </>
           }
-          actions={
-            canManage ? (
-              <Button asChild size="sm" className="h-9 gap-2">
-                <Link href="/portal/cadastros/usuarios/novo">
-                  <UserPlus className="h-4 w-4" />
-                  Novo usuario
-                </Link>
-              </Button>
-            ) : null
-          }
+
         />
 
         <div className="space-y-4">

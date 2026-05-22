@@ -30,6 +30,7 @@ import {
   DataTable,
   Input,
 } from "@dosc-syspro/ui";
+import { SearchToolbar } from "@/components/patterns";
 
 type StatusFilter = "all" | "online" | "offline";
 
@@ -116,70 +117,59 @@ export function AgentDevicesPanel(props: {
         />
       </div>
 
-      <Card>
+      <SearchToolbar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onClearSearch={() => {
+          setSearchInput("");
+          updateParam({ search: null, page: null });
+        }}
+        searchPlaceholder="Buscar por hostname, deviceId ou SO..."
+        resultLabel={`${pagination.total} dispositivo${pagination.total === 1 ? "" : "s"}`}
+        filters={
+          <>
+            <FilterPill
+              label="Todos"
+              count={stats.total}
+              active={status === "all"}
+              onClick={() => updateParam({ status: null, page: null })}
+            />
+            <FilterPill
+              label="Online"
+              count={stats.online}
+              active={status === "online"}
+              onClick={() => updateParam({ status: "online", page: null })}
+              tone="emerald"
+            />
+            <FilterPill
+              label="Offline"
+              count={stats.offline}
+              active={status === "offline"}
+              onClick={() => updateParam({ status: "offline", page: null })}
+              tone="amber"
+            />
+          </>
+        }
+        actions={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            title="Recarregar"
+            onClick={() => startRefresh(() => router.refresh())}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </Button>
+        }
+      />
+
+      <Card className="border-border/50 bg-background/50">
         <CardContent className="space-y-4 p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex max-w-xl flex-1 items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={searchInput}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Buscar por hostname, deviceId ou SO..."
-                  className="h-9 pl-9"
-                />
-              </div>
-              {(searchInput || initialSearch) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchInput("");
-                    updateParam({ search: null, page: null });
-                  }}
-                >
-                  Limpar
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <FilterPill
-                label="Todos"
-                count={stats.total}
-                active={status === "all"}
-                onClick={() => updateParam({ status: null, page: null })}
-              />
-              <FilterPill
-                label="Online"
-                count={stats.online}
-                active={status === "online"}
-                onClick={() => updateParam({ status: "online", page: null })}
-                tone="emerald"
-              />
-              <FilterPill
-                label="Offline"
-                count={stats.offline}
-                active={status === "offline"}
-                onClick={() => updateParam({ status: "offline", page: null })}
-                tone="amber"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                title="Recarregar"
-                onClick={() => startRefresh(() => router.refresh())}
-                disabled={isRefreshing}
-              >
-                {isRefreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
           <DevicesTable items={list.items} />
 
           <div className="flex items-center justify-between border-t pt-2">

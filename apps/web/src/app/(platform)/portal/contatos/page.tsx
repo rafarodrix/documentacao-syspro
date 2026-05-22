@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { ContactsTab } from "@/features/contact/interface";
@@ -25,6 +28,16 @@ export default async function ContatosRootPage() {
       <CadastrosPageHeader
         title="Central de Contatos"
         description="Gerencie pessoas, canais de contato e vinculos com empresas."
+        actions={
+          canCreate ? (
+            <Button asChild size="sm" className="h-9 gap-2">
+              <Link href="/portal/contatos/novo">
+                <Plus className="h-4 w-4" />
+                Novo contato
+              </Link>
+            </Button>
+          ) : null
+        }
       />
       <ContactsTab
         canCreate={canCreate}

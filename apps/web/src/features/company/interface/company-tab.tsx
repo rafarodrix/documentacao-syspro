@@ -790,16 +790,7 @@ export function CompanyTab({
               />
             </>
           }
-          actions={
-            canCreate ? (
-              <Button asChild size="sm" className="h-9 gap-2">
-                <Link href={`/portal/cadastros/empresa/novo?returnTo=${encodeURIComponent(currentListHref)}`}>
-                  <Plus className="h-4 w-4" />
-                  Nova empresa
-                </Link>
-              </Button>
-            ) : null
-          }
+
         />
 
         <div className="space-y-3">

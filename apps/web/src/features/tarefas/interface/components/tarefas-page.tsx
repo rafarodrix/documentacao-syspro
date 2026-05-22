@@ -638,159 +638,156 @@ export function TarefasPage({ tasks, search, status, type, origin, year, month, 
           ) : null
         }
       />
-
-      <section className="space-y-3 rounded-lg border border-border/60 bg-card p-3 shadow-sm">
-        <RegistryToolbar
-          searchValue={searchDraft}
-          searchPlaceholder="Buscar por empresa, tarefa, contato ou contador..."
-          onSearchChange={setSearchDraft}
-          onClearSearch={() => setSearchDraft("")}
-          resultLabel={`${tasks.pagination.total} filtradas`}
-          filters={
-            <RegistryFilterGroup
-              value={status || "OPEN"}
-              onChange={setStatusFilter}
-              options={statusFilterOptions}
-            />
-          }
-          actions={
-            <>
-              {hasActiveFilters ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 px-3 text-muted-foreground hover:text-foreground"
-                  onClick={clearFilters}
-                >
-                  <X className="mr-2 h-3.5 w-3.5" />
-                  Limpar
-                </Button>
-              ) : null}
+      <RegistryToolbar
+        searchValue={searchDraft}
+        searchPlaceholder="Buscar por empresa, tarefa, contato ou contador..."
+        onSearchChange={setSearchDraft}
+        onClearSearch={() => setSearchDraft("")}
+        resultLabel={`${tasks.pagination.total} filtradas`}
+        filters={
+          <RegistryFilterGroup
+            value={status || "OPEN"}
+            onChange={setStatusFilter}
+            options={statusFilterOptions}
+          />
+        }
+        actions={
+          <>
+            {hasActiveFilters ? (
               <Button
                 type="button"
-                variant={showFilters ? "secondary" : "outline"}
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => setShowFilters((current) => !current)}
-                aria-label="Mostrar filtros"
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 text-muted-foreground hover:text-foreground"
+                onClick={clearFilters}
               >
-                <Filter className="h-4 w-4" />
+                <X className="mr-2 h-3.5 w-3.5" />
+                Limpar
               </Button>
-            </>
-          }
-        />
+            ) : null}
+            <Button
+              type="button"
+              variant={showFilters ? "secondary" : "outline"}
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setShowFilters((current) => !current)}
+              aria-label="Mostrar filtros"
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </>
+        }
+      />
 
-        {showFilters ? (
-          <div className="rounded-lg border border-border/40 bg-background p-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)]">
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
-                <Select value={type || "ALL"} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
-                    <SelectValue placeholder="Todos os tipos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPE_FILTER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Origem</p>
-                <Select value={origin || "ALL"} onValueChange={setOriginFilter}>
-                  <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
-                    <SelectValue placeholder="Todas as origens" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ORIGIN_FILTER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Status</p>
-                <Select value={status || "OPEN"} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
-                    <SelectValue placeholder="Em aberto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ADVANCED_STATUS_FILTER_OPTIONS.map((option) => {
-                      const count = option.countKey
-                        ? option.countKey === "total"
-                          ? tasks.summary.total
-                          : tasks.summary[option.countKey]
-                        : null;
-
-                      return (
-                        <SelectItem key={option.value} value={option.value}>
-                          {count == null ? option.label : `${option.label} (${count})`}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                  {shouldUseCompetenceFilter ? "Competência mensal" : "Vencimento inicial"}
-                </p>
-                {shouldUseCompetenceFilter ? (
-                  <Input
-                    type="month"
-                    value={currentMonthValue}
-                    onChange={(event) => setCompetenceFilter(event.target.value)}
-                    className="h-9 border-border/60 bg-background text-sm"
-                  />
-                ) : (
-                  <Input
-                    type="date"
-                    value={dueFrom}
-                    onChange={(event) => setDueDateFilter("dueFrom", event.target.value)}
-                    className="h-9 border-border/60 bg-background text-sm"
-                  />
-                )}
-              </div>
+      {showFilters ? (
+        <div className="rounded-lg border border-border/40 bg-background p-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)_minmax(0,15rem)]">
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">Recorte</p>
+              <Select value={type || "ALL"} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
+                  <SelectValue placeholder="Todos os tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_FILTER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">Origem</p>
+              <Select value={origin || "ALL"} onValueChange={setOriginFilter}>
+                <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
+                  <SelectValue placeholder="Todas as origens" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORIGIN_FILTER_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">Status</p>
+              <Select value={status || "OPEN"} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 border-border/60 bg-background text-sm">
+                  <SelectValue placeholder="Em aberto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ADVANCED_STATUS_FILTER_OPTIONS.map((option) => {
+                    const count = option.countKey
+                      ? option.countKey === "total"
+                        ? tasks.summary.total
+                        : tasks.summary[option.countKey]
+                      : null;
 
-            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                  {shouldUseCompetenceFilter ? "Competência aplicada" : "Vencimento final"}
-                </p>
-                {shouldUseCompetenceFilter ? (
-                  <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-muted-foreground">
-                    {competenceLabel ? `Rotinas em ${competenceLabel}` : "Sem competência ativa"}
-                  </div>
-                ) : (
-                  <Input
-                    type="date"
-                    value={dueTo}
-                    onChange={(event) => setDueDateFilter("dueTo", event.target.value)}
-                    className="h-9 border-border/60 bg-background text-sm"
-                  />
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Periodo operacional</p>
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        {count == null ? option.label : `${option.label} (${count})`}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                {shouldUseCompetenceFilter ? "Competência mensal" : "Vencimento inicial"}
+              </p>
+              {shouldUseCompetenceFilter ? (
+                <Input
+                  type="month"
+                  value={currentMonthValue}
+                  onChange={(event) => setCompetenceFilter(event.target.value)}
+                  className="h-9 border-border/60 bg-background text-sm"
+                />
+              ) : (
+                <Input
+                  type="date"
+                  value={dueFrom}
+                  onChange={(event) => setDueDateFilter("dueFrom", event.target.value)}
+                  className="h-9 border-border/60 bg-background text-sm"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                {shouldUseCompetenceFilter ? "Competência aplicada" : "Vencimento final"}
+              </p>
+              {shouldUseCompetenceFilter ? (
                 <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-muted-foreground">
-                  {!shouldUseOperationalDueFilter
-                    ? "Rotinas usam competência mensal"
-                    : dueFrom || dueTo
-                      ? `Vencimento ${dueFrom || "..."} até ${dueTo || "..."}`
-                      : "Sem intervalo de vencimento aplicado"}
+                  {competenceLabel ? `Rotinas em ${competenceLabel}` : "Sem competência ativa"}
                 </div>
+              ) : (
+                <Input
+                  type="date"
+                  value={dueTo}
+                  onChange={(event) => setDueDateFilter("dueTo", event.target.value)}
+                  className="h-9 border-border/60 bg-background text-sm"
+                />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground">Periodo operacional</p>
+              <div className="flex h-9 items-center rounded-md border border-border/60 bg-background px-3 text-sm text-muted-foreground">
+                {!shouldUseOperationalDueFilter
+                  ? "Rotinas usam competência mensal"
+                  : dueFrom || dueTo
+                    ? `Vencimento ${dueFrom || "..."} até ${dueTo || "..."}`
+                    : "Sem intervalo de vencimento aplicado"}
               </div>
             </div>
           </div>
-        ) : null}
-      </section>
+        </div>
+      ) : null}
 
       <div className="space-y-3">
         {/* Barra de Ferramentas da Tabela: Exibição & Colunas (Coesão de Layout Premium) */}

@@ -18,13 +18,13 @@ import {
   Cpu,
   Activity,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { normalizeSearchText } from "@dosc-syspro/shared";
 import { Badge, Input, Button, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, TableCell, TableRow, TableHead } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatTimeShort } from "@/lib/date";
-import { EmptyState } from "@/components/patterns";
+import { EmptyState, SearchToolbar } from "@/components/patterns";
 import { RegistryDataTable, RegistryFooter } from "@/components/platform/shared/registry-list-scaffold";
 import type { RemotePlatformDirectory } from "@/features/remote/domain/remote-host.types";
 import { getRemoteProductStatusMeta } from "@/features/remote/domain";
@@ -186,6 +186,24 @@ export function RemotePlatformDirectoryPanel({
   const [showPendingItems, setShowPendingItems] = useState(false);
   const [connectingHostId, setConnectingHostId] = useState<string | null>(null);
   const canCreateHosts = directory.tenantScope.role !== "CLIENTE_ADMIN";
+
+  const searchParams = useSearchParams();
+  const newHostParam = searchParams.get("newHost");
+
+  const handleOpenChange = (open: boolean) => {
+    setShowQuickCreate(open);
+    if (!open) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("newHost");
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  };
+
+  useEffect(() => {
+    if (newHostParam === "true") {
+      setShowQuickCreate(true);
+    }
+  }, [newHostParam]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -408,22 +426,14 @@ export function RemotePlatformDirectoryPanel({
 
   return (
     <div className="space-y-3">
-      {/* ── Top bar ── */}
-      <div className="rounded-2xl border border-border/50 bg-card/70 p-3 shadow-sm">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          {/* Search */}
-          <div className="relative flex-1 min-w-0">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por host, empresa, IP, ID remoto ou ticket..."
-              className="h-9 rounded-lg border-border/60 bg-background pl-9 text-sm"
-            />
-          </div>
-
-          {/* Inline filters */}
-          <div className="flex flex-wrap items-center gap-2">
+      <SearchToolbar
+        searchValue={searchTerm}
+        searchPlaceholder="Buscar por host, empresa, IP, ID remoto ou ticket..."
+        onSearchChange={setSearchTerm}
+        onClearSearch={() => { setSearchTerm(""); }}
+        resultLabel={`${displayedItems.length} host${displayedItems.length === 1 ? "" : "s"}`}
+        filters={
+          <>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="h-9 w-[170px] bg-background text-sm">
                 <Building2 className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -475,132 +485,126 @@ export function RemotePlatformDirectoryPanel({
                 Limpar
               </Button>
             )}
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { value: "all", label: "Todos", count: filteredItems.length },
+              { value: "online", label: "Online", count: filteredQuickIndicators.online },
+              { value: "offline", label: "Offline", count: filteredQuickIndicators.stale + filteredQuickIndicators.offline },
+              { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
+            ]
+              .filter((o) => !o.hidden)
+              .map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setScopeFilter(option.value as typeof scopeFilter)}
+                  className={cn(
+                    "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
+                    scopeFilter === option.value
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border/50 bg-background text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                  <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold", scopeFilter === option.value ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
+                    {option.count}
+                  </span>
+                </button>
+              ))}
 
-            {canCreateHosts && (
-              <Dialog open={showQuickCreate} onOpenChange={setShowQuickCreate}>
-                <DialogTrigger asChild>
-                  <Button type="button" size="sm" className="h-9 gap-1.5 shrink-0">
-                    <Plus className="h-4 w-4" />
-                    Novo host
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar host manualmente</DialogTitle>
-                    <DialogDescription>
-                      Cadastro rápido para consolidar um host, definir a empresa e publicar o contexto que o agente vai consumir.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Empresa</Label>
-                        <SearchableCompanyPicker
-                          value={quickCompanyId}
-                          options={directory.companyOptions}
-                          searchUrl="/api/remote/companies/search"
-                          onChange={setQuickCompanyId}
-                        />
-                        <p className="text-xs text-muted-foreground">Pesquise por razao social, nome fantasia ou codigo operacional.</p>
-                      </div>
+            {filteredQuickIndicators.rebootPending > 0 && scopeFilter !== "discovered" && (
+              <Badge variant="outline" className="h-7 border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-400">
+                <RotateCcw className="mr-1 h-3 w-3" />
+                {filteredQuickIndicators.rebootPending} reboot pendente
+              </Badge>
+            )}
 
-                      <div className="space-y-2">
-                        <Label>Nome do host</Label>
-                        <Input value={quickHostName} onChange={(e) => setQuickHostName(e.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>RustDesk ID</Label>
-                        <Input value={quickRustdeskId} onChange={(e) => setQuickRustdeskId(e.target.value)} placeholder="21187620068" />
-                        <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>Descricao operacional</Label>
-                        <Input
-                          list="quick-description-options"
-                          value={quickDescription}
-                          onChange={(e) => setQuickDescription(e.target.value)}
-                          placeholder="ERP matriz / servidor fiscal"
-                        />
-                        <datalist id="quick-description-options">
-                          {QUICK_DESCRIPTION_TEMPLATES.map((option) => <option key={option} value={option} />)}
-                        </datalist>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
-                      <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
-                        <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((c) => c.id === quickCompanyId)?.label ?? "Nao selecionada"}</p>
-                        <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}</p>
-                        <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Nao informado"}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs text-muted-foreground">Para máquinas sem empresa definida, prefira o fluxo de descoberta automática e vincule depois.</p>
-                      <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
-                        {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                        {isCreatingQuickHost ? "Criando..." : "Criar host"}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+            {selectedCompanyLabel && (
+              <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
+                <Building2 className="mr-1 h-3 w-3" />
+                {selectedCompanyLabel}
+              </Badge>
+            )}
+            {initialTicketNumber && (
+              <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
+                <Ticket className="mr-1 h-3 w-3" />
+                Ticket #{initialTicketNumber}
+              </Badge>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* Scope pills + alert badges */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {[
-            { value: "all", label: "Todos", count: filteredItems.length },
-            { value: "online", label: "Online", count: filteredQuickIndicators.online },
-            { value: "offline", label: "Offline", count: filteredQuickIndicators.stale + filteredQuickIndicators.offline },
-            { value: "discovered", label: "Descobertas", count: filteredPendingItems.length, hidden: !canCreateHosts },
-          ]
-            .filter((o) => !o.hidden)
-            .map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setScopeFilter(option.value as typeof scopeFilter)}
-                className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
-                  scopeFilter === option.value
-                    ? "border-primary/30 bg-primary/10 text-primary"
-                    : "border-border/50 bg-background text-muted-foreground hover:border-border hover:text-foreground",
-                )}
-              >
-                {option.label}
-                <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold", scopeFilter === option.value ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground")}>
-                  {option.count}
-                </span>
-              </button>
-            ))}
+      {canCreateHosts && (
+        <Dialog open={showQuickCreate} onOpenChange={handleOpenChange}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Adicionar host manualmente</DialogTitle>
+              <DialogDescription>
+                Cadastro rápido para consolidar um host, definir a empresa e publicar o contexto que o agente vai consumir.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Empresa</Label>
+                  <SearchableCompanyPicker
+                    value={quickCompanyId}
+                    options={directory.companyOptions}
+                    searchUrl="/api/remote/companies/search"
+                    onChange={setQuickCompanyId}
+                  />
+                  <p className="text-xs text-muted-foreground">Pesquise por razao social, nome fantasia ou codigo operacional.</p>
+                </div>
 
-          {filteredQuickIndicators.rebootPending > 0 && scopeFilter !== "discovered" && (
-            <Badge variant="outline" className="h-7 border-rose-500/20 bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-400">
-              <RotateCcw className="mr-1 h-3 w-3" />
-              {filteredQuickIndicators.rebootPending} reboot pendente
-            </Badge>
-          )}
+                <div className="space-y-2">
+                  <Label>Nome do host</Label>
+                  <Input value={quickHostName} onChange={(e) => setQuickHostName(e.target.value)} placeholder="Ex.: SERVIDOR MATRIZ FISCAL" />
+                </div>
 
-          {selectedCompanyLabel && (
-            <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
-              <Building2 className="mr-1 h-3 w-3" />
-              {selectedCompanyLabel}
-            </Badge>
-          )}
-          {initialTicketNumber && (
-            <Badge variant="outline" className="h-7 border-primary/20 bg-primary/10 text-[10px] text-primary">
-              <Ticket className="mr-1 h-3 w-3" />
-              Ticket #{initialTicketNumber}
-            </Badge>
-          )}
-        </div>
-      </div>
+                <div className="space-y-2">
+                  <Label>RustDesk ID</Label>
+                  <Input value={quickRustdeskId} onChange={(e) => setQuickRustdeskId(e.target.value)} placeholder="21187620068" />
+                  <p className="text-xs text-muted-foreground">Informe apenas números. O portal valida IDs com 7 a 12 dígitos.</p>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Descricao operacional</Label>
+                  <Input
+                    list="quick-description-options"
+                    value={quickDescription}
+                    onChange={(e) => setQuickDescription(e.target.value)}
+                    placeholder="ERP matriz / servidor fiscal"
+                  />
+                  <datalist id="quick-description-options">
+                    {QUICK_DESCRIPTION_TEMPLATES.map((option) => <option key={option} value={option} />)}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview operacional</p>
+                <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
+                  <p><span className="text-muted-foreground">Empresa:</span> {directory.companyOptions.find((c) => c.id === quickCompanyId)?.label ?? "Nao selecionada"}</p>
+                  <p><span className="text-muted-foreground">Host:</span> {quickHostName.trim() || "Nao informado"}</p>
+                  <p><span className="text-muted-foreground">ID remoto:</span> {quickRustdeskId.trim() || "Nao informado"}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">Para máquinas sem empresa definida, prefira o fluxo de descoberta automática e vincule depois.</p>
+                <Button type="button" onClick={handleQuickCreateHost} disabled={isPending || isCreatingQuickHost} className="gap-2">
+                  {isCreatingQuickHost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  {isCreatingQuickHost ? "Criando..." : "Criar host"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* ── Pending items ── */}
       {shouldShowPendingItems && (

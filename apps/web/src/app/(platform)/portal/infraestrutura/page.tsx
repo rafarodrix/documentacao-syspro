@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { Activity, Cpu, Monitor } from "lucide-react";
+import { Activity, Cpu, Monitor, Plus } from "lucide-react";
+import { Button } from "@dosc-syspro/ui";
 import { requireSession } from "@/lib/auth-helpers";
 import { PageHeader, PageShell } from "@/components/patterns";
 import { cn } from "@/lib/utils";
@@ -151,10 +152,22 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
   }
 
   let content: ReactNode = null;
+  let actions: ReactNode = null;
 
   if (activeTab === "hosts") {
     const tenantScope = await getRemoteTenantScope();
     const directory = await getRemotePlatformDirectory(tenantScope);
+    const canCreateHosts = tenantScope.role !== "CLIENTE_ADMIN";
+    if (canCreateHosts) {
+      actions = (
+        <Button asChild size="sm" className="h-9 gap-1.5 shrink-0 animate-in fade-in zoom-in-95 duration-200">
+          <Link href="?tab=hosts&newHost=true">
+            <Plus className="h-4 w-4" />
+            Novo host
+          </Link>
+        </Button>
+      );
+    }
     content = (
       <RemotePlatformDirectoryPanel
         directory={directory}
@@ -232,6 +245,7 @@ export default async function InfraestruturaPage({ searchParams }: PageProps) {
       <PageHeader
         title="Infraestrutura"
         description="Centralize hosts, operacao remota e agentes em uma unica visao."
+        actions={actions}
       />
 
       <section className="rounded-lg border border-border/60 bg-card p-3 shadow-sm">
