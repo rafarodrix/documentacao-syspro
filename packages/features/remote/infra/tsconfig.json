@@ -1,0 +1,22 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "types": ["node"],
+    "allowJs": false,
+    "paths": {
+      "@dosc-syspro/database": ["../../../database/src/index.ts"],
+      "@dosc-syspro/database/*": ["../../../database/src/*"],
+      "@dosc-syspro/remote-domain": ["../domain/src/index.ts"],
+      "@dosc-syspro/remote-domain/contracts": ["../domain/src/remote-domain.contracts.ts"],
+      "@dosc-syspro/remote-domain/errors": ["../domain/src/errors.ts"],
+      "@dosc-syspro/remote-domain/ports": ["../domain/src/remote-domain.port.ts"],
+      "@dosc-syspro/remote-domain/*": ["../domain/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
