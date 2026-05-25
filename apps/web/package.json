@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "build": "next build",
+    "build": "node --max-old-space-size=6144 ./node_modules/next/dist/bin/next build",
     "dev": "next dev",
     "lint": "next lint",
     "lint:remote": "eslint --config eslint.remote.config.mjs \"src/features/remote/**/*.{ts,tsx}\" --max-warnings 0",

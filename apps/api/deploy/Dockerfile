@@ -12,8 +12,11 @@ COPY packages/config/package.json ./packages/config/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/core/package.json ./packages/core/package.json
 COPY packages/database/package.json ./packages/database/package.json
+COPY packages/features/crm/domain/package.json ./packages/features/crm/domain/package.json
 COPY packages/features/remote/domain/package.json ./packages/features/remote/domain/package.json
 COPY packages/features/remote/infra/package.json ./packages/features/remote/infra/package.json
+COPY packages/features/tickets/domain/package.json ./packages/features/tickets/domain/package.json
+COPY packages/features/tickets/infra/package.json ./packages/features/tickets/infra/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 
 RUN npm pkg delete scripts.postinstall
@@ -25,8 +28,11 @@ COPY packages/config ./packages/config
 COPY packages/contracts ./packages/contracts
 COPY packages/core ./packages/core
 COPY packages/database ./packages/database
+COPY packages/features/crm/domain ./packages/features/crm/domain
 COPY packages/features/remote/domain ./packages/features/remote/domain
 COPY packages/features/remote/infra ./packages/features/remote/infra
+COPY packages/features/tickets/domain ./packages/features/tickets/domain
+COPY packages/features/tickets/infra ./packages/features/tickets/infra
 COPY packages/shared ./packages/shared
 
 RUN npm run db:generate
@@ -49,8 +55,11 @@ COPY --from=builder /app/packages/config ./packages/config
 COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/packages/core ./packages/core
 COPY --from=builder /app/packages/database ./packages/database
+COPY --from=builder /app/packages/features/crm/domain ./packages/features/crm/domain
 COPY --from=builder /app/packages/features/remote/domain ./packages/features/remote/domain
 COPY --from=builder /app/packages/features/remote/infra ./packages/features/remote/infra
+COPY --from=builder /app/packages/features/tickets/domain ./packages/features/tickets/domain
+COPY --from=builder /app/packages/features/tickets/infra ./packages/features/tickets/infra
 COPY --from=builder /app/packages/shared ./packages/shared
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
