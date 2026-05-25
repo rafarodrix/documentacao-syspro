@@ -19,6 +19,7 @@ import { DocsKeyboardShortcuts } from '@/components/docs/docs-keyboard-shortcuts
 import { DocsTocScrollSpy } from '@/components/docs/docs-toc-scroll-spy';
 import { DocsSurface } from '@/components/docs/docs-surface';
 import { DocsReadingProgress } from '@/components/docs/docs-reading-progress';
+import { DocsPrintShell } from '@/components/docs/print';
 import SuporteSection from '@/components/docs/suporte-section';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 import {
@@ -97,35 +98,42 @@ export default async function PortalDocsPage(props: {
       tableOfContent={{ style: 'clerk' }}
     >
       <DocsReadingProgress />
-      <DocsSurface className="p-3.5 md:p-5">
-        <div>
-          <DocsTitle>{page.data.title}</DocsTitle>
-        </div>
-        <div className="mt-2.5">
-          <DocsDescription>{page.data.description}</DocsDescription>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
-          <DocsReadingTime minutes={readingTimeMinutes} />
-          <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
-        </div>
-      </DocsSurface>
       <DocsBody className="space-y-8">
-        <DocsSurface className="bg-background/30 p-5 md:p-7 docs-content-surface">
-          <MDXContent
-            components={{
-              ...defaultMdxComponents,
-              a: createRelativeLink(docsSource, page),
-              Tip,
-              Note,
-              Warning,
-              Danger,
-              CodeTabs,
-              CodeTab,
-              PlaygroundInline,
-            }}
-          />
-        </DocsSurface>
+        <DocsPrintShell title={String(page.data.title)} slug={docSlug}>
+          <DocsSurface className="p-3.5 md:p-5">
+            <div>
+              <DocsTitle>{page.data.title}</DocsTitle>
+            </div>
+            <div className="mt-2.5">
+              <DocsDescription>{page.data.description}</DocsDescription>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <DocsFeatureBadge status={featureStatus} version={sinceVersion} />
+              <DocsReadingTime minutes={readingTimeMinutes} />
+              <DocsMetaChips status={status} owner={owner} updatedAtLabel={formattedLastUpdated ?? undefined} />
+            </div>
+          </DocsSurface>
+          <DocsSurface className="bg-background/30 p-5 md:p-7 docs-content-surface">
+            <MDXContent
+              components={{
+                ...defaultMdxComponents,
+                a: createRelativeLink(docsSource, page),
+                Tip,
+                Note,
+                Warning,
+                Danger,
+                CodeTabs,
+                CodeTab,
+                PlaygroundInline,
+              }}
+            />
+          </DocsSurface>
+          {lastUpdateDate ? (
+            <DocsSurface className="bg-background/20 px-3 py-2 md:px-3.5 md:py-2.5">
+              <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
+            </DocsSurface>
+          ) : null}
+        </DocsPrintShell>
         <DocsKeyboardShortcuts previousHref={neighbours.previous?.url} nextHref={neighbours.next?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
@@ -134,11 +142,6 @@ export default async function PortalDocsPage(props: {
           moduleDescription={typeof page.data.description === 'string' ? page.data.description : undefined}
           feedback={{ slug: docSlug, title: String(page.data.title) }}
         />
-        {lastUpdateDate ? (
-          <DocsSurface className="bg-background/20 px-3 py-2 md:px-3.5 md:py-2.5">
-            <PageLastUpdate date={lastUpdateDate} className="text-xs text-muted-foreground/85" />
-          </DocsSurface>
-        ) : null}
       </DocsBody>
     </DocsPage>
   );
