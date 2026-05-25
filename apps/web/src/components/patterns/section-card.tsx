@@ -29,7 +29,7 @@ export function SectionCard({
   contentClassName,
 }: SectionCardProps) {
   return (
-    <Card className={cn("relative overflow-hidden border-border/40 bg-card/75 backdrop-blur-md dark:bg-zinc-950/45 shadow-sm", className)}>
+    <Card className={cn("relative overflow-hidden border-border/40 bg-card/75 backdrop-blur-md dark:bg-card/60 shadow-sm", className)}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       <CardHeader className="px-5 pb-3 pt-5">
         <div className="flex items-start justify-between gap-3">
