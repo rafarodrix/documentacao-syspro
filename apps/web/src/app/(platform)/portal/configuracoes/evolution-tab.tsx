@@ -167,7 +167,7 @@ export default function EvolutionSettingsTab() {
       />
 
       <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Status da Instancia</CardTitle>
@@ -200,7 +200,7 @@ export default function EvolutionSettingsTab() {
       </Card>
 
       <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
         <CardHeader>
           <CardTitle>Configuracoes do Webhook</CardTitle>
           <CardDescription>
@@ -366,7 +366,7 @@ export default function EvolutionSettingsTab() {
 
       {qrCodeResult ? (
         <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
@@ -413,7 +413,7 @@ export default function EvolutionSettingsTab() {
       ) : null}
 
       <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
         <CardHeader>
           <CardTitle>Comportamento Atual</CardTitle>
           <CardDescription>
@@ -430,7 +430,7 @@ export default function EvolutionSettingsTab() {
       </Card>
 
       <Card className="relative overflow-hidden border-border/40 bg-card/75 shadow-sm backdrop-blur-md dark:bg-zinc-950/45">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
         <CardHeader>
           <CardTitle>Checklist Minimo</CardTitle>
           <CardDescription>
