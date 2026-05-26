@@ -59,10 +59,40 @@ function PreBlock({ className, children, ...props }: ComponentPropsWithoutRef<"p
   );
 }
 
+function checkTreeContent(node: ReactNode): boolean {
+  if (!node) return false;
+  if (typeof node === "string") {
+    return /├─|└─|│|──|┌─|┐─/.test(node);
+  }
+  if (typeof node === "number") return false;
+  if (Array.isArray(node)) {
+    return node.some(checkTreeContent);
+  }
+  if (typeof node === "object" && "props" in node) {
+    return checkTreeContent((node as any).props.children);
+  }
+  return false;
+}
+
+function formatSoftBreaks(text: string): string {
+  if (!text) return "";
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return parts
+    .map((part) => {
+      if (part.startsWith("```") && part.endsWith("```")) {
+        return part;
+      }
+      return part.replace(/(?<![ \t]{2})(?<!\\)\n/g, "  \n");
+    })
+    .join("");
+}
+
 export function TicketMessageContent({
   body,
   className,
 }: TicketMessageContentProps) {
+  const formattedBody = formatSoftBreaks(body);
+
   return (
     <div className={cn(ticketMessageContentClassName, className)}>
       <ReactMarkdown
@@ -152,9 +182,21 @@ export function TicketMessageContent({
               )}
             />
           ),
-          p: ({ className: paragraphClassName, ...props }: ComponentPropsWithoutRef<"p">) => (
-            <p {...props} className={cn("whitespace-normal wrap-break-word", paragraphClassName)} />
-          ),
+          p: ({ className: paragraphClassName, children, ...props }: ComponentPropsWithoutRef<"p"> & { children?: ReactNode }) => {
+            const isTree = checkTreeContent(children);
+            return (
+              <p
+                {...props}
+                className={cn(
+                  "whitespace-pre-wrap wrap-break-word",
+                  isTree && "font-mono bg-zinc-50/50 dark:bg-zinc-950/20 border border-border/50 rounded-lg p-3 text-xs leading-relaxed text-zinc-800 dark:text-zinc-200 shadow-sm my-2",
+                  paragraphClassName
+                )}
+              >
+                {children}
+              </p>
+            );
+          },
           ul: ({ className: listClassName, ...props }: ComponentPropsWithoutRef<"ul">) => (
             <ul {...props} className={cn("list-disc pl-6", listClassName)} />
           ),
@@ -163,7 +205,7 @@ export function TicketMessageContent({
           ),
         }}
       >
-        {body}
+        {formattedBody}
       </ReactMarkdown>
     </div>
   );
@@ -171,7 +213,7 @@ export function TicketMessageContent({
 
 const ticketMessageContentClassName =
   "prose prose-sm min-w-0 max-w-full text-inherit wrap-anywhere **:max-w-full **:wrap-anywhere " +
-  "[&_p]:whitespace-normal [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word " +
+  "[&_p]:whitespace-pre-wrap [&_p]:wrap-break-word [&_span]:wrap-break-word [&_strong]:wrap-break-word " +
   "[&_pre]:text-zinc-100 [&_pre_*]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-zinc-100 " +
   "[&_table]:my-3 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35 " +
   "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0 [&_img]:my-3";

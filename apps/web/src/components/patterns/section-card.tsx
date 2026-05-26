@@ -30,7 +30,7 @@ export function SectionCard({
 }: SectionCardProps) {
   return (
     <Card className={cn("relative overflow-hidden border-border/40 bg-card/75 backdrop-blur-md dark:bg-card/60 shadow-sm", className)}>
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/30 to-transparent" />
       <CardHeader className="px-5 pb-3 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

@@ -277,10 +277,10 @@ export function TicketRichTextEditor({
         {/* Alternador de Abas */}
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "write" | "preview")} className="mr-1 shrink-0">
           <TabsList className="h-8 p-0.5 bg-muted/50 border border-border/60 rounded-lg">
-            <TabsTrigger value="write" className="h-[26px] text-xs px-3 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer">
+            <TabsTrigger value="write" className="h-6.5 text-xs px-3 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer">
               Escrever
             </TabsTrigger>
-            <TabsTrigger value="preview" className="h-[26px] text-xs px-3 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer">
+            <TabsTrigger value="preview" className="h-6.5 text-xs px-3 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer">
               Visualizar
             </TabsTrigger>
           </TabsList>
@@ -470,4 +470,3 @@ function ToolbarButton({
     </Tooltip>
   );
 }
-
