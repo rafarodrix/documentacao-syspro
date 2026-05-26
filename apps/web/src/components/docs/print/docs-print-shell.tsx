@@ -46,7 +46,7 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
     pageStyle: `
       @page {
         size: A4;
-        margin: 14mm;
+        margin: 14mm 14mm 20mm 14mm;
       }
 
       @media print {
@@ -54,6 +54,107 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
           background: #ffffff !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
+          font-size: 11pt;
+        }
+
+        .docs-print-root {
+          padding-bottom: 22mm;
+        }
+
+        .docs-print-root * {
+          box-shadow: none !important;
+        }
+
+        .docs-print-root .docs-content-surface,
+        .docs-print-root .group,
+        .docs-print-root [data-radix-scroll-area-viewport] {
+          overflow: visible !important;
+        }
+
+        .docs-print-root h1,
+        .docs-print-root h2,
+        .docs-print-root h3,
+        .docs-print-root h4,
+        .docs-print-root h5,
+        .docs-print-root h6 {
+          break-after: avoid-page;
+          break-inside: avoid;
+          page-break-after: avoid;
+          page-break-inside: avoid;
+        }
+
+        .docs-print-root p,
+        .docs-print-root li,
+        .docs-print-root blockquote {
+          orphans: 3;
+          widows: 3;
+        }
+
+        .docs-print-root pre,
+        .docs-print-root blockquote,
+        .docs-print-root figure,
+        .docs-print-root table,
+        .docs-print-root ul,
+        .docs-print-root ol,
+        .docs-print-root dl,
+        .docs-print-root .rounded-xl,
+        .docs-print-root .rounded-2xl,
+        .docs-print-root .rounded-3xl {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .docs-print-root pre {
+          white-space: pre-wrap !important;
+          word-break: break-word;
+          overflow: visible !important;
+        }
+
+        .docs-print-root code {
+          word-break: break-word;
+        }
+
+        .docs-print-root table {
+          width: 100% !important;
+          border-collapse: collapse;
+          font-size: 10pt;
+        }
+
+        .docs-print-root thead {
+          display: table-header-group;
+        }
+
+        .docs-print-root tr,
+        .docs-print-root td,
+        .docs-print-root th {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .docs-print-root img,
+        .docs-print-root svg,
+        .docs-print-root video,
+        .docs-print-root canvas {
+          max-width: 100% !important;
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .docs-print-root .print-break-before {
+          break-before: page;
+          page-break-before: always;
+        }
+
+        .docs-print-root .print-break-after {
+          break-after: page;
+          page-break-after: always;
+        }
+
+        .docs-print-footer {
+          position: fixed;
+          left: 14mm;
+          right: 14mm;
+          bottom: 8mm;
         }
       }
     `,
@@ -66,47 +167,20 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
       </div>
 
       <div ref={contentRef} className="docs-print-root space-y-8">
-        <div className="hidden rounded-xl border border-border bg-background px-5 py-4 print:block">
-          <div className="flex items-start justify-between gap-6 border-b border-border pb-3">
-            <div className="space-y-1">
-              {contactInfo.companyName ? (
-                <p className="text-lg font-semibold text-foreground">{contactInfo.companyName}</p>
-              ) : null}
-              <p className="text-sm text-muted-foreground">Documentacao oficial de suporte e operacao</p>
-            </div>
-            <div className="space-y-1 text-right text-xs text-muted-foreground">
-              <p>Gerado em {generatedAtLabel}</p>
-              <p>{title}</p>
-            </div>
-          </div>
-
-          <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
-            {contactInfo.siteUrl ? (
-              <div>
-                <span className="font-medium text-foreground">Site:</span> {contactInfo.siteUrl}
-              </div>
-            ) : null}
-            {contactInfo.supportEmail ? (
-              <div>
-                <span className="font-medium text-foreground">Contato:</span> {contactInfo.supportEmail}
-              </div>
-            ) : null}
-            {contactInfo.supportPhone ? (
-              <div>
-                <span className="font-medium text-foreground">Telefone / WhatsApp:</span> {contactInfo.supportPhone}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
         {children}
 
-        <div className="hidden border-t border-border pt-4 text-xs text-muted-foreground print:block">
+        <div className="docs-print-footer hidden border-t border-border bg-background pt-3 text-xs text-muted-foreground print:block">
           <div className="flex items-center justify-between gap-4">
             <span>{title}</span>
             <span>Gerado em {generatedAtLabel}</span>
           </div>
-          <div className="mt-1">{slug}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+            {contactInfo.companyName ? <span>{contactInfo.companyName}</span> : null}
+            {contactInfo.siteUrl ? <span>{contactInfo.siteUrl}</span> : null}
+            {contactInfo.supportEmail ? <span>{contactInfo.supportEmail}</span> : null}
+            {contactInfo.supportPhone ? <span>{contactInfo.supportPhone}</span> : null}
+            <span>{slug}</span>
+          </div>
         </div>
       </div>
     </div>
