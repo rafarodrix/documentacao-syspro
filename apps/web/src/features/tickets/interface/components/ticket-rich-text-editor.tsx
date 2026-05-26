@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ClipboardEvent as ReactClipboardEvent, type ComponentProps, type MouseEvent } from "react";
+import { useRef, useState, type ClipboardEvent as ReactClipboardEvent, type ComponentProps, type MouseEvent } from "react";
 import {
   Bold,
   Code2,
@@ -14,8 +14,9 @@ import {
   RemoveFormatting,
 } from "lucide-react";
 
-import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Textarea, Tooltip, TooltipContent, TooltipTrigger } from "@dosc-syspro/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Textarea, Tooltip, TooltipContent, TooltipTrigger, Tabs, TabsList, TabsTrigger } from "@dosc-syspro/ui";
 import { markdownToPlainText, normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
+import { TicketMessageContent } from "@/features/tickets/interface/components/ticket-message-content";
 import { cn } from "@/lib/utils";
 
 type TicketRichTextEditorTemplate = {
@@ -90,6 +91,7 @@ export function TicketRichTextEditor({
   compact = false,
 }: TicketRichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
 
   function preserveSelection(event: MouseEvent<HTMLElement>) {
     event.preventDefault();
@@ -146,6 +148,7 @@ export function TicketRichTextEditor({
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function toggleLinePrefix(prefix: string, placeholderText: string) {
     updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
       const selected = selectedValue || placeholderText;
@@ -265,110 +268,128 @@ export function TicketRichTextEditor({
   }
 
   const toolbarButtonClassName =
-    "h-8 rounded-md border border-transparent px-2.5 text-muted-foreground hover:text-foreground data-[active=true]:border-border/80 data-[active=true]:bg-background data-[active=true]:text-foreground";
+    "h-8 rounded-md border border-transparent px-2.5 text-muted-foreground hover:text-foreground data-[active=true]:border-border/80 data-[active=true]:bg-background data-[active=true]:text-foreground cursor-pointer";
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border/60 bg-background shadow-sm", className)}>
-      <div className={cn("flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/25 px-3 py-2", compact && "gap-1.5 px-2.5 py-2")}>
-        <ToolbarButton
-          label="Titulo"
-          onMouseDown={preserveSelection}
-          onClick={() => setHeading(2)}
-          className={toolbarButtonClassName}
-        >
-          <Heading2 className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Subtitulo"
-          onMouseDown={preserveSelection}
-          onClick={() => setHeading(3)}
-          className={toolbarButtonClassName}
-        >
-          <Heading3 className="h-4 w-4" />
-        </ToolbarButton>
-        <div className="mx-1 h-5 w-px bg-border/60" />
-        <ToolbarButton
-          label="Negrito"
-          onMouseDown={preserveSelection}
-          onClick={() => wrapSelection("**", "**")}
-          className={toolbarButtonClassName}
-        >
-          <Bold className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Italico"
-          onMouseDown={preserveSelection}
-          onClick={() => wrapSelection("_", "_")}
-          className={toolbarButtonClassName}
-        >
-          <Italic className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Lista"
-          onMouseDown={preserveSelection}
-          onClick={() => toggleLinePrefix("- ", "Item da lista")}
-          className={toolbarButtonClassName}
-        >
-          <List className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Lista numerada"
-          onMouseDown={preserveSelection}
-          onClick={() => toggleLinePrefix("1. ", "Item numerado")}
-          className={toolbarButtonClassName}
-        >
-          <ListOrdered className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Citacao"
-          onMouseDown={preserveSelection}
-          onClick={() => toggleLinePrefix("> ", "Observacao importante")}
-          className={toolbarButtonClassName}
-        >
-          <Quote className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Codigo inline"
-          onMouseDown={preserveSelection}
-          onClick={() => wrapSelection("`", "`", "codigo")}
-          className={toolbarButtonClassName}
-        >
-          <Code2 className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Bloco de codigo"
-          onMouseDown={preserveSelection}
-          onClick={insertCodeBlock}
-          className={toolbarButtonClassName}
-        >
-          <Code2 className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Link"
-          onMouseDown={preserveSelection}
-          onClick={insertLink}
-          className={toolbarButtonClassName}
-        >
-          <Link2 className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          label="Limpar formatacao"
-          onMouseDown={preserveSelection}
-          onClick={clearFormatting}
-          className={toolbarButtonClassName}
-        >
-          <RemoveFormatting className="h-4 w-4" />
-        </ToolbarButton>
+    <div className={cn("overflow-hidden rounded-xl border border-border/60 bg-background shadow-sm flex flex-col", className)}>
+      <div className={cn("flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/25 px-3 py-2 shrink-0", compact && "gap-1.5 px-2.5 py-2")}>
+        
+        {/* Alternador de Abas */}
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "write" | "preview")} className="mr-1 shrink-0">
+          <TabsList className="h-8 p-0.5 bg-muted/50 border border-border/60 rounded-lg">
+            <TabsTrigger value="write" className="h-[26px] text-xs px-3 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer">
+              Escrever
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="h-[26px] text-xs px-3 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer">
+              Visualizar
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        <div className="ml-auto flex items-center gap-2">
-          {showTemplates ? (
+        {activeTab === "write" ? (
+          <>
+            <div className="h-4 w-px bg-border/80 mx-1 shrink-0" />
+            <ToolbarButton
+              label="Titulo"
+              onMouseDown={preserveSelection}
+              onClick={() => setHeading(2)}
+              className={toolbarButtonClassName}
+            >
+              <Heading2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Subtitulo"
+              onMouseDown={preserveSelection}
+              onClick={() => setHeading(3)}
+              className={toolbarButtonClassName}
+            >
+              <Heading3 className="h-4 w-4" />
+            </ToolbarButton>
+            <div className="mx-1 h-5 w-px bg-border/60 shrink-0" />
+            <ToolbarButton
+              label="Negrito"
+              onMouseDown={preserveSelection}
+              onClick={() => wrapSelection("**", "**")}
+              className={toolbarButtonClassName}
+            >
+              <Bold className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Italico"
+              onMouseDown={preserveSelection}
+              onClick={() => wrapSelection("_", "_")}
+              className={toolbarButtonClassName}
+            >
+              <Italic className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Lista"
+              onMouseDown={preserveSelection}
+              onClick={() => toggleLinePrefix("- ", "Item da lista")}
+              className={toolbarButtonClassName}
+            >
+              <List className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Lista numerada"
+              onMouseDown={preserveSelection}
+              onClick={() => toggleLinePrefix("1. ", "Item numerado")}
+              className={toolbarButtonClassName}
+            >
+              <ListOrdered className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Citacao"
+              onMouseDown={preserveSelection}
+              onClick={() => toggleLinePrefix("> ", "Observacao importante")}
+              className={toolbarButtonClassName}
+            >
+              <Quote className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Codigo inline"
+              onMouseDown={preserveSelection}
+              onClick={() => wrapSelection("`", "`", "codigo")}
+              className={toolbarButtonClassName}
+            >
+              <Code2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Bloco de codigo"
+              onMouseDown={preserveSelection}
+              onClick={insertCodeBlock}
+              className={toolbarButtonClassName}
+            >
+              <Code2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Link"
+              onMouseDown={preserveSelection}
+              onClick={insertLink}
+              className={toolbarButtonClassName}
+            >
+              <Link2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Limpar formatacao"
+              onMouseDown={preserveSelection}
+              onClick={clearFormatting}
+              className={toolbarButtonClassName}
+            >
+              <RemoveFormatting className="h-4 w-4" />
+            </ToolbarButton>
+          </>
+        ) : null}
+
+        <div className="ml-auto flex items-center gap-3 shrink-0">
+          {showTemplates && activeTab === "write" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 rounded-md border-border/60 text-xs"
+                  className="h-8 rounded-md border-border/60 text-xs cursor-pointer"
                   onMouseDown={preserveSelection}
                 >
                   Templates
@@ -378,31 +399,48 @@ export function TicketRichTextEditor({
                 <DropdownMenuLabel className="text-xs">Blocos sugeridos</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {templates.map((template) => (
-                  <DropdownMenuItem key={template.id} className="text-xs" onClick={() => insertTemplate(template.value)}>
+                  <DropdownMenuItem key={template.id} className="text-xs cursor-pointer" onClick={() => insertTemplate(template.value)}>
                     {template.label}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground font-mono select-none">
             {markdownToPlainText(value).length} caracteres
           </span>
         </div>
       </div>
 
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onPaste={onPaste}
-        placeholder={placeholder}
-        className={cn(
-          "resize-y rounded-none border-0 px-4 py-3 font-mono text-sm leading-6 shadow-none focus-visible:ring-0",
-          "bg-background text-foreground placeholder:text-muted-foreground",
-          minHeightClassName,
-        )}
-      />
+      {activeTab === "write" ? (
+        <Textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onPaste={onPaste}
+          placeholder={placeholder}
+          className={cn(
+            "resize-y rounded-none border-0 px-4 py-3 font-mono text-sm leading-6 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
+            "bg-background text-foreground placeholder:text-muted-foreground/60",
+            minHeightClassName,
+          )}
+        />
+      ) : (
+        <div 
+          className={cn(
+            "p-4 overflow-y-auto bg-background text-foreground whitespace-normal wrap-anywhere",
+            minHeightClassName
+          )}
+        >
+          {value.trim() ? (
+            <TicketMessageContent body={value} />
+          ) : (
+            <p className="text-sm text-muted-foreground/50 italic select-none">
+              {placeholder || "Nada para pré-visualizar."}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -432,3 +470,4 @@ function ToolbarButton({
     </Tooltip>
   );
 }
+

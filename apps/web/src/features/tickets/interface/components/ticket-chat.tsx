@@ -430,7 +430,7 @@ function Timeline({
                                             article.isInternal
                                                 ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
                                                 : messageIsMe
-                                                    ? "rounded-tr-sm bg-muted text-foreground"
+                                                    ? "rounded-tr-sm bg-muted text-foreground dark:prose-invert"
                                                     : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
                                         )}
                                     >
@@ -530,12 +530,8 @@ function formatTicketAttachmentSize(bytes: number) {
     return `${bytes} B`;
 }
 
-function stripHtml(value: string) {
-    return markdownToPlainText(value);
-}
-
 function parseHistoryEvent(value: string) {
-    const plain = stripHtml(value).replace(/\r/g, "");
+    const plain = markdownToPlainText(value).replace(/\r/g, "");
     const lines = plain
         .split("\n")
         .map((line) => line.trim())

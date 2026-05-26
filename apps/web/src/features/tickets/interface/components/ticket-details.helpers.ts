@@ -68,7 +68,7 @@ export function findOpeningArticleIndex(articles: TicketArticleItem[]) {
   let bestTimestamp = Number.POSITIVE_INFINITY;
 
   articles.forEach((article, index) => {
-    if (article.messageType === "SYSTEM_EVENT" || isTechnicalResourceArticle(article) || !stripHtml(article.body).trim()) {
+    if (article.messageType === "SYSTEM_EVENT" || isTechnicalResourceArticle(article) || !markdownToPlainText(article.body).trim()) {
       return;
     }
     const timestamp = parsePtBrDateTime(article.createdAt);
@@ -93,9 +93,6 @@ export function isTechnicalResourceArticle(article: TicketArticleItem) {
   return body.includes("recurso tecnico") || body.includes("recurso de diagn");
 }
 
-export function stripHtml(value: string) {
-  return markdownToPlainText(value);
-}
 
 export function normalizeStatusValue(status?: string | null): TicketModuleStatus | null {
   const normalized = (status || "").trim().toLowerCase();

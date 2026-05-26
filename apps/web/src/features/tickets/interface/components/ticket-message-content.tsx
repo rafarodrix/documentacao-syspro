@@ -1,14 +1,63 @@
 "use client";
 
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { ComponentPropsWithoutRef, ReactNode, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TicketMessageContentProps = {
   body: string;
   className?: string;
 };
+
+function PreBlock({ className, children, ...props }: ComponentPropsWithoutRef<"pre"> & { children?: ReactNode }) {
+  const [copied, setCopied] = useState(false);
+  const textRef = useRef<HTMLPreElement>(null);
+
+  const handleCopy = async () => {
+    if (!textRef.current) return;
+    // Pega o texto limpo de dentro do bloco
+    const codeText = textRef.current.innerText || "";
+    try {
+      await navigator.clipboard.writeText(codeText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Erro ao copiar código:", err);
+    }
+  };
+
+  return (
+    <div className="group relative w-full my-3">
+      <pre
+        ref={textRef}
+        {...props}
+        className={cn(
+          "max-w-full overflow-x-auto rounded-lg border border-white/10 bg-zinc-950 p-3.5 pr-12 whitespace-pre-wrap text-zinc-100 font-mono text-[13px] leading-relaxed shadow-sm",
+          className,
+        )}
+      >
+        {children}
+      </pre>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={cn(
+          "absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-zinc-900 text-zinc-400 opacity-0 transition-all shadow hover:bg-zinc-800 hover:text-zinc-100 focus:opacity-100 group-hover:opacity-100 cursor-pointer",
+          copied && "opacity-100 text-emerald-400 border-emerald-500/30 bg-emerald-950/20 hover:text-emerald-300"
+        )}
+        title="Copiar código"
+      >
+        {copied ? (
+          <Check className="h-3.5 w-3.5" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export function TicketMessageContent({
   body,
@@ -27,15 +76,7 @@ export function TicketMessageContent({
               rel="noopener noreferrer nofollow"
             />
           ),
-          pre: ({ className: preClassName, ...props }: ComponentPropsWithoutRef<"pre">) => (
-            <pre
-              {...props}
-              className={cn(
-                "max-w-full overflow-x-auto rounded-lg border border-white/10 bg-zinc-950 p-3 whitespace-pre-wrap text-zinc-100",
-                preClassName,
-              )}
-            />
-          ),
+          pre: PreBlock,
           code: ({
             className: codeClassName,
             children,
@@ -134,3 +175,4 @@ const ticketMessageContentClassName =
   "[&_pre]:text-zinc-100 [&_pre_*]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-zinc-100 " +
   "[&_table]:my-3 [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_tbody_tr:hover]:bg-muted/35 " +
   "[&_th_p]:m-0 [&_td_p]:m-0 [&_li_p]:m-0 [&_img]:my-3";
+
