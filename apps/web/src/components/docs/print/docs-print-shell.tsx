@@ -45,7 +45,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
     pageStyle: `
       @page {
         size: A4;
-        margin: 11mm 11mm 20mm 11mm;
+        margin: 11mm 11mm 15mm 11mm;
       }
 
       @media print {
@@ -57,7 +57,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         }
 
         .docs-print-root {
-          padding-bottom: 16mm;
+          padding-bottom: 10mm;
         }
 
         .docs-print-root * {
@@ -233,22 +233,24 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           position: fixed;
           left: 12mm;
           right: 12mm;
-          bottom: 4mm;
-          min-height: 11mm;
+          bottom: 2.5mm;
+          min-height: 7mm;
         }
 
         .docs-print-footer-line {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
-          gap: 8px;
+          gap: 6px;
           align-items: center;
+          line-height: 1.15;
         }
 
         .docs-print-footer-meta {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 2px 10px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0 10px;
           min-width: 0;
+          line-height: 1.1;
         }
 
         .docs-print-footer-meta span {
@@ -275,12 +277,12 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
       <div ref={contentRef} className="docs-print-root space-y-8">
         {children}
 
-        <div className="docs-print-footer hidden border-t border-border bg-background pt-2 text-[8.5px] text-muted-foreground print:block">
+        <div className="docs-print-footer hidden border-t border-border/70 bg-background pt-1 text-[7px] text-muted-foreground/90 print:block">
           <div className="docs-print-footer-line">
             <span className="docs-print-footer-doc-title">{title}</span>
             <span>Gerado em {generatedAtLabel}</span>
           </div>
-          <div className="docs-print-footer-meta mt-1">
+          <div className="docs-print-footer-meta mt-0.5">
             {contactInfo.companyName ? <span>{contactInfo.companyName}</span> : null}
             {contactInfo.siteUrl ? <span>{contactInfo.siteUrl}</span> : null}
             {contactInfo.supportEmail ? <span>{contactInfo.supportEmail}</span> : null}
