@@ -16,6 +16,7 @@ import {
     markdownToPlainText,
     normalizeTicketMarkdownInput,
 } from "@/features/tickets/lib/ticket-markdown";
+import { findOpeningArticleIndex } from "./ticket-details.helpers";
 
 interface TicketChatProps {
     ticketId: string;
@@ -190,6 +191,7 @@ export function TicketChat({ ticketId, articles, ticketStatus, messagePagination
                                         minHeightClassName="min-h-28"
                                         compact
                                         showTemplates={false}
+                                        previewMode={messageMode}
                                         templates={quickTemplates.map((template) => ({
                                             id: template.id,
                                             label: template.label,
@@ -338,6 +340,7 @@ function Timeline({
     onLoadOlder: (container: HTMLDivElement | null) => Promise<void | boolean>;
 }) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const openingIndex = findOpeningArticleIndex(articles);
 
     return (
         <div ref={containerRef} className="w-full">
@@ -365,8 +368,9 @@ function Timeline({
                         </div>
                     )}
 
-                    {articles.map((article) => {
+                    {articles.map((article, index) => {
                         const technicalResource = isTechnicalResourceArticle(article);
+                        const isOpening = index === openingIndex;
                         const messageIsMe = !technicalResource && (article.sender === "Agent" || isMe(article.from));
                         const messageIsSystem = (isSystem(article.from) || article.messageType === "SYSTEM_EVENT") && !technicalResource;
 
@@ -382,8 +386,8 @@ function Timeline({
                                         </div>
                                         {historyEvent.details.length > 0 && (
                                             <div className="mt-3 space-y-2">
-                                                {historyEvent.details.map((detail, index) => (
-                                                    <div key={`${article.id}-detail-${index}`} className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2 text-xs text-foreground">
+                                                {historyEvent.details.map((detail, indexDetail) => (
+                                                    <div key={`${article.id}-detail-${indexDetail}`} className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2 text-xs text-foreground">
                                                         {detail.includes("->") ? (
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 <span className="font-medium text-muted-foreground">{detail.split("->")[0]?.trim()}</span>
@@ -401,9 +405,11 @@ function Timeline({
                             );
                         }
 
+                        const alignRight = messageIsMe && !isOpening;
+
                         return (
-                            <div key={article.id} className={cn("grid min-w-0 max-w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3", messageIsMe && "grid-cols-[minmax(0,1fr)_2.25rem]")}>
-                                {!messageIsMe && (
+                            <div key={article.id} className={cn("grid min-w-0 max-w-full grid-cols-[2.25rem_minmax(0,1fr)] gap-3", alignRight && "grid-cols-[minmax(0,1fr)_2.25rem]")}>
+                                {!alignRight && (
                                     <Avatar className="h-9 w-9 shrink-0 border shadow-none">
                                         <AvatarFallback className="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200">
                                             <Headset className="h-4 w-4" />
@@ -411,8 +417,8 @@ function Timeline({
                                     </Avatar>
                                 )}
 
-                                <div className={cn("flex min-w-0 max-w-full flex-col", messageIsMe && "items-end")}>
-                                    <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", messageIsMe && "justify-end")}>
+                                <div className={cn("flex min-w-0 max-w-full flex-col", alignRight && "items-end")}>
+                                    <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", alignRight && "justify-end")}>
                                         <span className="min-w-0 max-w-55 truncate text-xs font-medium">
                                             {messageIsMe ? "Voce" : article.from.split("<")[0]}
                                         </span>
@@ -426,12 +432,15 @@ function Timeline({
 
                                     <div
                                         className={cn(
-                                            "min-w-0 w-fit max-w-[min(100%,42rem)]! rounded-2xl p-3 text-sm shadow-none wrap-anywhere",
+                                            "min-w-0 rounded-2xl p-3 text-sm shadow-none wrap-anywhere",
+                                            isOpening ? "w-full max-w-full!" : "w-fit max-w-[min(100%,42rem)]!",
                                             article.isInternal
                                                 ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
-                                                : messageIsMe
-                                                    ? "rounded-tr-sm bg-muted text-foreground dark:prose-invert"
-                                                    : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
+                                                : isOpening
+                                                    ? "rounded-tl-sm border border-border bg-card p-4 text-foreground dark:prose-invert"
+                                                    : messageIsMe
+                                                        ? "rounded-tr-sm bg-muted text-foreground dark:prose-invert"
+                                                        : "rounded-tl-sm border border-border bg-secondary text-foreground dark:prose-invert",
                                         )}
                                     >
                                         <TicketMessageContent

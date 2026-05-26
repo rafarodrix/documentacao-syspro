@@ -36,6 +36,7 @@ type TicketRichTextEditorProps = {
   templates?: TicketRichTextEditorTemplate[];
   showTemplates?: boolean;
   compact?: boolean;
+  previewMode?: "PUBLIC" | "INTERNAL";
 };
 
 const FORMATTING_TEMPLATES = [
@@ -149,6 +150,7 @@ export function TicketRichTextEditor({
   templates = DEFAULT_TEMPLATES,
   showTemplates = true,
   compact = false,
+  previewMode = "PUBLIC",
 }: TicketRichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
@@ -539,14 +541,58 @@ export function TicketRichTextEditor({
       ) : (
         <div 
           className={cn(
-            "p-4 overflow-y-auto bg-background text-foreground whitespace-normal wrap-anywhere",
+            "p-4 overflow-y-auto bg-muted/10 dark:bg-background/20 space-y-4",
             minHeightClassName
           )}
         >
           {value.trim() ? (
-            <TicketMessageContent body={value} />
+            <div className={cn("grid min-w-0 max-w-full gap-3", 
+              compact 
+                ? "grid-cols-[minmax(0,1fr)_2.25rem]" 
+                : "grid-cols-[2.25rem_minmax(0,1fr)]"
+            )}>
+              {!compact && (
+                <div className="h-9 w-9 shrink-0 rounded-full border bg-muted text-foreground flex items-center justify-center text-xs font-semibold select-none shadow-none">
+                  U
+                </div>
+              )}
+              
+              <div className={cn("flex min-w-0 max-w-full flex-col", compact && "items-end")}>
+                <div className={cn("mb-1 flex w-full max-w-full flex-wrap items-center gap-2 px-1", compact && "justify-end")}>
+                  <span className="min-w-0 max-w-55 truncate text-xs font-medium">
+                    Você
+                  </span>
+                  {previewMode === "INTERNAL" && (
+                    <span className="max-w-full wrap-break-word rounded bg-amber-100 px-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                      Nota Interna
+                    </span>
+                  )}
+                  <span className="shrink-0 text-[10px] text-muted-foreground select-none">Rascunho</span>
+                </div>
+
+                <div
+                  className={cn(
+                    "min-w-0 rounded-2xl text-sm shadow-none wrap-anywhere",
+                    compact ? "w-fit max-w-[min(100%,42rem)]! p-3" : "w-full max-w-full! p-4",
+                    previewMode === "INTERNAL"
+                      ? "rounded-tl-sm border border-amber-200/60 bg-amber-50 text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100 dark:prose-invert"
+                      : compact
+                        ? "rounded-tr-sm bg-muted text-foreground dark:prose-invert"
+                        : "rounded-tl-sm border border-border bg-card text-foreground dark:prose-invert"
+                  )}
+                >
+                  <TicketMessageContent body={value} />
+                </div>
+              </div>
+
+              {compact && (
+                <div className="h-9 w-9 shrink-0 rounded-full border bg-muted text-foreground flex items-center justify-center text-xs font-semibold select-none shadow-none">
+                  U
+                </div>
+              )}
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground/50 italic select-none">
+            <p className="text-sm text-muted-foreground/50 italic select-none p-2">
               {placeholder || "Nada para pré-visualizar."}
             </p>
           )}
