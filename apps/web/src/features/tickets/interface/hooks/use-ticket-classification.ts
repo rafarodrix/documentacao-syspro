@@ -7,6 +7,7 @@ import type { TicketModulePriority, TicketModuleStatus } from "@dosc-syspro/cont
 import { updateTicketClassificationAction } from "@/features/tickets/application/ticket-actions";
 import { useTicketModuleSettings } from "./use-ticket-module-settings";
 import type { TicketDetailsItem } from "../components/ticket-view.types";
+import { normalizeStatusValue } from "../components/ticket-details.helpers";
 
 type TicketModuleSettingsOption = { value: string; label: string; defaultTeam?: string };
 
@@ -33,11 +34,7 @@ function resolveCategoryForTeam(categories: TicketModuleSettingsOption[], team: 
     return options[0]?.value || current;
 }
 
-function normalizeStatusValue(status?: string | null): TicketModuleStatus | null {
-    const normalized = (status || "").trim().toLowerCase();
-    if (normalized === "testing" || normalized === "em testes" || normalized === "em teste") return "TESTING";
-    return null;
-}
+// normalizeStatusValue é importado diretamente de ticket-details.helpers para evitar duplicidade de código
 
 export function useTicketClassification(ticket: TicketDetailsItem | undefined, canManageTickets: boolean) {
     const router = useRouter();

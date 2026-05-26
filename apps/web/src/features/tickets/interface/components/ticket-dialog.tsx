@@ -22,7 +22,7 @@ import { TicketAttachmentField } from "@/features/tickets/interface/components/t
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
-import { normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
+import { normalizeTicketMarkdownInput } from "@dosc-syspro/tickets-domain";
 import { cn } from "@/lib/utils";
 
 interface TicketDialogProps {

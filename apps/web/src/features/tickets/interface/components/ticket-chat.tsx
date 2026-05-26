@@ -15,7 +15,7 @@ import {
     appendMarkdownBlock,
     markdownToPlainText,
     normalizeTicketMarkdownInput,
-} from "@/features/tickets/lib/ticket-markdown";
+} from "@dosc-syspro/tickets-domain";
 import { findOpeningArticleIndex } from "./ticket-details.helpers";
 
 interface TicketChatProps {
@@ -459,7 +459,7 @@ function Timeline({
                                     </div>
                                 </div>
 
-                                {messageIsMe && (
+                                {alignRight && (
                                     <Avatar className="h-9 w-9 shrink-0 border shadow-none">
                                         <AvatarFallback className="bg-muted text-foreground">
                                             <User className="h-4 w-4" />

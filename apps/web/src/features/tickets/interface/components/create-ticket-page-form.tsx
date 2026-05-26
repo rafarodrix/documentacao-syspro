@@ -43,7 +43,7 @@ import {
   useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
-import { markdownToPlainText, normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
+import { markdownToPlainText, normalizeTicketMarkdownInput } from "@dosc-syspro/tickets-domain";
 
 type CustomerEmailOption = {
   companyId: string;

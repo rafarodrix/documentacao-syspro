@@ -20,7 +20,7 @@ import {
     useTicketModuleSettings,
 } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { toast } from "sonner";
-import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
+import { markdownToPlainText } from "@dosc-syspro/tickets-domain";
 
 type UseTicketDialogOptions = {
     hasInternalTicketAccess?: boolean;

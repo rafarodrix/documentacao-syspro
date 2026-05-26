@@ -17,3 +17,9 @@ export {
   serializeLinkedCompaniesResponse,
 } from './ticket-contract.mapper';
 export type { TicketRecordSource } from './ticket-contract.mapper';
+export {
+  markdownToPlainText,
+  normalizeTicketMarkdownInput,
+  appendMarkdownBlock,
+} from './ticket-markdown';
+

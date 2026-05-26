@@ -1,5 +1,5 @@
 import { formatDate, formatDateTimeSafe } from "@/lib/date";
-import { markdownToPlainText } from "@/features/tickets/lib/ticket-markdown";
+import { markdownToPlainText } from "@dosc-syspro/tickets-domain";
 import type { TicketModuleStatus } from "@dosc-syspro/contracts/ticket";
 import type { TicketArticleItem, TicketDetailsItem } from "./ticket-view.types";
 

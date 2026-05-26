@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Textarea, Tooltip, TooltipContent, TooltipTrigger, Tabs, TabsList, TabsTrigger } from "@dosc-syspro/ui";
-import { markdownToPlainText, normalizeTicketMarkdownInput } from "@/features/tickets/lib/ticket-markdown";
+import { markdownToPlainText, normalizeTicketMarkdownInput } from "@dosc-syspro/tickets-domain";
 import { TicketMessageContent } from "@/features/tickets/interface/components/ticket-message-content";
 import { cn } from "@/lib/utils";
 
