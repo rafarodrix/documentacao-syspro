@@ -1,6 +1,6 @@
 ---
 title: Rotina de Frigorífico
-description: Documento técnico fiscal para análise de operações de abate, industrialização, retorno, ICMS, ICMS-ST, PIS, COFINS e informações complementares.
+description: Documento técnico fiscal para análise de operações de abate, industrialização, retorno, ICMS, ICMS-ST, PIS, COFINS, Reforma Tributária (IBS/CBS e cClassTrib) e informações complementares.
 lastUpdated: 2026-05-26
 owner: Implantação
 status: published
@@ -11,6 +11,7 @@ tags:
   - icms
   - pis-cofins
   - icms-st
+  - reforma-tributaria
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -21,7 +22,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Análise Fiscal do Processo de Abate Frigorífico
 
-Este documento organiza a análise fiscal da operação de abate frigorífico com foco exclusivo no tratamento tributário. O objetivo aqui não é descrever o fluxo operacional do sistema, e sim consolidar os cenários fiscais que precisam orientar a parametrização, a emissão documental e a validação contábil.
+Este documento organiza a análise fiscal da operação de abate frigorífico com foco exclusivo no tratamento tributário, integrando as novas diretrizes da Reforma Tributária (IBS/CBS e cClassTrib). O objetivo aqui não é descrever o fluxo operacional do sistema, e sim consolidar os cenários fiscais que precisam orientar a parametrização, a emissão documental e a validação contábil.
 
 <Callout type="info" title="Escopo do documento">
   Este material trata exclusivamente dos aspectos fiscais da operação. Não cobre telas, módulos, estoque, pesagem, rendimento ou comportamento operacional do sistema.
@@ -29,37 +30,50 @@ Este documento organiza a análise fiscal da operação de abate frigorífico co
 
 <Cards>
   <Card title="Quando usar">
-    Utilize este documento quando houver necessidade de validar a entrada do gado, o retorno de industrialização, a cobrança do serviço de abate e a venda de subprodutos.
+    Utilize este documento quando houver necessidade de validar a entrada do gado, o retorno de industrialização, a cobrança do serviço de abate, a venda de subprodutos e a parametrização da Reforma Tributária.
   </Card>
 
   <Card title="O que validar antes">
-    Confirme com a contabilidade o enquadramento do produtor, o documento fiscal de entrada, o tratamento de ICMS/ICMS-ST e a incidência de PIS/COFINS por operação.
+    Confirme com a contabilidade o enquadramento do produtor, o tratamento de ICMS/ICMS-ST, as alíquotas reduzidas e o enquadramento do cClassTrib de transição.
   </Card>
 </Cards>
 
+---
 
-### Sequência de emissão de documentos
+## 1. Reforma Tributária (IBS / CBS e cClassTrib)
+
+Com o avanço do cronograma de transição fiscal no Brasil, as rotinas do segmento de frigorífico contam com parametrizações específicas para unificação tributária (IBS e CBS) e classificação fiscal no ERP.
+
+### 1.1 Diretrizes de Configuração
+* **Incidência de IBS / CBS**: A maior parte das operações de entrada e movimentação de insumos é parametrizada com a relevância tributária padrão de **`100%`** para o novo modelo dual de transição.
+* **cClassTrib (Código de Classificação Tributária)**: Todas as operações internas e interestaduais descritas nesta rotina (compra de animais, remessa para abate, retorno físico e faturamento de subprodutos) devem estar classificadas com o código padrão **`200003`** nas tabelas fiscais de transição do ERP.
+
+---
+
+## 2. Visão Geral do Fluxo Fiscal e Sequência de Emissão
+
+Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a implantação:
 
 <Steps>
   <Step>
-    Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.
-      - Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
-|     - Produtor não contribuinte: Frigorífico emite NF-e de remessa para industrialização.
+    **Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.**
+    * Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
+    * Produtor não contribuinte: Frigorífico emite NF-e de remessa/entrada para industrialização.
   </Step>
   <Step>
-    Separar o tratamento do retorno da industrialização da cobrança do serviço de abate.
-      - Retorno da industrialização: NF-e de retorno com CFOP 5.925 (sem destaque de ICMS).
-      - Cobrança do serviço: NF-e com CFOP 5.125 (com destaque de ICMS, se aplicável).
+    **Separar o tratamento do retorno da industrialização da cobrança do serviço de abate.**
+    * Retorno da industrialização: NF-e de retorno físico com CFOP 5.925 / 6.925 (sem destaque de ICMS).
+    * Cobrança do serviço: NF-e com CFOP 5.125 / 6.125 (tributada sob alíquota interna/estadual).
   </Step>
   <Step>
-  | Subprodutos: Validar venda de despojos comestíveis e não comestíveis
-      - Despojos não comestíveis: NCM 0511.99.99, diferimento do ICMS.
-      - Miúdos comestíveis: NCMs específicas, validar ST ou isenção conforme estado.
+    **Subprodutos: Validar a venda de despojos comestíveis e não comestíveis.**
+    * Despojos não comestíveis: NCM `0511.99.99`, com diferimento de ICMS (ex: RICMS/MG).
+    * Miúdos comestíveis: NCMs específicas (fígado, mocotó, etc.), tributados por ST (CST `060` ou `070`) ou com benefícios de alíquota zero.
   </Step>
 </Steps>
 
 <Callout type="warning" title="Premissa de suporte">
-  O fluxo acima serve para orientar a análise fiscal e a parametrização. Nenhuma etapa deve ser automatizada como regra fixa sem confirmação do enquadramento contábil e da legislação aplicável.
+  O fluxo acima serve para orientar a análise fiscal e a parametrização. Nenhuma etapa deve ser automatizada como regra fixa sem confirmação do enquadramento contábil e da legislação aplicável de cada estado.
 </Callout>
 
 ---
@@ -68,7 +82,7 @@ Este documento organiza a análise fiscal da operação de abate frigorífico co
 
 ### 3.1 Natureza da Operação
 
-Remessa de gado em pé para industrialização por encomenda. A operação deve estar vinculada à GTA (Guia de Trânsito Animal) e ao documento fiscal correspondente.
+Remessa de gado em pé para industrialização por encomenda. A operação deve ser obrigatoriamente acobertada pela **GTA (Guia de Trânsito Animal)** física correspondente e emitida em nome do **CPF do encomendante** (quando pessoa física), para fins de controle e rastreabilidade sanitária.
 
 ### 3.2 Cenários de Entrada (Selecione abaixo)
 
@@ -86,8 +100,8 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de 
     | **Documento** | NF-e de remessa para industrialização |
     | **Emitente** | Produtor / encomendante |
     | **Destinatário** | Frigorífico |
-    | **CFOP** | 5.901 / 6.901 (ou 5.122 conforme validação fiscal específica) |
-    | **Documento auxiliar** | GTA |
+    | **CFOP** | **5.122 / 6.122** (Remessa de mercadoria p/ industrialização por encomenda) ou **5.901 / 6.901** |
+    | **Documento auxiliar** | GTA (Guia de Trânsito Animal) |
     | **Finalidade** | Remessa de gado para industrialização / abate |
 
     ##### Tratamento Fiscal
@@ -95,56 +109,98 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de 
     | :--- | :--- |
     | **ICMS** | Validar suspensão, diferimento ou não destaque conforme legislação estadual aplicável |
     | **ICMS-ST** | Não se aplica na remessa do gado em pé |
-    | **PIS / COFINS** | Normalmente não representa receita de venda para o frigorífico nesta etapa |
-    | **NF referenciada** | A NF-e de remessa do produtor deverá ser referenciada posteriormente na nota de retorno do frigorífico |
-    | **Informações comp.** | Recomendado citar a remessa para industrialização por encomenda e o número da GTA |
+    | **PIS / COFINS** | Sem receita comercial nesta etapa |
+    | **IBS / CBS** | 100% |
+    | **cClassTrib** | 200003 |
+    | **NF referenciada** | A NF-e de remessa do produtor deverá ser referenciada posteriormente na nota de retorno del frigorífico |
+    | **Informações comp.** | Emitir obrigatoriamente no CPF do encomendante e citar o número da GTA |
 
     ##### Informação Complementar Sugerida
     
     ```txt title="Texto Sugerido para NF-e"
-    Mercadoria remetida para industrialização por encomenda, vinculada à GTA nº GTA_INFORMADA. Operação de remessa para abate/industrialização com suspensão do ICMS nos termos do [Citar Artigo/Decreto Estadual], com posterior retorno dos produtos resultantes do abate.
+    Mercadoria remetida para industrialização por encomenda por conta e ordem do encomendante CPF: [CPF_DO_PRODUTOR], vinculada à GTA nº [GTA_INFORMADA]. Operação de remessa para abate/industrialização com suspensão do ICMS nos termos do [Citar Artigo/Decreto Estadual], com posterior retorno dos produtos resultantes.
     ```
   </Tab>
 
   <Tab value="Produtor Não Contribuinte" title="Cenário B - Produtor Não Contribuinte">
     #### Cenário B - Produtor Não Contribuinte de ICMS
     
-    Quando o produtor/encomendante não for contribuinte de ICMS ou não possuir obrigação/capacidade de emissão de NF-e, deve-se validar com a contabilidade qual documento fiscal será utilizado para acobertar a entrada do gado no frigorífico.
-
-    ##### Possíveis Tratamentos Fiscais
-    | Situação | Tratamento fiscal possível |
-    | :--- | :--- |
-    | **Produtor não emite NF-e** | O frigorífico emitirá uma **NF-e de Entrada**, conforme orientação da contabilidade local. |
-    | **Produtor possui nota avulsa** | Utilizar o documento fiscal emitido pela autoridade/órgão competente do município/estado. |
-    | **Apenas GTA física** | Validar se o estado exige a emissão da NF-e de entrada obrigatória para fins de trânsito e recepção. |
-    | **Operação interna em MG** | Validar regras específicas de diferimento/isenção do RICMS/MG e orientação contábil. |
+    Quando o produtor/encomendante não for contribuinte de ICMS ou não possuir capacidade/obrigação de emissão de NF-e, o frigorífico é responsável por emitir uma **NF-e de Entrada Própria** para acobertar a recepção física e fiscal dos animais.
 
     ##### Documento Fiscal (Entrada pelo Frigorífico)
     | Campo | Tratamento a validar |
     | :--- | :--- |
-    | **Documento** | NF-e de entrada, nota avulsa ou outro documento fiscal aplicável |
-    | **Emitente** | Frigorífico (entrada própria) ou órgão competente, conforme o caso |
+    | **Documento** | NF-e de entrada (emissão própria pelo destinatário) |
+    | **Emitente** | Frigorífico |
     | **Destinatário** | Frigorífico |
-    | **CFOP** | 1.901 / 2.901 (Entrada de mercadoria para industrialização) |
+    | **CFOP** | **1.901 / 2.901** (Entrada de mercadoria para industrialização por encomenda) |
     | **Documento auxiliar** | GTA |
     | **Finalidade** | Entrada de gado para industrialização / abate |
 
     ##### Tratamento Fiscal
-    | Tributo | Tratamento a validar |
+    | Tributo | Parametrização Fiscal Homologada |
     | :--- | :--- |
-    | **ICMS** | Validar se existe diferimento, suspensão, isenção ou não destaque aplicável |
-    | **ICMS-ST** | Não se aplica na entrada do gado para abate |
-    | **PIS / COFINS** | Normalmente sem direito a crédito e sem incidência direta nesta etapa |
-    | **NF referenciada** | O documento de entrada própria deverá ser referenciado no retorno posterior |
-    | **Informações comp.** | Deve citar obrigatoriamente a GTA, dados do produtor de origem e finalidade da entrada |
+    | **CST ICMS** | **090** (Outros) |
+    | **Alíquota ICMS** | **0** |
+    | **ICMS** | Operação sem destaque, amparada por diferimento/não-incidência |
+    | **PIS / COFINS** | **06 - Alíquota Zero** (Sem direito a crédito e sem incidência) |
+    | **IBS / CBS** | **100%** |
+    | **cClassTrib** | **200003** |
+    | **Informações comp.** | Constar nome/CPF do produtor de origem, número da GTA e embasamento legal local |
 
     ##### Informação Complementar Sugerida
     
     ```txt title="Texto Sugerido para NF-e de Entrada"
-    Entrada de gado em pé para industrialização/abate por encomenda, referente ao produtor NOME_OU_CPF_DO_PRODUTOR, acompanhada da GTA nº GTA_INFORMADA. Documento emitido pelo destinatário para acobertar a entrada fiscal da operação nos termos do [Citar Legislação Estadual].
+    Entrada de gado em pé para industrialização/abate por encomenda, referente ao produtor [NOME_DO_PRODUTOR] - CPF: [CPF_DO_PRODUTOR], acompanhada da GTA nº [GTA_INFORMADA]. Documento emitido pelo destinatário para acobertar a entrada fiscal da operação nos termos do [Citar Legislação Estadual].
     ```
   </Tab>
 </Tabs>
+
+---
+
+### 3.3 Entrada de Animais Vivos para Comercialização
+
+Quando o frigorífico adquire animais vivos diretamente de produtores para fins de comercialização interna direta ou abate/faturamento próprio (em vez de industrialização Triangular por encomenda de terceiros).
+
+##### Configuração Fiscal
+| Campo | Parametrização Fiscal |
+| :--- | :--- |
+| **CFOP** | **1.101** (Compra para industrialização) ou **2.101** (Interestadual) |
+| **CST ICMS** | **040** (Isento) |
+| **Alíquota ICMS** | **ISENTO** |
+| **PIS / COFINS** | **06 - Alíquota Zero** |
+| **IBS / CBS** | **100%** |
+| **cClassTrib** | **200003** |
+
+---
+
+### 3.4 Devolução de Compra e Ajustes de Estoque de Animais Vivos
+
+#### 3.4.1 Devolução de Compra - Animais Vivos (CFOP 5.202 / 6.202)
+Utilizado para formalizar a devolução física de animais vivos adquiridos anteriormente pelo frigorífico, geralmente em virtude de não conformidades biológicas identificadas na recepção.
+
+##### Configuração Fiscal
+| Campo | Parametrização Fiscal |
+| :--- | :--- |
+| **CFOP** | **5.202** (Devolução de compra para industrialização) ou **6.202** (Interestadual) |
+| **CST ICMS** | **040** (Isento) |
+| **Alíquota ICMS** | **ISENTO** |
+| **PIS / COFINS** | **06 - Alíquota Zero** |
+| **IBS / CBS** | **100%** |
+| **cClassTrib** | **200003** |
+
+#### 3.4.2 Ajustes de Estoque: Perdas e Roubo de Gado (CFOP 5.927)
+Operação de baixa física de estoque em decorrência de perdas, roubo ou sinistros biológicos dos animais vivos sob a posse do frigorífico.
+
+##### Configuração Fiscal
+| Campo | Parametrização Fiscal |
+| :--- | :--- |
+| **CFOP** | **5.927** (Lançamento efetuado a título de baixa de estoque decorrente de perda, roubo...) |
+| **CST ICMS** | **060** (Ou o correspondente conforme origem) |
+| **Alíquota ICMS** | **0%** |
+| **PIS / COFINS** | **06 - Alíquota Zero** |
+| **IBS / CBS** | **100%** |
+| **cClassTrib** | **200003** |
 
 ---
 
@@ -157,16 +213,18 @@ Após o abate, deve ser emitida a nota fiscal de **retorno das mercadorias indus
 | **Documento** | NF-e de retorno de industrialização |
 | **Emitente** | Frigorífico |
 | **Destinatário** | Encomendante / produtor |
-| **CFOP Interno** | 5.925 (Retorno de mercadoria recebida para industrialização por encomenda) |
-| **CFOP Interestadual** | 6.925 |
+| **CFOP Interno** | **5.925** (Retorno de mercadoria recebida para industrialização por encomenda) |
+| **CFOP Interestadual** | **6.925** |
 | **Produto** | Carcaças, bandas, quartos ou produto industrializado final retornado |
 | **NF Referenciada** | Chave de acesso da NF-e de remessa original (Cenário A) ou de entrada (Cenário B) |
 
 | Tributo | Tratamento sugerido |
 | :--- | :--- |
-| **ICMS** | Normalmente sem destaque (retorno com suspensão do ICMS) |
+| **ICMS** | Normalmente sem destaque (CST `050` - Retorno com suspensão do ICMS) |
 | **ICMS-ST** | Não se aplica ao retorno da mercadoria industrializada |
-| **PIS / COFINS** | Não há débito, pois não se trata de receita de venda, mas mera devolução de insumo |
+| **PIS / COFINS** | Não há débito (mera devolução física de insumo) |
+| **IBS / CBS** | 100% |
+| **cClassTrib** | 200003 |
 | **Informações comp.** | Deve vincular e referenciar explicitamente a NF de remessa, GTA e a operação |
 
 <Callout type="warning" title="Observação fiscal crucial">
@@ -176,7 +234,7 @@ Após o abate, deve ser emitida a nota fiscal de **retorno das mercadorias indus
 ### Informação Complementar Sugerida
 
 ```txt title="Texto Sugerido para Nota de Retorno"
-Retorno de mercadoria recebida para industrialização por encomenda, referente a NF-e nº NF_ORIGEM, série SERIE_ORIGEM, emitida em DATA_DA_NF, vinculada à GTA nº GTA_INFORMADA. Operação de retorno dos produtos resultantes do abate/industrialização.
+Retorno de mercadoria recebida para industrialização por encomenda, referente a NF-e nº [NF_ORIGEM], série [SERIE_ORIGEM], emitida em [DATA_DA_NF], vinculada à GTA nº [GTA_INFORMADA]. Operação de retorno dos produtos resultantes do abate/industrialização.
 ```
 
 ---
@@ -190,23 +248,40 @@ Na mesma nota fiscal de retorno ou em documento fiscal próprio, deve ser inclu�
 | **Documento** | NF-e com item de serviço/industrialização por encomenda |
 | **Emitente** | Frigorífico |
 | **Destinatário** | Encomendante |
-| **CFOP Interno** | 5.125 (Industrialização efetuada para outra empresa) |
-| **CFOP Interestadual** | 6.125 |
+| **CFOP Interno** | **5.125** (Industrialização efetuada para outra empresa) |
+| **CFOP Interestadual** | **6.125** |
 | **Descrição** | Serviço de abate e industrialização efetuada por encomenda |
 | **NF Referenciada** | NF-e de remessa original ou nota de entrada |
 
 | Tributo | Tratamento a validar |
 | :--- | :--- |
-| **ICMS** | Validar se o estado concede diferimento na parcela da mão de obra ou se há destaque normal do imposto |
+| **ICMS** | Validar se o estado concede diferimento na parcela da mão de obra ou se há destaque normal do imposto (CST `000` ou similar) |
 | **ICMS-ST** | Não se aplica sobre a prestação de serviço de abate |
-| **PIS / COFINS** | Receita tributada normalmente (conforme regime do frigorífico) |
+| **PIS / COFINS** | Receita tributada normalmente conforme o regime do frigorífico |
+| **IBS / CBS** | 100% |
+| **cClassTrib** | 200003 |
 | **Base de Cálculo** | Valor total cobrado pelo serviço (mão de obra + materiais consumidos no abate) |
 
 ### Informação Complementar Sugerida
 
 ```txt title="Texto Sugerido para Cobrança de Serviço"
-Cobrança referente aos serviços de abate/industrialização prestados sobre mercadoria recebida para industrialização, vinculada à NF-e de origem nº NF_ORIGEM, série SERIE_ORIGEM, e à GTA nº GTA_INFORMADA.
+Cobrança referente aos serviços de abate/industrialização prestados sobre mercadoria recebida para industrialização, vinculada à NF-e de origem nº [NF_ORIGEM], série [SERIE_ORIGEM], e à GTA nº [GTA_INFORMADA].
 ```
+
+---
+
+### 5.1 Exemplo Prático de Faturamento Unificado (Carcaça + Serviço de Mão de Obra)
+
+Na prática comercial dos frigoríficos, é comum emitir uma **única nota fiscal** englobando tanto a devolução das carcaças quanto a cobrança dos serviços. Abaixo está o exemplo real de preenchimento do grid de itens de nota fiscal baseado em faturamentos reais:
+
+| Cód | Descrição do Produto/Serviço | NCM/SH | CST | CFOP | UN | Qtd | Val. Unit | Val. Total | B. Calc ICMS | Val. ICMS | Alíq ICMS |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `000008` | GADO BOVINO ABATIDO - FEMEA | `02011000` | **`050`** | **`5925`** | UN | 4,0000 | 2.000,00 | 8.000,00 | 0,00 | 0,00 | 0,00% |
+| `000080` | INDUST ABATE MAO DE OBRA E MATERIAIS BOVINO | `02011000` | **`000`** | **`5125`** | UN | 4,0000 | 200,00 | 800,00 | 800,00 | 144,00 | 18,00% |
+
+> [!NOTE]
+> * **Gado Bovino Abatido (Retorno Físico)**: Faturado com CST `050` (Nacional, com suspensão/diferimento do ICMS), sem incidência ou base de cálculo.
+> * **Serviço de Mão de Obra (Cobrança)**: Faturado com CST `000` (Nacional, tributado integralmente), com destaque de ICMS à alíquota padrão do estado (exemplo de 18% em Minas Gerais).
 
 ---
 
@@ -228,18 +303,20 @@ Os produtos não comestíveis resultantes do abate (como ossos, couro, sebo e sa
 | **Documento** | NF-e de venda |
 | **Emitente** | Frigorífico |
 | **Destinatário** | Comprador (Indústria de ração, curtume, saboaria, etc.) |
-| **CFOP Interno** | 5.101 (Venda de produção do estabelecimento) |
-| **CFOP Interestadual** | 6.101 |
+| **CFOP Interno** | **5.101** (Venda de produção do estabelecimento) |
+| **CFOP Interestadual** | **6.101** |
 
 ##### Tratamento Fiscal
 | Tributo | Tratamento a validar |
 | :--- | :--- |
-| **ICMS** | Diferimento do ICMS no estado de origem, se atendidos os requisitos legais |
+| **ICMS** | Diferimento do ICMS no estado de origem, se atendidos os requisitos legais (por exemplo, operação alcançada pelo diferimento conforme previsto no **RICMS/MG**) |
 | **ICMS-ST** | Normalmente não se aplica |
 | **PIS / COFINS** | Validar alíquotas e benefícios de alíquota zero/suspensão para insumos agropecuários |
+| **IBS / CBS** | 100% |
+| **cClassTrib** | 200003 |
 
 ```txt title="Texto Sugerido para Despojos Não Comestíveis"
-Venda de subprodutos não comestíveis resultantes do abate de gado bovino. ICMS diferido nos termos do [Citar Artigo/Decreto da Legislação Estadual].
+Venda de subprodutos não comestíveis resultantes do abate de gado bovino. ICMS diferido nos termos do [Citar Artigo/Decreto da Legislação Estadual, como RICMS/MG para operações em Minas Gerais].
 ```
 
 ---
@@ -261,31 +338,57 @@ A comercialização de miúdos e despojos comestíveis (fígado, coração, lín
 
 <Tabs items={['ICMS-ST Recolhido Anteriormente', 'Apurado pelo Frigorífico (Substituto)']}>
   <Tab value="ICMS-ST Recolhido Anteriormente" title="Cenário A - ICMS-ST Já Recolhido">
-    #### Cenário A - ICMS-ST Já Recolhido Anteriormente / Substituído
+    #### Cenário A - ICMS-ST Já Recolhido Anteriormente / Substituído (CST 060 / CFOP 5.405)
     
-    Quando o imposto da substituição tributária já foi retido na etapa anterior ou no processo de entrada por outra sistemática.
+    Quando o imposto da substituição tributária já foi retido na etapa anterior ou no processo de entrada por outra sistemática fiscal.
 
     ##### Configuração Fiscal
-    | Campo | Tratamento |
+    | Campo | Parametrização Fiscal Homologada |
     | :--- | :--- |
-    | **CFOP** | 5.405 (Venda de mercadoria adquirida ou recebida de terceiros sujeita a ST) |
-    | **CST ICMS** | 060 (ICMS cobrado anteriormente por substituição tributária) |
-    | **ICMS Próprio** | Sem destaque |
-    | **ICMS-ST** | Sem novo destaque |
+    | **CFOP** | **5.405** (Venda de mercadoria sujeita a ST) |
+    | **CST ICMS** | **060** (ICMS cobrado anteriormente por substituição tributária) |
+    | **Alíquota ICMS** | **0%** |
+    | **ICMS Próprio / ST** | Sem destaque de impostos na nota fiscal |
+    | **PIS / COFINS** | **06 - Alíquota Zero** |
+    | **IBS / CBS** | **100%** |
+    | **cClassTrib** | **200003** |
+
+    ##### Exemplo Prático de Itens de Venda (Grid de XML real)
+    Abaixo está o preenchimento real para venda de miúdos comestíveis com substituição tributária retida na compra/entrada:
+    
+    | Cód | Descrição do Produto/Serviço | NCM/SH | CST | CFOP | UN | Qtd | Val. Unit | Val. Total | Informações Complementares do Item |
+    | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+    | `000091` | FIGADO DE BOVINO | `02062200` | **`060`** | **`5405`** | KG | 48,7000 | 10,00 | 487,00 | *Retido na compra: BASE ICMS ST - 0,01 pSt-0,01 VALOR ICMS ST - 0,00* |
+    | `000003` | MOCOTO | `02062990` | **`060`** | **`5405`** | KG | 20,0000 | 10,00 | 200,00 | *Retido na compra: BASE ICMS ST - 0,01 pSt-0,01 VALOR ICMS ST - 0,00* |
   </Tab>
 
   <Tab value="Apurado pelo Frigorífico (Substituto)" title="Cenário B - Frigorífico Substituto">
     #### Cenário B - Frigorífico Responsável pela Apuração / Substituto
     
-    Quando o frigorífico atua como substituto tributário, sendo responsável por reter e recolher o ICMS-ST relativo às saídas subsequentes.
+    Quando o frigorífico atua como substituto tributário, sendo responsável por reter e recolher o ICMS-ST relativo às saídas subsequentes. Dependendo do estado e regime, a operação pode usufruir de **Redução de Base de Cálculo**, exigindo CST específico.
 
-    ##### Configuração Fiscal
-    | Campo | Tratamento |
+    ##### Configuração Fiscal Alternativa 1: Substituição Padrão (Sem Redução)
+    | Campo | Parametrização Fiscal |
     | :--- | :--- |
-    | **CFOP** | 5.401 / 6.401 (Venda de produção sujeita ao regime de substituição tributária) |
-    | **CST ICMS** | 010 (Tributada e com cobrança de ICMS por substituição tributária) |
+    | **CFOP** | **5.401 / 6.401** (Venda de produção sujeita ao regime de substituição tributária) |
+    | **CST ICMS** | **010** (Tributada e com cobrança de ICMS por substituição tributária) |
     | **ICMS Próprio** | Destacado normalmente conforme alíquota interestadual/interna |
     | **ICMS-ST** | Calculado via MVA (Margem de Valor Agregado) ou PMPF e destacado na nota |
+    | **PIS / COFINS** | **06 - Alíquota Zero** |
+    | **IBS / CBS** | **100%** |
+    | **cClassTrib** | **200003** |
+
+    ##### Configuração Fiscal Alternativa 2: Substituto com Redução de Base (CST 070)
+    Conforme homologação contábil prática baseada em parametrização real de venda de miúdos com redução de carga tributária e recolhimento subsequente de ICMS-ST.
+    
+    | Campo | Parametrização Fiscal |
+    | :--- | :--- |
+    | **CFOP** | **5.401** (Venda de produção do estabelecimento sujeita a ST) |
+    | **CST ICMS** | **070** (Com redução de base de cálculo e cobrança de ICMS por ST) |
+    | **Alíquota ICMS** | **18%** (com **Redução de Base de Cálculo de 61,11%**) |
+    | **PIS / COFINS** | **06 - Alíquota Zero** |
+    | **IBS / CBS** | **100%** |
+    | **cClassTrib** | **200003** |
   </Tab>
 </Tabs>
 
@@ -312,18 +415,22 @@ A parametrização de PIS e COFINS não é fixa e deve respeitar a NCM, regime t
 
 ---
 
-## 8. Matriz Fiscal Consolidada
+## 8. Matriz Fiscal Consolidada (Geral)
 
-A tabela abaixo resume as combinações recomendadas de CFOP e comportamento tributário para cada etapa da rotina do frigorífico.
+A tabela abaixo resume e consolida todas as parametrizações recomendadas para as operações fiscais na rotina do frigorífico, integrando os dados e classificadores da Reforma Tributária.
 
-| Etapa da Operação | Documento Emitido | CFOP Padrão | ICMS | ICMS-ST | PIS/COFINS | Informação Complementar |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Entrada (Contribuinte)** | NF-e de Remessa | 5.901 / 5.122 | Suspensão / diferimento | Não se aplica | Sem receita | Citar GTA e industrialização |
-| **Entrada (Não Contribuinte)**| NF-e Entrada / Nota Avulsa | 1.901 / 2.901 | Validar regra estadual | Não se aplica | Sem receita | Citar GTA e dados do Produtor |
-| **Retorno da Carcaça** | NF-e de Retorno | 5.925 / 6.925 | Sem destaque | Não se aplica | Sem receita | Referenciar nota de origem e GTA |
-| **Serviço de Abate** | NF-e de Serviço | 5.125 / 6.125 | Diferido ou destacado | Não se aplica | Tributável | Vincular à remessa original |
-| **Venda Subproduto Comestível**| NF-e de Venda | 5.405 / 5.401 | Isento/Redução/Destaque | Conforme cenário | Tributado/Zero | Destacar ST, se substituto |
-| **Venda Subproduto Não Comest.**| NF-e de Venda | 5.101 / 6.101 | Diferimento, se aplicável| Não se aplica | Tributado/Zero | Citar fundamento legal do diferimento |
+| Operação Fiscal | CFOP Padrão | CST ICMS | Alíquota ICMS | PIS/COFINS | IBS/CBS | cClassTrib | Descrição e Observações |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Entrada (Animais) - Comercialização** | `1.101` / `2.101` | **`040`** | `ISENTO` | **`06 - Alíq. Zero`** | `100%` | `200003` | Aquisição de gado vivo próprio para faturamento ou abate posterior. |
+| **Entrada Abate - Encomenda (Não Contrib.)** | `1.901` / `2.901` | **`090`** | `0` | **`06 - Alíq. Zero`** | `100%` | `200003` | Emissão de entrada pelo frigorífico para gado em pé de terceiro. |
+| **Entrada Abate - Encomenda (Contrib.)** | `5.122` / `5.901` | **`050` / `090`** | `Suspensão` | **Sem receita** | `100%` | `200003` | Remessa emitida pelo produtor rural, vinculada ao CPF e GTA física. |
+| **Devolução de Compra - Animais Vivos** | `5.202` / `6.202` | **`040`** | `ISENTO` | **`06 - Alíq. Zero`** | `100%` | `200003` | Devolução física ao produtor de gado adquirido para comercialização. |
+| **Ajustes de Estoque - Perdas e Roubo** | `5.927` | **`060`** | `0%` | **`06 - Alíq. Zero`** | `100%` | `200003` | Baixa de estoque decorrente de sinistro biológico ou morte animal. |
+| **Retorno da Carcaça** | `5.925` / `6.925` | **`050`** | `Suspensão` | **Sem receita** | `100%` | `200003` | Retorno físico ao encomendante dos produtos do abate (CST 050). |
+| **Serviço de Abate (Mão de Obra)** | `5.125` / `6.125` | **`000`** | `18% (ou s/ dif.)` | **Tributável** | `100%` | `200003` | Cobrança da prestação do serviço (CST 000 com ICMS conforme estado). |
+| **Venda Miúdos Comestíveis (Antecipado)** | `5.405` | **`060`** | `0%` | **`06 - Alíq. Zero`** | `100%` | `200003` | Saída de subprodutos com ST retida na compra (ex: fígado, mocotó). |
+| **Venda Miúdos Comestíveis (Substituto)** | `5.401` | **`070`** | `18% (Red 61,11%)`| **`06 - Alíq. Zero`** | `100%` | `200003` | Saída como substituto tributário sob carga tributária reduzida (CST 070). |
+| **Venda Despojos Não Comestíveis** | `5.101` / `6.101` | **`051` / `090`** | `Diferido` | **Tributado/Zero** | `100%` | `200003` | Sebo, ossos e couro verde. Diferimento aplicável (ex: RICMS/MG). |
 
 ---
 
@@ -342,6 +449,6 @@ Para evitar erros fiscais graves e chamados de suporte, certifique-se de validar
 
 ## 10. Conclusão
 
-O sucesso do processo fiscal no segmento de frigorífico reside na flexibilidade do ERP em aplicar regras de forma dinâmica e auditável, ao invés de regras fixas em código. 
+O sucesso do processo fiscal no segmento de frigorífico reside na flexibilidade do ERP em aplicar regras de forma dinâmica e auditável, ao invés de regras fixas in código. 
 
 Ao separar a entrada do gado, o retorno físico, a prestação do serviço e a venda de subprodutos comestíveis e não comestíveis, a plataforma assegura conformidade fiscal plena e evita multas fiscais tanto para o frigorífico quanto para seus produtores encomendantes.
