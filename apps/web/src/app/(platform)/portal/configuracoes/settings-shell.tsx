@@ -19,8 +19,8 @@ export function SettingsPageIntro({
   const TitleTag = titleAs;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-background via-background to-muted/40">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+    <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-linear-to-br from-background via-background to-muted/40">
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent" />
       <div className="p-6 md:p-8">
         <div className="min-w-0 space-y-3">
           {eyebrow ? (

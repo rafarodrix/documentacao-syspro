@@ -114,7 +114,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
       <Tabs defaultValue={defaultTab} className="flex flex-col gap-6 lg:flex-row lg:gap-10 items-start w-full min-w-0">
         <div className="w-full shrink-0 lg:w-64">
-          <SettingsTabsRail className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 lg:flex lg:flex-col lg:gap-1.5 lg:bg-transparent lg:p-0 lg:border-none lg:h-auto lg:w-full lg:shadow-none lg:grid-cols-none lg:grid-flow-row">
+          <SettingsTabsRail className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-col lg:gap-1.5 lg:bg-transparent lg:p-0 lg:border-none lg:h-auto lg:w-full lg:shadow-none lg:grid-cols-none lg:grid-flow-row">
             <SettingsTabsRailTrigger
               value="general"
               icon={Settings}

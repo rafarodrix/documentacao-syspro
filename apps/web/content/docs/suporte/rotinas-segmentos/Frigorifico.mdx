@@ -16,6 +16,7 @@ tags:
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 # Analise Fiscal do Processo de Abate Frigorifico
 
@@ -75,6 +76,20 @@ A analise contempla:
   O fluxo abaixo serve para orientar analise fiscal e parametrizacao. Nenhuma etapa deve ser automatizada como regra fixa sem confirmacao do enquadramento contabil e da legislacao aplicavel.
 </Callout>
 
+### Sequencia recomendada de analise
+
+<Steps>
+  <Step>
+    Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.
+  </Step>
+  <Step>
+    Separar o tratamento do retorno da industrializacao da cobranca do servico de abate.
+  </Step>
+  <Step>
+    Definir em paralelo o tratamento dos subprodutos, com foco em ICMS, ICMS-ST e PIS/COFINS por NCM.
+  </Step>
+</Steps>
+
 ## 3. Entrada do Gado em Pe para Abate
 
 ### 3.1 Natureza da Operacao
@@ -111,10 +126,11 @@ Quando o produtor rural ou encomendante for contribuinte de ICMS e possuir obrig
 
 #### Informacao Complementar Sugerida
 
-```txt
-Mercadoria remetida para industrializacao por encomenda, vinculada a GTA no [GTA].
-Operacao de remessa para abate/industrializacao, com posterior retorno dos produtos industrializados.
-```
+<Callout title="Informacao complementar sugerida">
+  Mercadoria remetida para industrializacao por encomenda, vinculada a GTA no
+  {' '}[GTA]. Operacao de remessa para abate/industrializacao, com posterior
+  retorno dos produtos industrializados.
+</Callout>
 
 ### 3.3 Cenario B - Produtor Nao Contribuinte de ICMS
 
@@ -153,11 +169,11 @@ Quando o produtor/encomendante nao for contribuinte de ICMS ou nao possuir obrig
 
 #### Informacao Complementar Sugerida
 
-```txt
-Entrada de gado em pe para industrializacao/abate por encomenda, referente ao produtor [NOME/CPF],
-acompanhada da GTA no [GTA]. Documento emitido para acobertar a entrada fiscal da operacao,
-conforme orientacao fiscal aplicavel.
-```
+<Callout title="Informacao complementar sugerida">
+  Entrada de gado em pe para industrializacao/abate por encomenda, referente ao
+  produtor [NOME/CPF], acompanhada da GTA no [GTA]. Documento emitido para
+  acobertar a entrada fiscal da operacao, conforme orientacao fiscal aplicavel.
+</Callout>
 
 ## 4. Retorno das Carcacas / Produto Industrializado
 
@@ -187,11 +203,12 @@ Apos o abate, deve ser emitida nota fiscal de retorno das mercadorias industrial
 
 ### Informacao Complementar Sugerida
 
-```txt
-Retorno de mercadoria recebida para industrializacao por encomenda, referente a NF-e no [NF_ORIGEM],
-serie [SERIE], emitida em [DATA], vinculada a GTA no [GTA].
-Operacao de retorno dos produtos resultantes do abate/industrializacao.
-```
+<Callout title="Informacao complementar sugerida">
+  Retorno de mercadoria recebida para industrializacao por encomenda, referente
+  a NF-e no [NF_ORIGEM], serie [SERIE], emitida em [DATA], vinculada a GTA no
+  {' '}[GTA]. Operacao de retorno dos produtos resultantes do
+  abate/industrializacao.
+</Callout>
 
 ## 5. Cobranca do Servico de Abate / Industrializacao
 
@@ -218,10 +235,11 @@ Na mesma nota de retorno ou em documento fiscal proprio, deve ser incluida a cob
 
 ### Informacao Complementar Sugerida
 
-```txt
-Cobranca referente aos servicos de abate/industrializacao prestados sobre mercadoria recebida para industrializacao,
-vinculada a NF-e de origem no [NF_ORIGEM], serie [SERIE], e a GTA no [GTA].
-```
+<Callout title="Informacao complementar sugerida">
+  Cobranca referente aos servicos de abate/industrializacao prestados sobre
+  mercadoria recebida para industrializacao, vinculada a NF-e de origem no
+  {' '}[NF_ORIGEM], serie [SERIE], e a GTA no [GTA].
+</Callout>
 
 ## 6. Venda de Subprodutos e Despojos
 
@@ -262,10 +280,12 @@ Os produtos nao comestiveis resultantes do abate podem ter tratamento fiscal esp
 
 #### Informacao Complementar Sugerida
 
-```txt
-Operacao com produto nao comestivel resultante do abate de gado, com tratamento fiscal conforme legislacao aplicavel.
-ICMS diferido, quando atendidas as condicoes legais. Produto oriundo de processo de abate/industrializacao.
-```
+<Callout title="Informacao complementar sugerida">
+  Operacao com produto nao comestivel resultante do abate de gado, com
+  tratamento fiscal conforme legislacao aplicavel. ICMS diferido, quando
+  atendidas as condicoes legais. Produto oriundo de processo de
+  abate/industrializacao.
+</Callout>
 
 ### 6.2 Venda de Despojos Comestiveis / Miudos
 
@@ -313,10 +333,11 @@ A venda de miudos e despojos comestiveis deve ser tratada conforme NCM, enquadra
 
 #### Informacao Complementar Sugerida
 
-```txt
-Mercadoria sujeita ao regime de substituicao tributaria do ICMS, conforme legislacao aplicavel.
-CST [CST]. Produto oriundo de processo de abate/industrializacao.
-```
+<Callout title="Informacao complementar sugerida">
+  Mercadoria sujeita ao regime de substituicao tributaria do ICMS, conforme
+  legislacao aplicavel. CST [CST]. Produto oriundo de processo de
+  abate/industrializacao.
+</Callout>
 
 ## 7. PIS e COFINS
 
