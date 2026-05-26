@@ -20,6 +20,7 @@ import { DocsTocScrollSpy } from '@/components/docs/docs-toc-scroll-spy';
 import { DocsSurface } from '@/components/docs/docs-surface';
 import { DocsReadingProgress } from '@/components/docs/docs-reading-progress';
 import { DocsPrintShell } from '@/components/docs/print';
+import { getSettingsAction } from '@/features/settings/application/settings-read.queries';
 import SuporteSection from '@/components/docs/suporte-section';
 import { CodeTab, CodeTabs, Danger, Note, PlaygroundInline, Tip, Warning } from '@/components/docs/mdx';
 import {
@@ -89,6 +90,13 @@ export default async function PortalDocsPage(props: {
   const readingTimeMinutes = estimateReadingTimeMinutes(`${String(page.data.title ?? '')} ${bodyText}`);
   const docsTree = await createDocsTreeForUser(session.userId, session.role);
   const neighbours = findNeighbour(docsTree, docSlug, { separateRoot: true });
+  const settingsResult = await getSettingsAction();
+  const printContactInfo = {
+    companyName: "Trilink Software Ltda.",
+    siteUrl: settingsResult.success ? settingsResult.data.supportSiteUrl : "",
+    supportEmail: settingsResult.success ? settingsResult.data.supportEmail : "",
+    supportPhone: settingsResult.success ? settingsResult.data.supportPhone : "",
+  };
 
   return (
     <DocsPage
@@ -99,7 +107,7 @@ export default async function PortalDocsPage(props: {
     >
       <DocsReadingProgress />
       <DocsBody className="space-y-8">
-        <DocsPrintShell title={String(page.data.title)} slug={docSlug}>
+        <DocsPrintShell title={String(page.data.title)} slug={docSlug} contactInfo={printContactInfo}>
           <DocsSurface className="p-3.5 md:p-5">
             <div>
               <DocsTitle>{page.data.title}</DocsTitle>

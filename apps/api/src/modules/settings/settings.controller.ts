@@ -99,6 +99,7 @@ export class SettingsController {
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
+    supportSiteUrl: 'https://www.trilinksoftware.com.br',
     supportEmail: 'equipe@trilinksoftware.com.br',
     supportPhone: '34997713731',
     rbacMatrixEnabled: true,
@@ -130,7 +131,7 @@ export class SettingsController {
     const settings = await this.prisma.systemSetting.findMany({
       where: {
         key: {
-          in: ['minimumWage', 'maintenanceMode', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled', SETTING_KEYS.PREFERENCES],
+          in: ['minimumWage', 'maintenanceMode', 'supportSiteUrl', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled', SETTING_KEYS.PREFERENCES],
         },
       },
     });
@@ -143,6 +144,7 @@ export class SettingsController {
     const rawData = {
       minimumWage: configMap.minimumWage,
       maintenanceMode: configMap.maintenanceMode,
+      supportSiteUrl: configMap.supportSiteUrl,
       supportEmail: configMap.supportEmail,
       supportPhone: configMap.supportPhone,
       rbacMatrixEnabled: configMap.rbacMatrixEnabled,
@@ -167,6 +169,7 @@ export class SettingsController {
   private normalizeGeneralSettings(input: {
     minimumWage?: string;
     maintenanceMode?: string;
+    supportSiteUrl?: string;
     supportEmail?: string;
     supportPhone?: string;
     rbacMatrixEnabled?: string;
@@ -174,6 +177,7 @@ export class SettingsController {
   }): SettingsOutput {
     const parsedMinimumWage = Number(input.minimumWage);
     const normalizedPhone = this.normalizeDigits(input.supportPhone);
+    const normalizedSiteUrl = (input.supportSiteUrl ?? '').trim();
     const normalizedEmail = (input.supportEmail ?? '').trim();
 
     const parsedPreferences = settingsPreferencesSchema.safeParse(this.parseJsonSetting(input.preferences));
@@ -184,6 +188,7 @@ export class SettingsController {
           ? parsedMinimumWage
           : SettingsController.DEFAULT_GENERAL_SETTINGS.minimumWage,
       maintenanceMode: input.maintenanceMode === 'true',
+      supportSiteUrl: normalizedSiteUrl || SettingsController.DEFAULT_GENERAL_SETTINGS.supportSiteUrl,
       supportEmail: normalizedEmail || SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
       supportPhone: normalizedPhone || SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
       rbacMatrixEnabled: input.rbacMatrixEnabled !== 'false',
@@ -196,11 +201,13 @@ export class SettingsController {
   private buildSafeGeneralSettings(input: {
     minimumWage: number;
     maintenanceMode: boolean;
+    supportSiteUrl: string;
     supportEmail: string;
     supportPhone: string;
     rbacMatrixEnabled: boolean;
     preferences: SettingsOutput["preferences"];
   }): SettingsOutput {
+    const supportSiteUrlValidation = settingsSchema.shape.supportSiteUrl.safeParse(input.supportSiteUrl);
     const supportEmailValidation = settingsSchema.shape.supportEmail.safeParse(input.supportEmail);
     const supportPhoneValidation = settingsSchema.shape.supportPhone.safeParse(this.normalizeDigits(input.supportPhone));
 
@@ -209,6 +216,9 @@ export class SettingsController {
         ? input.minimumWage
         : SettingsController.DEFAULT_GENERAL_SETTINGS.minimumWage,
       maintenanceMode: input.maintenanceMode,
+      supportSiteUrl: supportSiteUrlValidation.success
+        ? supportSiteUrlValidation.data
+        : SettingsController.DEFAULT_GENERAL_SETTINGS.supportSiteUrl,
       supportEmail: supportEmailValidation.success
         ? supportEmailValidation.data
         : SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
@@ -250,6 +260,11 @@ export class SettingsController {
         where: { key: 'maintenanceMode' },
         update: { value: String(parsed.maintenanceMode) },
         create: { key: 'maintenanceMode', value: String(parsed.maintenanceMode), description: 'Modo manutencao' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: 'supportSiteUrl' },
+        update: { value: parsed.supportSiteUrl },
+        create: { key: 'supportSiteUrl', value: parsed.supportSiteUrl, description: 'URL institucional do site' },
       }),
       this.prisma.systemSetting.upsert({
         where: { key: 'supportEmail' },

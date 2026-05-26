@@ -39,6 +39,7 @@ export const settingsPreferencesSchema = z.object({
 export const settingsSchema = z.object({
   minimumWage: z.coerce.number().min(1, "O valor deve ser maior que zero."),
   maintenanceMode: z.boolean(),
+  supportSiteUrl: z.url("URL do site invalida."),
   supportEmail: z.email("E-mail invalido."),
   supportPhone: z.string().min(10, "Telefone invalido (minimo 10 digitos)."),
   rbacMatrixEnabled: z.boolean().default(true),
@@ -57,6 +58,7 @@ export type ContractBlockReasonOption = z.output<typeof contractBlockReasonOptio
 export const SETTING_KEYS = {
   MIN_WAGE: "minimumWage",
   MAINTENANCE: "maintenanceMode",
+  SUPPORT_SITE_URL: "supportSiteUrl",
   SUPPORT_EMAIL: "supportEmail",
   SUPPORT_PHONE: "supportPhone",
   RBAC_MATRIX_ENABLED: "rbacMatrixEnabled",
