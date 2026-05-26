@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
-import { Printer, ShieldAlert, Sparkles, Droplet, FileText, Check } from "lucide-react";
+import { Printer, Droplet, FileText } from "lucide-react";
 import { 
   Button, 
   Dialog, 
@@ -15,11 +15,6 @@ import {
   DialogClose,
   Switch,
   Label,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
   Separator
 } from "@dosc-syspro/ui";
 
@@ -50,11 +45,13 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
   const contentRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   
-  // Opções de Impressão Enterprise
+  // Opções Simplificadas para o Usuário
   const [includeCover, setIncludeCover] = useState(true);
   const [inkSaver, setInkSaver] = useState(true);
-  const [watermark, setWatermark] = useState("none");
-  const [classification, setClassification] = useState("INTERNO");
+
+  // Parâmetros Enterprise Fixos (Segurança Padrão)
+  const classification = "CONFIDENCIAL";
+  const watermarkText = "TRILINK SOFTWARE";
 
   const documentTitle = useMemo(() => sanitizeDocumentTitle(title) || "documentacao", [title]);
   
@@ -100,6 +97,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
 
         .docs-print-root {
           padding-bottom: 12mm;
+          position: relative;
         }
 
         .docs-print-root * {
@@ -283,21 +281,22 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           border-bottom: 2px solid #0f172a;
         }
 
-        /* Estilização da Marca d'Água */
+        /* MARCA D'ÁGUA EM PRIMEIRO PLANO (Sobreposta) */
         .print-watermark-overlay {
           display: block !important;
           position: fixed;
           top: 50%;
           left: 50%;
-          transform: translate(-50%, -50%) rotate(-45deg);
-          font-size: 76pt;
+          transform: translate(-50%, -50%) rotate(-35deg);
+          font-size: 56pt;
           font-weight: 900;
-          color: rgba(15, 23, 42, 0.038) !important;
-          z-index: -1000;
+          color: rgba(100, 116, 139, 0.05) !important; /* Slate bem suave para não cobrir o texto */
+          z-index: 999999 !important; /* Traz para a frente de todos os backgrounds! */
           pointer-events: none;
           white-space: nowrap;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.15em;
+          mix-blend-mode: multiply; /* Mescla com textos e imagens */
         }
 
         /* Modo de Alta Economia de Tinta (Contraste Limpo) */
@@ -364,16 +363,9 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
     }, 200);
   };
 
-  const watermarkText = useMemo(() => {
-    if (watermark === "confidential") return "CONFIDENCIAL";
-    if (watermark === "draft") return "RASCUNHO";
-    if (watermark === "internal") return "USO INTERNO";
-    return "";
-  }, [watermark]);
-
   return (
     <div className="space-y-6">
-      {/* Botão de Impressão Enterprise que dispara o Modal de Ajustes */}
+      {/* Botão de Impressão Enterprise que dispara o Modal Simplificado */}
       <div className="flex items-center justify-end">
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
@@ -388,19 +380,19 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="sm:max-w-[480px]">
+          <DialogContent className="sm:max-w-[440px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Printer className="h-5 w-5 text-primary" />
-                Opções de Impressão Enterprise
+                Opções de Impressão
               </DialogTitle>
               <DialogDescription>
-                Ajuste as preferências de layout e segurança corporativa antes de gerar o PDF ou enviar para a impressora.
+                Ajuste as preferências de layout antes de gerar o PDF. A marca d'água corporativa de segurança será aplicada automaticamente.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5 py-4">
-              {/* Tabela de Opções */}
+              {/* Tabela de Opções Simplificada */}
               <div className="space-y-4">
                 
                 {/* Capa */}
@@ -408,10 +400,10 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
                   <div className="flex flex-col space-y-0.5">
                     <Label htmlFor="include-cover" className="text-sm font-semibold flex items-center gap-1.5">
                       <FileText className="h-4 w-4 text-muted-foreground" />
-                      Incluir Capa Profissional
+                      Incluir Capa de Documento
                     </Label>
                     <span className="text-xs text-muted-foreground">
-                      Gera uma primeira folha de rosto com dados de autoria e marca.
+                      Gera uma primeira folha de rosto com dados da marca.
                     </span>
                   </div>
                   <Switch 
@@ -431,7 +423,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
                       Economia de Tinta (Monocromático)
                     </Label>
                     <span className="text-xs text-muted-foreground">
-                      Remove degradês e converte callouts para traços pretos de alto contraste.
+                      Remove degradês e otimiza o contraste de caixas de texto.
                     </span>
                   </div>
                   <Switch 
@@ -439,62 +431,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
                     checked={inkSaver} 
                     onCheckedChange={setInkSaver} 
                   />
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Marca D'água */}
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <div className="col-span-2 flex flex-col space-y-0.5">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-muted-foreground" />
-                      Marca d'Água de Fundo
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      Exibe um carimbo de segurança em diagonal em cada folha.
-                    </span>
-                  </div>
-                  <div className="col-span-1">
-                    <Select value={watermark} onValueChange={setWatermark}>
-                      <SelectTrigger className="w-full text-xs">
-                        <SelectValue placeholder="Nenhuma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
-                        <SelectItem value="confidential">Confidencial</SelectItem>
-                        <SelectItem value="draft">Rascunho</SelectItem>
-                        <SelectItem value="internal">Uso Interno</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Nível de Classificação */}
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <div className="col-span-2 flex flex-col space-y-0.5">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <ShieldAlert className="h-4 w-4 text-muted-foreground" />
-                      Classificação do Documento
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      Nível de restrição exibido no cabeçalho e rodapé.
-                    </span>
-                  </div>
-                  <div className="col-span-1">
-                    <Select value={classification} onValueChange={setClassification}>
-                      <SelectTrigger className="w-full text-xs">
-                        <SelectValue placeholder="Interno" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PÚBLICO">Público</SelectItem>
-                        <SelectItem value="INTERNO">Interno</SelectItem>
-                        <SelectItem value="RESTRITO">Restrito</SelectItem>
-                        <SelectItem value="CONFIDENCIAL">Confidencial</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
               </div>
@@ -520,12 +456,10 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         ref={contentRef} 
         className={`docs-print-root space-y-8 ${inkSaver ? "docs-print-ink-saver" : ""}`}
       >
-        {/* Marca d'Água Diagonal Injetada via CSS no Print */}
-        {watermark !== "none" && (
-          <div className="print-watermark-overlay hidden pointer-events-none">
-            {watermarkText}
-          </div>
-        )}
+        {/* Marca d'Água Superior Injetada sobre todos os elementos no Print */}
+        <div className="print-watermark-overlay hidden pointer-events-none">
+          {watermarkText}
+        </div>
 
         {/* 1. CAPA DE DOCUMENTO (Renderizada apenas na Impressão/PDF se ativa) */}
         {includeCover && (
@@ -537,11 +471,11 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
                 </span>
               ) : (
                 <span className="text-xs font-bold tracking-wider text-primary uppercase">
-                  SYS ERP
+                  TRILINK SOFTWARE
                 </span>
               )}
-              <span className="text-[9px] font-semibold text-muted-foreground/80 border px-2 py-0.5 rounded uppercase tracking-wider">
-                Documento de Suporte
+              <span className="text-[9px] font-bold text-red-600 border border-red-200 bg-red-50/50 px-2 py-0.5 rounded uppercase tracking-wider">
+                {classification}
               </span>
             </div>
             
@@ -554,15 +488,15 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
                   {title}
                 </h1>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Este documento contém as especificações fiscais, regras de parametrização e diretrizes operacionais homologadas para a rotina de {title}. As instruções abaixo devem guiar o suporte técnico e a implantação.
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Este documento contém as especificações técnicas, regras de parametrização e diretrizes operacionais homologadas para a rotina de {title}. As instruções abaixo devem guiar o suporte técnico e a implantação.
               </p>
             </div>
 
             <div className="border-t border-border/80 pt-6 grid grid-cols-3 gap-6 text-[10px] text-muted-foreground/90">
               <div>
                 <span className="block font-semibold text-foreground uppercase tracking-wider text-[8px] mb-1">ORGANIZAÇÃO EMISSORA</span>
-                {contactInfo.companyName || "Portal Oficial"}
+                {contactInfo.companyName || "Trilink Software"}
               </div>
               <div>
                 <span className="block font-semibold text-foreground uppercase tracking-wider text-[8px] mb-1">DATA DE EMISSÃO</span>
@@ -570,7 +504,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
               </div>
               <div>
                 <span className="block font-semibold text-foreground uppercase tracking-wider text-[8px] mb-1">CLASSIFICAÇÃO DE SEGURANÇA</span>
-                <span className="font-bold text-foreground">{classification}</span>
+                <span className="font-bold text-red-600 uppercase">{classification}</span>
               </div>
             </div>
           </div>
@@ -585,7 +519,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         <div className="docs-print-footer hidden border-t border-border bg-background pt-1 text-[7px] text-muted-foreground/90">
           <div className="docs-print-footer-line">
             <span className="font-semibold text-foreground">{title}</span>
-            <span>Classificação: <strong>{classification}</strong></span>
+            <span className="text-red-600 font-bold">CLASSIFICAÇÃO: {classification}</span>
             <span>Gerado em {generatedAtLabel}</span>
           </div>
           <div className="docs-print-footer-line mt-0.5">
