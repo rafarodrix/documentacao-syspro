@@ -70,6 +70,16 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           overflow: visible !important;
         }
 
+        .docs-print-root > * {
+          break-before: auto;
+          page-break-before: auto;
+        }
+
+        .docs-print-root .docs-content-surface {
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+
         .docs-print-root h1,
         .docs-print-root h2,
         .docs-print-root h3,
@@ -119,10 +129,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         .docs-print-root table,
         .docs-print-root ul,
         .docs-print-root ol,
-        .docs-print-root dl,
-        .docs-print-root .rounded-xl,
-        .docs-print-root .rounded-2xl,
-        .docs-print-root .rounded-3xl {
+        .docs-print-root dl {
           break-inside: avoid;
           page-break-inside: avoid;
         }
@@ -179,14 +186,19 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           color: #111827 !important;
         }
 
-        .docs-print-root .rounded-xl,
-        .docs-print-root .rounded-2xl,
-        .docs-print-root .rounded-3xl,
         .docs-print-root blockquote,
         .docs-print-root [data-callout],
         .docs-print-root .border {
           border-color: #d1d5db !important;
           background: #ffffff !important;
+        }
+
+        .docs-print-root .docs-content-surface,
+        .docs-print-root .rounded-xl,
+        .docs-print-root .rounded-2xl,
+        .docs-print-root .rounded-3xl {
+          break-inside: auto !important;
+          page-break-inside: auto !important;
         }
 
         .docs-print-root ul,
