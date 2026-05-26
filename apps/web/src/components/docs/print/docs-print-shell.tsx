@@ -14,7 +14,7 @@ interface DocsPrintContactInfo {
 interface DocsPrintShellProps {
   title: string;
   contactInfo: DocsPrintContactInfo;
-  children: React.ReactNode;
+  children: React.ReactNode | ((printButton: React.ReactNode) => React.ReactNode);
 }
 
 function sanitizeDocumentTitle(input: string) {
@@ -268,14 +268,12 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
     `,
   });
 
+  const printButton = <DocsPrintButton onPrint={handlePrint} />;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <DocsPrintButton onPrint={handlePrint} />
-      </div>
-
       <div ref={contentRef} className="docs-print-root space-y-8">
-        {children}
+        {typeof children === "function" ? children(printButton) : children}
 
         <div className="docs-print-footer hidden border-t border-border/70 bg-background pt-1 text-[7px] text-muted-foreground/90 print:block">
           <div className="docs-print-footer-line">
