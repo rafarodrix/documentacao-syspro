@@ -1,9 +1,9 @@
 "use client";
 
-import { ComponentPropsWithoutRef, ReactNode, useRef, useState } from "react";
+import React, { ComponentPropsWithoutRef, ReactNode, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, Copy, Info, ShieldAlert, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TicketMessageContentProps = {
@@ -17,7 +17,6 @@ function PreBlock({ className, children, ...props }: ComponentPropsWithoutRef<"p
 
   const handleCopy = async () => {
     if (!textRef.current) return;
-    // Pega o texto limpo de dentro do bloco
     const codeText = textRef.current.innerText || "";
     try {
       await navigator.clipboard.writeText(codeText);
@@ -28,34 +27,238 @@ function PreBlock({ className, children, ...props }: ComponentPropsWithoutRef<"p
     }
   };
 
+  // Extrai o nome da linguagem de programação dos filhos do pre
+  let language = "CÓDIGO";
+  
+  if (children && typeof children === "object" && "props" in (children as any)) {
+    const codeElement = children as any;
+    const codeClass = codeElement.props?.className || "";
+    const match = codeClass.match(/language-(\w+)/);
+    if (match) {
+      language = match[1].toUpperCase();
+      // Mapeamentos amigáveis
+      if (language === "JS") language = "JAVASCRIPT";
+      if (language === "TS") language = "TYPESCRIPT";
+      if (language === "PY") language = "PYTHON";
+      if (language === "HTML") language = "HTML";
+      if (language === "CSS") language = "CSS";
+      if (language === "MD") language = "MARKDOWN";
+      if (language === "SH" || language === "BASH") language = "SHELL";
+    }
+  }
+
   return (
-    <div className="group relative w-full my-3">
+    <div className="group relative w-full my-4 overflow-hidden rounded-xl border border-white/10 bg-zinc-950 shadow-md">
+      {/* Barra superior de identificação da linguagem */}
+      <div className="flex h-9 items-center justify-between border-b border-white/5 bg-zinc-900/60 px-4 select-none">
+        <span className="text-[10px] font-bold tracking-widest text-zinc-400 font-mono">
+          {language}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={cn(
+            "flex h-6 items-center gap-1.5 rounded-md border border-white/5 bg-zinc-950 px-2 text-[10px] font-semibold text-zinc-400 transition-all shadow hover:bg-zinc-800 hover:text-zinc-100 cursor-pointer",
+            copied && "text-emerald-400 border-emerald-500/30 bg-emerald-950/20 hover:text-emerald-300"
+          )}
+          title="Copiar código"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3" />
+              <span>Copiado</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" />
+              <span>Copiar</span>
+            </>
+          )}
+        </button>
+      </div>
+
       <pre
         ref={textRef}
         {...props}
         className={cn(
-          "max-w-full overflow-x-auto rounded-lg border border-white/10 bg-zinc-950 p-3.5 pr-12 whitespace-pre-wrap text-zinc-100 font-mono text-[13px] leading-relaxed shadow-sm",
+          "max-w-full overflow-x-auto p-4 whitespace-pre text-zinc-100 font-mono text-[13px] leading-relaxed",
           className,
         )}
       >
         {children}
       </pre>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className={cn(
-          "absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-zinc-900 text-zinc-400 opacity-0 transition-all shadow hover:bg-zinc-800 hover:text-zinc-100 focus:opacity-100 group-hover:opacity-100 cursor-pointer",
-          copied && "opacity-100 text-emerald-400 border-emerald-500/30 bg-emerald-950/20 hover:text-emerald-300"
-        )}
-        title="Copiar código"
-      >
-        {copied ? (
-          <Check className="h-3.5 w-3.5" />
-        ) : (
-          <Copy className="h-3.5 w-3.5" />
-        )}
-      </button>
     </div>
+  );
+}
+
+function getTextFromNode(node: ReactNode): string {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) {
+    return node.map(getTextFromNode).join("");
+  }
+  if (typeof node === "object" && "props" in node) {
+    return getTextFromNode((node as any).props.children);
+  }
+  return "";
+}
+
+function removeCalloutHeader(node: ReactNode, type: string): ReactNode {
+  if (!node) return node;
+  const prefix = `[!${type}]`;
+  
+  if (typeof node === "string") {
+    if (node.trim().startsWith(prefix)) {
+      return node.replace(new RegExp(`^\\[!${type}\\]\\s*`, "i"), "");
+    }
+    return node;
+  }
+  
+  if (Array.isArray(node)) {
+    let removed = false;
+    return node.map((child) => {
+      if (removed) return child;
+      const text = getTextFromNode(child);
+      if (text.trim().startsWith(prefix)) {
+        removed = true;
+        return removeCalloutHeader(child, type);
+      }
+      return child;
+    });
+  }
+  
+  if (typeof node === "object" && "props" in node) {
+    const element = node as any;
+    return {
+      ...element,
+      props: {
+        ...element.props,
+        children: removeCalloutHeader(element.props.children, type)
+      }
+    };
+  }
+  
+  return node;
+}
+
+function CalloutBlockquote({ children, ...props }: ComponentPropsWithoutRef<"blockquote">) {
+  const textContent = getTextFromNode(children).trim();
+  const match = textContent.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+  
+  if (!match) {
+    return (
+      <blockquote
+        {...props}
+        className={cn(
+          "border-l-4 border-primary/30 pl-4 text-muted-foreground italic my-3",
+          props.className
+        )}
+      >
+        {children}
+      </blockquote>
+    );
+  }
+  
+  const type = match[1].toUpperCase();
+  const cleanChildren = removeCalloutHeader(children, type);
+  
+  const styles = {
+    NOTE: {
+      border: "border-blue-500/20 bg-blue-500/5 dark:bg-blue-500/10 text-blue-900 dark:text-blue-200",
+      icon: <Info className="h-4.5 w-4.5 text-blue-500 dark:text-blue-400 shrink-0" />,
+      label: "Nota"
+    },
+    TIP: {
+      border: "border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-900 dark:text-emerald-200",
+      icon: <Sparkles className="h-4.5 w-4.5 text-emerald-500 dark:text-emerald-400 shrink-0" />,
+      label: "Dica"
+    },
+    WARNING: {
+      border: "border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 text-amber-900 dark:text-amber-200",
+      icon: <AlertTriangle className="h-4.5 w-4.5 text-amber-500 dark:text-amber-400 shrink-0" />,
+      label: "Atenção"
+    },
+    CAUTION: {
+      border: "border-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 text-rose-900 dark:text-rose-200",
+      icon: <ShieldAlert className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400 shrink-0" />,
+      label: "Cuidado"
+    },
+    IMPORTANT: {
+      border: "border-purple-500/20 bg-purple-500/5 dark:bg-purple-500/10 text-purple-900 dark:text-purple-200",
+      icon: <AlertCircle className="h-4.5 w-4.5 text-purple-500 dark:text-purple-400 shrink-0" />,
+      label: "Importante"
+    }
+  }[type] || {
+    border: "border-zinc-500/20 bg-zinc-500/5 text-zinc-900 dark:text-zinc-200",
+    icon: <Info className="h-4.5 w-4.5 text-zinc-500 shrink-0" />,
+    label: "Info"
+  };
+
+  return (
+    <div className={cn("my-4 flex gap-3.5 rounded-xl border p-4.5 text-[13px] leading-relaxed shadow-sm", styles.border)}>
+      {styles.icon}
+      <div className="flex-1 min-w-0">
+        <span className="block font-bold text-xs uppercase tracking-wider mb-1 opacity-90 select-none">{styles.label}</span>
+        <div className="prose-inherit **:my-0">{cleanChildren}</div>
+      </div>
+    </div>
+  );
+}
+
+function CustomListItem({ className, children, ...props }: ComponentPropsWithoutRef<"li"> & { children?: ReactNode }) {
+  let isCheckbox = false;
+  let isChecked = false;
+
+  React.Children.forEach(children, (child) => {
+    if (child && typeof child === "object" && "props" in (child as any)) {
+      const el = child as any;
+      if (el.type === "input" && el.props?.type === "checkbox") {
+        isCheckbox = true;
+        isChecked = Boolean(el.props.checked);
+      }
+    }
+  });
+
+  if (!isCheckbox) {
+    return (
+      <li {...props} className={cn("my-1.5 leading-relaxed", className)}>
+        {children}
+      </li>
+    );
+  }
+
+  const cleanChildren = React.Children.map(children, (child) => {
+    if (child && typeof child === "object" && "props" in (child as any)) {
+      const el = child as any;
+      if (el.type === "input" && el.props?.type === "checkbox") {
+        return null;
+      }
+    }
+    return child;
+  });
+
+  return (
+    <li
+      {...props}
+      className={cn(
+        "flex items-start gap-2.5 my-2.5 pl-0 list-none leading-relaxed text-sm select-none",
+        isChecked && "text-muted-foreground/60 line-through transition-all duration-300",
+        className
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border transition-all mt-0.5 shadow-sm",
+          isChecked
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-border bg-background"
+        )}
+      >
+        {isChecked && <Check className="h-3 w-3 stroke-[3px]" />}
+      </div>
+      <div className="flex-1 min-w-0">{cleanChildren}</div>
+    </li>
   );
 }
 
@@ -76,7 +279,12 @@ function checkTreeContent(node: ReactNode): boolean {
 
 function formatSoftBreaks(text: string): string {
   if (!text) return "";
-  const parts = text.split(/(```[\s\S]*?```)/g);
+  
+  // Normaliza divisores de traços (ex: ------ ou =====) garantindo que tenham linhas vazias ao redor,
+  // impedindo que o Markdown os interprete como títulos do tipo Setext (Heading 2) e coloque o bloco anterior todo em negrito.
+  let normalized = text.replace(/^[ \t]*[-=]{3,}[ \t]*$/gm, "\n\n---\n\n");
+
+  const parts = normalized.split(/(```[\s\S]*?```)/g);
   return parts
     .map((part) => {
       if (part.startsWith("```") && part.endsWith("```")) {
@@ -86,6 +294,7 @@ function formatSoftBreaks(text: string): string {
     })
     .join("");
 }
+
 
 export function TicketMessageContent({
   body,
@@ -159,18 +368,7 @@ export function TicketMessageContent({
               )}
             />
           ),
-          blockquote: ({
-            className: blockquoteClassName,
-            ...props
-          }: ComponentPropsWithoutRef<"blockquote">) => (
-            <blockquote
-              {...props}
-              className={cn(
-                "border-l-4 border-primary/40 pl-4 text-muted-foreground",
-                blockquoteClassName,
-              )}
-            />
-          ),
+          blockquote: CalloutBlockquote,
           img: ({ className: imageClassName, alt, ...props }: ComponentPropsWithoutRef<"img">) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -203,6 +401,7 @@ export function TicketMessageContent({
           ol: ({ className: listClassName, ...props }: ComponentPropsWithoutRef<"ol">) => (
             <ol {...props} className={cn("list-decimal pl-6", listClassName)} />
           ),
+          li: CustomListItem,
         }}
       >
         {formattedBody}

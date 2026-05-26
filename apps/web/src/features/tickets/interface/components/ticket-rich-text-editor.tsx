@@ -12,6 +12,7 @@ import {
   ListOrdered,
   Quote,
   RemoveFormatting,
+  Type,
 } from "lucide-react";
 
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Textarea, Tooltip, TooltipContent, TooltipTrigger, Tabs, TabsList, TabsTrigger } from "@dosc-syspro/ui";
@@ -36,6 +37,65 @@ type TicketRichTextEditorProps = {
   showTemplates?: boolean;
   compact?: boolean;
 };
+
+const FORMATTING_TEMPLATES = [
+  {
+    id: "fmt_note",
+    label: "Card: Nota Informativa",
+    value: "> [!NOTE]\n> Esta é uma nota informativa para destacar detalhes importantes.",
+  },
+  {
+    id: "fmt_tip",
+    label: "Card: Dica / Sucesso",
+    value: "> [!TIP]\n> Dica premium: Utilize atalhos rápidos para agilizar os processos.",
+  },
+  {
+    id: "fmt_warning",
+    label: "Card: Atenção / Alerta",
+    value: "> [!WARNING]\n> Atenção: Lembre-se de realizar o backup antes de homologar.",
+  },
+  {
+    id: "fmt_caution",
+    label: "Card: Cuidado / Perigo",
+    value: "> [!CAUTION]\n> Cuidado: Este comando afeta dados diretamente em produção.",
+  },
+  {
+    id: "fmt_important",
+    label: "Card: Requisito Importante",
+    value: "> [!IMPORTANT]\n> Importante: Este passo é mandatório para validação.",
+  },
+  {
+    id: "fmt_tree",
+    label: "Tabela: Árvore Financeira",
+    value: [
+      "**COMPRA MERCADORIA SACOLAO**",
+      "├─ CARLOS ROBERTO DA SILVA                      R$ 126,00",
+      "├─ CLEBERSON                                    R$ 65,00",
+      "└─ O.J.L DISTRIBUIDORA DE FRUTAS ODAIR          R$ 583,00",
+      "---------------------------------------------------------",
+      "TOTAL DO GRUPO                                  R$ 2.020,00",
+    ].join("\n"),
+  },
+  {
+    id: "fmt_checklist",
+    label: "Lista: Checklist de Tarefas",
+    value: [
+      "- [x] Analisar os logs de auditoria do banco de dados",
+      "- [ ] Corrigir o desalinhamento de colunas do relatório",
+      "- [ ] Validar homologação com a diretoria",
+    ].join("\n"),
+  },
+  {
+    id: "fmt_sql",
+    label: "Código: Query SQL",
+    value: "```sql\nSELECT * FROM tbl_tickets WHERE status = 'IN_PROGRESS';\n```",
+  },
+  {
+    id: "fmt_json",
+    label: "Código: Payload JSON",
+    value: "```json\n{\n  \"ticketId\": \"ef497170\",\n  \"status\": \"RESOLVED\",\n  \"success\": true\n}\n```",
+  },
+];
 
 const DEFAULT_TEMPLATES: TicketRichTextEditorTemplate[] = [
   {
@@ -197,6 +257,25 @@ export function TicketRichTextEditor({
     });
   }
 
+  function setNormalText() {
+    updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
+      const selected = selectedValue || "Texto";
+      const lines = selected.split("\n");
+      const replacement = lines
+        .map((line) => line.replace(/^#{1,6}\s+/, ""))
+        .join("\n");
+      const nextValue =
+        currentValue.slice(0, selectionStart) +
+        replacement +
+        currentValue.slice(selectionEnd);
+      return {
+        nextValue,
+        nextSelectionStart: selectionStart,
+        nextSelectionEnd: selectionStart + replacement.length,
+      };
+    });
+  }
+
   function clearFormatting() {
     updateSelection(({ currentValue, selectedValue, selectionStart, selectionEnd }) => {
       const source = selectedValue || currentValue;
@@ -305,6 +384,14 @@ export function TicketRichTextEditor({
             >
               <Heading3 className="h-4 w-4" />
             </ToolbarButton>
+            <ToolbarButton
+              label="Texto normal"
+              onMouseDown={preserveSelection}
+              onClick={setNormalText}
+              className={toolbarButtonClassName}
+            >
+              <Type className="h-4 w-4" />
+            </ToolbarButton>
             <div className="mx-1 h-5 w-px bg-border/60 shrink-0" />
             <ToolbarButton
               label="Negrito"
@@ -382,6 +469,30 @@ export function TicketRichTextEditor({
         ) : null}
 
         <div className="ml-auto flex items-center gap-3 shrink-0">
+          {activeTab === "write" ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-md border-border/60 text-xs cursor-pointer bg-muted/20 hover:bg-muted/40"
+                  onMouseDown={preserveSelection}
+                >
+                  Modelos
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 max-h-80 overflow-y-auto">
+                <DropdownMenuLabel className="text-xs">Formatação Premium</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {FORMATTING_TEMPLATES.map((template) => (
+                  <DropdownMenuItem key={template.id} className="text-xs cursor-pointer" onClick={() => insertTemplate(template.value)}>
+                    {template.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
           {showTemplates && activeTab === "write" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
