@@ -69,7 +69,9 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
         <div className="hidden rounded-xl border border-border bg-background px-5 py-4 print:block">
           <div className="flex items-start justify-between gap-6 border-b border-border pb-3">
             <div className="space-y-1">
-              <p className="text-lg font-semibold text-foreground">{contactInfo.companyName}</p>
+              {contactInfo.companyName ? (
+                <p className="text-lg font-semibold text-foreground">{contactInfo.companyName}</p>
+              ) : null}
               <p className="text-sm text-muted-foreground">Documentacao oficial de suporte e operacao</p>
             </div>
             <div className="space-y-1 text-right text-xs text-muted-foreground">

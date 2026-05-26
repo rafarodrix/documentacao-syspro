@@ -24,12 +24,13 @@ import {
 import { Button, Input, Label, Switch, Card, CardContent, CardDescription, CardHeader, CardTitle, Tabs, TabsContent } from "@dosc-syspro/ui";
 import {
   Loader2, Save, DollarSign, ShieldAlert, Headset, Mail, Phone,
-  Banknote, Lock, SlidersHorizontal, Settings, Globe, Ban
+  Banknote, Lock, SlidersHorizontal, Settings, Globe, Ban, Building2
 } from "lucide-react";
 
 const defaultValues: SettingsInput = {
   minimumWage: 0,
   maintenanceMode: false,
+  companyName: "",
   supportSiteUrl: "",
   supportEmail: "",
   supportPhone: "",
@@ -225,6 +226,21 @@ export default function GeneralSettingsForm({ adminView }: GeneralSettingsFormPr
                   </CardHeader>
                   <CardContent className="p-5">
                     <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="companyName">Nome da Empresa</Label>
+                        <div className="group relative">
+                          <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-blue-600" />
+                          <Input
+                            id="companyName"
+                            placeholder="Trilink Software Ltda."
+                            className="bg-muted/30 pl-9 focus:bg-background border-border/60"
+                            {...form.register("companyName")}
+                          />
+                        </div>
+                        {form.formState.errors.companyName && (
+                          <p className="ml-1 text-xs font-medium text-red-500">{form.formState.errors.companyName.message}</p>
+                        )}
+                      </div>
                       <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="supportSiteUrl">URL do Site</Label>
                         <div className="group relative">

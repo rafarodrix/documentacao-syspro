@@ -99,9 +99,10 @@ export class SettingsController {
   private static readonly DEFAULT_GENERAL_SETTINGS: SettingsOutput = {
     minimumWage: 1,
     maintenanceMode: false,
-    supportSiteUrl: 'https://www.trilinksoftware.com.br',
-    supportEmail: 'equipe@trilinksoftware.com.br',
-    supportPhone: '34997713731',
+    companyName: '',
+    supportSiteUrl: '',
+    supportEmail: '',
+    supportPhone: '',
     rbacMatrixEnabled: true,
     preferences: {
       companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
@@ -131,7 +132,7 @@ export class SettingsController {
     const settings = await this.prisma.systemSetting.findMany({
       where: {
         key: {
-          in: ['minimumWage', 'maintenanceMode', 'supportSiteUrl', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled', SETTING_KEYS.PREFERENCES],
+          in: ['minimumWage', 'maintenanceMode', 'companyName', 'supportSiteUrl', 'supportEmail', 'supportPhone', 'rbacMatrixEnabled', SETTING_KEYS.PREFERENCES],
         },
       },
     });
@@ -144,6 +145,7 @@ export class SettingsController {
     const rawData = {
       minimumWage: configMap.minimumWage,
       maintenanceMode: configMap.maintenanceMode,
+      companyName: configMap.companyName,
       supportSiteUrl: configMap.supportSiteUrl,
       supportEmail: configMap.supportEmail,
       supportPhone: configMap.supportPhone,
@@ -169,6 +171,7 @@ export class SettingsController {
   private normalizeGeneralSettings(input: {
     minimumWage?: string;
     maintenanceMode?: string;
+    companyName?: string;
     supportSiteUrl?: string;
     supportEmail?: string;
     supportPhone?: string;
@@ -177,6 +180,7 @@ export class SettingsController {
   }): SettingsOutput {
     const parsedMinimumWage = Number(input.minimumWage);
     const normalizedPhone = this.normalizeDigits(input.supportPhone);
+    const normalizedCompanyName = (input.companyName ?? '').trim();
     const normalizedSiteUrl = (input.supportSiteUrl ?? '').trim();
     const normalizedEmail = (input.supportEmail ?? '').trim();
 
@@ -188,9 +192,10 @@ export class SettingsController {
           ? parsedMinimumWage
           : SettingsController.DEFAULT_GENERAL_SETTINGS.minimumWage,
       maintenanceMode: input.maintenanceMode === 'true',
-      supportSiteUrl: normalizedSiteUrl || SettingsController.DEFAULT_GENERAL_SETTINGS.supportSiteUrl,
-      supportEmail: normalizedEmail || SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
-      supportPhone: normalizedPhone || SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
+      companyName: normalizedCompanyName,
+      supportSiteUrl: normalizedSiteUrl,
+      supportEmail: normalizedEmail,
+      supportPhone: normalizedPhone,
       rbacMatrixEnabled: input.rbacMatrixEnabled !== 'false',
       preferences: parsedPreferences.success
         ? parsedPreferences.data
@@ -201,12 +206,14 @@ export class SettingsController {
   private buildSafeGeneralSettings(input: {
     minimumWage: number;
     maintenanceMode: boolean;
+    companyName: string;
     supportSiteUrl: string;
     supportEmail: string;
     supportPhone: string;
     rbacMatrixEnabled: boolean;
     preferences: SettingsOutput["preferences"];
   }): SettingsOutput {
+    const companyNameValidation = settingsSchema.shape.companyName.safeParse(input.companyName);
     const supportSiteUrlValidation = settingsSchema.shape.supportSiteUrl.safeParse(input.supportSiteUrl);
     const supportEmailValidation = settingsSchema.shape.supportEmail.safeParse(input.supportEmail);
     const supportPhoneValidation = settingsSchema.shape.supportPhone.safeParse(this.normalizeDigits(input.supportPhone));
@@ -216,15 +223,16 @@ export class SettingsController {
         ? input.minimumWage
         : SettingsController.DEFAULT_GENERAL_SETTINGS.minimumWage,
       maintenanceMode: input.maintenanceMode,
+      companyName: companyNameValidation.success ? companyNameValidation.data : '',
       supportSiteUrl: supportSiteUrlValidation.success
         ? supportSiteUrlValidation.data
-        : SettingsController.DEFAULT_GENERAL_SETTINGS.supportSiteUrl,
+        : '',
       supportEmail: supportEmailValidation.success
         ? supportEmailValidation.data
-        : SettingsController.DEFAULT_GENERAL_SETTINGS.supportEmail,
+        : '',
       supportPhone: supportPhoneValidation.success
         ? supportPhoneValidation.data
-        : SettingsController.DEFAULT_GENERAL_SETTINGS.supportPhone,
+        : '',
       rbacMatrixEnabled: input.rbacMatrixEnabled,
       preferences: settingsPreferencesSchema.safeParse(input.preferences).success
         ? input.preferences
@@ -260,6 +268,11 @@ export class SettingsController {
         where: { key: 'maintenanceMode' },
         update: { value: String(parsed.maintenanceMode) },
         create: { key: 'maintenanceMode', value: String(parsed.maintenanceMode), description: 'Modo manutencao' },
+      }),
+      this.prisma.systemSetting.upsert({
+        where: { key: 'companyName' },
+        update: { value: parsed.companyName },
+        create: { key: 'companyName', value: parsed.companyName, description: 'Nome institucional da empresa' },
       }),
       this.prisma.systemSetting.upsert({
         where: { key: 'supportSiteUrl' },

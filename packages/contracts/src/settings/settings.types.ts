@@ -6,6 +6,23 @@ import {
   ENTITY_INACTIVATION_REASON_VALUES,
 } from "@dosc-syspro/core";
 
+const optionalConfiguredString = () => z.string().trim().max(160, "Nome da empresa muito longo.");
+
+const optionalConfiguredUrl = z
+  .string()
+  .trim()
+  .refine((value) => value.length === 0 || z.url().safeParse(value).success, "URL do site invalida.");
+
+const optionalConfiguredEmail = z
+  .string()
+  .trim()
+  .refine((value) => value.length === 0 || z.email().safeParse(value).success, "E-mail invalido.");
+
+const optionalConfiguredPhone = z
+  .string()
+  .trim()
+  .refine((value) => value.length === 0 || value.replace(/\D+/g, "").length >= 10, "Telefone invalido (minimo 10 digitos).");
+
 const settingsReasonOptionSchema = <T extends readonly [string, ...string[]]>(keys: T) =>
   z.object({
     key: z.enum(keys),
@@ -39,9 +56,10 @@ export const settingsPreferencesSchema = z.object({
 export const settingsSchema = z.object({
   minimumWage: z.coerce.number().min(1, "O valor deve ser maior que zero."),
   maintenanceMode: z.boolean(),
-  supportSiteUrl: z.url("URL do site invalida."),
-  supportEmail: z.email("E-mail invalido."),
-  supportPhone: z.string().min(10, "Telefone invalido (minimo 10 digitos)."),
+  companyName: optionalConfiguredString(),
+  supportSiteUrl: optionalConfiguredUrl,
+  supportEmail: optionalConfiguredEmail,
+  supportPhone: optionalConfiguredPhone,
   rbacMatrixEnabled: z.boolean().default(true),
   preferences: settingsPreferencesSchema.default({
     companyInactivationReasons: DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
@@ -58,6 +76,7 @@ export type ContractBlockReasonOption = z.output<typeof contractBlockReasonOptio
 export const SETTING_KEYS = {
   MIN_WAGE: "minimumWage",
   MAINTENANCE: "maintenanceMode",
+  COMPANY_NAME: "companyName",
   SUPPORT_SITE_URL: "supportSiteUrl",
   SUPPORT_EMAIL: "supportEmail",
   SUPPORT_PHONE: "supportPhone",

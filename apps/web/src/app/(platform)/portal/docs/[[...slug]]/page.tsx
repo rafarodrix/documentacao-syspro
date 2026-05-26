@@ -92,7 +92,7 @@ export default async function PortalDocsPage(props: {
   const neighbours = findNeighbour(docsTree, docSlug, { separateRoot: true });
   const settingsResult = await getSettingsAction();
   const printContactInfo = {
-    companyName: "Trilink Software Ltda.",
+    companyName: settingsResult.success ? settingsResult.data.companyName : "",
     siteUrl: settingsResult.success ? settingsResult.data.supportSiteUrl : "",
     supportEmail: settingsResult.success ? settingsResult.data.supportEmail : "",
     supportPhone: settingsResult.success ? settingsResult.data.supportPhone : "",
