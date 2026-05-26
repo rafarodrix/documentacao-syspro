@@ -46,7 +46,7 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
     pageStyle: `
       @page {
         size: A4;
-        margin: 14mm 14mm 20mm 14mm;
+        margin: 12mm 12mm 14mm 12mm;
       }
 
       @media print {
@@ -54,11 +54,11 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
           background: #ffffff !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-          font-size: 11pt;
+          font-size: 10.5pt;
         }
 
         .docs-print-root {
-          padding-bottom: 22mm;
+          padding-bottom: 10mm;
         }
 
         .docs-print-root * {
@@ -105,19 +105,25 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
         }
 
         .docs-print-root pre {
+          font-size: 8.5pt !important;
+          line-height: 1.4 !important;
           white-space: pre-wrap !important;
           word-break: break-word;
+          overflow-wrap: anywhere;
           overflow: visible !important;
+          padding: 8px 10px !important;
         }
 
         .docs-print-root code {
+          font-size: 0.92em !important;
           word-break: break-word;
+          overflow-wrap: anywhere;
         }
 
         .docs-print-root table {
           width: 100% !important;
           border-collapse: collapse;
-          font-size: 10pt;
+          font-size: 9pt;
         }
 
         .docs-print-root thead {
@@ -152,9 +158,31 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
 
         .docs-print-footer {
           position: fixed;
-          left: 14mm;
-          right: 14mm;
-          bottom: 8mm;
+          left: 12mm;
+          right: 12mm;
+          bottom: 4mm;
+          min-height: 6mm;
+        }
+
+        .docs-print-footer-line {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          white-space: nowrap;
+        }
+
+        .docs-print-footer-meta {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+          flex-wrap: nowrap;
+        }
+
+        .docs-print-footer-meta span {
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
     `,
@@ -169,17 +197,16 @@ export function DocsPrintShell({ title, slug, contactInfo, children }: DocsPrint
       <div ref={contentRef} className="docs-print-root space-y-8">
         {children}
 
-        <div className="docs-print-footer hidden border-t border-border bg-background pt-3 text-xs text-muted-foreground print:block">
-          <div className="flex items-center justify-between gap-4">
+        <div className="docs-print-footer hidden border-t border-border bg-background pt-2 text-[9px] text-muted-foreground print:block">
+          <div className="docs-print-footer-line">
             <span>{title}</span>
             <span>Gerado em {generatedAtLabel}</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="docs-print-footer-meta mt-1">
             {contactInfo.companyName ? <span>{contactInfo.companyName}</span> : null}
             {contactInfo.siteUrl ? <span>{contactInfo.siteUrl}</span> : null}
             {contactInfo.supportEmail ? <span>{contactInfo.supportEmail}</span> : null}
             {contactInfo.supportPhone ? <span>{contactInfo.supportPhone}</span> : null}
-            <span>{slug}</span>
           </div>
         </div>
       </div>
