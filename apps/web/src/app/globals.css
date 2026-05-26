@@ -552,3 +552,44 @@
   border-radius: 0.75rem;
   padding: 0.875rem 1rem;
 }
+
+/* ==========================================================================
+   SUPORTE DE IMPRESSÃO PREMIUM PARA DOCUMENTAÇÃO (FUMADOCS)
+   ========================================================================== */
+@media print {
+  /* 1. Oculta os botões de navegação das abas e barra lateral (que não fazem sentido no papel) */
+  [role="tablist"],
+  .fd-tabs-nav,
+  button[role="tab"],
+  #nd-sidebar,
+  #nd-sidebar-mobile,
+  #nd-tocnav,
+  #nd-toc,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* 2. Força a exibição de todas as abas inativas em sequência */
+  [role="tabpanel"],
+  .fd-tabs-panel {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    margin-bottom: 2rem;
+    page-break-inside: avoid; /* Evita que uma aba seja cortada ao meio na folha */
+  }
+
+  /* 3. Adiciona um título visual indicando a qual cenário pertence */
+  [role="tabpanel"]::before {
+    content: "Cenário: " attr(title) "";
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.25rem;
+  }
+}
+
