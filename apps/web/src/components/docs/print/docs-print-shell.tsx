@@ -1,22 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { Printer, Droplet, FileText } from "lucide-react";
-import { 
-  Button, 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogTrigger, 
-  DialogClose,
-  Switch,
-  Label,
-  Separator
-} from "@dosc-syspro/ui";
+import { DocsPrintButton } from "./docs-print-button";
 
 interface DocsPrintContactInfo {
   companyName: string;
@@ -43,18 +29,13 @@ function sanitizeDocumentTitle(input: string) {
 
 export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Opções Simplificadas para o Usuário
-  const [includeCover, setIncludeCover] = useState(true);
-  const [inkSaver, setInkSaver] = useState(true);
-
-  // Parâmetros Enterprise Fixos (Segurança Padrão)
   const classification = "CONFIDENCIAL";
   const watermarkText = "TRILINK SOFTWARE";
+  const includeCover = true;
+  const inkSaver = true;
 
   const documentTitle = useMemo(() => sanitizeDocumentTitle(title) || "documentacao", [title]);
-  
+
   const generatedAtLabel = useMemo(
     () =>
       new Intl.DateTimeFormat("pt-BR", {
@@ -72,7 +53,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
     [],
   );
 
-  const handlePrintAction = useReactToPrint({
+  const handlePrint = useReactToPrint({
     contentRef,
     documentTitle,
     pageStyle: `
@@ -90,7 +71,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           color: #1f2937;
         }
 
-        /* Suporte a contagem de páginas no rodapé */
         body {
           counter-reset: page;
         }
@@ -120,7 +100,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           page-break-inside: auto !important;
         }
 
-        /* Títulos */
         .docs-print-root h1,
         .docs-print-root h2,
         .docs-print-root h3,
@@ -157,7 +136,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           margin-bottom: 6pt !important;
         }
 
-        /* Parágrafos e listas */
         .docs-print-root p,
         .docs-print-root li,
         .docs-print-root blockquote {
@@ -166,7 +144,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           line-height: 1.5 !important;
         }
 
-        /* Blocos evitáveis de quebras ao meio */
         .docs-print-root pre,
         .docs-print-root blockquote,
         .docs-print-root figure,
@@ -178,7 +155,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           page-break-inside: avoid;
         }
 
-        /* Bloco de Código */
         .docs-print-root pre {
           font-size: 8.5pt !important;
           line-height: 1.45 !important;
@@ -198,7 +174,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           overflow-wrap: anywhere;
         }
 
-        /* Tabelas */
         .docs-print-root table {
           width: 100% !important;
           border-collapse: collapse;
@@ -233,7 +208,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           text-align: left;
         }
 
-        /* Callouts / Avisos */
         .docs-print-root blockquote,
         .docs-print-root [data-callout],
         .docs-print-root .border {
@@ -269,19 +243,17 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           border-radius: 4px;
         }
 
-        /* Estilização da Capa (Cover Page) */
         .docs-print-cover {
           display: flex !important;
           flex-direction: column;
           justify-content: space-between;
-          height: 250mm; /* Preenche a página A4 vertical */
+          height: 250mm;
           padding: 20mm 10mm;
           page-break-after: always;
           break-after: page;
           border-bottom: 2px solid #0f172a;
         }
 
-        /* MARCA D'ÁGUA EM PRIMEIRO PLANO (Sobreposta) */
         .print-watermark-overlay {
           display: block !important;
           position: fixed;
@@ -290,16 +262,15 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           transform: translate(-50%, -50%) rotate(-35deg);
           font-size: 56pt;
           font-weight: 900;
-          color: rgba(100, 116, 139, 0.05) !important; /* Slate bem suave para não cobrir o texto */
-          z-index: 999999 !important; /* Traz para a frente de todos os backgrounds! */
+          color: rgba(100, 116, 139, 0.05) !important;
+          z-index: 999999 !important;
           pointer-events: none;
           white-space: nowrap;
           text-transform: uppercase;
           letter-spacing: 0.15em;
-          mix-blend-mode: multiply; /* Mescla com textos e imagens */
+          mix-blend-mode: multiply;
         }
 
-        /* Modo de Alta Economia de Tinta (Contraste Limpo) */
         .docs-print-ink-saver {
           color: #000000 !important;
         }
@@ -328,7 +299,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           background: #e2e8f0 !important;
         }
 
-        /* Rodapé de Impressão */
         .docs-print-footer {
           position: fixed;
           left: 0;
@@ -346,7 +316,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           line-height: 1.2;
         }
 
-        /* Numeração de páginas dinâmica via CSS */
         .print-page-counter::after {
           counter-increment: page;
           content: "Pág. " counter(page);
@@ -355,113 +324,20 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
     `,
   });
 
-  const handlePrint = () => {
-    setIsOpen(false);
-    // Aguarda um pequeno ciclo para garantir que o modal fechou antes de renderizar para impressão
-    setTimeout(() => {
-      handlePrintAction();
-    }, 200);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Botão de Impressão Enterprise que dispara o Modal Simplificado */}
       <div className="flex items-center justify-end">
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2 border-primary/20 bg-background/50 hover:bg-accent/40 active:scale-[0.98] transition-all print:hidden"
-            >
-              <Printer className="h-4 w-4 text-primary" />
-              Imprimir documento
-            </Button>
-          </DialogTrigger>
-          
-          <DialogContent className="sm:max-w-[440px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Printer className="h-5 w-5 text-primary" />
-                Opções de Impressão
-              </DialogTitle>
-              <DialogDescription>
-                Ajuste as preferências de layout antes de gerar o PDF. A marca d'água corporativa de segurança será aplicada automaticamente.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-5 py-4">
-              {/* Tabela de Opções Simplificada */}
-              <div className="space-y-4">
-                
-                {/* Capa */}
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex flex-col space-y-0.5">
-                    <Label htmlFor="include-cover" className="text-sm font-semibold flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      Incluir Capa de Documento
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      Gera uma primeira folha de rosto com dados da marca.
-                    </span>
-                  </div>
-                  <Switch 
-                    id="include-cover" 
-                    checked={includeCover} 
-                    onCheckedChange={setIncludeCover} 
-                  />
-                </div>
-
-                <Separator className="my-2" />
-
-                {/* Economia de Tinta */}
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex flex-col space-y-0.5">
-                    <Label htmlFor="ink-saver" className="text-sm font-semibold flex items-center gap-1.5">
-                      <Droplet className="h-4 w-4 text-muted-foreground" />
-                      Economia de Tinta (Monocromático)
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      Remove degradês e otimiza o contraste de caixas de texto.
-                    </span>
-                  </div>
-                  <Switch 
-                    id="ink-saver" 
-                    checked={inkSaver} 
-                    onCheckedChange={setInkSaver} 
-                  />
-                </div>
-
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <DialogClose asChild>
-                <Button type="button" variant="ghost" size="sm">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button type="button" size="sm" onClick={handlePrint} className="gap-1.5">
-                <Printer className="h-4 w-4" />
-                Confirmar e Imprimir
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <DocsPrintButton onPrint={handlePrint} />
       </div>
 
-      {/* A Área de Conteúdo Capturada pelo Impressor */}
-      <div 
-        ref={contentRef} 
+      <div
+        ref={contentRef}
         className={`docs-print-root space-y-8 ${inkSaver ? "docs-print-ink-saver" : ""}`}
       >
-        {/* Marca d'Água Superior Injetada sobre todos os elementos no Print */}
         <div className="print-watermark-overlay hidden pointer-events-none">
           {watermarkText}
         </div>
 
-        {/* 1. CAPA DE DOCUMENTO (Renderizada apenas na Impressão/PDF se ativa) */}
         {includeCover && (
           <div className="docs-print-cover hidden flex-col justify-between border-b-2 border-foreground/90 bg-background pointer-events-none">
             <div className="flex justify-between items-center w-full">
@@ -478,7 +354,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
                 {classification}
               </span>
             </div>
-            
+
             <div className="space-y-5 my-auto max-w-2xl py-12">
               <div className="space-y-2">
                 <span className="text-[10px] font-bold text-primary tracking-widest uppercase">
@@ -510,12 +386,10 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           </div>
         )}
 
-        {/* Conteúdo Principal do Documento (MDX) */}
         <div className="docs-print-body-content">
           {children}
         </div>
 
-        {/* 2. RODAPÉ FIXO DE IMPRESSÃO (Renderizado em todas as páginas via fixed no CSS) */}
         <div className="docs-print-footer hidden border-t border-border bg-background pt-1 text-[7px] text-muted-foreground/90">
           <div className="docs-print-footer-line">
             <span className="font-semibold text-foreground">{title}</span>
@@ -529,7 +403,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
               {contactInfo.supportEmail ? <span>• {contactInfo.supportEmail}</span> : null}
               {contactInfo.supportPhone ? <span>• {contactInfo.supportPhone}</span> : null}
             </div>
-            {/* Numeração de páginas dinâmica injetada pelo CSS */}
             <span className="print-page-counter font-bold text-foreground"></span>
           </div>
         </div>

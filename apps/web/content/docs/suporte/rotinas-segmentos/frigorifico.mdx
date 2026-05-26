@@ -37,63 +37,30 @@ Este documento organiza a análise fiscal da operação de abate frigorífico co
   </Card>
 </Cards>
 
-<InlineTOC items={toc}>Nesta página</InlineTOC>
 
----
-
-## 1. Objetivo do Documento
-
-Este documento tem como objetivo estruturar a análise fiscal do processo de abate frigorífico, considerando exclusivamente os aspectos fiscais da operação.
-
-A análise contempla:
-
-- Entrada do gado para abate;
-- Produtor contribuinte e não contribuinte;
-- Emissão ou recebimento de documentos fiscais;
-- Retorno da industrialização;
-- Cobrança do serviço de abate;
-- Venda de despojos comestíveis;
-- Venda de despojos não comestíveis;
-- ICMS;
-- ICMS-ST;
-- PIS;
-- COFINS;
-- Notas fiscais referenciadas;
-- Informações complementares.
-
----
-
-## 2. Visão Geral do Processo Fiscal
-
-| Etapa | Tratamento |
-| :--- | :--- |
-| **Início da operação** | Validar se o produtor é contribuinte de ICMS |
-| **Produtor contribuinte** | Produtor emite NF-e de remessa para industrialização |
-| **Produtor não contribuinte** | Validar NF-e de entrada pelo frigorífico ou documento fiscal aplicável |
-| **Entrada** | Formalizar a entrada fiscal do gado no frigorífico |
-| **Industrialização** | Executar o abate / industrialização por encomenda |
-| **Retorno** | Emitir retorno das carcaças / produto industrializado |
-| **Serviço** | Cobrar o serviço de abate / industrialização |
-| **Subprodutos** | Validar venda de despojos comestíveis e não comestíveis |
-| **Encerramento** | Concluir a operação fiscal com os documentos correlatos |
-
-<Callout type="warning" title="Premissa de suporte">
-  O fluxo abaixo serve para orientar a análise fiscal e a parametrização. Nenhuma etapa deve ser automatizada como regra fixa sem confirmação do enquadramento contábil e da legislação aplicável.
-</Callout>
-
-### Sequência recomendada de análise
+### Sequência de emissão de documentos
 
 <Steps>
   <Step>
     Validar o enquadramento do produtor e identificar qual documento fiscal acoberta a entrada do gado.
+      - Produtor contribuinte: Produtor emite NF-e de remessa para industrialização.
+|     - Produtor não contribuinte: Frigorífico emite NF-e de remessa para industrialização.
   </Step>
   <Step>
     Separar o tratamento do retorno da industrialização da cobrança do serviço de abate.
+      - Retorno da industrialização: NF-e de retorno com CFOP 5.925 (sem destaque de ICMS).
+      - Cobrança do serviço: NF-e com CFOP 5.125 (com destaque de ICMS, se aplicável).
   </Step>
   <Step>
-    Definir em paralelo o tratamento dos subprodutos, com foco em ICMS, ICMS-ST e PIS/COFINS por NCM.
+  | Subprodutos: Validar venda de despojos comestíveis e não comestíveis
+      - Despojos não comestíveis: NCM 0511.99.99, diferimento do ICMS.
+      - Miúdos comestíveis: NCMs específicas, validar ST ou isenção conforme estado.
   </Step>
 </Steps>
+
+<Callout type="warning" title="Premissa de suporte">
+  O fluxo acima serve para orientar a análise fiscal e a parametrização. Nenhuma etapa deve ser automatizada como regra fixa sem confirmação do enquadramento contábil e da legislação aplicável.
+</Callout>
 
 ---
 
