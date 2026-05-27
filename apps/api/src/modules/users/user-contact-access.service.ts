@@ -6,11 +6,12 @@ import { AuthorizationService } from '../authorization/authorization.service';
 export class UserContactAccessService {
   constructor(private readonly authorizationService: AuthorizationService) {}
 
-  async syncAccessFromContact(
+  async syncAccess(
     tx: Prisma.TransactionClient,
     userId: string,
     role: Role,
-    contactId: string,
+    companyIds: string[],
+    contactId?: string | null,
   ) {
     if (this.authorizationService.isSystemRole(role)) {
       await tx.membership.deleteMany({
@@ -22,14 +23,14 @@ export class UserContactAccessService {
       return;
     }
 
-    const companyIds = await this.getContactCompanyIds(tx, contactId, true);
     const membershipRole = role === Role.CLIENTE_ADMIN ? Role.CLIENTE_ADMIN : Role.CLIENTE_USER;
+    const normalizedCompanyIds = Array.from(new Set(companyIds.filter(Boolean)));
 
     await tx.membership.deleteMany({
-      where: { userId, companyId: { notIn: companyIds } },
+      where: { userId, companyId: { notIn: normalizedCompanyIds } },
     });
 
-    for (const companyId of companyIds) {
+    for (const companyId of normalizedCompanyIds) {
       await tx.membership.upsert({
         where: { userId_companyId: { userId, companyId } },
         create: {
@@ -43,11 +44,21 @@ export class UserContactAccessService {
       });
     }
 
+    if (!contactId) {
+      await tx.userContactLink.deleteMany({
+        where: { userId },
+      });
+      return;
+    }
+
+    const contactCompanyIds = await this.getContactCompanyIds(tx, contactId, false);
+    const linkedCompanyIds = normalizedCompanyIds.filter((companyId) => contactCompanyIds.includes(companyId));
+
     await tx.userContactLink.deleteMany({
-      where: { userId, companyId: { notIn: companyIds } },
+      where: { userId, companyId: { notIn: linkedCompanyIds } },
     });
 
-    for (const [index, companyId] of companyIds.entries()) {
+    for (const [index, companyId] of linkedCompanyIds.entries()) {
       await tx.userContactLink.upsert({
         where: { userId_companyId: { userId, companyId } },
         create: {

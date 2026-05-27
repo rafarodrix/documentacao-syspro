@@ -18,13 +18,23 @@ export const createUserSchema = z.object({
   email: z.email("Insira um e-mail valido").toLowerCase().trim(),
   password: z.string().min(6, "A senha deve ter no minimo 6 caracteres").optional().or(z.literal("")),
   profileKey: settingsProfileKeySchema,
+  companyIds: z.array(z.string().trim().min(1)).default([]),
   contactId: z.string().optional().or(z.literal("")),
+}).superRefine((input, ctx) => {
+  if ((input.profileKey === "CLIENTE_ADMIN" || input.profileKey === "CLIENTE_USER") && input.companyIds.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["companyIds"],
+      message: "Selecione ao menos uma empresa para perfis de cliente.",
+    });
+  }
 });
 
 export const updateUserSchema = z.object({
   name: z.string().min(3, "O nome deve ter no minimo 3 caracteres").trim().optional(),
   email: z.email("Insira um e-mail valido").toLowerCase().trim().optional(),
   profileKey: settingsProfileKeySchema.optional(),
+  companyIds: z.array(z.string().trim().min(1)).optional(),
   contactId: z.string().trim().nullable().optional(),
   isActive: z.boolean().optional(),
 });
@@ -185,6 +195,7 @@ export const userAccessEditInitialDataSchema = z.object({
   name: z.string(),
   email: z.string(),
   profileKey: settingsProfileKeySchema,
+  companyIds: z.array(z.string()),
   contactId: z.string().optional(),
   password: z.string(),
 });

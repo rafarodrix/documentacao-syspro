@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
-import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
+import { Controller, useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createUserSchema, type CreateUserInput, type UserAssignableProfile } from "@dosc-syspro/contracts/user";
@@ -22,7 +22,6 @@ import {
   ChevronsUpDown,
   ChevronLeft,
   ChevronRight,
-  Link2,
   Loader2,
   Mail,
   Phone,
@@ -30,6 +29,7 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  X,
 } from "lucide-react";
 
 const ROLE = {
@@ -53,9 +53,9 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
   {
     id: "vinculo",
     title: "Empresa",
-    description: "Empresa e contato vinculados",
+    description: "Empresas vinculadas e contato opcional",
     icon: Building2 as ElementType,
-    fields: ["contactId"],
+    fields: ["companyIds", "contactId"],
   },
 ];
 
@@ -70,6 +70,7 @@ export interface CreateUserPageFormProps {
 
 const toInputValue = (value: unknown) => (typeof value === "string" ? value : "");
 const isValidEmailFormat = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+const getCompanyLabel = (company: CompanyOption) => company.nomeFantasia || company.razaoSocial;
 
 type EmailAvailabilityState =
   | { status: "idle" }
@@ -90,19 +91,13 @@ export function CreateUserPageForm({
   const defaultProfileKey = assignableProfiles[0]?.key ?? ROLE.CLIENTE_USER;
   const allowedCompanyIds = useMemo(() => companies.map((company) => company.id), [companies]);
 
+  const [companyQuery, setCompanyQuery] = useState("");
   const [contactSearch, setContactSearch] = useState("");
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
   const [contactPage, setContactPage] = useState(1);
   const [hasMoreContacts, setHasMoreContacts] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [emailAvailability, setEmailAvailability] = useState<EmailAvailabilityState>({ status: "idle" });
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-
-  useEffect(() => {
-    if (companies.length === 1 && companies[0]?.id && !selectedCompanyId) {
-      setSelectedCompanyId(companies[0].id);
-    }
-  }, [companies, selectedCompanyId]);
 
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -111,6 +106,7 @@ export function CreateUserPageForm({
       email: initialData?.email ?? "",
       password: "",
       profileKey: initialData?.profileKey ?? defaultProfileKey,
+      companyIds: initialData?.companyIds ?? (companies.length === 1 && companies[0]?.id ? [companies[0].id] : []),
       contactId: initialData?.contactId ?? "",
     },
     mode: "onChange",
@@ -125,6 +121,10 @@ export function CreateUserPageForm({
     control: form.control,
     name: "profileKey",
   });
+  const watchedCompanyIds = useWatch({
+    control: form.control,
+    name: "companyIds",
+  });
   const watchedName = useWatch({
     control: form.control,
     name: "name",
@@ -135,10 +135,17 @@ export function CreateUserPageForm({
   });
   const selectedRoleIsClient = selectedProfileKey === ROLE.CLIENTE_ADMIN || selectedProfileKey === ROLE.CLIENTE_USER;
   const normalizedWatchedEmail = String(watchedEmail ?? "").trim().toLowerCase();
+  const selectedCompanyIds = watchedCompanyIds ?? [];
 
   useEffect(() => {
     setContactPage(1);
-  }, [contactSearch, selectedRoleIsClient, allowedCompanyIds, selectedCompanyId]);
+  }, [contactSearch, selectedRoleIsClient, allowedCompanyIds, selectedCompanyIds]);
+
+  useEffect(() => {
+    if (companies.length === 1 && companies[0]?.id && selectedCompanyIds.length === 0) {
+      form.setValue("companyIds", [companies[0].id], { shouldDirty: false, shouldValidate: true });
+    }
+  }, [companies, form, selectedCompanyIds]);
 
   useEffect(() => {
     const query = contactSearch.trim();
@@ -152,11 +159,11 @@ export function CreateUserPageForm({
           page: String(contactPage),
           pageSize: "100",
           q: query || undefined,
-          companyId: selectedCompanyId || undefined,
+          companyId: selectedCompanyIds.length === 1 ? selectedCompanyIds[0] : undefined,
         });
         const normalized = result.items as ContactOption[];
-        const filtered = selectedCompanyId
-          ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).includes(selectedCompanyId))
+        const filtered = selectedCompanyIds.length > 0
+          ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => selectedCompanyIds.includes(companyId)))
           : selectedRoleIsClient
             ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
             : normalized;
@@ -188,7 +195,7 @@ export function CreateUserPageForm({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [allowedCompanyIds, contactPage, contactSearch, selectedRoleIsClient, selectedCompanyId, form]);
+  }, [allowedCompanyIds, contactPage, contactSearch, selectedRoleIsClient, selectedCompanyIds, form]);
 
   useEffect(() => {
     const currentContactId = form.getValues("contactId");
@@ -204,8 +211,8 @@ export function CreateUserPageForm({
         if (cancelled || !contact?.id) return;
 
         const firstCompanyId = contact.companyIds?.[0] ?? contact.companyId;
-        if (firstCompanyId) {
-          setSelectedCompanyId(firstCompanyId);
+        if (firstCompanyId && (form.getValues("companyIds")?.length ?? 0) === 0) {
+          form.setValue("companyIds", [firstCompanyId], { shouldDirty: false, shouldValidate: true });
         }
 
         setContactOptions((prev) => {
@@ -223,6 +230,19 @@ export function CreateUserPageForm({
       cancelled = true;
     };
   }, [contactOptions, form]);
+
+  useEffect(() => {
+    const currentContactId = form.getValues("contactId");
+    if (!currentContactId) return;
+
+    const currentContact = contactOptions.find((contact) => contact.id === currentContactId);
+    if (!currentContact) return;
+
+    const companyIds = currentContact.companyIds ?? (currentContact.companyId ? [currentContact.companyId] : []);
+    if (selectedCompanyIds.length > 0 && !companyIds.some((companyId) => selectedCompanyIds.includes(companyId))) {
+      form.setValue("contactId", "", { shouldDirty: true, shouldValidate: true });
+    }
+  }, [contactOptions, form, selectedCompanyIds]);
 
   useEffect(() => {
     if (mode === "edit") return;
@@ -260,19 +280,42 @@ export function CreateUserPageForm({
     if (!selectedContactId) return null;
     return contactOptions.find((contact) => contact.id === selectedContactId) ?? null;
   }, [contactOptions, selectedContactId]);
+  const selectedCompanies = useMemo(
+    () =>
+      selectedCompanyIds
+        .map((id) => companies.find((company) => company.id === id))
+        .filter(Boolean) as CompanyOption[],
+    [companies, selectedCompanyIds],
+  );
+  const filteredCompanies = useMemo(() => {
+    const normalizedQuery = companyQuery.trim().toLowerCase();
+    const source = normalizedQuery
+      ? companies.filter((company) => `${company.nomeFantasia || ""} ${company.razaoSocial}`.toLowerCase().includes(normalizedQuery))
+      : companies;
+
+    return source
+      .slice()
+      .sort((left, right) => getCompanyLabel(left).localeCompare(getCompanyLabel(right), "pt-BR", {
+        sensitivity: "base",
+        numeric: true,
+      }))
+      .slice(0, 30);
+  }, [companies, companyQuery]);
 
   const selectedCompanyNames = (selectedContact?.companies ?? (selectedContact?.company ? [selectedContact.company] : []))
     .map((company) => company.nomeFantasia || company.razaoSocial)
     .filter(Boolean)
     .join(", ");
   const selectedContactCompanyIds = selectedContact?.companyIds ?? (selectedContact?.companyId ? [selectedContact.companyId] : []);
-  const clientContactInvalid = selectedRoleIsClient && Boolean(selectedContactId) && selectedContactCompanyIds.length === 0;
+  const clientContactInvalid = selectedRoleIsClient
+    && Boolean(selectedContactId)
+    && (selectedContactCompanyIds.length === 0 || !selectedContactCompanyIds.some((companyId) => selectedCompanyIds.includes(companyId)));
   const canSubmitForm = Boolean(
     String(watchedName ?? "").trim().length >= 3 &&
     String(watchedEmail ?? "").trim().length > 0 &&
     selectedProfileKey &&
-    selectedContactId &&
-    !clientContactInvalid &&
+    (!selectedRoleIsClient || selectedCompanyIds.length > 0) &&
+    (!selectedContactId || !clientContactInvalid) &&
     (mode === "edit" || emailAvailability.status !== "unavailable"),
   );
 
@@ -282,19 +325,15 @@ export function CreateUserPageForm({
       return;
     }
 
-    if (!data.contactId?.trim()) {
-      toast.error("Selecione um contato para este usuario.");
-      return;
-    }
-
-    if (selectedRoleIsClient && selectedContactCompanyIds.length === 0) {
-      toast.error("O contato do usuario precisa estar vinculado a uma empresa.");
+    if (selectedRoleIsClient && (data.companyIds?.length ?? 0) === 0) {
+      toast.error("Selecione ao menos uma empresa para o usuario.");
       return;
     }
 
     const payload: CreateUserInput = {
       ...data,
-      contactId: data.contactId.trim(),
+      companyIds: data.companyIds ?? [],
+      contactId: data.contactId?.trim() || "",
     };
 
     if (mode === "edit" && !payload.password) payload.password = undefined;
@@ -390,6 +429,11 @@ export function CreateUserPageForm({
                 <Badge variant="warning" className="gap-1 text-[11px] font-medium">
                   <AlertCircle className="h-3 w-3" />
                   Contato sem empresa vinculada
+                </Badge>
+              ) : null}
+              {!hasErrors ? (
+                <Badge variant="muted" className="gap-1 text-[11px] font-medium">
+                  {selectedCompanyIds.length} empresa(s) selecionada(s)
                 </Badge>
               ) : null}
               {mode !== "edit" && emailAvailability.status === "unavailable" ? (
@@ -538,35 +582,59 @@ export function CreateUserPageForm({
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">Empresa e Contato</p>
-                      <p className="text-xs text-muted-foreground">O usuario herda acessos do contato na empresa vinculada.</p>
+                      <p className="text-xs text-muted-foreground">Defina primeiro as empresas do usuario. O contato passa a ser opcional.</p>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Empresa vinculada
-                    </label>
-                    <Select
-                      value={selectedCompanyId}
-                      onValueChange={(val) => {
-                        setSelectedCompanyId(val);
-                        form.setValue("contactId", "");
-                      }}
-                    >
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Selecione a empresa vinculada" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.nomeFantasia || company.razaoSocial}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[11px] text-muted-foreground">
-                      Selecione a empresa para habilitar e filtrar os contatos correspondentes.
-                    </p>
+                  <div className="rounded-2xl border border-border/60 bg-background/75 p-4 shadow-sm">
+                    <Controller
+                      control={form.control}
+                      name="companyIds"
+                      render={({ field }) => (
+                        <div className="space-y-3">
+                          <CompanyMultiPicker
+                            selectedIds={field.value ?? []}
+                            options={filteredCompanies}
+                            query={companyQuery}
+                            onQueryChange={setCompanyQuery}
+                            onToggle={(companyId) => {
+                              const current = field.value ?? [];
+                              const next = current.includes(companyId)
+                                ? current.filter((id) => id !== companyId)
+                                : [...current, companyId];
+                              field.onChange(next);
+                            }}
+                          />
+
+                          <p className="text-[11px] text-muted-foreground">
+                            Perfis de cliente exigem ao menos uma empresa. O contato, quando informado, deve pertencer a uma das empresas selecionadas.
+                          </p>
+                          {errors.companyIds?.message ? (
+                            <p className="text-sm font-medium text-destructive">{errors.companyIds.message}</p>
+                          ) : null}
+
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCompanies.length === 0 ? (
+                              <span className="rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+                                Nenhuma empresa vinculada.
+                              </span>
+                            ) : (
+                              selectedCompanies.map((company) => (
+                                <button
+                                  key={company.id}
+                                  type="button"
+                                  onClick={() => field.onChange((field.value ?? []).filter((id) => id !== company.id))}
+                                  className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+                                >
+                                  <span className="truncate">{getCompanyLabel(company)}</span>
+                                  <X className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    />
                   </div>
 
                   <FormField
@@ -584,12 +652,15 @@ export function CreateUserPageForm({
                               searchValue={contactSearch}
                               onSearchChange={setContactSearch}
                               onChange={field.onChange}
-                              placeholder={selectedCompanyId ? "Selecione um contato" : "Selecione uma empresa primeiro"}
+                              placeholder={selectedCompanyIds.length > 0 ? "Selecione um contato" : "Selecione ao menos uma empresa"}
                               hasMore={hasMoreContacts}
                               onLoadMore={() => setContactPage((current) => current + 1)}
-                              disabled={!selectedCompanyId}
+                              disabled={selectedCompanyIds.length === 0}
                             />
                           </FormControl>
+                          <p className="text-[11px] text-muted-foreground">
+                            Opcional. Use quando quiser associar o usuario a um contato operacional especifico.
+                          </p>
                           <FormMessage />
                         </FormItem>
                       );
@@ -607,13 +678,13 @@ export function CreateUserPageForm({
                       </div>
                       <div className="md:col-span-2 inline-flex items-center gap-1.5">
                         <Building2 className="h-3.5 w-3.5" />
-                        <span className="font-medium text-foreground">Empresa do contato:</span>{" "}
+                        <span className="font-medium text-foreground">Empresas do contato:</span>{" "}
                         {selectedCompanyNames || "Sem empresa vinculada"}
                       </div>
                     </div>
                   ) : (
                     <div className="rounded-md border border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
-                      Nenhum contato vinculado.
+                      Nenhum contato vinculado. O usuario sera criado apenas com as empresas selecionadas.
                     </div>
                   )}
                 </section>
@@ -779,6 +850,113 @@ function ContactPicker({
               </Button>
             </div>
           ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function CompanyMultiPicker({
+  selectedIds,
+  options,
+  query,
+  onQueryChange,
+  onToggle,
+}: {
+  selectedIds: string[];
+  options: CompanyOption[];
+  query: string;
+  onQueryChange: (value: string) => void;
+  onToggle: (companyId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) onQueryChange("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-auto min-h-11 w-full justify-between rounded-xl border-border/60 bg-background px-3 py-2 shadow-xs"
+        >
+          <div className="min-w-0 text-left">
+            <span className="block truncate text-sm font-medium text-foreground">
+              {selectedIds.length > 0 ? `${selectedIds.length} empresa(s) vinculada(s)` : "Selecionar empresas"}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              Vincule uma ou mais empresas para definir o escopo do usuario
+            </span>
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] min-w-[28rem] rounded-2xl border-border/60 p-0 shadow-xl"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <div className="border-b border-border/60 bg-background/90 p-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder="Buscar empresa por nome fantasia ou razao social..."
+              className="h-9 border-none bg-muted/20 pl-9 shadow-none focus-visible:ring-1 focus-visible:ring-offset-0"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="max-h-80 overflow-y-auto bg-background/95 py-1.5">
+          {options.length === 0 ? (
+            <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+              Nenhuma empresa encontrada.
+            </div>
+          ) : (
+            options.map((company) => {
+              const selected = selectedIds.includes(company.id);
+              return (
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => onToggle(company.id)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors",
+                    selected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50",
+                  )}
+                >
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-foreground">
+                      {getCompanyLabel(company)}
+                    </span>
+                    {company.nomeFantasia ? (
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {company.razaoSocial}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0">
+                    {selected ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <Check className="h-3.5 w-3.5" />
+                        Vinculada
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-medium text-muted-foreground">Vincular</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </PopoverContent>
     </Popover>

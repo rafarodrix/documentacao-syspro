@@ -264,22 +264,33 @@ export class UsersService {
       );
     }
 
-    const normalizedContactId = this.normalizeContactId(data.contactId);
-    if (!normalizedContactId) {
-      throw new BadRequestException('Contato obrigatorio para criar usuario.');
-    }
-
     const profileKey = await this.resolveManagedProfileKey(data.profileKey);
     const userRole = await this.resolveRoleForManagedProfileKey(profileKey);
     await this.assertRequesterCanAssignProfile(requester, profileKey);
+    const normalizedCompanyIds = this.normalizeCompanyIds(data.companyIds);
+    const normalizedContactId = this.normalizeContactId(data.contactId);
 
     if (CLIENT_ROLES.includes(userRole)) {
+      if (!normalizedCompanyIds.length) {
+        throw new BadRequestException('Selecione ao menos uma empresa para criar um usuario cliente.');
+      }
+
       if (!isGlobalUserManager && managedCompanyIds.length === 0) {
         throw new ForbiddenException('Acesso negado.');
       }
 
       if (!isGlobalUserManager) {
-        await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
+        this.assertRequestedCompaniesWithinScope(normalizedCompanyIds, managedCompanyIds);
+      }
+    }
+
+    if (normalizedContactId) {
+      if (!isGlobalUserManager && managedCompanyIds.length > 0) {
+        await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, false);
+      }
+
+      if (normalizedCompanyIds.length > 0) {
+        await this.assertContactMatchesSelectedCompanies(normalizedContactId, normalizedCompanyIds);
       }
     }
 
@@ -315,7 +326,7 @@ export class UsersService {
         },
       });
 
-      await this.userContactAccessService.syncAccessFromContact(tx, createdUserId, userRole, normalizedContactId);
+      await this.userContactAccessService.syncAccess(tx, createdUserId, userRole, normalizedCompanyIds, normalizedContactId);
 
       return (tx.user as any).findUnique({
         where: { id: createdUserId },
@@ -374,6 +385,7 @@ export class UsersService {
       await this.assertRequesterCanAssignProfile(requester, nextProfileKey);
     }
     const effectiveTargetRole = nextRole ?? user.role;
+    const normalizedCompanyIds = data.companyIds === undefined ? undefined : this.normalizeCompanyIds(data.companyIds);
 
     if (!isGlobalUserManager && CLIENT_ROLES.includes(user.role)) {
       if (managedCompanyIds.length === 0) {
@@ -386,13 +398,24 @@ export class UsersService {
     const normalizedContactId = data.contactId === undefined
       ? undefined
       : this.normalizeContactId(data.contactId);
+    if (CLIENT_ROLES.includes(effectiveTargetRole)) {
+      const effectiveCompanyIds = normalizedCompanyIds ?? await this.getUserMembershipCompanyIds(id);
+      if (!effectiveCompanyIds.length) {
+        throw new BadRequestException('Selecione ao menos uma empresa para atualizar um usuario cliente.');
+      }
 
-    if (data.contactId !== undefined && !normalizedContactId) {
-      throw new BadRequestException('Contato obrigatorio para atualizar usuario.');
-    }
+      if (!isGlobalUserManager) {
+        this.assertRequestedCompaniesWithinScope(effectiveCompanyIds, managedCompanyIds);
+      }
 
-    if (!isGlobalUserManager && normalizedContactId && CLIENT_ROLES.includes(effectiveTargetRole)) {
-      await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, true);
+      if (normalizedContactId) {
+        if (!isGlobalUserManager && managedCompanyIds.length > 0) {
+          await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, false);
+        }
+        await this.assertContactMatchesSelectedCompanies(normalizedContactId, effectiveCompanyIds);
+      }
+    } else if (normalizedContactId && !isGlobalUserManager && managedCompanyIds.length > 0) {
+      await this.assertContactWithinCompanies(normalizedContactId, managedCompanyIds, false);
     }
 
     const updatedUser = await this.prisma.$transaction(async (tx) => {
@@ -409,12 +432,8 @@ export class UsersService {
 
       const effectiveRole = nextRole ?? updatedUser.role;
       const effectiveContactId = normalizedContactId ?? updatedUser.contactId;
-
-      if (!effectiveContactId) {
-        throw new BadRequestException('Usuario precisa permanecer vinculado a um contato.');
-      }
-
-      await this.userContactAccessService.syncAccessFromContact(tx, id, effectiveRole, effectiveContactId);
+      const effectiveCompanyIds = normalizedCompanyIds ?? await this.getUserMembershipCompanyIds(id, tx);
+      await this.userContactAccessService.syncAccess(tx, id, effectiveRole, effectiveCompanyIds, effectiveContactId);
 
       return (tx.user as any).findUnique({
         where: { id },
@@ -1380,6 +1399,11 @@ export class UsersService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
+  private normalizeCompanyIds(values?: string[] | null): string[] {
+    if (!Array.isArray(values)) return [];
+    return Array.from(new Set(values.map((value) => String(value ?? '').trim()).filter(Boolean)));
+  }
+
   private resolveUserName(inputName?: string | null): string | undefined {
     if (inputName === undefined) return undefined;
     const normalized = String(inputName ?? '').trim();
@@ -1400,6 +1424,33 @@ export class UsersService {
     if (companyIds.some((companyId) => !allowedCompanyIds.includes(companyId))) {
       throw new ForbiddenException('Contato informado nao pertence a uma empresa permitida para este gestor.');
     }
+  }
+
+  private assertRequestedCompaniesWithinScope(requestedCompanyIds: string[], allowedCompanyIds: string[]) {
+    if (requestedCompanyIds.some((companyId) => !allowedCompanyIds.includes(companyId))) {
+      throw new ForbiddenException('Uma ou mais empresas informadas nao pertencem ao escopo permitido para este gestor.');
+    }
+  }
+
+  private async assertContactMatchesSelectedCompanies(contactId: string, selectedCompanyIds: string[]) {
+    const contactCompanyIds = await this.userContactAccessService.getContactCompanyIds(
+      this.prisma as any,
+      contactId,
+      false,
+    );
+
+    if (!contactCompanyIds.some((companyId) => selectedCompanyIds.includes(companyId))) {
+      throw new BadRequestException('O contato informado nao esta vinculado a nenhuma das empresas selecionadas para o usuario.');
+    }
+  }
+
+  private async getUserMembershipCompanyIds(id: string, client: any = this.prisma) {
+    const memberships = await client.membership.findMany({
+      where: { userId: id },
+      select: { companyId: true },
+    });
+
+    return memberships.map((membership) => membership.companyId);
   }
 
   private async getAssignableProfilesForRequester(requester: Requester): Promise<UserAssignableProfile[]> {
