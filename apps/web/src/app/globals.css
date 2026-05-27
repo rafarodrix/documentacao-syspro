@@ -591,6 +591,24 @@
     border-bottom: 1px solid #ddd;
     padding-bottom: 0.25rem;
   }
+
+  /* 4. Força a exibição de todas as respostas em Accordions (mesmo os fechados) */
+  [data-state="closed"],
+  .fd-accordion-content {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  /* Oculta os chevrons indicadores de colapso de acordeão nas impressões */
+  [role="button"] svg,
+  .fd-accordion svg,
+  button[data-state] svg {
+    display: none !important;
+  }
 }
 
 /* ==========================================================================

@@ -243,6 +243,26 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           border-radius: 4px;
         }
 
+        /* Força a exibição de todas as abas inativas e acordeões fechados */
+        [role="tabpanel"],
+        .fd-tabs-panel,
+        [data-state="closed"],
+        .fd-accordion-content {
+          display: block !important;
+          height: auto !important;
+          max-height: none !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+          overflow: visible !important;
+        }
+
+        /* Oculta os chevrons de acordeões nas impressões */
+        [role="button"] svg,
+        .fd-accordion svg,
+        button[data-state] svg {
+          display: none !important;
+        }
+
         .docs-print-cover {
           display: flex !important;
           flex-direction: column;

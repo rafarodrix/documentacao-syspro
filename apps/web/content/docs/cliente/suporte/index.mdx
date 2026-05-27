@@ -1,6 +1,6 @@
 ---
 title: Central de Suporte Syspro
-description: Ferramentas, calculadoras e guias para auxiliar no dia a dia da sua operação e resolver problemas complexos.
+description: Canais de atendimento, horários, requisitos técnicos e downloads essenciais para garantir o funcionamento do seu ERP.
 full: true
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
@@ -11,47 +11,136 @@ tags:
 
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { CustomCard } from "@/components/custom-card";
 import {
   BookOpen,
   Server,
+  MessagesSquare,
+  Phone,
+  Mail,
+  Clock,
+  AlarmClock,
+  Download,
+  Laptop,
+  ShieldCheck,
+  HelpCircle
 } from "lucide-react";
 
-## Bem-vindo à Central de Suporte do Syspro ERP!
+# Central de Suporte Syspro
+
+Bem-vindo ao centro unificado de suporte técnico do **Syspro ERP**. Esta central foi projetada para ajudar você a resolver problemas rapidamente, compreender as especificações técnicas da sua infraestrutura e fornecer canais diretos de comunicação com nossa equipe especializada.
+
 ---
 
-### Ferramentas de Diagnóstico
+## Guias e Especificações Técnicas
 
-Use estas ferramentas para validar dados, analisar arquivos e resolver problemas rapidamente.
+Nossos guias detalhados reúnem tudo o que você precisa saber sobre o ambiente do sistema e a forma como prestamos o nosso atendimento.
 
 <Cards>
-
-  <CustomCard
+  <Card
     title="Requisitos Mínimos"
     href="/portal/docs/cliente/suporte/requisitos"
-    icon={<Server />}
-  >
-    Verifique os requisitos de sistema e ambiente necessários para garantir a
-    melhor performance do ERP.
-  </CustomCard>
-  
-  <CustomCard>
+    icon={<Server className="h-5 w-5 text-blue-500" />}
+    description="Consulte as especificações recomendadas de processamento, memória, armazenamento e rede para servidores e estações de trabalho."
+  />
+  <Card
     title="Guia do Suporte"
     href="/portal/docs/cliente/suporte/sobre-suporte"
-    icon={<BookOpen />}
-  >
-    Entenda nossos canais de atendimento, horários e como abrir um chamado de
-    forma eficaz para uma resolução ágil.
-  </CustomCard>
-
+    icon={<BookOpen className="h-5 w-5 text-indigo-500" />}
+    description="Entenda o funcionamento de nossos canais, fluxos de atendimento, prazos de resposta (SLA) e políticas para solicitações de melhorias."
+  />
 </Cards>
 
-### Documentação e Guias
+---
 
-Consulte nossos manuais e documentos de referência para obter respostas detalhadas sobre processos, requisitos e novidades do sistema.
+## Canais de Atendimento Rápido
 
-<Callout title="Precisa de uma ferramenta específica?">
-  Se você tem uma necessidade que ainda não atendemos ou uma sugestão para uma
-  nova calculadora, não hesite em entrar em contato com nossa equipe de suporte.
-  Estamos sempre buscando novas formas de facilitar o seu trabalho!
+Precisa falar com nossa equipe? Escolha o canal de sua preferência de acordo com a sua necessidade. **Clique nos cartões abaixo** para ser direcionado ou discar automaticamente:
+
+<Cards>
+  <CustomCard
+    title="WhatsApp Suporte"
+    href="https://wa.me/5534997713731"
+    icon={<MessagesSquare className="h-5 w-5 text-emerald-500" />}
+    description="Dúvidas operacionais cotidianas, orientações rápidas e abertura de chamados simples durante o horário comercial. (34) 99771-3731"
+  />
+  
+  <CustomCard
+    title="E-mail Oficial"
+    href="mailto:equipe@trilinksoftware.com.br"
+    icon={<Mail className="h-5 w-5 text-sky-500" />}
+    description="Solicitações formais, envio de logs, capturas de tela complexas e demandas de faturamento ou contratos. equipe@trilinksoftware.com.br"
+  />
+
+  <CustomCard
+    title="Telefone de Plantão"
+    href="tel:+5534997713731"
+    icon={<Phone className="h-5 w-5 text-amber-500" />}
+    description="Canal exclusivo para tratamento de emergências de parada crítica fora do horário comercial. (34) 99771-3731"
+  />
+</Cards>
+
+<Callout type="warn" title="Atenção ao Plantão Emergencial">
+  Fora do horário comercial, o WhatsApp e o e-mail **não são monitorados**. Para emergências que inviabilizem a operação (como PDV inoperante ou falha de conexão geral), acione o suporte exclusivamente via **ligação telefônica**.
+</Callout>
+
+---
+
+## Downloads e Acesso Remoto
+
+Para que possamos realizar diagnósticos avançados diretamente nas suas estações de trabalho, utilizamos uma conexão remota segura e pontual.
+
+<Cards>
+  <Card
+    title="Baixar Suporte Trilink Software"
+    href="https://www.trilink.com.br/public/downloads"
+    icon={<Download className="h-5 w-5 text-violet-500" />}
+    description="Baixe o nosso agente oficial de suporte remoto de forma rápida. O programa é leve e não requer configurações de rede complexas."
+  />
+  <Card
+    title="Como Funciona o Acesso?"
+    href="/portal/docs/cliente/suporte/sobre-suporte#suporte-remoto"
+    icon={<ShieldCheck className="h-5 w-5 text-emerald-500" />}
+    description="Conexão altamente segura e criptografada. O técnico só consegue se conectar se você fornecer o ID e a senha gerados dinamicamente."
+  />
+</Cards>
+
+---
+
+## Horários de Operação
+
+Nosso atendimento opera em regimes diferenciados para garantir suporte contínuo nos momentos mais críticos da sua operação:
+
+<Cards>
+  <CustomCard title="Horário Comercial" icon={<Clock className="h-5 w-5 text-neutral-500" />}>
+    **Segunda a sexta, das 8h às 18h.** Atendimento completo e irrestrito para todas as dúvidas operacionais, parametrizações tributárias, treinamentos e melhorias, por qualquer canal.
+  </CustomCard>
+  <CustomCard title="Plantão Emergencial" icon={<AlarmClock className="h-5 w-5 text-amber-500" />}>
+    **Segunda a sexta, das 18h às 21h. Sábados, domingos e feriados, das 8h às 20h.** Dedicado exclusivamente a problemas críticos que interrompem totalmente a operação (apenas por telefone).
+  </CustomCard>
+</Cards>
+
+---
+
+## Perguntas Frequentes (FAQ)
+
+Aqui estão as respostas rápidas para as dúvidas mais comuns dos nossos clientes na abertura de chamados:
+
+<Accordions>
+  <Accordion title="O que é considerado uma emergência para o Plantão?">
+    Consideramos emergências apenas falhas graves que impedem o funcionamento da sua empresa, tais como: incapacidade total de emitir notas fiscais (NF-e/NFC-e), indisponibilidade do banco de dados para todas as estações de trabalho, ou falha de rede que pare as vendas nos caixas (PDV). Dúvidas sobre preenchimento, relatórios ou cadastros devem ser tratadas no horário comercial.
+  </Accordion>
+  <Accordion title="Qual é o tempo de resposta estimado?">
+    Nosso tempo padrão para a primeira análise de chamados recebidos via e-mail ou WhatsApp no horário comercial é de **até 4 horas úteis**. Ligação direta para o telefone comercial ou telefone de plantão tem atendimento imediato, sujeito à fila de prioridade dos atendentes.
+  </Accordion>
+  <Accordion title="O suporte técnico inclui consultoria de processos ou treinamentos longos?">
+    O suporte padrão está limitado à resolução de dúvidas pontuais de funcionamento, correção de anomalias no software e orientações de parametrização. Para processos de negócio extensos, treinamento de novas equipes ou consultoria tributária detalhada, consulte nosso time comercial para agendar capacitações dedicadas.
+  </Accordion>
+</Accordions>
+
+---
+
+<Callout title="Tem uma sugestão de nova funcionalidade ou calculadora?">
+  Nossos canais de suporte também são a sua voz! Se você tem uma necessidade operacional que ainda não está coberta pelo Syspro ERP, envie-nos uma proposta através do nosso e-mail oficial.
 </Callout>

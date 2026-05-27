@@ -145,11 +145,18 @@ export default async function PortalDocsPage(props: {
         <DocsKeyboardShortcuts previousHref={neighbours.previous?.url} nextHref={neighbours.next?.url} />
         <DocsTocScrollSpy />
         <DocsPageViewTracker href={docSlug} title={String(page.data.title)} />
-        <SuporteSection
-          modulo={String(page.data.title)}
-          moduleDescription={typeof page.data.description === 'string' ? page.data.description : undefined}
-          feedback={{ slug: docSlug, title: String(page.data.title) }}
-        />
+        {!(
+          page.file.name === 'index' || 
+          slug.includes('suporte') || 
+          (page.data as any).hideSupportSection === true || 
+          (page.data as any).showSupport === false
+        ) && (
+          <SuporteSection
+            modulo={String(page.data.title)}
+            moduleDescription={typeof page.data.description === 'string' ? page.data.description : undefined}
+            feedback={{ slug: docSlug, title: String(page.data.title) }}
+          />
+        )}
       </DocsBody>
     </DocsPage>
   );
