@@ -542,8 +542,10 @@ export function CreateUserPageForm({
                     </div>
                   </div>
 
-                  <FormItem>
-                    <FormLabel>Empresa vinculada</FormLabel>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Empresa vinculada
+                    </label>
                     <Select
                       value={selectedCompanyId}
                       onValueChange={(val) => {
@@ -565,7 +567,7 @@ export function CreateUserPageForm({
                     <p className="text-[11px] text-muted-foreground">
                       Selecione a empresa para habilitar e filtrar os contatos correspondentes.
                     </p>
-                  </FormItem>
+                  </div>
 
                   <FormField
                     control={form.control}
