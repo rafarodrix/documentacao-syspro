@@ -96,6 +96,13 @@ export function CreateUserPageForm({
   const [hasMoreContacts, setHasMoreContacts] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [emailAvailability, setEmailAvailability] = useState<EmailAvailabilityState>({ status: "idle" });
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+
+  useEffect(() => {
+    if (companies.length === 1 && companies[0]?.id && !selectedCompanyId) {
+      setSelectedCompanyId(companies[0].id);
+    }
+  }, [companies, selectedCompanyId]);
 
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -131,7 +138,7 @@ export function CreateUserPageForm({
 
   useEffect(() => {
     setContactPage(1);
-  }, [contactSearch, selectedRoleIsClient, allowedCompanyIds]);
+  }, [contactSearch, selectedRoleIsClient, allowedCompanyIds, selectedCompanyId]);
 
   useEffect(() => {
     const query = contactSearch.trim();
@@ -145,11 +152,14 @@ export function CreateUserPageForm({
           page: String(contactPage),
           pageSize: "100",
           q: query || undefined,
+          companyId: selectedCompanyId || undefined,
         });
         const normalized = result.items as ContactOption[];
-        const filtered = selectedRoleIsClient
-          ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
-          : normalized;
+        const filtered = selectedCompanyId
+          ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).includes(selectedCompanyId))
+          : selectedRoleIsClient
+            ? normalized.filter((contact) => (contact.companyIds ?? (contact.companyId ? [contact.companyId] : [])).some((companyId) => allowedCompanyIds.includes(companyId)))
+            : normalized;
         const selected = currentContactId ? normalized.find((contact) => contact.id === currentContactId) : undefined;
 
         setHasMoreContacts(Boolean(result.pagination?.hasNextPage));
@@ -178,7 +188,7 @@ export function CreateUserPageForm({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [allowedCompanyIds, contactPage, contactSearch, selectedRoleIsClient, form]);
+  }, [allowedCompanyIds, contactPage, contactSearch, selectedRoleIsClient, selectedCompanyId, form]);
 
   useEffect(() => {
     const currentContactId = form.getValues("contactId");
@@ -192,6 +202,11 @@ export function CreateUserPageForm({
       try {
         const contact = await trpc.contacts.getOne.query({ id: currentContactId });
         if (cancelled || !contact?.id) return;
+
+        const firstCompanyId = contact.companyIds?.[0] ?? contact.companyId;
+        if (firstCompanyId) {
+          setSelectedCompanyId(firstCompanyId);
+        }
 
         setContactOptions((prev) => {
           if (prev.some((c) => c.id === contact.id)) return prev;
@@ -527,6 +542,33 @@ export function CreateUserPageForm({
                     </div>
                   </div>
 
+                  <FormItem>
+                    <FormLabel>Empresa vinculada</FormLabel>
+                    <Select
+                      value={selectedCompanyId}
+                      onValueChange={(val) => {
+                        setSelectedCompanyId(val);
+                        form.setValue("contactId", "");
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Selecione a empresa vinculada" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {companies.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.nomeFantasia || company.razaoSocial}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Selecione a empresa para habilitar e filtrar os contatos correspondentes.
+                    </p>
+                  </FormItem>
+
                   <FormField
                     control={form.control}
                     name="contactId"
@@ -542,9 +584,10 @@ export function CreateUserPageForm({
                               searchValue={contactSearch}
                               onSearchChange={setContactSearch}
                               onChange={field.onChange}
-                              placeholder="Selecione um contato"
+                              placeholder={selectedCompanyId ? "Selecione um contato" : "Selecione uma empresa primeiro"}
                               hasMore={hasMoreContacts}
                               onLoadMore={() => setContactPage((current) => current + 1)}
+                              disabled={!selectedCompanyId}
                             />
                           </FormControl>
                           <FormMessage />
@@ -593,6 +636,7 @@ function ContactPicker({
   placeholder,
   hasMore,
   onLoadMore,
+  disabled,
 }: {
   value: string;
   options: ContactOption[];
@@ -603,6 +647,7 @@ function ContactPicker({
   placeholder: string;
   hasMore: boolean;
   onLoadMore: () => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((contact) => contact.id === value) ?? null;
@@ -611,14 +656,16 @@ function ContactPicker({
     <Popover
       open={open}
       onOpenChange={(nextOpen) => {
+        if (disabled) return;
         setOpen(nextOpen);
         if (!nextOpen) onSearchChange("");
       }}
     >
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild disabled={disabled}>
         <Button
           type="button"
           variant="outline"
+          disabled={disabled}
           className={cn(
             "h-auto min-h-11 w-full justify-between px-3 py-2 shadow-xs",
             !selected && "text-muted-foreground",
