@@ -256,6 +256,19 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         }
 
         /* Força a exibição de todas as abas inativas e acordeões fechados */
+        *,
+        *::before,
+        *::after {
+          animation-delay: 0s !important;
+          animation-duration: 0s !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0s !important;
+          scroll-behavior: auto !important;
+          transition-delay: 0s !important;
+          transition: none !important;
+          animation: none !important;
+        }
+
         [role="tabpanel"],
         .fd-tabs-panel,
         [data-state="closed"],
@@ -270,6 +283,7 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           opacity: 1 !important;
           visibility: visible !important;
           overflow: visible !important;
+          content-visibility: visible !important;
         }
 
         /* Oculta os chevrons de acordeões nas impressões */
@@ -291,20 +305,29 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         }
 
         .print-watermark-overlay {
-          display: block !important;
+          display: grid !important;
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: repeat(3, 1fr);
           position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(-35deg);
-          font-size: 56pt;
-          font-weight: 900;
-          color: rgba(100, 116, 139, 0.05) !important;
+          inset: 0;
           z-index: 999999 !important;
           pointer-events: none;
+          mix-blend-mode: multiply;
+          padding: 25mm 15mm;
+          gap: 25mm;
+        }
+
+        .print-watermark-item {
+          display: flex !important;
+          align-items: center;
+          justify-content: center;
+          transform: rotate(-30deg);
+          font-size: 26pt;
+          font-weight: 900;
+          color: rgba(100, 116, 139, 0.035) !important;
           white-space: nowrap;
           text-transform: uppercase;
-          letter-spacing: 0.15em;
-          mix-blend-mode: multiply;
+          letter-spacing: 0.12em;
         }
 
         .docs-print-ink-saver {
@@ -371,7 +394,12 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         className={`docs-print-root space-y-8 ${inkSaver ? "docs-print-ink-saver" : ""}`}
       >
         <div className="print-watermark-overlay hidden pointer-events-none">
-          {watermarkText}
+          <div className="print-watermark-item">{watermarkText}</div>
+          <div className="print-watermark-item">{watermarkText}</div>
+          <div className="print-watermark-item">{watermarkText}</div>
+          <div className="print-watermark-item">{watermarkText}</div>
+          <div className="print-watermark-item">{watermarkText}</div>
+          <div className="print-watermark-item">{watermarkText}</div>
         </div>
 
         {includeCover && (

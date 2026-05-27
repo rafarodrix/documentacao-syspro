@@ -1,6 +1,6 @@
 ---
 title: Requisitos Mínimos
-description: Especificações técnicas de hardware e infraestrutura para implantação do Syspro ERP.
+description: Especificações técnicas de hardware, sistemas operacionais e infraestrutura de rede para implantação estável do Syspro ERP.
 lastUpdated: 2026-03-22
 owner: Equipe de Documentacao
 status: published
@@ -9,154 +9,164 @@ tags:
   - requisitos
 ---
 
-import { Server, Laptop, AlertTriangle, FileDown } from 'lucide-react';
+import { Server, Laptop, AlertTriangle, FileDown, Network, Chrome, FileSpreadsheet, Video, ShieldAlert, Cpu } from 'lucide-react';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-
-Esta página define as especificações mínimas de hardware e infraestrutura necessárias para que o Syspro ERP opere com estabilidade e desempenho adequados. As configurações estão segmentadas por porte de operação — quanto mais PDVs em uso simultâneo, maior a demanda sobre o servidor central. Se o ambiente da sua empresa não se enquadra nos cenários apresentados, a equipe de suporte pode realizar uma análise personalizada.
+Esta página define as especificações de hardware, sistemas operacionais e infraestrutura de rede necessárias para que o Syspro ERP opere com máxima estabilidade e alto desempenho. As configurações estão dimensionadas pelo número de PDVs (Pontos de Venda) ativos simultaneamente — quanto maior o volume de terminais conectados, maior a demanda por recursos. 
 
 <Callout type="info" title="Para equipes de TI e fornecedores de hardware">
-  Ao final desta página você pode gerar a **Ficha Técnica em PDF** com todas as especificações formatadas para envio a fornecedores ou para uso em processos de cotação e aprovação interna.
+  Utilizando o **botão de impressão no topo desta página**, você pode gerar a **Ficha Técnica em PDF** com todas as especificações formatadas para envio a fornecedores ou para uso em processos de cotação e aprovação interna.
 </Callout>
 
 ---
 
-## Servidor
+## Servidor Central
 
-O servidor é a peça central da infraestrutura — ele hospeda o banco de dados e processa todas as requisições das estações de trabalho e PDVs em tempo real. Dimensioná-lo corretamente desde o início evita degradação de performance conforme o volume de operações cresce.
+O servidor central é o núcleo do sistema — ele hospeda o banco de dados principal e processa as transações de todas as estações de trabalho e caixas (PDVs) em tempo real. Um servidor mal dimensionado causará lentidão generalizada em toda a empresa.
 
-As especificações abaixo são baseadas no número de PDVs ativos simultaneamente. Se a empresa opera em turnos com PDVs diferentes, considere o pico de uso como referência, não o total instalado.
+Selecione abaixo a especificação recomendada conforme a quantidade de PDVs ativos na sua operação:
 
-<Cards>
-  <Card title="De 1 a 5 PDVs" icon={<Server />}>
-    **Processador:** Intel Core i5-12400 ou equivalente
+<Tabs items={['1 a 5 PDVs', '6 a 10 PDVs', '11 a 20 PDVs', '21 a 30+ PDVs']}>
+  <Tab value="1 a 5 PDVs">
+    ### Cenário de Pequeno Porte (1 a 5 caixas)
+    Ideal para lojas de conveniência, mini-mercados e faturamentos de menor escala.
 
-    **Memória RAM:** 8 GB DDR4
+    * **Processador:** Intel Core i5-12400 / AMD Ryzen 5 5600 (ou superior)
+    * **Memória RAM:** 8 GB DDR4 / DDR5
+    * **Armazenamento:** 500 GB SSD NVMe M.2 (Velocidade mínima de leitura de 2000 MB/s)
+    * **Rede:** Placa Gigabit 10/100/1000 Mbps (conexão cabeada obrigatória)
+    * **Sistema Operacional:** Windows 11 Pro de 64 bits (atualizado) ou Windows Server 2022
+    
+    > [!WARNING]
+    > **Windows 10 Descontinuado**: O suporte oficial do Windows 10 termina em Outubro de 2025. Recomendamos fortemente a utilização do **Windows 11 Pro** ou superior para novas implantações e servidores.
+  </Tab>
+  <Tab value="6 a 10 PDVs">
+    ### Cenário de Médio Porte (6 a 10 caixas)
+    Indicado para supermercados de médio porte, depósitos de materiais e lojas com fluxo constante.
 
-    **Armazenamento:** 500 GB SSD NVMe
+    * **Processador:** Intel Core i7-13700 / AMD Ryzen 7 5800X (ou superior)
+    * **Memória RAM:** 16 GB DDR4 / DDR5 (Dual Channel)
+    * **Armazenamento:** 500 GB SSD NVMe M.2 (Velocidade mínima de leitura de 3500 MB/s)
+    * **Rede:** Placa Gigabit 10/100/1000 Mbps (conexão cabeada obrigatória)
+    * **Sistema Operacional:** Windows Server 2022 (Recomendado) ou Windows 11 Pro 64-bit
+  </Tab>
+  <Tab value="11 a 20 PDVs">
+    ### Cenário de Grande Porte (11 a 20 caixas)
+    Dimensionado para redes varejistas e comércios com alta densidade de transações.
 
-    **Rede:** Placa 100/1000 Mbps
+    * **Processador:** Intel Core i9-13900 / AMD Ryzen 9 7900X (ou superior)
+    * **Memória RAM:** 32 GB DDR5 (Dual Channel)
+    * **Armazenamento:** 1 TB SSD NVMe M.2 Enterprise / Pro (Alta durabilidade e IOPS)
+    * **Rede:** Placa Gigabit 10/100/1000 Mbps dedicada
+    * **Sistema Operacional:** **Windows Server 2019 / 2022 Standard** (Obrigatório)
+    
+    > [!IMPORTANT]
+    > **Limitação de Conexões Simultâneas**: Sistemas operacionais do tipo desktop (como Windows 10/11) limitam o número de conexões de rede de entrada simultâneas. A partir de 11 terminais, o uso de **Windows Server** é obrigatório para evitar bloqueios do sistema operacional.
+  </Tab>
+  <Tab value="21 a 30+ PDVs">
+    ### Cenário Corporativo / Alta Disponibilidade (21 a 30+ caixas)
+    Ideal para grandes comércios, operações multi-lojas e atacados de alta intensidade.
 
-    **Sistema Operacional:** Windows 10 ou superior / Windows Server
-  </Card>
-  <Card title="De 6 a 10 PDVs" icon={<Server />}>
-    **Processador:** Intel Core i7-12700 ou equivalente
+    * **Processador:** Intel Xeon W-1290P / AMD EPYC (ou equivalentes de servidor dedicado)
+    * **Memória RAM:** 64 GB DDR5 ECC (com correção de erros)
+    * **Armazenamento:** 2 TB SSD NVMe em arranjo RAID 1 (Espelhamento para tolerância a falhas físicas)
+    * **Rede:** Placa Gigabit 1000 Mbps Dual-Port (com agregação de link / Teaming)
+    * **Sistema Operacional:** **Windows Server 2022 Standard / Datacenter** (Obrigatório)
+  </Tab>
+</Tabs>
 
-    **Memória RAM:** 16 GB DDR4
-
-    **Armazenamento:** 500 GB SSD NVMe
-
-    **Rede:** Placa 100/1000 Mbps
-
-    **Sistema Operacional:** Windows 10 ou superior / Windows Server
-  </Card>
-  <Card title="De 11 a 20 PDVs" icon={<Server />}>
-    **Processador:** Intel Core i9-12900 ou equivalente
-
-    **Memória RAM:** 32 GB DDR4
-
-    **Armazenamento:** 1 TB SSD NVMe
-
-    **Rede:** Placa 100/1000 Mbps
-
-    **Sistema Operacional:** Windows Server (recomendado)
-  </Card>
-  <Card title="De 21 a 30 PDVs" icon={<Server />}>
-    **Processador:** Intel Xeon W-1290P ou equivalente
-
-    **Memória RAM:** 64 GB DDR4
-
-    **Armazenamento:** 2 TB SSD NVMe
-
-    **Rede:** Placa 100/1000 Mbps
-
-    **Sistema Operacional:** Windows Server (obrigatório)
-  </Card>
-</Cards>
-
-<Callout type="warn" title="Servidores com mais de 10 PDVs">
-  A partir de 11 PDVs, recomendamos fortemente o uso de **Windows Server** em vez de Windows 10/11. O Windows para desktop tem limitações de conexões simultâneas e de gerenciamento de recursos que se tornam críticas em ambientes maiores. Além disso, considere a implementação de rotina de backup automático e nobreak (UPS) — uma queda de energia sem proteção pode corromper o banco de dados.
+<Callout type="warn" title="Segurança Elétrica e Backups">
+  Independentemente do porte da operação, todos os servidores **devem** ser protegidos por um **Nobreak Inteligente (UPS)** de onda senoidal pura e possuir uma rotina ativa de **Backup Automático** (local e em nuvem). Quedas abruptas de energia elétrica são a maior causa de corrupção de bancos de dados fiscais e operacionais.
 </Callout>
 
 ---
 
 ## Estações de Trabalho (PDVs)
 
-Cada PDV conecta ao servidor via rede local para processar vendas, emitir documentos fiscais e consultar estoque. O desempenho da estação impacta diretamente a agilidade do atendimento ao cliente no balcão.
+Cada caixa ou terminal administrativo conecta-se ao servidor central para registrar vendas e consultar informações. O desempenho da estação afeta diretamente a velocidade do atendimento e a satisfação do cliente no balcão.
 
-A principal variável que determina a especificação da estação é se ela roda **exclusivamente o Syspro ERP** ou se divide recursos com outros aplicativos abertos simultaneamente — planilhas, navegadores, sistemas de gestão de filas, entre outros.
+Escolha a categoria que melhor se adequa ao uso da máquina:
 
-<Cards>
-  <Card title="PDV Dedicado" icon={<Laptop />}>
-    Estação que opera exclusivamente com o Syspro ERP, sem outros aplicativos abertos simultaneamente.
+<Tabs items={['PDV Dedicado', 'PDV Compartilhado']}>
+  <Tab value="PDV Dedicado">
+    ### Estação Exclusiva para o ERP
+    Recomendado para caixas rápidos e checkouts de supermercado onde a máquina roda exclusivamente o Syspro ERP.
 
-    **Processador:** Intel Core i3-10100 ou equivalente
+    * **Processador:** Intel Core i3 12ª Geração / AMD Ryzen 3 4100 (ou superior)
+    * **Memória RAM:** 8 GB DDR4 (Mínimo absoluto)
+    * **Armazenamento:** 256 GB SSD SATA III / NVMe (HDDs mecânicos são proibidos para PDVs)
+    * **Rede:** Placa 10/100/1000 Mbps cabeada
+    * **Sistema Operacional:** **Windows 11 Pro 64-bit** (Recomendado) ou Windows 10 Pro (Suporte estendido até Out/2025)
+    * **Periféricos homologados:** Monitor 19", teclado, mouse, leitor de código de barras (USB), impressora térmica não fiscal de cupom (com driver de comunicação spooler ativo).
+  </Tab>
+  <Tab value="PDV Compartilhado">
+    ### Estação ERP + Aplicativos Secundários
+    Para caixas de atendimento ou retaguarda que rodam o ERP em paralelo com navegadores (múltiplas abas), planilhas pesadas, gerenciadores de filas ou Whatsapp Web.
 
-    **Memória RAM:** 8 GB DDR4
+    * **Processador:** Intel Core i5 12ª Geração / AMD Ryzen 5 4500 (ou superior)
+    * **Memória RAM:** **16 GB DDR4 / DDR5**
+    * **Armazenamento:** 512 GB SSD NVMe M.2
+    * **Rede:** Placa 10/100/1000 Mbps cabeada
+    * **Sistema Operacional:** **Windows 11 Pro 64-bit**
+    * **Periféricos:** Monitor 19" ou superior, teclado, mouse, leitor de código de barras, impressoras e balança integrada (se aplicável).
+  </Tab>
+</Tabs>
 
-    **Armazenamento:** 256 GB SSD SATA
-
-    **Rede:** Placa 100/1000 Mbps
-
-    **Sistema Operacional:** Windows 10 ou superior
-
-    **Periféricos:** Monitor 19", teclado, mouse, leitor de código de barras, impressora fiscal
-  </Card>
-  <Card title="PDV Compartilhado" icon={<Laptop />}>
-    Estação que opera o Syspro ERP em paralelo com outros aplicativos — navegador, Excel, sistemas de comunicação ou similares.
-
-    **Processador:** Intel Core i5-10400s ou equivalente
-
-    **Memória RAM:** 16 GB DDR4
-
-    **Armazenamento:** 512 GB SSD NVMe
-
-    **Rede:** Placa 100/1000 Mbps
-
-    **Sistema Operacional:** Windows 10 ou superior
-
-    **Periféricos:** Monitor 19", teclado, mouse, leitor de código de barras, impressora fiscal
-  </Card>
-</Cards>
-
-<Callout type="warn" title="Abaixo dos requisitos mínimos">
-  Operar o Syspro ERP em hardware abaixo das especificações causa lentidão perceptível, travamentos durante emissão fiscal e risco de timeout em operações de banco de dados. Problemas de performance causados por hardware inadequado não são cobertos pelo suporte técnico de software.
+<Callout type="error" title="Abaixo das Especificações">
+  A utilização de estações com processadores legados (como Celeron, Pentium, Core 2 Duo) ou com memória RAM inferior a 8 GB causa travamentos durante a emissão de notas, atrasos em consultas e lentidão crônica no balcão. Problemas de lentidão decorrentes de hardware defasado **não são cobertos** pelo suporte de software da Trilink.
 </Callout>
 
 ---
 
-## Infraestrutura de Rede
+## Infraestrutura de Rede Local
 
-O Syspro ERP é uma aplicação cliente-servidor que depende de comunicação constante e estável entre as estações e o servidor. A rede local é tão crítica quanto o hardware das máquinas — uma infraestrutura de rede mal dimensionada compromete o desempenho mesmo que servidor e PDVs estejam bem configurados.
+O Syspro ERP opera sob arquitetura cliente-servidor em tempo real, exigindo comunicação ultrarrápida e estável entre os PDVs e o banco de dados central. A qualidade da sua rede local determina a velocidade do ERP.
 
-Os pontos essenciais a garantir são: cabeamento estruturado Cat5e ou superior (evite Wi-Fi para PDVs de operação crítica), switch gerenciável com suporte a 100/1000 Mbps, e latência interna abaixo de 1ms entre estações e servidor. Conexão com a internet é necessária para transmissão de documentos fiscais (NF-e, NFC-e, NFS-e) e atualização do sistema — recomendamos link com no mínimo 10 Mbps dedicados e redundância de operadora para ambientes que não podem parar.
+### Parâmetros Obrigatórios de Rede:
+
+* **Conexão Cabeada**: Todas as estações críticas de caixa e faturamento **devem** estar conectadas via cabo de rede estruturado (Cat5e ou Cat6).
+* **Conectividade Sem Fio (Wi-Fi)**: O uso de Wi-Fi para PDVs e caixas é **desaconselhado**. Flutuações de latência, barreiras físicas e interferências eletromagnéticas causam desconexões intermitentes e corrupção de pacotes. Se inevitável, utilize rede Wi-Fi Corporativa de 5GHz (padrão Wi-Fi 6) com o Access Point a poucos metros de distância.
+* **Switch Gigabit**: A rede local deve operar obrigatoriamente sob Switch Gigabit (10/100/1000 Mbps). Hubs antigos ou switches de 100 Mbps (Fast Ethernet) geram gargalos severos de leitura de dados.
+* **Latência (Ping)**: A latência máxima aceitável entre qualquer estação de trabalho e o servidor central deve ser **inferior a 1ms**.
+* **Internet**: Conexão estável é obrigatória para a emissão e validação em tempo real de documentos fiscais (NF-e, NFC-e, NFS-e) junto à SEFAZ. Recomendamos um link dedicado de no mínimo **15 Mbps** de download/upload, com roteador Dual-WAN para redundância de operadoras (link principal + contingência 4G/5G).
 
 ---
 
 ## Aplicativos que Competem por Recursos
 
-Em PDVs compartilhados, alguns tipos de aplicativo causam impacto desproporcional no desempenho e merecem atenção especial no dimensionamento. Navegadores de internet com múltiplas abas abertas consomem memória RAM de forma agressiva e são a causa mais comum de lentidão em estações que teoricamente deveriam ter hardware suficiente. Planilhas Excel com bases de dados grandes ou fórmulas complexas competem diretamente com o processador durante os cálculos. Aplicativos de videoconferência (Teams, Zoom, Meet) consomem CPU, memória e largura de banda simultaneamente — se a estação do operador precisa rodar videoconferência e o ERP ao mesmo tempo, use as especificações de PDV Compartilhado como piso, não como teto.
+Em terminais compartilhados, certos aplicativos externos possuem consumo de hardware agressivo que interfere diretamente no desempenho do Syspro ERP. Considere os impactos abaixo:
+
+<Cards>
+  <Card title="Navegadores (Chrome/Edge)" icon={<Chrome className="text-orange-500" />}>
+    Múltiplas abas abertas (especialmente Whatsapp Web, Youtube ou portais de notícias) são os maiores consumidores de memória RAM. Podem esgotar 8 GB de RAM em poucos minutos, forçando lentidão extrema no ERP.
+  </Card>
+  <Card title="Planilhas Eletrônicas" icon={<FileSpreadsheet className="text-emerald-500" />}>
+    Microsoft Excel ou Google Sheets abertos com arquivos extensos e cálculos complexos de macro consomem processamento de CPU de forma intensa, atrasando as respostas do ERP no balcão.
+  </Card>
+  <Card title="Videoconferências" icon={<Video className="text-sky-500" />}>
+    Aplicativos como Teams, Meet e Zoom são extremamente pesados. Exigem processamento de CPU, vídeo, memória RAM e largura de banda de rede simultaneamente. Evite rodar essas aplicações no mesmo computador do caixa.
+  </Card>
+</Cards>
 
 ---
-
-
 
 ## Perguntas Frequentes
 
 <Accordions>
   <Accordion title="Posso usar o mesmo computador como servidor e PDV simultaneamente?">
-    Tecnicamente é possível em operações muito pequenas (1 a 2 PDVs), mas não é recomendado. O computador que age como servidor precisa ter recursos disponíveis para atender as requisições das outras estações — se ele também está rodando o ERP como PDV, os dois processos competem pelos mesmos recursos. Em operações com 3 ou mais PDVs, um servidor dedicado é obrigatório para garantir estabilidade.
+    Apenas em operações extremamente reduzidas (até 2 caixas no total) e desde que a máquina atenda às especificações de **Cenário de 1 a 5 PDVs**. Em operações com 3 caixas ou mais, o servidor central **deve ser dedicado** e não ser utilizado como terminal de operação, garantindo que o banco de dados tenha 100% dos recursos de hardware disponíveis para processar as requisições das estações sem concorrência.
   </Accordion>
-  <Accordion title="Disco HDD atende os requisitos ou é obrigatório SSD?">
-    SSD é obrigatório, não opcional. O banco de dados do Syspro ERP realiza operações intensivas de leitura e escrita em disco — um HDD convencional, mesmo de 7200 RPM, entrega latências de 5 a 15ms por operação. Um SSD NVMe entrega menos de 0,1ms. Em servidores com vários PDVs ativos, essa diferença se multiplica por cada requisição simultânea e o impacto no tempo de resposta é imediato e perceptível.
+  <Accordion title="O uso de SSD é mesmo obrigatório ou posso utilizar HDD convencional?">
+    O SSD é um **requisito obrigatório** e eliminatório para a implantação do Syspro ERP. O banco de dados realiza centenas de requisições de leitura e escrita simultâneas no disco por minuto. Enquanto um HDD mecânico comum possui tempo de acesso a dados de 15ms, um SSD NVMe realiza a mesma operação em menos de 0.1ms. A diferença de performance operacional é gritante e o uso de HDD inviabiliza o suporte do sistema por lentidão crônica.
   </Accordion>
-  <Accordion title="Wi-Fi é suficiente para os PDVs?">
-    Para PDVs de operação crítica — especialmente os que emitem documentos fiscais — recomendamos fortemente cabeamento. Wi-Fi introduz variabilidade de latência e está sujeito a interferências que causam lentidão intermitente e difícil diagnóstico. Se Wi-Fi for a única opção, garanta que o ponto de acesso está próximo, opera em 5GHz e o PDV é o único dispositivo conectado a ele.
+  <Accordion title="Qual a diferença técnica de performance entre Windows Desktop e Windows Server?">
+    Sistemas operacionais de uso pessoal (Windows 10 e 11 Home/Pro) limitam a pilha TCP/IP a no máximo 20 conexões simultâneas de entrada por questões de licenciamento da Microsoft. Na prática, a partir de 10 PDVs conectados a um servidor Windows 10/11 desktop, a rede começa a descartar conexões de rede aleatoriamente, causando quedas e erros de comunicação no sistema. O **Windows Server** é projetado especificamente para gerenciar milhares de conexões simultâneas, otimizar fila de disco e garantir alto desempenho sob carga pesada.
   </Accordion>
-  <Accordion title="O ambiente da minha empresa é diferente dos cenários apresentados. E agora?">
-    Entre em contato com o suporte técnico descrevendo sua infraestrutura atual — número de PDVs, configuração do servidor existente, tipo de operação e sistemas que rodam em paralelo. A equipe realiza uma análise gratuita e indica se o ambiente atual é adequado ou quais upgrades são prioritários antes da implantação.
+  <Accordion title="Minha infraestrutura não se enquadra em nenhum destes cenários. O que devo fazer?">
+    Entre em contato com nossa equipe de suporte técnico enviando um inventário completo dos seus computadores e rede local. Nossos engenheiros de suporte farão uma avaliação detalhada e sem custos de viabilidade, sugerindo as melhores opções de upgrade de hardware com menor custo para preparar o seu ambiente para a implantação.
   </Accordion>
 </Accordions>
 
