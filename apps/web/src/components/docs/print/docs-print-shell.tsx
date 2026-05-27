@@ -147,7 +147,6 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         .docs-print-root pre,
         .docs-print-root blockquote,
         .docs-print-root figure,
-        .docs-print-root table,
         .docs-print-root ul,
         .docs-print-root ol,
         .docs-print-root dl {
@@ -180,6 +179,19 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           font-size: 9pt;
           margin-top: 10pt;
           margin-bottom: 10pt;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+
+        .docs-print-root .fd-table-wrapper,
+        .docs-print-root .table-wrapper,
+        .docs-print-root div[class*="overflow-"] {
+          overflow: visible !important;
+          display: block !important;
+          width: 100% !important;
+          max-width: none !important;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
         }
 
         .docs-print-root thead {
