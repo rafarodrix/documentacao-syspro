@@ -3,5 +3,7 @@
   "title": "Suporte",
   "description": "Guias de atendimento, parametrizações e procedimentos para suporte técnico do Syspro ERP.",
   "pages": [
+    "sobre-suporte",
+    "requisitos"
   ]
 }

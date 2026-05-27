@@ -259,7 +259,11 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
         [role="tabpanel"],
         .fd-tabs-panel,
         [data-state="closed"],
-        .fd-accordion-content {
+        .fd-accordion-content,
+        [data-state="closed"] .fd-accordion-content,
+        [data-state="closed"] [role="region"],
+        [data-state="closed"] [hidden],
+        [hidden] {
           display: block !important;
           height: auto !important;
           max-height: none !important;
