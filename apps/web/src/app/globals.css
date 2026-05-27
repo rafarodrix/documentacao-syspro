@@ -574,6 +574,9 @@
   [role="tabpanel"],
   .fd-tabs-panel {
     display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     opacity: 1 !important;
     visibility: visible !important;
     margin-bottom: 2rem;
@@ -582,13 +585,13 @@
 
   /* 3. Adiciona um título visual indicando a qual cenário pertence */
   [role="tabpanel"]::before {
-    content: "Cenário: " attr(title) "";
+    content: "Cenário: " attr(value) attr(title) "";
     display: block;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: bold;
-    color: #000;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid #ddd;
+    color: #111827;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
     padding-bottom: 0.25rem;
   }
 
@@ -606,19 +609,38 @@
     animation: none !important;
   }
 
-  [data-state="closed"],
-  .fd-accordion-content,
+  /* Força a exibição com altíssima especificidade para vencer qualquer estilo do Fumadocs */
+  div.fd-accordion-content[data-state="closed"],
+  div.fd-accordion-content[hidden],
+  div.fd-accordion-content,
   [data-state="closed"] .fd-accordion-content,
   [data-state="closed"] [role="region"],
   [data-state="closed"] [hidden],
-  [hidden] {
+  [hidden],
+  [data-state="closed"] {
     display: block !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     opacity: 1 !important;
     visibility: visible !important;
     overflow: visible !important;
     content-visibility: visible !important;
+  }
+
+  /* Força fundos transparentes em blocos para que a marca d'água apareça em todas as áreas e economize tinta */
+  [role="tabpanel"],
+  .fd-tabs-panel,
+  [data-callout],
+  blockquote,
+  .p-4,
+  .bg-white,
+  .bg-card,
+  .bg-muted\/10,
+  .bg-background\/30,
+  div[class*="bg-"] {
+    background-color: transparent !important;
+    background: transparent !important;
   }
 
   /* Oculta os chevrons indicadores de colapso de acordeão nas impressões */

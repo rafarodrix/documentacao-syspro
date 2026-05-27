@@ -269,21 +269,61 @@ export function DocsPrintShell({ title, contactInfo, children }: DocsPrintShellP
           animation: none !important;
         }
 
-        [role="tabpanel"],
-        .fd-tabs-panel,
-        [data-state="closed"],
-        .fd-accordion-content,
-        [data-state="closed"] .fd-accordion-content,
-        [data-state="closed"] [role="region"],
-        [data-state="closed"] [hidden],
-        [hidden] {
+        .docs-print-root [role="tabpanel"],
+        .docs-print-root .fd-tabs-panel {
           display: block !important;
           height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+          margin-bottom: 2rem;
+          page-break-inside: avoid;
+        }
+
+        .docs-print-root [role="tabpanel"]::before {
+          content: "Cenário: " attr(value) attr(title) "";
+          display: block;
+          font-size: 11pt;
+          font-weight: bold;
+          color: #111827;
+          margin-bottom: 8pt;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 3pt;
+        }
+
+        /* Força a exibição com altíssima especificidade para vencer qualquer estilo do Fumadocs */
+        .docs-print-root div.fd-accordion-content[data-state="closed"],
+        .docs-print-root div.fd-accordion-content[hidden],
+        .docs-print-root div.fd-accordion-content,
+        .docs-print-root [data-state="closed"] .fd-accordion-content,
+        .docs-print-root [data-state="closed"] [role="region"],
+        .docs-print-root [data-state="closed"] [hidden],
+        .docs-print-root [hidden],
+        .docs-print-root [data-state="closed"] {
+          display: block !important;
+          height: auto !important;
+          min-height: 0 !important;
           max-height: none !important;
           opacity: 1 !important;
           visibility: visible !important;
           overflow: visible !important;
           content-visibility: visible !important;
+        }
+
+        /* Força fundos transparentes em blocos para que a marca d'água apareça em todas as áreas e economize tinta */
+        .docs-print-root [role="tabpanel"],
+        .docs-print-root .fd-tabs-panel,
+        .docs-print-root [data-callout],
+        .docs-print-root blockquote,
+        .docs-print-root .p-4,
+        .docs-print-root .bg-white,
+        .docs-print-root .bg-card,
+        .docs-print-root .bg-muted\/10,
+        .docs-print-root .bg-background\/30,
+        .docs-print-root div[class*="bg-"] {
+          background-color: transparent !important;
+          background: transparent !important;
         }
 
         /* Oculta os chevrons de acordeões nas impressões */
