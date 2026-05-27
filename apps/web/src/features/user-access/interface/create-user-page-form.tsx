@@ -52,9 +52,9 @@ const SECTIONS: Array<RegistryFormSection<SectionId> & { fields: string[] }> = [
   },
   {
     id: "vinculo",
-    title: "Vinculo do contato",
-    description: "Contato e empresas herdadas",
-    icon: Link2 as ElementType,
+    title: "Empresa",
+    description: "Empresa e contato vinculados",
+    icon: Building2 as ElementType,
     fields: ["contactId"],
   },
 ];
@@ -534,11 +534,11 @@ export function CreateUserPageForm({
                 <section className="space-y-5">
                   <div className="flex items-center gap-2">
                     <div className="rounded-md bg-primary/10 p-1.5">
-                      <UserRound className="h-4 w-4 text-primary" />
+                      <Building2 className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Contato principal</p>
-                      <p className="text-xs text-muted-foreground">O usuario herda identidade e empresas do contato vinculado.</p>
+                      <p className="text-sm font-semibold text-foreground">Empresa e Contato</p>
+                      <p className="text-xs text-muted-foreground">O usuario herda acessos do contato na empresa vinculada.</p>
                     </div>
                   </div>
 
@@ -551,11 +551,9 @@ export function CreateUserPageForm({
                         form.setValue("contactId", "");
                       }}
                     >
-                      <FormControl>
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Selecione a empresa vinculada" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione a empresa vinculada" />
+                      </SelectTrigger>
                       <SelectContent>
                         {companies.map((company) => (
                           <SelectItem key={company.id} value={company.id}>
@@ -693,7 +691,7 @@ function ContactPicker({
 
       <PopoverContent
         align="start"
-        className="w-[var(--radix-popover-trigger-width)] min-w-[24rem] p-0"
+        className="w-(--radix-popover-trigger-width) min-w-[24rem] p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <div className="border-b p-2">
