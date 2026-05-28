@@ -52,24 +52,38 @@ export class AtendimentosDashboardQuery {
     );
 
     const ticketBaseWhere: Prisma.TicketWhereInput = {
-      createdAt: { gte: periodStart, lte: periodEnd },
-      externalThreadId: { not: null },
-      ...(accessScope.isGlobal ? {} : { companyId: { in: accessScope.companyIds } }),
+      AND: [
+        { createdAt: { gte: periodStart, lte: periodEnd } },
+        { externalThreadId: { not: null } },
+      ],
     };
 
+    if (!accessScope.isGlobal) {
+      (ticketBaseWhere.AND as Prisma.TicketWhereInput[]).push({
+        OR: [
+          { companyId: { in: accessScope.companyIds } },
+          { companyId: null },
+        ],
+      });
+    }
+
     if (assigneeId) {
-      ticketBaseWhere.assignedUserId = assigneeId;
+      (ticketBaseWhere.AND as Prisma.TicketWhereInput[]).push({
+        assignedUserId: assigneeId,
+      });
     }
 
     if (contactQuery) {
-      ticketBaseWhere.OR = [
-        { contactNameSnapshot: { contains: contactQuery, mode: 'insensitive' } },
-        { contactPhoneSnapshot: { contains: contactQuery, mode: 'insensitive' } },
-        { contactWhatsappSnapshot: { contains: contactQuery, mode: 'insensitive' } },
-        { companyContact: { name: { contains: contactQuery, mode: 'insensitive' } } },
-        { company: { razaoSocial: { contains: contactQuery, mode: 'insensitive' } } },
-        { company: { nomeFantasia: { contains: contactQuery, mode: 'insensitive' } } },
-      ];
+      (ticketBaseWhere.AND as Prisma.TicketWhereInput[]).push({
+        OR: [
+          { contactNameSnapshot: { contains: contactQuery, mode: 'insensitive' } },
+          { contactPhoneSnapshot: { contains: contactQuery, mode: 'insensitive' } },
+          { contactWhatsappSnapshot: { contains: contactQuery, mode: 'insensitive' } },
+          { companyContact: { name: { contains: contactQuery, mode: 'insensitive' } } },
+          { company: { razaoSocial: { contains: contactQuery, mode: 'insensitive' } } },
+          { company: { nomeFantasia: { contains: contactQuery, mode: 'insensitive' } } },
+        ],
+      });
     }
 
     const tickets = await this.prisma.ticket.findMany({
@@ -94,12 +108,6 @@ export class AtendimentosDashboardQuery {
             name: true,
             email: true,
             role: true,
-          },
-        },
-        ticketCategory: {
-          select: {
-            id: true,
-            name: true,
           },
         },
       },
@@ -131,38 +139,6 @@ export class AtendimentosDashboardQuery {
       resolutionSum: number;
       resolutionCount: number;
     }>();
-
-    const recognizedCategories = [
-      'fiscal',
-      'nota fiscal',
-      'financeiro',
-      'vendas',
-      'estoque',
-      'frente de caixa',
-      'balanÃ§a',
-      'instalaÃ§Ã£o',
-      'treinamento',
-      'erro operacional',
-      'erro sistema',
-      'dÃºvida de uso',
-      'solicitaÃ§Ã£o de melhoria',
-    ];
-
-    const categoryCountsMap = new Map<string, number>(recognizedCategories.map((category) => [category, 0]));
-    categoryCountsMap.set('Outros', 0);
-
-    const tagCountsMap = new Map<string, number>();
-
-    let firstResponseWithinSlaCount = 0;
-    let firstResponseTotalSlaCount = 0;
-    let resolutionWithinSlaCount = 0;
-    let resolutionTotalSlaCount = 0;
-    let delayedOpenCount = 0;
-
-    let backlogToday = 0;
-    let backlogOver1d = 0;
-    let backlogOver3d = 0;
-    let backlogOver7d = 0;
 
     let resolvedCount = 0;
     let openCount = 0;
@@ -274,41 +250,6 @@ export class AtendimentosDashboardQuery {
 
       if (ticket.status === 'RESOLVED') resolvedCount += 1;
       else openCount += 1;
-
-      if (ticket.createdAt instanceof Date) {
-        if (ticket.slaResponseHitAt instanceof Date) {
-          const firstResponseMin = (ticket.slaResponseHitAt.getTime() - ticket.createdAt.getTime()) / 60000;
-          firstResponseTotalSlaCount += 1;
-          if (firstResponseMin <= 15) firstResponseWithinSlaCount += 1;
-        }
-
-        if (ticket.status === 'RESOLVED' && ticket.closedAt instanceof Date) {
-          const resolutionHours = (ticket.closedAt.getTime() - ticket.createdAt.getTime()) / 3600000;
-          resolutionTotalSlaCount += 1;
-          if (resolutionHours <= 24) resolutionWithinSlaCount += 1;
-        } else if (ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED') {
-          const ageHours = (Date.now() - ticket.createdAt.getTime()) / 3600000;
-          if (ageHours > 24) delayedOpenCount += 1;
-
-          if (ageHours <= 24) backlogToday += 1;
-          else if (ageHours <= 72) backlogOver1d += 1;
-          else if (ageHours <= 168) backlogOver3d += 1;
-          else backlogOver7d += 1;
-        }
-      }
-
-      let matchedCategory = false;
-      if (ticket.ticketCategory?.name) {
-        const normalizedLabel = ticket.ticketCategory.name.toLowerCase().trim();
-        const matched = recognizedCategories.find((category) => category === normalizedLabel);
-        if (matched) {
-          categoryCountsMap.set(matched, (categoryCountsMap.get(matched) || 0) + 1);
-          matchedCategory = true;
-        }
-      }
-      if (!matchedCategory) {
-        categoryCountsMap.set('Outros', (categoryCountsMap.get('Outros') || 0) + 1);
-      }
     }
 
     const avgFirstResponseMinutes = (() => {
@@ -390,7 +331,7 @@ export class AtendimentosDashboardQuery {
           const diffDays = Math.floor(diffMs / 86400000);
           if (diffDays === 0) lastAttendance = 'Hoje';
           else if (diffDays === 1) lastAttendance = 'Ontem';
-          else lastAttendance = `HÃ¡ ${diffDays} dias`;
+          else lastAttendance = `Há ${diffDays} dias`;
         }
 
         return {
@@ -477,13 +418,6 @@ export class AtendimentosDashboardQuery {
         .sort((left, right) => new Date(left.label).getTime() - new Date(right.label).getTime());
     };
 
-    const slaFirstResponsePct = firstResponseTotalSlaCount > 0
-      ? Math.round((firstResponseWithinSlaCount / firstResponseTotalSlaCount) * 100)
-      : null;
-    const slaResolutionPct = resolutionTotalSlaCount > 0
-      ? Math.round((resolutionWithinSlaCount / resolutionTotalSlaCount) * 100)
-      : null;
-
     const payload = {
       success: true as const,
       data: {
@@ -531,22 +465,17 @@ export class AtendimentosDashboardQuery {
           .sort((left, right) => right.responseCount - left.responseCount || right.averageScore - left.averageScore)
           .slice(0, 6),
         warning: undefined,
-        slaFirstResponsePct,
-        slaResolutionPct,
-        delayedOpenCount,
+        slaFirstResponsePct: null,
+        slaResolutionPct: null,
+        delayedOpenCount: 0,
         backlog: {
-          today: backlogToday,
-          over1d: backlogOver1d,
-          over3d: backlogOver3d,
-          over7d: backlogOver7d,
+          today: 0,
+          over1d: 0,
+          over3d: 0,
+          over7d: 0,
         },
-        categories: Array.from(categoryCountsMap.entries())
-          .map(([name, count]) => ({ name, count }))
-          .sort((left, right) => right.count - left.count),
-        topTags: Array.from(tagCountsMap.entries())
-          .map(([name, count]) => ({ name, count }))
-          .sort((left, right) => right.count - left.count)
-          .slice(0, 10),
+        categories: [],
+        topTags: [],
       },
     };
     this.cache.set(cacheKey, {
