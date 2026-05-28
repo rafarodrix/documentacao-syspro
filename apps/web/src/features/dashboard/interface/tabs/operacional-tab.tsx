@@ -4,7 +4,7 @@ import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { TicketFlowChart } from "../components/ticket-flow-chart";
 import { TrustReleaseCard } from "../components/trust-release-card";
 import { DocsInsightsPanel } from "../components/docs-insights-panel";
-import { getOperacionalData } from "../../application";
+import { getOperacionalData } from "../../application/operacional-dashboard.queries";
 import { TicketsSummary } from "@/features/tickets/interface";
 import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";

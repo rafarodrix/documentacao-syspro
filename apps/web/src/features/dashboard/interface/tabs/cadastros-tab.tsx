@@ -5,7 +5,7 @@ import { RecentRecords } from "@/components/platform/app/dashboard/recent-record
 import { SectionCard } from "@/components/patterns";
 import { cn } from "@/lib/utils";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
-import { getCadastrosData } from "../../application";
+import { getCadastrosData } from "../../application/cadastros-dashboard.queries";
 
 export async function CadastrosTab() {
   let data: Awaited<ReturnType<typeof getCadastrosData>>;

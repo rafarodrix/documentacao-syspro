@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/auth-helpers";
 import type { SettingsPermissionKey } from "@dosc-syspro/contracts/settings";
-import { getDashboardData, getOperacionalData } from "@/features/dashboard/application";
+import { getDashboardData, getOperacionalData } from "@/features/dashboard/application/server";
 import { currentUserHasAnyPermission, currentUserHasPermission } from "@/features/user-access/application/current-user-access";
 import { AdminDashboard } from "@/features/dashboard/interface/admin-dashboard";
 import { ClientDashboard } from "@/features/dashboard/interface/client-dashboard";

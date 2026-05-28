@@ -1,7 +1,7 @@
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { OpenTicketsInsights } from "@/components/platform/app/dashboard/open-tickets-insights";
 import { TicketPriorityChart } from "../components/ticket-priority-chart";
-import { getSuporteData } from "../../application";
+import { getSuporteData } from "../../application/tickets-dashboard.queries";
 
 export async function SupportTicketsSubtab() {
   const data = await getSuporteData();

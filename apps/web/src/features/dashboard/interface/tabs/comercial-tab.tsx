@@ -6,7 +6,7 @@ import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { ExecutiveLine } from "../components/executive-line";
 import { CrmStageChart } from "../components/crm-stage-chart";
-import { getComercialData } from "../../application";
+import { getComercialData } from "../../application/comercial-dashboard.queries";
 
 export async function ComercialTab() {
   const data = await getComercialData();

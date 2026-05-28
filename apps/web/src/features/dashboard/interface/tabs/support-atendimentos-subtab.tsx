@@ -35,7 +35,7 @@ import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { formatDateTimeSafe } from "@/lib/date";
 import { formatNumber } from "@/lib/formatters";
-import { getAtendimentosData } from "../../application";
+import { getAtendimentosData } from "../../application/client";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
 

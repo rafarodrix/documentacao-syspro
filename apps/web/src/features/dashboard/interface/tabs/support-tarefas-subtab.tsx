@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@dosc-syspro/ui";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
-import { getTarefasData } from "../../application";
+import { getTarefasData } from "../../application/tarefas-dashboard.queries";
 import type { DashboardTarefasOverdueItem } from "@dosc-syspro/contracts/dashboard";
 
 const MONTH_NAMES = [

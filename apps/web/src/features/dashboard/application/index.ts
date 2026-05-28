@@ -1,1 +1,1 @@
-export * from "./dashboard-read.queries";
+export * from "./server";
