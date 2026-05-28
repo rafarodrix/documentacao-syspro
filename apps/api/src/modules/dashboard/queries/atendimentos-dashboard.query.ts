@@ -3,7 +3,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthorizationService } from '../../authorization/authorization.service';
-import { mapConversationStatus, mapTicketPriority, mapTicketStatus, parseDateInput, startOfDay } from '../dashboard.shared';
+import { mapConversationStatus, parseDateInput, startOfDay } from '../dashboard.shared';
 
 @Injectable()
 export class AtendimentosDashboardQuery {
@@ -415,15 +415,22 @@ export class AtendimentosDashboardQuery {
         .slice(0, 10),
     );
 
-    const unassignedTicketsList = tickets
+    const unassignedConversations = tickets
       .filter((ticket) => !ticket.assignedUserId && ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED')
       .map((ticket) => ({
         id: ticket.id,
-        number: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
+        reference: ticket.ticketNumber || ticket.id.slice(0, 8).toUpperCase(),
         subject: ticket.subject || 'Sem assunto',
-        status: mapTicketStatus(ticket.status),
-        priority: mapTicketPriority(ticket.priority),
+        contactName:
+          ticket.companyContact?.name ||
+          ticket.contactNameSnapshot ||
+          ticket.company?.nomeFantasia ||
+          ticket.company?.razaoSocial ||
+          'Contato nao identificado',
+        channel: ticket.channel,
+        status: mapConversationStatus(ticket.status),
         lastUpdate: ticket.updatedAt instanceof Date ? ticket.updatedAt.toISOString() : new Date().toISOString(),
+        detailHref: `/portal/tickets/${ticket.id}`,
       }));
 
     const assigneeLoadsMapped = Array.from(assigneeLoadMap.values())
@@ -510,7 +517,7 @@ export class AtendimentosDashboardQuery {
           .sort((left, right) => left.name.localeCompare(right.name)),
         topContacts: topContactsMapped,
         topCompanies: topCompaniesMapped,
-        unassignedTickets: unassignedTicketsList,
+        unassignedConversations,
         csatScoreDistribution: [1, 2, 3, 4, 5].map((score) => ({ score, count: csatDistributionMap.get(score) || 0 })),
         csatAgentPerformance: Array.from(csatAgentMap.values())
           .map((item) => ({

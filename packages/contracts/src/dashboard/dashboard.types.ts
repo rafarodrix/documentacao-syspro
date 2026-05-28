@@ -237,6 +237,17 @@ export const dashboardConversationTopContactSchema = z.object({
   lastAttendance: z.string().nullable().optional(),
 });
 
+export const dashboardConversationQueueItemSchema = z.object({
+  id: z.string().min(1),
+  reference: z.string().min(1),
+  subject: z.string().min(1),
+  contactName: z.string().min(1),
+  channel: z.enum(["WHATSAPP", "EMAIL", "PORTAL", "PHONE"]),
+  status: z.enum(["Novo", "Sem responsavel", "Triagem", "Em andamento", "Aguardando cliente", "Aguardando interno", "Teste", "Resolvido", "Arquivado"]),
+  lastUpdate: z.string().min(1),
+  detailHref: z.string().min(1),
+});
+
 export const dashboardCsatScoreDistributionSchema = z.object({
   score: z.number().int().min(1).max(5),
   count: z.number().int().nonnegative(),
@@ -293,7 +304,7 @@ export const adminAtendimentosDataSchema = z.object({
   }).optional(),
   categories: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
   topTags: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
-  unassignedTickets: z.array(dashboardTicketSummarySchema).default([]),
+  unassignedConversations: z.array(dashboardConversationQueueItemSchema).default([]),
   topCompanies: z.array(dashboardConversationTopContactSchema).default([]),
 });
 
@@ -443,6 +454,7 @@ export type DashboardCrmSummary = z.infer<typeof dashboardCrmSummarySchema>;
 export type DashboardContractsSummary = z.infer<typeof dashboardContractsSummarySchema>;
 export type DashboardCadastrosSummary = z.infer<typeof dashboardCadastrosSummarySchema>;
 export type DashboardConversationTopContact = z.infer<typeof dashboardConversationTopContactSchema>;
+export type DashboardConversationQueueItem = z.infer<typeof dashboardConversationQueueItemSchema>;
 export type DashboardCsatScoreDistribution = z.infer<typeof dashboardCsatScoreDistributionSchema>;
 export type DashboardCsatAgentPerformance = z.infer<typeof dashboardCsatAgentPerformanceSchema>;
 export type AdminDashboardView = z.infer<typeof adminDashboardViewSchema>;

@@ -255,7 +255,7 @@ export function SupportAtendimentosSubtab() {
         </CardContent>
       </Card>
 
-      {/* Operational Warning Alert for Unassigned Tickets */}
+      {/* Operational Warning Alert for Unassigned Conversations */}
       {!loading && (data?.unassignedCount ?? 0) > 0 ? (
         <div className="flex items-start gap-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 backdrop-blur-md p-4 text-rose-200 shadow-sm">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500">
@@ -273,31 +273,51 @@ export function SupportAtendimentosSubtab() {
       ) : null}
 
       {/* Tabela de Atendimentos Sem Responsável */}
-      {!loading && data && (data.unassignedTickets ?? []).length > 0 ? (
+      {!loading && data && (data.unassignedConversations ?? []).length > 0 ? (
         <SectionCard
           title="Fila de Atendimentos Sem Responsável"
           className="border-rose-500/20 bg-rose-500/5 backdrop-blur shadow-sm"
           contentClassName="overflow-x-auto space-y-3"
         >
           <div className="text-xs text-rose-300 font-medium">
-            Existem <span className="font-semibold text-rose-100">{data.unassignedTickets.length}</span> atendimentos sem dono aguardando triagem imediata.
+            Existem <span className="font-semibold text-rose-100">{data.unassignedConversations.length}</span> conversas sem dono aguardando triagem imediata.
           </div>
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/40 text-muted-foreground text-xs uppercase tracking-wider">
-                <th className="py-2.5 px-3 font-semibold w-24">Ticket</th>
+                <th className="py-2.5 px-3 font-semibold w-24">Ref.</th>
                 <th className="py-2.5 px-3 font-semibold">Assunto</th>
-                <th className="py-2.5 px-3 font-semibold text-center w-28">Prioridade</th>
+                <th className="py-2.5 px-3 font-semibold text-center w-28">Canal</th>
                 <th className="py-2.5 px-3 font-semibold text-center w-28">Status</th>
                 <th className="py-2.5 px-3 font-semibold text-center w-36">Última Atualização</th>
                 <th className="py-2.5 px-3 font-semibold text-right w-24">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {data.unassignedTickets.map((ticket) => {
-                let priorityClass = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
-                if (ticket.priority === "Alta") priorityClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-                if (ticket.priority === "Média") priorityClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+              {data.unassignedConversations.map((conversation) => {
+                const ticket = {
+                  id: conversation.id,
+                  number: conversation.reference,
+                  subject: conversation.subject,
+                  priority: conversation.channel,
+                  status:
+                    conversation.status === "Em andamento"
+                      ? "Em Análise"
+                      : conversation.status === "Aguardando cliente" || conversation.status === "Aguardando interno"
+                        ? "Pendente"
+                        : conversation.status === "Resolvido"
+                          ? "Resolvido"
+                          : "Aberto",
+                  lastUpdate: conversation.lastUpdate,
+                };
+                let priorityClass = "bg-zinc-500/10 text-zinc-300 border-zinc-500/20";
+                let channelClass = "bg-zinc-500/10 text-zinc-300 border-zinc-500/20";
+                if (conversation.channel === "WHATSAPP") channelClass = "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
+                if (conversation.channel === "EMAIL") channelClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
+                if (conversation.channel === "PORTAL") channelClass = "bg-violet-500/10 text-violet-300 border-violet-500/20";
+                if (conversation.channel === "PHONE") channelClass = "bg-amber-500/10 text-amber-300 border-amber-500/20";
+                priorityClass = channelClass;
+                if (ticket.priority === "EMAIL") priorityClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
 
                 let statusClass = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
                 if (ticket.status === "Aberto") statusClass = "bg-sky-500/10 text-sky-400 border-sky-500/20";
@@ -328,7 +348,7 @@ export function SupportAtendimentosSubtab() {
                     </td>
                     <td className="py-2.5 px-3 text-right">
                       <Button variant="ghost" size="sm" asChild className="h-7 px-2 hover:bg-rose-500/20 hover:text-rose-300">
-                        <Link href={`/portal/tickets/${ticket.id}`}>
+                        <Link href={conversation.detailHref}>
                           <span>Abrir</span>
                           <ArrowUpRight className="ml-1 h-3 w-3" />
                         </Link>
