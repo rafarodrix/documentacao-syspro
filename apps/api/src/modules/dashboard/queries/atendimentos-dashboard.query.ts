@@ -53,6 +53,7 @@ export class AtendimentosDashboardQuery {
 
     const ticketBaseWhere: Prisma.TicketWhereInput = {
       createdAt: { gte: periodStart, lte: periodEnd },
+      externalThreadId: { not: null },
       ...(accessScope.isGlobal ? {} : { companyId: { in: accessScope.companyIds } }),
     };
 

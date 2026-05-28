@@ -24,12 +24,7 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
-  UserRound,
-  Users,
   CheckCircle2,
-  TrendingUp,
-  Tag,
-  ArrowUpRight,
 } from "lucide-react";
 import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
@@ -138,15 +133,7 @@ export function SupportAtendimentosSubtab() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const statusBase = useMemo(() => Math.max(data?.totalCount ?? 0, 1), [data?.totalCount]);
   const csatBase = useMemo(() => Math.max(data?.csatResponseCount ?? 0, 1), [data?.csatResponseCount]);
-  const waitingCount = useMemo(
-    () =>
-      (data?.statusCounts ?? [])
-        .filter((item) => item.status === "Aguardando cliente" || item.status === "Aguardando interno")
-        .reduce((sum, item) => sum + item.count, 0),
-    [data?.statusCounts],
-  );
 
   const applyPreset = (preset: "today" | "7d" | "30d") => {
     const next = buildRangePreset(preset);
@@ -255,246 +242,25 @@ export function SupportAtendimentosSubtab() {
         </CardContent>
       </Card>
 
-      {/* Operational Warning Alert for Unassigned Conversations */}
-      {!loading && (data?.unassignedCount ?? 0) > 0 ? (
-        <div className="flex items-start gap-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 backdrop-blur-md p-4 text-rose-200 shadow-sm">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500">
-            <ShieldAlert className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-rose-400">Alerta Operacional Crítico</p>
-            <p className="text-sm text-rose-200/90 leading-relaxed">
-              Existem <span className="font-extrabold text-white text-base">{data?.unassignedCount}</span> atendimentos sem responsável neste período. Isso representa <span className="font-extrabold text-white text-base">
-                {data?.totalCount ? Math.round((data.unassignedCount / data.totalCount) * 1000) / 10 : 0}%
-              </span> do volume total. Vale revisar a distribuição e ownership imediato da fila.
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Tabela de Atendimentos Sem Responsável */}
-      {!loading && data && (data.unassignedConversations ?? []).length > 0 ? (
-        <SectionCard
-          title="Fila de Atendimentos Sem Responsável"
-          className="border-rose-500/20 bg-rose-500/5 backdrop-blur shadow-sm"
-          contentClassName="overflow-x-auto space-y-3"
-        >
-          <div className="text-xs text-rose-300 font-medium">
-            Existem <span className="font-semibold text-rose-100">{data.unassignedConversations.length}</span> conversas sem dono aguardando triagem imediata.
-          </div>
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-border/40 text-muted-foreground text-xs uppercase tracking-wider">
-                <th className="py-2.5 px-3 font-semibold w-24">Ref.</th>
-                <th className="py-2.5 px-3 font-semibold">Assunto</th>
-                <th className="py-2.5 px-3 font-semibold text-center w-28">Canal</th>
-                <th className="py-2.5 px-3 font-semibold text-center w-28">Status</th>
-                <th className="py-2.5 px-3 font-semibold text-center w-36">Última Atualização</th>
-                <th className="py-2.5 px-3 font-semibold text-right w-24">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30">
-              {data.unassignedConversations.map((conversation) => {
-                const ticket = {
-                  id: conversation.id,
-                  number: conversation.reference,
-                  subject: conversation.subject,
-                  priority: conversation.channel,
-                  status:
-                    conversation.status === "Em andamento"
-                      ? "Em Análise"
-                      : conversation.status === "Aguardando cliente" || conversation.status === "Aguardando interno"
-                        ? "Pendente"
-                        : conversation.status === "Resolvido"
-                          ? "Resolvido"
-                          : "Aberto",
-                  lastUpdate: conversation.lastUpdate,
-                };
-                let priorityClass = "bg-zinc-500/10 text-zinc-300 border-zinc-500/20";
-                let channelClass = "bg-zinc-500/10 text-zinc-300 border-zinc-500/20";
-                if (conversation.channel === "WHATSAPP") channelClass = "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
-                if (conversation.channel === "EMAIL") channelClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-                if (conversation.channel === "PORTAL") channelClass = "bg-violet-500/10 text-violet-300 border-violet-500/20";
-                if (conversation.channel === "PHONE") channelClass = "bg-amber-500/10 text-amber-300 border-amber-500/20";
-                priorityClass = channelClass;
-                if (ticket.priority === "EMAIL") priorityClass = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-
-                let statusClass = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
-                if (ticket.status === "Aberto") statusClass = "bg-sky-500/10 text-sky-400 border-sky-500/20";
-                if (ticket.status === "Em Análise") statusClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                if (ticket.status === "Pendente") statusClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-                if (ticket.status === "Resolvido") statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-
-                return (
-                  <tr key={ticket.id} className="hover:bg-rose-500/10 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-xs text-rose-300 font-semibold">
-                      #{ticket.number}
-                    </td>
-                    <td className="py-2.5 px-3 font-medium text-foreground max-w-sm truncate">
-                      {ticket.subject}
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold border ${priorityClass}`}>
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold border ${statusClass}`}>
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-center text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(ticket.lastUpdate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="py-2.5 px-3 text-right">
-                      <Button variant="ghost" size="sm" asChild className="h-7 px-2 hover:bg-rose-500/20 hover:text-rose-300">
-                        <Link href={conversation.detailHref}>
-                          <span>Abrir</span>
-                          <ArrowUpRight className="ml-1 h-3 w-3" />
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </SectionCard>
-      ) : null}
-
-      {/* Row 1: Executive Cards (9 Cards) */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      {/* Row 1: Executive Cards (5 Cards) */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Geral no período" icon={Inbox as any} tone="blue" />
         <DashboardMetricCard title="Abertos" value={data?.openCount ?? 0} helper="Fila ativa" icon={Loader2 as any} tone="amber" />
         <DashboardMetricCard title="Sem Dono" value={data?.unassignedCount ?? 0} helper="Sem atendente" icon={ShieldAlert as any} tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
         <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Concluídos" icon={CheckCircle2 as any} tone="emerald" />
         <DashboardMetricCard title="CSAT Médio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliações`} icon={MessageSquareText as any} tone="emerald" />
-        <DashboardMetricCard title="1ª Resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} helper={data?.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}% no SLA` : "Agilidade"} icon={Clock3 as any} tone="blue" />
-        <DashboardMetricCard title="Resolução" value={formatHours(data?.avgResolutionHours ?? null)} helper={data?.slaResolutionPct != null ? `${data.slaResolutionPct}% no SLA` : "Eficiência"} icon={TrendingUp as any} tone="blue" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <DashboardMetricCard
-          title="Aguardando Cliente"
-          value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`}
-          helper="Retorno do cliente"
-          icon={UserRound as any}
-          tone="blue"
-        />
-        <DashboardMetricCard
-          title="Aguardando Interno"
-          value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`}
-          helper="Retorno da equipe"
-          icon={Users as any}
-          tone="amber"
-        />
       </div>
 
       {/* Row 2: Charts */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <ActivityChart
-            title="Volume de atendimentos"
-            description={loading ? "Carregando período selecionado" : "Conversas criadas no período filtrado"}
-            points={data?.activity ?? []}
-            badgeLabel="Chatwoot"
-            emptyLabel="Sem conversas no recorte"
-          />
-        </div>
+      <ActivityChart
+        title="Volume de atendimentos"
+        description={loading ? "Carregando período selecionado" : "Conversas criadas no período filtrado"}
+        points={data?.activity ?? []}
+        badgeLabel="Chatwoot"
+        emptyLabel="Sem conversas no recorte"
+      />
 
-        <SectionCard
-          title="Situação atual da fila"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="space-y-4"
-        >
-          {(data?.statusCounts ?? []).map((item) => {
-            let color = "bg-primary/70";
-            if (item.status === "Sem responsavel") color = "bg-rose-500/70";
-            if (item.status === "Aguardando cliente") color = "bg-sky-500/70";
-            if (item.status === "Aguardando interno") color = "bg-amber-500/70";
-            if (item.status === "Resolvido") color = "bg-emerald-500/70";
-
-            return (
-              <div key={item.status} className="space-y-1">
-                <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="font-semibold text-muted-foreground">{item.status}</span>
-                  <span className="font-bold tabular-nums text-foreground">{item.count}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted/30">
-                  <div className={`h-2 rounded-full ${color} transition-all duration-500`} style={{ width: `${Math.min(100, (item.count / statusBase) * 100)}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </SectionCard>
-      </div>
-
-      {/* Row 3: Operation & SLAs */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard
-          title="SLA e Prazos"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="space-y-3.5 text-sm"
-        >
-          <ExecutiveLine
-            label="Dentro do SLA de 1ª Resposta"
-            value={data?.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}%` : "Sem dados"}
-            emphasis={data?.slaFirstResponsePct && data.slaFirstResponsePct < 85 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}
-          />
-          <ExecutiveLine label="Tempo Médio de 1ª Resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} />
-          <ExecutiveLine
-            label="Resolvidos dentro do Prazo"
-            value={data?.slaResolutionPct != null ? `${data.slaResolutionPct}%` : "Sem dados"}
-            emphasis={data?.slaResolutionPct && data.slaResolutionPct < 80 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}
-          />
-          <ExecutiveLine label="Tempo Médio de Resolução" value={formatHours(data?.avgResolutionHours ?? null)} />
-          <ExecutiveLine
-            label="Atendimentos Fora do Prazo (Atrasados)"
-            value={`${data?.delayedOpenCount ?? 0}`}
-            emphasis={(data?.delayedOpenCount ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"}
-          />
-        </SectionCard>
-
-        <SectionCard
-          title="Backlog (Acúmulo de Abertos)"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="space-y-3 text-sm"
-        >
-          <ExecutiveLine label="Abertos hoje" value={`${data?.backlog?.today ?? 0}`} />
-          <ExecutiveLine label="Abertos há mais de 1 dia" value={`${data?.backlog?.over1d ?? 0}`} emphasis={(data?.backlog?.over1d ?? 0) > 0 ? "text-amber-500 font-bold" : "text-muted-foreground"} />
-          <ExecutiveLine label="Abertos há mais de 3 dias" value={`${data?.backlog?.over3d ?? 0}`} emphasis={(data?.backlog?.over3d ?? 0) > 0 ? "text-orange-500 font-bold" : "text-muted-foreground"} />
-          <ExecutiveLine label="Abertos há mais de 7 dias" value={`${data?.backlog?.over7d ?? 0}`} emphasis={(data?.backlog?.over7d ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"} />
-        </SectionCard>
-
-        <SectionCard
-          title="Pendências e Riscos"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="space-y-3.5 text-sm"
-        >
-          <ExecutiveLine
-            label="Sem responsável"
-            value={`${data?.unassignedCount ?? 0}`}
-            emphasis={(data?.unassignedCount ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"}
-          />
-          <ExecutiveLine
-            label="Aguardando interno"
-            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`}
-            emphasis={((data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0) > 0 ? "text-amber-500 font-bold" : "text-muted-foreground"}
-          />
-          <ExecutiveLine
-            label="Cancelados no período"
-            value={`${data?.cancelledCount ?? 0}`}
-            emphasis={(data?.cancelledCount ?? 0) > 0 ? "text-orange-500 font-bold" : "text-muted-foreground"}
-          />
-          <div className="pl-3 text-xs text-muted-foreground space-y-1">
-            <p>• Cancelados pelo cliente: {data?.cancelledByCustomerCount ?? 0}</p>
-            <p>• Cancelados pelo suporte: {data?.cancelledByAgentCount ?? 0}</p>
-            <p>• Descartados como Spam: {data?.spamCount ?? 0}</p>
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* Row 4: Equipe (Unified Productivity Table) */}
+      {/* Row 3: Equipe (Unified Productivity Table) */}
       <SectionCard
         title="Produtividade da Equipe"
         className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
@@ -506,8 +272,6 @@ export function SupportAtendimentosSubtab() {
               <th className="py-3 px-4 font-semibold">Atendente</th>
               <th className="py-3 px-4 font-semibold text-center">Abertos</th>
               <th className="py-3 px-4 font-semibold text-center">Resolvidos</th>
-              <th className="py-3 px-4 font-semibold text-center">Tempo Resposta</th>
-              <th className="py-3 px-4 font-semibold text-center">Tempo Resolução</th>
               <th className="py-3 px-4 font-semibold text-center">Avaliação (CSAT)</th>
               <th className="py-3 px-4 font-semibold text-center">Respostas</th>
             </tr>
@@ -530,8 +294,6 @@ export function SupportAtendimentosSubtab() {
                     </td>
                     <td className="py-3.5 px-4 text-center tabular-nums font-semibold">{item.openCount}</td>
                     <td className="py-3.5 px-4 text-center tabular-nums text-muted-foreground">{item.resolvedCount ?? 0}</td>
-                    <td className="py-3.5 px-4 text-center tabular-nums">{formatMinutes(item.avgFirstResponseMinutes ?? null)}</td>
-                    <td className="py-3.5 px-4 text-center tabular-nums">{formatHours(item.avgResolutionHours ?? null)}</td>
                     <td className={`py-3.5 px-4 text-center tabular-nums ${scoreColor}`}>
                       {item.averageScore != null ? formatScore(item.averageScore) : "Sem nota"}
                     </td>
@@ -543,7 +305,7 @@ export function SupportAtendimentosSubtab() {
               })
             ) : (
               <tr>
-                <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                <td colSpan={5} className="py-6 text-center text-muted-foreground">
                   Sem atendentes identificados no recorte.
                 </td>
               </tr>
@@ -552,7 +314,7 @@ export function SupportAtendimentosSubtab() {
         </table>
       </SectionCard>
 
-      {/* Row 5: Qualidade (CSAT Health & Score Distribution) */}
+      {/* Row 4: Qualidade (CSAT Health & Score Distribution) */}
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
           title="Saúde do CSAT"
@@ -610,7 +372,7 @@ export function SupportAtendimentosSubtab() {
         </SectionCard>
       </div>
 
-      {/* Row 6: Contatos e Empresas Recorrentes */}
+      {/* Row 5: Contatos e Empresas Recorrentes */}
       <div className="grid gap-4 xl:grid-cols-2">
         {/* Contatos Recorrentes */}
         <SectionCard
@@ -702,53 +464,6 @@ export function SupportAtendimentosSubtab() {
               )}
             </tbody>
           </table>
-        </SectionCard>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard
-          title="Origem dos Atendimentos (Canais)"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="space-y-3"
-        >
-          {(data?.channelCounts ?? []).map((item) => {
-            let label: string = item.channel;
-            if (item.channel === "WHATSAPP") label = "WhatsApp 💬";
-            if (item.channel === "EMAIL") label = "E-mail ✉️";
-            if (item.channel === "PORTAL") label = "Portal Syspro 🌐";
-            if (item.channel === "PHONE") label = "Telefone 📞";
-
-            return (
-              <ExecutiveLine
-                key={item.channel}
-                label={label}
-                value={`${item.count} atend. · ${formatPercent(item.count, data?.totalCount ?? 0)}`}
-              />
-            );
-          })}
-        </SectionCard>
-
-        <SectionCard
-          title="Tags Operacionais Mais Usadas"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="flex flex-wrap gap-2 pt-2"
-        >
-          {(data?.topTags ?? []).length ? (
-            (data?.topTags ?? []).map((item) => (
-              <div
-                key={item.name}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-2.5 py-1 text-xs text-foreground font-semibold hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-default"
-              >
-                <Tag className="h-3 w-3 text-primary shrink-0" />
-                <span>{item.name}</span>
-                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary tabular-nums">
-                  {item.count}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground w-full text-center py-4">Nenhuma tag operacional identificada.</p>
-          )}
         </SectionCard>
       </div>
     </div>
