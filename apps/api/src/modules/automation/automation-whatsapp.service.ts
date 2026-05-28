@@ -420,7 +420,7 @@ export class AutomationWhatsappService {
 
   async sendSefazRouteStatusNotification(input: {
     uf: string;
-    service: 'NFE' | 'NFCE';
+    service: 'NFE' | 'NFCE' | 'CTE' | 'MDFE';
     notificationType: 'down' | 'recovered';
     openedAt?: Date | string | null;
     recoveredAt?: Date | string | null;
@@ -497,7 +497,7 @@ export class AutomationWhatsappService {
     notificationType: 'down' | 'recovered';
     routes: Array<{
       uf: string;
-      service: 'NFE' | 'NFCE';
+      service: 'NFE' | 'NFCE' | 'CTE' | 'MDFE';
       openedAt?: Date | string | null;
       recoveredAt?: Date | string | null;
     }>;
@@ -1110,8 +1110,11 @@ export class AutomationWhatsappService {
     return 'Melhoria';
   }
 
-  private formatSefazServiceLabel(value: 'NFE' | 'NFCE'): string {
-    return value === 'NFCE' ? 'NFCe' : 'NFe';
+  private formatSefazServiceLabel(value: 'NFE' | 'NFCE' | 'CTE' | 'MDFE'): string {
+    if (value === 'NFCE') return 'NFCe';
+    if (value === 'CTE') return 'CTe';
+    if (value === 'MDFE') return 'MDF-e';
+    return 'NFe';
   }
 
   private resolveCategoryLabel(settings: TicketModuleSettings, category?: string | null): string | null {

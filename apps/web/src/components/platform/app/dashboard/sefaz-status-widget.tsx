@@ -36,33 +36,95 @@ function formatDuration(isoDate: string): string {
 
 interface SefazStatusWidgetProps {
   title: string;
-  nfe: DashboardSefazStatus | undefined;
-  nfce: DashboardSefazStatus | undefined;
+  nfe?: DashboardSefazStatus | undefined;
+  nfce?: DashboardSefazStatus | undefined;
+  cte?: DashboardSefazStatus | undefined;
+  mdfe?: DashboardSefazStatus | undefined;
   nfeActive?: boolean;
   nfceActive?: boolean;
+  cteActive?: boolean;
+  mdfeActive?: boolean;
 }
 
 export function SefazStatusWidget({
   title,
   nfe,
   nfce,
+  cte,
+  mdfe,
   nfeActive = true,
   nfceActive = true,
+  cteActive = false,
+  mdfeActive = false,
 }: SefazStatusWidgetProps) {
+  const showNfe = nfeActive || nfe !== undefined;
+  const showNfce = nfceActive || nfce !== undefined;
+  const showCte = cteActive || cte !== undefined;
+  const showMdfe = mdfeActive || mdfe !== undefined;
+
   const nfeStatus = !nfeActive
     ? DISABLED_STATUS
     : nfe
       ? SEFAZ_STATUS_MAP[nfe.status as SefazStatusKey]
       : NO_READING_STATUS;
+
   const nfceStatus = !nfceActive
     ? DISABLED_STATUS
     : nfce
       ? SEFAZ_STATUS_MAP[nfce.status as SefazStatusKey]
       : NO_READING_STATUS;
 
+  const cteStatus = !cteActive
+    ? DISABLED_STATUS
+    : cte
+      ? SEFAZ_STATUS_MAP[cte.status as SefazStatusKey]
+      : NO_READING_STATUS;
+
+  const mdfeStatus = !mdfeActive
+    ? DISABLED_STATUS
+    : mdfe
+      ? SEFAZ_STATUS_MAP[mdfe.status as SefazStatusKey]
+      : NO_READING_STATUS;
+
   const hasDegradation =
     (nfeActive && Boolean(nfe?.status) && nfe?.status !== "ONLINE") ||
-    (nfceActive && Boolean(nfce?.status) && nfce?.status !== "ONLINE");
+    (nfceActive && Boolean(nfce?.status) && nfce?.status !== "ONLINE") ||
+    (cteActive && Boolean(cte?.status) && cte?.status !== "ONLINE") ||
+    (mdfeActive && Boolean(mdfe?.status) && mdfe?.status !== "ONLINE");
+
+  const rows = [];
+  if (showNfe) {
+    rows.push({
+      label: "NFe",
+      active: nfeActive,
+      status: nfeStatus,
+      record: nfe,
+    });
+  }
+  if (showNfce) {
+    rows.push({
+      label: "NFC-e",
+      active: nfceActive,
+      status: nfceStatus,
+      record: nfce,
+    });
+  }
+  if (showCte) {
+    rows.push({
+      label: "CT-e",
+      active: cteActive,
+      status: cteStatus,
+      record: cte,
+    });
+  }
+  if (showMdfe) {
+    rows.push({
+      label: "MDF-e",
+      active: mdfeActive,
+      status: mdfeStatus,
+      record: mdfe,
+    });
+  }
 
   return (
     <Card className={cn("border-border/50 bg-card", hasDegradation && "border-amber-500/30")}>
@@ -73,19 +135,16 @@ export function SefazStatusWidget({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
-        <StatusRow
-          label="NFe"
-          active={nfeActive}
-          status={nfeStatus}
-          record={nfe}
-        />
-        <StatusRow
-          label="NFC-e"
-          active={nfceActive}
-          status={nfceStatus}
-          record={nfce}
-          className="border-t border-border/60 pt-3"
-        />
+        {rows.map((row, idx) => (
+          <StatusRow
+            key={row.label}
+            label={row.label}
+            active={row.active}
+            status={row.status}
+            record={row.record}
+            className={idx > 0 ? "border-t border-border/60 pt-3" : undefined}
+          />
+        ))}
       </CardContent>
     </Card>
   );

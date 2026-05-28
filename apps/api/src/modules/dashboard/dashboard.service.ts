@@ -418,7 +418,7 @@ function summarizeActiveContracts(contracts: DashboardContractRecord[]) {
 
 type DashboardSefazCurrentRecord = {
   uf: string;
-  service: 'NFE' | 'NFCE';
+  service: 'NFE' | 'NFCE' | 'CTE' | 'MDFE';
   status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
   latency: number;
   checkedAt: Date;
@@ -427,7 +427,7 @@ type DashboardSefazCurrentRecord = {
 
 type DashboardSefazHistoryRecord = {
   uf: string;
-  service: 'NFE' | 'NFCE';
+  service: 'NFE' | 'NFCE' | 'CTE' | 'MDFE';
   status: 'ONLINE' | 'UNSTABLE' | 'OFFLINE';
   latency: number;
 };

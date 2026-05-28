@@ -38,7 +38,7 @@ async function fetchSefazStatus(): Promise<SefazLiveData | null> {
   }
 }
 
-function buildRouteKey(uf: string, service: "NFE" | "NFCE") {
+function buildRouteKey(uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE") {
   return `${uf}:${service}`;
 }
 
@@ -50,6 +50,8 @@ function groupSefazByUF(sefazStatuses: DashboardSefazStatus[]) {
     uf,
     nfe: sefazStatuses.find((item) => item.uf === uf && item.service === "NFE"),
     nfce: sefazStatuses.find((item) => item.uf === uf && item.service === "NFCE"),
+    cte: sefazStatuses.find((item) => item.uf === uf && item.service === "CTE"),
+    mdfe: sefazStatuses.find((item) => item.uf === uf && item.service === "MDFE"),
   }));
 }
 
@@ -61,7 +63,7 @@ function rankStatus(status?: DashboardSefazStatus["status"]) {
 }
 
 function aggregateNationalServiceStatus(
-  service: "NFE" | "NFCE",
+  service: "NFE" | "NFCE" | "CTE" | "MDFE",
   nationalStatuses: DashboardSefazStatus[],
   activeRouteSet: Set<string>,
 ): DashboardSefazStatus | undefined {
@@ -144,9 +146,19 @@ export function SefazOperationsPanel({
     () => aggregateNationalServiceStatus("NFCE", effectiveNationalStatuses, activeRouteSet),
     [effectiveNationalStatuses, activeRouteSet],
   );
+  const nationalCte = useMemo(
+    () => aggregateNationalServiceStatus("CTE", effectiveNationalStatuses, activeRouteSet),
+    [effectiveNationalStatuses, activeRouteSet],
+  );
+  const nationalMdfe = useMemo(
+    () => aggregateNationalServiceStatus("MDFE", effectiveNationalStatuses, activeRouteSet),
+    [effectiveNationalStatuses, activeRouteSet],
+  );
 
   const nationalNfeActive = effectiveConfiguredRoutes.some((r) => r.active && r.service === "NFE");
   const nationalNfceActive = effectiveConfiguredRoutes.some((r) => r.active && r.service === "NFCE");
+  const nationalCteActive = effectiveConfiguredRoutes.some((r) => r.active && r.service === "CTE");
+  const nationalMdfeActive = effectiveConfiguredRoutes.some((r) => r.active && r.service === "MDFE");
 
   return (
     <Card className="border-border/50 bg-card/70">
@@ -203,16 +215,24 @@ export function SefazOperationsPanel({
               title={`SEFAZ ${group.uf}`}
               nfe={group.nfe}
               nfce={group.nfce}
+              cte={group.cte}
+              mdfe={group.mdfe}
               nfeActive={activeRouteSet.has(buildRouteKey(group.uf, "NFE"))}
               nfceActive={activeRouteSet.has(buildRouteKey(group.uf, "NFCE"))}
+              cteActive={activeRouteSet.has(buildRouteKey(group.uf, "CTE"))}
+              mdfeActive={activeRouteSet.has(buildRouteKey(group.uf, "MDFE"))}
             />
           ))}
           <SefazStatusWidget
             title="SEFAZ Nacional"
             nfe={nationalNfe}
             nfce={nationalNfce}
+            cte={nationalCte}
+            mdfe={nationalMdfe}
             nfeActive={nationalNfeActive}
             nfceActive={nationalNfceActive}
+            cteActive={nationalCteActive}
+            mdfeActive={nationalMdfeActive}
           />
         </div>
 

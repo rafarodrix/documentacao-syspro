@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 type SefazStatusItem = {
   uf: string;
-  service: "NFE" | "NFCE";
+  service: "NFE" | "NFCE" | "CTE" | "MDFE";
   status?: string | null;
 };
 
@@ -26,9 +26,16 @@ export function SefazNationalGrid({
   );
   const activeRouteSet = new Set(activeRouteKeys);
 
-  const getStatusByUf = (uf: string, service: "NFE" | "NFCE") => {
+  const getStatusByUf = (uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE") => {
     if (!activeRouteSet.has(`${uf}:${service}`)) return undefined;
     return data.find((item) => item.uf === uf && item.service === service);
+  };
+
+  const hasRoute = (uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE") => {
+    return (
+      activeRouteSet.has(`${uf}:${service}`) ||
+      data.some((item) => item.uf === uf && item.service === service)
+    );
   };
 
   return (
@@ -41,8 +48,15 @@ export function SefazNationalGrid({
       <CardContent>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {SEFAZ_UFS.map((uf) => {
+            const showNfe = hasRoute(uf, "NFE");
+            const showNfce = hasRoute(uf, "NFCE");
+            const showCte = hasRoute(uf, "CTE");
+            const showMdfe = hasRoute(uf, "MDFE");
+
             const nfe = getStatusByUf(uf, "NFE");
             const nfce = getStatusByUf(uf, "NFCE");
+            const cte = getStatusByUf(uf, "CTE");
+            const mdfe = getStatusByUf(uf, "MDFE");
 
             return (
               <div
@@ -60,8 +74,34 @@ export function SefazNationalGrid({
                 </div>
 
                 <div className="space-y-1.5">
-                  <StatusLine label="NFe" status={nfe?.status} active={activeRouteSet.has(`${uf}:NFE`)} />
-                  <StatusLine label="NFCe" status={nfce?.status} active={activeRouteSet.has(`${uf}:NFCE`)} />
+                  {showNfe && (
+                    <StatusLine
+                      label="NFe"
+                      status={nfe?.status}
+                      active={activeRouteSet.has(`${uf}:NFE`)}
+                    />
+                  )}
+                  {showNfce && (
+                    <StatusLine
+                      label="NFCe"
+                      status={nfce?.status}
+                      active={activeRouteSet.has(`${uf}:NFCE`)}
+                    />
+                  )}
+                  {showCte && (
+                    <StatusLine
+                      label="CTe"
+                      status={cte?.status}
+                      active={activeRouteSet.has(`${uf}:CTE`)}
+                    />
+                  )}
+                  {showMdfe && (
+                    <StatusLine
+                      label="MDFe"
+                      status={mdfe?.status}
+                      active={activeRouteSet.has(`${uf}:MDFE`)}
+                    />
+                  )}
                 </div>
               </div>
             );

@@ -1,4 +1,4 @@
-type SefazServiceType = "NFE" | "NFCE";
+export type SefazServiceType = "NFE" | "NFCE" | "CTE" | "MDFE";
 
 export interface SefazRoutePreset {
   uf: string;
@@ -9,12 +9,15 @@ export interface SefazRoutePreset {
 export const SEFAZ_ROUTE_PRESETS: readonly SefazRoutePreset[] = [
   { uf: "MG", service: "NFE", url: "https://nfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4" },
   { uf: "MG", service: "NFCE", url: "https://nfce.fazenda.mg.gov.br/nfce/services/NFeAutorizacao4" },
+  { uf: "MG", service: "CTE", url: "https://cte.fazenda.mg.gov.br/cte/services/CTeAutorizacao4" },
   { uf: "SP", service: "NFE", url: "https://nfe.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx" },
   { uf: "SP", service: "NFCE", url: "https://nfce.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx" },
+  { uf: "SP", service: "CTE", url: "https://cte.fazenda.sp.gov.br/ws/cteautorizacao4.asmx" },
   { uf: "RS", service: "NFE", url: "https://nfe.sefazrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx" },
   { uf: "RS", service: "NFCE", url: "https://nfce.sefazrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx" },
   { uf: "PR", service: "NFE", url: "https://nfe.sefa.pr.gov.br/nfe/NFeAutorizacao4" },
   { uf: "PR", service: "NFCE", url: "https://nfce.sefa.pr.gov.br/nfce/NFeAutorizacao4" },
+  { uf: "PR", service: "CTE", url: "https://cte.sefa.pr.gov.br/cte/CTeAutorizacao4" },
   { uf: "AM", service: "NFE", url: "https://nfe.sefaz.am.gov.br/services2/services/NfeAutorizacao4" },
   { uf: "AM", service: "NFCE", url: "https://nfce.sefaz.am.gov.br/nfce-services/services/NfeAutorizacao4" },
   { uf: "BA", service: "NFE", url: "https://nfe.sefaz.ba.gov.br/webservices/NFeAutorizacao4/NFeAutorizacao4.asmx" },
@@ -32,6 +35,8 @@ export const SEFAZ_ROUTE_PRESETS: readonly SefazRoutePreset[] = [
   { uf: "PI", service: "NFCE", url: "https://webas.sefaz.pi.gov.br/nfce/services/NfeAutorizacao4" },
   { uf: "SVRS", service: "NFE", url: "https://nfe.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx" },
   { uf: "SVRS", service: "NFCE", url: "https://nfce.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx" },
+  { uf: "SVRS", service: "CTE", url: "https://cte.svrs.rs.gov.br/ws/CteAutorizacao/CteAutorizacao4.asmx" },
+  { uf: "SVRS", service: "MDFE", url: "https://mdfe.svrs.rs.gov.br/ws/MDFeRecepcao/MDFeRecepcao.asmx" },
   { uf: "SVAN", service: "NFE", url: "https://www.sefazvirtual.fazenda.gov.br/NFeAutorizacao4/NFeAutorizacao4.asmx" },
   { uf: "SVAN", service: "NFCE", url: "https://www.sefazvirtual.fazenda.gov.br/NFeAutorizacao4/NFeAutorizacao4.asmx" },
 ] as const;

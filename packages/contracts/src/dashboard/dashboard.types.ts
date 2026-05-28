@@ -66,7 +66,7 @@ export const dashboardRecentUserSchema = z.object({
 
 export const dashboardSefazStatusSchema = z.object({
   uf: z.string().min(2).max(4),
-  service: z.enum(["NFE", "NFCE"]),
+  service: z.enum(["NFE", "NFCE", "CTE", "MDFE"]),
   status: z.enum(["ONLINE", "UNSTABLE", "OFFLINE"]),
   latency: z.number().int().nonnegative(),
   checkedAt: z.string().min(1),
@@ -78,7 +78,7 @@ export const dashboardSefazStatusSchema = z.object({
 
 export const dashboardSefazConfiguredRouteSchema = z.object({
   uf: z.string().min(2).max(6),
-  service: z.enum(["NFE", "NFCE"]),
+  service: z.enum(["NFE", "NFCE", "CTE", "MDFE"]),
   active: z.boolean(),
 });
 

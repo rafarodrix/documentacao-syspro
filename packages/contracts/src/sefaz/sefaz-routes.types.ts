@@ -11,7 +11,7 @@ const autorizadorSchema = z
 
 export const sefazRouteSchema = z.object({
   uf: autorizadorSchema,
-  service: z.enum(["NFE", "NFCE"]),
+  service: z.enum(["NFE", "NFCE", "CTE", "MDFE"]),
   url: z.string().url("URL invalida.").refine((value) => value.startsWith("https://"), "URL deve usar HTTPS."),
   active: z.boolean().default(true),
 });
