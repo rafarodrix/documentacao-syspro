@@ -28,29 +28,9 @@ Este documento organiza a análise fiscal da operação de abate frigorífico co
   Este material trata exclusivamente dos aspectos fiscais da operação. Não cobre telas, módulos, estoque, pesagem, rendimento ou comportamento operacional do sistema.
 </Callout>
 
-<Cards>
-  <Card title="Quando usar">
-    Utilize este documento quando houver necessidade de validar a entrada do gado, o retorno de industrialização, a cobrança do serviço de abate, a venda de subprodutos e a parametrização da Reforma Tributária.
-  </Card>
-
-  <Card title="O que validar antes">
-    Confirme com a contabilidade o enquadramento do produtor, o tratamento de ICMS/ICMS-ST, as alíquotas reduzidas e o enquadramento do cClassTrib de transição.
-  </Card>
-</Cards>
-
 ---
 
-## 1. Reforma Tributária (IBS / CBS e cClassTrib)
-
-Com o avanço do cronograma de transição fiscal no Brasil, as rotinas do segmento de frigorífico contam com parametrizações específicas para unificação tributária (IBS e CBS) e classificação fiscal no ERP.
-
-### 1.1 Diretrizes de Configuração
-* **Incidência de IBS / CBS**: A maior parte das operações de entrada e movimentação de insumos é parametrizada com a relevância tributária padrão de **`100%`** para o novo modelo dual de transição.
-* **cClassTrib (Código de Classificação Tributária)**: Todas as operações internas e interestaduais descritas nesta rotina (compra de animais, remessa para abate, retorno físico e faturamento de subprodutos) devem estar classificadas com o código padrão **`200003`** nas tabelas fiscais de transição do ERP.
-
----
-
-## 2. Visão Geral do Fluxo Fiscal e Sequência de Emissão
+## Visão Geral do Fluxo Fiscal e Sequência de Emissão
 
 Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a implantação:
 
@@ -78,13 +58,13 @@ Abaixo, descreve-se a sequência padrão de análise fiscal recomendada para a i
 
 ---
 
-## 3. Entrada do Gado em Pé para Abate
+## Entrada do Gado em Pé para Abate
 
-### 3.1 Natureza da Operação
+### Natureza da Operação
 
 Remessa de gado em pé para industrialização por encomenda. A operação deve ser obrigatoriamente acobertada pela **GTA (Guia de Trânsito Animal)** física correspondente e emitida em nome do **CPF do encomendante** (quando pessoa física), para fins de controle e rastreabilidade sanitária.
 
-### 3.2 Cenários de Entrada (Selecione abaixo)
+### Cenários de Entrada
 
 Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de produtor remetente.
 
@@ -101,7 +81,6 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de 
     | **Emitente** | Produtor / encomendante |
     | **Destinatário** | Frigorífico |
     | **CFOP** | **5.122 / 6.122** (Remessa de mercadoria p/ industrialização por encomenda) ou **5.901 / 6.901** |
-    | **Documento auxiliar** | GTA (Guia de Trânsito Animal) |
     | **Finalidade** | Remessa de gado para industrialização / abate |
 
     ##### Tratamento Fiscal
@@ -127,14 +106,13 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de 
     
     Quando o produtor/encomendante não for contribuinte de ICMS ou não possuir capacidade/obrigação de emissão de NF-e, o frigorífico é responsável por emitir uma **NF-e de Entrada Própria** para acobertar a recepção física e fiscal dos animais.
 
-    ##### Documento Fiscal (Entrada pelo Frigorífico)
+    ##### Documento Fiscal (Emissão Própria pelo Frigorífico)
     | Campo | Tratamento a validar |
     | :--- | :--- |
     | **Documento** | NF-e de entrada (emissão própria pelo destinatário) |
     | **Emitente** | Frigorífico |
-    | **Destinatário** | Frigorífico |
+    | **Destinatário** | Produtor / encomendante |
     | **CFOP** | **1.901 / 2.901** (Entrada de mercadoria para industrialização por encomenda) |
-    | **Documento auxiliar** | GTA |
     | **Finalidade** | Entrada de gado para industrialização / abate |
 
     ##### Tratamento Fiscal
@@ -158,53 +136,7 @@ Utilize as abas abaixo para visualizar as diretrizes fiscais conforme o tipo de 
 
 ---
 
-### 3.3 Entrada de Animais Vivos para Comercialização
-
-Quando o frigorífico adquire animais vivos diretamente de produtores para fins de comercialização interna direta ou abate/faturamento próprio (em vez de industrialização Triangular por encomenda de terceiros).
-
-##### Configuração Fiscal
-| Campo | Parametrização Fiscal |
-| :--- | :--- |
-| **CFOP** | **1.101** (Compra para industrialização) ou **2.101** (Interestadual) |
-| **CST ICMS** | **040** (Isento) |
-| **Alíquota ICMS** | **ISENTO** |
-| **PIS / COFINS** | **06 - Alíquota Zero** |
-| **IBS / CBS** | **100%** |
-| **cClassTrib** | **200003** |
-
----
-
-### 3.4 Devolução de Compra e Ajustes de Estoque de Animais Vivos
-
-#### 3.4.1 Devolução de Compra - Animais Vivos (CFOP 5.202 / 6.202)
-Utilizado para formalizar a devolução física de animais vivos adquiridos anteriormente pelo frigorífico, geralmente em virtude de não conformidades biológicas identificadas na recepção.
-
-##### Configuração Fiscal
-| Campo | Parametrização Fiscal |
-| :--- | :--- |
-| **CFOP** | **5.202** (Devolução de compra para industrialização) ou **6.202** (Interestadual) |
-| **CST ICMS** | **040** (Isento) |
-| **Alíquota ICMS** | **ISENTO** |
-| **PIS / COFINS** | **06 - Alíquota Zero** |
-| **IBS / CBS** | **100%** |
-| **cClassTrib** | **200003** |
-
-#### 3.4.2 Ajustes de Estoque: Perdas e Roubo de Gado (CFOP 5.927)
-Operação de baixa física de estoque em decorrência de perdas, roubo ou sinistros biológicos dos animais vivos sob a posse do frigorífico.
-
-##### Configuração Fiscal
-| Campo | Parametrização Fiscal |
-| :--- | :--- |
-| **CFOP** | **5.927** (Lançamento efetuado a título de baixa de estoque decorrente de perda, roubo...) |
-| **CST ICMS** | **060** (Ou o correspondente conforme origem) |
-| **Alíquota ICMS** | **0%** |
-| **PIS / COFINS** | **06 - Alíquota Zero** |
-| **IBS / CBS** | **100%** |
-| **cClassTrib** | **200003** |
-
----
-
-## 4. Retorno das Carcaças / Produto Industrializado
+## Retorno das Carcaças / Produto Industrializado
 
 Após o abate, deve ser emitida a nota fiscal de **retorno das mercadorias industrializadas** ao encomendante.
 
@@ -433,15 +365,3 @@ A tabela abaixo resume e consolida todas as parametrizações recomendadas para 
 | **Venda Despojos Não Comestíveis** | `5.101` / `6.101` | **`051` / `090`** | `Diferido` | **Tributado/Zero** | `100%` | `200003` | Sebo, ossos e couro verde. Diferimento aplicável (ex: RICMS/MG). |
 
 ---
-
-## 9. Pontos Críticos para Auditoria e Suporte
-
-Para evitar erros fiscais graves e chamados de suporte, certifique-se de validar os seguintes pontos com a equipe contábil do cliente:
-
-> [!CAUTION]
-> **Nunca trate o retorno físico das carcaças (5.925) como venda.** Isso gera duplicidade na apuração de impostos e no faturamento do frigorífico.
-
-* **Diferenciação de Notas:** Sempre separe a nota de retorno físico (CFOP 5.925) da nota de cobrança de mão de obra/serviços (CFOP 5.125), mesmo que emitidas no mesmo arquivo XML.
-* **Autenticidade de GTAs:** Toda nota fiscal de entrada ou retorno de gado deve possuir o número correspondente da GTA física informado no campo próprio ou em informações adicionais do XML para rastreabilidade sanitária.
-* **Substituição Tributária de Miúdos:** O regulamento do ICMS de cada estado define se os miúdos comestíveis sofrem retenção na fonte (ST) ou contam com isenção da cesta básica. **Nunca defina parametrização global sem homologação local.**
-
