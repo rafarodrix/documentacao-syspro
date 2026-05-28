@@ -554,14 +554,28 @@ export class DashboardService {
       select: { value: true },
     });
 
-    if (!setting?.value) return buildDefaultSefazRoutes();
+    const defaults = buildDefaultSefazRoutes();
+    if (!setting?.value) return defaults;
 
     try {
       const parsed = JSON.parse(setting.value);
       const validation = sefazRoutesSchema.safeParse(parsed);
-      return validation.success ? validation.data : buildDefaultSefazRoutes();
+      if (!validation.success) return defaults;
+
+      const configured = validation.data;
+      const configuredMap = new Map(configured.map((r) => [`${r.uf}:${r.service}`, r]));
+
+      const merged = [...configured];
+      for (const def of defaults) {
+        const key = `${def.uf}:${def.service}`;
+        if (!configuredMap.has(key)) {
+          merged.push(def);
+        }
+      }
+
+      return merged;
     } catch {
-      return buildDefaultSefazRoutes();
+      return defaults;
     }
   }
 
@@ -1149,9 +1163,13 @@ export class DashboardService {
       ticketWarning = getDashboardTimeoutWarning();
     }
 
+    const queryUfs = [...dashboardUFs];
+    if (!queryUfs.includes('SVRS')) queryUfs.push('SVRS');
+    if (!queryUfs.includes('SVAN')) queryUfs.push('SVAN');
+
     const [sefazRecords, activeContracts] = await Promise.all([
       this.prisma.sefazStatusCurrent
-        .findMany({ where: { uf: { in: dashboardUFs } }, orderBy: { checkedAt: 'desc' } })
+        .findMany({ where: { uf: { in: queryUfs } }, orderBy: { checkedAt: 'desc' } })
         .catch(() => []),
       canViewCrm
         ? this.prisma.contract
@@ -2050,9 +2068,13 @@ export class DashboardService {
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+    const queryUfs = [...dashboardUFs];
+    if (!queryUfs.includes('SVRS')) queryUfs.push('SVRS');
+    if (!queryUfs.includes('SVAN')) queryUfs.push('SVAN');
+
     const [sefazRecords, nationalSefazRecords, historyRecords] = await Promise.all([
       this.prisma.sefazStatusCurrent
-        .findMany({ where: { uf: { in: dashboardUFs } }, orderBy: { checkedAt: 'desc' } })
+        .findMany({ where: { uf: { in: queryUfs } }, orderBy: { checkedAt: 'desc' } })
         .catch(() => []),
       this.prisma.sefazStatusCurrent
         .findMany({ orderBy: { checkedAt: 'desc' } })

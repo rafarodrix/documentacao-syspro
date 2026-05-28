@@ -43,16 +43,36 @@ function buildRouteKey(uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE") {
 }
 
 function groupSefazByUF(sefazStatuses: DashboardSefazStatus[]) {
-  const ufs = Array.from(new Set(sefazStatuses.map((item) => item.uf))).sort((a, b) =>
-    a.localeCompare(b, "pt-BR"),
-  );
-  return ufs.map((uf) => ({
-    uf,
-    nfe: sefazStatuses.find((item) => item.uf === uf && item.service === "NFE"),
-    nfce: sefazStatuses.find((item) => item.uf === uf && item.service === "NFCE"),
-    cte: sefazStatuses.find((item) => item.uf === uf && item.service === "CTE"),
-    mdfe: sefazStatuses.find((item) => item.uf === uf && item.service === "MDFE"),
-  }));
+  const ufs = Array.from(new Set(sefazStatuses.map((item) => item.uf)))
+    .filter((uf) => uf !== "SVRS" && uf !== "SVAN")
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  return ufs.map((uf) => {
+    // For MDFE, almost all states use SVRS (except SP)
+    const mdfeUf = uf === "SP" ? "SP" : "SVRS";
+
+    // For CTE, we look for physical state record, otherwise fallback to SVRS
+    const cteRecord =
+      sefazStatuses.find((item) => item.uf === uf && item.service === "CTE") ||
+      sefazStatuses.find((item) => item.uf === "SVRS" && item.service === "CTE");
+
+    // For NFE and NFCE, we do the same
+    const nfeRecord =
+      sefazStatuses.find((item) => item.uf === uf && item.service === "NFE") ||
+      sefazStatuses.find((item) => (item.uf === "SVRS" || item.uf === "SVAN") && item.service === "NFE");
+
+    const nfceRecord =
+      sefazStatuses.find((item) => item.uf === uf && item.service === "NFCE") ||
+      sefazStatuses.find((item) => (item.uf === "SVRS" || item.uf === "SVAN") && item.service === "NFCE");
+
+    return {
+      uf,
+      nfe: nfeRecord,
+      nfce: nfceRecord,
+      cte: cteRecord,
+      mdfe: sefazStatuses.find((item) => item.uf === mdfeUf && item.service === "MDFE"),
+    };
+  });
 }
 
 function rankStatus(status?: DashboardSefazStatus["status"]) {
@@ -209,20 +229,27 @@ export function SefazOperationsPanel({
       <CardContent className="space-y-6">
         {/* Status por estado + Nacional lado a lado */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
-          {groupedFocus.map((group) => (
-            <SefazStatusWidget
-              key={group.uf}
-              title={`SEFAZ ${group.uf}`}
-              nfe={group.nfe}
-              nfce={group.nfce}
-              cte={group.cte}
-              mdfe={group.mdfe}
-              nfeActive={activeRouteSet.has(buildRouteKey(group.uf, "NFE"))}
-              nfceActive={activeRouteSet.has(buildRouteKey(group.uf, "NFCE"))}
-              cteActive={activeRouteSet.has(buildRouteKey(group.uf, "CTE"))}
-              mdfeActive={activeRouteSet.has(buildRouteKey(group.uf, "MDFE"))}
-            />
-          ))}
+          {groupedFocus.map((group) => {
+            const hasRegionalNfe = activeRouteSet.has(buildRouteKey(group.uf, "NFE"));
+            const hasRegionalNfce = activeRouteSet.has(buildRouteKey(group.uf, "NFCE"));
+            const hasRegionalCte = activeRouteSet.has(buildRouteKey(group.uf, "CTE"));
+            const hasRegionalMdfe = activeRouteSet.has(buildRouteKey(group.uf, "MDFE"));
+
+            return (
+              <SefazStatusWidget
+                key={group.uf}
+                title={`SEFAZ ${group.uf}`}
+                nfe={group.nfe}
+                nfce={group.nfce}
+                cte={group.cte}
+                mdfe={group.mdfe}
+                nfeActive={hasRegionalNfe || activeRouteSet.has(buildRouteKey("SVRS", "NFE")) || activeRouteSet.has(buildRouteKey("SVAN", "NFE"))}
+                nfceActive={hasRegionalNfce || activeRouteSet.has(buildRouteKey("SVRS", "NFCE")) || activeRouteSet.has(buildRouteKey("SVAN", "NFCE"))}
+                cteActive={hasRegionalCte || activeRouteSet.has(buildRouteKey("SVRS", "CTE"))}
+                mdfeActive={hasRegionalMdfe || activeRouteSet.has(buildRouteKey("SVRS", "MDFE"))}
+              />
+            );
+          })}
           <SefazStatusWidget
             title="SEFAZ Nacional"
             nfe={nationalNfe}

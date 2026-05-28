@@ -55,8 +55,7 @@ function normalizeProbeUrl(rawUrl: string) {
   const trimmed = rawUrl.trim();
   if (!trimmed) return trimmed;
   if (trimmed.includes('?')) return trimmed;
-  if (/\.asmx$/i.test(trimmed)) return `${trimmed}?wsdl`;
-  return trimmed;
+  return `${trimmed}?wsdl`;
 }
 
 function classifySefazResponse(latency: number, statusCode: number, body: string): SefazStatusType {
@@ -167,20 +166,32 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
       select: { value: true },
     });
 
+    const defaults = buildDefaultSefazRoutes();
     if (!setting?.value) {
-      return buildDefaultSefazRoutes();
+      return defaults;
     }
 
     try {
       const parsed = JSON.parse(setting.value);
       const validation = sefazRoutesSchema.safeParse(parsed);
       if (!validation.success) {
-        return buildDefaultSefazRoutes();
+        return defaults;
       }
 
-      return validation.data;
+      const configured = validation.data;
+      const configuredMap = new Map(configured.map((r) => [`${r.uf}:${r.service}`, r]));
+
+      const merged = [...configured];
+      for (const def of defaults) {
+        const key = `${def.uf}:${def.service}`;
+        if (!configuredMap.has(key)) {
+          merged.push(def);
+        }
+      }
+
+      return merged;
     } catch {
-      return buildDefaultSefazRoutes();
+      return defaults;
     }
   }
 
