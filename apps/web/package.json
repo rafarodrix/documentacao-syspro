@@ -71,7 +71,7 @@
     "fumadocs-ui": "^15.8.5",
     "gray-matter": "^4.0.3",
     "jspdf": "^4.0.0",
-    "jspdf-autotable": "^5.0.2",
+    "jspdf-autotable": "^5.0.8",
     "katex": "^0.16.23",
     "lodash-es": "^4.18.1",
     "lodash.clonedeep": "^4.5.0",
