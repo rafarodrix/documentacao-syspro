@@ -293,6 +293,8 @@ export const adminAtendimentosDataSchema = z.object({
   }).optional(),
   categories: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
   topTags: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
+  unassignedTickets: z.array(dashboardTicketSummarySchema).default([]),
+  topCompanies: z.array(dashboardConversationTopContactSchema).default([]),
 });
 
 export const adminCadastrosDataSchema = z.object({

@@ -1435,17 +1435,16 @@ export class DashboardService {
 
     const assigneeOptionsMap = new Map<string, string>();
 
-    type CompanyRecurrence = {
+    type RecurrenceItem = {
       key: string;
       name: string;
       count: number;
       channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE';
-      motive: string | null;
       lastAttendance: Date | null;
-      categoriesMap: Map<string, number>;
     };
 
-    const companyRecurrenceMap = new Map<string, CompanyRecurrence>();
+    const companyRecurrenceMap = new Map<string, RecurrenceItem>();
+    const contactRecurrenceMap = new Map<string, RecurrenceItem>();
 
     for (const ticket of tickets) {
       const rawStatus = String(ticket.status ?? '').trim().toUpperCase();
@@ -1458,46 +1457,54 @@ export class DashboardService {
       const mappedChannel = ticket.channel;
       channelCountsMap.set(mappedChannel, (channelCountsMap.get(mappedChannel) || 0) + 1);
 
-      // Company/Contact recurrence grouping
-      let key = '';
-      let name = '';
-
+      // Group by Company (if companyId is present)
       if (ticket.companyId) {
-        key = ticket.companyId;
-        name = ticket.company?.nomeFantasia || ticket.company?.razaoSocial || 'Empresa Sem Nome';
-      } else if (ticket.companyContactId) {
-        key = ticket.companyContactId;
-        name = ticket.companyContact?.name || ticket.contactNameSnapshot || 'Contato Avulso';
-      } else {
-        key = ticket.contactPhoneSnapshot || 'unlinked';
-        name = ticket.contactNameSnapshot || 'Cliente Avulso';
+        const compKey = ticket.companyId;
+        const compName = ticket.company?.nomeFantasia || ticket.company?.razaoSocial || 'Empresa Sem Nome';
+        const existing = companyRecurrenceMap.get(compKey) || {
+          key: compKey,
+          name: compName,
+          count: 0,
+          channel: ticket.channel,
+          lastAttendance: null,
+        };
+        existing.count += 1;
+        existing.channel = ticket.channel;
+        if (ticket.createdAt instanceof Date) {
+          if (!existing.lastAttendance || ticket.createdAt > existing.lastAttendance) {
+            existing.lastAttendance = ticket.createdAt;
+          }
+        }
+        companyRecurrenceMap.set(compKey, existing);
       }
 
-      const existingRecurrence = companyRecurrenceMap.get(key) || {
-        key,
-        name,
+      // Group by Contact (always)
+      let contactKey = '';
+      let contactName = '';
+
+      if (ticket.companyContactId) {
+        contactKey = ticket.companyContactId;
+        contactName = ticket.companyContact?.name || ticket.contactNameSnapshot || 'Contato Avulso';
+      } else {
+        contactKey = ticket.contactPhoneSnapshot || ticket.contactNameSnapshot || 'unlinked';
+        contactName = ticket.contactNameSnapshot || ticket.contactPhoneSnapshot || 'Cliente Avulso';
+      }
+
+      const existingContact = contactRecurrenceMap.get(contactKey) || {
+        key: contactKey,
+        name: contactName,
         count: 0,
         channel: ticket.channel,
-        motive: null,
         lastAttendance: null,
-        categoriesMap: new Map<string, number>(),
       };
-
-      existingRecurrence.count += 1;
-      existingRecurrence.channel = ticket.channel;
-
+      existingContact.count += 1;
+      existingContact.channel = ticket.channel;
       if (ticket.createdAt instanceof Date) {
-        if (!existingRecurrence.lastAttendance || ticket.createdAt > existingRecurrence.lastAttendance) {
-          existingRecurrence.lastAttendance = ticket.createdAt;
+        if (!existingContact.lastAttendance || ticket.createdAt > existingContact.lastAttendance) {
+          existingContact.lastAttendance = ticket.createdAt;
         }
       }
-
-      const catName = ticket.ticketCategory?.name;
-      if (catName) {
-        existingRecurrence.categoriesMap.set(catName, (existingRecurrence.categoriesMap.get(catName) || 0) + 1);
-      }
-
-      companyRecurrenceMap.set(key, existingRecurrence);
+      contactRecurrenceMap.set(contactKey, existingContact);
 
       // Assignee load aggregation
       const assigneeName = ticket.assignedUser?.name || ticket.assignedUser?.email || 'Sem responsavel';
@@ -1670,43 +1677,56 @@ export class DashboardService {
       csatAgentMap.set(key, current);
     }
 
-    // Now map topContacts using Top Companies Recurrence
-    const sortedCompanies = Array.from(companyRecurrenceMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    const topContactsMapped = sortedCompanies.map((item) => {
-      let bestCategory: string | null = null;
-      let maxCatCount = 0;
-      for (const [catName, catCount] of item.categoriesMap.entries()) {
-        if (catCount > maxCatCount) {
-          maxCatCount = catCount;
-          bestCategory = catName;
+    // Map Top Contacts and Companies Recurrences
+    const mapRecurrenceItems = (items: RecurrenceItem[]) => {
+      return items.map((item) => {
+        let lastAttendance = 'Sem registro';
+        if (item.lastAttendance instanceof Date) {
+          const diffMs = Date.now() - item.lastAttendance.getTime();
+          const diffDays = Math.floor(diffMs / 86400000);
+          if (diffDays === 0) {
+            lastAttendance = 'Hoje';
+          } else if (diffDays === 1) {
+            lastAttendance = 'Ontem';
+          } else {
+            lastAttendance = `Há ${diffDays} dias`;
+          }
         }
-      }
 
-      let lastAttendance = 'Sem registro';
-      if (item.lastAttendance instanceof Date) {
-        const diffMs = Date.now() - item.lastAttendance.getTime();
-        const diffDays = Math.floor(diffMs / 86400000);
-        if (diffDays === 0) {
-          lastAttendance = 'Hoje';
-        } else if (diffDays === 1) {
-          lastAttendance = 'Ontem';
-        } else {
-          lastAttendance = `Há ${diffDays} dias`;
-        }
-      }
+        return {
+          key: item.key,
+          name: item.name,
+          count: item.count,
+          channel: item.channel,
+          motive: 'Sem categoria',
+          lastAttendance,
+        };
+      });
+    };
 
-      return {
-        key: item.key,
-        name: item.name,
-        count: item.count,
-        channel: item.channel,
-        motive: bestCategory || 'Sem categoria',
-        lastAttendance,
-      };
-    });
+    const topCompaniesMapped = mapRecurrenceItems(
+      Array.from(companyRecurrenceMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+    );
+
+    const topContactsMapped = mapRecurrenceItems(
+      Array.from(contactRecurrenceMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+    );
+
+    // Filter and map unassigned active tickets
+    const unassignedTicketsList = tickets
+      .filter((t) => !t.assignedUserId && t.status !== 'RESOLVED' && t.status !== 'ARCHIVED')
+      .map((t) => ({
+        id: t.id,
+        number: t.ticketNumber || t.id.slice(0, 8).toUpperCase(),
+        subject: t.subject || 'Sem assunto',
+        status: mapTicketStatus(t.status),
+        priority: mapTicketPriority(t.priority),
+        lastUpdate: t.updatedAt instanceof Date ? t.updatedAt.toISOString() : new Date().toISOString(),
+      }));
 
     // Map assigneeLoads with rich agent productivity metrics
     const assigneeLoadsMapped = Array.from(assigneeLoadMap.values())
@@ -1793,6 +1813,8 @@ export class DashboardService {
           .map(([id, name]) => ({ id, name }))
           .sort((left, right) => left.name.localeCompare(right.name)),
         topContacts: topContactsMapped,
+        topCompanies: topCompaniesMapped,
+        unassignedTickets: unassignedTicketsList,
         csatScoreDistribution: [1, 2, 3, 4, 5].map((score) => ({ score, count: csatDistributionMap.get(score) || 0 })),
         csatAgentPerformance: Array.from(csatAgentMap.values())
           .map((item) => ({

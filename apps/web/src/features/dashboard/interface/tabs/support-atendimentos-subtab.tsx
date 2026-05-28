@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dosc-syspro/ui";
+import Link from "next/link";
 import {
   Clock3,
   Inbox,
@@ -29,6 +30,7 @@ import {
   CheckCircle2,
   TrendingUp,
   Tag,
+  ArrowUpRight,
 } from "lucide-react";
 import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
@@ -120,9 +122,9 @@ async function getAtendimentosData(params?: {
 type AtendimentosData = Awaited<ReturnType<typeof getAtendimentosData>>;
 
 export function SupportAtendimentosSubtab() {
-  const todayRange = useMemo(() => buildRangePreset("today"), []);
-  const [from, setFrom] = useState(todayRange.from);
-  const [to, setTo] = useState(todayRange.to);
+  const defaultRange = useMemo(() => buildRangePreset("7d"), []);
+  const [from, setFrom] = useState(defaultRange.from);
+  const [to, setTo] = useState(defaultRange.to);
   const [assigneeId, setAssigneeId] = useState("");
   const [contact, setContact] = useState("");
   const [refreshTick, setRefreshTick] = useState(0);
@@ -303,6 +305,76 @@ export function SupportAtendimentosSubtab() {
             </p>
           </div>
         </div>
+      ) : null}
+
+      {/* Tabela de Atendimentos Sem Responsável */}
+      {!loading && data && (data.unassignedTickets ?? []).length > 0 ? (
+        <SectionCard
+          title="Fila de Atendimentos Sem Responsável"
+          className="border-rose-500/20 bg-rose-500/5 backdrop-blur shadow-sm"
+          contentClassName="overflow-x-auto space-y-3"
+        >
+          <div className="text-xs text-rose-300 font-medium">
+            Existem <span className="font-semibold text-rose-100">{data.unassignedTickets.length}</span> atendimentos sem dono aguardando triagem imediata.
+          </div>
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-border/40 text-muted-foreground text-xs uppercase tracking-wider">
+                <th className="py-2.5 px-3 font-semibold w-24">Ticket</th>
+                <th className="py-2.5 px-3 font-semibold">Assunto</th>
+                <th className="py-2.5 px-3 font-semibold text-center w-28">Prioridade</th>
+                <th className="py-2.5 px-3 font-semibold text-center w-28">Status</th>
+                <th className="py-2.5 px-3 font-semibold text-center w-36">Última Atualização</th>
+                <th className="py-2.5 px-3 font-semibold text-right w-24">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {data.unassignedTickets.map((ticket) => {
+                let priorityClass = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+                if (ticket.priority === "Alta") priorityClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                if (ticket.priority === "Média") priorityClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+
+                let statusClass = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+                if (ticket.status === "Aberto") statusClass = "bg-sky-500/10 text-sky-400 border-sky-500/20";
+                if (ticket.status === "Em Análise") statusClass = "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                if (ticket.status === "Pendente") statusClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                if (ticket.status === "Resolvido") statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+
+                return (
+                  <tr key={ticket.id} className="hover:bg-rose-500/10 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-xs text-rose-300 font-semibold">
+                      #{ticket.number}
+                    </td>
+                    <td className="py-2.5 px-3 font-medium text-foreground max-w-sm truncate">
+                      {ticket.subject}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold border ${priorityClass}`}>
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold border ${statusClass}`}>
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-center text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(ticket.lastUpdate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <Button variant="ghost" size="sm" asChild className="h-7 px-2 hover:bg-rose-500/20 hover:text-rose-300">
+                        <Link href={`/portal/tickets/${ticket.id}`}>
+                          <span>Abrir</span>
+                          <ArrowUpRight className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </SectionCard>
       ) : null}
 
       {/* Row 1: Executive Cards (9 Cards) */}
@@ -553,56 +625,93 @@ export function SupportAtendimentosSubtab() {
         </SectionCard>
       </div>
 
-      {/* Row 6: Causa Raiz */}
+      {/* Row 6: Contatos e Empresas Recorrentes */}
       <div className="grid gap-4 xl:grid-cols-2">
+        {/* Contatos Recorrentes */}
         <SectionCard
-          title="Causa Raiz & Categorias ERP"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="space-y-3"
-        >
-          {(data?.categories ?? []).length ? (
-            (data?.categories ?? []).map((item) => (
-              <ExecutiveLine
-                key={item.name}
-                label={item.name.charAt(0).toUpperCase() + item.name.slice(1)}
-                value={`${item.count} chamados · ${formatPercent(item.count, data?.totalCount ?? 0)}`}
-              />
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum chamado categorizado no período.</p>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Contatos Recorrentes (Ownership & Reincidência)"
+          title="Contatos com mais Atendimentos (Top 10)"
           className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
           contentClassName="overflow-x-auto"
         >
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
-                <th className="py-2.5 px-3">Cliente / Contato</th>
-                <th className="py-2.5 px-3 text-center">Frequência</th>
-                <th className="py-2.5 px-3">Principal Motivo</th>
+                <th className="py-2.5 px-3">Contato</th>
+                <th className="py-2.5 px-3 text-center">Volume</th>
+                <th className="py-2.5 px-3">Canal Preferencial</th>
                 <th className="py-2.5 px-3">Último Contato</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {(data?.topContacts ?? []).length ? (
-                (data?.topContacts ?? []).map((item) => (
-                  <tr key={item.key} className="hover:bg-muted/10 transition-colors">
-                    <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-1.5">
-                      <span className="text-primary">•</span> {item.name}
-                    </td>
-                    <td className="py-3 px-3 text-center tabular-nums font-bold text-amber-500">{item.count} atend.</td>
-                    <td className="py-3 px-3 text-muted-foreground">{item.motive ?? "Sem categoria"}</td>
-                    <td className="py-3 px-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
-                  </tr>
-                ))
+                (data?.topContacts ?? []).map((item) => {
+                  let channelLabel: string = item.channel;
+                  if (item.channel === "WHATSAPP") channelLabel = "WhatsApp 💬";
+                  if (item.channel === "EMAIL") channelLabel = "E-mail ✉️";
+                  if (item.channel === "PORTAL") channelLabel = "Portal 🌐";
+                  if (item.channel === "PHONE") channelLabel = "Telefone 📞";
+
+                  return (
+                    <tr key={item.key} className="hover:bg-muted/10 transition-colors">
+                      <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-1.5">
+                        <span className="text-primary">•</span> {item.name}
+                      </td>
+                      <td className="py-3 px-3 text-center tabular-nums font-bold text-amber-500">{item.count} atend.</td>
+                      <td className="py-3 px-3 text-muted-foreground">{channelLabel}</td>
+                      <td className="py-3 px-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={4} className="py-4 text-center text-muted-foreground">
                     Sem contatos identificados no recorte.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </SectionCard>
+
+        {/* Empresas Recorrentes */}
+        <SectionCard
+          title="Empresas com mais Atendimentos (Top 10)"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="overflow-x-auto"
+        >
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
+                <th className="py-2.5 px-3">Empresa</th>
+                <th className="py-2.5 px-3 text-center">Volume</th>
+                <th className="py-2.5 px-3">Canal Preferencial</th>
+                <th className="py-2.5 px-3">Último Contato</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {(data?.topCompanies ?? []).length ? (
+                (data?.topCompanies ?? []).map((item) => {
+                  let channelLabel: string = item.channel;
+                  if (item.channel === "WHATSAPP") channelLabel = "WhatsApp 💬";
+                  if (item.channel === "EMAIL") channelLabel = "E-mail ✉️";
+                  if (item.channel === "PORTAL") channelLabel = "Portal 🌐";
+                  if (item.channel === "PHONE") channelLabel = "Telefone 📞";
+
+                  return (
+                    <tr key={item.key} className="hover:bg-muted/10 transition-colors">
+                      <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-1.5">
+                        <span className="text-emerald-500">•</span> {item.name}
+                      </td>
+                      <td className="py-3 px-3 text-center tabular-nums font-bold text-emerald-500">{item.count} atend.</td>
+                      <td className="py-3 px-3 text-muted-foreground">{channelLabel}</td>
+                      <td className="py-3 px-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                    Sem empresas identificadas no recorte.
                   </td>
                 </tr>
               )}
