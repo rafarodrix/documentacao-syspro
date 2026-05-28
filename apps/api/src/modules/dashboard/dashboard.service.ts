@@ -1396,8 +1396,54 @@ export class DashboardService {
     const statusCountsMap = new Map<string, number>(statusOrder.map((status) => [status, 0]));
     const channelOrder = ['WHATSAPP', 'EMAIL', 'PORTAL', 'PHONE'] as const;
     const channelCountsMap = new Map<string, number>(channelOrder.map((channel) => [channel, 0]));
-    const assigneeLoadMap = new Map<string, { userId: string | null; name: string; openCount: number; waitingCount: number }>();
+    const assigneeLoadMap = new Map<string, {
+      userId: string | null;
+      name: string;
+      openCount: number;
+      waitingCount: number;
+      resolvedCount: number;
+      firstResponseSum: number;
+      firstResponseCount: number;
+      resolutionSum: number;
+      resolutionCount: number;
+    }>();
     const topContactsMap = new Map<string, { key: string; name: string; count: number; channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE' }>();
+
+    // New variables for categories, tags, SLA, backlog and contacts motive/lastAttendance
+    const RECOGNIZED_CATEGORIES = [
+      'fiscal',
+      'nota fiscal',
+      'financeiro',
+      'vendas',
+      'estoque',
+      'frente de caixa',
+      'balança',
+      'instalação',
+      'treinamento',
+      'erro operacional',
+      'erro sistema',
+      'dúvida de uso',
+      'solicitação de melhoria',
+    ];
+
+    const categoryCountsMap = new Map<string, number>(RECOGNIZED_CATEGORIES.map((cat) => [cat, 0]));
+    categoryCountsMap.set('Outros', 0);
+
+    const tagCountsMap = new Map<string, number>();
+
+    let firstResponseWithinSlaCount = 0;
+    let firstResponseTotalSlaCount = 0;
+    let resolutionWithinSlaCount = 0;
+    let resolutionTotalSlaCount = 0;
+    let delayedOpenCount = 0;
+
+    let backlogToday = 0;
+    let backlogOver1d = 0;
+    let backlogOver3d = 0;
+    let backlogOver7d = 0;
+
+    const contactLabelsMap = new Map<string, Map<string, number>>();
+    const contactLastDateMap = new Map<string, Date>();
 
     let cancelledByCustomerCount = 0;
     let cancelledByAgentCount = 0;
@@ -1432,20 +1478,70 @@ export class DashboardService {
       channelCountsMap.set(mappedChannel, (channelCountsMap.get(mappedChannel) || 0) + 1);
 
       const contact = extractChatwootContactSummary(conversation);
+      const created = parseChatwootDate(conversation?.created_at);
+      const firstReply = parseChatwootDate(conversation?.first_reply_created_at);
+
       if (contact) {
         const current = topContactsMap.get(contact.key) || { ...contact, count: 0, channel: mappedChannel };
         current.count += 1;
         current.channel = mappedChannel;
         topContactsMap.set(contact.key, current);
+
+        if (created instanceof Date) {
+          const existingLastDate = contactLastDateMap.get(contact.key);
+          if (!existingLastDate || created > existingLastDate) {
+            contactLastDateMap.set(contact.key, created);
+          }
+
+          let labelsMap = contactLabelsMap.get(contact.key);
+          if (!labelsMap) {
+            labelsMap = new Map<string, number>();
+            contactLabelsMap.set(contact.key, labelsMap);
+          }
+          const labels = extractChatwootConversationLabels(conversation);
+          for (const label of labels) {
+            labelsMap.set(label, (labelsMap.get(label) || 0) + 1);
+          }
+        }
       }
 
       const assignee = extractChatwootAssignee(conversation);
       if (!assignee) {
         unassignedCount += 1;
       } else {
-        const current = assigneeLoadMap.get(assignee.id) || { userId: assignee.id, name: assignee.name, openCount: 0, waitingCount: 0 };
+        const current = assigneeLoadMap.get(assignee.id) || {
+          userId: assignee.id,
+          name: assignee.name,
+          openCount: 0,
+          waitingCount: 0,
+          resolvedCount: 0,
+          firstResponseSum: 0,
+          firstResponseCount: 0,
+          resolutionSum: 0,
+          resolutionCount: 0,
+        };
         if (rawStatus !== 'resolved') current.openCount += 1;
         if (rawStatus === 'pending' || rawStatus === 'snoozed') current.waitingCount += 1;
+        if (rawStatus === 'resolved') current.resolvedCount += 1;
+
+        if (created instanceof Date) {
+          if (firstReply instanceof Date && firstReply >= created) {
+            const firstResponseMin = (firstReply.getTime() - created.getTime()) / 60000;
+            current.firstResponseSum += firstResponseMin;
+            current.firstResponseCount += 1;
+          }
+          if (rawStatus === 'resolved') {
+            const resolvedAt =
+              parseChatwootDate(conversation?.meta?.resolved_at) ??
+              parseChatwootDate(conversation?.resolved_at) ??
+              parseChatwootDate(conversation?.updated_at);
+            if (resolvedAt instanceof Date && resolvedAt >= created) {
+              const resolutionHours = (resolvedAt.getTime() - created.getTime()) / 3600000;
+              current.resolutionSum += resolutionHours;
+              current.resolutionCount += 1;
+            }
+          }
+        }
         assigneeLoadMap.set(assignee.id, current);
       }
 
@@ -1456,6 +1552,65 @@ export class DashboardService {
         }
       } else {
         openCount += 1;
+      }
+
+      // SLA & Backlog metrics calculation
+      if (created instanceof Date) {
+        if (firstReply instanceof Date && firstReply >= created) {
+          const firstResponseMin = (firstReply.getTime() - created.getTime()) / 60000;
+          firstResponseTotalSlaCount += 1;
+          if (firstResponseMin <= 15) {
+            firstResponseWithinSlaCount += 1;
+          }
+        }
+
+        if (rawStatus === 'resolved') {
+          const resolvedAt =
+            parseChatwootDate(conversation?.meta?.resolved_at) ??
+            parseChatwootDate(conversation?.resolved_at) ??
+            parseChatwootDate(conversation?.updated_at);
+          if (resolvedAt instanceof Date && resolvedAt >= created) {
+            const resolutionHours = (resolvedAt.getTime() - created.getTime()) / 3600000;
+            resolutionTotalSlaCount += 1;
+            if (resolutionHours <= 24) {
+              resolutionWithinSlaCount += 1;
+            }
+          }
+        } else {
+          // Delayed tickets (open > 24h)
+          const ageHours = (Date.now() - created.getTime()) / 3600000;
+          if (ageHours > 24) {
+            delayedOpenCount += 1;
+          }
+
+          // Backlog distribution
+          if (ageHours <= 24) {
+            backlogToday += 1;
+          } else if (ageHours <= 72) {
+            backlogOver1d += 1;
+          } else if (ageHours <= 168) {
+            backlogOver3d += 1;
+          } else {
+            backlogOver7d += 1;
+          }
+        }
+      }
+
+      // Categories and Tags aggregation from conversation labels
+      const cLabels = extractChatwootConversationLabels(conversation);
+      let matchedCategory = false;
+      for (const label of cLabels) {
+        const normLabel = label.toLowerCase();
+        tagCountsMap.set(label, (tagCountsMap.get(label) || 0) + 1);
+
+        const matched = RECOGNIZED_CATEGORIES.find((cat) => cat === normLabel);
+        if (matched) {
+          categoryCountsMap.set(matched, (categoryCountsMap.get(matched) || 0) + 1);
+          matchedCategory = true;
+        }
+      }
+      if (!matchedCategory) {
+        categoryCountsMap.set('Outros', (categoryCountsMap.get('Outros') || 0) + 1);
       }
     }
 
@@ -1539,6 +1694,92 @@ export class DashboardService {
       csatAgentMap.set(key, current);
     }
 
+    // Now map topContacts with motive & lastAttendance
+    const topContactsMapped = Array.from(topContactsMap.values())
+      .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+      .slice(0, 6)
+      .map((contact) => {
+        const labelsMap = contactLabelsMap.get(contact.key);
+        let motive: string | null = null;
+        if (labelsMap && labelsMap.size > 0) {
+          let maxCount = -1;
+          let bestLabel = '';
+          for (const [label, count] of labelsMap.entries()) {
+            if (count > maxCount) {
+              maxCount = count;
+              bestLabel = label;
+            }
+          }
+          if (bestLabel) {
+            motive = bestLabel.charAt(0).toUpperCase() + bestLabel.slice(1);
+          }
+        }
+
+        const lastDate = contactLastDateMap.get(contact.key);
+        let lastAttendance = 'Sem registro';
+        if (lastDate) {
+          const diffMs = Date.now() - lastDate.getTime();
+          const diffDays = Math.floor(diffMs / 86400000);
+          if (diffDays === 0) {
+            lastAttendance = 'Hoje';
+          } else if (diffDays === 1) {
+            lastAttendance = 'Ontem';
+          } else {
+            lastAttendance = `Há ${diffDays} dias`;
+          }
+        }
+
+        return {
+          key: contact.key,
+          name: contact.name,
+          count: contact.count,
+          channel: contact.channel,
+          motive,
+          lastAttendance,
+        };
+      });
+
+    // Map assigneeLoads with rich agent productivity metrics
+    const assigneeLoadsMapped = Array.from(assigneeLoadMap.values())
+      .map((item) => {
+        const csatAgentKey = item.userId ? String(item.userId).trim() : `__agent__${String(item.name).trim() || 'Sem atendente'}`;
+        const csatData = csatAgentMap.get(csatAgentKey);
+        const averageScore = csatData && csatData.responseCount > 0
+          ? Math.round((csatData.totalScore / csatData.responseCount) * 100) / 100
+          : null;
+        const responseCount = csatData ? csatData.responseCount : 0;
+
+        const avgFirstResponse = item.firstResponseCount > 0
+          ? Math.round((item.firstResponseSum / item.firstResponseCount) * 10) / 10
+          : null;
+
+        const avgResolution = item.resolutionCount > 0
+          ? Math.round((item.resolutionSum / item.resolutionCount) * 10) / 10
+          : null;
+
+        return {
+          userId: item.userId,
+          name: item.name,
+          openCount: item.openCount,
+          waitingCount: item.waitingCount,
+          resolvedCount: item.resolvedCount,
+          avgFirstResponseMinutes: avgFirstResponse,
+          avgResolutionHours: avgResolution,
+          averageScore,
+          responseCount,
+        };
+      })
+      .sort((left, right) => right.openCount - left.openCount)
+      .slice(0, 8);
+
+    // Compute SLA ratios
+    const slaFirstResponsePct = firstResponseTotalSlaCount > 0
+      ? Math.round((firstResponseWithinSlaCount / firstResponseTotalSlaCount) * 100)
+      : null;
+    const slaResolutionPct = resolutionTotalSlaCount > 0
+      ? Math.round((resolutionWithinSlaCount / resolutionTotalSlaCount) * 100)
+      : null;
+
     const payload = {
       success: true as const,
       data: {
@@ -1571,13 +1812,11 @@ export class DashboardService {
         ),
         statusCounts: statusOrder.map((status) => ({ status, count: statusCountsMap.get(status) || 0 })),
         channelCounts: channelOrder.map((channel) => ({ channel, count: channelCountsMap.get(channel) || 0 })),
-        assigneeLoads: Array.from(assigneeLoadMap.values()).sort((left, right) => right.openCount - left.openCount).slice(0, 8),
+        assigneeLoads: assigneeLoadsMapped,
         assigneeOptions: Array.from(assigneeOptionsMap.entries())
           .map(([id, name]) => ({ id, name }))
           .sort((left, right) => left.name.localeCompare(right.name)),
-        topContacts: Array.from(topContactsMap.values())
-          .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
-          .slice(0, 6),
+        topContacts: topContactsMapped,
         csatScoreDistribution: [1, 2, 3, 4, 5].map((score) => ({ score, count: csatDistributionMap.get(score) || 0 })),
         csatAgentPerformance: Array.from(csatAgentMap.values())
           .map((item) => ({
@@ -1590,6 +1829,23 @@ export class DashboardService {
           .sort((left, right) => right.responseCount - left.responseCount || right.averageScore - left.averageScore)
           .slice(0, 6),
         warning: contexts.length > 1 ? 'Dashboard consolidado a partir de multiplos contextos ativos do Chatwoot.' : undefined,
+        // Enriched fields for Refactored Dashboard
+        slaFirstResponsePct,
+        slaResolutionPct,
+        delayedOpenCount,
+        backlog: {
+          today: backlogToday,
+          over1d: backlogOver1d,
+          over3d: backlogOver3d,
+          over7d: backlogOver7d,
+        },
+        categories: Array.from(categoryCountsMap.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((left, right) => right.count - left.count),
+        topTags: Array.from(tagCountsMap.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((left, right) => right.count - left.count)
+          .slice(0, 10),
       },
     };
     this.atendimentosCache.set(cacheKey, {

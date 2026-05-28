@@ -1450,7 +1450,7 @@ export class UsersService {
       select: { companyId: true },
     });
 
-    return memberships.map((membership) => membership.companyId);
+    return memberships.map((membership: { companyId: string }) => membership.companyId);
   }
 
   private async getAssignableProfilesForRequester(requester: Requester): Promise<UserAssignableProfile[]> {

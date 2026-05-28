@@ -26,6 +26,9 @@ import {
   ShieldAlert,
   UserRound,
   Users,
+  CheckCircle2,
+  TrendingUp,
+  Tag,
 } from "lucide-react";
 import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
@@ -285,213 +288,375 @@ export function SupportAtendimentosSubtab() {
         </CardContent>
       </Card>
 
-      {error ? <ErrorState title="Falha ao carregar atendimentos" description={error} /> : null}
+      {/* Operational Warning Alert for Unassigned Tickets */}
+      {!loading && (data?.unassignedCount ?? 0) > 0 ? (
+        <div className="flex items-start gap-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 backdrop-blur-md p-4 text-rose-200 shadow-sm">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500">
+            <ShieldAlert className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-rose-400">Alerta Operacional Crítico</p>
+            <p className="text-sm text-rose-200/90 leading-relaxed">
+              Existem <span className="font-extrabold text-white text-base">{data?.unassignedCount}</span> atendimentos sem responsável neste período. Isso representa <span className="font-extrabold text-white text-base">
+                {data?.totalCount ? Math.round((data.unassignedCount / data.totalCount) * 1000) / 10 : 0}%
+              </span> do volume total. Vale revisar a distribuição e ownership imediato da fila.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
-      {data?.warning ? <StaleState message={data.warning} /> : null}
+      {/* Row 1: Executive Cards (9 Cards) */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Geral no período" icon={Inbox as any} tone="blue" />
+        <DashboardMetricCard title="Abertos" value={data?.openCount ?? 0} helper="Fila ativa" icon={Loader2 as any} tone="amber" />
+        <DashboardMetricCard title="Sem Dono" value={data?.unassignedCount ?? 0} helper="Sem atendente" icon={ShieldAlert as any} tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
+        <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Concluídos" icon={CheckCircle2 as any} tone="emerald" />
+        <DashboardMetricCard title="CSAT Médio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliações`} icon={MessageSquareText as any} tone="emerald" />
+        <DashboardMetricCard title="1ª Resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} helper={data?.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}% no SLA` : "Agilidade"} icon={Clock3 as any} tone="indigo" />
+        <DashboardMetricCard title="Resolução" value={formatHours(data?.avgResolutionHours ?? null)} helper={data?.slaResolutionPct != null ? `${data.slaResolutionPct}% no SLA` : "Eficiência"} icon={TrendingUp as any} tone="purple" />
+      </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Atendimentos no periodo" icon={Inbox as any} tone="blue" />
-        <DashboardMetricCard title="Em andamento" value={data?.openCount ?? 0} helper="Fila operacional ativa" icon={UserRound as any} tone="amber" />
-        <DashboardMetricCard title="Aguardando" value={waitingCount} helper="Cliente ou retorno interno" icon={Users as any} tone="blue" />
-        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} resposta(s)`} icon={MessageSquareText as any} tone="emerald" />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <ActivityChart
-          title="Volume de atendimentos"
-          description={loading ? "Carregando periodo selecionado" : "Conversas criadas no periodo filtrado"}
-          points={data?.activity ?? []}
-          badgeLabel="Chatwoot"
-          emptyLabel="Sem conversas no recorte"
+        <DashboardMetricCard
+          title="Aguardando Cliente"
+          value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`}
+          helper="Retorno do cliente"
+          icon={UserRound as any}
+          tone="blue"
         />
+        <DashboardMetricCard
+          title="Aguardando Interno"
+          value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`}
+          helper="Retorno da equipe"
+          icon={Users as any}
+          tone="amber"
+        />
+      </div>
 
-        <div className="grid gap-4">
-          <SectionCard
-            title="Ritmo operacional"
-            className="border-border/50 bg-card"
-            contentClassName="space-y-3 text-sm"
-          >
-            <ExecutiveLine
-              label="Sem responsavel"
-              value={`${data?.unassignedCount ?? 0}`}
-              emphasis={(data?.unassignedCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
-            />
-            <ExecutiveLine label="Aguardando cliente" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`} />
-            <ExecutiveLine label="Aguardando interno" value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`} />
-            <ExecutiveLine label="Primeira resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} />
-            <ExecutiveLine label="Resolucao media" value={formatHours(data?.avgResolutionHours ?? null)} />
-          </SectionCard>
-
-          <SectionCard
-            title="Encerramentos"
-            className="border-border/50 bg-card"
-            contentClassName="space-y-3 text-sm"
-          >
-            <ExecutiveLine label="Resolvidos" value={`${data?.resolvedCount ?? 0}`} />
-            <ExecutiveLine
-              label="Cancelados"
-              value={`${data?.cancelledCount ?? 0}`}
-              emphasis={(data?.cancelledCount ?? 0) > 0 ? "text-amber-500" : "text-foreground"}
-            />
-            <ExecutiveLine label="Cancelado cliente" value={`${data?.cancelledByCustomerCount ?? 0}`} />
-            <ExecutiveLine label="Cancelado agente" value={`${data?.cancelledByAgentCount ?? 0}`} />
-            <ExecutiveLine label="Spam" value={`${data?.spamCount ?? 0}`} />
-          </SectionCard>
+      {/* Row 2: Charts */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <ActivityChart
+            title="Volume de atendimentos"
+            description={loading ? "Carregando período selecionado" : "Conversas criadas no período filtrado"}
+            points={data?.activity ?? []}
+            badgeLabel="Chatwoot"
+            emptyLabel="Sem conversas no recorte"
+          />
         </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard
-          title="Saude do CSAT"
-          className="border-border/50 bg-card"
-          contentClassName="space-y-3 text-sm"
-        >
-          <ExecutiveLine label="Respondido" value={`${data?.csatResponseCount ?? 0} · ${formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)}`} />
-          <ExecutiveLine label="Elegivel" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
-          <ExecutiveLine
-            label="Notas baixas"
-            value={`${data?.csatLowScoreCount ?? 0} · ${formatPercent(data?.csatLowScoreCount ?? 0, data?.csatResponseCount ?? 0)}`}
-            emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
-          />
-          <ExecutiveLine label="CSAT ignorado" value={`${data?.csatSkippedCount ?? 0}`} />
-        </SectionCard>
 
         <SectionCard
-          title="Risco operacional"
-          className="border-border/50 bg-card"
-          contentClassName="space-y-3 text-sm"
+          title="Situação atual da fila"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="space-y-4"
         >
-          <ExecutiveLine
-            label="Sem responsavel"
-            value={`${data?.unassignedCount ?? 0}`}
-            emphasis={(data?.unassignedCount ?? 0) > 0 ? "text-red-500" : "text-foreground"}
-          />
-          <ExecutiveLine
-            label="Notas baixas"
-            value={`${data?.csatLowScoreCount ?? 0}`}
-            emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-amber-500" : "text-foreground"}
-          />
-          <ExecutiveLine label="Cancelados" value={`${data?.cancelledCount ?? 0}`} />
-          <ExecutiveLine label="Sem vinculo" value={`${data?.unlinkedCount ?? 0}`} />
-        </SectionCard>
+          {(data?.statusCounts ?? []).map((item) => {
+            let color = "bg-primary/70";
+            if (item.status === "Sem responsavel") color = "bg-rose-500/70";
+            if (item.status === "Aguardando cliente") color = "bg-sky-500/70";
+            if (item.status === "Aguardando interno") color = "bg-amber-500/70";
+            if (item.status === "Resolvido") color = "bg-emerald-500/70";
 
-        <SectionCard
-          title="Cobertura"
-          className="border-border/50 bg-card"
-          contentClassName="space-y-3 text-sm"
-        >
-          <ExecutiveLine label="Atendentes ativos" value={`${data?.assigneeLoads?.length ?? 0}`} />
-          <ExecutiveLine label="Top contatos" value={`${data?.topContacts?.length ?? 0}`} />
-          <ExecutiveLine label="Canais ativos" value={`${(data?.channelCounts ?? []).filter((item) => item.count > 0).length}`} />
-          <ExecutiveLine label="Faixas CSAT" value={`${(data?.csatScoreDistribution ?? []).filter((item) => item.count > 0).length}`} />
-        </SectionCard>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <SectionCard
-          title="Status da fila"
-          className="border-border/50 bg-card xl:col-span-2"
-          contentClassName="grid gap-3 lg:grid-cols-2"
-        >
-          {(data?.statusCounts ?? []).map((item) => (
-            <div key={item.status} className="space-y-1">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-muted-foreground">{item.status}</span>
-                <span className="font-medium tabular-nums">{item.count}</span>
+            return (
+              <div key={item.status} className="space-y-1">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="font-semibold text-muted-foreground">{item.status}</span>
+                  <span className="font-bold tabular-nums text-foreground">{item.count}</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted/30">
+                  <div className={`h-2 rounded-full ${color} transition-all duration-500`} style={{ width: `${Math.min(100, (item.count / statusBase) * 100)}%` }} />
+                </div>
               </div>
-              <div className="h-2 rounded-full bg-muted">
-                <div className="h-2 rounded-full bg-primary/70" style={{ width: `${Math.min(100, (item.count / statusBase) * 100)}%` }} />
+            );
+          })}
+        </SectionCard>
+      </div>
+
+      {/* Row 3: Operation & SLAs */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <SectionCard
+          title="SLA e Prazos"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="space-y-3.5 text-sm"
+        >
+          <ExecutiveLine
+            label="Dentro do SLA de 1ª Resposta"
+            value={data?.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}%` : "Sem dados"}
+            emphasis={data?.slaFirstResponsePct && data.slaFirstResponsePct < 85 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}
+          />
+          <ExecutiveLine label="Tempo Médio de 1ª Resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} />
+          <ExecutiveLine
+            label="Resolvidos dentro do Prazo"
+            value={data?.slaResolutionPct != null ? `${data.slaResolutionPct}%` : "Sem dados"}
+            emphasis={data?.slaResolutionPct && data.slaResolutionPct < 80 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}
+          />
+          <ExecutiveLine label="Tempo Médio de Resolução" value={formatHours(data?.avgResolutionHours ?? null)} />
+          <ExecutiveLine
+            label="Atendimentos Fora do Prazo (Atrasados)"
+            value={`${data?.delayedOpenCount ?? 0}`}
+            emphasis={(data?.delayedOpenCount ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"}
+          />
+        </SectionCard>
+
+        <SectionCard
+          title="Backlog (Acúmulo de Abertos)"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="space-y-3 text-sm"
+        >
+          <ExecutiveLine label="Abertos hoje" value={`${data?.backlog?.today ?? 0}`} />
+          <ExecutiveLine label="Abertos há mais de 1 dia" value={`${data?.backlog?.over1d ?? 0}`} emphasis={(data?.backlog?.over1d ?? 0) > 0 ? "text-amber-500 font-bold" : "text-muted-foreground"} />
+          <ExecutiveLine label="Abertos há mais de 3 dias" value={`${data?.backlog?.over3d ?? 0}`} emphasis={(data?.backlog?.over3d ?? 0) > 0 ? "text-orange-500 font-bold" : "text-muted-foreground"} />
+          <ExecutiveLine label="Abertos há mais de 7 dias" value={`${data?.backlog?.over7d ?? 0}`} emphasis={(data?.backlog?.over7d ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"} />
+        </SectionCard>
+
+        <SectionCard
+          title="Pendências e Riscos"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="space-y-3.5 text-sm"
+        >
+          <ExecutiveLine
+            label="Sem responsável"
+            value={`${data?.unassignedCount ?? 0}`}
+            emphasis={(data?.unassignedCount ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"}
+          />
+          <ExecutiveLine
+            label="Aguardando interno"
+            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`}
+            emphasis={((data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0) > 0 ? "text-amber-500 font-bold" : "text-muted-foreground"}
+          />
+          <ExecutiveLine
+            label="Cancelados no período"
+            value={`${data?.cancelledCount ?? 0}`}
+            emphasis={(data?.cancelledCount ?? 0) > 0 ? "text-orange-500 font-bold" : "text-muted-foreground"}
+          />
+          <div className="pl-3 text-xs text-muted-foreground space-y-1">
+            <p>• Cancelados pelo cliente: {data?.cancelledByCustomerCount ?? 0}</p>
+            <p>• Cancelados pelo suporte: {data?.cancelledByAgentCount ?? 0}</p>
+            <p>• Descartados como Spam: {data?.spamCount ?? 0}</p>
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* Row 4: Equipe (Unified Productivity Table) */}
+      <SectionCard
+        title="Produtividade da Equipe"
+        className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+        contentClassName="overflow-x-auto"
+      >
+        <table className="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-border/40 text-muted-foreground text-xs uppercase tracking-wider">
+              <th className="py-3 px-4 font-semibold">Atendente</th>
+              <th className="py-3 px-4 font-semibold text-center">Abertos</th>
+              <th className="py-3 px-4 font-semibold text-center">Resolvidos</th>
+              <th className="py-3 px-4 font-semibold text-center">Tempo Resposta</th>
+              <th className="py-3 px-4 font-semibold text-center">Tempo Resolução</th>
+              <th className="py-3 px-4 font-semibold text-center">Avaliação (CSAT)</th>
+              <th className="py-3 px-4 font-semibold text-center">Respostas</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/30">
+            {(data?.assigneeLoads ?? []).length ? (
+              (data?.assigneeLoads ?? []).map((item) => {
+                let scoreColor = "text-foreground font-semibold";
+                if (item.averageScore != null) {
+                  if (item.averageScore >= 4.5) scoreColor = "text-emerald-500 font-bold";
+                  else if (item.averageScore < 3.5) scoreColor = "text-rose-500 font-bold";
+                  else scoreColor = "text-amber-500 font-semibold";
+                }
+
+                return (
+                  <tr key={`${item.userId ?? "none"}-${item.name}`} className="hover:bg-muted/20 transition-colors">
+                    <td className="py-3.5 px-4 font-medium text-foreground flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      {item.name}
+                    </td>
+                    <td className="py-3.5 px-4 text-center tabular-nums font-semibold">{item.openCount}</td>
+                    <td className="py-3.5 px-4 text-center tabular-nums text-muted-foreground">{item.resolvedCount ?? 0}</td>
+                    <td className="py-3.5 px-4 text-center tabular-nums">{formatMinutes(item.avgFirstResponseMinutes ?? null)}</td>
+                    <td className="py-3.5 px-4 text-center tabular-nums">{formatHours(item.avgResolutionHours ?? null)}</td>
+                    <td className={`py-3.5 px-4 text-center tabular-nums ${scoreColor}`}>
+                      {item.averageScore != null ? formatScore(item.averageScore) : "Sem nota"}
+                    </td>
+                    <td className="py-3.5 px-4 text-center tabular-nums text-xs text-muted-foreground">
+                      {item.responseCount ?? 0} resp.
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                  Sem atendentes identificados no recorte.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </SectionCard>
+
+      {/* Row 5: Qualidade (CSAT Health & Score Distribution) */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SectionCard
+          title="Saúde do CSAT"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="grid gap-3.5 sm:grid-cols-2 text-sm"
+        >
+          <div className="space-y-3.5">
+            <ExecutiveLine label="CSAT Médio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="text-emerald-500 font-extrabold text-base" />
+            <ExecutiveLine label="Conversas Elegíveis" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
+            <ExecutiveLine label="Respostas Recebidas" value={`${data?.csatResponseCount ?? 0}`} />
+            <ExecutiveLine label="Taxa de Resposta" value={formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)} />
+          </div>
+          <div className="space-y-3.5 border-t border-border/30 pt-3.5 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
+            <ExecutiveLine
+              label="Notas Baixas (≤ 2)"
+              value={`${data?.csatLowScoreCount ?? 0}`}
+              emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"}
+            />
+            <ExecutiveLine label="Avaliações Ignoradas" value={`${data?.csatSkippedCount ?? 0}`} />
+            <ExecutiveLine
+              label="Satisfação Alta (4 e 5 ★)"
+              value={(() => {
+                const highCount = (data?.csatScoreDistribution ?? [])
+                  .filter((item) => item.score >= 4)
+                  .reduce((sum, item) => sum + item.count, 0);
+                return formatPercent(highCount, data?.csatResponseCount ?? 0);
+              })()}
+              emphasis="text-emerald-500 font-bold"
+            />
+            <p className="text-[11px] text-muted-foreground/80 leading-snug">
+              {(() => {
+                const note5 = (data?.csatScoreDistribution ?? []).find(item => item.score === 5)?.count ?? 0;
+                return `${note5} de ${data?.csatResponseCount ?? 0} avaliações foram Nota 5 (Excelente).`;
+              })()}
+            </p>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Distribuição das Notas"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="space-y-2.5"
+        >
+          {([...(data?.csatScoreDistribution ?? [])].sort((l, r) => r.score - l.score)).map((item) => (
+            <div key={item.score} className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="font-semibold text-muted-foreground">Nota {item.score} ★</span>
+                <span className="font-bold tabular-nums text-foreground">{item.count}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted/30">
+                <div className="h-2 rounded-full bg-emerald-500/70 transition-all duration-500" style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }} />
               </div>
             </div>
           ))}
         </SectionCard>
-
-        <SectionCard
-          title="Canais"
-          className="border-border/50 bg-card"
-          contentClassName="space-y-3"
-        >
-          {(data?.channelCounts ?? []).map((item) => (
-            <ExecutiveLine key={item.channel} label={item.channel} value={`${item.count} · ${formatPercent(item.count, data?.totalCount ?? 0)}`} />
-          ))}
-        </SectionCard>
       </div>
 
+      {/* Row 6: Causa Raiz */}
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
-          title="Carga por atendente"
-          className="border-border/50 bg-card"
+          title="Causa Raiz & Categorias ERP"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
           contentClassName="space-y-3"
         >
-          {(data?.assigneeLoads ?? []).length ? (
-            (data?.assigneeLoads ?? []).map((item) => (
-              <ExecutiveLine key={`${item.userId ?? "none"}-${item.name}`} label={item.name} value={`${item.openCount} abertas · ${item.waitingCount} aguardando`} />
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Sem atendentes identificados no recorte.</p>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="CSAT por atendente"
-          className="border-border/50 bg-card"
-          contentClassName="space-y-3"
-        >
-          {(data?.csatAgentPerformance ?? []).length ? (
-            (data?.csatAgentPerformance ?? []).map((item) => (
+          {(data?.categories ?? []).length ? (
+            (data?.categories ?? []).map((item) => (
               <ExecutiveLine
-                key={`${item.agentId ?? "none"}-${item.agentName}`}
-                label={item.agentName}
-                value={`${formatScore(item.averageScore)} · ${item.responseCount} resp. · ${item.lowScoreCount} baixas`}
-                emphasis={item.lowScoreCount > 0 ? "text-amber-500" : "text-foreground"}
+                key={item.name}
+                label={item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+                value={`${item.count} chamados · ${formatPercent(item.count, data?.totalCount ?? 0)}`}
               />
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Sem respostas de CSAT no recorte.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum chamado categorizado no período.</p>
           )}
+        </SectionCard>
+
+        <SectionCard
+          title="Contatos Recorrentes (Ownership & Reincidência)"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="overflow-x-auto"
+        >
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
+                <th className="py-2.5 px-3">Cliente / Contato</th>
+                <th className="py-2.5 px-3 text-center">Frequência</th>
+                <th className="py-2.5 px-3">Principal Motivo</th>
+                <th className="py-2.5 px-3">Último Contato</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {(data?.topContacts ?? []).length ? (
+                (data?.topContacts ?? []).map((item) => (
+                  <tr key={item.key} className="hover:bg-muted/10 transition-colors">
+                    <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-1.5">
+                      <span className="text-primary">•</span> {item.name}
+                    </td>
+                    <td className="py-3 px-3 text-center tabular-nums font-bold text-amber-500">{item.count} atend.</td>
+                    <td className="py-3 px-3 text-muted-foreground">{item.motive ?? "Sem categoria"}</td>
+                    <td className="py-3 px-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                    Sem contatos identificados no recorte.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </SectionCard>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
-          title="Distribuicao do CSAT"
-          className="border-border/50 bg-card"
+          title="Origem dos Atendimentos (Canais)"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
           contentClassName="space-y-3"
         >
-          {(data?.csatScoreDistribution ?? []).map((item) => (
-            <div key={item.score} className="space-y-1">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-muted-foreground">Nota {item.score}</span>
-                <span className="font-medium tabular-nums">{item.count}</span>
-              </div>
-              <div className="h-2 rounded-full bg-muted">
-                <div className="h-2 rounded-full bg-primary/70" style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }} />
-              </div>
-            </div>
-          ))}
+          {(data?.channelCounts ?? []).map((item) => {
+            let label = item.channel;
+            if (item.channel === "WHATSAPP") label = "WhatsApp 💬";
+            if (item.channel === "EMAIL") label = "E-mail ✉️";
+            if (item.channel === "PORTAL") label = "Portal Syspro 🌐";
+            if (item.channel === "PHONE") label = "Telefone 📞";
+
+            return (
+              <ExecutiveLine
+                key={item.channel}
+                label={label}
+                value={`${item.count} atend. · ${formatPercent(item.count, data?.totalCount ?? 0)}`}
+              />
+            );
+          })}
         </SectionCard>
 
         <SectionCard
-          title="Contatos mais recorrentes"
-          className="border-border/50 bg-card"
-          contentClassName="space-y-3"
+          title="Tags Operacionais Mais Usadas"
+          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          contentClassName="flex flex-wrap gap-2 pt-2"
         >
-          {(data?.topContacts ?? []).length ? (
-            (data?.topContacts ?? []).map((item) => (
-              <ExecutiveLine key={item.key} label={item.name} value={`${item.count} atend. · ${item.channel}`} />
+          {(data?.topTags ?? []).length ? (
+            (data?.topTags ?? []).map((item) => (
+              <div
+                key={item.name}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card px-2.5 py-1 text-xs text-foreground font-semibold hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-default"
+              >
+                <Tag className="h-3 w-3 text-primary shrink-0" />
+                <span>{item.name}</span>
+                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary tabular-nums">
+                  {item.count}
+                </span>
+              </div>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Sem contatos identificados no recorte.</p>
+            <p className="text-sm text-muted-foreground w-full text-center py-4">Nenhuma tag operacional identificada.</p>
           )}
         </SectionCard>
       </div>
-
-      {!loading && (data?.unassignedCount ?? 0) > 0 ? (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-700">
-          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Existem atendimentos sem responsavel neste recorte. Vale revisar distribuicao e ownership da fila.</span>
-        </div>
-      ) : null}
     </div>
   );
 }

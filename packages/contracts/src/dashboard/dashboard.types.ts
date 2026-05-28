@@ -216,6 +216,11 @@ export const dashboardConversationAssigneeLoadSchema = z.object({
   name: z.string().min(1),
   openCount: z.number().int().nonnegative(),
   waitingCount: z.number().int().nonnegative(),
+  resolvedCount: z.number().int().nonnegative().optional(),
+  avgFirstResponseMinutes: z.number().nonnegative().nullable().optional(),
+  avgResolutionHours: z.number().nonnegative().nullable().optional(),
+  averageScore: z.number().min(0).max(5).nullable().optional(),
+  responseCount: z.number().int().nonnegative().optional(),
 });
 
 export const dashboardAtendimentoAssigneeOptionSchema = z.object({
@@ -228,6 +233,8 @@ export const dashboardConversationTopContactSchema = z.object({
   name: z.string().min(1),
   count: z.number().int().nonnegative(),
   channel: z.enum(["WHATSAPP", "EMAIL", "PORTAL", "PHONE"]),
+  motive: z.string().nullable().optional(),
+  lastAttendance: z.string().nullable().optional(),
 });
 
 export const dashboardCsatScoreDistributionSchema = z.object({
@@ -275,6 +282,17 @@ export const adminAtendimentosDataSchema = z.object({
   csatScoreDistribution: z.array(dashboardCsatScoreDistributionSchema).default([]),
   csatAgentPerformance: z.array(dashboardCsatAgentPerformanceSchema).default([]),
   warning: z.string().optional(),
+  slaFirstResponsePct: z.number().min(0).max(100).nullable().optional(),
+  slaResolutionPct: z.number().min(0).max(100).nullable().optional(),
+  delayedOpenCount: z.number().int().nonnegative().optional(),
+  backlog: z.object({
+    today: z.number().int().nonnegative(),
+    over1d: z.number().int().nonnegative(),
+    over3d: z.number().int().nonnegative(),
+    over7d: z.number().int().nonnegative(),
+  }).optional(),
+  categories: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
+  topTags: z.array(z.object({ name: z.string(), count: z.number().int().nonnegative() })).default([]),
 });
 
 export const adminCadastrosDataSchema = z.object({
