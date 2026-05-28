@@ -7,8 +7,8 @@ export interface SefazRoutePreset {
 }
 
 export const SEFAZ_ROUTE_PRESETS: readonly SefazRoutePreset[] = [
-  { uf: "MG", service: "NFE", url: "https://nfe.fazenda.mg.gov.br/nfe2/services/NfeAutorizacao" },
-  { uf: "MG", service: "NFCE", url: "https://nfce.fazenda.mg.gov.br/w32/services/NfeAutorizacao4" },
+  { uf: "MG", service: "NFE", url: "https://nfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4" },
+  { uf: "MG", service: "NFCE", url: "https://nfce.fazenda.mg.gov.br/nfce/services/NFeAutorizacao4" },
   { uf: "SP", service: "NFE", url: "https://nfe.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx" },
   { uf: "SP", service: "NFCE", url: "https://nfce.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx" },
   { uf: "RS", service: "NFE", url: "https://nfe.sefazrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx" },
