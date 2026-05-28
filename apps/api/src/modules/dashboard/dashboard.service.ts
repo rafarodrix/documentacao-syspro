@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
-import type { Role } from '@prisma/client';
+import { Prisma, type Role } from '@prisma/client';
 import type {
   DashboardCrmSummary,
   DashboardDailyPassword,
@@ -1310,87 +1310,76 @@ export class DashboardService {
     if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
       return cached.payload;
     }
-    const contexts = await this.integrationContext.listActiveContexts();
 
-    if (!contexts.length) {
-      const payload = {
-        success: true as const,
-        data: {
-          periodStart: periodStart.toISOString(),
-          periodEnd: periodEnd.toISOString(),
-          refreshedAt: new Date().toISOString(),
-          cacheTtlSeconds: Math.floor(DashboardService.ATENDIMENTOS_CACHE_TTL_MS / 1000),
-          totalCount: 0,
-          openCount: 0,
-          unassignedCount: 0,
-          resolvedCount: 0,
-          cancelledCount: 0,
-          cancelledByCustomerCount: 0,
-          cancelledByAgentCount: 0,
-          spamCount: 0,
-          unlinkedCount: 0,
-          csatSkippedCount: 0,
-          csatEligibleResolvedCount: 0,
-          csatResponseCount: 0,
-          csatLowScoreCount: 0,
-          csatAverageScore: null,
-          avgFirstResponseMinutes: null,
-          avgResolutionHours: null,
-          activity: [],
-          statusCounts: [],
-          channelCounts: [],
-          assigneeLoads: [],
-          assigneeOptions: [],
-          topContacts: [],
-          csatScoreDistribution: [],
-          csatAgentPerformance: [],
-          warning: 'Nenhum contexto ativo do Chatwoot foi encontrado para o dashboard.',
+    const accessScope = await this.authorizationService.resolveCompanyAccessScope(
+      requester,
+      'tickets:view_own',
+      'tickets:view_all',
+    );
+
+    const ticketBaseWhere: Prisma.TicketWhereInput = {
+      createdAt: { gte: periodStart, lte: periodEnd },
+      ...(accessScope.isGlobal ? {} : { companyId: { in: accessScope.companyIds } }),
+    };
+
+    if (assigneeId) {
+      ticketBaseWhere.assignedUserId = assigneeId;
+    }
+
+    if (contactQuery) {
+      ticketBaseWhere.OR = [
+        { contactNameSnapshot: { contains: contactQuery, mode: 'insensitive' } },
+        { contactPhoneSnapshot: { contains: contactQuery, mode: 'insensitive' } },
+        { contactWhatsappSnapshot: { contains: contactQuery, mode: 'insensitive' } },
+        { companyContact: { name: { contains: contactQuery, mode: 'insensitive' } } },
+        { company: { razaoSocial: { contains: contactQuery, mode: 'insensitive' } } },
+        { company: { nomeFantasia: { contains: contactQuery, mode: 'insensitive' } } },
+      ];
+    }
+
+    const tickets = await this.prisma.ticket.findMany({
+      where: ticketBaseWhere,
+      include: {
+        company: {
+          select: {
+            id: true,
+            razaoSocial: true,
+            nomeFantasia: true,
+          },
         },
-      };
-      this.atendimentosCache.set(cacheKey, {
-        expiresAt: Date.now() + DashboardService.ATENDIMENTOS_CACHE_TTL_MS,
-        payload,
-      });
-      return payload;
-    }
-
-    const items: any[] = [];
-    const assigneeOptionsMap = new Map<string, string>();
-    const activeConnectionKeys = contexts.map((context) => context.connectionKey);
-
-    for (const context of contexts) {
-      const agents = await this.chatwootClient.listAgents(context.chatwoot).catch(() => []);
-      for (const agent of agents) {
-        const id = String(agent?.id ?? '').trim();
-        const name = String(agent?.name ?? agent?.available_name ?? agent?.email ?? '').trim();
-        if (id && name) assigneeOptionsMap.set(id, name);
-      }
-
-      for (let page = 1; page <= 8; page += 1) {
-        const pageItems = await this.chatwootClient.listConversations(context.chatwoot, { page, status: 'all' }).catch(() => []);
-        if (!pageItems.length) break;
-        items.push(...pageItems);
-        if (pageItems.length < 25) break;
-      }
-    }
-
-    const filtered = items.filter((conversation) => {
-      const createdAtValue = Number(conversation?.created_at ?? 0);
-      const createdAt = Number.isFinite(createdAtValue) ? new Date(createdAtValue * 1000) : new Date(conversation?.created_at ?? conversation?.timestamp ?? 0);
-      if (!(createdAt instanceof Date) || Number.isNaN(createdAt.getTime())) return false;
-      if (createdAt < periodStart || createdAt > periodEnd) return false;
-
-      const assignee = extractChatwootAssignee(conversation);
-      if (assigneeId && assignee?.id !== assigneeId) return false;
-      if (contactQuery && !extractChatwootContactText(conversation).includes(contactQuery)) return false;
-      return true;
+        companyContact: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        assignedUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        ticketCategory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     const statusLabelMap: Record<string, string> = {
-      open: 'Em andamento',
-      pending: 'Aguardando cliente',
-      snoozed: 'Aguardando interno',
-      resolved: 'Resolvido',
+      NEW: 'Novo',
+      UNASSIGNED: 'Sem responsavel',
+      TRIAGE: 'Triagem',
+      IN_PROGRESS: 'Em andamento',
+      WAITING_CUSTOMER: 'Aguardando cliente',
+      WAITING_INTERNAL: 'Aguardando interno',
+      TESTING: 'Teste',
+      RESOLVED: 'Resolvido',
+      ARCHIVED: 'Arquivado',
     };
     const statusOrder = ['Sem responsavel', 'Em andamento', 'Aguardando cliente', 'Aguardando interno', 'Resolvido', 'Arquivado'] as const;
     const statusCountsMap = new Map<string, number>(statusOrder.map((status) => [status, 0]));
@@ -1407,9 +1396,7 @@ export class DashboardService {
       resolutionSum: number;
       resolutionCount: number;
     }>();
-    const topContactsMap = new Map<string, { key: string; name: string; count: number; channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE' }>();
 
-    // New variables for categories, tags, SLA, backlog and contacts motive/lastAttendance
     const RECOGNIZED_CATEGORIES = [
       'fiscal',
       'nota fiscal',
@@ -1442,76 +1429,84 @@ export class DashboardService {
     let backlogOver3d = 0;
     let backlogOver7d = 0;
 
-    const contactLabelsMap = new Map<string, Map<string, number>>();
-    const contactLastDateMap = new Map<string, Date>();
-
-    let cancelledByCustomerCount = 0;
-    let cancelledByAgentCount = 0;
-    let spamCount = 0;
     let resolvedCount = 0;
     let openCount = 0;
     let unassignedCount = 0;
-    let csatSkippedCount = 0;
-    let csatEligibleResolvedCount = 0;
 
-    for (const conversation of filtered) {
-      const closureOrigin = resolveChatwootClosureOrigin(conversation);
-      const isCancelledByCustomer = closureOrigin === 'cancelled_by_customer';
-      const isCancelledByAgent = closureOrigin === 'cancelled_by_agent';
-      const isSpam = closureOrigin === 'spam';
-      const skipCsat = shouldSkipChatwootCsat(conversation);
-      if (isCancelledByCustomer) cancelledByCustomerCount += 1;
-      if (isCancelledByAgent) cancelledByAgentCount += 1;
-      if (isSpam) spamCount += 1;
-      if (skipCsat) csatSkippedCount += 1;
+    const assigneeOptionsMap = new Map<string, string>();
 
-      const rawStatus = String(conversation?.status ?? '').trim().toLowerCase();
-      const status =
-        !extractChatwootAssignee(conversation) && rawStatus === 'open'
+    type CompanyRecurrence = {
+      key: string;
+      name: string;
+      count: number;
+      channel: 'WHATSAPP' | 'EMAIL' | 'PORTAL' | 'PHONE';
+      motive: string | null;
+      lastAttendance: Date | null;
+      categoriesMap: Map<string, number>;
+    };
+
+    const companyRecurrenceMap = new Map<string, CompanyRecurrence>();
+
+    for (const ticket of tickets) {
+      const rawStatus = String(ticket.status ?? '').trim().toUpperCase();
+      const statusLabel =
+        !ticket.assignedUserId && rawStatus === 'NEW'
           ? 'Sem responsavel'
-          : rawStatus === 'resolved' && (isCancelledByCustomer || isCancelledByAgent || isSpam)
-            ? 'Arquivado'
-            : statusLabelMap[rawStatus] ?? 'Em andamento';
-      statusCountsMap.set(status, (statusCountsMap.get(status) || 0) + 1);
+          : statusLabelMap[rawStatus] ?? 'Em andamento';
+      statusCountsMap.set(statusLabel, (statusCountsMap.get(statusLabel) || 0) + 1);
 
-      const mappedChannel = extractChatwootChannel(conversation);
+      const mappedChannel = ticket.channel;
       channelCountsMap.set(mappedChannel, (channelCountsMap.get(mappedChannel) || 0) + 1);
 
-      const contact = extractChatwootContactSummary(conversation);
-      const created = parseChatwootDate(conversation?.created_at);
-      const firstReply = parseChatwootDate(conversation?.first_reply_created_at);
+      // Company/Contact recurrence grouping
+      let key = '';
+      let name = '';
 
-      if (contact) {
-        const current = topContactsMap.get(contact.key) || { ...contact, count: 0, channel: mappedChannel };
-        current.count += 1;
-        current.channel = mappedChannel;
-        topContactsMap.set(contact.key, current);
+      if (ticket.companyId) {
+        key = ticket.companyId;
+        name = ticket.company?.nomeFantasia || ticket.company?.razaoSocial || 'Empresa Sem Nome';
+      } else if (ticket.companyContactId) {
+        key = ticket.companyContactId;
+        name = ticket.companyContact?.name || ticket.contactNameSnapshot || 'Contato Avulso';
+      } else {
+        key = ticket.contactPhoneSnapshot || 'unlinked';
+        name = ticket.contactNameSnapshot || 'Cliente Avulso';
+      }
 
-        if (created instanceof Date) {
-          const existingLastDate = contactLastDateMap.get(contact.key);
-          if (!existingLastDate || created > existingLastDate) {
-            contactLastDateMap.set(contact.key, created);
-          }
+      const existingRecurrence = companyRecurrenceMap.get(key) || {
+        key,
+        name,
+        count: 0,
+        channel: ticket.channel,
+        motive: null,
+        lastAttendance: null,
+        categoriesMap: new Map<string, number>(),
+      };
 
-          let labelsMap = contactLabelsMap.get(contact.key);
-          if (!labelsMap) {
-            labelsMap = new Map<string, number>();
-            contactLabelsMap.set(contact.key, labelsMap);
-          }
-          const labels = extractChatwootConversationLabels(conversation);
-          for (const label of labels) {
-            labelsMap.set(label, (labelsMap.get(label) || 0) + 1);
-          }
+      existingRecurrence.count += 1;
+      existingRecurrence.channel = ticket.channel;
+
+      if (ticket.createdAt instanceof Date) {
+        if (!existingRecurrence.lastAttendance || ticket.createdAt > existingRecurrence.lastAttendance) {
+          existingRecurrence.lastAttendance = ticket.createdAt;
         }
       }
 
-      const assignee = extractChatwootAssignee(conversation);
-      if (!assignee) {
-        unassignedCount += 1;
-      } else {
-        const current = assigneeLoadMap.get(assignee.id) || {
-          userId: assignee.id,
-          name: assignee.name,
+      const catName = ticket.ticketCategory?.name;
+      if (catName) {
+        existingRecurrence.categoriesMap.set(catName, (existingRecurrence.categoriesMap.get(catName) || 0) + 1);
+      }
+
+      companyRecurrenceMap.set(key, existingRecurrence);
+
+      // Assignee load aggregation
+      const assigneeName = ticket.assignedUser?.name || ticket.assignedUser?.email || 'Sem responsavel';
+      if (ticket.assignedUserId) {
+        assigneeOptionsMap.set(ticket.assignedUserId, assigneeName);
+
+        const current = assigneeLoadMap.get(ticket.assignedUserId) || {
+          userId: ticket.assignedUserId,
+          name: assigneeName,
           openCount: 0,
           waitingCount: 0,
           resolvedCount: 0,
@@ -1520,70 +1515,62 @@ export class DashboardService {
           resolutionSum: 0,
           resolutionCount: 0,
         };
-        if (rawStatus !== 'resolved') current.openCount += 1;
-        if (rawStatus === 'pending' || rawStatus === 'snoozed') current.waitingCount += 1;
-        if (rawStatus === 'resolved') current.resolvedCount += 1;
 
-        if (created instanceof Date) {
-          if (firstReply instanceof Date && firstReply >= created) {
-            const firstResponseMin = (firstReply.getTime() - created.getTime()) / 60000;
+        if (ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED') {
+          current.openCount += 1;
+        }
+        if (ticket.status === 'WAITING_CUSTOMER' || ticket.status === 'WAITING_INTERNAL') {
+          current.waitingCount += 1;
+        }
+        if (ticket.status === 'RESOLVED') {
+          current.resolvedCount += 1;
+        }
+
+        if (ticket.createdAt instanceof Date) {
+          if (ticket.slaResponseHitAt instanceof Date) {
+            const firstResponseMin = (ticket.slaResponseHitAt.getTime() - ticket.createdAt.getTime()) / 60000;
             current.firstResponseSum += firstResponseMin;
             current.firstResponseCount += 1;
           }
-          if (rawStatus === 'resolved') {
-            const resolvedAt =
-              parseChatwootDate(conversation?.meta?.resolved_at) ??
-              parseChatwootDate(conversation?.resolved_at) ??
-              parseChatwootDate(conversation?.updated_at);
-            if (resolvedAt instanceof Date && resolvedAt >= created) {
-              const resolutionHours = (resolvedAt.getTime() - created.getTime()) / 3600000;
-              current.resolutionSum += resolutionHours;
-              current.resolutionCount += 1;
-            }
+          if (ticket.status === 'RESOLVED' && ticket.closedAt instanceof Date) {
+            const resolutionHours = (ticket.closedAt.getTime() - ticket.createdAt.getTime()) / 3600000;
+            current.resolutionSum += resolutionHours;
+            current.resolutionCount += 1;
           }
         }
-        assigneeLoadMap.set(assignee.id, current);
+        assigneeLoadMap.set(ticket.assignedUserId, current);
+      } else {
+        unassignedCount += 1;
       }
 
-      if (rawStatus === 'resolved') {
+      if (ticket.status === 'RESOLVED') {
         resolvedCount += 1;
-        if (!skipCsat) {
-          csatEligibleResolvedCount += 1;
-        }
       } else {
         openCount += 1;
       }
 
-      // SLA & Backlog metrics calculation
-      if (created instanceof Date) {
-        if (firstReply instanceof Date && firstReply >= created) {
-          const firstResponseMin = (firstReply.getTime() - created.getTime()) / 60000;
+      // SLA & Backlog metrics
+      if (ticket.createdAt instanceof Date) {
+        if (ticket.slaResponseHitAt instanceof Date) {
+          const firstResponseMin = (ticket.slaResponseHitAt.getTime() - ticket.createdAt.getTime()) / 60000;
           firstResponseTotalSlaCount += 1;
           if (firstResponseMin <= 15) {
             firstResponseWithinSlaCount += 1;
           }
         }
 
-        if (rawStatus === 'resolved') {
-          const resolvedAt =
-            parseChatwootDate(conversation?.meta?.resolved_at) ??
-            parseChatwootDate(conversation?.resolved_at) ??
-            parseChatwootDate(conversation?.updated_at);
-          if (resolvedAt instanceof Date && resolvedAt >= created) {
-            const resolutionHours = (resolvedAt.getTime() - created.getTime()) / 3600000;
-            resolutionTotalSlaCount += 1;
-            if (resolutionHours <= 24) {
-              resolutionWithinSlaCount += 1;
-            }
+        if (ticket.status === 'RESOLVED' && ticket.closedAt instanceof Date) {
+          const resolutionHours = (ticket.closedAt.getTime() - ticket.createdAt.getTime()) / 3600000;
+          resolutionTotalSlaCount += 1;
+          if (resolutionHours <= 24) {
+            resolutionWithinSlaCount += 1;
           }
-        } else {
-          // Delayed tickets (open > 24h)
-          const ageHours = (Date.now() - created.getTime()) / 3600000;
+        } else if (ticket.status !== 'RESOLVED' && ticket.status !== 'ARCHIVED') {
+          const ageHours = (Date.now() - ticket.createdAt.getTime()) / 3600000;
           if (ageHours > 24) {
             delayedOpenCount += 1;
           }
 
-          // Backlog distribution
           if (ageHours <= 24) {
             backlogToday += 1;
           } else if (ageHours <= 72) {
@@ -1596,13 +1583,10 @@ export class DashboardService {
         }
       }
 
-      // Categories and Tags aggregation from conversation labels
-      const cLabels = extractChatwootConversationLabels(conversation);
+      // Categories aggregation
       let matchedCategory = false;
-      for (const label of cLabels) {
-        const normLabel = label.toLowerCase();
-        tagCountsMap.set(label, (tagCountsMap.get(label) || 0) + 1);
-
+      if (ticket.ticketCategory?.name) {
+        const normLabel = ticket.ticketCategory.name.toLowerCase().trim();
         const matched = RECOGNIZED_CATEGORIES.find((cat) => cat === normLabel);
         if (matched) {
           categoryCountsMap.set(matched, (categoryCountsMap.get(matched) || 0) + 1);
@@ -1614,45 +1598,39 @@ export class DashboardService {
       }
     }
 
-    const avgFirstResponseMinutes = averageDurationInMinutes(
-      filtered.map((conversation) => {
-        const created = parseChatwootDate(conversation?.created_at);
-        const firstReply = parseChatwootDate(conversation?.first_reply_created_at);
-        return { startedAt: created, endedAt: firstReply };
-      }).filter((item): item is { startedAt: Date; endedAt: Date | null } => item.startedAt instanceof Date),
-    );
+    const avgFirstResponseMinutes = (() => {
+      const valid = tickets
+        .map((t) => {
+          if (!(t.createdAt instanceof Date) || !(t.slaResponseHitAt instanceof Date)) return null;
+          return (t.slaResponseHitAt.getTime() - t.createdAt.getTime()) / 60000;
+        })
+        .filter((v): v is number => v !== null && v >= 0);
+      if (!valid.length) return null;
+      return Math.round(valid.reduce((sum, item) => sum + item, 0) / valid.length);
+    })();
 
     const avgResolutionHours = (() => {
-      const valid = filtered
-        .map((conversation) => {
-          const created = parseChatwootDate(conversation?.created_at);
-          const resolvedAt =
-            parseChatwootDate(conversation?.meta?.resolved_at) ??
-            parseChatwootDate(conversation?.resolved_at) ??
-            parseChatwootDate(conversation?.updated_at);
-          const rawStatus = String(conversation?.status ?? '').trim().toLowerCase();
-          if (rawStatus !== 'resolved' || !(created instanceof Date) || !(resolvedAt instanceof Date) || resolvedAt < created) {
-            return null;
-          }
-          return (resolvedAt.getTime() - created.getTime()) / 3_600_000;
+      const valid = tickets
+        .map((t) => {
+          if (t.status !== 'RESOLVED' || !(t.createdAt instanceof Date) || !(t.closedAt instanceof Date)) return null;
+          return (t.closedAt.getTime() - t.createdAt.getTime()) / 3600000;
         })
-        .filter((value): value is number => value !== null);
-
+        .filter((v): v is number => v !== null && v >= 0);
       if (!valid.length) return null;
       return Math.round((valid.reduce((sum, item) => sum + item, 0) / valid.length) * 10) / 10;
     })();
 
+    // Fetch local CSAT ratings
     const csatRatings = await this.prisma.chatwootCsatRating.findMany({
       where: {
-        connectionKey: { in: activeConnectionKeys },
         respondedAt: { gte: periodStart, lte: periodEnd },
         ...(assigneeId ? { agentId: assigneeId } : {}),
         ...(contactQuery
           ? {
-              contact: {
-                contains: contactQuery,
-                mode: 'insensitive' as const,
-              },
+              OR: [
+                { contact: { contains: contactQuery, mode: 'insensitive' } },
+                { agentName: { contains: contactQuery, mode: 'insensitive' } },
+              ],
             }
           : {}),
       },
@@ -1675,9 +1653,7 @@ export class DashboardService {
 
     for (const rating of csatRatings) {
       const score = Math.max(1, Math.min(5, Number(rating.score ?? 0) || 0));
-      if (score >= 1 && score <= 5) {
-        csatDistributionMap.set(score, (csatDistributionMap.get(score) || 0) + 1);
-      }
+      csatDistributionMap.set(score, (csatDistributionMap.get(score) || 0) + 1);
 
       const key = String(rating.agentId ?? '').trim() || `__agent__${String(rating.agentName ?? '').trim() || 'Sem atendente'}`;
       const agentName = String(rating.agentName ?? '').trim() || 'Sem atendente';
@@ -1694,50 +1670,43 @@ export class DashboardService {
       csatAgentMap.set(key, current);
     }
 
-    // Now map topContacts with motive & lastAttendance
-    const topContactsMapped = Array.from(topContactsMap.values())
-      .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
-      .slice(0, 6)
-      .map((contact) => {
-        const labelsMap = contactLabelsMap.get(contact.key);
-        let motive: string | null = null;
-        if (labelsMap && labelsMap.size > 0) {
-          let maxCount = -1;
-          let bestLabel = '';
-          for (const [label, count] of labelsMap.entries()) {
-            if (count > maxCount) {
-              maxCount = count;
-              bestLabel = label;
-            }
-          }
-          if (bestLabel) {
-            motive = bestLabel.charAt(0).toUpperCase() + bestLabel.slice(1);
-          }
-        }
+    // Now map topContacts using Top Companies Recurrence
+    const sortedCompanies = Array.from(companyRecurrenceMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
-        const lastDate = contactLastDateMap.get(contact.key);
-        let lastAttendance = 'Sem registro';
-        if (lastDate) {
-          const diffMs = Date.now() - lastDate.getTime();
-          const diffDays = Math.floor(diffMs / 86400000);
-          if (diffDays === 0) {
-            lastAttendance = 'Hoje';
-          } else if (diffDays === 1) {
-            lastAttendance = 'Ontem';
-          } else {
-            lastAttendance = `Há ${diffDays} dias`;
-          }
+    const topContactsMapped = sortedCompanies.map((item) => {
+      let bestCategory: string | null = null;
+      let maxCatCount = 0;
+      for (const [catName, catCount] of item.categoriesMap.entries()) {
+        if (catCount > maxCatCount) {
+          maxCatCount = catCount;
+          bestCategory = catName;
         }
+      }
 
-        return {
-          key: contact.key,
-          name: contact.name,
-          count: contact.count,
-          channel: contact.channel,
-          motive,
-          lastAttendance,
-        };
-      });
+      let lastAttendance = 'Sem registro';
+      if (item.lastAttendance instanceof Date) {
+        const diffMs = Date.now() - item.lastAttendance.getTime();
+        const diffDays = Math.floor(diffMs / 86400000);
+        if (diffDays === 0) {
+          lastAttendance = 'Hoje';
+        } else if (diffDays === 1) {
+          lastAttendance = 'Ontem';
+        } else {
+          lastAttendance = `Há ${diffDays} dias`;
+        }
+      }
+
+      return {
+        key: item.key,
+        name: item.name,
+        count: item.count,
+        channel: item.channel,
+        motive: bestCategory || 'Sem categoria',
+        lastAttendance,
+      };
+    });
 
     // Map assigneeLoads with rich agent productivity metrics
     const assigneeLoadsMapped = Array.from(assigneeLoadMap.values())
@@ -1772,6 +1741,17 @@ export class DashboardService {
       .sort((left, right) => right.openCount - left.openCount)
       .slice(0, 8);
 
+    const toSeries = (dates: Date[]) => {
+      const counts = new Map<string, number>();
+      for (const d of dates) {
+        const key = d.toLocaleDateString('en-US');
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      return Array.from(counts.entries())
+        .map(([key, count]) => ({ label: key, value: count }))
+        .sort((left, right) => new Date(left.label).getTime() - new Date(right.label).getTime());
+    };
+
     // Compute SLA ratios
     const slaFirstResponsePct = firstResponseTotalSlaCount > 0
       ? Math.round((firstResponseWithinSlaCount / firstResponseTotalSlaCount) * 100)
@@ -1789,27 +1769,23 @@ export class DashboardService {
         cacheTtlSeconds: Math.floor(DashboardService.ATENDIMENTOS_CACHE_TTL_MS / 1000),
         appliedAssigneeId: assigneeId || undefined,
         appliedContactQuery: contactQuery || undefined,
-        totalCount: filtered.length,
+        totalCount: tickets.length,
         openCount,
         unassignedCount,
         resolvedCount,
-        cancelledCount: cancelledByCustomerCount + cancelledByAgentCount,
-        cancelledByCustomerCount,
-        cancelledByAgentCount,
-        spamCount,
+        cancelledCount: 0,
+        cancelledByCustomerCount: 0,
+        cancelledByAgentCount: 0,
+        spamCount: 0,
         unlinkedCount: 0,
-        csatSkippedCount,
-        csatEligibleResolvedCount,
+        csatSkippedCount: 0,
+        csatEligibleResolvedCount: 0,
         csatResponseCount,
         csatLowScoreCount,
         csatAverageScore,
         avgFirstResponseMinutes,
         avgResolutionHours,
-        activity: toSeries(
-          filtered
-            .map((conversation) => parseChatwootDate(conversation?.created_at))
-            .filter((value): value is Date => value instanceof Date),
-        ),
+        activity: toSeries(tickets.map((t) => t.createdAt)),
         statusCounts: statusOrder.map((status) => ({ status, count: statusCountsMap.get(status) || 0 })),
         channelCounts: channelOrder.map((channel) => ({ channel, count: channelCountsMap.get(channel) || 0 })),
         assigneeLoads: assigneeLoadsMapped,
@@ -1828,8 +1804,7 @@ export class DashboardService {
           }))
           .sort((left, right) => right.responseCount - left.responseCount || right.averageScore - left.averageScore)
           .slice(0, 6),
-        warning: contexts.length > 1 ? 'Dashboard consolidado a partir de multiplos contextos ativos do Chatwoot.' : undefined,
-        // Enriched fields for Refactored Dashboard
+        warning: undefined,
         slaFirstResponsePct,
         slaResolutionPct,
         delayedOpenCount,

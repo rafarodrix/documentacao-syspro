@@ -312,8 +312,8 @@ export function SupportAtendimentosSubtab() {
         <DashboardMetricCard title="Sem Dono" value={data?.unassignedCount ?? 0} helper="Sem atendente" icon={ShieldAlert as any} tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
         <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Concluídos" icon={CheckCircle2 as any} tone="emerald" />
         <DashboardMetricCard title="CSAT Médio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliações`} icon={MessageSquareText as any} tone="emerald" />
-        <DashboardMetricCard title="1ª Resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} helper={data?.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}% no SLA` : "Agilidade"} icon={Clock3 as any} tone="indigo" />
-        <DashboardMetricCard title="Resolução" value={formatHours(data?.avgResolutionHours ?? null)} helper={data?.slaResolutionPct != null ? `${data.slaResolutionPct}% no SLA` : "Eficiência"} icon={TrendingUp as any} tone="purple" />
+        <DashboardMetricCard title="1ª Resposta" value={formatMinutes(data?.avgFirstResponseMinutes ?? null)} helper={data?.slaFirstResponsePct != null ? `${data.slaFirstResponsePct}% no SLA` : "Agilidade"} icon={Clock3 as any} tone="blue" />
+        <DashboardMetricCard title="Resolução" value={formatHours(data?.avgResolutionHours ?? null)} helper={data?.slaResolutionPct != null ? `${data.slaResolutionPct}% no SLA` : "Eficiência"} icon={TrendingUp as any} tone="blue" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -618,7 +618,7 @@ export function SupportAtendimentosSubtab() {
           contentClassName="space-y-3"
         >
           {(data?.channelCounts ?? []).map((item) => {
-            let label = item.channel;
+            let label: string = item.channel;
             if (item.channel === "WHATSAPP") label = "WhatsApp 💬";
             if (item.channel === "EMAIL") label = "E-mail ✉️";
             if (item.channel === "PORTAL") label = "Portal Syspro 🌐";

@@ -151,7 +151,7 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-border/60">
-          <div className="min-w-[640px]">
+          <div className="min-w-160">
           <div className="grid grid-cols-[90px_130px_1fr_100px_56px] gap-2 bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <span>UF</span>
             <span>Serviço</span>
@@ -184,6 +184,8 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
                   >
                     <option value="NFE">NFE</option>
                     <option value="NFCE">NFCE</option>
+                    <option value="CTE">CTE</option>
+                    <option value="MDFE">MDFE</option>
                   </select>
 
                   <div className="space-y-1">
@@ -235,4 +237,3 @@ export function SefazRoutesTab({ initialRoutes }: SefazRoutesTabProps) {
     </Card>
   );
 }
-

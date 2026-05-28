@@ -46,7 +46,7 @@ export async function getUserEditViewData(userId: string): Promise<UserAccessEdi
       name: user.name ?? "",
       email: user.email,
       profileKey: user.role,
-      companyIds: (user.memberships ?? []).map((membership) => membership.companyId),
+      companyIds: (user.memberships ?? []).map((membership: any) => membership.companyId),
       contactId: user.contact?.id ?? "",
       password: "",
     },

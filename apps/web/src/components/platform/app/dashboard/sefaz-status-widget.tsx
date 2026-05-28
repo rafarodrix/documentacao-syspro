@@ -176,7 +176,7 @@ function StatusRow({
         <div>
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
           <div className="mt-1 flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
               {rawStatus === "ONLINE" ? (
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               ) : null}
