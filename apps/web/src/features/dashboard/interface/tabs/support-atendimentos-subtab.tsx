@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adminAtendimentosDataSchema } from "@dosc-syspro/contracts/dashboard";
 import {
   Button,
   Card,
@@ -36,6 +35,7 @@ import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { formatDateTimeSafe } from "@/lib/date";
 import { formatNumber } from "@/lib/formatters";
+import { getAtendimentosData } from "../../application";
 import { DashboardMetricCard } from "../components/dashboard-metric-card";
 import { ExecutiveLine } from "../components/executive-line";
 
@@ -82,41 +82,6 @@ function formatScore(value: number | null) {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   });
-}
-
-async function getAtendimentosData(params?: {
-  from?: string;
-  to?: string;
-  assigneeId?: string;
-  contact?: string;
-  refresh?: boolean;
-}) {
-  const query = new URLSearchParams();
-  if (params?.from?.trim()) query.set("from", params.from.trim());
-  if (params?.to?.trim()) query.set("to", params.to.trim());
-  if (params?.assigneeId?.trim()) query.set("assigneeId", params.assigneeId.trim());
-  if (params?.contact?.trim()) query.set("contact", params.contact.trim());
-  if (params?.refresh) query.set("refresh", "1");
-
-  const suffix = query.size ? `?${query.toString()}` : "";
-  const res = await fetch(`/api/dashboard/suporte/atendimentos${suffix}`, {
-    cache: "no-store",
-    credentials: "same-origin",
-  });
-  const payload = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const error =
-      payload &&
-      typeof payload === "object" &&
-      "error" in payload &&
-      typeof payload.error === "string"
-        ? payload.error
-        : `Falha HTTP ${res.status}`;
-    throw new Error(error);
-  }
-
-  return adminAtendimentosDataSchema.parse(payload?.data);
 }
 
 type AtendimentosData = Awaited<ReturnType<typeof getAtendimentosData>>;

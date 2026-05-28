@@ -68,8 +68,8 @@ function classifySefazResponse(latency: number, statusCode: number, body: string
   const hasSoapFault = normalizedBody.includes('faultcode') || normalizedBody.includes('soap:fault');
 
   if (statusCode >= 500) return 'OFFLINE';
-  if (statusCode >= 400 && statusCode !== 405) return 'OFFLINE';
-  if (statusCode === 405) return 'ONLINE';
+  if (statusCode === 403 || statusCode === 401 || statusCode === 405) return 'ONLINE';
+  if (statusCode >= 400) return 'OFFLINE';
   if (statusCode >= 300) return 'UNSTABLE';
   if (!hasWsdlHint && !hasSoapFault && latency > 2500) return 'UNSTABLE';
   if (latency > 2500) return 'UNSTABLE';
@@ -247,8 +247,12 @@ export class SettingsSefazMonitorService implements OnModuleInit, OnModuleDestro
           } satisfies SefazCheckResult;
         } catch (error) {
           const errMessage = normalizeErrorMessage(error);
+          const errMessageLower = errMessage.toLowerCase();
           const isSslHandshakeFailure =
-            errMessage.includes('handshake failure') || errMessage.includes('SSL alert number 40');
+            errMessageLower.includes('handshake failure') ||
+            errMessageLower.includes('ssl alert number 40') ||
+            errMessageLower.includes('proto') ||
+            errMessageLower.includes('ssl alert');
           const status = isSslHandshakeFailure ? 'ONLINE' : 'OFFLINE';
 
           return {

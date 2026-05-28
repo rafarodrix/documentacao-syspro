@@ -26,15 +26,37 @@ export function SefazNationalGrid({
   );
   const activeRouteSet = new Set(activeRouteKeys);
 
+  const getVirtualUf = (uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE"): string => {
+    if (service === "MDFE") {
+      return "SVRS";
+    }
+    if (service === "CTE") {
+      if (["MG", "SP", "PR"].includes(uf)) return uf;
+      return "SVRS";
+    }
+    if (service === "NFE") {
+      if (["MG", "SP", "RS", "PR", "AM", "BA", "CE", "GO", "MS", "MT", "PE"].includes(uf)) return uf;
+      if (["MA", "PA"].includes(uf)) return "SVAN";
+      return "SVRS";
+    }
+    if (service === "NFCE") {
+      if (["MG", "SP", "RS", "PR", "AM", "BA", "CE", "GO", "MS", "MT", "PE", "PI"].includes(uf)) return uf;
+      if (["MA", "PA"].includes(uf)) return "SVAN";
+      return "SVRS";
+    }
+    return uf;
+  };
+
   const getStatusByUf = (uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE") => {
-    if (!activeRouteSet.has(`${uf}:${service}`)) return undefined;
-    return data.find((item) => item.uf === uf && item.service === service);
+    const targetUf = getVirtualUf(uf, service);
+    return data.find((item) => item.uf === targetUf && item.service === service);
   };
 
   const hasRoute = (uf: string, service: "NFE" | "NFCE" | "CTE" | "MDFE") => {
+    const targetUf = getVirtualUf(uf, service);
     return (
-      activeRouteSet.has(`${uf}:${service}`) ||
-      data.some((item) => item.uf === uf && item.service === service)
+      activeRouteSet.has(`${targetUf}:${service}`) ||
+      data.some((item) => item.uf === targetUf && item.service === service)
     );
   };
 
@@ -78,28 +100,28 @@ export function SefazNationalGrid({
                     <StatusLine
                       label="NFe"
                       status={nfe?.status}
-                      active={activeRouteSet.has(`${uf}:NFE`)}
+                      active={activeRouteSet.has(`${getVirtualUf(uf, "NFE")}:NFE`)}
                     />
                   )}
                   {showNfce && (
                     <StatusLine
                       label="NFCe"
                       status={nfce?.status}
-                      active={activeRouteSet.has(`${uf}:NFCE`)}
+                      active={activeRouteSet.has(`${getVirtualUf(uf, "NFCE")}:NFCE`)}
                     />
                   )}
                   {showCte && (
                     <StatusLine
                       label="CTe"
                       status={cte?.status}
-                      active={activeRouteSet.has(`${uf}:CTE`)}
+                      active={activeRouteSet.has(`${getVirtualUf(uf, "CTE")}:CTE`)}
                     />
                   )}
                   {showMdfe && (
                     <StatusLine
                       label="MDFe"
                       status={mdfe?.status}
-                      active={activeRouteSet.has(`${uf}:MDFE`)}
+                      active={activeRouteSet.has(`${getVirtualUf(uf, "MDFE")}:MDFE`)}
                     />
                   )}
                 </div>

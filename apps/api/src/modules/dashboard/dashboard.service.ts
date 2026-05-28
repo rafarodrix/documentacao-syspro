@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { IncomingHttpHeaders } from 'node:http';
 import { Prisma, type Role } from '@prisma/client';
 import type {
@@ -20,6 +20,9 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { IntegrationContextService } from '../settings/integration-context.service';
 import { ChatwootClient } from '../integrations/chatwoot/chatwoot.client';
 import { TicketsService } from '../tickets/tickets.service';
+import { AtendimentosDashboardQuery } from './queries/atendimentos-dashboard.query';
+import { SuporteTicketsDashboardQuery } from './queries/suporte-tickets-dashboard.query';
+import { TarefasDashboardQuery } from './queries/tarefas-dashboard.query';
 
 const DASHBOARD_TICKETS_TIMEOUT_MS = 4000;
 const DASHBOARD_VIEW_INTERNAL = 'dashboard:view_internal' as const;
@@ -492,15 +495,15 @@ function mapDashboardSefazStatus(
 
 @Injectable()
 export class DashboardService {
-  private static readonly ATENDIMENTOS_CACHE_TTL_MS = 45_000;
-  private readonly atendimentosCache = new Map<string, { expiresAt: number; payload: any }>();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: AuthorizationService,
     private readonly integrationContext: IntegrationContextService,
     private readonly chatwootClient: ChatwootClient,
     private readonly ticketsService: TicketsService,
+    private readonly suporteTicketsDashboardQuery: SuporteTicketsDashboardQuery,
+    private readonly atendimentosDashboardQuery: AtendimentosDashboardQuery,
+    private readonly tarefasDashboardQuery: TarefasDashboardQuery,
   ) {}
 
   private async getUserDashboardUFs(userId: string): Promise<string[]> {
@@ -654,7 +657,11 @@ export class DashboardService {
     const hasInternalDashboard = await this.authorizationService.userHasPermission(requester, DASHBOARD_VIEW_INTERNAL);
 
     if (hasInternalDashboard) {
-      const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
+      const dashboardUFsRaw = await this.getUserDashboardUFs(requester.userId);
+      const dashboardUFs = dashboardUFsRaw.length > 0 ? dashboardUFsRaw : ['MG'];
+      const queryUfs = [...dashboardUFs];
+      if (!queryUfs.includes('SVRS')) queryUfs.push('SVRS');
+      if (!queryUfs.includes('SVAN')) queryUfs.push('SVAN');
       const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
       const { start } = getLast7DaysRange();
       const now = new Date();
@@ -821,7 +828,7 @@ export class DashboardService {
             })
           : Promise.resolve([]),
         this.prisma.sefazStatusCurrent.findMany({
-          where: { uf: { in: dashboardUFs } },
+          where: { uf: { in: queryUfs } },
           orderBy: { checkedAt: 'desc' },
         }).catch(() => []),
         this.prisma.sefazStatus.findMany({
@@ -1253,135 +1260,15 @@ export class DashboardService {
   }
 
   async getSuporteData(rawHeaders?: IncomingHttpHeaders) {
-    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
-
-    const dashboardTicketTeam = await this.getDashboardTicketTeam(requester);
-    const allowAreaFilter = await this.authorizationService.userHasPermission(requester, 'dashboard:stats_full');
-
-    let ticketWarning: string | undefined;
-    let ticketsResponse: Awaited<ReturnType<TicketsService['findAll']>> | null = null;
-
-    try {
-      ticketsResponse = await withTimeout(
-        this.ticketsService.findAll(
-          { page: '1', pageSize: '200', ...(dashboardTicketTeam ? { team: dashboardTicketTeam } : {}) },
-          rawHeaders,
-        ),
-        DASHBOARD_TICKETS_TIMEOUT_MS,
-        'Suporte tickets',
-      );
-    } catch {
-      ticketWarning = getDashboardTimeoutWarning();
-    }
-
-    const records = ticketsResponse?.success && ticketsResponse.data ? ticketsResponse.data : [];
-    const normalizedTickets = toTicketSummaryItems(records);
-    const openTicketRecords = toOpenTicketRecordItems(records);
-    const tickets = normalizedTickets.filter((t) => t.status !== 'Resolvido').slice(0, 5);
-    const totalOpen =
-      ticketsResponse?.success && ticketsResponse.statusCounts
-        ? ticketsResponse.statusCounts.open +
-          ticketsResponse.statusCounts.development +
-          ticketsResponse.statusCounts.testing
-        : normalizedTickets.filter((t) => t.status !== 'Resolvido').length;
-
-    return {
-      success: true as const,
-      data: {
-        openTicketRecords,
-        tickets,
-        totalOpen,
-        activity: toSeries(normalizedTickets.map((t) => new Date(t.lastUpdate))),
-        ticketWarning,
-        scopeMode: (dashboardTicketTeam === 'DESENVOLVIMENTO' ? 'development' : 'all') as 'all' | 'development',
-        allowAreaFilter,
-      },
-    };
+    return this.suporteTicketsDashboardQuery.execute(rawHeaders);
   }
 
   async getAtendimentosData(
     rawHeaders?: IncomingHttpHeaders,
     filters?: { from?: string; to?: string; assigneeId?: string; contact?: string; refresh?: boolean },
   ) {
-    const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
-    const canViewAtendimentos = await this.authorizationService.userHasPermission(
-      requester,
-      'dashboard:view_support_conversations',
-    );
-    if (!canViewAtendimentos) {
-      throw new ForbiddenException('Sem permissao para visualizar atendimentos.');
-    }
-
-    const periodStart = parseDateInput(filters?.from) ?? startOfDay();
-    const periodEnd = parseDateInput(filters?.to, true) ?? new Date();
-    const assigneeId = String(filters?.assigneeId ?? '').trim();
-    const contactQuery = String(filters?.contact ?? '').trim().toLowerCase();
-    const cacheKey = [
-      requester.userId,
-      periodStart.toISOString(),
-      periodEnd.toISOString(),
-      assigneeId || '__all__',
-      contactQuery || '__all__',
-    ].join('|');
-    const forceRefresh = Boolean(filters?.refresh);
-    const cached = this.atendimentosCache.get(cacheKey);
-    if (!forceRefresh && cached && cached.expiresAt > Date.now()) {
-      return cached.payload;
-    }
-
-    const accessScope = await this.authorizationService.resolveCompanyAccessScope(
-      requester,
-      'tickets:view_own',
-      'tickets:view_all',
-    );
-
-    const ticketBaseWhere: Prisma.TicketWhereInput = {
-      createdAt: { gte: periodStart, lte: periodEnd },
-      ...(accessScope.isGlobal ? {} : { companyId: { in: accessScope.companyIds } }),
-    };
-
-    if (assigneeId) {
-      ticketBaseWhere.assignedUserId = assigneeId;
-    }
-
-    if (contactQuery) {
-      ticketBaseWhere.OR = [
-        { contactNameSnapshot: { contains: contactQuery, mode: 'insensitive' } },
-        { contactPhoneSnapshot: { contains: contactQuery, mode: 'insensitive' } },
-        { contactWhatsappSnapshot: { contains: contactQuery, mode: 'insensitive' } },
-        { companyContact: { name: { contains: contactQuery, mode: 'insensitive' } } },
-        { company: { razaoSocial: { contains: contactQuery, mode: 'insensitive' } } },
-        { company: { nomeFantasia: { contains: contactQuery, mode: 'insensitive' } } },
-      ];
-    }
-
-    const tickets = await this.prisma.ticket.findMany({
-      where: ticketBaseWhere,
-      include: {
-        company: {
-          select: {
-            id: true,
-            razaoSocial: true,
-            nomeFantasia: true,
-          },
-        },
-        companyContact: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        assignedUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        ticketCategory: {
-          select: {
-            id: true,
+    return this.atendimentosDashboardQuery.execute(rawHeaders, filters);
+    /* Legacy implementation moved to AtendimentosDashboardQuery.
             name: true,
           },
         },
@@ -1868,6 +1755,7 @@ export class DashboardService {
       payload,
     });
     return payload;
+    */
   }
 
   async getCadastrosData(rawHeaders?: IncomingHttpHeaders) {
@@ -2063,7 +1951,8 @@ export class DashboardService {
 
   async getSefazStatus(rawHeaders?: IncomingHttpHeaders) {
     const requester = await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
-    const dashboardUFs = await this.getUserDashboardUFs(requester.userId);
+    const dashboardUFsRaw = await this.getUserDashboardUFs(requester.userId);
+    const dashboardUFs = dashboardUFsRaw.length > 0 ? dashboardUFsRaw : ['MG'];
     const configuredSefazRoutes = await this.getConfiguredSefazRoutes();
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -2137,6 +2026,9 @@ export class DashboardService {
   }
 
   async getTarefasData(rawHeaders?: IncomingHttpHeaders) {
+    return this.tarefasDashboardQuery.execute(rawHeaders);
+    /* Legacy implementation moved to TarefasDashboardQuery.
+
     await this.authorizationService.assertPermission(rawHeaders, 'dashboard:view');
 
     const now = new Date();
@@ -2215,5 +2107,6 @@ export class DashboardService {
       success: true as const,
       data: { year, month, summary: { total, pending, waitingCustomer, received, sentToAccounting, completed, overdue, canceled }, activity, overdueItems },
     };
+    */
   }
 }
