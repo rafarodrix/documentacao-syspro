@@ -52,6 +52,29 @@ type AssigneeMeta = {
   portalUserId: string | null;
 };
 
+type ConversationLinkRecord = {
+  companyId: string | null;
+  chatwootConversationId: string;
+  connectionKey: string;
+  company: {
+    id: string;
+    razaoSocial: string;
+    nomeFantasia: string | null;
+  } | null;
+};
+
+type CompanySummary = {
+  id: string;
+  razaoSocial: string;
+  nomeFantasia: string | null;
+};
+
+type ContactSummary = {
+  id: string;
+  name: string;
+  companyLinks: Array<{ company: CompanySummary }>;
+};
+
 @Injectable()
 export class AtendimentosDashboardQuery {
   private static readonly CACHE_TTL_MS = 45_000;
@@ -122,6 +145,23 @@ export class AtendimentosDashboardQuery {
     });
 
     const conversationIds = filteredConversations.map((item) => item.id);
+    const conversationLinks = conversationIds.length > 0
+      ? await this.prisma.conversationLink.findMany({
+          where: {
+            chatwootConversationId: { in: conversationIds },
+            connectionKey: { in: Array.from(new Set(filteredConversations.map((item) => item.connectionKey))) },
+          },
+          include: {
+            company: {
+              select: {
+                id: true,
+                razaoSocial: true,
+                nomeFantasia: true,
+              },
+            },
+          },
+        })
+      : [];
     const linkedTickets = conversationIds.length > 0
       ? await this.prisma.ticket.findMany({
           where: {
@@ -145,6 +185,60 @@ export class AtendimentosDashboardQuery {
         })
       : [];
 
+    const sysproCompanyIds = Array.from(
+      new Set(
+        filteredConversations
+          .map((item) => String(
+            item.customAttributes.syspro_primary_company_id ??
+            item.customAttributes.syspro_company_id ??
+            item.customAttributes.company_id ??
+            '',
+          ).trim())
+          .filter(Boolean),
+      ),
+    );
+    const sysproContactIds = Array.from(
+      new Set(
+        filteredConversations
+          .map((item) => String(item.customAttributes.syspro_contact_id ?? '').trim())
+          .filter(Boolean),
+      ),
+    );
+
+    const [sysproCompanies, sysproContacts] = await Promise.all([
+      sysproCompanyIds.length > 0
+        ? this.prisma.company.findMany({
+            where: { id: { in: sysproCompanyIds } },
+            select: {
+              id: true,
+              razaoSocial: true,
+              nomeFantasia: true,
+            },
+          })
+        : Promise.resolve([]),
+      sysproContactIds.length > 0
+        ? this.prisma.companyContact.findMany({
+            where: { id: { in: sysproContactIds } },
+            select: {
+              id: true,
+              name: true,
+              companyLinks: {
+                orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                select: {
+                  company: {
+                    select: {
+                      id: true,
+                      razaoSocial: true,
+                      nomeFantasia: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
     const ticketByConversationId = new Map<string, (typeof linkedTickets)[number]>();
     for (const ticket of linkedTickets) {
       const key = String(ticket.externalThreadId ?? '').trim();
@@ -154,6 +248,14 @@ export class AtendimentosDashboardQuery {
         ticketByConversationId.set(key, ticket);
       }
     }
+
+    const conversationLinkByKey = new Map<string, ConversationLinkRecord>();
+    for (const link of conversationLinks as ConversationLinkRecord[]) {
+      conversationLinkByKey.set(`${link.connectionKey}:${link.chatwootConversationId}`, link);
+    }
+
+    const companyById = new Map(sysproCompanies.map((company) => [company.id, company] as const));
+    const contactById = new Map(sysproContacts.map((contact) => [contact.id, contact] as const));
 
     const csatRatings = conversationIds.length > 0
       ? await this.prisma.chatwootCsatRating.findMany({
@@ -246,15 +348,40 @@ export class AtendimentosDashboardQuery {
 
     for (const conversation of filteredConversations) {
       const linkedTicket = ticketByConversationId.get(conversation.id);
-      const companyName = linkedTicket?.company?.nomeFantasia ||
-        linkedTicket?.company?.razaoSocial ||
-        String(conversation.customAttributes.company_name ?? '').trim() ||
-        'Empresa sem nome';
+      const conversationLink = conversationLinkByKey.get(`${conversation.connectionKey}:${conversation.id}`) ?? null;
+      const sysproCompanyId = String(
+        conversation.customAttributes.syspro_primary_company_id ??
+        conversation.customAttributes.syspro_company_id ??
+        conversation.customAttributes.company_id ??
+        '',
+      ).trim();
+      const sysproContactId = String(conversation.customAttributes.syspro_contact_id ?? '').trim();
+      const sysproCompany = sysproCompanyId ? companyById.get(sysproCompanyId) ?? null : null;
+      const sysproContact = sysproContactId ? contactById.get(sysproContactId) ?? null : null;
+      const sysproContactCompany = sysproContact?.companyLinks?.[0]?.company ?? null;
+      const displayParts = this.splitDisplayName(conversation.contactName);
+      const companyName = this.resolveCompanyName({
+        linkedTicket,
+        conversationLink,
+        sysproCompany,
+        sysproContact,
+        customAttributes: conversation.customAttributes,
+        displayCompanyName: displayParts.companyName,
+      });
       const companyKey = linkedTicket?.companyId ||
-        String(conversation.customAttributes.company_id ?? '').trim() ||
+        conversationLink?.companyId ||
+        sysproCompany?.id ||
+        sysproContactCompany?.id ||
+        companyName ||
         `conversation:${conversation.id}`;
-      const contactKey = linkedTicket?.companyContactId || conversation.contactKey || `conversation:${conversation.id}`;
-      const contactName = linkedTicket?.companyContact?.name || conversation.contactName;
+      const contactKey = linkedTicket?.companyContactId || sysproContact?.id || conversation.contactKey || `conversation:${conversation.id}`;
+      const contactName = this.resolveContactName({
+        linkedTicket,
+        sysproContact,
+        customAttributes: conversation.customAttributes,
+        fallbackConversationName: conversation.contactName,
+        displayContactName: displayParts.contactName,
+      });
       const categoryName = this.resolveCategoryName(conversation, linkedTicket?.metadata);
 
       statusCountsMap.set(conversation.statusLabel, (statusCountsMap.get(conversation.statusLabel) || 0) + 1);
@@ -322,7 +449,7 @@ export class AtendimentosDashboardQuery {
       if (conversation.statusLabel === 'Resolvido' || conversation.statusLabel === 'Arquivado') resolvedCount += 1;
       else openCount += 1;
 
-      if (!linkedTicket?.companyId && !String(conversation.customAttributes.company_id ?? '').trim()) {
+      if (!linkedTicket?.companyId && !conversationLink?.companyId && !sysproCompany?.id && !sysproContactCompany?.id) {
         unlinkedCount += 1;
       }
 
@@ -428,11 +555,20 @@ export class AtendimentosDashboardQuery {
       .filter((conversation) => !conversation.assigneeId && conversation.statusLabel !== 'Resolvido' && conversation.statusLabel !== 'Arquivado')
       .map((conversation) => {
         const linkedTicket = ticketByConversationId.get(conversation.id);
+        const sysproContactId = String(conversation.customAttributes.syspro_contact_id ?? '').trim();
+        const sysproContact = sysproContactId ? contactById.get(sysproContactId) ?? null : null;
+        const displayParts = this.splitDisplayName(conversation.contactName);
         return {
           id: linkedTicket?.id || conversation.id,
           reference: linkedTicket?.ticketNumber || `CW-${conversation.id}`,
           subject: this.resolveConversationSubject(conversation.raw, linkedTicket?.subject),
-          contactName: linkedTicket?.companyContact?.name || conversation.contactName || 'Contato nao identificado',
+          contactName: this.resolveContactName({
+            linkedTicket,
+            sysproContact,
+            customAttributes: conversation.customAttributes,
+            fallbackConversationName: conversation.contactName,
+            displayContactName: displayParts.contactName,
+          }),
           channel: conversation.channel,
           status: conversation.statusLabel,
           lastUpdate: (conversation.updatedAt ?? conversation.createdAt).toISOString(),
@@ -723,6 +859,93 @@ export class AtendimentosDashboardQuery {
       '',
     ).trim();
     return subject || 'Sem assunto';
+  }
+
+  private resolveCompanyName(input: {
+    linkedTicket?: { company?: { nomeFantasia: string | null; razaoSocial: string } | null } | null;
+    conversationLink?: ConversationLinkRecord | null;
+    sysproCompany?: CompanySummary | null;
+    sysproContact?: ContactSummary | null;
+    customAttributes: Record<string, unknown>;
+    displayCompanyName: string | null;
+  }) {
+    const primaryContactCompany = input.sysproContact?.companyLinks?.[0]?.company ?? null;
+    const customName = this.cleanDisplayName(String(
+      input.customAttributes.syspro_primary_company_name ??
+      input.customAttributes.syspro_company_name ??
+      input.customAttributes.company_name ??
+      '',
+    ).trim());
+
+    return (
+      input.linkedTicket?.company?.nomeFantasia ||
+      input.linkedTicket?.company?.razaoSocial ||
+      input.conversationLink?.company?.nomeFantasia ||
+      input.conversationLink?.company?.razaoSocial ||
+      input.sysproCompany?.nomeFantasia ||
+      input.sysproCompany?.razaoSocial ||
+      primaryContactCompany?.nomeFantasia ||
+      primaryContactCompany?.razaoSocial ||
+      customName ||
+      this.cleanDisplayName(input.displayCompanyName) ||
+      'Empresa nao vinculada'
+    );
+  }
+
+  private resolveContactName(input: {
+    linkedTicket?: { companyContact?: { name: string | null } | null } | null;
+    sysproContact?: ContactSummary | null;
+    customAttributes: Record<string, unknown>;
+    fallbackConversationName: string;
+    displayContactName: string | null;
+  }) {
+    const customName = this.cleanDisplayName(String(input.customAttributes.syspro_contact_name ?? '').trim());
+    return (
+      input.linkedTicket?.companyContact?.name ||
+      input.sysproContact?.name ||
+      customName ||
+      this.cleanDisplayName(input.displayContactName) ||
+      this.cleanDisplayName(input.fallbackConversationName) ||
+      'Contato nao identificado'
+    );
+  }
+
+  private splitDisplayName(value: string) {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return { contactName: null, companyName: null };
+    const delimiters = [' · ', ' - ', ' | '];
+    for (const delimiter of delimiters) {
+      const idx = normalized.indexOf(delimiter);
+      if (idx <= 0) continue;
+      const left = normalized.slice(0, idx).trim();
+      const right = normalized.slice(idx + delimiter.length).trim();
+      if (left && right) {
+        return { contactName: left, companyName: right };
+      }
+    }
+    return { contactName: normalized, companyName: null };
+  }
+
+  private cleanDisplayName(value: string | null | undefined) {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+
+    const invalidValues = new Set([
+      'empresa sem nome',
+      'sem empresa',
+      'empresa nao vinculada',
+      'empresa não vinculada',
+      'contato sem nome',
+      'contato nao identificado',
+      'contato não identificado',
+      'unknown',
+      'undefined',
+      'null',
+      '-',
+      '--',
+    ]);
+
+    return invalidValues.has(normalized.toLowerCase()) ? null : normalized;
   }
 
   private toSeries(dates: Date[]) {

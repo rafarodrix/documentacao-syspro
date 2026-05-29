@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@dosc-syspro/ui";
-import Link from "next/link";
 import {
+  CheckCircle2,
   Clock3,
   Inbox,
   Loader2,
@@ -24,9 +24,8 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
-  CheckCircle2,
 } from "lucide-react";
-import { ErrorState, SectionCard, StaleState } from "@/components/patterns";
+import { SectionCard } from "@/components/patterns";
 import { ActivityChart } from "@/components/platform/app/dashboard/activity-chart";
 import { formatDateTimeSafe } from "@/lib/date";
 import { formatNumber } from "@/lib/formatters";
@@ -54,18 +53,6 @@ function buildRangePreset(preset: "today" | "7d" | "30d") {
   };
 }
 
-function formatMinutes(value: number | null) {
-  if (value === null) return "Sem base";
-  if (value < 60) return `${formatNumber(value)} min`;
-  return `${formatNumber(value / 60, { maximumFractionDigits: 1 })} h`;
-}
-
-function formatHours(value: number | null) {
-  if (value === null) return "Sem base";
-  if (value < 24) return `${formatNumber(value, { maximumFractionDigits: 1 })} h`;
-  return `${formatNumber(value / 24, { maximumFractionDigits: 1 })} d`;
-}
-
 function formatPercent(value: number, base: number) {
   if (base <= 0) return "0%";
   return `${Math.round((value / base) * 100)}%`;
@@ -78,6 +65,25 @@ function formatScore(value: number | null) {
     maximumFractionDigits: 2,
   });
 }
+
+function getChannelLabel(channel: "WHATSAPP" | "EMAIL" | "PORTAL" | "PHONE") {
+  if (channel === "WHATSAPP") return "WhatsApp";
+  if (channel === "EMAIL") return "E-mail";
+  if (channel === "PORTAL") return "Portal";
+  return "Telefone";
+}
+
+const STATUS_META: Record<string, { label: string; tone: string }> = {
+  Novo: { label: "Novo", tone: "border-sky-500/30 bg-sky-500/15 text-sky-300" },
+  "Sem responsavel": { label: "Sem responsavel", tone: "border-rose-500/30 bg-rose-500/15 text-rose-300" },
+  Triagem: { label: "Triagem", tone: "border-violet-500/30 bg-violet-500/15 text-violet-300" },
+  "Em andamento": { label: "Em atendimento", tone: "border-amber-500/30 bg-amber-500/15 text-amber-300" },
+  "Aguardando cliente": { label: "Aguardando cliente", tone: "border-cyan-500/30 bg-cyan-500/15 text-cyan-300" },
+  "Aguardando interno": { label: "Em espera interna", tone: "border-fuchsia-500/30 bg-fuchsia-500/15 text-fuchsia-300" },
+  Teste: { label: "Teste", tone: "border-indigo-500/30 bg-indigo-500/15 text-indigo-300" },
+  Resolvido: { label: "Resolvido", tone: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300" },
+  Arquivado: { label: "Arquivado", tone: "border-zinc-500/30 bg-zinc-500/15 text-zinc-300" },
+};
 
 type AtendimentosData = Awaited<ReturnType<typeof getAtendimentosData>>;
 
@@ -134,6 +140,12 @@ export function SupportAtendimentosSubtab() {
   }, []);
 
   const csatBase = useMemo(() => Math.max(data?.csatResponseCount ?? 0, 1), [data?.csatResponseCount]);
+  const statusHighlights = useMemo(() => {
+    return (data?.statusCounts ?? [])
+      .filter((item) => item.count > 0)
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 6);
+  }, [data?.statusCounts]);
 
   const applyPreset = (preset: "today" | "7d" | "30d") => {
     const next = buildRangePreset(preset);
@@ -242,38 +254,93 @@ export function SupportAtendimentosSubtab() {
         </CardContent>
       </Card>
 
-      {/* Row 1: Executive Cards (5 Cards) */}
+      {error ? (
+        <SectionCard
+          title="Falha na carga"
+          className="border-rose-500/30 bg-rose-500/10"
+          contentClassName="text-sm text-rose-200"
+        >
+          {error}
+        </SectionCard>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Geral no período" icon={Inbox as any} tone="blue" />
-        <DashboardMetricCard title="Abertos" value={data?.openCount ?? 0} helper="Fila ativa" icon={Loader2 as any} tone="amber" />
-        <DashboardMetricCard title="Sem Dono" value={data?.unassignedCount ?? 0} helper="Sem atendente" icon={ShieldAlert as any} tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
-        <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Concluídos" icon={CheckCircle2 as any} tone="emerald" />
-        <DashboardMetricCard title="CSAT Médio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliações`} icon={MessageSquareText as any} tone="emerald" />
+        <DashboardMetricCard title="Total" value={data?.totalCount ?? 0} helper="Conversas reais do Chatwoot no periodo" icon={Inbox as any} tone="blue" />
+        <DashboardMetricCard title="Em aberto" value={data?.openCount ?? 0} helper="Fila ativa e em acompanhamento" icon={Loader2 as any} tone="amber" />
+        <DashboardMetricCard title="Sem responsavel" value={data?.unassignedCount ?? 0} helper="Ainda sem atribuicao" icon={ShieldAlert as any} tone={(data?.unassignedCount ?? 0) > 0 ? "red" : "blue"} />
+        <DashboardMetricCard title="Resolvidos" value={data?.resolvedCount ?? 0} helper="Encerrados no fluxo" icon={CheckCircle2 as any} tone="emerald" />
+        <DashboardMetricCard title="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} helper={`${data?.csatResponseCount ?? 0} avaliacoes`} icon={MessageSquareText as any} tone="emerald" />
       </div>
 
-      {/* Row 2: Charts */}
       <ActivityChart
         title="Volume de atendimentos"
-        description={loading ? "Carregando período selecionado" : "Conversas criadas no período filtrado"}
+        description={loading ? "Carregando periodo selecionado" : "Conversas criadas no periodo filtrado"}
         points={data?.activity ?? []}
         badgeLabel="Chatwoot"
         emptyLabel="Sem conversas no recorte"
       />
 
-      {/* Row 3: Equipe (Unified Productivity Table) */}
       <SectionCard
-        title="Produtividade da Equipe"
-        className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+        title="Status do Chatwoot"
+        className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+        contentClassName="space-y-3"
+      >
+        <div className="flex flex-wrap gap-2">
+          {statusHighlights.length ? (
+            statusHighlights.map((item) => {
+              const meta = STATUS_META[item.status] ?? {
+                label: item.status,
+                tone: "border-border/60 bg-muted/30 text-foreground",
+              };
+              return (
+                <div
+                  key={item.status}
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${meta.tone}`}
+                >
+                  <span>{meta.label}</span>
+                  <span className="tabular-nums text-foreground">{item.count}</span>
+                </div>
+              );
+            })
+          ) : (
+            <span className="text-sm text-muted-foreground">Sem status relevantes no recorte.</span>
+          )}
+        </div>
+
+        <div className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+          <ExecutiveLine
+            label="Aguardando cliente"
+            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando cliente")?.count ?? 0}`}
+          />
+          <ExecutiveLine
+            label="Em espera interna"
+            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Aguardando interno")?.count ?? 0}`}
+          />
+          <ExecutiveLine
+            label="Arquivados"
+            value={`${(data?.statusCounts ?? []).find((item) => item.status === "Arquivado")?.count ?? 0}`}
+          />
+          <ExecutiveLine
+            label="Sem vinculo Syspro"
+            value={`${data?.unlinkedCount ?? 0}`}
+            emphasis={(data?.unlinkedCount ?? 0) > 0 ? "text-amber-400 font-semibold" : undefined}
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Produtividade da equipe"
+        className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
         contentClassName="overflow-x-auto"
       >
-        <table className="w-full text-left text-sm border-collapse">
+        <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-border/40 text-muted-foreground text-xs uppercase tracking-wider">
-              <th className="py-3 px-4 font-semibold">Atendente</th>
-              <th className="py-3 px-4 font-semibold text-center">Abertos</th>
-              <th className="py-3 px-4 font-semibold text-center">Resolvidos</th>
-              <th className="py-3 px-4 font-semibold text-center">Avaliação (CSAT)</th>
-              <th className="py-3 px-4 font-semibold text-center">Respostas</th>
+            <tr className="border-b border-border/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <th className="px-4 py-3 font-semibold">Atendente</th>
+              <th className="px-4 py-3 text-center font-semibold">Em aberto</th>
+              <th className="px-4 py-3 text-center font-semibold">Resolvidos</th>
+              <th className="px-4 py-3 text-center font-semibold">CSAT medio</th>
+              <th className="px-4 py-3 text-center font-semibold">Respostas</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
@@ -287,17 +354,17 @@ export function SupportAtendimentosSubtab() {
                 }
 
                 return (
-                  <tr key={`${item.userId ?? "none"}-${item.name}`} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-3.5 px-4 font-medium text-foreground flex items-center gap-2">
+                  <tr key={`${item.userId ?? "none"}-${item.name}`} className="transition-colors hover:bg-muted/20">
+                    <td className="flex items-center gap-2 px-4 py-3.5 font-medium text-foreground">
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       {item.name}
                     </td>
-                    <td className="py-3.5 px-4 text-center tabular-nums font-semibold">{item.openCount}</td>
-                    <td className="py-3.5 px-4 text-center tabular-nums text-muted-foreground">{item.resolvedCount ?? 0}</td>
-                    <td className={`py-3.5 px-4 text-center tabular-nums ${scoreColor}`}>
+                    <td className="px-4 py-3.5 text-center font-semibold tabular-nums">{item.openCount}</td>
+                    <td className="px-4 py-3.5 text-center text-muted-foreground tabular-nums">{item.resolvedCount ?? 0}</td>
+                    <td className={`px-4 py-3.5 text-center tabular-nums ${scoreColor}`}>
                       {item.averageScore != null ? formatScore(item.averageScore) : "Sem nota"}
                     </td>
-                    <td className="py-3.5 px-4 text-center tabular-nums text-xs text-muted-foreground">
+                    <td className="px-4 py-3.5 text-center text-xs text-muted-foreground tabular-nums">
                       {item.responseCount ?? 0} resp.
                     </td>
                   </tr>
@@ -314,101 +381,93 @@ export function SupportAtendimentosSubtab() {
         </table>
       </SectionCard>
 
-      {/* Row 4: Qualidade (CSAT Health & Score Distribution) */}
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
-          title="Saúde do CSAT"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
-          contentClassName="grid gap-3.5 sm:grid-cols-2 text-sm"
+          title="Saude do CSAT"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
+          contentClassName="grid gap-3.5 text-sm sm:grid-cols-2"
         >
           <div className="space-y-3.5">
-            <ExecutiveLine label="CSAT Médio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="text-emerald-500 font-extrabold text-base" />
-            <ExecutiveLine label="Conversas Elegíveis" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
-            <ExecutiveLine label="Respostas Recebidas" value={`${data?.csatResponseCount ?? 0}`} />
-            <ExecutiveLine label="Taxa de Resposta" value={formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)} />
+            <ExecutiveLine label="CSAT medio" value={formatScore(data?.csatAverageScore ?? null)} emphasis="text-base font-extrabold text-emerald-500" />
+            <ExecutiveLine label="Conversas elegiveis" value={`${data?.csatEligibleResolvedCount ?? 0}`} />
+            <ExecutiveLine label="Respostas recebidas" value={`${data?.csatResponseCount ?? 0}`} />
+            <ExecutiveLine label="Taxa de resposta" value={formatPercent(data?.csatResponseCount ?? 0, data?.csatEligibleResolvedCount ?? 0)} />
           </div>
-          <div className="space-y-3.5 border-t border-border/30 pt-3.5 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
+          <div className="space-y-3.5 border-t border-border/30 pt-3.5 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
             <ExecutiveLine
-              label="Notas Baixas (≤ 2)"
+              label="Notas baixas (<= 2)"
               value={`${data?.csatLowScoreCount ?? 0}`}
-              emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "text-rose-500 font-bold" : "text-muted-foreground"}
+              emphasis={(data?.csatLowScoreCount ?? 0) > 0 ? "font-bold text-rose-500" : "text-muted-foreground"}
             />
-            <ExecutiveLine label="Avaliações Ignoradas" value={`${data?.csatSkippedCount ?? 0}`} />
+            <ExecutiveLine label="Avaliacoes ignoradas" value={`${data?.csatSkippedCount ?? 0}`} />
             <ExecutiveLine
-              label="Satisfação Alta (4 e 5 ★)"
+              label="Satisfacao alta (4 e 5)"
               value={(() => {
                 const highCount = (data?.csatScoreDistribution ?? [])
                   .filter((item) => item.score >= 4)
                   .reduce((sum, item) => sum + item.count, 0);
                 return formatPercent(highCount, data?.csatResponseCount ?? 0);
               })()}
-              emphasis="text-emerald-500 font-bold"
+              emphasis="font-bold text-emerald-500"
             />
-            <p className="text-[11px] text-muted-foreground/80 leading-snug">
+            <p className="text-[11px] leading-snug text-muted-foreground/80">
               {(() => {
-                const note5 = (data?.csatScoreDistribution ?? []).find(item => item.score === 5)?.count ?? 0;
-                return `${note5} de ${data?.csatResponseCount ?? 0} avaliações foram Nota 5 (Excelente).`;
+                const note5 = (data?.csatScoreDistribution ?? []).find((item) => item.score === 5)?.count ?? 0;
+                return `${note5} de ${data?.csatResponseCount ?? 0} avaliacoes foram nota 5.`;
               })()}
             </p>
           </div>
         </SectionCard>
 
         <SectionCard
-          title="Distribuição das Notas"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          title="Distribuicao das notas"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
           contentClassName="space-y-2.5"
         >
-          {([...(data?.csatScoreDistribution ?? [])].sort((l, r) => r.score - l.score)).map((item) => (
+          {([...(data?.csatScoreDistribution ?? [])].sort((left, right) => right.score - left.score)).map((item) => (
             <div key={item.score} className="space-y-1">
               <div className="flex items-center justify-between gap-3 text-xs">
-                <span className="font-semibold text-muted-foreground">Nota {item.score} ★</span>
-                <span className="font-bold tabular-nums text-foreground">{item.count}</span>
+                <span className="font-semibold text-muted-foreground">Nota {item.score}</span>
+                <span className="font-bold text-foreground tabular-nums">{item.count}</span>
               </div>
               <div className="h-2 rounded-full bg-muted/30">
-                <div className="h-2 rounded-full bg-emerald-500/70 transition-all duration-500" style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }} />
+                <div
+                  className="h-2 rounded-full bg-emerald-500/70 transition-all duration-500"
+                  style={{ width: `${Math.min(100, (item.count / csatBase) * 100)}%` }}
+                />
               </div>
             </div>
           ))}
         </SectionCard>
       </div>
 
-      {/* Row 5: Contatos e Empresas Recorrentes */}
       <div className="grid gap-4 xl:grid-cols-2">
-        {/* Contatos Recorrentes */}
         <SectionCard
-          title="Contatos com mais Atendimentos (Top 10)"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          title="Contatos com mais atendimentos (Top 10)"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
           contentClassName="overflow-x-auto"
         >
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full border-collapse text-left text-xs">
             <thead>
-              <tr className="border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
-                <th className="py-2.5 px-3">Contato</th>
-                <th className="py-2.5 px-3 text-center">Volume</th>
-                <th className="py-2.5 px-3">Canal Preferencial</th>
-                <th className="py-2.5 px-3">Último Contato</th>
+              <tr className="border-b border-border/40 font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-2.5">Contato</th>
+                <th className="px-3 py-2.5 text-center">Volume</th>
+                <th className="px-3 py-2.5">Canal preferencial</th>
+                <th className="px-3 py-2.5">Ultimo contato</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {(data?.topContacts ?? []).length ? (
-                (data?.topContacts ?? []).map((item) => {
-                  let channelLabel: string = item.channel;
-                  if (item.channel === "WHATSAPP") channelLabel = "WhatsApp 💬";
-                  if (item.channel === "EMAIL") channelLabel = "E-mail ✉️";
-                  if (item.channel === "PORTAL") channelLabel = "Portal 🌐";
-                  if (item.channel === "PHONE") channelLabel = "Telefone 📞";
-
-                  return (
-                    <tr key={item.key} className="hover:bg-muted/10 transition-colors">
-                      <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-1.5">
-                        <span className="text-primary">•</span> {item.name}
-                      </td>
-                      <td className="py-3 px-3 text-center tabular-nums font-bold text-amber-500">{item.count} atend.</td>
-                      <td className="py-3 px-3 text-muted-foreground">{channelLabel}</td>
-                      <td className="py-3 px-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
-                    </tr>
-                  );
-                })
+                (data?.topContacts ?? []).map((item) => (
+                  <tr key={item.key} className="transition-colors hover:bg-muted/10">
+                    <td className="flex items-center gap-1.5 px-3 py-3 font-semibold text-foreground">
+                      <span className="text-primary">•</span> {item.name}
+                    </td>
+                    <td className="px-3 py-3 text-center font-bold text-amber-500 tabular-nums">{item.count} atend.</td>
+                    <td className="px-3 py-3 text-muted-foreground">{getChannelLabel(item.channel)}</td>
+                    <td className="px-3 py-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
+                  </tr>
+                ))
               ) : (
                 <tr>
                   <td colSpan={4} className="py-4 text-center text-muted-foreground">
@@ -420,41 +479,32 @@ export function SupportAtendimentosSubtab() {
           </table>
         </SectionCard>
 
-        {/* Empresas Recorrentes */}
         <SectionCard
-          title="Empresas com mais Atendimentos (Top 10)"
-          className="border-border/50 bg-card/60 backdrop-blur shadow-sm"
+          title="Empresas com mais atendimentos (Top 10)"
+          className="border-border/50 bg-card/60 shadow-sm backdrop-blur"
           contentClassName="overflow-x-auto"
         >
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full border-collapse text-left text-xs">
             <thead>
-              <tr className="border-b border-border/40 text-muted-foreground uppercase tracking-wider font-semibold">
-                <th className="py-2.5 px-3">Empresa</th>
-                <th className="py-2.5 px-3 text-center">Volume</th>
-                <th className="py-2.5 px-3">Canal Preferencial</th>
-                <th className="py-2.5 px-3">Último Contato</th>
+              <tr className="border-b border-border/40 font-semibold uppercase tracking-wider text-muted-foreground">
+                <th className="px-3 py-2.5">Empresa</th>
+                <th className="px-3 py-2.5 text-center">Volume</th>
+                <th className="px-3 py-2.5">Canal preferencial</th>
+                <th className="px-3 py-2.5">Ultimo contato</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {(data?.topCompanies ?? []).length ? (
-                (data?.topCompanies ?? []).map((item) => {
-                  let channelLabel: string = item.channel;
-                  if (item.channel === "WHATSAPP") channelLabel = "WhatsApp 💬";
-                  if (item.channel === "EMAIL") channelLabel = "E-mail ✉️";
-                  if (item.channel === "PORTAL") channelLabel = "Portal 🌐";
-                  if (item.channel === "PHONE") channelLabel = "Telefone 📞";
-
-                  return (
-                    <tr key={item.key} className="hover:bg-muted/10 transition-colors">
-                      <td className="py-3 px-3 font-semibold text-foreground flex items-center gap-1.5">
-                        <span className="text-emerald-500">•</span> {item.name}
-                      </td>
-                      <td className="py-3 px-3 text-center tabular-nums font-bold text-emerald-500">{item.count} atend.</td>
-                      <td className="py-3 px-3 text-muted-foreground">{channelLabel}</td>
-                      <td className="py-3 px-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
-                    </tr>
-                  );
-                })
+                (data?.topCompanies ?? []).map((item) => (
+                  <tr key={item.key} className="transition-colors hover:bg-muted/10">
+                    <td className="flex items-center gap-1.5 px-3 py-3 font-semibold text-foreground">
+                      <span className="text-emerald-500">•</span> {item.name}
+                    </td>
+                    <td className="px-3 py-3 text-center font-bold text-emerald-500 tabular-nums">{item.count} atend.</td>
+                    <td className="px-3 py-3 text-muted-foreground">{getChannelLabel(item.channel)}</td>
+                    <td className="px-3 py-3 font-medium text-foreground">{item.lastAttendance ?? "Sem registro"}</td>
+                  </tr>
+                ))
               ) : (
                 <tr>
                   <td colSpan={4} className="py-4 text-center text-muted-foreground">
