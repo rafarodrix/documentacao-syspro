@@ -122,6 +122,41 @@ export class ProcessIncomingMessageUseCase {
         ? this.readFirstString(msg?.key?.participant, msg?.Info?.Sender, msg?.info?.Sender, msg?.participant)
         : undefined;
       const messagePayload = msg?.message ?? msg?.Message;
+      const reaction = this.extractReactionPayload(messagePayload, msg);
+
+      if (reaction) {
+        try {
+          await this.handleReactionMessage(
+            {
+              reaction,
+              whatsappNumber: phone,
+              pushName,
+              remoteJid: String(remoteJid),
+              messageId,
+              isGroupChat,
+              groupParticipantJid,
+            },
+            resolvedConnection,
+            behaviorSettings,
+            instanceId,
+          );
+        } catch (error: any) {
+          if (messageId) {
+            await this.dedupService.release('evolution_inbound', `message:${messageId}`);
+          }
+
+          this.logger.error(JSON.stringify({
+            flow: 'evolution_to_chatwoot',
+            stage: 'reaction_forward_failed',
+            instanceId,
+            messageId,
+            whatsappNumber: phone,
+            error: error?.message ?? 'unknown_error',
+          }));
+          failures.push(`reactionMessageId=${messageId ?? 'unknown'} phone=${phone} error=${error?.message ?? 'unknown_error'}`);
+        }
+        continue;
+      }
 
       let textContent = '';
       if (messagePayload?.conversation) textContent = messagePayload.conversation;
@@ -310,6 +345,75 @@ export class ProcessIncomingMessageUseCase {
     if (failures.length > 0) {
       throw new Error(`Falha ao encaminhar ${failures.length} mensagem(ns) da Evolution para o Chatwoot: ${failures.join(' | ')}`);
     }
+  }
+
+  private async handleReactionMessage(
+    input: {
+      reaction: { emoji?: string; targetMessageId?: string; removed: boolean };
+      whatsappNumber: string;
+      pushName: string;
+      remoteJid: string;
+      messageId?: string;
+      isGroupChat: boolean;
+      groupParticipantJid?: string;
+    },
+    connection: ResolvedIntegrationContext,
+    behaviorSettings: ChatwootBehaviorSettings,
+    instanceId?: string | null,
+  ) {
+    const targetLink = input.reaction.targetMessageId
+      ? await this.prisma.messageLink.findUnique({
+          where: {
+            connectionKey_evolutionMessageId: {
+              connectionKey: connection.connectionKey,
+              evolutionMessageId: input.reaction.targetMessageId,
+            },
+          },
+        })
+      : null;
+
+    let conversationId = targetLink?.chatwootConversationId;
+    if (!conversationId) {
+      const fallbackLink = input.isGroupChat
+        ? await this.resolveOrCreateGroupConversationLink(input.remoteJid, connection)
+        : await this.resolveOrCreateConversationLink(
+            input.whatsappNumber,
+            input.pushName,
+            connection,
+            behaviorSettings,
+            {
+              interactionKind: 'message',
+              messageId: input.messageId,
+              textContent: '',
+            },
+          );
+      conversationId = fallbackLink.conversationId;
+    }
+
+    const noteContent = this.buildReactionNote({
+      emoji: input.reaction.emoji,
+      removed: input.reaction.removed,
+      targetEvolutionMessageId: input.reaction.targetMessageId,
+      targetChatwootMessageId: targetLink?.chatwootMessageId,
+      pushName: input.pushName,
+      whatsappNumber: input.whatsappNumber,
+      isGroupChat: input.isGroupChat,
+      participantJid: input.groupParticipantJid,
+    });
+
+    await this.chatwootClient.createPrivateNote(connection.chatwoot, conversationId, noteContent);
+    this.logger.log(JSON.stringify({
+      flow: 'evolution_to_chatwoot',
+      stage: 'reaction_forwarded_as_private_note',
+      instanceId: instanceId ?? null,
+      messageId: input.messageId ?? null,
+      chatwootConversationId: conversationId,
+      whatsappNumber: input.whatsappNumber,
+      targetEvolutionMessageId: input.reaction.targetMessageId ?? null,
+      targetChatwootMessageId: targetLink?.chatwootMessageId ?? null,
+      removed: input.reaction.removed,
+      hasEmoji: Boolean(input.reaction.emoji),
+    }));
   }
 
   private async resolveIncomingAttachmentPayload(
@@ -1046,6 +1150,63 @@ export class ProcessIncomingMessageUseCase {
     return normalizedContent
       ? `${label}: ${normalizedContent}`
       : `${label} enviou uma midia no grupo.`;
+  }
+
+  private extractReactionPayload(
+    messagePayload: any,
+    rawMessage: any,
+  ): { emoji?: string; targetMessageId?: string; removed: boolean } | null {
+    const reactionMessage = messagePayload?.reactionMessage;
+    if (!reactionMessage || typeof reactionMessage !== 'object') return null;
+
+    const emoji = this.readFirstString(
+      reactionMessage?.text,
+      reactionMessage?.emoji,
+      reactionMessage?.reaction,
+    );
+    const targetMessageId = this.readFirstString(
+      reactionMessage?.key?.id,
+      reactionMessage?.messageId,
+      reactionMessage?.targetMessageId,
+      rawMessage?.reaction?.key?.id,
+    );
+    const removed = !emoji || emoji.toLowerCase() === 'removed';
+
+    if (!emoji && !targetMessageId) return null;
+    return {
+      emoji,
+      targetMessageId,
+      removed,
+    };
+  }
+
+  private buildReactionNote(input: {
+    emoji?: string;
+    removed: boolean;
+    targetEvolutionMessageId?: string;
+    targetChatwootMessageId?: string;
+    pushName: string;
+    whatsappNumber: string;
+    isGroupChat: boolean;
+    participantJid?: string;
+  }): string {
+    const participantPhone = input.isGroupChat
+      ? this.extractPhoneFromJidOrNumber(input.participantJid)
+      : input.whatsappNumber;
+    const actorLabel = [
+      input.pushName?.trim() || 'Cliente',
+      participantPhone ? `(${participantPhone})` : undefined,
+    ].filter(Boolean).join(' ');
+
+    const summary = input.removed
+      ? `${actorLabel} removeu uma reacao no WhatsApp.`
+      : `${actorLabel} reagiu no WhatsApp com ${input.emoji ?? 'uma reacao'}.`;
+
+    return [
+      summary,
+      input.targetChatwootMessageId ? `Mensagem no Chatwoot: ${input.targetChatwootMessageId}.` : undefined,
+      input.targetEvolutionMessageId ? `Mensagem no WhatsApp: ${input.targetEvolutionMessageId}.` : undefined,
+    ].filter(Boolean).join('\n');
   }
 
   private async handleReceiptStatusUpdate(

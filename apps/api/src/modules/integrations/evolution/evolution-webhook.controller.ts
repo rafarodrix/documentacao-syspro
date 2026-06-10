@@ -193,6 +193,7 @@ export class EvolutionWebhookController {
     return Boolean(
       message?.conversation ||
       message?.extendedTextMessage ||
+      message?.reactionMessage ||
       message?.stickerMessage ||
       message?.imageMessage ||
       message?.videoMessage ||
