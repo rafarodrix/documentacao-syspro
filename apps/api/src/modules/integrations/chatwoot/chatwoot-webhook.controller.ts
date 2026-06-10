@@ -315,9 +315,7 @@ export class ChatwootWebhookController {
     payload: any,
     resolvedContext: ResolvedIntegrationContext | null,
   ): Promise<void> {
-    const chatwootMessageId = ChatwootPayloadParser.toOptionalString(
-      payload?.id ?? payload?.message?.id,
-    );
+    const chatwootMessageId = ChatwootPayloadParser.extractDeletionTargetMessageId(payload);
     if (!chatwootMessageId) {
       this.logger.warn(JSON.stringify({ flow: 'chatwoot_to_evolution', stage: 'delete_message_skipped_missing_message_id', event: payload?.event ?? null }));
       return;

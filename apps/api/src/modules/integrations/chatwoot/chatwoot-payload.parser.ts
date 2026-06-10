@@ -18,7 +18,7 @@ export class ChatwootPayloadParser {
 
   static resolveMessageContext(payload: any): MessageContext {
     const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
-    const messageId = ChatwootPayloadParser.toOptionalString(payload?.id ?? message?.id);
+    const messageId = ChatwootPayloadParser.extractPrimaryMessageId(payload, message);
     const conversationMessage = ChatwootPayloadParser.findConversationMessage(payload, messageId);
     const messageType = ChatwootPayloadParser.normalizeMessageType(
       payload?.message_type ??
@@ -33,6 +33,30 @@ export class ChatwootPayloadParser {
     return { message, conversationMessage, messageId, messageType, isPrivate };
   }
 
+  static extractDeletionTargetMessageId(payload: any): string | undefined {
+    const message = payload?.message && typeof payload.message === 'object' ? payload.message : null;
+    const directCandidates = [
+      message?.id,
+      payload?.message_id,
+      payload?.messageId,
+      payload?.meta?.message_id,
+      payload?.meta?.messageId,
+      payload?.content_attributes?.message_id,
+      payload?.content_attributes?.messageId,
+    ];
+
+    for (const candidate of directCandidates) {
+      const normalized = ChatwootPayloadParser.toOptionalString(candidate);
+      if (normalized) return normalized;
+    }
+
+    const deletedConversationMessage = ChatwootPayloadParser.findDeletedConversationMessage(payload);
+    const deletedConversationMessageId = ChatwootPayloadParser.toOptionalString(deletedConversationMessage?.id);
+    if (deletedConversationMessageId) return deletedConversationMessageId;
+
+    return ChatwootPayloadParser.extractPrimaryMessageId(payload, message);
+  }
+
   static findConversationMessage(payload: any, messageId?: string): any | null {
     const messages = Array.isArray(payload?.conversation?.messages)
       ? payload.conversation.messages
@@ -43,6 +67,16 @@ export class ChatwootPayloadParser {
       if (match) return match;
     }
     return messages[0] ?? null;
+  }
+
+  static findDeletedConversationMessage(payload: any): any | null {
+    const messages = Array.isArray(payload?.conversation?.messages)
+      ? payload.conversation.messages
+      : [];
+    if (messages.length === 0) return null;
+
+    const match = messages.find((item: any) => ChatwootPayloadParser.shouldPropagateMessageDeletion(item, item));
+    return match ?? null;
   }
 
   static normalizeMessageType(value: unknown): 'incoming' | 'outgoing' | 'template' | 'unknown' {
@@ -237,6 +271,22 @@ export class ChatwootPayloadParser {
         content.includes('mensagem exclu') ||
         content.includes('mensagem foi apagada'),
     );
+  }
+
+  private static extractPrimaryMessageId(payload: any, message: any | null): string | undefined {
+    const directCandidates = [
+      message?.id,
+      payload?.message_id,
+      payload?.messageId,
+      payload?.id,
+    ];
+
+    for (const candidate of directCandidates) {
+      const normalized = ChatwootPayloadParser.toOptionalString(candidate);
+      if (normalized) return normalized;
+    }
+
+    return undefined;
   }
 
   // ──────────────────────────────────────────────────────
