@@ -227,6 +227,15 @@ export class ProcessIncomingMessageUseCase {
         }
       }
 
+      if (!textContent && messagePayload?.stickerMessage && !attachment) {
+        textContent = isGroupChat
+          ? this.prefixGroupMessage('enviou uma figurinha no WhatsApp.', {
+              pushName,
+              participantJid: groupParticipantJid,
+            })
+          : 'Cliente enviou uma figurinha no WhatsApp.';
+      }
+
       this.logger.log(JSON.stringify({
         flow: 'evolution_to_chatwoot',
         stage: 'received',
@@ -427,6 +436,8 @@ export class ProcessIncomingMessageUseCase {
       rawMessage?.base64,
       messagePayload?.imageMessage?.base64,
       messagePayload?.stickerMessage?.base64,
+      messagePayload?.stickerMessage?.file?.base64,
+      messagePayload?.stickerMessage?.file?.data,
       messagePayload?.videoMessage?.base64,
       messagePayload?.documentMessage?.base64,
       messagePayload?.audioMessage?.base64,
@@ -447,13 +458,18 @@ export class ProcessIncomingMessageUseCase {
     }
 
     const urlCandidates = [
+      messagePayload?.mediaUrl,
       messagePayload?.imageMessage?.url,
       messagePayload?.stickerMessage?.url,
       messagePayload?.stickerMessage?.URL,
+      messagePayload?.stickerMessage?.file?.url,
+      messagePayload?.stickerMessage?.file?.URL,
+      messagePayload?.stickerMessage?.directPath,
       messagePayload?.videoMessage?.url,
       messagePayload?.documentMessage?.url,
       messagePayload?.audioMessage?.url,
       messagePayload?.url,
+      rawMessage?.mediaUrl,
       rawMessage?.url,
     ]
       .map((value: unknown) => String(value ?? '').trim())
