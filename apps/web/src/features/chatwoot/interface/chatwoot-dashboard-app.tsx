@@ -179,7 +179,7 @@ export function ChatwootDashboardApp() {
     tickets.setTicketReloadToken((t) => t + 1);
     hosts.setHostReloadToken((h) => h + 1);
   };
-  const canOpenTarefas = Boolean(resolved.companyId) && tarefasCount > 0;
+  const canOpenTarefas = Boolean(resolved.companyId);
 
   // Guard: redirect away from tarefas tab when it becomes unavailable
   useEffect(() => {

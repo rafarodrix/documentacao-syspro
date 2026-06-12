@@ -213,7 +213,7 @@ export function ChatwootTarefasTab() {
           {error ? <InlineWarning message={error} /> : null}
 
           {!isLoading && !error && resolved.companyId && items.length === 0 ? (
-            <EmptyState label="Nenhuma rotina mensal ou tarefa avulsa encontrada para a empresa em contexto." />
+            <EmptyState label="Nenhuma rotina mensal ou tarefa avulsa encontrada para a empresa em contexto. Use 'Nova tarefa' para abrir a primeira demanda direto desta conversa." />
           ) : null}
 
           {!isLoading && !error && items.length > 0 ? (
