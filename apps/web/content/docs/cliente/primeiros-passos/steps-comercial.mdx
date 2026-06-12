@@ -38,18 +38,6 @@ Este guia cobre o ciclo operacional completo de uma empresa comercial no Syspro 
 
 ---
 
-## Visão Geral do Fluxo Operacional
-
-Antes de entrar no passo a passo, é importante entender como os módulos se conectam. O Syspro ERP foi projetado para que os dados fluam automaticamente entre as áreas.
-
-<Cards>
-  <Card title="1. Alicerce" icon={<Building2 />} description="Cadastros essenciais: Participantes, Produtos e Serviços." />
-  <Card title="2. Operação" icon={<ClipboardList />} description="Entradas de notas, Pedidos de Venda e Emissão Fiscal." />
-  <Card title="3. Gestão" icon={<BarChart3 />} description="Gestão Financeira, Fechamento de Caixa e Relatórios." />
-</Cards>
-
----
-
 ## Passo a Passo Operacional
 
 <Steps>
@@ -82,20 +70,17 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
 
     Com os participantes registrados, o próximo passo é estruturar o catálogo comercial.
 
-    <Accordions>
-      <Accordion title="Diferença entre Produtos e Serviços">
-        O Syspro ERP distingue claramente dois tipos de itens: **produtos** (bens físicos com controle de estoque) e **serviços** (mão de obra e prestações sem movimentação de estoque).
-      </Accordion>
-      <Accordion title="Implicações Fiscais">
-        Essa separação tem implicação fiscal direta. Produtos são tributados por ICMS e exigem NCM; serviços são tributados por ISS e exigem código NBS. Misturar ou deixar em branco esses campos causará erros na emissão das notas fiscais.
-      </Accordion>
-    </Accordions>
-
     <Callout type="info" title="Boa prática">
       Preencha sempre a unidade de medida correta (UN, PAR, LT, KG). Ela aparece no documento fiscal e define como o estoque é contado. Uma unidade errada pode distorcer o inventário e o cálculo de custos.
     </Callout>
 
     <YouTubeModal videoId="aJAqC5tTm0A" thumbnailTitle="Cadastro de Produtos e Serviços" />
+
+    <Accordions>
+      <Accordion title="Implicações Fiscais">
+        Essa separação tem implicação fiscal direta. Produtos são tributados por ICMS e exigem NCM; serviços são tributados por ISS e exigem código NBS. Misturar ou deixar em branco esses campos causará erros na emissão das notas fiscais.
+      </Accordion>
+    </Accordions>
   </Step>
 
   <Step>
@@ -115,17 +100,17 @@ Antes de entrar no passo a passo, é importante entender como os módulos se con
 
     O módulo de Pedido de Venda é o ponto de atendimento comercial direto. Ele foi projetado para o ritmo do balcão — seleção rápida de itens por código, descrição ou código de barras.
 
-    <Accordions>
-      <Accordion title="Segregação de Funções">
-        O pedido de venda não emite nota fiscal por si só — ele é o documento de origem que será convertido em NF-e ou NFC-e na etapa de faturamento. Esse fluxo em duas etapas permite que a equipe comercial gere o pedido sem acesso ao módulo fiscal.
-      </Accordion>
-    </Accordions>
-
     <Callout type="info" title="Comissões e produtividade">
       Mantenha o campo **Vendedor** sempre preenchido. Sem esse vínculo, os relatórios de produtividade e o cálculo de comissões ficam incompletos.
     </Callout>
 
     <YouTubeModal videoId="jPNM_8BbjKM" thumbnailTitle="Pedido de Venda — Atendimento Ágil no Balcão" />
+
+    <Accordions>
+      <Accordion title="Segregação de Funções">
+        O pedido de venda não emite nota fiscal por si só — ele é o documento de origem que será convertido em NF-e ou NFC-e na etapa de faturamento. Esse fluxo em duas etapas permite que a equipe comercial gere o pedido sem acesso ao módulo fiscal.
+      </Accordion>
+    </Accordions>
   </Step>
 
   <Step>
