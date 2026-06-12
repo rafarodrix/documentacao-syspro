@@ -35,8 +35,11 @@ import {
   buildDefaultInterstateIcmsSettings,
   DEFAULT_COMPANY_INACTIVATION_REASON_OPTIONS,
   DEFAULT_CONTRACT_BLOCK_REASON_OPTIONS,
+  DEFAULT_GOOGLE_CALENDAR_SETTINGS,
+  googleCalendarSettingsSchema,
   interstateIcmsSettingsSchema,
   storageR2SettingsSchema,
+  type GoogleCalendarSettingsInput,
   type InterstateIcmsSettings,
   type StorageR2SettingsInput,
   type SettingsContractsAdminView,
@@ -92,6 +95,9 @@ export class SettingsController {
   private static readonly CHATWOOT_PLATFORM_API_TOKEN_KEY = 'chatwoot_platform_api_token';
   private static readonly CHATWOOT_SYSTEM_BOT_TOKEN_KEY = 'chatwoot_system_bot_token';
   private static readonly CHATWOOT_WEBHOOK_SECRET_KEY = 'chatwoot_webhook_secret';
+  private static readonly GOOGLE_CALENDAR_CONFIG_KEY = 'google_calendar_config';
+  private static readonly GOOGLE_CALENDAR_CLIENT_SECRET_KEY = 'google_calendar_client_secret';
+  private static readonly GOOGLE_CALENDAR_REFRESH_TOKEN_KEY = 'google_calendar_refresh_token';
   private static readonly STORAGE_CONFIG_KEY = R2StorageService.STORAGE_CONFIG_KEY;
   private static readonly STORAGE_ACCESS_KEY_ID_KEY = R2StorageService.STORAGE_ACCESS_KEY_ID_KEY;
   private static readonly STORAGE_SECRET_ACCESS_KEY_KEY = R2StorageService.STORAGE_SECRET_ACCESS_KEY_KEY;
@@ -906,6 +912,15 @@ export class SettingsController {
     };
   }
 
+  @Get('google-calendar/config')
+  async getGoogleCalendarConfig(@Req() req: Request) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:view');
+    return {
+      success: true,
+      data: await this.readStoredGoogleCalendarSettings(),
+    };
+  }
+
   @Put('storage/config')
   async setStorageConfig(@Req() req: Request, @Body() input: StorageR2SettingsInput) {
     await this.authorizationService.assertPermission(req.headers, 'settings:edit');
@@ -949,6 +964,53 @@ export class SettingsController {
       success: true,
       data: sanitized,
       message: 'Configuracao de storage salva com sucesso.',
+    };
+  }
+
+  @Put('google-calendar/config')
+  async setGoogleCalendarConfig(@Req() req: Request, @Body() input: GoogleCalendarSettingsInput) {
+    await this.authorizationService.assertPermission(req.headers, 'settings:edit');
+    const parsed = googleCalendarSettingsSchema.parse(input);
+    const sanitized = {
+      ...parsed,
+      calendarId: parsed.calendarId.trim(),
+      timeZone: parsed.timeZone.trim(),
+      clientId: parsed.clientId.trim(),
+      clientSecret: parsed.clientSecret.trim(),
+      refreshToken: parsed.refreshToken.trim(),
+      eventTitlePrefix: parsed.eventTitlePrefix.trim(),
+    };
+    const { clientSecret, refreshToken, ...storedConfig } = sanitized;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { key: SettingsController.GOOGLE_CALENDAR_CONFIG_KEY },
+        update: { value: JSON.stringify(storedConfig) },
+        create: {
+          key: SettingsController.GOOGLE_CALENDAR_CONFIG_KEY,
+          value: JSON.stringify(storedConfig),
+          description: 'Configuracao principal da integracao Google Agenda',
+        },
+      });
+
+      await this.upsertEncryptedOptionalSetting(
+        tx,
+        SettingsController.GOOGLE_CALENDAR_CLIENT_SECRET_KEY,
+        clientSecret,
+        'Client Secret da integracao Google Agenda',
+      );
+      await this.upsertEncryptedOptionalSetting(
+        tx,
+        SettingsController.GOOGLE_CALENDAR_REFRESH_TOKEN_KEY,
+        refreshToken,
+        'Refresh Token da integracao Google Agenda',
+      );
+    });
+
+    return {
+      success: true,
+      data: sanitized,
+      message: 'Configuracao do Google Agenda salva com sucesso.',
     };
   }
 
@@ -1958,6 +2020,45 @@ export class SettingsController {
         webhookSecret: webhookSecretSetting?.value
           ? this.decryptOptional(webhookSecretSetting.value) ?? ''
           : runtime.webhookSecret,
+      });
+      return validation.success ? validation.data : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private async readStoredGoogleCalendarSettings() {
+    const [configSetting, clientSecretSetting, refreshTokenSetting] = await Promise.all([
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.GOOGLE_CALENDAR_CONFIG_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.GOOGLE_CALENDAR_CLIENT_SECRET_KEY },
+        select: { value: true },
+      }),
+      this.prisma.systemSetting.findUnique({
+        where: { key: SettingsController.GOOGLE_CALENDAR_REFRESH_TOKEN_KEY },
+        select: { value: true },
+      }),
+    ]);
+
+    const fallback = {
+      ...DEFAULT_GOOGLE_CALENDAR_SETTINGS,
+      clientSecret: clientSecretSetting?.value ? this.decryptOptional(clientSecretSetting.value) ?? '' : '',
+      refreshToken: refreshTokenSetting?.value ? this.decryptOptional(refreshTokenSetting.value) ?? '' : '',
+    };
+
+    if (!configSetting?.value) {
+      return fallback;
+    }
+
+    try {
+      const parsed = JSON.parse(configSetting.value);
+      const validation = googleCalendarSettingsSchema.safeParse({
+        ...parsed,
+        clientSecret: clientSecretSetting?.value ? this.decryptOptional(clientSecretSetting.value) ?? '' : '',
+        refreshToken: refreshTokenSetting?.value ? this.decryptOptional(refreshTokenSetting.value) ?? '' : '',
       });
       return validation.success ? validation.data : fallback;
     } catch {

@@ -1,10 +1,11 @@
 "use client";
 
-import { Bot, HardDrive, MessageSquare, Plug } from "lucide-react";
+import { Bot, CalendarDays, HardDrive, MessageSquare, Plug } from "lucide-react";
 import { Tabs, TabsContent } from "@dosc-syspro/ui";
 import EvolutionSettingsTab from "./evolution-tab";
 import { SettingsPageIntro, SettingsTabsRail, SettingsTabsRailTrigger } from "./settings-shell";
 import { ChatwootDiagnosticsTab } from "./integrations/components/chatwoot-tab";
+import { GoogleCalendarSettingsTab } from "./integrations/components/google-calendar-tab";
 import { StorageDiagnosticsTab } from "./integrations/components/storage-tab";
 
 export function IntegrationsSettingsTab() {
@@ -18,9 +19,10 @@ export function IntegrationsSettingsTab() {
       />
 
       <Tabs defaultValue="chatwoot" className="space-y-5">
-        <SettingsTabsRail className="sm:grid-cols-3">
+        <SettingsTabsRail className="sm:grid-cols-4">
           <SettingsTabsRailTrigger value="chatwoot" icon={MessageSquare} title="Chatwoot" />
           <SettingsTabsRailTrigger value="evolution" icon={Bot} title="Evolution" />
+          <SettingsTabsRailTrigger value="google-calendar" icon={CalendarDays} title="Google Agenda" />
           <SettingsTabsRailTrigger value="storage" icon={HardDrive} title="Storage" />
         </SettingsTabsRail>
 
@@ -30,6 +32,10 @@ export function IntegrationsSettingsTab() {
 
         <TabsContent value="evolution" className="focus-visible:ring-0">
           <EvolutionSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="google-calendar" className="focus-visible:ring-0">
+          <GoogleCalendarSettingsTab />
         </TabsContent>
 
         <TabsContent value="storage" className="focus-visible:ring-0">
