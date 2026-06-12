@@ -329,17 +329,18 @@ export class TicketsService {
     const requester = await this.authorizationService.getRequester(rawHeaders);
     const accessScope = await this.getTicketAccessScope(requester);
 
-    if (!accessScope.isGlobal) {
-      throw new ForbiddenException('Nao autorizado a consultar empresas para tickets.');
-    }
-
     const q = (input.q || '').trim();
     const rawLimit = Number(input.limit || 15);
     const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(30, Math.trunc(rawLimit))) : 15;
 
+    if (!accessScope.isGlobal && accessScope.companyIds.length === 0) {
+      return { options: [] };
+    }
+
     const companyRows = await this.prisma.company.findMany({
       where: {
         deletedAt: null,
+        ...(accessScope.isGlobal ? {} : { id: { in: accessScope.companyIds } }),
         ...buildTicketCustomerOptionCompanySearchWhere(q),
       },
       orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
@@ -358,7 +359,10 @@ export class TicketsService {
         status: 'LINKED',
         companyLinks: {
           some: {
-            company: { deletedAt: null },
+            company: {
+              deletedAt: null,
+              ...(accessScope.isGlobal ? {} : { id: { in: accessScope.companyIds } }),
+            },
           },
         },
         ...buildTicketCustomerOptionContactSearchWhere(q),
@@ -370,7 +374,10 @@ export class TicketsService {
         email: true,
         companyLinks: {
           where: {
-            company: { deletedAt: null },
+            company: {
+              deletedAt: null,
+              ...(accessScope.isGlobal ? {} : { id: { in: accessScope.companyIds } }),
+            },
           },
           orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
           select: {

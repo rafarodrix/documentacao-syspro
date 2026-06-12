@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
-import type { CustomerEmailOption } from "@/features/tickets/application/customer-emails";
 import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
 import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
-import type { TaskConfigView, TaskContactOption } from "@dosc-syspro/contracts/tarefas";
+import type { TaskCompanySearchOption, TaskConfigView, TaskContactOption } from "@dosc-syspro/contracts/tarefas";
 import {
   Button,
   Dialog,
@@ -46,7 +45,7 @@ function encodePickerPart(value?: string | null) {
   return encodeURIComponent((value || "").trim());
 }
 
-function buildPickerValue(input: Pick<CustomerEmailOption, "companyId" | "email" | "contactName">) {
+function buildPickerValue(input: Pick<TaskCompanySearchOption, "companyId" | "email" | "contactName">) {
   return [
     encodePickerPart(input.companyId),
     encodePickerPart(input.email),
@@ -92,7 +91,7 @@ export function TaskCreateDialog({
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
   const [companyOptionsError, setCompanyOptionsError] = useState<string | null>(null);
-  const [customerOptions, setCustomerOptions] = useState<CustomerEmailOption[]>([]);
+  const [customerOptions, setCustomerOptions] = useState<TaskCompanySearchOption[]>([]);
   const [selectedCompanyConfig, setSelectedCompanyConfig] = useState<TaskConfigView | null>(null);
   const [selectedCompanyOptionValue, setSelectedCompanyOptionValue] = useState("");
   const [selectedContactEmail, setSelectedContactEmail] = useState("");
@@ -174,7 +173,7 @@ export function TaskCreateDialog({
   useEffect(() => {
     if (!open) return;
 
-    const controller = new AbortController();
+    let active = true;
     const timer = setTimeout(async () => {
       try {
         setIsLoadingCompanyOptions(true);
@@ -184,33 +183,27 @@ export function TaskCreateDialog({
         params.set("q", companySearchQuery.trim());
         params.set("limit", "15");
 
-        const response = await fetch(`/api/platform/tickets/customer-emails?${params.toString()}`, {
-          method: "GET",
-          signal: controller.signal,
+        const result = await trpc.tarefas.searchCompanyOptions.query({
+          q: params.get("q") || "",
+          limit: Number(params.get("limit") || "15"),
         });
-
-        if (!response.ok) {
-          const json = (await response.json().catch(() => null)) as { error?: string } | null;
-          setCompanyOptionsError(json?.error || "Falha ao consultar empresas e contatos.");
-          setCustomerOptions([]);
-          return;
-        }
-
-        const json = (await response.json()) as { options?: CustomerEmailOption[] };
-        setCustomerOptions(Array.isArray(json.options) ? json.options : []);
+        if (!active) return;
+        setCustomerOptions(Array.isArray(result.options) ? result.options : []);
       } catch (error) {
-        if ((error as Error)?.name !== "AbortError") {
-          setCompanyOptionsError("Falha ao consultar empresas e contatos.");
+        if (active) {
+          setCompanyOptionsError(error instanceof Error ? error.message : "Falha ao consultar empresas e contatos.");
           setCustomerOptions([]);
         }
       } finally {
-        setIsLoadingCompanyOptions(false);
+        if (active) {
+          setIsLoadingCompanyOptions(false);
+        }
       }
     }, 250);
 
     return () => {
+      active = false;
       clearTimeout(timer);
-      controller.abort();
     };
   }, [companySearchQuery, open]);
 

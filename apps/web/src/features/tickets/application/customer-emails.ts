@@ -2,7 +2,7 @@ import "server-only";
 
 import { callWebApi } from "@/lib/web-api";
 import { getProtectedSession } from "@/lib/auth-helpers";
-import { currentUserHasPermission } from "@/features/user-access/application/current-user-access";
+import { currentUserHasAnyPermission } from "@/features/user-access/application/current-user-access";
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 30;
@@ -40,7 +40,12 @@ export async function findCustomerEmailOptions(input: { q: string; limit: number
 
 export async function getCustomerEmailOptionsForCurrentUser(url: string) {
   const session = await getProtectedSession();
-  const hasInternalTicketAccess = session && (await currentUserHasPermission("tickets:view_all"));
+  const hasInternalTicketAccess =
+    session &&
+    (await currentUserHasAnyPermission(
+      ["tickets:view_all", "tickets:view_own", "tickets:manage"],
+      { acceptCompanyScope: true },
+    ));
   if (!hasInternalTicketAccess) {
     return {
       authorized: false,

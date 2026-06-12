@@ -3,6 +3,7 @@ import {
   taskListQuerySchema,
   taskItemListQuerySchema,
   taskConfigUpsertSchema,
+  taskCompanySearchQuerySchema,
   taskSendManualRequestSchema,
   taskSyncCompetenciesSchema,
   taskUpdateStatusSchema,
@@ -39,6 +40,11 @@ export class TarefasRouter {
         .input(z.object({ companyId: z.string().min(1) }))
         .query(({ input, ctx }) => {
           return this.tarefasService.getCompanyConfig(input.companyId, ctx.headers);
+        }),
+      searchCompanyOptions: this.trpc.publicProcedure
+        .input(taskCompanySearchQuerySchema)
+        .query(({ input, ctx }) => {
+          return this.tarefasService.searchCompanyOptions(input, ctx.headers);
         }),
       getTask: this.trpc.publicProcedure
         .input(z.object({ id: z.string().min(1) }))

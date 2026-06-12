@@ -131,6 +131,20 @@ export const taskConfigViewSchema = z.object({
   accountingContacts: z.array(taskContactOptionSchema),
 });
 
+export const taskCompanySearchQuerySchema = z.object({
+  q: z.string().trim().optional(),
+  limit: z.number().int().min(1).max(30).optional(),
+});
+
+export const taskCompanySearchOptionSchema = z.object({
+  companyId: z.string(),
+  email: z.string(),
+  companyName: z.string(),
+  legalName: z.string().nullable().optional(),
+  cnpj: z.string().nullable().optional(),
+  contactName: z.string().nullable(),
+});
+
 export const taskItemListQuerySchema = paginationQuerySchema.extend({
   year: z.string().optional(),
   month: z.string().optional(),
@@ -286,6 +300,8 @@ export type TaskContactOption = z.output<typeof taskContactOptionSchema>;
 export type TaskConfig = z.output<typeof taskConfigSchema>;
 export type TaskConfigUpsertInput = z.output<typeof taskConfigUpsertSchema>;
 export type TaskConfigView = z.output<typeof taskConfigViewSchema>;
+export type TaskCompanySearchQuery = z.output<typeof taskCompanySearchQuerySchema>;
+export type TaskCompanySearchOption = z.output<typeof taskCompanySearchOptionSchema>;
 export type TaskItemListQuery = z.output<typeof taskItemListQuerySchema>;
 export type TaskItem = z.output<typeof taskItemSchema>;
 export type TaskItemSummary = z.output<typeof taskItemSummarySchema>;

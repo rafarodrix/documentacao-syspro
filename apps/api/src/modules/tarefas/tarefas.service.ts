@@ -3,6 +3,8 @@ import { buildPaginationMeta } from '@dosc-syspro/contracts';
 import type {
   TaskConfigUpsertInput,
   TaskConfigView,
+  TaskCompanySearchOption,
+  TaskCompanySearchQuery,
   TaskCompanyItem,
   TaskItem,
   TaskStatus,
@@ -214,6 +216,145 @@ export class TarefasService {
       clientContacts: this.toContactOptions(company.contactLinks),
       accountingContacts: this.toContactOptions(company.accountingFirm?.contactLinks ?? []),
     };
+  }
+
+  async searchCompanyOptions(
+    input: TaskCompanySearchQuery,
+    rawHeaders?: IncomingHttpHeaders,
+  ): Promise<{ options: TaskCompanySearchOption[] }> {
+    const requester = await this.authorizationService.getRequester(rawHeaders);
+    const scope = await this.resolveManageScope(requester);
+    const q = (input.q || '').trim();
+    const limit = Math.max(1, Math.min(30, Math.trunc(input.limit ?? 15)));
+
+    if (!scope.isGlobal && scope.companyIds.length === 0) {
+      return { options: [] };
+    }
+
+    const companyRows = await (this.prisma.company as any).findMany({
+      where: {
+        deletedAt: null,
+        ...(scope.isGlobal ? {} : { id: { in: scope.companyIds } }),
+        ...(q
+          ? {
+              OR: [
+                { nomeFantasia: { contains: q, mode: 'insensitive' } },
+                { razaoSocial: { contains: q, mode: 'insensitive' } },
+                { cnpj: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ nomeFantasia: 'asc' }, { razaoSocial: 'asc' }],
+      select: {
+        id: true,
+        nomeFantasia: true,
+        razaoSocial: true,
+        cnpj: true,
+      },
+      take: limit,
+    });
+
+    const contactRows = await (this.prisma.companyContact as any).findMany({
+      where: {
+        status: 'LINKED',
+        companyLinks: {
+          some: {
+            company: {
+              deletedAt: null,
+              ...(scope.isGlobal ? {} : { id: { in: scope.companyIds } }),
+            },
+          },
+        },
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: 'insensitive' } },
+                { email: { contains: q, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ name: 'asc' }, { email: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        companyLinks: {
+          where: {
+            company: {
+              deletedAt: null,
+              ...(scope.isGlobal ? {} : { id: { in: scope.companyIds } }),
+            },
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          select: {
+            companyId: true,
+            company: {
+              select: {
+                nomeFantasia: true,
+                razaoSocial: true,
+                cnpj: true,
+              },
+            },
+          },
+        },
+      },
+      take: limit * 2,
+    });
+
+    const dedup = new Map<string, TaskCompanySearchOption>();
+
+    for (const company of companyRows) {
+      const companyName = company.nomeFantasia?.trim() || company.razaoSocial?.trim();
+      if (!companyName) continue;
+
+      dedup.set(`company:${company.id}`, {
+        companyId: company.id,
+        email: '',
+        companyName,
+        legalName:
+          company.nomeFantasia?.trim() &&
+          company.razaoSocial?.trim() &&
+          company.nomeFantasia.trim() !== company.razaoSocial.trim()
+            ? company.razaoSocial.trim()
+            : null,
+        cnpj: company.cnpj?.trim() || null,
+        contactName: null,
+      });
+    }
+
+    for (const contact of contactRows) {
+      const email = String(contact.email || '').trim().toLowerCase();
+
+      for (const link of contact.companyLinks) {
+        const companyName = link.company?.nomeFantasia?.trim() || link.company?.razaoSocial?.trim() || '';
+        if (!companyName) continue;
+
+        const dedupKey = email ? `${email}:${link.companyId}` : `contact:${contact.id}:${link.companyId}`;
+        if (dedup.has(dedupKey)) continue;
+
+        dedup.set(dedupKey, {
+          companyId: link.companyId,
+          email,
+          companyName,
+          legalName:
+            link.company?.nomeFantasia?.trim() &&
+            link.company?.razaoSocial?.trim() &&
+            link.company.nomeFantasia.trim() !== link.company.razaoSocial.trim()
+              ? link.company.razaoSocial.trim()
+              : null,
+          cnpj: link.company?.cnpj?.trim() || null,
+          contactName: contact.name?.trim() || null,
+        });
+
+        if (dedup.size >= limit) {
+          return { options: Array.from(dedup.values()) };
+        }
+      }
+    }
+
+    return { options: Array.from(dedup.values()) };
   }
 
   async upsertCompanyConfig(input: TaskConfigUpsertInput, rawHeaders?: IncomingHttpHeaders): Promise<{ success: boolean; message: string }> {
