@@ -14,7 +14,7 @@ import {
 import { Button, Input, Popover, PopoverContent, PopoverTrigger } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
 
-export type TicketCompanyPickerOption = {
+export type CompanyPickerOption = {
   id: string;
   label: string;
   description?: string | null;
@@ -22,9 +22,9 @@ export type TicketCompanyPickerOption = {
   kind?: "company" | "contact";
 };
 
-interface TicketCompanyPickerProps {
+interface CompanyPickerProps {
   value: string;
-  options: TicketCompanyPickerOption[];
+  options: CompanyPickerOption[];
   onChange: (value: string) => void;
   onSearch?: (query: string) => void;
   loading?: boolean;
@@ -39,7 +39,7 @@ const MAX_VISIBLE_OPTIONS = 50;
 const SEARCH_DEBOUNCE_MS = 180;
 const RESET_QUERY_DELAY_MS = 150;
 
-export function TicketCompanyPicker({
+export function CompanyPicker({
   value,
   options,
   onChange,
@@ -50,7 +50,7 @@ export function TicketCompanyPicker({
   emptyMessage = "Nenhum resultado encontrado.",
   disabled,
   className,
-}: TicketCompanyPickerProps) {
+}: CompanyPickerProps) {
   const [open, setOpen] = useState(false);
   const [internalQuery, setInternalQuery] = useState("");
   const deferredQuery = useDeferredValue(internalQuery);

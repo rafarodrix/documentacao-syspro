@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/patterns";
 import { useTicketArchive } from "@/features/tickets/interface/hooks/use-ticket-archive";
 import { useTicketClassification } from "@/features/tickets/interface/hooks/use-ticket-classification";
 import { useTicketOwners } from "@/features/tickets/interface/hooks/use-ticket-owners";
-import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
+import { useInternalUsers } from "@/features/user-access/interface/hooks/use-internal-users";
 import { useTicketHotkeys } from "@/features/tickets/interface/hooks/use-ticket-hotkeys";
 import { useTicketModuleSettings } from "@/features/tickets/interface/hooks/use-ticket-module-settings";
 import { useTicketTimeline } from "@/features/tickets/interface/hooks/use-ticket-timeline";

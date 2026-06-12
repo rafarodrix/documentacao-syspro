@@ -19,7 +19,7 @@ import {
 import { Button, Input, Label, ScrollArea, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Form, FormControl, FormField, FormItem, FormLabel, FormMessage, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@dosc-syspro/ui";
 import { toast } from "sonner";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/ticket-attachment-field";
-import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
+import { CompanyPicker, type CompanyPickerOption } from "@/components/platform/shared/company-picker";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
 import { TicketRichTextEditor } from "@/features/tickets/interface/components/ticket-rich-text-editor";
 import { normalizeTicketMarkdownInput } from "@dosc-syspro/tickets-domain";
@@ -108,8 +108,8 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
     [customerCompany, customerEmail, customerOptions, selectedCompanyId],
   );
 
-  const internalCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
-    const opts: TicketCompanyPickerOption[] = [];
+  const internalCompanyOptions: CompanyPickerOption[] = useMemo(() => {
+    const opts: CompanyPickerOption[] = [];
     const usedIds = new Set<string>();
 
     for (const option of customerOptions) {
@@ -147,7 +147,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
     return opts;
   }, [customerOptions, selectedCompanyId, customerEmail, customerCompany]);
 
-  const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
+  const clientCompanyOptions: CompanyPickerOption[] = clientCompanies.map((company) => ({
     id: company.id,
     label: company.name,
     kind: "company",
@@ -404,7 +404,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                       <Label className="flex justify-between items-center text-[13px] font-semibold">
                           Cliente Solicitante <span className="p-1 bg-yellow-500/10 text-yellow-600 rounded text-[10px]">Restrito a Agentes</span>
                       </Label>
-                      <TicketCompanyPicker
+                      <CompanyPicker
                         value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
                         options={internalCompanyOptions}
                         onChange={(value) => {
@@ -435,7 +435,7 @@ export function TicketDialog({ hasInternalTicketAccess = false }: TicketDialogPr
                   {!hasInternalTicketAccess && clientCompanies.length > 1 && (
                     <FormItem>
                       <Label>Qual das suas empresas matriz/filial?</Label>
-                      <TicketCompanyPicker
+                      <CompanyPicker
                         value={selectedCompanyId}
                         options={clientCompanyOptions}
                         onChange={setSelectedCompanyId}

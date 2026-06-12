@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { trpc } from "@/lib/api/trpc-client";
-import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
-import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
+import { CompanyPicker, type CompanyPickerOption } from "@/components/platform/shared/company-picker";
 import type { TaskCompanySearchOption, TaskConfigView, TaskContactOption } from "@dosc-syspro/contracts/tarefas";
+import { useInternalUsers } from "@/features/user-access/interface/hooks/use-internal-users";
 import {
   Button,
   Dialog,
@@ -111,7 +111,7 @@ export function TaskCreateDialog({
     () => customerOptions.find((option) => buildPickerValue(option) === selectedCompanyOptionValue) ?? null,
     [customerOptions, selectedCompanyOptionValue],
   );
-  const companyPickerOptions = useMemo<TicketCompanyPickerOption[]>(
+  const companyPickerOptions = useMemo<CompanyPickerOption[]>(
     () => {
       const options = customerOptions.map((option) => {
         const hasContact = Boolean(option.contactName?.trim());
@@ -124,7 +124,7 @@ export function TaskCreateDialog({
           description: hasContact ? companySupportText : [option.legalName, option.cnpj].filter(Boolean).join(" | "),
           meta: hasContact ? contactSupportText : null,
           kind: hasContact ? "contact" : "company",
-        } satisfies TicketCompanyPickerOption;
+        } satisfies CompanyPickerOption;
       });
 
       if (
@@ -332,7 +332,7 @@ export function TaskCreateDialog({
               <Label htmlFor="task-create-company" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Empresa ou contato
               </Label>
-              <TicketCompanyPicker
+              <CompanyPicker
                 value={selectedCompanyOptionValue}
                 options={companyPickerOptions}
                 onChange={(value) => {

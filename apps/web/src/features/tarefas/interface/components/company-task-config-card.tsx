@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { TaskConfigUpsertInput, TaskConfigView } from "@dosc-syspro/contracts/tarefas";
-import { useInternalUsers } from "@/features/tickets/interface/hooks/use-internal-users";
+import { useInternalUsers } from "@/features/user-access/interface/hooks/use-internal-users";
 import { Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch, Textarea } from "@dosc-syspro/ui";
 import { CalendarRange, TriangleAlert, UserRound } from "lucide-react";
 

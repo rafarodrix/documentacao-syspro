@@ -32,9 +32,9 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select,
 import { cn } from "@/lib/utils";
 import { createTicketAction, getUserLinkedCompaniesAction } from "@/features/tickets/application/ticket-actions";
 import {
-  TicketCompanyPicker,
-  type TicketCompanyPickerOption,
-} from "@/features/tickets/interface/components/ticket-company-picker";
+  CompanyPicker,
+  type CompanyPickerOption,
+} from "@/components/platform/shared/company-picker";
 import { PageHeader } from "@/components/patterns";
 import { TicketAttachmentField } from "@/features/tickets/interface/components/ticket-attachment-field";
 import { TicketModuleCascadeSelect } from "@/features/tickets/interface/components/ticket-module-cascade-select";
@@ -148,8 +148,8 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
     [selectedTeam, ticketSettings.categories],
   );
 
-  const internalCompanyOptions: TicketCompanyPickerOption[] = useMemo(() => {
-    const opts: TicketCompanyPickerOption[] = [];
+  const internalCompanyOptions: CompanyPickerOption[] = useMemo(() => {
+    const opts: CompanyPickerOption[] = [];
     const usedIds = new Set<string>();
 
     for (const option of customerOptions) {
@@ -187,7 +187,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
     return opts;
   }, [customerOptions, selectedCompanyId, customerEmail, customerCompany]);
 
-  const clientCompanyOptions: TicketCompanyPickerOption[] = clientCompanies.map((company) => ({
+  const clientCompanyOptions: CompanyPickerOption[] = clientCompanies.map((company) => ({
     id: company.id,
     label: company.name,
     kind: "company",
@@ -496,7 +496,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
                 {hasInternalTicketAccess && (
                   <div className="space-y-2">
                     <Label>Empresa / contato</Label>
-                    <TicketCompanyPicker
+                    <CompanyPicker
                       value={selectedCompanyId || customerEmail ? (customerEmail ? `${selectedCompanyId}::${customerEmail}` : `${selectedCompanyId}::`) : ""}
                       options={internalCompanyOptions}
                       onChange={(value) => {
@@ -549,7 +549,7 @@ export function CreateTicketPageForm({ hasInternalTicketAccess, initialContext }
                 {!hasInternalTicketAccess && clientCompanies.length > 1 && (
                   <div className="space-y-2">
                     <Label>Empresa</Label>
-                    <TicketCompanyPicker
+                    <CompanyPicker
                       value={selectedCompanyId}
                       options={clientCompanyOptions}
                       onChange={setSelectedCompanyId}

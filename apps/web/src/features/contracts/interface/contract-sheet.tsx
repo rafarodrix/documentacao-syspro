@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { updateContractAction } from "@/features/contracts/application/contract-write.actions";
 
 import { Button, Input, Label, Textarea, Switch, Separator } from "@dosc-syspro/ui";
-import { TicketCompanyPicker, type TicketCompanyPickerOption } from "@/features/tickets/interface/components/ticket-company-picker";
+import { CompanyPicker, type CompanyPickerOption } from "@/components/platform/shared/company-picker";
 import {
     PlusCircle, Loader2, DollarSign, RefreshCw, CalendarDays, Percent, Calculator, ArrowLeft,
 } from "lucide-react";
@@ -101,7 +101,7 @@ export function ContractSheet({ companies, mode = "button", contract = null }: C
 
     const selectedCompanyId = form.watch("companyId");
     const selectedCompany = useMemo(() => companies.find((company) => company.id === selectedCompanyId) ?? null, [companies, selectedCompanyId]);
-    const companyPickerOptions = useMemo<TicketCompanyPickerOption[]>(
+    const companyPickerOptions = useMemo<CompanyPickerOption[]>(
         () => companies.map((company) => ({
             id: company.id,
             label: company.razaoSocial,
@@ -187,7 +187,7 @@ export function ContractSheet({ companies, mode = "button", contract = null }: C
                             </div>
                             <div className="space-y-1.5">
                                 <Label className="text-xs">Empresa contratante</Label>
-                                <TicketCompanyPicker
+                                <CompanyPicker
                                     value={selectedCompanyId}
                                     options={companyPickerOptions}
                                     onChange={(value) => form.setValue("companyId", value, { shouldDirty: true, shouldValidate: true })}

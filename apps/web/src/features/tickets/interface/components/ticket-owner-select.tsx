@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Search, UserRound } from "lucide-react";
 import { Button, Input, Popover, PopoverContent, PopoverTrigger, ScrollArea } from "@dosc-syspro/ui";
 import { cn } from "@/lib/utils";
-import type { InternalUserOption } from "@/features/tickets/interface/hooks/use-internal-users";
+import type { InternalUserOption } from "@/features/user-access/interface/hooks/use-internal-users";
 import { EditableSidebarField, SidebarField } from "./ticket-sidebar-fields";
 import type { TicketDetailsItem } from "./ticket-view.types";
 
