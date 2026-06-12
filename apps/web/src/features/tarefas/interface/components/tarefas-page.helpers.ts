@@ -1,4 +1,5 @@
 import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
+import { formatDateShort, formatDateTime } from "@/lib/date";
 
 export function getTaskStatusLabel(status: TaskItem["status"]): string {
   switch (status) {
@@ -66,4 +67,8 @@ export function getTaskTypeLabel(type: TaskItem["type"]): string {
 
 export function getTaskTypeVariant(type: TaskItem["type"]) {
   return type === "ROTINA_MENSAL" ? ("secondary" as const) : ("outline" as const);
+}
+
+export function formatTaskDueDate(item: Pick<TaskItem, "type" | "dueDate">): string {
+  return item.type === "TAREFA" ? formatDateTime(item.dueDate) : formatDateShort(item.dueDate);
 }

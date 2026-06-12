@@ -35,10 +35,13 @@ interface TaskCreateDialogProps {
   lockCompany?: boolean;
 }
 
-function buildDefaultDueDateInput() {
+function buildDefaultDueDateInputs() {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 3);
-  return dueDate.toISOString().slice(0, 10);
+  return {
+    date: dueDate.toISOString().slice(0, 10),
+    time: "09:00",
+  };
 }
 
 function encodePickerPart(value?: string | null) {
@@ -99,7 +102,8 @@ export function TaskCreateDialog({
   const [companyId, setCompanyId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState(buildDefaultDueDateInput);
+  const [dueDate, setDueDate] = useState(() => buildDefaultDueDateInputs().date);
+  const [dueTime, setDueTime] = useState(() => buildDefaultDueDateInputs().time);
   const [assignedToId, setAssignedToId] = useState(EMPTY_ASSIGNEE_VALUE);
   const [clientContactId, setClientContactId] = useState(EMPTY_CONTACT_VALUE);
   const [requiredDocumentsText, setRequiredDocumentsText] = useState("");
@@ -222,7 +226,9 @@ export function TaskCreateDialog({
     setSelectedCompanyConfig(null);
     setTitle("");
     setDescription("");
-    setDueDate(buildDefaultDueDateInput());
+    const defaultDueDate = buildDefaultDueDateInputs();
+    setDueDate(defaultDueDate.date);
+    setDueTime(defaultDueDate.time);
     setAssignedToId(EMPTY_ASSIGNEE_VALUE);
     setClientContactId(EMPTY_CONTACT_VALUE);
     setRequiredDocumentsText("");
@@ -288,6 +294,10 @@ export function TaskCreateDialog({
       toast.error("Informe a data de vencimento.");
       return;
     }
+    if (!dueTime) {
+      toast.error("Informe a hora de vencimento.");
+      return;
+    }
 
     const requiredDocuments = requiredDocumentsText
       .split(/\r?\n|,/)
@@ -300,7 +310,7 @@ export function TaskCreateDialog({
           companyId,
           title: title.trim(),
           description: description.trim() || undefined,
-          dueDate: new Date(`${dueDate}T12:00:00`).toISOString(),
+          dueDate: new Date(`${dueDate}T${dueTime}:00`).toISOString(),
           clientContactId: clientContactId !== EMPTY_CONTACT_VALUE ? clientContactId : undefined,
           assignedToId: assignedToId !== EMPTY_ASSIGNEE_VALUE ? assignedToId : undefined,
           requiredDocuments,
@@ -370,13 +380,27 @@ export function TaskCreateDialog({
           <section className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="task-create-due-date" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Vencimento
+                Data de vencimento
               </Label>
               <Input
                 id="task-create-due-date"
                 type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
+                disabled={isSubmitting}
+                className="h-10 bg-background"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="task-create-due-time" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Hora de vencimento
+              </Label>
+              <Input
+                id="task-create-due-time"
+                type="time"
+                value={dueTime}
+                onChange={(event) => setDueTime(event.target.value)}
                 disabled={isSubmitting}
                 className="h-10 bg-background"
               />

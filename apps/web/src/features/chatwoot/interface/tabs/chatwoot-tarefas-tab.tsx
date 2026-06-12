@@ -7,10 +7,11 @@ import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@dosc-s
 import { ArrowUpRight, CalendarClock, CircleCheckBig, ClipboardPlus, Loader2, MessageSquareShare, RefreshCw, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/api/trpc-client";
-import { formatDateShort, formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { TaskManualRequestDialog } from "@/features/tarefas/interface/components/task-manual-request-dialog";
 import { TaskCreateDialog } from "@/features/tarefas/interface/components/task-create-dialog";
 import { TaskStatusDialog } from "@/features/tarefas/interface/components/task-status-dialog";
+import { formatTaskDueDate } from "@/features/tarefas/interface/components/tarefas-page.helpers";
 import { useChatwootDashboard } from "../chatwoot-dashboard-context";
 import { ContextBadge, EmptyState, InlineLoading, InlineWarning } from "../chatwoot-dashboard-ui";
 
@@ -231,7 +232,7 @@ export function ChatwootTarefasTab() {
                           {getTaskStatusLabel(item.status)}
                         </ContextBadge>
                         <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px] border-border/30 bg-background/30">
-                          Vence em {formatDateShort(item.dueDate)}
+                          Vence em {formatTaskDueDate(item)}
                         </Badge>
                         {item.ticketId ? (
                           <Badge variant="outline" className="h-5 gap-1 rounded-full px-2 text-[10px] border-border/30 bg-background/30">

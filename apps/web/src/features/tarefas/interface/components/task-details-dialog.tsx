@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/api/trpc-client";
 import type { TaskItem, TaskStatus } from "@dosc-syspro/contracts/tarefas";
-import { formatDateShort, formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import {
   Badge,
   Button,
@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@dosc-syspro/ui";
 import { CalendarClock, ClipboardList, ExternalLink, FileText, History, Loader2, MessageSquareShare } from "lucide-react";
+import { formatTaskDueDate } from "./tarefas-page.helpers";
 
 interface TaskDetailsDialogProps {
   itemId: string | null;
@@ -127,7 +128,7 @@ export function TaskDetailsDialog({
                   {item.year && item.month ? ` - ${String(item.month).padStart(2, "0")}/${item.year}` : ""}
                 </span>
                 <span className="hidden sm:inline">•</span>
-                <span>Vencimento {formatDateShort(item.dueDate)}</span>
+                <span>Vencimento {formatTaskDueDate(item)}</span>
               </div>
             ) : null}
           </DialogHeader>
@@ -183,7 +184,7 @@ export function TaskDetailsDialog({
                     </div>
                     <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vencimento</p>
-                      <p className="mt-1 text-sm font-medium text-foreground">{formatDateShort(item.dueDate)}</p>
+                      <p className="mt-1 text-sm font-medium text-foreground">{formatTaskDueDate(item)}</p>
                     </div>
                     <div className="rounded-lg border border-border/60 px-3.5 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Solicitacoes</p>

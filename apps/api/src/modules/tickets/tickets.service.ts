@@ -58,7 +58,7 @@ import { withTicketTeam, findTicketDetail, listTicketPage, countTicketQueues } f
 import { TicketHistoryService } from './ticket-history.service';
 import { AutomationSettingsService } from '../automation/automation-settings.service';
 import { R2StorageService } from '../integrations/storage/r2-storage.service';
-import { TarefasService } from '../tarefas/tarefas.service';
+import { TarefasTicketBridgeService } from '../tarefas/tarefas-ticket-bridge.service';
 import { TicketSlaService } from './ticket-sla.service';
 import { TicketNotificationService } from './ticket-notification.service';
 import { TicketIntegrationService } from './ticket-integration.service';
@@ -99,7 +99,7 @@ export class TicketsService {
     private readonly ticketNotificationService: TicketNotificationService,
     private readonly ticketIntegrationService: TicketIntegrationService,
     private readonly r2StorageService: R2StorageService,
-    @Optional() private readonly tarefasService: TarefasService | null,
+    @Optional() private readonly tarefasTicketBridge: TarefasTicketBridgeService | null,
   ) {}
 
   async create(
@@ -833,7 +833,7 @@ export class TicketsService {
       if (!exists.companyId) {
         throw new BadRequestException('O ticket precisa estar vinculado a uma empresa para gerar tarefa de acompanhamento.');
       }
-      if (!this.tarefasService) {
+      if (!this.tarefasTicketBridge) {
         throw new BadRequestException('O modulo de tarefas nao esta disponivel para criar a tarefa de acompanhamento.');
       }
     }
@@ -1199,8 +1199,8 @@ export class TicketsService {
         });
       }
 
-      if (followUpTask && requestedStatus === TicketStatus.RESOLVED && exists.companyId && this.tarefasService) {
-        const followUpResult = await this.tarefasService.createFollowUpTaskFromTicket(
+      if (followUpTask && requestedStatus === TicketStatus.RESOLVED && exists.companyId && this.tarefasTicketBridge) {
+        const followUpResult = await this.tarefasTicketBridge.createManualFollowUpFromResolvedTicket(
           {
             ticketId: exists.id,
             ticketSubject: exists.subject ?? null,
@@ -1294,11 +1294,11 @@ export class TicketsService {
     if (
       exists.status !== TicketStatus.RESOLVED &&
       resolvedNextStatus === TicketStatus.RESOLVED &&
-      this.tarefasService &&
+      this.tarefasTicketBridge &&
       !followUpTask
     ) {
       this.runAutomationInBackground('tarefas_create_from_ticket', exists.id, async () => {
-        await this.tarefasService!.createFromTicket({
+        await this.tarefasTicketBridge!.createAutomaticFollowUpFromResolvedTicket({
           id: exists.id,
           subject: exists.subject ?? null,
           companyId: exists.companyId ?? null,

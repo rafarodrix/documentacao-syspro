@@ -4,8 +4,9 @@ import Link from "next/link";
 import { ExternalLink, ListTodo, MessageSquareShare, Repeat } from "lucide-react";
 import { Badge, Button } from "@dosc-syspro/ui";
 import type { TaskItem } from "@dosc-syspro/contracts/tarefas";
-import { formatDateShort, formatDateTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import {
+  formatTaskDueDate,
   getManualRequestStatusLabel,
   getManualRequestStatusVariant,
   getTaskStatusLabel,
@@ -91,7 +92,7 @@ export function useTarefasColumns({ canManage, setSelectedStatusTask, setSelecte
         accessorKey: "dueDate",
         header: "Vencimento",
         meta: { className: "w-[9%] px-3 py-3.5 text-sm text-foreground whitespace-nowrap" },
-        cell: ({ row }) => formatDateShort(row.original.dueDate),
+        cell: ({ row }) => formatTaskDueDate(row.original),
       },
       {
         accessorKey: "requiredDocumentsCount",
@@ -240,7 +241,7 @@ export function useTarefasColumns({ canManage, setSelectedStatusTask, setSelecte
         <div className="flex justify-between items-center text-xs text-muted-foreground bg-muted/20 p-2 rounded-md">
           <div>
             Vencimento:{" "}
-            <span className="font-medium text-foreground">{formatDateShort(item.dueDate)}</span>
+            <span className="font-medium text-foreground">{formatTaskDueDate(item)}</span>
           </div>
           <div>
             Checklist:{" "}

@@ -9,6 +9,7 @@ import { TarefasRouter } from './tarefas.router';
 import { TarefasService } from './tarefas.service';
 import { TarefasJobService } from './tarefas-job.service';
 import { TarefasSettingsService } from './tarefas-settings.service';
+import { TarefasTicketBridgeService } from './tarefas-ticket-bridge.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { TarefasSettingsService } from './tarefas-settings.service';
     forwardRef(() => EvolutionModule),
     forwardRef(() => AutomationModule),
   ],
-  providers: [TarefasService, TarefasRouter, TarefasJobService, TarefasSettingsService],
-  exports: [TarefasService, TarefasRouter, TarefasSettingsService],
+  providers: [TarefasService, TarefasRouter, TarefasJobService, TarefasSettingsService, TarefasTicketBridgeService],
+  exports: [TarefasService, TarefasRouter, TarefasSettingsService, TarefasTicketBridgeService],
 })
 export class TarefasModule {}
