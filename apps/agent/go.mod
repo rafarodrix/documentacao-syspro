@@ -3,7 +3,7 @@ module trilink/agent
 go 1.26.2
 
 require (
-	fyne.io/systray v1.12.0
+	fyne.io/systray v1.12.2
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/google/uuid v1.6.0
 	github.com/wailsapp/wails/v2 v2.11.0
