@@ -1,0 +1,673 @@
+---
+title: Integração API Sicoob Bancoob
+description: Manual para obtenção de credenciais, certificado digital e configuração da integração de boletos Sicoob no Syspro ERP.
+lastUpdated: 2026-06-18
+owner: Equipe de Documentação
+status: published
+tags:
+  - manual
+  - financeiro
+  - boleto
+  - api
+  - sicoob
+  - bancoob
+  - integracao-bancaria
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { InlineTOC } from 'fumadocs-ui/components/inline-toc';
+import SuporteSection from '@/components/docs/SuporteSection';
+import { YouTubeModal } from '@/components/docs/YouTubeModal';
+
+# Cadastro de Integração API Sicoob Bancoob
+
+## Introdução
+
+A integração com a **API Sicoob Bancoob** permite que o Syspro ERP se comunique com o banco para operações relacionadas à cobrança bancária, como emissão, registro, consulta e baixa de boletos, conforme os recursos habilitados para a conta da empresa.
+
+Para utilizar essa integração, é necessário obter as credenciais da aplicação no **Portal Developers do Sicoob** e vincular a aplicação ao certificado digital da empresa. Essas informações serão utilizadas pelo Syspro ERP, normalmente por meio do componente **ACBrBoleto**, para autenticação segura junto aos serviços do banco.
+
+<Callout type="info" title="Objetivo da integração">
+  Permitir que o Syspro ERP envie e consulte boletos do Sicoob por API, reduzindo processos manuais e aumentando a segurança da comunicação bancária.
+</Callout>
+
+---
+
+## Visão geral
+
+<Cards>
+  <Card title="Onde configurar">
+    Acesse o cadastro de banco, carteira ou configuração bancária do Syspro ERP, conforme a estrutura utilizada pela empresa.
+  </Card>
+
+  <Card title="Quando utilizar">
+    Use quando a empresa deseja emitir boletos Sicoob por API, sem depender exclusivamente de arquivos de remessa e retorno.
+  </Card>
+
+  <Card title="Impacto no sistema">
+    Impacta diretamente a emissão de boletos, registro bancário, consulta de situação e conciliação financeira, quando aplicável.
+  </Card>
+
+  <Card title="Perfil recomendado">
+    Indicado para administradores da conta bancária, implantação, suporte e responsáveis financeiros.
+  </Card>
+</Cards>
+
+---
+
+## Quando utilizar
+
+| Situação | Como a integração ajuda |
+|---|---|
+| Emissão de boletos pelo Syspro ERP | Permite registrar cobranças diretamente junto ao Sicoob, conforme configuração da carteira. |
+| Redução de processos manuais | Diminui a dependência de geração e envio manual de remessa bancária. |
+| Consulta de boletos | Permite consultar informações da cobrança quando o recurso estiver habilitado. |
+| Implantação de nova carteira Sicoob | Padroniza a coleta de credenciais, certificado e dados bancários antes da configuração. |
+| Troca de certificado digital | Orienta a atualização do certificado utilizado na comunicação com a API. |
+
+<Callout type="success" title="Exemplo prático">
+  Uma empresa que emite boletos para clientes no financeiro pode configurar a API Sicoob para registrar as cobranças diretamente pelo Syspro ERP, conforme os dados da conta, carteira e certificado digital.
+</Callout>
+
+---
+
+## Pré-requisitos
+
+Antes de iniciar a configuração, valide os seguintes pontos:
+
+- conta ativa no Sicoob;
+- acesso ao Internet Banking ou Portal Developers do Sicoob;
+- usuário com permissão para cadastrar aplicações;
+- certificado digital A1 válido da empresa, quando exigido pelo banco;
+- senha do certificado digital;
+- dados da conta, agência, cooperativa, carteira e convênio;
+- ambiente de produção liberado pelo banco;
+- versão atualizada do Syspro ERP;
+- biblioteca ACBr e dependências compatíveis com a integração.
+
+<Callout type="warning" title="Atenção">
+  O processo no portal do banco pode variar conforme perfil da conta, permissões do usuário, cooperativa, produto contratado e regras vigentes do Sicoob. Quando houver divergência de tela, valide com o gerente da conta ou com o suporte do banco.
+</Callout>
+
+---
+
+## Dicionário de campos
+
+<TypeTable
+  type={{
+    banco: {
+      description: 'Banco utilizado na integração. Para Sicoob, normalmente corresponde ao banco 756.',
+      type: 'Número | Seleção',
+      required: true,
+    },
+    agencia: {
+      description: 'Número da agência/cooperativa da conta vinculada à cobrança.',
+      type: 'Texto numérico',
+      required: true,
+    },
+    conta: {
+      description: 'Número da conta corrente utilizada para emissão dos boletos.',
+      type: 'Texto numérico',
+      required: true,
+    },
+    carteira: {
+      description: 'Carteira de cobrança habilitada para emissão dos boletos.',
+      type: 'Texto | Seleção',
+      required: true,
+    },
+    convenio: {
+      description: 'Código do convênio, contrato ou beneficiário informado pelo banco, quando aplicável.',
+      type: 'Texto numérico',
+      required: false,
+    },
+    clientId: {
+      description: 'Identificador público da aplicação criada no Portal Developers do Sicoob.',
+      type: 'Texto',
+      required: true,
+    },
+    clientSecret: {
+      description: 'Chave secreta da aplicação utilizada na autenticação. Deve ser armazenada com segurança.',
+      type: 'Texto sigiloso',
+      required: true,
+    },
+    certificadoA1: {
+      description: 'Certificado digital A1 vinculado à empresa e utilizado na comunicação segura com a API.',
+      type: 'Arquivo .pfx | .p12 | .pem, conforme configuração',
+      required: true,
+    },
+    senhaCertificado: {
+      description: 'Senha do certificado digital A1.',
+      type: 'Senha',
+      required: true,
+    },
+    ambiente: {
+      description: 'Define se a integração será utilizada em homologação ou produção, quando aplicável.',
+      type: 'Homologação | Produção',
+      required: true,
+      default: 'Produção',
+    },
+    escopoApi: {
+      description: 'Permissões selecionadas para a aplicação no Portal Developers, como cobrança bancária ou boleto.',
+      type: 'Seleção',
+      required: true,
+    },
+    urlApi: {
+      description: 'Endereço base da API utilizado pelo componente de comunicação, conforme ambiente configurado.',
+      type: 'URL',
+      required: false,
+    },
+  }}
+/>
+
+---
+
+## Estrutura da tela
+
+<Tabs items={['Credenciais', 'Certificado', 'Carteira', 'Testes']}>
+  <Tab value="Credenciais">
+    Nesta aba devem ser informados o **Client ID**, o **Client Secret** e o ambiente de operação.
+
+    Essas informações identificam a aplicação criada no Portal Developers do Sicoob.
+  </Tab>
+
+  <Tab value="Certificado">
+    Nesta aba deve ser configurado o certificado digital A1 e sua senha.
+
+    O certificado é utilizado para autenticação e segurança da comunicação com o banco, conforme exigência da API.
+  </Tab>
+
+  <Tab value="Carteira">
+    Nesta aba devem ser informados os dados bancários da cobrança, como banco, agência, conta, carteira, convênio e variações exigidas pela cooperativa.
+  </Tab>
+
+  <Tab value="Testes">
+    Nesta aba ou rotina devem ser realizados testes de comunicação, emissão de boleto e consulta, conforme recursos disponíveis no Syspro ERP.
+  </Tab>
+</Tabs>
+
+---
+
+# Campos principais
+
+## Client ID
+
+O **Client ID** identifica a aplicação criada no Portal Developers do Sicoob. Ele é utilizado pelo Syspro ERP para solicitar autorização de comunicação com a API.
+
+<Callout type="warning" title="Atenção">
+  O Client ID deve pertencer à aplicação vinculada à conta da empresa. Usar credenciais de outra empresa ou outro certificado pode causar falha de autenticação.
+</Callout>
+
+## Client Secret
+
+O **Client Secret** é uma chave sigilosa da aplicação. Ele deve ser tratado como senha e não deve ser compartilhado em mensagens abertas, prints públicos ou documentos sem controle de acesso.
+
+<Callout type="warning" title="Credencial sensível">
+  Nunca envie o Client Secret em grupos, e-mails sem proteção ou conversas com terceiros. Em caso de exposição, gere uma nova credencial no portal do banco, quando disponível.
+</Callout>
+
+## Certificado digital
+
+O certificado digital A1 é utilizado para validar a identidade da empresa durante a comunicação com o Sicoob.
+
+Quando o certificado vencer, for substituído ou tiver sua senha alterada, a integração pode parar de funcionar até que a configuração seja atualizada.
+
+## Carteira e convênio
+
+A carteira, convênio, contrato ou código do beneficiário devem ser informados conforme orientação do Sicoob.
+
+<Callout type="info" title="Conforme configuração da empresa">
+  Algumas cooperativas podem utilizar nomenclaturas ou códigos diferentes para carteira, convênio ou beneficiário. Sempre confirme os dados com o banco antes da implantação.
+</Callout>
+
+---
+
+# Relações com outros cadastros
+
+A integração API Sicoob depende de informações cadastradas em outros módulos do Syspro ERP.
+
+| Cadastro relacionado | Impacto |
+|---|---|
+| Cadastro de Empresa | Define CNPJ, razão social e certificado utilizado na comunicação. |
+| Cadastro de Banco | Define banco, agência, conta, carteira e parâmetros bancários. |
+| Cadastro de Participante | Utilizado na emissão do boleto para identificar o pagador. |
+| Contas a Receber | Origina os títulos que podem gerar boletos. |
+| Documento de Venda | Pode gerar títulos financeiros que serão vinculados ao boleto. |
+| Configuração de E-mail | Pode ser usada para envio do boleto ao cliente, quando aplicável. |
+| Relatórios Financeiros | Permite acompanhar boletos emitidos, pendentes, pagos ou rejeitados. |
+
+---
+
+# Cenários práticos
+
+<Tabs items={['Primeira implantação', 'Troca de certificado', 'Erro de autenticação']}>
+  <Tab value="Primeira implantação">
+    Neste cenário, a empresa ainda não utiliza a API Sicoob no Syspro ERP.
+
+    Configuração sugerida:
+
+    - validar dados da conta com o banco;
+    - criar a aplicação no Portal Developers;
+    - vincular o certificado digital;
+    - copiar Client ID e Client Secret;
+    - cadastrar as informações no Syspro ERP;
+    - emitir boleto de teste, quando aplicável;
+    - confirmar registro no portal ou retorno da API.
+
+    Resultado esperado: o Syspro ERP deve conseguir autenticar, emitir e registrar boletos conforme permissões liberadas.
+  </Tab>
+
+  <Tab value="Troca de certificado">
+    Neste cenário, o certificado digital venceu ou foi substituído.
+
+    Configuração sugerida:
+
+    - validar se o novo certificado pertence ao mesmo CNPJ da conta;
+    - atualizar o certificado no Portal Developers, quando necessário;
+    - atualizar o certificado no Syspro ERP;
+    - revisar a senha do certificado;
+    - executar teste de comunicação.
+
+    Resultado esperado: a integração volta a autenticar normalmente após a atualização.
+  </Tab>
+
+  <Tab value="Erro de autenticação">
+    Neste cenário, o sistema retorna erro ao comunicar com a API.
+
+    Pontos de análise:
+
+    - Client ID incorreto;
+    - Client Secret ausente ou inválido;
+    - certificado incorreto, vencido ou com senha errada;
+    - aplicação sem escopo de cobrança;
+    - conta não vinculada à aplicação;
+    - bloqueio de rede, firewall ou TLS.
+
+    Resultado esperado: após corrigir a origem do erro, a API deve retornar autorização válida para operação.
+  </Tab>
+</Tabs>
+
+---
+
+# Como obter as credenciais no Portal Developers Sicoob
+
+<Steps>
+  <Step title="Acessar o Portal Developers">
+    Acesse o Portal Developers do Sicoob com o usuário autorizado pela empresa.
+
+    O usuário deve possuir permissão para criar ou administrar aplicações vinculadas à conta.
+  </Step>
+
+  <Step title="Entrar na área de aplicações">
+    Localize a opção de **Aplicações**, **Minhas Aplicações** ou equivalente, conforme a versão atual do portal.
+  </Step>
+
+  <Step title="Criar uma nova aplicação">
+    Clique para criar uma nova aplicação.
+
+    Informe um nome claro, por exemplo:
+
+    **Syspro ERP - Cobrança Sicoob - Nome da Empresa**
+  </Step>
+
+  <Step title="Selecionar a API de cobrança">
+    Selecione a API relacionada à cobrança bancária, boleto ou serviço equivalente disponibilizado pelo Sicoob.
+
+    Marque apenas os escopos necessários para a operação.
+  </Step>
+
+  <Step title="Vincular o certificado digital">
+    Anexe ou vincule o certificado digital da empresa, conforme solicitado pelo portal.
+
+    O certificado deve estar válido e pertencer ao CNPJ autorizado para a conta.
+  </Step>
+
+  <Step title="Finalizar o cadastro da aplicação">
+    Revise os dados informados e conclua o cadastro da aplicação.
+
+    Após a conclusão, o portal deve disponibilizar as credenciais necessárias.
+  </Step>
+
+  <Step title="Copiar Client ID e Client Secret">
+    Copie o **Client ID** e o **Client Secret** gerados.
+
+    Armazene essas informações em local seguro e restrito à equipe autorizada.
+  </Step>
+
+  <Step title="Configurar no Syspro ERP">
+    No Syspro ERP, informe os dados bancários, credenciais, certificado e senha.
+
+    Depois, execute teste de comunicação ou emissão, conforme rotina disponível.
+  </Step>
+</Steps>
+
+---
+
+# Apoio em vídeo
+
+Use o vídeo abaixo como apoio visual para a navegação no portal e geração das credenciais.
+
+<YouTubeModal
+  videoId="utQfxinOWOg"
+  thumbnailTitle="Como gerar Client ID e Client Secret do Sicoob"
+/>
+
+<Callout type="info" title="Material de apoio">
+  O vídeo serve como referência visual. Caso o Portal Developers do Sicoob tenha alterações de layout, siga a nomenclatura equivalente exibida na tela atual.
+</Callout>
+
+---
+
+# Configuração no Syspro ERP
+
+<Steps>
+  <Step title="Acessar o cadastro bancário">
+    Acesse a rotina de banco, carteira ou configuração bancária utilizada pela empresa.
+  </Step>
+
+  <Step title="Selecionar o banco Sicoob">
+    Informe o banco correspondente ao Sicoob e revise agência, conta, carteira e convênio.
+  </Step>
+
+  <Step title="Configurar a comunicação por API">
+    Marque a opção de emissão por API, quando disponível.
+
+    Informe o ambiente correto: homologação ou produção, conforme liberação do banco.
+  </Step>
+
+  <Step title="Informar as credenciais">
+    Preencha o **Client ID** e o **Client Secret** exatamente como gerados no Portal Developers.
+  </Step>
+
+  <Step title="Informar o certificado">
+    Selecione o certificado digital A1 e informe a senha.
+
+    Confirme se o certificado está válido e corresponde ao CNPJ da empresa.
+  </Step>
+
+  <Step title="Salvar a configuração">
+    Salve os dados e revise se não existem campos obrigatórios pendentes.
+  </Step>
+
+  <Step title="Executar teste">
+    Realize um teste de comunicação, emissão ou registro de boleto.
+
+    Caso ocorra erro, consulte a seção de problemas comuns.
+  </Step>
+</Steps>
+
+---
+
+# Validação por perfil
+
+<Tabs items={['Usuário', 'Administrador', 'Suporte']}>
+  <Tab value="Usuário">
+    O usuário financeiro deve validar:
+
+    - se o boleto foi gerado corretamente;
+    - se os dados do pagador estão corretos;
+    - se vencimento, valor e instruções estão corretos;
+    - se o boleto foi registrado ou enviado conforme processo da empresa;
+    - se o título financeiro ficou vinculado ao boleto.
+  </Tab>
+
+  <Tab value="Administrador">
+    O administrador deve validar:
+
+    - se a conta bancária está correta;
+    - se a carteira e convênio foram confirmados com o banco;
+    - se o certificado está válido;
+    - se o Client ID e Client Secret foram copiados corretamente;
+    - se o usuário do portal tem permissão para administrar a aplicação;
+    - se as credenciais estão armazenadas com segurança.
+  </Tab>
+
+  <Tab value="Suporte">
+    O suporte deve validar:
+
+    - logs de comunicação com a API;
+    - retorno de autenticação;
+    - validade e senha do certificado;
+    - versão das DLLs e dependências utilizadas pelo ACBr;
+    - bloqueios de firewall, proxy ou antivírus;
+    - diferença entre ambiente de homologação e produção;
+    - dados bancários informados no cadastro da carteira.
+  </Tab>
+</Tabs>
+
+---
+
+# Checklist de validação de infraestrutura
+
+Antes de liberar a integração para produção, valide:
+
+- Syspro ERP atualizado;
+- componente ACBrBoleto atualizado conforme pacote homologado internamente;
+- certificado A1 válido e com senha conferida;
+- credenciais preenchidas sem espaços extras;
+- ambiente correto selecionado;
+- conta, agência, carteira e convênio revisados;
+- internet liberada no servidor/estação que emite boletos;
+- firewall e antivírus sem bloqueio de saída HTTPS;
+- data e hora do Windows corretas;
+- OpenSSL compatível com a versão do ACBr utilizada;
+- permissão de leitura no diretório do certificado;
+- usuário do Windows com permissão nas pastas do Syspro;
+- teste de emissão realizado;
+- retorno da API conferido;
+- boleto validado com o banco ou cooperativa, quando aplicável.
+
+<Callout type="success" title="Boa prática de implantação">
+  Sempre realize o primeiro teste acompanhado por um responsável financeiro da empresa e valide o resultado no ambiente do banco antes de liberar a emissão em produção.
+</Callout>
+
+---
+
+# Boas práticas
+
+- Use um nome de aplicação claro no Portal Developers.
+- Guarde Client ID e Client Secret em local seguro.
+- Evite enviar credenciais por WhatsApp ou e-mail comum.
+- Revise a validade do certificado antes da implantação.
+- Documente qual certificado foi utilizado.
+- Registre a data de ativação da integração.
+- Mantenha cópia controlada das configurações aplicadas.
+- Faça teste com boleto de baixo valor ou boleto controlado, conforme orientação da empresa.
+- Valide o retorno da cobrança junto ao banco.
+- Atualize a documentação interna quando houver troca de certificado ou credenciais.
+
+<Callout type="warning" title="Risco operacional">
+  Alterações em certificado, Client Secret, carteira ou ambiente podem interromper a emissão de boletos. Faça mudanças fora de horários críticos e sempre teste antes de liberar para uso.
+</Callout>
+
+---
+
+# Impactos no sistema
+
+| Área | Impacto |
+|---|---|
+| Financeiro | Geração, registro, consulta e acompanhamento de boletos. |
+| Contas a Receber | Vinculação do boleto ao título financeiro. |
+| Vendas | Documentos que geram parcelas podem originar boletos. |
+| Cadastro de Participante | Dados incorretos do cliente podem causar rejeição ou inconsistência no boleto. |
+| Relatórios | Situação dos boletos pode impactar relatórios de recebimento e inadimplência. |
+| Suporte | Necessidade de análise de logs, credenciais, certificado e comunicação externa. |
+| Implantação | Requer validação conjunta entre empresa, banco e equipe técnica. |
+
+---
+
+# Checklist antes de salvar
+
+- banco Sicoob selecionado corretamente;
+- agência e conta conferidas;
+- carteira e convênio confirmados;
+- ambiente correto definido;
+- Client ID preenchido;
+- Client Secret preenchido;
+- certificado selecionado;
+- senha do certificado validada;
+- certificado dentro da validade;
+- permissões da aplicação conferidas;
+- teste de comunicação planejado;
+- responsável financeiro ciente da ativação.
+
+---
+
+# Exemplos de configuração
+
+<Tabs items={['Produção', 'Troca de certificado', 'Diagnóstico']}>
+  <Tab value="Produção">
+    Exemplo de configuração para produção:
+
+    - Ambiente: **Produção**
+    - Banco: **Sicoob**
+    - Comunicação: **API**
+    - Certificado: **A1 da empresa**
+    - Credenciais: **Client ID e Client Secret gerados no Portal Developers**
+    - Carteira: **conforme informação do banco**
+    - Convênio: **quando aplicável**
+
+    Resultado esperado: boletos emitidos pelo Syspro ERP são enviados para registro no Sicoob.
+  </Tab>
+
+  <Tab value="Troca de certificado">
+    Exemplo para renovação de certificado:
+
+    - remover ou substituir o certificado antigo;
+    - importar o novo certificado;
+    - conferir senha;
+    - atualizar vínculo no portal do banco, quando necessário;
+    - salvar configuração;
+    - testar emissão ou consulta.
+
+    Resultado esperado: a API volta a autenticar com o novo certificado.
+  </Tab>
+
+  <Tab value="Diagnóstico">
+    Exemplo de análise de falha:
+
+    - conferir se o erro ocorre ao autenticar ou ao emitir boleto;
+    - validar se Client Secret está preenchido;
+    - testar senha do certificado;
+    - verificar validade do certificado;
+    - revisar logs do ACBr;
+    - confirmar se a aplicação possui permissão para cobrança;
+    - validar se não há bloqueio de rede.
+
+    Resultado esperado: identificar se a falha está nas credenciais, certificado, dados bancários ou comunicação.
+  </Tab>
+</Tabs>
+
+---
+
+# Problemas comuns
+
+<Accordions type="single">
+  <Accordion title="Erro: Client Secret não informado" id="client-secret-nao-informado">
+    Verifique se o campo **Client Secret** foi preenchido no cadastro da integração.
+
+    Também confira se não existem espaços antes ou depois da chave copiada.
+  </Accordion>
+
+  <Accordion title="Erro de autenticação com a API" id="erro-autenticacao-api">
+    Possíveis causas:
+
+    - Client ID incorreto;
+    - Client Secret incorreto;
+    - certificado inválido;
+    - senha do certificado incorreta;
+    - aplicação sem permissão para a API de cobrança;
+    - conta não vinculada à aplicação.
+
+    Revise as credenciais no Portal Developers e compare com a configuração do Syspro ERP.
+  </Accordion>
+
+  <Accordion title="Certificado vencido ou inválido" id="certificado-vencido">
+    Verifique a validade do certificado digital A1.
+
+    Se o certificado estiver vencido, providencie a renovação e atualize a configuração no Syspro ERP e no portal do banco, quando aplicável.
+  </Accordion>
+
+  <Accordion title="Boleto não registra no banco" id="boleto-nao-registra">
+    Verifique:
+
+    - dados do pagador;
+    - valor e vencimento;
+    - carteira;
+    - convênio;
+    - instruções bancárias;
+    - retorno da API;
+    - permissões da aplicação.
+
+    Quando necessário, envie o retorno técnico ao suporte para análise.
+  </Accordion>
+
+  <Accordion title="Erro de comunicação ou conexão" id="erro-comunicacao">
+    Verifique internet, firewall, antivírus, proxy, TLS/OpenSSL e permissões do servidor.
+
+    Também confirme se a estação que executa a emissão possui acesso externo liberado para comunicação HTTPS.
+  </Accordion>
+
+  <Accordion title="Portal do banco não exibe as mesmas opções do manual" id="portal-diferente">
+    O layout do Portal Developers pode mudar.
+
+    Procure opções equivalentes como **Aplicações**, **Minhas Aplicações**, **Credenciais**, **Certificados**, **APIs** ou **Escopos**.
+
+    Se a opção não estiver disponível, valide as permissões do usuário com o banco.
+  </Accordion>
+</Accordions>
+
+---
+
+# Perguntas frequentes
+
+<Accordions type="single">
+  <Accordion title="Para que serve a integração API Sicoob?" id="para-que-serve">
+    Serve para permitir que o Syspro ERP se comunique com o Sicoob para operações de cobrança bancária, como emissão, registro e consulta de boletos, conforme recursos habilitados.
+  </Accordion>
+
+  <Accordion title="O que é o Client ID?" id="o-que-e-client-id">
+    É o identificador da aplicação criada no Portal Developers do Sicoob.
+  </Accordion>
+
+  <Accordion title="O que é o Client Secret?" id="o-que-e-client-secret">
+    É a chave secreta da aplicação. Deve ser tratada como uma senha e armazenada com segurança.
+  </Accordion>
+
+  <Accordion title="Precisa de certificado digital?" id="precisa-certificado">
+    Sim, quando exigido pela API e pela configuração do banco. Normalmente é utilizado certificado digital A1 da empresa.
+  </Accordion>
+
+  <Accordion title="Posso usar certificado de outra empresa?" id="certificado-outra-empresa">
+    Não é recomendado. O certificado deve estar vinculado ao CNPJ autorizado para operar a conta e a aplicação.
+  </Accordion>
+
+  <Accordion title="Quem deve gerar as credenciais?" id="quem-gera-credenciais">
+    Preferencialmente o administrador da conta, responsável financeiro ou usuário autorizado pela empresa no Sicoob.
+  </Accordion>
+
+  <Accordion title="O suporte pode gerar as credenciais pelo cliente?" id="suporte-gera-credenciais">
+    Somente se a empresa autorizar e acompanhar o processo. As credenciais e o certificado são informações sensíveis da empresa.
+  </Accordion>
+
+  <Accordion title="A integração substitui remessa e retorno?" id="substitui-remessa-retorno">
+    Pode substituir parte do processo manual, conforme recursos habilitados na API e configuração da empresa. A validação deve ser feita durante a implantação.
+  </Accordion>
+</Accordions>
+
+---
+
+# Resumo
+
+A integração com a **API Sicoob Bancoob** permite que o Syspro ERP execute rotinas de cobrança bancária com maior segurança e automação.
+
+Para uma implantação correta, é essencial validar os dados bancários, gerar as credenciais no Portal Developers, vincular o certificado digital, configurar o Syspro ERP e realizar testes antes da liberação em produção.
+
+<Callout type="success" title="Resumo">
+  Use esta integração com atenção, proteja as credenciais, revise o certificado e valide a emissão de boletos antes de liberar o uso definitivo para a empresa.
+</Callout>
+

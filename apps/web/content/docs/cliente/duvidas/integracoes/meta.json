@@ -1,5 +1,10 @@
 {
   "root": false,
   "title": "Integrações",
-  "description": "Soluções e conectores que integram o Syspro ERP a outros sistemas, otimizando processos e fluxos de dados."
+  "description": "Soluções e conectores que integram o Syspro ERP a outros sistemas, otimizando processos e fluxos de dados.",
+    "pages": [
+    "consulta-api",
+    "boleto-sicoob",
+    "tef-fiserve"
+  ]
 }
