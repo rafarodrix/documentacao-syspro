@@ -96,11 +96,7 @@ export function HostAgentTab({
             </div>
           ) : null}
 
-        <details className="rounded-xl border border-border/50 bg-muted/10 p-4">
-          <summary className="cursor-pointer text-sm font-medium text-foreground">
-            Diagnóstico avançado
-          </summary>
-          <div className="mt-4 space-y-4">
+          <div className="space-y-4">
             <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
               <p className="text-sm font-medium text-foreground">Saúde do agente</p>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -393,7 +389,6 @@ export function HostAgentTab({
               </details>
             ) : null}
           </div>
-        </details>
         </CardContent>
       </Card>
     </div>

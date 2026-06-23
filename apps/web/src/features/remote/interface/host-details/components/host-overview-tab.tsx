@@ -1,11 +1,12 @@
 "use client";
 
-import { AlertCircle, Badge as BadgeIcon, Clock, Database, Fingerprint, Monitor, RefreshCw, Shield, Ticket } from "lucide-react";
+import { AlertCircle, Clock, Database, Monitor, RefreshCw, Shield, Ticket, Activity } from "lucide-react";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@dosc-syspro/ui";
 import type { AgentDeviceSummary } from "@dosc-syspro/contracts/agent";
 import type { RemoteHostDetails } from "@/features/remote/domain/remote-host.types";
 import { formatDateTime, formatRelativeHeartbeat } from "../host-details.helpers";
 import { AgentLinkSection } from "./agent-link-section";
+import { cn } from "@/lib/utils";
 
 type ServiceStatus = { label: string };
 
@@ -45,39 +46,56 @@ export function HostOverviewTab({
     (host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024) ||
     !!contractValidationError;
 
+  const cpuLoad = host.lastAgentMetrics?.cpuLoad ?? null;
+  const ramUsedPc = host.lastAgentMetrics?.ramUsedPc ?? null;
+
   return (
     <div className="space-y-6">
-      {/* Identity summary */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            <Monitor className="h-3 w-3" /> Nome da máquina
-          </p>
-          <p className="text-sm font-medium text-foreground truncate">{windowsComputerName ?? host.name}</p>
-        </div>
-        <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            <Monitor className="h-3 w-3" /> IPv4
-          </p>
-          <p className="text-sm font-medium font-mono text-foreground">{machineIpv4 ?? "Sem leitura"}</p>
-        </div>
-        <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            <Fingerprint className="h-3 w-3" /> RustDesk ID
-          </p>
-          <p className="text-sm font-medium font-mono text-foreground">{normalizedRustdeskId ?? "Sem leitura"}</p>
-        </div>
-        <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-1.5 shadow-sm">
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-            <Shield className="h-3 w-3" /> Versão do agente
-          </p>
-          <p className="text-sm font-medium text-foreground">{agent.agentVersion ?? "N/A"}</p>
-        </div>
+      {/* Top Section: General Info and Device Link */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Monitor className="h-4.5 w-4.5 text-primary" />
+              Informações Gerais
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Empresa</p>
+                <p className="text-sm font-medium text-foreground truncate" title={host.companyName ?? "Sem empresa vinculada"}>
+                  {host.companyName ?? "Sem empresa vinculada"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Versão do Agente</p>
+                <p className="text-sm font-medium text-foreground">{agent.agentVersion ?? "Desconhecida"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Estratégia</p>
+                <p className="text-sm font-medium text-foreground">{orchestrationStrategy}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Estado Operacional</p>
+                <p className="text-sm font-medium text-foreground capitalize">{serviceStatus.label}</p>
+              </div>
+            </div>
+
+            {host.description && (
+              <div className="pt-3 border-t border-border/40 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Descrição</p>
+                <p className="text-sm text-foreground leading-relaxed">{host.description}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <AgentLinkSection hostId={host.id} linkedDevice={linkedDevice} />
       </div>
 
+      {/* Ticket Context & Critical Alerts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <AgentLinkSection hostId={host.id} linkedDevice={linkedDevice} />
-
         {ticketNumber && (
           <Card className="border-blue-500/20 bg-blue-500/5 shadow-sm backdrop-blur-sm">
             <CardHeader className="pb-3 px-6 pt-6">
@@ -113,60 +131,92 @@ export function HostOverviewTab({
             </CardContent>
           </Card>
         )}
+
+        {hasCriticalAlert && (
+          <Card className="border-rose-500/20 bg-rose-500/5">
+            <CardHeader className="pb-2 px-4 pt-4">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Alertas críticos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 flex flex-wrap gap-2">
+              {!!rebootPending && (
+                <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <RefreshCw className="mr-1.5 h-3 w-3 animate-spin-slow" />
+                  Reinicialização necessária
+                </Badge>
+              )}
+              {host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024 && (
+                <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <Database className="mr-1.5 h-3 w-3" />
+                  Espaço em disco crítico
+                </Badge>
+              )}
+              {contractValidationError && (
+                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono">
+                  <Shield className="mr-1.5 h-3 w-3" />
+                  ERRO CONTRATO: {contractValidationError}
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {hasCriticalAlert && (
-        <Card className="border-rose-500/20 bg-rose-500/5">
-          <CardHeader className="pb-2 px-4 pt-4">
-            <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Alertas críticos
+      {/* Bottom Section: Connectivity & Telemetry metrics summary */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Clock className="h-4.5 w-4.5 text-primary" />
+              Conectividade
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 flex flex-wrap gap-2">
-            {!!rebootPending && (
-              <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                <RefreshCw className="mr-1.5 h-3 w-3 animate-spin-slow" />
-                Reinicialização necessária
-              </Badge>
-            )}
-            {host.lastAgentMetrics?.diskFree != null && host.lastAgentMetrics.diskFree < 5 * 1024 * 1024 * 1024 && (
-              <Badge variant="outline" className="border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                <Database className="mr-1.5 h-3 w-3" />
-                Espaço em disco crítico
-              </Badge>
-            )}
-            {contractValidationError && (
-              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono">
-                <Shield className="mr-1.5 h-3 w-3" />
-                ERRO CONTRATO: {contractValidationError}
-              </Badge>
-            )}
+          <CardContent className="space-y-4">
+            <div className="space-y-0.5">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Último contato</p>
+              <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
+              <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
+            </div>
+            <div className="pt-3 border-t border-border/40 flex items-center gap-2 text-xs text-muted-foreground">
+              <div className={cn("h-2 w-2 rounded-full animate-pulse", agent.lastHeartbeatAt ? "bg-green-500" : "bg-muted")} />
+              <span>Agente ativo e sincronizando parâmetros operacionais.</span>
+            </div>
           </CardContent>
         </Card>
-      )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Última atividade</span>
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-lg font-bold text-foreground">{formatRelativeHeartbeat(agent.lastHeartbeatAt)}</p>
-            <p className="text-xs text-muted-foreground">{formatDateTime(agent.lastHeartbeatAt)}</p>
-          </div>
-        </div>
-        <div className="rounded-xl border border-border/40 bg-muted/5 p-4 space-y-3 shadow-sm transition-all hover:bg-muted/10 text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Estado do agente</span>
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-lg font-bold text-foreground capitalize">{serviceStatus.label}</p>
-            <p className="text-xs text-muted-foreground">Estratégia: {orchestrationStrategy}</p>
-          </div>
-        </div>
+        <Card className="border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Activity className="h-4.5 w-4.5 text-primary" />
+              Recursos do Sistema
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-muted-foreground font-semibold">Uso de CPU</span>
+                  <span className="font-mono font-bold text-foreground">{cpuLoad !== null ? `${cpuLoad}%` : "--"}</span>
+                </div>
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div className="bg-primary h-full transition-all duration-500" style={{ width: `${cpuLoad ?? 0}%` }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-muted-foreground font-semibold">Uso de RAM</span>
+                  <span className="font-mono font-bold text-foreground">{ramUsedPc !== null ? `${ramUsedPc}%` : "--"}</span>
+                </div>
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div className="bg-sky-500 h-full transition-all duration-500" style={{ width: `${ramUsedPc ?? 0}%` }} />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

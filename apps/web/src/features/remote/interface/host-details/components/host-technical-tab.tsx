@@ -140,24 +140,73 @@ export function HostTechnicalTab({
             </CardContent>
           </Card>
         </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* OS & Hardware Info */}
+          <Card className="border-border/40 bg-muted/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-primary" />
+                Especificações do Host
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-muted-foreground">Nome do Computador</span>
+                <span className="font-semibold text-foreground">{windowsComputerName ?? "Sem leitura"}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-muted-foreground">Reboot Pendente</span>
+                <span className="font-semibold text-foreground">
+                  {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim (Necessário)" : "Não"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-muted-foreground">Firebird</span>
+                <span className="font-semibold text-foreground">
+                  {firebirdData.name ?? "Não detectado"} {firebirdData.version ? `(${firebirdData.version})` : ""}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-muted-foreground">Status do Firebird</span>
+                <span className={cn(
+                  "font-bold",
+                  firebirdData.processRunning ? "text-emerald-500" : "text-amber-500"
+                )}>
+                  {firebirdData.processRunning === null ? "Sem leitura" : firebirdData.processRunning ? "Em execução" : "Parado"}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Nome da máquina</p>
-            <p className="mt-1 text-sm text-foreground">{windowsComputerName ?? "Sem leitura do agente"}</p>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">IPv4 da máquina</p>
-            <p className="mt-1 text-sm text-foreground">{machineIpv4 ?? "Sem leitura"}</p>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">IP reportado</p>
-            <p className="mt-1 text-sm text-foreground">{agent.lastKnownIp ?? "Sem leitura"}</p>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">RustDesk ID</p>
-            <p className="mt-1 text-sm text-foreground">{agent.rustdeskId ?? "Sem leitura"}</p>
-          </div>
+          {/* Network Parameters */}
+          <Card className="border-border/40 bg-muted/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Configurações de Rede
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-muted-foreground">IPv4 Local (Intranet)</span>
+                <span className="font-mono text-foreground">{machineIpv4 ?? "Sem leitura"}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-muted-foreground">Último IP de Conexão</span>
+                <span className="font-mono text-foreground">{agent.lastKnownIp ?? "Sem leitura"}</span>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-border/30">
+                <span className="text-muted-foreground">RustDesk ID</span>
+                <span className="font-mono text-foreground">{agent.rustdeskId ?? "Sem leitura"}</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-muted-foreground">Sincronização do RustDesk</span>
+                <span className="text-foreground">
+                  {agent.lastRustDeskConfigSyncAt ? formatDateTime(agent.lastRustDeskConfigSyncAt) : "Nunca"}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
@@ -219,29 +268,10 @@ export function HostTechnicalTab({
         </div>
 
         <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="text-sm font-medium text-foreground">Volumes e saúde operacional</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-xl border border-border/40 bg-background/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Volumes</p>
-              <p className="mt-2 text-sm text-foreground">{diskSnapshot.length} volume(s)</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Atualizado em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border/40 bg-background/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Reboot pendente</p>
-              <p className="mt-2 text-sm text-foreground">
-                {rebootPending === null ? "Sem leitura" : rebootPending ? "Sim" : "Não"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border/40 bg-background/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Firebird</p>
-              <p className="mt-2 text-sm text-foreground">{firebirdData.name ?? "Sem leitura"}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {firebirdData.processRunning === null ? "Sem leitura" : firebirdData.processRunning ? "Em execução" : "Parado"}
-              </p>
-            </div>
-          </div>
+          <p className="text-sm font-medium text-foreground">Volumes monitorados</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Sistemas de arquivos e espaço livre detectados em {formatDateTime(details.agentTelemetry.diskSnapshotAt)}.
+          </p>
 
           {diskSnapshot.length ? (
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -266,7 +296,9 @@ export function HostTechnicalTab({
                 );
               })}
             </div>
-          ) : null}
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">Nenhum volume reportado pelo agente.</p>
+          )}
         </div>
 
       </CardContent>
