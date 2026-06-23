@@ -9,7 +9,7 @@
                     "db:validate":  "dotenv -e ../../apps/api/.env prisma validate --schema ./prisma/schema.prisma",
                     "db:generate":  "dotenv -e ../../apps/api/.env prisma generate --schema ./prisma/schema.prisma",
                     "db:migrate":  "dotenv -e ../../apps/api/.env prisma migrate dev --schema ./prisma/schema.prisma",
-                    "db:deploy":  "dotenv -e ../../apps/api/.env prisma migrate deploy --schema ./prisma/schema.prisma",
+                    "db:deploy":  "dotenv -e ../../apps/api/.env node ./scripts/deploy-migrations.mjs",
                     "db:permissions:audit-legacy": "dotenv -e ../../apps/api/.env node ./scripts/audit-legacy-permissions.mjs",
                     "db:permissions:sanitize-legacy": "dotenv -e ../../apps/api/.env node ./scripts/sanitize-legacy-permissions.mjs",
                     "db:seed:companies":  "dotenv -e ../../apps/api/.env node ./prisma/seed-companies.mjs",
