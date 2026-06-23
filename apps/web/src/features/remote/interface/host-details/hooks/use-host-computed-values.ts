@@ -27,7 +27,7 @@ export function useHostComputedValues(
 
   const serviceStatus = getServiceStatusMeta(host.serviceStatus);
 
-  const { systemSnapshot, networkSnapshot, softwareSnapshot, sysproProcessSnapshot, diskSnapshot, windowsUpdateStatus, rebootPending, agentMetrics, hardwareIdentity } =
+  const { systemSnapshot, networkSnapshot, softwareSnapshot, sysproProcessSnapshot, diskSnapshot, windowsUpdateStatus, rebootPending, agentMetrics, hardwareIdentity, sysproVersionSnapshot } =
     details.agentTelemetry;
 
   const rustDeskCompliance = useMemo(() => {
@@ -239,8 +239,8 @@ export function useHostComputedValues(
         (extractStringFromPayload(latestAutoHealCommand.resultPayload, ["serviceStatusAfter", "currentServiceStatus", "afterStatus", "statusAfter"]) ||
           extractStringFromPayload(latestAutoHealCommand.payload, ["serviceStatusAfter", "currentServiceStatus", "afterStatus", "statusAfter"]))) ??
       host.serviceStatus;
-    const versionEntries = Array.isArray(systemSnapshot?.["installations"])
-      ? (systemSnapshot["installations"] as Array<Record<string, unknown>>)
+    const versionEntries = Array.isArray(sysproVersionSnapshot?.["installations"])
+      ? (sysproVersionSnapshot["installations"] as Array<Record<string, unknown>>)
       : [];
     const collectedVersions = versionEntries
       .map((entry) => (typeof entry["exeVersion"] === "string" ? entry["exeVersion"].trim() : ""))
@@ -259,7 +259,7 @@ export function useHostComputedValues(
       },
       erp: { version: erpVersion, paths: resolvedPaths },
     };
-  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, systemSnapshot]);
+  }, [details.agentCommands, details.company.installationDirectory, host.serviceStatus, installations, serviceStatus, sysproVersionSnapshot]);
 
   const autoHealStatusIcon = useMemo(
     () => getAutoHealStatusIconMeta(agentHealthCard.autoHeal.status),
@@ -337,7 +337,12 @@ export function useHostComputedValues(
       const processName = extractStringFromPayload(entry, ["processName", "name"]);
       return !!processName && processName.toLowerCase().includes("fbserver");
     });
-    const processRunning = typeof fbProcess?.["running"] === "boolean" ? fbProcess["running"] : null;
+    const processRunning =
+      typeof fbProcess?.["running"] === "boolean"
+        ? fbProcess["running"]
+        : typeof fbProcess?.["status"] === "string"
+          ? String(fbProcess["status"]).toLowerCase() === "running"
+          : null;
     return {
       name: persistedFirebird?.firebirdPath ?? (!hasPersistedFirebird ? softwareName : null),
       version: persistedFirebird?.firebirdVersion ?? (!hasPersistedFirebird ? softwareVersion : null),

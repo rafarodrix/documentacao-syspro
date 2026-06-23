@@ -228,11 +228,22 @@ function mapDirectoryItem(host: any): RemoteConfiguredHostItem {
   const diskLow = diskSnapshot.some((entry) => {
     const freePercent = readNumberRecordValue(entry, "freePercent");
     const freeGb = readNumberRecordValue(entry, "freeGb");
+    const freeMb = readNumberRecordValue(entry, "freeMb");
+    const totalMb = readNumberRecordValue(entry, "totalMb");
+    const usedPct = readNumberRecordValue(entry, "usedPct");
     if (typeof freePercent === "number" && freePercent <= 10) return true;
     if (typeof freeGb === "number" && freeGb <= 5) return true;
+    if (typeof freeMb === "number" && freeMb <= 5 * 1024) return true;
+    if (typeof totalMb === "number" && totalMb > 0 && typeof freeMb === "number" && freeMb / totalMb <= 0.1) return true;
+    if (typeof usedPct === "number" && usedPct >= 90) return true;
     return false;
   });
-  const sysproProcessDown = sysproProcessSnapshot.some((entry) => readBooleanRecordValue(entry, "running") === false);
+  const sysproProcessDown = sysproProcessSnapshot.some((entry) => {
+    const running = readBooleanRecordValue(entry, "running");
+    if (running === false) return true;
+    const status = typeof entry.status === "string" ? entry.status.trim().toLowerCase() : "";
+    return !!status && status !== "running";
+  });
   const extendedSnapshotDates = [host.lastHardwareIdentityAt, host.lastDiskSnapshotAt, host.lastSysproProcessSnapshotAt, host.lastWindowsUpdateStatusAt, host.lastRebootPendingAt].filter((value): value is Date => value instanceof Date);
   const lastExtendedSnapshotAt = extendedSnapshotDates.length
     ? new Date(Math.max(...extendedSnapshotDates.map((value) => (value instanceof Date ? value.getTime() : 0)))).toISOString()
@@ -447,6 +458,7 @@ function normalizeLastAgentMetrics(metrics: unknown) {
     cpuLoad: readNumberRecordValue(record, "cpuLoadPct") ?? readNumberRecordValue(record, "cpuLoad"),
     ramUsedPc: readNumberRecordValue(record, "memoryUsedPct") ?? readNumberRecordValue(record, "ramUsedPc"),
     diskFree: readNumberRecordValue(record, "diskFree"),
+    diskTotal: readNumberRecordValue(record, "diskTotal"),
     osInfo: typeof record.osInfo === "string" ? record.osInfo : null,
   };
 }

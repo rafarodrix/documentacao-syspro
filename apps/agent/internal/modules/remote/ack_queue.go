@@ -29,6 +29,8 @@ type flushStats struct {
 	Sent      int
 	Retained  int
 	Discarded int
+	Failed    int
+	Pending   int
 }
 
 func (m *Module) flushPendingAcks(ctx context.Context, agentToken string) flushStats {
@@ -69,10 +71,12 @@ func (m *Module) flushPendingAcks(ctx context.Context, agentToken string) flushS
 		}
 
 		stats.Retained++
+		stats.Failed++
 		remaining = append(remaining, item)
 		m.logger.Warn("pending ack retained for retry", "command_id", item.CommandID, "attempts", item.Attempts, "error", err)
 	}
 
+	stats.Pending = len(remaining)
 	m.savePendingAcks(ctx, remaining)
 	return stats
 }

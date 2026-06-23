@@ -37,6 +37,19 @@ function toVersionInstallations(snapshot: RemoteHostDetails["agentTelemetry"]["s
   );
 }
 
+function selectPrimaryDisk(snapshot: RemoteHostDetails["agentTelemetry"]["diskSnapshot"]) {
+  if (!snapshot.length) return null;
+  return [...snapshot].sort((a, b) => {
+    const aLetter = typeof a["letter"] === "string" ? a["letter"].toUpperCase() : "";
+    const bLetter = typeof b["letter"] === "string" ? b["letter"].toUpperCase() : "";
+    if (aLetter === "C" && bLetter !== "C") return -1;
+    if (bLetter === "C" && aLetter !== "C") return 1;
+    const aTotal = typeof a["totalMb"] === "number" ? a["totalMb"] : 0;
+    const bTotal = typeof b["totalMb"] === "number" ? b["totalMb"] : 0;
+    return bTotal - aTotal;
+  })[0] ?? null;
+}
+
 export function HostTechnicalTab({
   details,
   host,
@@ -55,8 +68,15 @@ export function HostTechnicalTab({
   const currentMetrics: LiveMetrics = lastTelemetry || host.lastAgentMetrics || {};
   const cpuLoad = readMetricNumber(currentMetrics, "cpuLoad");
   const ramUsedPc = readMetricNumber(currentMetrics, "ramUsedPc");
-  const diskFree = readMetricNumber(currentMetrics, "diskFree");
-  const diskTotal = readMetricNumber(currentMetrics, "diskTotal");
+  const primaryDisk = selectPrimaryDisk(diskSnapshot);
+  const diskFreeFromMetrics = readMetricNumber(currentMetrics, "diskFree");
+  const diskTotalFromMetrics = readMetricNumber(currentMetrics, "diskTotal");
+  const diskFree =
+    diskFreeFromMetrics ??
+    (primaryDisk && typeof primaryDisk["freeMb"] === "number" ? primaryDisk["freeMb"] * 1024 * 1024 : null);
+  const diskTotal =
+    diskTotalFromMetrics ??
+    (primaryDisk && typeof primaryDisk["totalMb"] === "number" ? primaryDisk["totalMb"] * 1024 * 1024 : null);
   const diskFreeGb = diskFree !== null ? formatNumber(diskFree / (1024 * 1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
   const diskTotalGb = diskTotal !== null ? formatNumber(diskTotal / (1024 * 1024 * 1024), { maximumFractionDigits: 0 }) : null;
   const diskUsedPc =

@@ -119,7 +119,7 @@ type remoteDesiredIntent struct {
 // Os campos do RemoteSyncRequest ja sao do tipo any, entao retornar any e correto.
 // rebootPending e separado pois o portal persiste como Boolean no schema.
 type DeviceSnapshotProvider interface {
-	GetSyncSnapshots() (metrics, disks, services, versions any, rebootPending *bool)
+	GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate any, rebootPending *bool)
 }
 
 type Module struct {
@@ -445,27 +445,32 @@ func (m *Module) runSync(ctx context.Context, st *remoteState, agentToken string
 	hostname := firstNonEmpty(st.MachineName, currentHostname())
 
 	syncReq := domain.RemoteSyncRequest{
-		AgentToken:    agentToken,
-		RustDeskID:    st.RustDeskID,
-		MachineName:   hostname,
-		AgentVersion:  m.agentVersion,
-		CurrentAlias:  st.Alias,
+		AgentToken:     agentToken,
+		RustDeskID:     st.RustDeskID,
+		MachineName:    hostname,
+		AgentVersion:   m.agentVersion,
+		CurrentAlias:   st.Alias,
 		CurrentVersion: st.CurrentVersion,
-		ServerHost:    firstNonEmpty(st.ReportedServerHost, st.ServerHost),
-		APIHost:       firstNonEmpty(st.ReportedAPIHost, st.APIHost),
-		PublicKey:     firstNonEmpty(st.ReportedPublicKey, st.PublicKey),
-		ServiceStatus: firstNonEmpty(st.ServiceStatus, "unknown"),
+		ServerHost:     firstNonEmpty(st.ReportedServerHost, st.ServerHost),
+		APIHost:        firstNonEmpty(st.ReportedAPIHost, st.APIHost),
+		PublicKey:      firstNonEmpty(st.ReportedPublicKey, st.PublicKey),
+		ServiceStatus:  firstNonEmpty(st.ServiceStatus, "unknown"),
 	}
 
 	// Injeta snapshots do device module se disponivel.
 	// Nil-safe: nos primeiros ciclos o device ainda nao coletou dados.
 	if m.device != nil {
-		devMetrics, devDisks, devServices, devVersions, devReboot := m.device.GetSyncSnapshots()
-		syncReq.AgentMetrics    = devMetrics
-		syncReq.DiskSnapshot    = devDisks
+		devMetrics, devSystem, devNetwork, devSoftware, devHardware, devDisks, devServices, devVersions, devWindowsUpdate, devReboot := m.device.GetSyncSnapshots()
+		syncReq.SystemSnapshot = devSystem
+		syncReq.NetworkSnapshot = devNetwork
+		syncReq.SoftwareSnapshot = devSoftware
+		syncReq.HardwareIdentity = devHardware
+		syncReq.DiskSnapshot = devDisks
 		syncReq.SysproProcesses = devServices
-		syncReq.SysproVersions  = devVersions
-		syncReq.RebootPending   = devReboot
+		syncReq.SysproVersions = devVersions
+		syncReq.WindowsUpdateStatus = devWindowsUpdate
+		syncReq.RebootPending = devReboot
+		syncReq.AgentMetrics = enrichAgentMetrics(devMetrics, devSystem, devDisks, st, flushStats)
 	}
 
 	syncResp, err := m.client.Sync(ctx, syncReq)
@@ -1115,6 +1120,152 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func enrichAgentMetrics(base any, system any, disks any, st *remoteState, stats flushStats) any {
+	record := normalizeAnyRecord(base)
+	if record == nil {
+		record = map[string]any{}
+	}
+
+	if osInfo := buildOSInfoLabel(system); osInfo != "" {
+		record["osInfo"] = osInfo
+	}
+
+	if diskFree, diskTotal := selectPrimaryDiskBytes(disks); diskFree > 0 || diskTotal > 0 {
+		record["diskFree"] = diskFree
+		record["diskTotal"] = diskTotal
+	}
+
+	record["lastBootstrapFlow"] = firstNonEmpty(st.LastBootstrapFlow, "unknown")
+	record["orchestrationStrategy"] = "sync_token_first"
+	record["pendingAckQueueSize"] = stats.Pending
+	record["ackQueueFlush"] = map[string]any{
+		"sent":      stats.Sent,
+		"retained":  stats.Retained,
+		"discarded": stats.Discarded,
+		"failed":    stats.Failed,
+	}
+	record["schemaVersions"] = map[string]any{
+		"discover": domain.RemoteDiscoverSchemaVersion,
+		"sync":     domain.RemoteSyncSchemaVersion,
+		"ack":      domain.RemoteAckSchemaVersion,
+	}
+
+	return record
+}
+
+func normalizeAnyRecord(value any) map[string]any {
+	if value == nil {
+		return nil
+	}
+
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil
+	}
+
+	var record map[string]any
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil
+	}
+	return record
+}
+
+func normalizeAnyRecordArray(value any) []map[string]any {
+	if value == nil {
+		return nil
+	}
+
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil
+	}
+
+	var list []map[string]any
+	if err := json.Unmarshal(data, &list); err != nil {
+		return nil
+	}
+	return list
+}
+
+func buildOSInfoLabel(system any) string {
+	record := normalizeAnyRecord(system)
+	if record == nil {
+		return ""
+	}
+
+	name, _ := record["osName"].(string)
+	version, _ := record["osVersion"].(string)
+	build, _ := record["osBuild"].(string)
+	parts := make([]string, 0, 3)
+	if strings.TrimSpace(name) != "" {
+		parts = append(parts, strings.TrimSpace(name))
+	}
+	if strings.TrimSpace(version) != "" {
+		parts = append(parts, strings.TrimSpace(version))
+	}
+	if strings.TrimSpace(build) != "" {
+		parts = append(parts, "build "+strings.TrimSpace(build))
+	}
+	return strings.TrimSpace(strings.Join(parts, " "))
+}
+
+func selectPrimaryDiskBytes(disks any) (int64, int64) {
+	list := normalizeAnyRecordArray(disks)
+	if len(list) == 0 {
+		return 0, 0
+	}
+
+	bestIndex := 0
+	bestScore := int64(-1)
+
+	for i, entry := range list {
+		letter, _ := entry["letter"].(string)
+		totalMb := readSnapshotNumber(entry, "totalMb")
+		score := totalMb
+		if strings.EqualFold(strings.TrimSpace(letter), "C") {
+			score += 1 << 50
+		}
+		if score > bestScore {
+			bestScore = score
+			bestIndex = i
+		}
+	}
+
+	selected := list[bestIndex]
+	freeMb := readSnapshotNumber(selected, "freeMb")
+	totalMb := readSnapshotNumber(selected, "totalMb")
+	return freeMb * 1024 * 1024, totalMb * 1024 * 1024
+}
+
+func readSnapshotNumber(record map[string]any, key string) int64 {
+	value, ok := record[key]
+	if !ok {
+		return 0
+	}
+
+	switch typed := value.(type) {
+	case float64:
+		return int64(typed)
+	case float32:
+		return int64(typed)
+	case int:
+		return int64(typed)
+	case int32:
+		return int64(typed)
+	case int64:
+		return typed
+	case uint32:
+		return int64(typed)
+	case uint64:
+		if typed > ^uint64(0)>>1 {
+			return 0
+		}
+		return int64(typed)
+	default:
+		return 0
+	}
 }
 
 func timePtr(value time.Time) *time.Time {

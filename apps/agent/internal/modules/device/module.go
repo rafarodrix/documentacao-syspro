@@ -18,10 +18,15 @@ type Module struct {
 	mu         sync.RWMutex
 	cycleCount uint64
 
-	lastMetrics  *AgentMetricsSnapshot
-	lastDisks    *DiskVolumeSnapshot
-	lastServices *SysproProcessSnapshot
-	lastVersions *SysproVersionSnapshot
+	lastMetrics       *AgentMetricsSnapshot
+	lastSystem        *SystemSnapshot
+	lastNetwork       *NetworkSnapshot
+	lastSoftware      []SoftwareEntry
+	lastHardware      *HardwareIdentitySnapshot
+	lastWindowsUpdate *WindowsUpdateStatusSnapshot
+	lastDisks         *DiskVolumeSnapshot
+	lastServices      *SysproProcessSnapshot
+	lastVersions      *SysproVersionSnapshot
 }
 
 // New cria um DeviceModule pronto para uso.
@@ -80,7 +85,47 @@ func (m *Module) Apply(ctx context.Context, desired domain.DesiredState, _ domai
 	}
 
 	// Disco: a cada 4 ciclos (~3 min)
-	if desired.Device.CollectInventory && m.cycleCount%4 == 0 {
+	if desired.Device.CollectInventory && (m.cycleCount == 1 || m.cycleCount%4 == 0) {
+		if system, err := m.collector.CollectSystemSnapshot(ctx); err != nil {
+			m.logger.Warn("device: collect system snapshot failed", "error", err)
+		} else {
+			m.mu.Lock()
+			m.lastSystem = system
+			m.mu.Unlock()
+		}
+
+		if network, err := m.collector.CollectNetworkSnapshot(ctx); err != nil {
+			m.logger.Warn("device: collect network snapshot failed", "error", err)
+		} else {
+			m.mu.Lock()
+			m.lastNetwork = network
+			m.mu.Unlock()
+		}
+
+		if software, err := m.collector.CollectSoftwareSnapshot(ctx); err != nil {
+			m.logger.Warn("device: collect software snapshot failed", "error", err)
+		} else {
+			m.mu.Lock()
+			m.lastSoftware = software
+			m.mu.Unlock()
+		}
+
+		if hardware, err := m.collector.CollectHardwareIdentity(ctx); err != nil {
+			m.logger.Warn("device: collect hardware identity failed", "error", err)
+		} else {
+			m.mu.Lock()
+			m.lastHardware = hardware
+			m.mu.Unlock()
+		}
+
+		if updates, err := m.collector.CollectWindowsUpdateStatus(ctx); err != nil {
+			m.logger.Warn("device: collect windows update status failed", "error", err)
+		} else {
+			m.mu.Lock()
+			m.lastWindowsUpdate = updates
+			m.mu.Unlock()
+		}
+
 		if disks, err := m.collector.CollectDisks(ctx); err != nil {
 			m.logger.Warn("device: collect disks failed", "error", err)
 		} else {
@@ -123,13 +168,25 @@ func (m *Module) GetLastSnapshot() (
 //   - rebootPending: *bool (boolean JSON) — normalizeOptionalBooleanWithWarning
 //
 // Retorna nil em cada campo enquanto a primeira coleta nao ocorreu.
-func (m *Module) GetSyncSnapshots() (metrics, disks, services, versions any, rebootPending *bool) {
+func (m *Module) GetSyncSnapshots() (metrics, system, network, software, hardware, disks, services, versions, windowsUpdate any, rebootPending *bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if m.lastMetrics != nil {
 		metrics = m.lastMetrics // objeto: collectedAt, memoryTotalMb, cpuLoadPct, ...
 		rb := m.lastMetrics.RebootPending
 		rebootPending = &rb
+	}
+	if m.lastSystem != nil {
+		system = m.lastSystem
+	}
+	if m.lastNetwork != nil {
+		network = m.lastNetwork
+	}
+	if len(m.lastSoftware) > 0 {
+		software = m.lastSoftware
+	}
+	if m.lastHardware != nil {
+		hardware = m.lastHardware
 	}
 	if m.lastDisks != nil {
 		disks = m.lastDisks.Volumes // array de DiskVolume: [{letter, label, fsType, ...}]
@@ -139,6 +196,9 @@ func (m *Module) GetSyncSnapshots() (metrics, disks, services, versions any, reb
 	}
 	if m.lastVersions != nil {
 		versions = m.lastVersions // objeto: collectedAt, installations: [...]
+	}
+	if m.lastWindowsUpdate != nil {
+		windowsUpdate = m.lastWindowsUpdate
 	}
 	return
 }

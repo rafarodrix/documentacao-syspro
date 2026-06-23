@@ -283,6 +283,7 @@ export type RemoteConfiguredHostItem = {
     cpuLoad: number | null;
     ramUsedPc: number | null;
     diskFree: number | null;
+    diskTotal: number | null;
     osInfo: string | null;
   } | null;
   lastAgentMetricsAt: string | null;
@@ -325,6 +326,7 @@ export type RemoteDiscoveredAgentItem = {
     cpuLoad: number | null;
     ramUsedPc: number | null;
     diskFree: number | null;
+    diskTotal: number | null;
     osInfo: string | null;
   } | null;
   lastAgentMetricsAt: string | null;
@@ -594,6 +596,7 @@ const remoteLastAgentMetricsSchema = z.object({
   cpuLoad: z.number().nullable(),
   ramUsedPc: z.number().nullable(),
   diskFree: z.number().nullable(),
+  diskTotal: z.number().nullable(),
   osInfo: z.string().nullable(),
 });
 
